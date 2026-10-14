@@ -30,6 +30,7 @@ import XmssSecurity.Proof.Attack.NeighborSearch
 import XmssSecurity.Proof.Attack.PreimageSearch
 import XmssSecurity.Proof.Attack.NeighborPreimageCache
 import XmssSecurity.Proof.Attack.NeighborVerification
+import XmssSecurity.Proof.Attack.NeighborExperiment
 
 /-!
 # Security of XMSS in the random-oracle model
