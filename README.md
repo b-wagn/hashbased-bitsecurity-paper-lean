@@ -135,6 +135,8 @@ after the limited prefix and proves that its extra expected hazard is exactly th
 encoding's acceptance probability. `Proof/Direct/LimitedFirstLaneExpected.lean` carries this
 through key generation to the original source-prefix probability; the signer-mode statement
 budget now instantiates that bound directly.
+`Proof/Direct/SeedGuessingExpected.lean` refines the seeded-to-reference reduction to charge
+only the expected number of seed-derivation-tag queries, instead of all direct hash queries.
 The remaining assembly must combine the limited experiment's probability bounds, account for
 a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
