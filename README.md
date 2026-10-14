@@ -130,6 +130,11 @@ with both the source charge and the public ideal charge bounded on every coupled
 `Proof/Direct/LimitedPrefixSupport.lean` recovers an exact original execution from every
 successful limited run, preserves the returned-signature coverage invariant, and bounds
 accepted encodings in its final cache by the acceptance probability times fresh samples.
+`Proof/Direct/LimitedAcceptedProbe.lean` transfers accepted source events to a deciding probe
+after the limited prefix and proves that its extra expected hazard is exactly the forged
+encoding's acceptance probability. `Proof/Direct/LimitedFirstLaneExpected.lean` carries this
+through key generation to the original source-prefix probability; the signer-mode statement
+budget now instantiates that bound directly.
 The remaining assembly must combine the limited experiment's probability bounds, account for
 a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the

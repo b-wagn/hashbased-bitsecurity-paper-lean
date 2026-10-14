@@ -1,10 +1,11 @@
 import XmssSecurity.Proof.Modes.SignerSourceBudget
 import XmssSecurity.Proof.Direct.LimitedPrefixCoupling
+import XmssSecurity.Proof.Direct.LimitedFirstLaneExpected
 
 /-! The unchanged signer-mode query bound controls both sides of the coupling to
 the limited public first-lane experiment, including all post-collision executions. -/
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 
 set_option backward.isDefEq.respectTransparency false
@@ -36,8 +37,22 @@ theorem signer_limitedFirstLane_prefix_coupling
     (memoize (adversary.main left.publicKey) ∅)
     (signer_countedSourceBudget_after_trajectory adversary q hsmall hbound left hleftSupport)
 
+theorem signer_acceptedPrefixFirstLane_probability_le_limited_expected
+    (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
+    Pr[fun result => Deciding.AcceptedPrefixFirstLaneEvent result.1 result.2 |
+      Deciding.sourcePrefixProgram (memoAdversary (Security.embed adversary))] ≤
+      ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ * Deciding.expectedCoupledHazards (q + 1)
+        (Deciding.publicLimitedAcceptedPrefixProbeExecution q (memoAdversary (Security.embed adversary))) :=
+  Deciding.acceptedPrefixFirstLane_probability_le_limited_expected (memoAdversary (Security.embed adversary)) q
+    (signer_countedSourceBudget_after_trajectory adversary q hsmall hbound)
+
 /-- info: 'XmssSecurity.Modes.signer_limitedFirstLane_prefix_coupling' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms signer_limitedFirstLane_prefix_coupling
+
+/-- info: 'XmssSecurity.Modes.signer_acceptedPrefixFirstLane_probability_le_limited_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms signer_acceptedPrefixFirstLane_probability_le_limited_expected
 
 end XmssSecurity.Modes
