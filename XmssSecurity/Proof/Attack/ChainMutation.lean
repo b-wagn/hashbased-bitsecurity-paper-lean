@@ -32,6 +32,10 @@ noncomputable local instance : SampleableType (ChainIndex × Digest) :=
 
 noncomputable def mutationChoice : ProbComp (ChainIndex × Digest) := $ᵗ (ChainIndex × Digest)
 
+theorem mutationChoice_evalDist : evalDist mutationChoice =
+    (liftM (PMF.uniformOfFintype (ChainIndex × Digest)) : SPMF (ChainIndex × Digest)) := by
+  exact evalDist_uniformSample (ChainIndex × Digest)
+
 attribute [irreducible] mutationChoice
 
 def liftPrivateSamples {α : Type} (computation : ProbComp α) :

@@ -23,6 +23,7 @@ import XmssSecurity.Proof.Attack.MutationProbability
 import XmssSecurity.Proof.Attack.MutationSigningCache
 import XmssSecurity.Proof.Attack.MutationVerification
 import XmssSecurity.Proof.Attack.MutationAverage
+import XmssSecurity.Proof.Attack.MutationGame
 
 /-!
 # Security of XMSS in the random-oracle model
