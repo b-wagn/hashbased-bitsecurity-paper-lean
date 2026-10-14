@@ -13,6 +13,7 @@ import XmssSecurity.Proof.Modes.Exact
 import XmssSecurity.Proof.Modes.Keygen
 import XmssSecurity.Proof.Modes.Verifier
 import XmssSecurity.Proof.EncodingProbability
+import XmssSecurity.Proof.EncodingRejectionProbability
 
 /-!
 # Security of XMSS in the random-oracle model

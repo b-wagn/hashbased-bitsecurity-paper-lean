@@ -67,6 +67,9 @@ strictly between `2^-15` and `2^-14`. `Proof/EncodingCardinality.lean` proves th
 recurrence; `scripts/generate_encoding_count.py` generates finite certificates whose equations
 Lean checks. `Proof/EncodingProbability.lean` derives the probability bounds and the average
 number of collision opportunities when a uniformly chosen signature chain is changed.
+`Proof/EncodingRejectionProbability.lean` accounts for repeated randomizers and proves that
+a fresh signing request in the randomized reference scheme succeeds with probability greater
+than `31/32` after every supported key-generation result.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
