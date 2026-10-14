@@ -3,6 +3,7 @@ import XmssSecurity.Proof.Adversary.Security
 import XmssSecurity.Proof.Direct.Assemble
 import XmssSecurity.Proof.Direct.DecidingAssemble
 import XmssSecurity.Proof.Direct.DecidingSecurity
+import XmssSecurity.Proof.Direct.DecidingSecondLaneAccepted
 import XmssSecurity.Proof.Direct.EncodingPrehit
 import XmssSecurity.Proof.Direct.LargeBudget
 import XmssSecurity.Proof.Modes.Direct

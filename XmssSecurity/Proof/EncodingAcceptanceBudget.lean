@@ -117,6 +117,25 @@ theorem Concrete.keygen_no_acceptedEncoding
     ¬HasAcceptedEncoding keyResult.1.2.parameter keyResult.2 :=
   not_hasAcceptedEncoding_of_no_encodingInputs _ _ (keygen_cache_none_encodingInput keyResult hkey)
 
+theorem Concrete.precomputedKeygen_no_acceptedEncoding
+    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.precomputedKeygen).run ∅)) :
+    ¬HasAcceptedEncoding keyResult.1.2.parameter keyResult.2 :=
+  not_hasAcceptedEncoding_of_no_encodingInputs _ _
+    (precomputedKeygen_cache_none_encodingInput keyResult hkey)
+
+theorem hasAcceptedEncoding_of_decode
+    (parameter : PublicParameter) (cache : QueryCache HashSpec)
+    (leafIndex : LeafIndex) (message : Message) (randomness : Randomness) (encoding : Encoding)
+    (hdecode : TargetSum.decodeDigest
+      (Concrete.CacheView.encodingHash cache parameter leafIndex (message, randomness)) =
+        some encoding) : HasAcceptedEncoding parameter cache := by
+  obtain ⟨output, hcached⟩ := Concrete.CacheView.encodingInput_cached_of_decode_some cache
+    parameter leafIndex message randomness encoding hdecode
+  refine ⟨Concrete.CacheView.encodingInput parameter leafIndex (message, randomness),
+    output, hcached, by simp, encoding, ?_⟩
+  simpa [Concrete.CacheView.encodingHash, Concrete.CacheView.digestAt, hcached] using hdecode
+
 theorem Concrete.precomputedCappedSign_hasAcceptedEncoding_of_success
     (secretKey : SecretKey) (request : SignRequest)
     (initialCache finalCache : QueryCache HashSpec) (signature : Signature)
@@ -125,11 +144,7 @@ theorem Concrete.precomputedCappedSign_hasAcceptedEncoding_of_success
     HasAcceptedEncoding secretKey.parameter finalCache := by
   obtain ⟨encoding, hdecode⟩ := precomputedCappedSign_success_decode secretKey request
     initialCache finalCache signature hmem
-  obtain ⟨output, hcached⟩ := precomputedCappedSign_success_encodingInput_cached secretKey request
-    initialCache finalCache signature hmem
-  refine ⟨CacheView.encodingInput secretKey.parameter request.epoch
-    (request.message, signature.randomness), output, hcached, by simp, encoding, ?_⟩
-  simpa [CacheView.encodingHash, CacheView.digestAt, hcached] using hdecode
+  exact hasAcceptedEncoding_of_decode _ _ _ _ _ _ hdecode
 
 theorem Concrete.precomputedCappedSign_success_le_expectedEncodingQueries
     (secretKey : SecretKey) (request : SignRequest) (cache : QueryCache HashSpec)

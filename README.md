@@ -72,6 +72,9 @@ the probability of obtaining any accepted encoding is at most its acceptance pro
 times the expected number of encoding queries, starting from a cache with no accepted encoding.
 The bound allows adaptive queries and cached replies; it also bounds successful reference
 signing and proves the initial condition after reference key generation.
+`Proof/Direct/DecidingSecondLaneAccepted.lean` uses this bound to replace the second lane's
+constant forty-query verification allowance by `40` times the acceptance probability times
+the expected encoding-query count before verification.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
