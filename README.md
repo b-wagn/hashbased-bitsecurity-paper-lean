@@ -165,6 +165,9 @@ and proves the original signer-mode advantage bound at 127 bits whenever the mem
 adversary always caches its forged encoding. This conditional result includes every budget size.
 The remaining signer-mode proof must handle fresh forged encodings and combine both cases
 without an unconditional extra query charge.
+`Proof/Direct/VerificationAcceptance.lean` bounds fresh verification success by the exact
+encoding acceptance probability, rules out cached invalid encodings, and retains the
+acceptance factor when restricting to any prefix event whose cache has no accepted encoding.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

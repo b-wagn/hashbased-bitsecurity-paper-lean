@@ -37,6 +37,7 @@ import XmssSecurity.Proof.Modes.SignerCachedLoss
 import XmssSecurity.Proof.Direct.CachedEncodingCost
 import XmssSecurity.Proof.Direct.LimitedAcceptanceTransfer
 import XmssSecurity.Proof.Modes.SignerCachedSecurity
+import XmssSecurity.Proof.Direct.VerificationAcceptance
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
 import XmssSecurity.Proof.EncodingAcceptanceBudget
