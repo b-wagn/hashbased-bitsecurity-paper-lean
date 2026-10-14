@@ -109,6 +109,10 @@ reference key-generation outcome, charging direct hashes once and reference sign
 including signing calls with random costs. `Proof/Modes/SignerFirstLaneCoupling.lean` carries it
 through the complete first-lane prefix coupling: while the executions agree, the ideal hazard
 count plus twice the actual reference signer count is at most the statement's budget.
+`Proof/FirstLaneEncodingCount.lean` identifies fresh encoding observations with the exact growth
+of the ideal encoding cache. `Proof/Direct/FirstLaneSampleBudget.lean` then bounds those observations
+by direct encoding queries plus source signer hashes, and obtains a shared charge expressed
+entirely through the ideal trace and attacker log on the coupling's good branch.
 The remaining assembly must enforce a shared budget in the ideal experiment after divergence,
 account for a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
