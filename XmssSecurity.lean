@@ -111,12 +111,12 @@ the security notion with its counting modes, and bit security) live under `State
 proofs under `Proof/`.
 
 The lattice of counting modes (`Proof/Modes/Lattice.lean`) spreads the proved levels to the
-other modes: 122 bits holds in every mode, and 127 bits holds in every mode charging key generation
-or verification.
+other modes: 122 bits holds in every mode, and 127 bits holds in every mode charging key generation,
+signing hashes, or verification.
 The one-request chain-mutation attack proves that the two modes charging no honest-party
 hashes have exactly 122 bits.
 The neighboring-encoding attack refutes 128 bits even when every hash and signing request
-is charged, completing exact 127-bit security for every mode charging key generation or verification.
+is charged. Together these bounds prove `XmssSufCmaExactStatement` for all sixteen modes.
 -/
 
 
@@ -228,6 +228,20 @@ theorem xmss_sufCma_secure_127_of_verifier (mode : CountingMode) (hv : mode.veri
   Modes.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le, hv]) xmss 127
     xmss_sufCma_verifier_127
 
+/-- Charging direct queries and signer hashes gives 127-bit security. -/
+theorem xmss_sufCma_signer_127 : XmssSufCmaSecure ⟨false, true, false, false⟩ 127 :=
+  Modes.sufCmaSigner_127
+
+/-- info: 'XmssSecurity.xmss_sufCma_signer_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_signer_127
+
+/-- Every mode charging signer hashes inherits the 127-bit guarantee. -/
+theorem xmss_sufCma_secure_127_of_signer (mode : CountingMode) (hs : mode.signer = true) :
+    XmssSufCmaSecure mode 127 :=
+  Modes.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le, hs]) xmss 127
+    xmss_sufCma_signer_127
+
 /-- The direct mode charges the least, so its level holds in every mode. -/
 theorem xmss_sufCma_secure_119 (mode : CountingMode) : XmssSufCmaSecure mode 119 :=
   Modes.hasClassicalSecurityBits_of_le (m := CountingMode.direct)
@@ -297,5 +311,15 @@ theorem xmss_sufCma_everything_exact_127 :
 /-- info: 'XmssSecurity.xmss_sufCma_everything_exact_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_sufCma_everything_exact_127
+
+/-- The unchanged exact-security statement holds for all sixteen counting modes. -/
+theorem xmss_sufCma_exact : XmssSufCmaExactStatement :=
+  Modes.exactStatement_of_basis xmss_sufCma_direct_122 xmss_sufCma_keygen_127
+    xmss_sufCma_signer_127 xmss_sufCma_verifier_127 xmss_sufCma_requests_attack_122
+      xmss_sufCma_everything_attack_127
+
+/-- info: 'XmssSecurity.xmss_sufCma_exact' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_exact
 
 end XmssSecurity

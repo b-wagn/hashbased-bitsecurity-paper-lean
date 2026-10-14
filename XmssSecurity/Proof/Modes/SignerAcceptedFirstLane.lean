@@ -44,7 +44,8 @@ theorem signer_cached_seeded_loss_le_source_credit (adversary : Security.Stateme
   exact add_le_add hfirst (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss _ hcached)
 
 /-- For arbitrary adversaries the fresh contribution is retained explicitly. Its
-acceptance factor is established here; its collision factor remains to be bounded. -/
+acceptance factor is established here; `Direct/TerminalMixedFirstLane.lean` bounds the
+collision contribution in the complete signer-mode proof. -/
 theorem signer_firstLane_probability_le_accepted_add_fresh
     (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :

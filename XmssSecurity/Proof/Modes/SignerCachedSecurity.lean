@@ -4,7 +4,7 @@ import XmssSecurity.Proof.Direct.CachedEncodingCost
 import XmssSecurity.Proof.Direct.LimitedAcceptanceTransfer
 
 /-! The complete signer-counted 127-bit bound when the memoized adversary always
-caches its forged encoding. The general fresh-encoding case remains separate. -/
+caches its forged encoding. The general case is completed in `Modes/Signer.lean`. -/
 
 open OracleComp OracleSpec ENNReal
 

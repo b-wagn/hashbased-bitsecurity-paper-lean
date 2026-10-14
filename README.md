@@ -6,6 +6,11 @@ The development started from the 127-bit SUF-CMA proof in
 [leanEthereum/leanVM](https://github.com/leanEthereum/leanVM/tree/main/formal/xmss) and
 separates *what is claimed* from *why it holds*.
 
+The exact-security statement is proved for **all 16 counting modes** by
+`XmssSecurity.xmss_sufCma_exact`: exactly 122 bits when no honest-party hashes are
+charged, and exactly 127 bits when key generation, signing hashes, or verification
+is charged. The statement layer is unchanged.
+
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any
 implementation and cannot replace an audit.
@@ -44,12 +49,15 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Every mode charging key generation | 127 | `xmss_sufCma_secure_127_of_keygen` |
 | Direct queries and verification | 127 | `xmss_sufCma_verifier_127` |
 | Every mode charging verification | 127 | `xmss_sufCma_secure_127_of_verifier` |
+| Direct queries and signer hashes | 127 | `xmss_sufCma_signer_127` |
+| Every mode charging signer hashes | 127 | `xmss_sufCma_secure_127_of_signer` |
 | Every hash call and every signing request | 127 | `xmss_sufCma_everything_127` |
 | Every hash call and every signing request: attack against 128 bits | upper bound 127 | `xmss_sufCma_everything_attack_127` |
 | Every counting mode: attack against 128 bits | upper bound 127 | `xmss_sufCma_attack_127` |
 | Every mode charging key generation or verification, both bounds | exactly 127 | `xmss_sufCma_exact_127_of_keygen_or_verifier` |
 | Every hash call, both bounds | exactly 127 | `xmss_sufCma_allHashes_exact_127` |
 | Every hash call and every signing request, both bounds | exactly 127 | `xmss_sufCma_everything_exact_127` |
+| `XmssSufCmaExactStatement`: all sixteen modes, both bounds | exactly 122 or 127 | `xmss_sufCma_exact` |
 
 The direct proof now reaches the conjectured lower bound of 122 bits. It selects one deciding
 chain, charges one probe in the first lane, and charges at most 40 verification queries on the
@@ -64,10 +72,10 @@ The verifier-counted proof uses the exact 133-query cost of accepting verificati
 preserves the contribution of successful executions after subtracting that cost, even when
 unsuccessful executions exceed the reduced budget. See `Proof/Modes/Verifier.lean`.
 
-Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to six
-basis obligations, of which only one remains: 127-bit security when only signer hashes are
-additionally charged. Exact security is now proved for fourteen of the sixteen modes.
-For the remaining signer-counted bound, `Proof/EncodingAcceptanceBudget.lean` proves that
+`Proof/Modes/Exact.lean` reduces exact security for all sixteen modes to six basis
+obligations. All six are proved; `Proof/Modes/Signer.lean` completes the last one,
+127-bit security when only signer hashes are additionally charged.
+For this signer-counted bound, `Proof/EncodingAcceptanceBudget.lean` proves that
 the probability of obtaining any accepted encoding is at most its acceptance probability
 times the expected number of encoding queries, starting from a cache with no accepted encoding.
 The bound allows adaptive queries and cached replies; it also bounds successful reference
@@ -95,7 +103,8 @@ existing first-lane experiment. `Proof/FirstLaneExpectedTrace.lean` identifies t
 with the execution trace and proves that enforcement can only decrease it.
 `Proof/Direct/DecidingFirstLaneExpected.lean` carries the bound through the existing
 couplings to the original first-lane winning event in the reference game. The resulting
-expected hazard count still needs to be related to the signer-counted budget.
+expected hazard count is related to the signer-counted budget by the source accounting
+and public budget enforcement described below.
 `Proof/Direct/DecidingAcceptedProbe.lean` removes the unconditional extra deciding probe:
 the probe runs only for an accepted forged encoding, and its expected charge is exactly
 the probability of that condition. The proof preserves the original winning-event bound.
@@ -219,7 +228,7 @@ for cached and fresh branches.
 `Proof/Modes/SignerSharedPrefix.lean` assembles this bound with all remaining losses
 and proves the original 127-bit advantage bound for every budget when `E + S ≥ 1/512`.
 This permits fresh forged encodings and does not require an always-cached adversary.
-The general signer-mode theorem still needs the case `E + S < 1/512`.
+The complementary case `E + S < 1/512` uses a saving on the last prefix query.
 `Proof/Direct/SourceBudgetExhaustion.lean` proves that exhausting the source budget
 freezes its hash cache, and that a last nonencoding hash cannot create an accepted
 encoding in a previously rejecting cache. `SourceTerminalRejection.lean` rules out
@@ -241,6 +250,13 @@ the probability of any source encoding or signing activity by `E + S`.
 `TerminalActivityCancellation.lean` transfers both terminal and deciding-probe
 charges through the same coupling. `TerminalActivityBound.lean` consequently bounds
 cached first-lane witnesses by `(q - 1 + 2(E + S)) / 2^128` for positive budgets.
+`TerminalMixedFirstLane.lean` averages this saving over the fresh fallback encoding
+and includes the fresh encoding-collision contribution. `Proof/Modes/Signer.lean`
+combines the result with the secondary loss and proves the general 127-bit bound:
+small credit pays the remaining verification allowance from the saved query, while
+credit at least `1/512` uses the existing encoding reserve. The root module combines
+this theorem with the other five basis results and checks the axioms of the complete
+`XmssSufCmaExactStatement` proof.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
