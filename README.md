@@ -45,6 +45,11 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Direct queries and verification | 127 | `xmss_sufCma_verifier_127` |
 | Every mode charging verification | 127 | `xmss_sufCma_secure_127_of_verifier` |
 | Every hash call and every signing request | 127 | `xmss_sufCma_everything_127` |
+| Every hash call and every signing request: attack against 128 bits | upper bound 127 | `xmss_sufCma_everything_attack_127` |
+| Every counting mode: attack against 128 bits | upper bound 127 | `xmss_sufCma_attack_127` |
+| Every mode charging key generation or verification, both bounds | exactly 127 | `xmss_sufCma_exact_127_of_keygen_or_verifier` |
+| Every hash call, both bounds | exactly 127 | `xmss_sufCma_allHashes_exact_127` |
+| Every hash call and every signing request, both bounds | exactly 127 | `xmss_sufCma_everything_exact_127` |
 
 The direct proof now reaches the conjectured lower bound of 122 bits. It selects one deciding
 chain, charges one probe in the first lane, and charges at most 40 verification queries on the
@@ -60,8 +65,8 @@ preserves the contribution of successful executions after subtracting that cost,
 unsuccessful executions exceed the reduced budget. See `Proof/Modes/Verifier.lean`.
 
 Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to six
-basis obligations, of which two remain: 127-bit security when only signer hashes are
-additionally charged, and an attack against 128 bits when everything is charged.
+basis obligations, of which only one remains: 127-bit security when only signer hashes are
+additionally charged. Exact security is now proved for fourteen of the sixteen modes.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
@@ -105,10 +110,9 @@ equivalence for adversaries making no direct hash queries. `Proof/Attack/ChainMu
 uses the attack's single request to eliminate memoization, transfers its advantage exactly to
 the seeded scheme, and proves the attack claims with the already verified one-query budget.
 
-For the remaining attack against 128 bits, `Proof/Attack/EncodingNeighbors.lean` proves that
+For the attack against 128 bits, `Proof/Attack/EncodingNeighbors.lean` proves that
 every valid encoding has at least 392 distinct valid neighboring digests obtained by decreasing
-one digit and increasing another. The encoding-search and predecessor-search attack still
-needs its final verification and total-budget proofs. `Proof/Attack/HashSearch.lean` provides
+one digit and increasing another. `Proof/Attack/HashSearch.lean` provides
 a bounded search with exact fresh-input failure probability and guaranteed cached-hit success.
 `Proof/Attack/NeighborSearch.lean` proves that, after signing, searching `2^121` distinct
 randomizers for a different message finds a neighboring encoding with probability greater
@@ -133,8 +137,9 @@ than `5/64`. `Proof/Attack/NeighborSeeded.lean` proves exact equality of its ref
 deterministic seeded advantages, using its single signing request and absence of
 seed-derivation queries. `Proof/Attack/NeighborBudget.lean` bounds key generation, signing,
 the adversary, verification, and the single request by `2^124 + 2^122` in total, whose ratio to
-`2^128` is `5/64`. Connecting these component bounds to the statement's counted experiment
-is the remaining accounting step for this attack.
+`2^128` is `5/64`. `Proof/Attack/NeighborAccounting.lean` connects these component bounds
+to the statement's counted experiment, proves the unchanged everything-counted attack claim,
+and completes the attack against 128 bits.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the

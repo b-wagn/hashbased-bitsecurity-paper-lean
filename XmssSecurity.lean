@@ -35,6 +35,7 @@ import XmssSecurity.Proof.Attack.NeighborAdversary
 import XmssSecurity.Proof.Attack.NeighborGame
 import XmssSecurity.Proof.Attack.NeighborSeeded
 import XmssSecurity.Proof.Attack.NeighborBudget
+import XmssSecurity.Proof.Attack.NeighborAccounting
 
 /-!
 # Security of XMSS in the random-oracle model
@@ -48,6 +49,8 @@ other modes: 122 bits holds in every mode, and 127 bits holds in every mode char
 or verification.
 The one-request chain-mutation attack proves that the two modes charging no honest-party
 hashes have exactly 122 bits.
+The neighboring-encoding attack refutes 128 bits even when every hash and signing request
+is charged, completing exact 127-bit security for every mode charging key generation or verification.
 -/
 
 
@@ -181,5 +184,52 @@ theorem xmss_sufCma_secure_127 (mode : CountingMode) (hk : mode.keygen = true)
 /-- In particular, counting every hash call and every signing request. -/
 theorem xmss_sufCma_everything_127 : XmssSufCmaSecure CountingMode.everything 127 :=
   xmss_sufCma_secure_127 _ rfl rfl rfl
+
+/-- The neighboring-encoding attack refutes 128 bits when every hash and request is charged. -/
+theorem xmss_sufCma_everything_attack_127 : XmssSufCmaEverythingAttackStatement :=
+  Attack.neighbor_everything_attack
+
+/-- info: 'XmssSecurity.xmss_sufCma_everything_attack_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_everything_attack_127
+
+/-- Every counting mode inherits the attack against 128-bit security. -/
+theorem xmss_sufCma_attack_127 (mode : CountingMode) : XmssSufCmaAttack mode 127 :=
+  Modes.not_hasClassicalSecurityBits_of_le (Modes.le_everything mode) xmss 128 xmss_sufCma_everything_attack_127
+
+/-- info: 'XmssSecurity.xmss_sufCma_attack_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_attack_127
+
+/-- Charging key generation or verification gives exactly 127 bits. -/
+theorem xmss_sufCma_exact_127_of_keygen_or_verifier (mode : CountingMode)
+    (hcharged : mode.keygen = true ∨ mode.verifier = true) :
+    (SUFCMA.notion mode).HasExactClassicalSecurityBits xmss 127 := by
+  refine ⟨?_, xmss_sufCma_attack_127 mode⟩
+  rcases hcharged with hkeygen | hverifier
+  · exact xmss_sufCma_secure_127_of_keygen mode hkeygen
+  · exact xmss_sufCma_secure_127_of_verifier mode hverifier
+
+/-- info: 'XmssSecurity.xmss_sufCma_exact_127_of_keygen_or_verifier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_exact_127_of_keygen_or_verifier
+
+/-- Counting every hash call gives exactly 127 bits. -/
+theorem xmss_sufCma_allHashes_exact_127 :
+    (SUFCMA.notion CountingMode.allHashes).HasExactClassicalSecurityBits xmss 127 :=
+  ⟨xmss_sufCma_allHashes_127, xmss_sufCma_attack_127 _⟩
+
+/-- info: 'XmssSecurity.xmss_sufCma_allHashes_exact_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_allHashes_exact_127
+
+/-- Counting every hash call and signing request gives exactly 127 bits. -/
+theorem xmss_sufCma_everything_exact_127 :
+    (SUFCMA.notion CountingMode.everything).HasExactClassicalSecurityBits xmss 127 :=
+  ⟨xmss_sufCma_everything_127, xmss_sufCma_everything_attack_127⟩
+
+/-- info: 'XmssSecurity.xmss_sufCma_everything_exact_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_everything_exact_127
 
 end XmssSecurity
