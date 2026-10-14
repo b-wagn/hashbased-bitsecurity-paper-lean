@@ -37,6 +37,7 @@ import XmssSecurity.Proof.Seeded.KeygenEncodingCache
 import XmssSecurity.Proof.FirstLaneEncodingExpected
 import XmssSecurity.Proof.FirstLaneChainExpected
 import XmssSecurity.Proof.FirstLaneEncodingCache
+import XmssSecurity.Proof.FirstLaneEncodingCount
 import XmssSecurity.Proof.FreshPathProbability
 import XmssSecurity.Proof.Attack.PathBounds
 import XmssSecurity.Proof.Attack.ChainMutation
