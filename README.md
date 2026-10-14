@@ -163,8 +163,7 @@ counted source with an explicit prefix-collision term, allowing the executions t
 credit. `Proof/Modes/SignerCachedSecurity.lean` uses it to discharge the first-lane estimate
 and proves the original signer-mode advantage bound at 127 bits whenever the memoized
 adversary always caches its forged encoding. This conditional result includes every budget size.
-The remaining signer-mode proof must handle fresh forged encodings and combine both cases
-without an unconditional extra query charge.
+Fresh forged encodings are handled by the shared-prefix construction below.
 `Proof/Direct/VerificationAcceptance.lean` bounds fresh verification success by the exact
 encoding acceptance probability, rules out cached invalid encodings, and retains the
 acceptance factor when restricting to any prefix event whose cache has no accepted encoding.
@@ -179,8 +178,8 @@ encodings on some executions, and refines the cached-game loss assembly.
 factor through the winning verification phase and the instrumented source finisher,
 including events selected using auxiliary prefix randomness. It also decomposes the
 full first lane into accepted prefixes and an explicit fresh contribution; the signer
-budget now bounds the former for arbitrary adversaries. The latter still needs its
-collision bound before the general 127-bit theorem can be assembled.
+budget bounds the former for arbitrary adversaries. The latter is bounded by the
+fresh-encoding and revealed-value arguments below.
 `Proof/Direct/QueriedEncodingAcceptance.lean` proves that moving the final encoding
 query into the prefix preserves the structural-query count and creates acceptance only
 on fresh inputs. `Proof/Direct/DecidingSecondLaneFresh.lean` removes the always-cached
@@ -196,8 +195,8 @@ unique signature at the forged leaf by `2^-128`, and requires an accepted encodi
 the prefix. Its budget and source-projection lemmas charge this branch to the source
 encoding credit. `Proof/Direct/FreshFirstLaneSplit.lean` consequently reduces the fresh
 first lane to its revealed deciding-value event plus that paid encoding collision.
-The signer-mode assembly now retains only the fresh revealed-value probability and
-the fresh verification allowance as its unresolved contributions.
+This decomposition isolates the fresh revealed-value probability and the fresh
+verification allowance for the subsequent shared-prefix assembly.
 `Proof/AcceptedHashSampling.lean` constructs uniform accepted hash outputs and proves
 the exact acceptance factor for continuations that reject invalid encodings.
 `Proof/Direct/FreshRevealedConditioning.lean` applies that identity to the actual fresh
@@ -208,7 +207,15 @@ that witness to a hidden-value probe hit through the existing prefix coupling.
 `Proof/Direct/LimitedEncodingProbe.lean` bounds the supplied-encoding probe experiment
 by `(q + 1) / 2^128`. `Proof/Direct/FreshRevealedBound.lean` then bounds the actual
 fresh revealed-value contribution by the encoding acceptance probability times that
-quantity. Combining cached and fresh branches within the sharp 127-bit budget remains.
+quantity.
+`Proof/Direct/MixedEncodingProbe.lean` combines cached encodings and an independent
+fallback in one limited-prefix experiment. Its bound cancels the conditional probe
+charge, and `MixedEncodingProbability.lean` averages the fallback over its acceptance
+probability. `MixedFirstLane.lean` transfers the actual first-lane event to that
+experiment and proves `q / 2^128 + p * (2 * (E + S) + 1) / 2^128`, where `p` is the
+encoding acceptance probability, `E` counts expected direct encoding queries, and
+`S` counts expected source signer hashes. This avoids charging the prefix separately
+for cached and fresh branches.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

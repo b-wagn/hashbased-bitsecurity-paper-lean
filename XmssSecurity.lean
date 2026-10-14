@@ -44,6 +44,10 @@ import XmssSecurity.Proof.Direct.FreshRevealedConditioning
 import XmssSecurity.Proof.Direct.RevealedEncodingPrefix
 import XmssSecurity.Proof.Direct.LimitedEncodingProbe
 import XmssSecurity.Proof.Direct.FreshRevealedBound
+import XmssSecurity.Proof.Direct.MixedEncodingProbe
+import XmssSecurity.Proof.Direct.MixedEncodingProbeBound
+import XmssSecurity.Proof.Direct.MixedEncodingProbability
+import XmssSecurity.Proof.Direct.MixedFirstLane
 import XmssSecurity.Proof.Direct.VerificationAcceptance
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
