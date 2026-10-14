@@ -216,6 +216,10 @@ experiment and proves `q / 2^128 + p * (2 * (E + S) + 1) / 2^128`, where `p` is 
 encoding acceptance probability, `E` counts expected direct encoding queries, and
 `S` counts expected source signer hashes. This avoids charging the prefix separately
 for cached and fresh branches.
+`Proof/Modes/SignerSharedPrefix.lean` assembles this bound with all remaining losses
+and proves the original 127-bit advantage bound for every budget when `E + S ≥ 1/512`.
+This permits fresh forged encodings and does not require an always-cached adversary.
+The general signer-mode theorem still needs the case `E + S < 1/512`.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
