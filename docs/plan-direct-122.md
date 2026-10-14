@@ -1,9 +1,46 @@
-# Plan: direct-mode SUF-CMA at 122 bits
+# Direct-mode SUF-CMA at 122 bits: completed proof
 
 Target: `XmssSufCmaDirectStatement` at 122 bits, i.e. for every adversary with at most `D ≥ 1`
 direct hash queries, `Pr[win] ≤ D / 2^122 = 64·D / 2^128`.
 
-## Where the current proof (119 bits) loses
+## Status
+
+`XmssSecurity.xmss_sufCma_direct_122` is proved and imported by the root module. Its axiom guard
+permits only `propext`, `Classical.choice`, and `Quot.sound`. The statement layer is unchanged.
+
+The completed route is:
+
+- `DecidingClassification`, `DecidingCache`, `DecidingPrefix`, and `DecidingCollision`: a winning
+  forgery without an encoding event or a hidden deciding value has a collision on its deciding path.
+- `DecidingSecondLane`: the unconditional bound `(D + 41) / 2^128`.
+- `DecidingFirstLaneCoupling`: stop the source/eager coupling before verification, with budget `D`.
+- `DecidingProbe`: select the same deciding chain using public reveal queries only at coordinates
+  at or above the signed digit, then emit one probe. Selection has zero hazards; the probe has one.
+- `DecidingPrefixCoverage`, `DecidingPrefixEvent`, `DecidingPrefixProgram`, and
+  `DecidingPrefixBound`: the prefix event has probability at most `(D + 1) / 2^128`.
+- `DecidingPrefixProjection`, `DecidingPrefixStability`, and `DecidingFirstLaneBridge`: move the
+  full winning event to this prefix after querying the forged encoding, giving `(D + 2) / 2^128`.
+- `DecidingSecurity`: combine both lanes, prehits, and seed guessing, then transfer to the
+  statement's semantically bounded adversaries.
+
+The first-lane hidden-value branch includes `won = true`. The winning condition provides a valid
+signing transcript; dropping it would permit repeated signing requests to reveal values below an
+earlier signature's digit without spending a direct query.
+
+The actual final bound is
+
+```
+(D + 2) / 2^128 + 2^32 * (D + 1) / 2^192 + (D + 42) / 2^128 + D / 2^256
+  ≤ D / 2^122, for D ≥ 1.
+```
+
+The extra unit in the second lane comes from applying both lanes to the adversary augmented with
+the forged encoding query. That extra query leaves the game's outcome distribution unchanged.
+
+The following sections record the original proof plan; the details above describe the implemented
+route. Attack witnesses and the remaining 127-bit counting modes are separate, still-open tasks.
+
+## Where the original proof (119 bits) loses
 
 `Proof/Direct/Assemble.lean` bounds the idealized scheme by four terms:
 
@@ -54,8 +91,8 @@ The signer only queries encoding inputs; key generation only honest inputs.
   collision on the deciding path ≤ `40 / 2^128`;
 * seed: unchanged.
 
-Total `≤ (2·D + 42 + ε) / 2^128 ≤ 64·D / 2^128` for `D ≥ 1`. The attack gives `≥ 36 / 2^128`
-at `D = 0` (charged 1), so 122 is exact.
+Total `≤ (2·D + 42 + ε) / 2^128 ≤ 64·D / 2^128` for `D ≥ 1`. An attack exceeding `1 / 2^123` at charged budget 1 is still needed to prove exactness.
+Choosing a low digit from a signature also needs justification when the encoding hash query is charged.
 
 ## Lean architecture
 
@@ -97,7 +134,7 @@ carries it over the verifier's actions. Probability: `public_eager_enforcedHit_p
 for the new public program with fuel `D + 2`.
 
 The refined first-lane bad event `bad'` = `(WinningOutcomeBadEventOccurs .encoding ∧ ¬prehit) ∨
-DecidingChainValueRevealed`. Its chain branch is the existing
+(won = true ∧ DecidingChainValueRevealed)`. Its chain branch is the existing
 `GlobalWinningChainValueRevealed` restricted to chain `i0` (origin lemma
 `chainValueRevealed_afterKeygen_has_origin` applies at `i0`).
 

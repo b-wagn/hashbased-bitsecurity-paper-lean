@@ -1,4 +1,6 @@
-import XmssSecurity.Proof.Direct.Deciding
+import XmssSecurity.Proof.Direct.DecidingCollision
+import XmssSecurity.Proof.Direct.DecidingVerifierCount
+import XmssSecurity.Proof.Direct.ForgedEncodingQuery
 import XmssSecurity.Proof.Direct.Structural
 import XmssSecurity.Proof.CappedGlobalCollisionProbability
 
@@ -12,9 +14,9 @@ adversary phase exhibits a fresh structural collision with the key-generation ca
 adversary's `D` direct hash queries) or the verification phase exhibits a fresh collision on the
 deciding path (charged to the verifier's at most `40` moved queries).
 
-`decidingSecondLane_probability_le` assembles the bound `(D + 40) / 2^128` from the orientation
-statement (`horient`), the cached-encoding statement (`hcached`) and the verifier count (`hcount`),
-all taken as hypotheses in the shapes of the theorems proved elsewhere.
+`decidingSecondLane_probability_le` assembles the bound `(D + 40) / 2^128` from the orientation,
+cached-encoding, and verifier-count hypotheses. `decidingSecondLane_probability_le_direct`
+discharges these hypotheses, including the extra query used to cache the forged encoding.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -24,26 +26,6 @@ set_option backward.isDefEq.respectTransparency false
 namespace XmssSecurity.Deciding
 
 open Concrete
-
-/-- The adversary phase of the detailed game after key generation: the adversary with the
-forwarded oracles and the logged signing oracle. -/
-noncomputable def adversaryPhase (adversary : Adversary) (publicKey : PublicKey)
-    (secretKey : SecretKey) : OracleComp OracleWorld (Forgery × QueryLog SigningSpec) :=
-  (simulateQ (forwardOracles + signingOracle Concrete.scheme secretKey)
-    (adversary.main publicKey)).run
-
-/-- The verification phase: verify the forgery and assemble the outcome. -/
-noncomputable def verificationPhase (publicKey : PublicKey) (secretKey : SecretKey)
-    (prefixResult : Forgery × QueryLog SigningSpec) : OracleComp OracleWorld GameOutcome := do
-  let verified ← Concrete.scheme.verify publicKey prefixResult.1.epoch prefixResult.1.message
-    prefixResult.1.signature
-  return ⟨publicKey, secretKey, prefixResult.1, prefixResult.2, verified⟩
-
-theorem detailedGameAfterKeygen_eq_phases (adversary : Adversary) (publicKey : PublicKey)
-    (secretKey : SecretKey) :
-    detailedGameAfterKeygen Concrete.scheme adversary publicKey secretKey =
-      adversaryPhase adversary publicKey secretKey >>= verificationPhase publicKey secretKey := by
-  rfl
 
 /-! ## Expected moved queries of the two phases -/
 
@@ -300,5 +282,35 @@ theorem decidingSecondLane_probability_le (adversary : Adversary) (D : ℕ)
     (fun leafIndex message signature chain initialCache =>
       hcount secretKey keygenCache publicKey hparameter leafIndex message signature chain
         initialCache)
+
+/-- The unconditional second-lane estimate for a syntactically bounded adversary. The added
+encoding query fixes the deciding path before verification and leaves the game distribution
+unchanged. -/
+theorem decidingSecondLane_probability_le_direct (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) :
+    Pr[fun execution : GameOutcome × QueryCache HashSpec =>
+        execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
+          ¬ DecidingChainValueRevealed execution.2 execution.1 |
+      detailedGameWithCache Concrete.scheme adversary] ≤
+      ((D + 41 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+  have hbound := decidingSecondLane_probability_le (Direct.withForgedEncodingQuery adversary)
+    (D + 1) (Direct.withForgedEncodingQuery_isDirectQueryBound adversary D hD)
+    (by
+      intro keyResult hkeygen prefixResult hprefix
+      have hparameter := keygen_publicKey_parameter_eq keyResult hkeygen
+      rw [← hparameter]
+      exact Direct.adversaryPhase_withForgedEncodingQuery_cached adversary keyResult.1.1
+        keyResult.1.2 keyResult.2 prefixResult hprefix)
+    (by
+      intro keyResult hkeygen prefixResult hprefix hcached execution hafter hwin hencoding
+        hrevealed hcollision
+      exact deciding_afterKeygen_orientation _ keyResult hkeygen prefixResult hprefix hcached
+        execution hafter hwin hencoding hrevealed hcollision)
+    (by
+      intro secretKey cache publicKey hparameter leafIndex message signature chain initialCache
+      simpa only [decidingQueryBound_eq, Nat.cast_ofNat] using expectedSimulatedQueryCount_verify_deciding_le
+        secretKey cache publicKey hparameter leafIndex message signature chain initialCache)
+  rw [Direct.detailedGameWithCache_withForgedEncodingQuery] at hbound
+  simpa only [Nat.add_assoc] using hbound
 
 end XmssSecurity.Deciding

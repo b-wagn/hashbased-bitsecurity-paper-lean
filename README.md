@@ -24,7 +24,7 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | | `XmssSecurity/Statement/Scheme/Construction.lean` | tweaks, target-sum encoding, chains, Merkle tree, key generation, signing, verification |
 | | `XmssSecurity/Statement/Scheme/Xmss.lean` | `xmss`, the scheme as a `SynchronizedSignature` |
 | Claims | `XmssSecurity/Statement/Claims.lean` | the bit-security statements, one per notion |
-| Proofs | `XmssSecurity/Proof/` | the proofs; only the number of bits in a claim may change during proof search |
+| Proofs | `XmssSecurity/Proof/` | proofs of the unchanged statement layer, including stronger numerical bounds |
 | | `XmssSecurity/Proof/Direct/` | the direct-count proof: pruning a semantically bounded adversary to a syntactically bounded one (`Basic`, `Prune`, `Bridge`), the per-term bounds (`FirstLane`, `Structural`, `Prehit`, `SeedGuessing`, `VerifierBound`), and the assembly |
 | Main theorems | `XmssSecurity.lean` | one theorem per claim, with an axiom guard |
 
@@ -32,17 +32,26 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 
 | Claim | Bits | Theorem |
 |---|---|---|
-| `XmssSufCmaTotalStatement`: SUF-CMA, counting every hash call of the experiment | 127 | `xmss_has_127_bits_of_classical_security` |
-| `XmssSufCmaDirectStatement`: SUF-CMA, counting only the adversary's own hash calls | 119 | `xmss_has_119_bits_of_classical_direct_security` |
+| `XmssSufCmaAllHashesStatement`: counting every hash call of the experiment | 127 | `xmss_sufCma_allHashes_127` |
+| `XmssSufCmaDirectStatement`: the original direct-query milestone | 119 | `xmss_sufCma_direct_119` |
+| Stronger direct-query security | 122 | `xmss_sufCma_direct_122` |
+| Every counting mode | 122 | `xmss_sufCma_secure_122` |
+| Every hash call and every signing request | 127 | `xmss_sufCma_everything_127` |
 
-The direct-count level is what the current proof gives, not a known attack: the proof charges the
-133 hash calls of verifying the forgery and 42 chain probes at full weight `2^-128`, which costs
-`log2(312) ≈ 8` bits at query budgets of a few queries. Sharpening these terms is the natural next
-step (see `XmssSecurity/Proof/Direct/Assemble.lean`).
+The direct proof now reaches the conjectured lower bound of 122 bits. It selects one deciding
+chain, charges one probe in the first lane, and charges at most 40 verification queries on the
+deciding path in the second lane. See `Proof/Direct/DecidingSecurity.lean` and
+[`docs/plan-direct-122.md`](docs/plan-direct-122.md). The original 119-bit statement is unchanged.
 
-The adversary is probabilistic, adaptive, and unbounded in time and memory; only hash queries are
-counted. The probability is over the master seed, the random oracle, and the adversary's private
-randomness.
+Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to the
+proved direct lower bound and five remaining obligations: 127-bit security when only keygen,
+signer, or verifier hashes are additionally charged; an attack against 123 bits when direct
+queries and signing requests are charged; and an attack against 128 bits when everything is
+charged. No attack theorem is proved yet.
+
+The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
+specifies which hash queries and signing requests are charged. The probability is over the
+master seed, the random oracle, and the adversary's private randomness.
 
 ## Building
 

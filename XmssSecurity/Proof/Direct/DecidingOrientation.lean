@@ -12,6 +12,8 @@ fresh collision during verification whose witness lies on the deciding path
 
 open OracleComp OracleSpec
 
+set_option backward.isDefEq.respectTransparency false
+
 namespace XmssSecurity.Deciding
 
 open Concrete
@@ -91,6 +93,28 @@ theorem cache_eq_some_of_le {initialCache finalCache : QueryCache HashSpec}
     (hcache : initialCache input = some output) : finalCache input = some output :=
   hle hcache
 
+/-- A fresh collision across two cache extensions must occur in one of the extensions. -/
+theorem adaptiveFreshCollision_split (initialCache prefixCache finalCache : QueryCache HashSpec)
+    (target : HashInput → HashInput) (hfirst : initialCache ≤ prefixCache)
+    (hsecond : prefixCache ≤ finalCache)
+    (hcollision : Rom.AdaptiveFreshDigestCollisionWith initialCache finalCache target)
+    (hnoPrefix : ¬ Rom.AdaptiveFreshDigestCollisionWith initialCache prefixCache target) :
+    Rom.AdaptiveFreshDigestCollisionWith prefixCache finalCache target := by
+  obtain ⟨input, output, targetOutput, hfinal, hinitial, htarget, hdigest⟩ := hcollision
+  have htargetPrefix := hfirst htarget
+  by_cases hfresh : prefixCache input = none
+  · exact ⟨input, output, targetOutput, hfinal, hfresh, htargetPrefix, hdigest⟩
+  · obtain ⟨prefixOutput, hprefix⟩ := Option.ne_none_iff_exists.mp hfresh
+    have hprefix := hprefix.symm
+    exfalso
+    apply hnoPrefix
+    refine ⟨input, prefixOutput, targetOutput, hprefix, hinitial, htarget, ?_⟩
+    have hleft := (CacheView.digestAt_eq_of_cache_eq_some hprefix).trans
+      (CacheView.digestAt_eq_of_cache_eq_some (hsecond hprefix)).symm
+    have hright := (CacheView.digestAt_eq_of_cache_eq_some htargetPrefix).trans
+      (CacheView.digestAt_eq_of_cache_eq_some (hsecond htargetPrefix)).symm
+    exact hleft.trans (hdigest.trans hright.symm)
+
 /-- Split a deciding witness `C_k → C_f` along an intermediate cache `C_v`: either it is a
 structural collision `C_k → C_v`, or a deciding collision `C_v → C_f`. -/
 theorem decidingCollision_of_witness (secretKey : SecretKey)
@@ -102,28 +126,20 @@ theorem decidingCollision_of_witness (secretKey : SecretKey)
       (keygenStructuralTargetInput secretKey keygenCache)) :
     Rom.AdaptiveFreshDigestCollisionWith prefixCache finalCache
       (decidingTargetInput secretKey keygenCache leafIndex chain) := by
-  obtain ⟨input, output, targetOutput, hdeciding, hfinal, hkeygen, htarget, hdigest⟩ := hwitness
-  have htargetPrefix := cache_eq_some_of_le hkeygenLe htarget
-  have htargetFinal := cache_eq_some_of_le hprefixLe htargetPrefix
-  cases hprefix : prefixCache input with
-  | some prefixOutput =>
-      exfalso
-      apply hnoPrefix
-      refine ⟨input, prefixOutput, targetOutput, hprefix, hkeygen, htarget, ?_⟩
-      have hfinal' := cache_eq_some_of_le hprefixLe hprefix
-      rw [Concrete.CacheView.digestAt_eq_of_cache_eq_some hprefix,
-        Concrete.CacheView.digestAt_eq_of_cache_eq_some htargetPrefix]
-      rw [Concrete.CacheView.digestAt_eq_of_cache_eq_some hfinal',
-        Concrete.CacheView.digestAt_eq_of_cache_eq_some htargetFinal] at hdigest
+  apply adaptiveFreshCollision_split keygenCache prefixCache finalCache _ hkeygenLe hprefixLe
+  · obtain ⟨input, output, targetOutput, hdeciding, hfinal, hkeygen, htarget, hdigest⟩ := hwitness
+    have hmap := decidingTargetInput_eq_structural_of_isDecidingInput secretKey keygenCache
+      leafIndex chain input hdeciding
+    simp only [Rom.AdaptiveFreshDigestCollisionWith, OracleSpec.Range, HashSpec,
+      RandomOracleModel.HashSpec, OracleSpec.ofFn]
+    refine ⟨input, output, targetOutput, hfinal, hkeygen, ?_, ?_⟩
+    · rw [hmap]
+      exact htarget
+    · rw [hmap]
       exact hdigest
-  | none =>
-      refine ⟨input, output, targetOutput, hfinal, hprefix, ?_, ?_⟩
-      · rw [decidingTargetInput_eq_structural_of_isDecidingInput secretKey keygenCache leafIndex
-          chain input hdeciding]
-        exact htargetPrefix
-      · rw [decidingTargetInput_eq_structural_of_isDecidingInput secretKey keygenCache leafIndex
-          chain input hdeciding]
-        exact hdigest
+  · intro hcollision
+    exact hnoPrefix (adaptiveFreshDigestCollisionWith_structural_of_deciding
+      keygenCache prefixCache secretKey keygenCache leafIndex chain hcollision)
 
 /-! ### Facts about the deciding chain -/
 
@@ -165,10 +181,11 @@ theorem decidingChain_congr (cache cache' : QueryCache HashSpec) (secretKey : Se
     unfold ChainTrivial
     rw [hsigned, hhonest]
   unfold decidingChain decidingChain?
-  congr 1
-  apply List.find?_congr
-  intro chain _
-  simp only [htrivial]
+  have hpred : (fun chain => decide (¬ChainTrivial cache secretKey log forgery forgedEnc chain)) =
+      (fun chain => decide (¬ChainTrivial cache' secretKey log forgery forgedEnc chain)) := by
+    funext chain
+    simp only [htrivial]
+  rw [hpred]
 
 theorem outcomeDecidingChain_eq (cache : QueryCache HashSpec) (outcome : GameOutcome)
     (forgedEnc : Encoding)
@@ -187,10 +204,10 @@ theorem returned_of_returnedAt (log : QueryLog SigningSpec) (leafIndex : LeafInd
   obtain ⟨entry, hmem, hentry⟩ := List.exists_of_findSome?_eq_some hreturned
   cases hsig : entry.2 with
   | none =>
-      rw [hsig] at hentry
+      simp only [hsig] at hentry
       cases hentry
   | some entrySignature =>
-      rw [hsig] at hentry
+      simp only [hsig] at hentry
       by_cases hepoch : entry.1.epoch = leafIndex
       · rw [if_pos hepoch] at hentry
         cases hentry

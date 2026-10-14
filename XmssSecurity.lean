@@ -1,10 +1,15 @@
 import XmssSecurity.Statement.Claims
 import XmssSecurity.Proof.Adversary.Security
 import XmssSecurity.Proof.Direct.Assemble
+import XmssSecurity.Proof.Direct.DecidingAssemble
+import XmssSecurity.Proof.Direct.DecidingSecurity
+import XmssSecurity.Proof.Direct.EncodingPrehit
+import XmssSecurity.Proof.Direct.LargeBudget
 import XmssSecurity.Proof.Modes.Direct
 import XmssSecurity.Proof.Modes.AllHashes
 import XmssSecurity.Proof.Modes.Lattice
 import XmssSecurity.Proof.Modes.Projection
+import XmssSecurity.Proof.Modes.Exact
 
 /-!
 # Security of XMSS in the random-oracle model
@@ -40,6 +45,30 @@ theorem xmss_sufCma_direct_119 : XmssSufCmaDirectStatement :=
 /-- info: 'XmssSecurity.xmss_sufCma_direct_119' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_sufCma_direct_119
+
+/-- The deciding-path collision bound strengthens the direct guarantee to 120 bits. -/
+theorem xmss_sufCma_direct_120 : XmssSufCmaSecure CountingMode.direct 120 :=
+  (Modes.notion_direct_hasClassicalSecurityBits_iff xmss 120).2 Direct.sufCmaDirect_120
+
+/-- info: 'XmssSecurity.xmss_sufCma_direct_120' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_direct_120
+
+/-- The strengthened direct guarantee transfers to every counting mode. -/
+theorem xmss_sufCma_secure_120 (mode : CountingMode) : XmssSufCmaSecure mode 120 :=
+  Modes.hasClassicalSecurityBits_of_le (Modes.direct_le mode) xmss 120 xmss_sufCma_direct_120
+
+/-- The single deciding probe and deciding-path collision bound give 122-bit direct security. -/
+theorem xmss_sufCma_direct_122 : XmssSufCmaSecure CountingMode.direct 122 :=
+  (Modes.notion_direct_hasClassicalSecurityBits_iff xmss 122).2 Direct.sufCmaDirect_122
+
+/-- info: 'XmssSecurity.xmss_sufCma_direct_122' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_direct_122
+
+/-- Every counting mode inherits the completed 122-bit direct-query guarantee. -/
+theorem xmss_sufCma_secure_122 (mode : CountingMode) : XmssSufCmaSecure mode 122 :=
+  Modes.hasClassicalSecurityBits_of_le (Modes.direct_le mode) xmss 122 xmss_sufCma_direct_122
 
 /-- The direct mode charges the least, so its level holds in every mode. -/
 theorem xmss_sufCma_secure_119 (mode : CountingMode) : XmssSufCmaSecure mode 119 :=
