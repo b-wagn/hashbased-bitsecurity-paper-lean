@@ -70,6 +70,11 @@ number of collision opportunities when a uniformly chosen signature chain is cha
 `Proof/EncodingRejectionProbability.lean` accounts for repeated randomizers and proves that
 a fresh signing request in the randomized reference scheme succeeds with probability greater
 than `31/32` after every supported key-generation result.
+`Proof/FreshPathProbability.lean` proves the exact collision probability for a separately
+addressed hash path, excluding an unchanged starting value. `Proof/Attack/PathBounds.lean`
+proves that averaging these probabilities over a valid encoding's 42 chains, and allowing
+signing failure, exceeds the 123-bit threshold. Relating this path experiment to concrete XMSS
+verification and transporting the attack to the seeded scheme remain open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
