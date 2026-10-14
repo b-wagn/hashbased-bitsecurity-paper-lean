@@ -234,6 +234,10 @@ and hit guarantees needed for the probability bound.
 source-budget units. The public prefix therefore also stops signing with at most
 one unit left and stops all direct hashing at exhaustion. `TerminalQuiescence.lean`
 proves that exhausted continuations emit no further monitor actions.
+`TerminalActivityBudget.lean` proves a strict saving of one hazard query whenever
+the public encoding counters stay zero. `TerminalActivityCoupling.lean` also
+preserves that strict saving on early cuts. `SourceEncodingActivity.lean` bounds
+the probability of any source encoding or signing activity by `E + S`.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
