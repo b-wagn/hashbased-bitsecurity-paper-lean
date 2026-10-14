@@ -123,8 +123,12 @@ it to fresh encoding samples, retaining the observed prefix and exact unused fue
 `Proof/Direct/FirstLaneBudgetEnforcement.lean` implements the complete limited ideal prefix,
 proves its joint budget and hazard bounds even after divergence, and proves exact preservation
 of each action from related states, including the first action that triggers a collision.
-The remaining assembly must carry the source coupling through this limited prefix, account
-for a fresh forged encoding, and retain the seed-guessing loss within the final bound.
+`Proof/Direct/LimitedPrefixCoupling.lean` carries the source coupling through that complete
+limited prefix: either the outputs and states agree, or the retained trace contains a collision.
+`Proof/Modes/SignerLimitedCoupling.lean` applies the unchanged statement budget to this coupling,
+with both the source charge and the public ideal charge bounded on every coupled execution.
+The remaining assembly must combine the limited experiment's probability bounds, account for
+a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
