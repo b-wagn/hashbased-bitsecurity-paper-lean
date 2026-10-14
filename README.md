@@ -118,8 +118,11 @@ contains exactly the genuine predecessor at the chosen address, it proves an exa
 probability of `(15/16) * (1 - 2^-128)^(2^124)` and success at least `2/17`.
 `Proof/Attack/NeighborPreimageCache.lean` proves that signing and the encoding search preserve
 every chain address, carrying this predecessor-success bound to every supported encoding-search
-outcome after a successful reference signature. Connecting the searches to signature
-verification, the full game, and its total charged budget remains open.
+outcome after a successful reference signature. `Proof/Attack/NeighborVerification.lean`
+proves that the single forward chain query returns the required increased-chain value and
+that combining it with a successful cached predecessor gives a deterministically accepted
+signature for the neighboring encoding. The combined search probability, full game, and
+total charged budget still need to be assembled.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
