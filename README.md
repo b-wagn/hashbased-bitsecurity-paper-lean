@@ -36,6 +36,10 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | `XmssSufCmaDirectStatement`: the original direct-query milestone | 119 | `xmss_sufCma_direct_119` |
 | Stronger direct-query security | 122 | `xmss_sufCma_direct_122` |
 | Every counting mode | 122 | `xmss_sufCma_secure_122` |
+| Direct-query attack against 123 bits | upper bound 122 | `xmss_sufCma_direct_attack_122` |
+| Direct queries plus signing requests: attack against 123 bits | upper bound 122 | `xmss_sufCma_requests_attack_122` |
+| Direct-query security, both bounds | exactly 122 | `xmss_sufCma_direct_exact_122` |
+| Direct queries plus signing requests, both bounds | exactly 122 | `xmss_sufCma_requests_exact_122` |
 | Direct queries and key generation | 127 | `xmss_sufCma_keygen_127` |
 | Every mode charging key generation | 127 | `xmss_sufCma_secure_127_of_keygen` |
 | Direct queries and verification | 127 | `xmss_sufCma_verifier_127` |
@@ -56,10 +60,10 @@ preserves the contribution of successful executions after subtracting that cost,
 unsuccessful executions exceed the reduced budget. See `Proof/Modes/Verifier.lean`.
 
 Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to six
-basis obligations, of which three remain: 127-bit security when only signer hashes are
-additionally charged; an attack against 123 bits when direct
-queries and signing requests are charged; and an attack against 128 bits when everything is
-charged. No attack theorem is proved yet.
+basis obligations, of which two remain: 127-bit security when only signer hashes are
+additionally charged, and an attack against 128 bits when everything is charged.
+The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
+stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
 The encoding prerequisites now include a kernel-checked exact count of admissible digests:
 `11539185377238682781344003244544752`. Thus a uniform digest is accepted with probability
@@ -73,9 +77,8 @@ than `31/32` after every supported key-generation result.
 `Proof/FreshPathProbability.lean` proves the exact collision probability for a separately
 addressed hash path, excluding an unchanged starting value. `Proof/Attack/PathBounds.lean`
 proves that averaging these probabilities over a valid encoding's 42 chains, and allowing
-signing failure, exceeds the 123-bit threshold. Relating this path experiment to concrete XMSS
-verification and transporting the attack to the seeded scheme remain open.
-`Proof/Attack/ChainMutation.lean` implements the concrete candidate adversary and proves its
+signing failure, exceeds the 123-bit threshold.
+`Proof/Attack/ChainMutation.lean` implements the concrete adversary and proves its
 zero direct-query count, exact one-request count, transcript validity, and signature freshness
 when the sampled replacement differs from the original chain value.
 `Proof/Attack/ChainMutationAccounting.lean` connects this count to the statement's security
@@ -97,7 +100,10 @@ after every successful reference signature. `Proof/Attack/MutationAverage.lean` 
 the chosen chain and signing outcomes, proving success above `2^-123` for the reference
 experiment that rejects failed signing requests. `Proof/Attack/MutationGame.lean` connects that
 experiment to the adversary's logged game and proves that its full reference-scheme advantage
-exceeds `2^-123`. Transporting the attack to the seeded scheme remains open.
+exceeds `2^-123`. `Proof/Direct/SeedGuessingZero.lean` proves exact seeded-to-table game
+equivalence for adversaries making no direct hash queries. `Proof/Attack/ChainMutationSeeded.lean`
+uses the attack's single request to eliminate memoization, transfers its advantage exactly to
+the seeded scheme, and proves the attack claims with the already verified one-query budget.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the

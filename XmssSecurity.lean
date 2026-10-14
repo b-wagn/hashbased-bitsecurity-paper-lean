@@ -24,6 +24,7 @@ import XmssSecurity.Proof.Attack.MutationSigningCache
 import XmssSecurity.Proof.Attack.MutationVerification
 import XmssSecurity.Proof.Attack.MutationAverage
 import XmssSecurity.Proof.Attack.MutationGame
+import XmssSecurity.Proof.Attack.ChainMutationSeeded
 
 /-!
 # Security of XMSS in the random-oracle model
@@ -35,6 +36,8 @@ proofs under `Proof/`.
 The lattice of counting modes (`Proof/Modes/Lattice.lean`) spreads the proved levels to the
 other modes: 122 bits holds in every mode, and 127 bits holds in every mode charging key generation
 or verification.
+The one-request chain-mutation attack proves that the two modes charging no honest-party
+hashes have exactly 122 bits.
 -/
 
 
@@ -83,6 +86,40 @@ theorem xmss_sufCma_direct_122 : XmssSufCmaSecure CountingMode.direct 122 :=
 /-- Every counting mode inherits the completed 122-bit direct-query guarantee. -/
 theorem xmss_sufCma_secure_122 (mode : CountingMode) : XmssSufCmaSecure mode 122 :=
   Modes.hasClassicalSecurityBits_of_le (Modes.direct_le mode) xmss 122 xmss_sufCma_direct_122
+
+/-- One signing request and no direct hash queries suffice to refute 123-bit security. -/
+theorem xmss_sufCma_requests_attack_122 : XmssSufCmaAttack ⟨false, false, false, true⟩ 122 :=
+  Attack.chainMutation_requests_attack
+
+/-- info: 'XmssSecurity.xmss_sufCma_requests_attack_122' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_requests_attack_122
+
+/-- The same attack refutes 123-bit security in the direct-only mode. -/
+theorem xmss_sufCma_direct_attack_122 : XmssSufCmaDirectAttackStatement :=
+  Attack.chainMutation_direct_attack
+
+/-- info: 'XmssSecurity.xmss_sufCma_direct_attack_122' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_direct_attack_122
+
+/-- Direct-only security is exactly 122 bits. -/
+theorem xmss_sufCma_direct_exact_122 :
+    (SUFCMA.notion CountingMode.direct).HasExactClassicalSecurityBits xmss 122 :=
+  ⟨xmss_sufCma_direct_122, xmss_sufCma_direct_attack_122⟩
+
+/-- info: 'XmssSecurity.xmss_sufCma_direct_exact_122' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_direct_exact_122
+
+/-- Charging signing requests as well as direct queries still gives exactly 122 bits. -/
+theorem xmss_sufCma_requests_exact_122 :
+    (SUFCMA.notion ⟨false, false, false, true⟩).HasExactClassicalSecurityBits xmss 122 :=
+  ⟨xmss_sufCma_secure_122 _, xmss_sufCma_requests_attack_122⟩
+
+/-- info: 'XmssSecurity.xmss_sufCma_requests_exact_122' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_requests_exact_122
 
 /-- Charging direct queries and key generation gives 127-bit security. -/
 theorem xmss_sufCma_keygen_127 : XmssSufCmaSecure ⟨true, false, false, false⟩ 127 :=
