@@ -154,15 +154,17 @@ prehit, second-lane, and seed losses when the forged encoding is cached; its num
 uses at most half the nonstructural budget weights. `Proof/Modes/SignerSecondaryLoss.lean`
 places those source losses within `q / 2^128` and retains an explicit reserve for the first lane.
 `Proof/Modes/SignerCachedLoss.lean` assembles the seeded-game loss for cached forged encodings.
-It reduces their 127-bit bound to the remaining estimate that the limited first-lane experiment's
-expected hazards are at most `q` plus that source reserve; it does not discharge that estimate.
 `Proof/Direct/CachedEncodingCost.lean` proves that an always-cached forged encoding consumes
 at least one expected direct encoding query or signer hash. `Proof/Direct/LimitedPrefixProbability.lean`
 bounds prefix collisions by `q / 2^128` and charges the extra deciding probe only to acceptance.
 `Proof/Direct/LimitedAcceptanceTransfer.lean` transfers that acceptance probability from the
 counted source with an explicit prefix-collision term, allowing the executions to diverge afterward.
-The remaining assembly must combine the limited experiment's probability bounds, account for
-a fresh forged encoding, and retain the seed-guessing loss within the final bound.
+`Proof/Direct/SourceEncodingReserve.lean` retains three quarters of the encoding and signer
+credit. `Proof/Modes/SignerCachedSecurity.lean` uses it to discharge the first-lane estimate
+and proves the original signer-mode advantage bound at 127 bits whenever the memoized
+adversary always caches its forged encoding. This conditional result includes every budget size.
+The remaining signer-mode proof must handle fresh forged encodings and combine both cases
+without an unconditional extra query charge.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
