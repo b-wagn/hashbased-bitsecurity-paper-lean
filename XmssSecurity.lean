@@ -20,6 +20,7 @@ import XmssSecurity.Proof.EncodingAcceptanceBudget
 import XmssSecurity.Proof.SignerEncodingCost
 import XmssSecurity.Proof.SignerSuccessBudget
 import XmssSecurity.Proof.FirstLaneEncodingExpected
+import XmssSecurity.Proof.FirstLaneChainExpected
 import XmssSecurity.Proof.FreshPathProbability
 import XmssSecurity.Proof.Attack.PathBounds
 import XmssSecurity.Proof.Attack.ChainMutation

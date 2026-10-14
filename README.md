@@ -86,6 +86,10 @@ contains no accepted encoding.
 `Proof/FirstLaneEncodingExpected.lean` bounds the encoding component of the existing
 first-lane experiment by its actual expected encoding-query count, using the monitor's
 expected risk and an exact connection back to the original execution trace.
+`Proof/FirstLaneChainExpected.lean` supplies the corresponding hidden-chain bound, including
+probes before a reveal, and combines both components into an expected-query bound for the
+existing first-lane experiment. This still needs to be carried through the signer-counted
+security argument.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
