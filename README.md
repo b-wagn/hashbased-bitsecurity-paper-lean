@@ -88,7 +88,10 @@ along that path.
 input cached after key generation, with the honest path ending at the public-key root.
 `Proof/Attack/MutationProbability.lean` obtains the exact probability that a distinct uniformly
 sampled chain value reaches that root in the path experiment starting from the key-generation
-cache. Extending this result through signing and the full verifier remains open.
+cache. `Proof/Attack/MutationSigningCache.lean` proves that signing preserves every path cache
+entry, identifies successful signatures with their key-generation replay, and carries the
+exact root-collision probability through successful signing. Connecting the unchanged chains
+and encoding check of the full verifier remains open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
