@@ -83,6 +83,9 @@ exactly twice its expected encoding-query count, including early termination and
 `Proof/SignerSuccessBudget.lean` consequently bounds successful seeded signing by half the
 acceptance probability times the expected signer hash count, whenever the starting cache
 contains no accepted encoding.
+`Proof/Seeded/KeygenEncodingCache.lean` discharges that starting-cache condition for every
+supported run of the actual seeded key generator, so the half-cost success bound applies
+directly to signing immediately after key generation.
 `Proof/FirstLaneEncodingExpected.lean` bounds the encoding component of the existing
 first-lane experiment by its actual expected encoding-query count, using the monitor's
 expected risk and an exact connection back to the original execution trace.
