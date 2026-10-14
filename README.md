@@ -135,6 +135,9 @@ after the limited prefix and proves that its extra expected hazard is exactly th
 encoding's acceptance probability. `Proof/Direct/LimitedFirstLaneExpected.lean` carries this
 through key generation to the original source-prefix probability; the signer-mode statement
 budget now instantiates that bound directly.
+`Proof/Deterministic/ExpectedReferenceQueries.lean` transfers the expected seed-query count
+to the memoized reference experiment, so it can share that experiment's budget with the
+other losses. It also proves that memoization cannot decrease seeded-game advantage.
 `Proof/Direct/SeedGuessingExpected.lean` refines the seeded-to-reference reduction to charge
 only the expected number of seed-derivation-tag queries, instead of all direct hash queries.
 `Proof/Direct/SeedQueryPartition.lean` proves that seed, encoding, and structural query counts

@@ -30,6 +30,7 @@ import XmssSecurity.Proof.Modes.SignerLimitedCoupling
 import XmssSecurity.Proof.Direct.LimitedPrefixSupport
 import XmssSecurity.Proof.Direct.SeedGuessingExpected
 import XmssSecurity.Proof.Direct.SourceClassBudget
+import XmssSecurity.Proof.Deterministic.ExpectedReferenceQueries
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
 import XmssSecurity.Proof.EncodingAcceptanceBudget
