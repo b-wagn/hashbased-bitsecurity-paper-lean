@@ -113,6 +113,9 @@ count plus twice the actual reference signer count is at most the statement's bu
 of the ideal encoding cache. `Proof/Direct/FirstLaneSampleBudget.lean` then bounds those observations
 by direct encoding queries plus source signer hashes, and obtains a shared charge expressed
 entirely through the ideal trace and attacker log on the coupling's good branch.
+`Proof/Direct/FirstLaneStepBudget.lean` extends the observable bound through every supported
+ideal query from related states, including the first query that triggers a collision. The
+stronger charge counts all direct calls and uses no hidden-table information.
 The remaining assembly must enforce a shared budget in the ideal experiment after divergence,
 account for a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
