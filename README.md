@@ -131,7 +131,10 @@ seed-derivation domains. `Proof/Attack/NeighborGame.lean` connects its logged ex
 the experiment, proves transcript freshness, and establishes reference-game advantage greater
 than `5/64`. `Proof/Attack/NeighborSeeded.lean` proves exact equality of its reference and
 deterministic seeded advantages, using its single signing request and absence of
-seed-derivation queries. The total charged-budget proof remains open for this attack.
+seed-derivation queries. `Proof/Attack/NeighborBudget.lean` bounds key generation, signing,
+the adversary, verification, and the single request by `2^124 + 2^122` in total, whose ratio to
+`2^128` is `5/64`. Connecting these component bounds to the statement's counted experiment
+is the remaining accounting step for this attack.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the

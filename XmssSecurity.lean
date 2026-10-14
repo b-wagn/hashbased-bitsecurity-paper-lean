@@ -34,6 +34,7 @@ import XmssSecurity.Proof.Attack.NeighborExperiment
 import XmssSecurity.Proof.Attack.NeighborAdversary
 import XmssSecurity.Proof.Attack.NeighborGame
 import XmssSecurity.Proof.Attack.NeighborSeeded
+import XmssSecurity.Proof.Attack.NeighborBudget
 
 /-!
 # Security of XMSS in the random-oracle model
