@@ -58,6 +58,8 @@ import XmssSecurity.Proof.Direct.TerminalQuiescence
 import XmssSecurity.Proof.Direct.TerminalActivityBudget
 import XmssSecurity.Proof.Direct.TerminalActivityCoupling
 import XmssSecurity.Proof.Direct.SourceEncodingActivity
+import XmssSecurity.Proof.Direct.TerminalActivityCancellation
+import XmssSecurity.Proof.Direct.TerminalActivityBound
 import XmssSecurity.Proof.Direct.TerminalPrunedCoupling
 import XmssSecurity.Proof.Direct.TerminalAcceptedCoupling
 import XmssSecurity.Proof.Direct.VerificationAcceptance

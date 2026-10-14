@@ -238,6 +238,9 @@ proves that exhausted continuations emit no further monitor actions.
 the public encoding counters stay zero. `TerminalActivityCoupling.lean` also
 preserves that strict saving on early cuts. `SourceEncodingActivity.lean` bounds
 the probability of any source encoding or signing activity by `E + S`.
+`TerminalActivityCancellation.lean` transfers both terminal and deciding-probe
+charges through the same coupling. `TerminalActivityBound.lean` consequently bounds
+cached first-lane witnesses by `(q - 1 + 2(E + S)) / 2^128` for positive budgets.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
