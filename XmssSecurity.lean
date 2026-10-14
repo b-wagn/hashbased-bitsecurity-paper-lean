@@ -11,6 +11,7 @@ import XmssSecurity.Proof.Modes.Lattice
 import XmssSecurity.Proof.Modes.Projection
 import XmssSecurity.Proof.Modes.Exact
 import XmssSecurity.Proof.Modes.Keygen
+import XmssSecurity.Proof.Modes.Verifier
 
 /-!
 # Security of XMSS in the random-oracle model
@@ -20,7 +21,8 @@ the security notion with its counting modes, and bit security) live under `State
 proofs under `Proof/`.
 
 The lattice of counting modes (`Proof/Modes/Lattice.lean`) spreads the proved levels to the
-other modes: 122 bits holds in every mode, and 127 bits holds in every mode charging key generation.
+other modes: 122 bits holds in every mode, and 127 bits holds in every mode charging key generation
+or verification.
 -/
 
 
@@ -83,6 +85,20 @@ theorem xmss_sufCma_secure_127_of_keygen (mode : CountingMode) (hk : mode.keygen
     XmssSufCmaSecure mode 127 :=
   Modes.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le, hk]) xmss 127
     xmss_sufCma_keygen_127
+
+/-- Charging direct queries and verification gives 127-bit security. -/
+theorem xmss_sufCma_verifier_127 : XmssSufCmaSecure ⟨false, false, true, false⟩ 127 :=
+  Modes.sufCmaVerifier_127
+
+/-- info: 'XmssSecurity.xmss_sufCma_verifier_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_verifier_127
+
+/-- Every mode charging verification inherits the 127-bit guarantee. -/
+theorem xmss_sufCma_secure_127_of_verifier (mode : CountingMode) (hv : mode.verifier = true) :
+    XmssSufCmaSecure mode 127 :=
+  Modes.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le, hv]) xmss 127
+    xmss_sufCma_verifier_127
 
 /-- The direct mode charges the least, so its level holds in every mode. -/
 theorem xmss_sufCma_secure_119 (mode : CountingMode) : XmssSufCmaSecure mode 119 :=

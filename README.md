@@ -38,6 +38,8 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Every counting mode | 122 | `xmss_sufCma_secure_122` |
 | Direct queries and key generation | 127 | `xmss_sufCma_keygen_127` |
 | Every mode charging key generation | 127 | `xmss_sufCma_secure_127_of_keygen` |
+| Direct queries and verification | 127 | `xmss_sufCma_verifier_127` |
+| Every mode charging verification | 127 | `xmss_sufCma_secure_127_of_verifier` |
 | Every hash call and every signing request | 127 | `xmss_sufCma_everything_127` |
 
 The direct proof now reaches the conjectured lower bound of 122 bits. It selects one deciding
@@ -49,9 +51,13 @@ The keygen-counted 127-bit proof shares the direct-query budget between encoding
 structural collisions, and subtracts the exact key-generation cost from the charged budget.
 See `Proof/Direct/SharedDecidingBudget.lean` and `Proof/Modes/Keygen.lean`.
 
+The verifier-counted proof uses the exact 133-query cost of accepting verification. Pruning
+preserves the contribution of successful executions after subtracting that cost, even when
+unsuccessful executions exceed the reduced budget. See `Proof/Modes/Verifier.lean`.
+
 Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to six
-basis obligations, of which four remain: 127-bit security when only signer or verifier hashes
-are additionally charged; an attack against 123 bits when direct
+basis obligations, of which three remain: 127-bit security when only signer hashes are
+additionally charged; an attack against 123 bits when direct
 queries and signing requests are charged; and an attack against 128 bits when everything is
 charged. No attack theorem is proved yet.
 
