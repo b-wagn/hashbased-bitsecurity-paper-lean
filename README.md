@@ -75,6 +75,9 @@ addressed hash path, excluding an unchanged starting value. `Proof/Attack/PathBo
 proves that averaging these probabilities over a valid encoding's 42 chains, and allowing
 signing failure, exceeds the 123-bit threshold. Relating this path experiment to concrete XMSS
 verification and transporting the attack to the seeded scheme remain open.
+`Proof/Attack/ChainMutation.lean` implements the concrete candidate adversary and proves its
+zero direct-query count, exact one-request count, transcript validity, and signature freshness
+when the sampled replacement differs from the original chain value.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
