@@ -61,6 +61,13 @@ additionally charged; an attack against 123 bits when direct
 queries and signing requests are charged; and an attack against 128 bits when everything is
 charged. No attack theorem is proved yet.
 
+The encoding prerequisites now include a kernel-checked exact count of admissible digests:
+`11539185377238682781344003244544752`. Thus a uniform digest is accepted with probability
+strictly between `2^-15` and `2^-14`. `Proof/EncodingCardinality.lean` proves the counting
+recurrence; `scripts/generate_encoding_count.py` generates finite certificates whose equations
+Lean checks. `Proof/EncodingProbability.lean` derives the probability bounds and the average
+number of collision opportunities when a uniformly chosen signature chain is changed.
+
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
 master seed, the random oracle, and the adversary's private randomness.
