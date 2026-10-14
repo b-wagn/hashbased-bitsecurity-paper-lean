@@ -129,7 +129,9 @@ reference key generation, this experiment succeeds with probability at least
 its direct hash-query bound of `2^124 + 2^121 + 2`, as well as the absence of queries to
 seed-derivation domains. `Proof/Attack/NeighborGame.lean` connects its logged execution to
 the experiment, proves transcript freshness, and establishes reference-game advantage greater
-than `5/64`. Transfer to the seeded security game and the total charged budget remain open.
+than `5/64`. `Proof/Attack/NeighborSeeded.lean` proves exact equality of its reference and
+deterministic seeded advantages, using its single signing request and absence of
+seed-derivation queries. The total charged-budget proof remains open for this attack.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
