@@ -81,6 +81,9 @@ when the sampled replacement differs from the original chain value.
 `Proof/Attack/ChainMutationAccounting.lean` connects this count to the statement's security
 experiment: every supported execution charges exactly one in the direct-plus-requests mode.
 It also identifies the counted advantage with the seeded game's success probability.
+`Proof/Attack/MutationPath.lean` identifies the modified chain, leaf, and authentication-root
+computation with the `40 - digit` hash path, and proves address separation and input injectivity
+along that path.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
