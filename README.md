@@ -78,6 +78,8 @@ the expected encoding-query count before verification.
 `Proof/Modes/SignerAccounting.lean` identifies the signer-counted experiment's charge with
 all hashes in the adversary phase and derives a bound on that phase's expected hash count
 from the unchanged statement's query-bound hypothesis.
+`Proof/SignerEncodingCost.lean` proves that the seeded signer's expected hash count is
+exactly twice its expected encoding-query count, including early termination and cached replies.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
