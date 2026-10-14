@@ -56,7 +56,7 @@ theorem relTriple_countedSource_terminalPrefix_of_related {α : Type}
       exact ⟨rightState, rfl, by simpa using hstate, by simp, by simpa using hcount⟩
   | query_bind input next ih =>
       rw [terminalPrunedFirstLanePrefix_query_bind]
-      by_cases hcut : RejectingLastNonencoding limit right.1.1 input rightState
+      by_cases hcut : TerminalPrefixCut limit right.1.1 input rightState
           (firstLaneCounters right.1.1.secretKey.parameter rightState history)
       · rw [if_pos hcut, simulateQ_pure, WriterT.run_pure]
         apply relTriple_post_mono (relTriple_with_support
@@ -65,7 +65,7 @@ theorem relTriple_countedSource_terminalPrefix_of_related {α : Type}
         obtain ⟨_, hsource, htarget⟩ := hresult
         simp only [support_pure, Set.mem_singleton_iff] at htarget
         subst target
-        exact Or.inr ⟨rfl, rejectingLastNonencoding_source_noAccepted left right hrel hleftSupport
+        exact Or.inr ⟨rfl, terminalPrefixCut_source_noAccepted left right hrel hleftSupport
           hrightSupport limit input next leftState rightState history hstate hcacheCount hencoding
             hsourceTrace hbudget hcut source hsource⟩
       · rw [if_neg hcut, Direct.run_simulateQ_query_bind, simulateQ_bind,

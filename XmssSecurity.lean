@@ -50,9 +50,11 @@ import XmssSecurity.Proof.Direct.MixedEncodingProbability
 import XmssSecurity.Proof.Direct.MixedFirstLane
 import XmssSecurity.Proof.Modes.SignerSharedPrefix
 import XmssSecurity.Proof.Direct.SourceBudgetExhaustion
+import XmssSecurity.Proof.Direct.SourceSigningCost
 import XmssSecurity.Proof.Direct.SourceTerminalRejection
 import XmssSecurity.Proof.Direct.TerminalCutSoundness
 import XmssSecurity.Proof.Direct.TerminalPrunedPrefix
+import XmssSecurity.Proof.Direct.TerminalQuiescence
 import XmssSecurity.Proof.Direct.TerminalPrunedCoupling
 import XmssSecurity.Proof.Direct.TerminalAcceptedCoupling
 import XmssSecurity.Proof.Direct.VerificationAcceptance

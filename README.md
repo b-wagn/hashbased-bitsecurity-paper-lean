@@ -230,6 +230,10 @@ factor for their actual verification phase.
 execution invariants. Its source coupling certifies that each cut rejects cached
 first-lane witnesses; `TerminalAcceptedCoupling.lean` retains the joint acceptance
 and hit guarantees needed for the probability bound.
+`SourceSigningCost.lean` proves that every signing request consumes at least two
+source-budget units. The public prefix therefore also stops signing with at most
+one unit left and stops all direct hashing at exhaustion. `TerminalQuiescence.lean`
+proves that exhausted continuations emit no further monitor actions.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

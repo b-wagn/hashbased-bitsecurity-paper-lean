@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.Direct.SourceTerminalRejection
+import XmssSecurity.Proof.Direct.SourceSigningCost
 
 /-! The public first-lane state can recognize a rejecting last nonencoding query.
 On related executions this terminal cut excludes only cached first-lane witnesses. -/
@@ -102,8 +103,51 @@ theorem rejectingLastNonencoding_source_noAccepted {α : Type}
   rw [← hparameter]
   exact hinput
 
+noncomputable def TerminalPrefixCut (limit : Nat) (key : ProgrammedGlobalChainKeygenView)
+    (input : (OracleWorld + SigningSpec).Domain) (state : GlobalHighDirectTracedState)
+    (counters : EncodingBudgetCounters) : Prop :=
+  RejectingLastNonencoding limit key input state counters ∨
+    (limit ≤ counters.charge + 1 ∧ ∃ request, input = .inr request) ∨
+    (limit ≤ counters.charge ∧ ∃ hashInput, input = .inl (.inr hashInput))
+
+theorem terminalPrefixCut_source_noAccepted {α : Type}
+    (left : ProgrammedGlobalChainKeygenView) (right : BaseHighKey)
+    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hleft : left ∈ support trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
+    (limit : Nat) (input : (OracleWorld + SigningSpec).Domain)
+    (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
+    (source : CountedSourceState) (target : GlobalHighDirectTracedState)
+    (history : ActionTrace GlobalChainValueIndex)
+    (hstate : SourceFirstLaneExactGoodStateRelation left right.1 source.toSource target history)
+    (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.1.secretKey.parameter =
+      (history.encodingActions.length : ℝ≥0∞))
+    (hencoding : CountedSourceEncodingBudget left.secretKey.parameter source)
+    (hsourceTrace : source.counts.direct = source.attackerTrace.hashInputs.length)
+    (hbudget : CountedSourceBudget (materializePrecomputation left.cache left.secretKey) limit
+      (liftM ((OracleWorld + SigningSpec).query input) >>= next) source)
+    (hcut : TerminalPrefixCut limit right.1.1 input target
+      (firstLaneCounters right.1.1.secretKey.parameter target history))
+    (result : α × CountedSourceState)
+    (hresult : result ∈ support ((simulateQ (countedSourceImpl (materializePrecomputation left.cache left.secretKey))
+      (liftM ((OracleWorld + SigningSpec).query input) >>= next)).run source)) :
+    ¬HasAcceptedEncoding left.secretKey.parameter result.2.counts.cache := by
+  have hcharge := firstLaneCounters_charge_le_source_of_related left right hrel hleft hright
+    source target history hstate hcacheCount hencoding hsourceTrace
+  rcases hcut with hrejecting | ⟨hlast, request, rfl⟩ | ⟨hexhausted, hashInput, rfl⟩
+  · exact rejectingLastNonencoding_source_noAccepted left right hrel hleft hright limit input next
+      source target history hstate hcacheCount hencoding hsourceTrace hbudget hrejecting result hresult
+  · have hroom := hbudget.signing_room
+    omega
+  · have hroom := hbudget.direct_hash_room
+    omega
+
 /-- info: 'XmssSecurity.CappedChain.rejectingLastNonencoding_source_noAccepted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms rejectingLastNonencoding_source_noAccepted
+
+/-- info: 'XmssSecurity.CappedChain.terminalPrefixCut_source_noAccepted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms terminalPrefixCut_source_noAccepted
 
 end XmssSecurity.CappedChain

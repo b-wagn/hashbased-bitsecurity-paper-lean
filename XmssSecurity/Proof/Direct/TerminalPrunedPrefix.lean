@@ -19,7 +19,7 @@ noncomputable def terminalPrunedFirstLanePrefix {α : Type} (limit : Nat)
     OracleComp GlobalFirstLaneWorld (Option (α × GlobalHighDirectTracedState) × EncodingBudgetCounters) :=
   OracleComp.recOn computation (fun value state counters => pure (some (value, state), counters))
     (fun input _ next state counters =>
-      if RejectingLastNonencoding limit key input state counters then pure (none, counters)
+      if TerminalPrefixCut limit key input state counters then pure (none, counters)
       else do
         let result ← limitedFirstLaneAction limit key edgeHigh input state counters
         match result.1 with
@@ -39,7 +39,7 @@ theorem terminalPrunedFirstLanePrefix_query_bind {α : Type} (limit : Nat)
     (state : GlobalHighDirectTracedState) (counters : EncodingBudgetCounters) :
     terminalPrunedFirstLanePrefix limit key edgeHigh (liftM ((OracleWorld + SigningSpec).query input) >>= next)
       state counters =
-      (if RejectingLastNonencoding limit key input state counters then pure (none, counters)
+      (if TerminalPrefixCut limit key input state counters then pure (none, counters)
       else do
         let result ← limitedFirstLaneAction limit key edgeHigh input state counters
         match result.1 with
@@ -65,7 +65,7 @@ theorem terminalPrunedFirstLanePrefix_trace_budget {α : Type}
       exact ⟨hbudget, by simp [ActionTrace.encodingActions], by simp [hazardCount]⟩
   | query_bind input next ih =>
       rw [terminalPrunedFirstLanePrefix_query_bind] at hresult
-      by_cases hcut : RejectingLastNonencoding limit key input state counters
+      by_cases hcut : TerminalPrefixCut limit key input state counters
       · simp only [if_pos hcut, simulateQ_pure, WriterT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
         subst result
         exact ⟨hbudget, by simp [ActionTrace.encodingActions], by simp [hazardCount]⟩
@@ -117,7 +117,7 @@ theorem terminalPrunedFirstLanePrefix_success_support {α : Type}
       simp
   | query_bind input next ih =>
       rw [terminalPrunedFirstLanePrefix_query_bind] at hresult
-      by_cases hcut : RejectingLastNonencoding limit key input state counters
+      by_cases hcut : TerminalPrefixCut limit key input state counters
       · simp only [if_pos hcut, simulateQ_pure, WriterT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
         subst result
         cases hvalue
