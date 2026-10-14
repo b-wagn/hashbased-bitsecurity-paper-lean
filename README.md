@@ -108,7 +108,11 @@ the seeded scheme, and proves the attack claims with the already verified one-qu
 For the remaining attack against 128 bits, `Proof/Attack/EncodingNeighbors.lean` proves that
 every valid encoding has at least 392 distinct valid neighboring digests obtained by decreasing
 one digit and increasing another. The encoding-search and predecessor-search attack still
-needs its probability, verification, and total-budget proofs.
+needs its final verification and total-budget proofs. `Proof/Attack/HashSearch.lean` provides
+a bounded search with exact fresh-input failure probability and guaranteed cached-hit success.
+`Proof/Attack/NeighborSearch.lean` proves that, after signing, searching `2^121` distinct
+randomizers for a different message finds a neighboring encoding with probability greater
+than `3/4`, using at most `2^121` hash queries. The predecessor-search stage remains open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
