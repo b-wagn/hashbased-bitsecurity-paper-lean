@@ -198,6 +198,10 @@ encoding credit. `Proof/Direct/FreshFirstLaneSplit.lean` consequently reduces th
 first lane to its revealed deciding-value event plus that paid encoding collision.
 The signer-mode assembly now retains only the fresh revealed-value probability and
 the fresh verification allowance as its unresolved contributions.
+`Proof/AcceptedHashSampling.lean` constructs uniform accepted hash outputs and proves
+the exact acceptance factor for continuations that reject invalid encodings.
+`Proof/Direct/FreshRevealedConditioning.lean` applies that identity to the actual fresh
+revealed-value event, preserving the source prefix and all verification randomness.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
