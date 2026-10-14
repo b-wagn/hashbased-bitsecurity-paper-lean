@@ -116,6 +116,9 @@ entirely through the ideal trace and attacker log on the coupling's good branch.
 `Proof/Direct/FirstLaneStepBudget.lean` extends the observable bound through every supported
 ideal query from related states, including the first query that triggers a collision. The
 stronger charge counts all direct calls and uses no hidden-table information.
+`Proof/QueryLimiting.lean` implements an aborting query limiter and proves exact preservation
+under semantic bounds on supported executions. `Proof/FirstLaneSampleLimit.lean` specializes
+it to fresh encoding samples, retaining the observed prefix and exact unused fuel on abort.
 The remaining assembly must enforce a shared budget in the ideal experiment after divergence,
 account for a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the

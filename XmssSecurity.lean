@@ -24,6 +24,7 @@ import XmssSecurity.Proof.Modes.SignerSourceBudget
 import XmssSecurity.Proof.Direct.CountedSourceCoupling
 import XmssSecurity.Proof.Modes.SignerFirstLaneCoupling
 import XmssSecurity.Proof.Direct.FirstLaneStepBudget
+import XmssSecurity.Proof.FirstLaneSampleLimit
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
 import XmssSecurity.Proof.EncodingAcceptanceBudget
