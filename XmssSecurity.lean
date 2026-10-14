@@ -19,6 +19,7 @@ import XmssSecurity.Proof.Modes.SignerAccounting
 import XmssSecurity.Proof.Modes.SignerTable
 import XmssSecurity.Proof.Modes.SignerPrepared
 import XmssSecurity.Proof.Modes.SignerReferenceBudget
+import XmssSecurity.Proof.Modes.SignerPhaseCounts
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
 import XmssSecurity.Proof.EncodingAcceptanceBudget
