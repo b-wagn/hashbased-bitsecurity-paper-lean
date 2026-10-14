@@ -80,6 +80,9 @@ all hashes in the adversary phase and derives a bound on that phase's expected h
 from the unchanged statement's query-bound hypothesis.
 `Proof/SignerEncodingCost.lean` proves that the seeded signer's expected hash count is
 exactly twice its expected encoding-query count, including early termination and cached replies.
+`Proof/SignerSuccessBudget.lean` consequently bounds successful seeded signing by half the
+acceptance probability times the expected signer hash count, whenever the starting cache
+contains no accepted encoding.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
