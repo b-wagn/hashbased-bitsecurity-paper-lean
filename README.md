@@ -83,6 +83,9 @@ exactly twice its expected encoding-query count, including early termination and
 `Proof/SignerSuccessBudget.lean` consequently bounds successful seeded signing by half the
 acceptance probability times the expected signer hash count, whenever the starting cache
 contains no accepted encoding.
+`Proof/FirstLaneEncodingExpected.lean` bounds the encoding component of the existing
+first-lane experiment by its actual expected encoding-query count, using the monitor's
+expected risk and an exact connection back to the original execution trace.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
