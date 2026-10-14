@@ -17,6 +17,7 @@ import XmssSecurity.Proof.Modes.Keygen
 import XmssSecurity.Proof.Modes.Verifier
 import XmssSecurity.Proof.Modes.SignerAccounting
 import XmssSecurity.Proof.Modes.SignerTable
+import XmssSecurity.Proof.Modes.SignerPrepared
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
 import XmssSecurity.Proof.EncodingAcceptanceBudget
@@ -25,6 +26,7 @@ import XmssSecurity.Proof.Deterministic.SignerCost
 import XmssSecurity.Proof.Deterministic.SignerPhaseCost
 import XmssSecurity.Proof.Deterministic.SignerReferenceCost
 import XmssSecurity.Proof.Deterministic.SignerBudgetTransfer
+import XmssSecurity.Proof.Deterministic.PreparedKeygen
 import XmssSecurity.Proof.SignerSuccessBudget
 import XmssSecurity.Proof.Seeded.KeygenEncodingCache
 import XmssSecurity.Proof.FirstLaneEncodingExpected
