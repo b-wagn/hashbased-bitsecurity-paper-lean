@@ -10,6 +10,7 @@ import XmssSecurity.Proof.Modes.AllHashes
 import XmssSecurity.Proof.Modes.Lattice
 import XmssSecurity.Proof.Modes.Projection
 import XmssSecurity.Proof.Modes.Exact
+import XmssSecurity.Proof.Modes.Keygen
 
 /-!
 # Security of XMSS in the random-oracle model
@@ -18,9 +19,8 @@ The main theorems. Each proves a claim of `Statement/Claims.lean`; the statement
 the security notion with its counting modes, and bit security) live under `Statement/`, the
 proofs under `Proof/`.
 
-The lattice of counting modes (`Proof/Modes/Lattice.lean`) spreads the two proved levels to the
-other modes: the direct-mode level holds in every mode, and the all-hashes level holds in every
-mode charging at least key generation, the signer, and the verifier.
+The lattice of counting modes (`Proof/Modes/Lattice.lean`) spreads the proved levels to the
+other modes: 122 bits holds in every mode, and 127 bits holds in every mode charging key generation.
 -/
 
 
@@ -69,6 +69,20 @@ theorem xmss_sufCma_direct_122 : XmssSufCmaSecure CountingMode.direct 122 :=
 /-- Every counting mode inherits the completed 122-bit direct-query guarantee. -/
 theorem xmss_sufCma_secure_122 (mode : CountingMode) : XmssSufCmaSecure mode 122 :=
   Modes.hasClassicalSecurityBits_of_le (Modes.direct_le mode) xmss 122 xmss_sufCma_direct_122
+
+/-- Charging direct queries and key generation gives 127-bit security. -/
+theorem xmss_sufCma_keygen_127 : XmssSufCmaSecure ⟨true, false, false, false⟩ 127 :=
+  Modes.sufCmaKeygen_127
+
+/-- info: 'XmssSecurity.xmss_sufCma_keygen_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_keygen_127
+
+/-- Every mode charging key generation inherits the 127-bit guarantee. -/
+theorem xmss_sufCma_secure_127_of_keygen (mode : CountingMode) (hk : mode.keygen = true) :
+    XmssSufCmaSecure mode 127 :=
+  Modes.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le, hk]) xmss 127
+    xmss_sufCma_keygen_127
 
 /-- The direct mode charges the least, so its level holds in every mode. -/
 theorem xmss_sufCma_secure_119 (mode : CountingMode) : XmssSufCmaSecure mode 119 :=

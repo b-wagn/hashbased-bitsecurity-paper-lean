@@ -36,6 +36,8 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | `XmssSufCmaDirectStatement`: the original direct-query milestone | 119 | `xmss_sufCma_direct_119` |
 | Stronger direct-query security | 122 | `xmss_sufCma_direct_122` |
 | Every counting mode | 122 | `xmss_sufCma_secure_122` |
+| Direct queries and key generation | 127 | `xmss_sufCma_keygen_127` |
+| Every mode charging key generation | 127 | `xmss_sufCma_secure_127_of_keygen` |
 | Every hash call and every signing request | 127 | `xmss_sufCma_everything_127` |
 
 The direct proof now reaches the conjectured lower bound of 122 bits. It selects one deciding
@@ -43,9 +45,13 @@ chain, charges one probe in the first lane, and charges at most 40 verification 
 deciding path in the second lane. See `Proof/Direct/DecidingSecurity.lean` and
 [`docs/plan-direct-122.md`](docs/plan-direct-122.md). The original 119-bit statement is unchanged.
 
-Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to the
-proved direct lower bound and five remaining obligations: 127-bit security when only keygen,
-signer, or verifier hashes are additionally charged; an attack against 123 bits when direct
+The keygen-counted 127-bit proof shares the direct-query budget between encoding prehits and
+structural collisions, and subtracts the exact key-generation cost from the charged budget.
+See `Proof/Direct/SharedDecidingBudget.lean` and `Proof/Modes/Keygen.lean`.
+
+Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to six
+basis obligations, of which four remain: 127-bit security when only signer or verifier hashes
+are additionally charged; an attack against 123 bits when direct
 queries and signing requests are charged; and an attack against 128 bits when everything is
 charged. No attack theorem is proved yet.
 
