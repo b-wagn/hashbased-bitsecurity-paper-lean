@@ -96,6 +96,9 @@ with the execution trace and proves that enforcement can only decrease it.
 `Proof/Direct/DecidingFirstLaneExpected.lean` carries the bound through the existing
 couplings to the original first-lane winning event in the reference game. The resulting
 expected hazard count still needs to be related to the signer-counted budget.
+`Proof/Direct/DecidingAcceptedProbe.lean` removes the unconditional extra deciding probe:
+the probe runs only for an accepted forged encoding, and its expected charge is exactly
+the probability of that condition. The proof preserves the original winning-event bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
