@@ -191,6 +191,13 @@ traced source prefix. `Proof/Direct/FreshFirstLaneContribution.lean` retains the
 fresh first-lane winning probability in the decomposition. Together with the general
 secondary-loss bound, `Proof/Modes/SignerMixedLoss.lean` now bounds the original signer-mode
 advantage for arbitrary adversaries, with the remaining fresh contributions explicit.
+`Proof/Direct/FreshEncodingCollision.lean` bounds a fresh encoding collision against the
+unique signature at the forged leaf by `2^-128`, and requires an accepted encoding in
+the prefix. Its budget and source-projection lemmas charge this branch to the source
+encoding credit. `Proof/Direct/FreshFirstLaneSplit.lean` consequently reduces the fresh
+first lane to its revealed deciding-value event plus that paid encoding collision.
+The signer-mode assembly now retains only the fresh revealed-value probability and
+the fresh verification allowance as its unresolved contributions.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.Modes.SignerAcceptedFirstLane
 import XmssSecurity.Proof.Direct.FreshFirstLaneContribution
 import XmssSecurity.Proof.Direct.SourceLossBudgetFresh
+import XmssSecurity.Proof.Direct.FreshFirstLaneSplit
 
 /-! The signer-mode reduction for arbitrary adversaries, retaining the actual fresh
 first-lane contribution and the fresh second-lane allowance under one source budget. -/
@@ -51,8 +52,31 @@ theorem signer_advantage_le_source_credit_add_fresh (adversary : Security.Statem
     notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
   exact signer_seeded_loss_le_source_credit_add_fresh adversary q hsmall hbound
 
+theorem signer_advantage_le_source_credit_add_fresh_revealed (adversary : Security.StatementAdversary)
+    (q : Nat) (hsmall : q < 2 ^ 256)
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
+    (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
+      (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
+        (2 * TargetSum.acceptanceProbability *
+          (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
+            expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
+              ((2 ^ digestBits : Nat) : ℝ≥0∞) +
+        sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
+        freshRevealedProbability (memoAdversary (Security.embed adversary)) +
+        forgedEncodingFreshProbability (memoAdversary (Security.embed adversary)) *
+          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
+  apply (signer_advantage_le_source_credit_add_fresh adversary q hsmall hbound).trans
+  apply (add_le_add (add_le_add le_rfl
+    (freshFirstLaneProbability_le_source_credit_add_revealed _)) le_rfl).trans_eq
+  simp only [div_eq_mul_inv]
+  ring
+
 /-- info: 'XmssSecurity.Modes.signer_advantage_le_source_credit_add_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms signer_advantage_le_source_credit_add_fresh
+
+/-- info: 'XmssSecurity.Modes.signer_advantage_le_source_credit_add_fresh_revealed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms signer_advantage_le_source_credit_add_fresh_revealed
 
 end XmssSecurity.Modes
