@@ -60,6 +60,8 @@ import XmssSecurity.Proof.Direct.TerminalActivityCoupling
 import XmssSecurity.Proof.Direct.SourceEncodingActivity
 import XmssSecurity.Proof.Direct.TerminalActivityCancellation
 import XmssSecurity.Proof.Direct.TerminalActivityBound
+import XmssSecurity.Proof.Direct.TerminalMixedFirstLane
+import XmssSecurity.Proof.Modes.Signer
 import XmssSecurity.Proof.Direct.TerminalPrunedCoupling
 import XmssSecurity.Proof.Direct.TerminalAcceptedCoupling
 import XmssSecurity.Proof.Direct.VerificationAcceptance
