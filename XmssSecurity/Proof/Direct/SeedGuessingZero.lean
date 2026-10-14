@@ -50,8 +50,9 @@ theorem run'_cache_change_eq_of_zero {α : Type} (bad : HashInput → Prop) [Dec
               simp only [pure_bind]
               exact ih answer left right hagree (hnext answer)
 
-theorem evalDist_deterministic_eq_table_of_direct_zero (adversary : Adversary)
-    (hbound : Direct.IsDirectQueryBound adversary 0) :
+theorem evalDist_deterministic_eq_table_of_noSeed (adversary : Adversary)
+    (hbound : ∀ parameter secret randomizers,
+      (tableGameAfterSecrets adversary parameter secret randomizers).IsQueryBoundP (hashBad MaySeedHit) 0) :
     evalDist ((simulateQ romImpl (gameCore scheme adversary)).run' ∅) =
       evalDist (independentTableGame adversary) := by
   rw [evalDist_gameCore_deterministic_programmed, evalDist_programmedDeterministicGame_seed_last]
@@ -70,11 +71,18 @@ theorem evalDist_deterministic_eq_table_of_direct_zero (adversary : Adversary)
       apply signingDerivationCache_agreeOutside_derivationHit seed _ _ _ input
       intro hhit
       exact hinput hhit.2
-    · exact tableGameAfterSecrets_bound adversary 0 hbound _ _ _
+    · exact hbound _ _ _
   simp_rw [hrun]
   apply evalDist_ext
   intro result
   simp
+
+theorem evalDist_deterministic_eq_table_of_direct_zero (adversary : Adversary)
+    (hbound : Direct.IsDirectQueryBound adversary 0) :
+    evalDist ((simulateQ romImpl (gameCore scheme adversary)).run' ∅) =
+      evalDist (independentTableGame adversary) :=
+  evalDist_deterministic_eq_table_of_noSeed adversary
+    (fun _ _ _ => tableGameAfterSecrets_bound adversary 0 hbound _ _ _)
 
 /-- info: 'XmssSecurity.Seeded.evalDist_deterministic_eq_table_of_direct_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
