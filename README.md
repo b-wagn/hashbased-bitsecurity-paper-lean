@@ -105,6 +105,11 @@ equivalence for adversaries making no direct hash queries. `Proof/Attack/ChainMu
 uses the attack's single request to eliminate memoization, transfers its advantage exactly to
 the seeded scheme, and proves the attack claims with the already verified one-query budget.
 
+For the remaining attack against 128 bits, `Proof/Attack/EncodingNeighbors.lean` proves that
+every valid encoding has at least 392 distinct valid neighboring digests obtained by decreasing
+one digit and increasing another. The encoding-search and predecessor-search attack still
+needs its probability, verification, and total-budget proofs.
+
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
 master seed, the random oracle, and the adversary's private randomness.
