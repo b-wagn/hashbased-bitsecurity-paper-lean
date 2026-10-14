@@ -125,8 +125,10 @@ signature for the neighboring encoding. `Proof/Attack/NeighborExperiment.lean` c
 signing, both searches, signature construction, and full verification. After every supported
 reference key generation, this experiment succeeds with probability at least
 `(31/32) * (3/4) * (2/17)`, which is strictly greater than `5/64`.
-Connecting it to a concrete adversary in the seeded security game and proving the total
-charged budget remain open.
+`Proof/Attack/NeighborAdversary.lean` implements the concrete one-request adversary and proves
+its direct hash-query bound of `2^124 + 2^121 + 2`, as well as the absence of queries to
+seed-derivation domains. Connecting its advantage to the reference experiment and the seeded
+security game, and proving the total charged budget, remain open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the

@@ -40,11 +40,11 @@ theorem findHash_queryBound (inputs : ℕ → HashInput) (accept : HashOutput �
       · exact OracleComp.isQueryBoundP_pure _ _ _
       · exact ih (start + 1)
 
-theorem findHash_queryBound_zero_at_other_input
+theorem findHash_queryBound_zero
     (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
-    (start steps : ℕ) (target : HashInput)
-    (hother : ∀ i, start ≤ i → i < start + steps → inputs i ≠ target) :
-    (findHash inputs accept start steps).IsQueryBoundP (· = target) 0 := by
+    (start steps : ℕ) (predicate : HashInput → Prop) [DecidablePred predicate]
+    (hother : ∀ i, start ≤ i → i < start + steps → ¬predicate (inputs i)) :
+    (findHash inputs accept start steps).IsQueryBoundP predicate 0 := by
   induction steps generalizing start with
   | zero => simp [findHash]
   | succ steps ih =>
@@ -56,6 +56,13 @@ theorem findHash_queryBound_zero_at_other_input
       split
       · exact OracleComp.isQueryBoundP_pure _ _ _
       · exact ih (start + 1) (fun i hi hiEnd => hother i (by omega) (by omega))
+
+theorem findHash_queryBound_zero_at_other_input
+    (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+    (start steps : ℕ) (target : HashInput)
+    (hother : ∀ i, start ≤ i → i < start + steps → inputs i ≠ target) :
+    (findHash inputs accept start steps).IsQueryBoundP (· = target) 0 :=
+  findHash_queryBound_zero inputs accept start steps (· = target) hother
 
 theorem findHash_preserves_unqueriedInput
     (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
