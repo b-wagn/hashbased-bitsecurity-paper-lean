@@ -175,6 +175,12 @@ bounds accepted first-lane events by the query allowance plus the source accepta
 without an extra collision term. `Proof/Modes/SignerAcceptedFirstLane.lean` instantiates
 this sharper bound for every signer-bounded adversary, including those that return fresh
 encodings on some executions, and refines the cached-game loss assembly.
+`Proof/Direct/FreshVerificationProbability.lean` carries the fresh-encoding acceptance
+factor through the winning verification phase and the instrumented source finisher,
+including events selected using auxiliary prefix randomness. It also decomposes the
+full first lane into accepted prefixes and an explicit fresh contribution; the signer
+budget now bounds the former for arbitrary adversaries. The latter still needs its
+collision bound before the general 127-bit theorem can be assembled.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.Direct.LimitedAcceptanceCancellation
+import XmssSecurity.Proof.Direct.FreshVerificationProbability
 import XmssSecurity.Proof.Modes.SignerCachedLoss
 
 /-! The source encoding credit pays for the accepted first lane, including adversaries
@@ -42,6 +43,23 @@ theorem signer_cached_seeded_loss_le_source_credit (adversary : Security.Stateme
   rw [add_assoc]
   exact add_le_add hfirst (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss _ hcached)
 
+/-- For arbitrary adversaries the fresh contribution is retained explicitly. Its
+acceptance factor is established here; its collision factor remains to be bounded. -/
+theorem signer_firstLane_probability_le_accepted_add_fresh
+    (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
+    Pr[WinningDecidingFirstLaneBadEventOccurs |
+      cappedDetailedGameWithEncodingTrace (memoAdversary (Security.embed adversary))] ≤
+      (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
+        (TargetSum.acceptanceProbability *
+          (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
+            expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
+              ((2 ^ digestBits : Nat) : ℝ≥0∞) +
+        TargetSum.acceptanceProbability * Pr[SourcePrefixForgedEncodingFresh |
+          sourcePrefixProgram (memoAdversary (Security.embed adversary))] :=
+  (decidingFirstLane_probability_le_accepted_add_fresh _).trans
+    (add_le_add (signer_acceptedPrefixFirstLane_probability_le_source_credit adversary q hsmall hbound) le_rfl)
+
 /-- info: 'XmssSecurity.Modes.signer_acceptedPrefixFirstLane_probability_le_source_credit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms signer_acceptedPrefixFirstLane_probability_le_source_credit
@@ -49,5 +67,9 @@ theorem signer_cached_seeded_loss_le_source_credit (adversary : Security.Stateme
 /-- info: 'XmssSecurity.Modes.signer_cached_seeded_loss_le_source_credit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms signer_cached_seeded_loss_le_source_credit
+
+/-- info: 'XmssSecurity.Modes.signer_firstLane_probability_le_accepted_add_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms signer_firstLane_probability_le_accepted_add_fresh
 
 end XmssSecurity.Modes
