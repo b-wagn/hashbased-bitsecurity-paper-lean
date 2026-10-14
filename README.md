@@ -127,6 +127,9 @@ of each action from related states, including the first action that triggers a c
 limited prefix: either the outputs and states agree, or the retained trace contains a collision.
 `Proof/Modes/SignerLimitedCoupling.lean` applies the unchanged statement budget to this coupling,
 with both the source charge and the public ideal charge bounded on every coupled execution.
+`Proof/Direct/LimitedPrefixSupport.lean` recovers an exact original execution from every
+successful limited run, preserves the returned-signature coverage invariant, and bounds
+accepted encodings in its final cache by the acceptance probability times fresh samples.
 The remaining assembly must combine the limited experiment's probability bounds, account for
 a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the

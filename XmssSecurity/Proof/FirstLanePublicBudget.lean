@@ -134,6 +134,24 @@ theorem limitEncodingAction_trace_direct (table : Index → Digest) (limit direc
     subst result
     simp [hazardCount]
 
+theorem limitEncodingAction_success_support (table : Index → Digest) (limit direct encoding : Nat)
+    (counters : EncodingBudgetCounters) (computation : OracleComp (World Index) α)
+    (result : (Option α × EncodingBudgetCounters) × ActionTrace Index) (value : α)
+    (hresult : result ∈ support (simulateQ (eagerTraceImpl table)
+      (limitEncodingAction limit direct encoding counters computation)).run)
+    (hvalue : result.1.1 = some value) :
+    (value, result.2) ∈ support (simulateQ (eagerTraceImpl table) computation).run := by
+  let credited := counters.credit direct encoding
+  by_cases hcredit : credited.charge ≤ limit
+  · rw [limitEncodingAction, if_pos hcredit, simulateQ_map, WriterT.run_map, support_map] at hresult
+    obtain ⟨limited, hlimited, rfl⟩ := hresult
+    exact QueryLimiting.limit_success_support IsEncodingSample (eagerTraceImpl table)
+      (credited.sampleFuel limit) computation limited value hlimited hvalue
+  · rw [limitEncodingAction, if_neg hcredit] at hresult
+    simp only [simulateQ_pure, WriterT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
+    subst result
+    cases hvalue
+
 /-- info: 'XmssSecurity.FirstLaneOracleSimulation.simulate_limitEncodingAction_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms simulate_limitEncodingAction_eq

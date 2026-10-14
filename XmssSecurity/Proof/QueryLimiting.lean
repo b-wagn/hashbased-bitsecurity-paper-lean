@@ -83,6 +83,38 @@ theorem run_trace_query_bind (input : spec.Domain)
           (simulateQ impl (next head.1)).run := by
   simp [simulateQ_bind]
 
+/-- Successful limited runs retain an exact supported run of the original computation. -/
+theorem limit_success_support (fuel : Nat) (computation : OracleComp spec α)
+    (result : (Option α × Nat) × Log) (value : α)
+    (hresult : result ∈ support (simulateQ impl (limit selected fuel computation)).run)
+    (hvalue : result.1.1 = some value) :
+    (value, result.2) ∈ support (simulateQ impl computation).run := by
+  induction computation using OracleComp.inductionOn generalizing fuel result value with
+  | pure output =>
+      simp only [limit_pure, simulateQ_pure, WriterT.run_pure, support_pure,
+        Set.mem_singleton_iff] at hresult
+      subst result
+      simp only [Option.some.injEq] at hvalue
+      subst value
+      simp
+  | query_bind input next ih =>
+      rw [limit_query_bind] at hresult
+      by_cases hstop : selected input ∧ fuel = 0
+      · rw [if_pos hstop] at hresult
+        simp only [simulateQ_pure, WriterT.run_pure, support_pure,
+          Set.mem_singleton_iff] at hresult
+        subst result
+        cases hvalue
+      · rw [if_neg hstop, run_trace_query_bind, mem_support_bind_iff] at hresult
+        obtain ⟨head, hhead, htail⟩ := hresult
+        rw [support_map] at htail
+        obtain ⟨tail, htail, rfl⟩ := htail
+        have horiginal := ih head.1 _ tail value htail hvalue
+        rw [run_trace_query_bind, mem_support_bind_iff]
+        refine ⟨head, hhead, ?_⟩
+        rw [support_map]
+        exact ⟨(value, tail.2), horiginal, rfl⟩
+
 include measure_empty measure_append measure_query
 
 /-- The limiter is invisible when every supported complete execution fits the budget. -/
