@@ -20,6 +20,7 @@ import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
 import XmssSecurity.Proof.EncodingAcceptanceBudget
 import XmssSecurity.Proof.SignerEncodingCost
+import XmssSecurity.Proof.Deterministic.SignerCost
 import XmssSecurity.Proof.SignerSuccessBudget
 import XmssSecurity.Proof.Seeded.KeygenEncodingCache
 import XmssSecurity.Proof.FirstLaneEncodingExpected
