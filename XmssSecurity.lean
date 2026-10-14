@@ -1,0 +1,67 @@
+import XmssSecurity.Statement.Claims
+import XmssSecurity.Proof.Adversary.Security
+import XmssSecurity.Proof.Direct.Assemble
+import XmssSecurity.Proof.Modes.Direct
+import XmssSecurity.Proof.Modes.AllHashes
+import XmssSecurity.Proof.Modes.Lattice
+import XmssSecurity.Proof.Modes.Projection
+
+/-!
+# Security of XMSS in the random-oracle model
+
+The main theorems. Each proves a claim of `Statement/Claims.lean`; the statements (the scheme,
+the security notion with its counting modes, and bit security) live under `Statement/`, the
+proofs under `Proof/`.
+
+The lattice of counting modes (`Proof/Modes/Lattice.lean`) spreads the two proved levels to the
+other modes: the direct-mode level holds in every mode, and the all-hashes level holds in every
+mode charging at least key generation, the signer, and the verifier.
+-/
+
+
+
+namespace XmssSecurity
+
+open SUFCMA
+
+/-- XMSS has 127 bits of classical SUF-CMA security, counting every hash call of the experiment. -/
+theorem xmss_sufCma_allHashes_127 : XmssSufCmaAllHashesStatement :=
+  (Modes.notion_allHashes_hasClassicalSecurityBits_iff xmss 127).2 Security.security127
+
+/-- info: 'XmssSecurity.xmss_sufCma_allHashes_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_allHashes_127
+
+/-- XMSS has 119 bits of classical SUF-CMA security, counting only the adversary's own hash
+calls. -/
+theorem xmss_sufCma_direct_119 : XmssSufCmaDirectStatement :=
+  (Modes.notion_direct_hasClassicalSecurityBits_iff xmss 119).2 Direct.sufCmaDirect_119
+
+/-- info: 'XmssSecurity.xmss_sufCma_direct_119' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_direct_119
+
+/-- The direct mode charges the least, so its level holds in every mode. -/
+theorem xmss_sufCma_secure_119 (mode : CountingMode) : XmssSufCmaSecure mode 119 :=
+  Modes.hasClassicalSecurityBits_of_le (m := CountingMode.direct)
+    ⟨fun h => by simp [CountingMode.direct] at h, fun h => by simp [CountingMode.direct] at h,
+      fun h => by simp [CountingMode.direct] at h, fun h => by simp [CountingMode.direct] at h⟩
+    xmss 119 xmss_sufCma_direct_119
+
+/-- Every mode charging key generation, the signer, and the verifier charges at least as much as
+`allHashes`, so it has 127 bits. -/
+theorem xmss_sufCma_secure_127 (mode : CountingMode) (hk : mode.keygen = true)
+    (hs : mode.signer = true) (hv : mode.verifier = true) : XmssSufCmaSecure mode 127 :=
+  Modes.hasClassicalSecurityBits_of_le (m := CountingMode.allHashes)
+    ⟨fun _ => hk, fun _ => hs, fun _ => hv, fun h => by simp [CountingMode.allHashes] at h⟩
+    xmss 127 xmss_sufCma_allHashes_127
+
+/-- info: 'XmssSecurity.xmss_sufCma_secure_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_sufCma_secure_127
+
+/-- In particular, counting every hash call and every signing request. -/
+theorem xmss_sufCma_everything_127 : XmssSufCmaSecure CountingMode.everything 127 :=
+  xmss_sufCma_secure_127 _ rfl rfl rfl
+
+end XmssSecurity
