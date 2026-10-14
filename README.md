@@ -119,8 +119,12 @@ stronger charge counts all direct calls and uses no hidden-table information.
 `Proof/QueryLimiting.lean` implements an aborting query limiter and proves exact preservation
 under semantic bounds on supported executions. `Proof/FirstLaneSampleLimit.lean` specializes
 it to fresh encoding samples, retaining the observed prefix and exact unused fuel on abort.
-The remaining assembly must enforce a shared budget in the ideal experiment after divergence,
-account for a fresh forged encoding, and retain the seed-guessing loss within the final bound.
+`Proof/FirstLanePublicBudget.lean` combines direct-query credits with the sample limiter.
+`Proof/Direct/FirstLaneBudgetEnforcement.lean` implements the complete limited ideal prefix,
+proves its joint budget and hazard bounds even after divergence, and proves exact preservation
+of each action from related states, including the first action that triggers a collision.
+The remaining assembly must carry the source coupling through this limited prefix, account
+for a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
