@@ -78,6 +78,9 @@ verification and transporting the attack to the seeded scheme remain open.
 `Proof/Attack/ChainMutation.lean` implements the concrete candidate adversary and proves its
 zero direct-query count, exact one-request count, transcript validity, and signature freshness
 when the sampled replacement differs from the original chain value.
+`Proof/Attack/ChainMutationAccounting.lean` connects this count to the statement's security
+experiment: every supported execution charges exactly one in the direct-plus-requests mode.
+It also identifies the counted advantage with the seeded game's success probability.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
