@@ -112,7 +112,11 @@ needs its final verification and total-budget proofs. `Proof/Attack/HashSearch.l
 a bounded search with exact fresh-input failure probability and guaranteed cached-hit success.
 `Proof/Attack/NeighborSearch.lean` proves that, after signing, searching `2^121` distinct
 randomizers for a different message finds a neighboring encoding with probability greater
-than `3/4`, using at most `2^121` hash queries. The predecessor-search stage remains open.
+than `3/4`, using at most `2^121` hash queries. `Proof/Attack/PreimageSearch.lean` chooses
+a uniform four-bit prefix and searches its `2^124` candidate predecessors. When the cache
+contains exactly the genuine predecessor at the chosen address, it proves an exact failure
+probability of `(15/16) * (1 - 2^-128)^(2^124)` and success at least `2/17`. Connecting these
+searches to signature verification, the full game, and its total charged budget remains open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
