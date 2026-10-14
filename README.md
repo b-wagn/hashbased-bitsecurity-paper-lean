@@ -186,6 +186,11 @@ query into the prefix preserves the structural-query count and creates acceptanc
 on fresh inputs. `Proof/Direct/DecidingSecondLaneFresh.lean` removes the always-cached
 hypothesis from the second-lane bound: its additional charge is forty times the encoding
 acceptance probability times the probability of a fresh final encoding, divided by `2^128`.
+`Proof/Direct/FreshPrefixProjection.lean` identifies that freshness probability with the
+traced source prefix. `Proof/Direct/FreshFirstLaneContribution.lean` retains the actual
+fresh first-lane winning probability in the decomposition. Together with the general
+secondary-loss bound, `Proof/Modes/SignerMixedLoss.lean` now bounds the original signer-mode
+advantage for arbitrary adversaries, with the remaining fresh contributions explicit.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
