@@ -99,6 +99,10 @@ expected hazard count still needs to be related to the signer-counted budget.
 `Proof/Direct/DecidingAcceptedProbe.lean` removes the unconditional extra deciding probe:
 the probe runs only for an accepted forged encoding, and its expected charge is exactly
 the probability of that condition. The proof preserves the original winning-event bound.
+`Proof/FirstLaneEncodingAcceptance.lean` bounds accepted sampling observations by the
+acceptance probability times expected encoding samples. `Proof/FirstLaneEncodingCache.lean`
+tracks accepted cache entries through every direct-query and signing step, then uses this
+bound to pay for the conditional deciding probe in the original first-lane event.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
