@@ -225,6 +225,11 @@ freezes its hash cache, and that a last nonencoding hash cannot create an accept
 encoding in a previously rejecting cache. `SourceTerminalRejection.lean` rules out
 cached first-lane witnesses on those continuations and preserves the acceptance
 factor for their actual verification phase.
+`TerminalCutSoundness.lean` transfers this criterion to the public cache and counters.
+`TerminalPrunedPrefix.lean` implements the cut and preserves the budget and completed
+execution invariants. Its source coupling certifies that each cut rejects cached
+first-lane witnesses; `TerminalAcceptedCoupling.lean` retains the joint acceptance
+and hit guarantees needed for the probability bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
