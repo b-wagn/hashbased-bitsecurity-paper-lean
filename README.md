@@ -84,6 +84,11 @@ It also identifies the counted advantage with the seeded game's success probabil
 `Proof/Attack/MutationPath.lean` identifies the modified chain, leaf, and authentication-root
 computation with the `40 - digit` hash path, and proves address separation and input injectivity
 along that path.
+`Proof/Attack/MutationPathCache.lean` proves that every path address has exactly its honest
+input cached after key generation, with the honest path ending at the public-key root.
+`Proof/Attack/MutationProbability.lean` obtains the exact probability that a distinct uniformly
+sampled chain value reaches that root in the path experiment starting from the key-generation
+cache. Extending this result through signing and the full verifier remains open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
