@@ -10,12 +10,6 @@ set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity
 
-noncomputable def Direct.expectedSourceSignerHashes (adversary : Adversary) : ℝ≥0∞ :=
-  ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
-    ∑' result, Pr[= result | (simulateQ (CappedChain.countedSourceImpl keyResult.1.2)
-      (adversary.main keyResult.1.1)).run (CappedChain.CountedSourceState.initial keyResult.2)] *
-        (result.2.counts.signing : ℝ≥0∞)
-
 namespace Modes
 
 open Seeded CappedChain Direct

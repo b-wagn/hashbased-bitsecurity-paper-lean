@@ -41,3 +41,13 @@ theorem reference_expectedClassBudget {α : Type} (publicKey : PublicKey) (secre
 #print axioms reference_expectedClassBudget
 
 end XmssSecurity.CappedChain
+
+namespace XmssSecurity.Direct
+
+noncomputable def expectedSourceSignerHashes (adversary : Adversary) : ℝ≥0∞ :=
+  ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+    ∑' result, Pr[= result | (simulateQ (CappedChain.countedSourceImpl keyResult.1.2)
+      (adversary.main keyResult.1.1)).run (CappedChain.CountedSourceState.initial keyResult.2)] *
+        (result.2.counts.signing : ℝ≥0∞)
+
+end XmssSecurity.Direct

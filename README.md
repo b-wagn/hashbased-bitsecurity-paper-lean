@@ -148,6 +148,11 @@ all three expected counts with twice the source signer cost under the same seman
 instrumentation. `Proof/Modes/SignerClassBudget.lean` consequently bounds the reference
 experiment's expected direct encoding, structural, and seed queries, plus twice its expected
 signer hashes, by the original signer-counted statement budget.
+`Proof/Direct/SourceSignerQueries.lean` bounds all prefix encoding queries by direct encoding
+queries plus actual reference signer hashes. `Proof/Direct/SourceLossBudget.lean` combines
+prehit, second-lane, and seed losses when the forged encoding is cached; its numerical bound
+uses at most half the nonstructural budget weights. `Proof/Modes/SignerSecondaryLoss.lean`
+places those source losses within `q / 2^128` and retains an explicit reserve for the first lane.
 The remaining assembly must combine the limited experiment's probability bounds, account for
 a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
