@@ -168,6 +168,13 @@ without an unconditional extra query charge.
 `Proof/Direct/VerificationAcceptance.lean` bounds fresh verification success by the exact
 encoding acceptance probability, rules out cached invalid encodings, and retains the
 acceptance factor when restricting to any prefix event whose cache has no accepted encoding.
+`Proof/AcceptedEventCoupling.lean` proves a joint event inequality that cancels the
+collision allowance for accepted probes on rejected source prefixes.
+`Proof/Direct/LimitedAcceptanceCancellation.lean` applies it to the limited prefix and
+bounds accepted first-lane events by the query allowance plus the source acceptance credit,
+without an extra collision term. `Proof/Modes/SignerAcceptedFirstLane.lean` instantiates
+this sharper bound for every signer-bounded adversary, including those that return fresh
+encodings on some executions, and refines the cached-game loss assembly.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
