@@ -34,6 +34,8 @@ import XmssSecurity.Proof.Deterministic.ExpectedReferenceQueries
 import XmssSecurity.Proof.Modes.SignerClassBudget
 import XmssSecurity.Proof.Modes.SignerSecondaryLoss
 import XmssSecurity.Proof.Modes.SignerCachedLoss
+import XmssSecurity.Proof.Direct.CachedEncodingCost
+import XmssSecurity.Proof.Direct.LimitedAcceptanceTransfer
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
 import XmssSecurity.Proof.EncodingAcceptanceBudget
