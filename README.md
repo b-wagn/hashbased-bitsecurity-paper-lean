@@ -67,6 +67,11 @@ unsuccessful executions exceed the reduced budget. See `Proof/Modes/Verifier.lea
 Exact security for all sixteen modes remains open. `Proof/Modes/Exact.lean` reduces it to six
 basis obligations, of which only one remains: 127-bit security when only signer hashes are
 additionally charged. Exact security is now proved for fourteen of the sixteen modes.
+For the remaining signer-counted bound, `Proof/EncodingAcceptanceBudget.lean` proves that
+the probability of obtaining any accepted encoding is at most its acceptance probability
+times the expected number of encoding queries, starting from a cache with no accepted encoding.
+The bound allows adaptive queries and cached replies; it also bounds successful reference
+signing and proves the initial condition after reference key generation.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

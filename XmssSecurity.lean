@@ -14,6 +14,7 @@ import XmssSecurity.Proof.Modes.Keygen
 import XmssSecurity.Proof.Modes.Verifier
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
+import XmssSecurity.Proof.EncodingAcceptanceBudget
 import XmssSecurity.Proof.FreshPathProbability
 import XmssSecurity.Proof.Attack.PathBounds
 import XmssSecurity.Proof.Attack.ChainMutation
