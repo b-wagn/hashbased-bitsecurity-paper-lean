@@ -137,6 +137,9 @@ through key generation to the original source-prefix probability; the signer-mod
 budget now instantiates that bound directly.
 `Proof/Direct/SeedGuessingExpected.lean` refines the seeded-to-reference reduction to charge
 only the expected number of seed-derivation-tag queries, instead of all direct hash queries.
+`Proof/Direct/SeedQueryPartition.lean` proves that seed, encoding, and structural query counts
+are disjoint under any stateful interpretation. `Proof/Direct/SourceClassBudget.lean` combines
+all three expected counts with twice the source signer cost under the same semantic budget.
 The remaining assembly must combine the limited experiment's probability bounds, account for
 a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
