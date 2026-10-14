@@ -181,6 +181,11 @@ including events selected using auxiliary prefix randomness. It also decomposes 
 full first lane into accepted prefixes and an explicit fresh contribution; the signer
 budget now bounds the former for arbitrary adversaries. The latter still needs its
 collision bound before the general 127-bit theorem can be assembled.
+`Proof/Direct/QueriedEncodingAcceptance.lean` proves that moving the final encoding
+query into the prefix preserves the structural-query count and creates acceptance only
+on fresh inputs. `Proof/Direct/DecidingSecondLaneFresh.lean` removes the always-cached
+hypothesis from the second-lane bound: its additional charge is forty times the encoding
+acceptance probability times the probability of a fresh final encoding, divided by `2^128`.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
