@@ -205,6 +205,10 @@ revealed-value event, preserving the source prefix and all verification randomne
 `Proof/Direct/RevealedEncodingPrefix.lean` moves its deciding-value witness back to
 the adversary prefix with the accepted encoding supplied separately, then transfers
 that witness to a hidden-value probe hit through the existing prefix coupling.
+`Proof/Direct/LimitedEncodingProbe.lean` bounds the supplied-encoding probe experiment
+by `(q + 1) / 2^128`. `Proof/Direct/FreshRevealedBound.lean` then bounds the actual
+fresh revealed-value contribution by the encoding acceptance probability times that
+quantity. Combining cached and fresh branches within the sharp 127-bit budget remains.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
