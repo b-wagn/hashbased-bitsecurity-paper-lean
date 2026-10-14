@@ -103,6 +103,14 @@ the probability of that condition. The proof preserves the original winning-even
 acceptance probability times expected encoding samples. `Proof/FirstLaneEncodingCache.lean`
 tracks accepted cache entries through every direct-query and signing step, then uses this
 bound to pay for the conditional deciding probe in the original first-lane event.
+`Proof/Modes/SignerReferenceBudget.lean` transfers the statement's budget to every supported
+reference key-generation outcome, charging direct hashes once and reference signer hashes twice.
+`Proof/Direct/CountedSourceBudget.lean` preserves this budget at every supported continuation,
+including signing calls with random costs. `Proof/Modes/SignerFirstLaneCoupling.lean` carries it
+through the complete first-lane prefix coupling: while the executions agree, the ideal hazard
+count plus twice the actual reference signer count is at most the statement's budget.
+The remaining assembly must enforce a shared budget in the ideal experiment after divergence,
+account for a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
