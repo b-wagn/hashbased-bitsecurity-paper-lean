@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.FreshPathProbability
-import XmssSecurity.Proof.CacheReplayEval
+import XmssSecurity.Proof.CacheQuerySupport
 
 /-! Bounded hash search, with exact fresh-input failure probability and cached-hit success. -/
 
@@ -39,6 +39,38 @@ theorem findHash_queryBound (inputs : ℕ → HashInput) (accept : HashOutput �
       split
       · exact OracleComp.isQueryBoundP_pure _ _ _
       · exact ih (start + 1)
+
+theorem findHash_queryBound_zero_at_other_input
+    (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+    (start steps : ℕ) (target : HashInput)
+    (hother : ∀ i, start ≤ i → i < start + steps → inputs i ≠ target) :
+    (findHash inputs accept start steps).IsQueryBoundP (· = target) 0 := by
+  induction steps generalizing start with
+  | zero => simp [findHash]
+  | succ steps ih =>
+      rw [findHash, OracleComp.isQueryBoundP_query_bind_iff]
+      have hne := hother start le_rfl (by omega)
+      refine ⟨Or.inl hne, ?_⟩
+      intro output
+      simp only [if_neg hne]
+      split
+      · exact OracleComp.isQueryBoundP_pure _ _ _
+      · exact ih (start + 1) (fun i hi hiEnd => hother i (by omega) (by omega))
+
+theorem findHash_preserves_unqueriedInput
+    (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+    (start steps : ℕ) (target : HashInput)
+    (hother : ∀ i, start ≤ i → i < start + steps → inputs i ≠ target)
+    (initialCache finalCache : QueryCache HashSpec) (result : Option (ℕ × HashOutput))
+    (hmem : (result, finalCache) ∈ support
+      ((simulateQ randomOracle (findHash inputs accept start steps)).run initialCache)) :
+    finalCache target = initialCache target := by
+  cases hcached : initialCache target with
+  | none =>
+      exact Concrete.CacheReplay.cache_none_of_zero_query_bound _ target initialCache finalCache result
+        (findHash_queryBound_zero_at_other_input inputs accept start steps target hother) hcached hmem
+  | some output =>
+      exact Concrete.CacheReplay.randomOracle_cache_le _ initialCache (result, finalCache) hmem hcached
 
 theorem findHash_failure_fresh (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
     (start steps : ℕ) (cache : QueryCache HashSpec)

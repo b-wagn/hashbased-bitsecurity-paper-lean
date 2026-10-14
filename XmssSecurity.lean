@@ -28,6 +28,7 @@ import XmssSecurity.Proof.Attack.ChainMutationSeeded
 import XmssSecurity.Proof.Attack.EncodingNeighbors
 import XmssSecurity.Proof.Attack.NeighborSearch
 import XmssSecurity.Proof.Attack.PreimageSearch
+import XmssSecurity.Proof.Attack.NeighborPreimageCache
 
 /-!
 # Security of XMSS in the random-oracle model

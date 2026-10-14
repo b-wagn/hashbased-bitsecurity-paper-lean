@@ -115,8 +115,11 @@ randomizers for a different message finds a neighboring encoding with probabilit
 than `3/4`, using at most `2^121` hash queries. `Proof/Attack/PreimageSearch.lean` chooses
 a uniform four-bit prefix and searches its `2^124` candidate predecessors. When the cache
 contains exactly the genuine predecessor at the chosen address, it proves an exact failure
-probability of `(15/16) * (1 - 2^-128)^(2^124)` and success at least `2/17`. Connecting these
-searches to signature verification, the full game, and its total charged budget remains open.
+probability of `(15/16) * (1 - 2^-128)^(2^124)` and success at least `2/17`.
+`Proof/Attack/NeighborPreimageCache.lean` proves that signing and the encoding search preserve
+every chain address, carrying this predecessor-success bound to every supported encoding-search
+outcome after a successful reference signature. Connecting the searches to signature
+verification, the full game, and its total charged budget remains open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
