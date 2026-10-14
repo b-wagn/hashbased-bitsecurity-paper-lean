@@ -75,6 +75,9 @@ signing and proves the initial condition after reference key generation.
 `Proof/Direct/DecidingSecondLaneAccepted.lean` uses this bound to replace the second lane's
 constant forty-query verification allowance by `40` times the acceptance probability times
 the expected encoding-query count before verification.
+`Proof/Modes/SignerAccounting.lean` identifies the signer-counted experiment's charge with
+all hashes in the adversary phase and derives a bound on that phase's expected hash count
+from the unchanged statement's query-bound hypothesis.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 
