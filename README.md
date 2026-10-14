@@ -220,6 +220,11 @@ for cached and fresh branches.
 and proves the original 127-bit advantage bound for every budget when `E + S ≥ 1/512`.
 This permits fresh forged encodings and does not require an always-cached adversary.
 The general signer-mode theorem still needs the case `E + S < 1/512`.
+`Proof/Direct/SourceBudgetExhaustion.lean` proves that exhausting the source budget
+freezes its hash cache, and that a last nonencoding hash cannot create an accepted
+encoding in a previously rejecting cache. `SourceTerminalRejection.lean` rules out
+cached first-lane witnesses on those continuations and preserves the acceptance
+factor for their actual verification phase.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

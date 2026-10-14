@@ -49,6 +49,8 @@ import XmssSecurity.Proof.Direct.MixedEncodingProbeBound
 import XmssSecurity.Proof.Direct.MixedEncodingProbability
 import XmssSecurity.Proof.Direct.MixedFirstLane
 import XmssSecurity.Proof.Modes.SignerSharedPrefix
+import XmssSecurity.Proof.Direct.SourceBudgetExhaustion
+import XmssSecurity.Proof.Direct.SourceTerminalRejection
 import XmssSecurity.Proof.Direct.VerificationAcceptance
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
