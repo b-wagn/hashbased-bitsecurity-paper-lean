@@ -202,6 +202,9 @@ the fresh verification allowance as its unresolved contributions.
 the exact acceptance factor for continuations that reject invalid encodings.
 `Proof/Direct/FreshRevealedConditioning.lean` applies that identity to the actual fresh
 revealed-value event, preserving the source prefix and all verification randomness.
+`Proof/Direct/RevealedEncodingPrefix.lean` moves its deciding-value witness back to
+the adversary prefix with the accepted encoding supplied separately, then transfers
+that witness to a hidden-value probe hit through the existing prefix coupling.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
 stronger direct-plus-requests upper bound, completing exact 122-bit security for both modes.
 

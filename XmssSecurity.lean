@@ -41,6 +41,7 @@ import XmssSecurity.Proof.Modes.SignerCachedSecurity
 import XmssSecurity.Proof.Modes.SignerAcceptedFirstLane
 import XmssSecurity.Proof.Modes.SignerMixedLoss
 import XmssSecurity.Proof.Direct.FreshRevealedConditioning
+import XmssSecurity.Proof.Direct.RevealedEncodingPrefix
 import XmssSecurity.Proof.Direct.VerificationAcceptance
 import XmssSecurity.Proof.EncodingProbability
 import XmssSecurity.Proof.EncodingRejectionProbability
