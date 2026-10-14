@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.Modes.SignerPhaseCounts
-import XmssSecurity.Proof.Direct.CountedSourceTrace
+import XmssSecurity.Proof.Direct.CountedSourceBudget
 
 /-! Apply the statement's budget to the source experiment whose traces are used in the
 first-lane coupling. -/
@@ -54,8 +54,35 @@ theorem signer_countedSource_bound_after_keygen
   rw [← hproject, support_map]
   exact ⟨result, hresult, rfl⟩
 
+theorem signer_countedSourceBudget_after_keygen
+    (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
+    (keyResult : (PublicKey × XmssSecurity.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
+    CountedSourceBudget keyResult.1.2 q (memoize (adversary.main keyResult.1.1) ∅)
+      (CountedSourceState.initial keyResult.2) :=
+  signer_countedSource_bound_after_keygen adversary q hsmall hbound keyResult hkey
+
+theorem signer_countedSourceBudget_after_trajectory
+    (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
+    (key : ProgrammedGlobalChainKeygenView)
+    (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen) :
+    CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey) q
+      (memoize (adversary.main key.publicKey) ∅) (CountedSourceState.initial key.cache) := by
+  apply signer_countedSourceBudget_after_keygen adversary q hsmall hbound
+    (Concrete.materializeCachedKeyResult key.keyResult)
+  apply (mem_support_iff_of_evalDist_eq
+    evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen _).mp
+  rw [support_map]
+  exact ⟨key, hkey, rfl⟩
+
 /-- info: 'XmssSecurity.Modes.signer_countedSource_bound_after_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms signer_countedSource_bound_after_keygen
+
+/-- info: 'XmssSecurity.Modes.signer_countedSourceBudget_after_trajectory' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms signer_countedSourceBudget_after_trajectory
 
 end XmssSecurity.Modes
