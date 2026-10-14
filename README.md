@@ -153,6 +153,9 @@ queries plus actual reference signer hashes. `Proof/Direct/SourceLossBudget.lean
 prehit, second-lane, and seed losses when the forged encoding is cached; its numerical bound
 uses at most half the nonstructural budget weights. `Proof/Modes/SignerSecondaryLoss.lean`
 places those source losses within `q / 2^128` and retains an explicit reserve for the first lane.
+`Proof/Modes/SignerCachedLoss.lean` assembles the seeded-game loss for cached forged encodings.
+It reduces their 127-bit bound to the remaining estimate that the limited first-lane experiment's
+expected hazards are at most `q` plus that source reserve; it does not discharge that estimate.
 The remaining assembly must combine the limited experiment's probability bounds, account for
 a fresh forged encoding, and retain the seed-guessing loss within the final bound.
 The one-request chain-mutation attack now proves the unchanged direct-attack claim and the
