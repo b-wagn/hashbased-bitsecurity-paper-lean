@@ -93,8 +93,10 @@ entry, identifies successful signatures with their key-generation replay, and ca
 exact root-collision probability through successful signing.
 `Proof/Attack/MutationVerification.lean` removes the cached unchanged chains and encoding check
 from full verification, proving the exact probability of acceptance with a changed chain value
-after every successful reference signature. Combining the randomized chain choice and signing
-success in the full game, and transporting the attack to the seeded scheme, remain open.
+after every successful reference signature. `Proof/Attack/MutationAverage.lean` averages over
+the chosen chain and signing outcomes, proving success above `2^-123` for the reference
+experiment that rejects failed signing requests. Connecting that experiment to the adversary's
+logged game and transporting the attack to the seeded scheme remain open.
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing requests are charged. The probability is over the
