@@ -24,6 +24,7 @@ import XmssSecurity.Proof.SignerEncodingCost
 import XmssSecurity.Proof.Deterministic.SignerCost
 import XmssSecurity.Proof.Deterministic.SignerPhaseCost
 import XmssSecurity.Proof.Deterministic.SignerReferenceCost
+import XmssSecurity.Proof.Deterministic.SignerBudgetTransfer
 import XmssSecurity.Proof.SignerSuccessBudget
 import XmssSecurity.Proof.Seeded.KeygenEncodingCache
 import XmssSecurity.Proof.FirstLaneEncodingExpected
