@@ -6,10 +6,30 @@ The development started from the 127-bit SUF-CMA proof in
 [leanEthereum/leanVM](https://github.com/leanEthereum/leanVM/tree/main/formal/xmss) and
 separates *what is claimed* from *why it holds*.
 
-The exact-security statement is proved for **all 16 counting modes** by
+The strong-unforgeability exact-security statement is proved for **all 16 counting modes** by
 `XmssSecurity.xmss_sufCma_exact`: exactly 122 bits when no honest-party hashes are
 charged, and exactly 127 bits when key generation, signing hashes, or verification
 is charged. The statement layer is unchanged.
+
+The single `XmssSecurity` library includes both strong and standard (non-strong)
+unforgeability. `import XmssSecurity` exposes both complete classifications.
+A standard forgery must use an epoch/message pair never requested from the signer,
+including requests that returned no signature. `XmssSecurity/Unforgeability.lean`
+proves exactly **126 bits** for direct queries alone and exactly **127 bits** in
+the other fifteen modes, including direct queries plus signing requests. The neighboring-message
+attack establishes a 127-bit upper bound in all sixteen modes. A one-query
+replay/fallback attack refutes 127-bit direct-only security and therefore the initial
+all-127 conjecture. Its logged game, semantic query budget, and transfer to the
+seeded scheme are all kernel-checked. A matching lower bound handles even the
+one-query case. Exact classification is complete for **all 16 modes (100%)**, via
+`XmssSecurity.xmss_eufCma_exact : XmssEufCmaExactStatement`.
+The strong-security statements and proofs are preserved.
+
+| Counting mode | Strong SUF-CMA | Standard EUF-CMA |
+|---|---|---|
+| Direct hashes only | exactly 122 bits | exactly 126 bits |
+| Direct hashes plus signing requests | exactly 122 bits | exactly 127 bits |
+| Any mode charging honest-party hashes (14 modes) | exactly 127 bits | exactly 127 bits |
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any
@@ -24,14 +44,114 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Signature schemes | `XmssSecurity/Statement/SynchronizedSignature.lean` | syntax of synchronized (epoch-based) signature schemes, eprint 2025/055 Def. 7 |
 | Random-oracle model | `XmssSecurity/Statement/RandomOracleModel.lean` | the oracle world (private sampling + hash oracle), lazy random oracle, hash-query counting |
 | Security notions | `XmssSecurity/Statement/Security/SUFCMA.lean` | strong unforgeability under chosen-message attacks (one file per notion) |
+| | `XmssSecurity/Statement/Security/EUFCMA.lean` | standard unforgeability, with freshness of the requested epoch/message pair |
 | Bit security | `XmssSecurity/Statement/BitSecurity.lean` | `SecurityNotion` and `HasClassicalSecurityBits`: `Pr[win] ≤ q / 2^bits` for every `q`-query adversary |
 | The scheme | `XmssSecurity/Statement/Scheme/Parameters.lean` | the parameter table (`n`, `w`, `v`, `T`, `h`, `L`, `A_max`, …) |
 | | `XmssSecurity/Statement/Scheme/Construction.lean` | tweaks, target-sum encoding, chains, Merkle tree, key generation, signing, verification |
 | | `XmssSecurity/Statement/Scheme/Xmss.lean` | `xmss`, the scheme as a `SynchronizedSignature` |
 | Claims | `XmssSecurity/Statement/Claims.lean` | the bit-security statements, one per notion |
+| | `XmssSecurity/Statement/EUFCMAClaims.lean` | standard-unforgeability classification, with the refuted uniform conjecture named separately |
 | Proofs | `XmssSecurity/Proof/` | proofs of the unchanged statement layer, including stronger numerical bounds |
 | | `XmssSecurity/Proof/Direct/` | the direct-count proof: pruning a semantically bounded adversary to a syntactically bounded one (`Basic`, `Prune`, `Bridge`), the per-term bounds (`FirstLane`, `Structural`, `Prehit`, `SeedGuessing`, `VerifierBound`), and the assembly |
-| Main theorems | `XmssSecurity.lean` | one theorem per claim, with an axiom guard |
+| Public entry point | `XmssSecurity.lean` | imports both complete classifications, including security proofs and attacks |
+| Main theorems | `XmssSecurity/StrongUnforgeability.lean` | exact strong-unforgeability classification for all sixteen modes, with axiom guards |
+| | `XmssSecurity/Unforgeability.lean` | exact standard-unforgeability classification for all sixteen modes, with axiom guards |
+
+The standard-unforgeability proof lives under `Proof/EUFCMA/`: `Reduction.lean`
+transfers lower bounds from strong security while proving identical semantic query
+budgets; `Modes.lean` proves counting-mode monotonicity; `NeighborAttack.lean`
+proves that the concrete attack uses a fresh requested input and hence wins the
+standard game with the same probability and cost. `Classification.lean` reduces
+the proved classification to five minimal security modes and two attacks.
+`Exact.lean` retains the basis equivalence for the refuted initial uniform conjecture.
+`Projection.lean`, `Execution.lean`, and `DirectBridge.lean` connect the standard
+game to the existing detailed execution and prove that pruning at a semantic
+direct-query budget preserves its success probability. The numerical bounds are
+therefore proved for syntactically bounded adversaries without
+weakening the statement's budget condition.
+`FreshEncoding.lean` proves that signing preserves every unrequested encoding
+input and propagates this invariant through adaptive executions.
+`FreshEncodingPrefix.lean` consequently shows that a cached standard-fresh forgery
+requires a direct encoding query. `FreshAcceptance.lean` bounds the probability
+of any accepted, unrequested encoding by the acceptance probability times the
+expected direct encoding-query count; signing cannot create a new eligible
+candidate. `FreshAcceptancePrefix.lean` carries this estimate to the existing
+source-prefix experiment. These lemmas remove signer cost from this acceptance
+bound.
+`SeededTable.lean`, `Memoization.lean`, and `ReferenceHop.lean` preserve standard
+freshness through derivation presampling, repeated-request memoization, and the
+randomized reference signer. They prove that a `D`-direct-query adversary's seeded
+advantage is at most the reference advantage plus `D / 2^256`, and connect a bound
+on that reference expression back to the original semantic-budget statement.
+`PhaseAcceptance.lean` carries the fresh-encoding bound to the logged adversary
+phase. `SecondLane.lean` charges its accepted verification contribution only to
+direct encoding queries. `DecidingAssembly.lean` combines this with the existing
+first-lane and encoding-prehit estimates, and `DirectSecurity.lean` proves 125 bits
+of standard security in every counting mode. It also proves a 126-bit numerical
+bound for syntactic direct budgets of at least two.
+`FreshProbe.lean` and `FreshFirstLane.lean` charge the final deciding probe only
+when the adversary produces a fresh, accepted encoding. `FreshFirstLaneBridge.lean`
+transfers this bound to the standard game, and `QueriedStructural.lean` preserves
+the structural-query count when caching the forged encoding. `Direct126.lean`
+combines these estimates to prove 126-bit security for every positive budget,
+including one query, and exactly 126 bits for the direct-only mode.
+`RootCollision.lean` proves that an accepted encoding retains at least one final
+root-hash collision opportunity after key generation and signing.
+`ReplayCollision.lean` combines that contribution with reproducing the original
+encoding when reusing an honest signature for a fresh message. `SigningSuccess.lean`
+sharpens the fresh-signing success bound to more than `131071 / 131072`.
+`ReplayFallback.lean` checks the resulting reference experiment: query a candidate
+message's encoding, reuse the signature if it is valid, and otherwise reuse it for
+a second fresh message. Its success probability is strictly above `2^-127`, including
+signing failure. `ReplayAdversary.lean` implements the attack and proves freshness
+and its one-query count. `ReplayGame.lean` connects the logged standard game to the
+experiment, and `ReplaySeeded.lean` transfers the advantage exactly to seeded
+signing. `ReplayAccounting.lean` proves the semantic direct-query budget and the
+attack against 127 bits. The root exports `xmss_eufCma_direct_attack_126` and
+`xmss_eufCma_not_uniform_127`. The initial uniform target is retained as the
+refuted predicate `XmssEufCmaUniform127Statement`; `XmssEufCmaExactStatement`
+expresses the proved classification using `eufCmaBits`.
+The direct-plus-signing-requests mode is also complete, at exactly 127 bits.
+`RequestsBasic.lean` and `RequestsBridge.lean` connect that mode's semantic budget
+to a shared syntactic budget for direct hashes and signing requests, with pruning
+that preserves the standard game. `RequestsExpected.lean` proves that memoization
+preserves this bound and that expected encoding, structural, seed, and signing-request
+counts fit together within it. These accounting lemmas supply the budget used
+in the final mode's exact-security proof.
+`FreshExpectedPrefix.lean` retains the expected encoding-query count in the
+fresh first-lane estimate. `RequestsTerminalPrune.lean` proves that stopping before
+the last charged query on an inactive branch preserves events requiring activity;
+`RequestsTerminalCost.lean` proves the resulting one-query saving, both pathwise
+and in expectation. `RequestsActivity.lean` identifies the relevant activity as
+encoding queries or signing requests, bounds its probability by their expected
+counts, and proves that a cached fresh forgery requires it.
+`RequestsStoppedSource.lean` transfers those events through the stopping rule.
+`RequestsEncodingActivity.lean` sharpens the necessary activity to a direct encoding
+query. `RequestsPublicTrace.lean` counts public hazards together with signing
+requests, and `RequestsTerminalProbe.lean` bounds the stopped terminal probe.
+`RequestsTerminalFirstLane.lean` couples this probe to a cached fresh forgery and
+proves the bound `(q - 1 + 2 E) / 2^128`, where `q > 0` bounds direct hashes plus
+signing requests and `E` is the expected number of direct encoding queries.
+`RequestsSigningActivity.lean` bounds the chance of a nonempty signing transcript
+by the expected request count `R`. `RequestsEncodingCollision.lean` then bounds
+the fresh verifier encoding-collision contribution by `R / 2^128`, because a
+collision requires a returned signature at the forged leaf.
+`ExpectedSecondLane.lean` preserves the exact structural-query count and charges
+the verifier's extra encoding query once, giving
+`(S + 40 p (E + 1)) / 2^128`, with acceptance probability `p`.
+`ExpectedSeedHop.lean`, `ExpectedReferenceSeed.lean`, and `ExpectedDirectSeed.lean`
+transfer standard security from the reference game with loss `Z / 2^256`, where
+`Z` is its expected number of direct seed-domain queries.
+`MixedPrefixProbe.lean` combines cached and fresh encodings using one shared
+prefix and one deciding probe. `FreshMixedFirstLane.lean` retains standard
+freshness through this split, and `FreshMixedBounds.lean` averages the fresh
+encoding's acceptance probability. `RequestsLoss.lean` combines both resulting
+first-lane estimates with the second-lane, encoding-collision, prehit, and seed
+losses. `RequestsNumerics.lean` closes the numerical bound by splitting at
+`E = 1/256`: larger encoding budgets absorb the ordinary prefix's extra loss,
+and smaller budgets use the terminal query saving. `Requests127.lean` transfers
+this bound through memoization and pruning to the standard security statement.
+The root exports `xmss_eufCma_requests_127` and `xmss_eufCma_requests_exact_127`.
 
 ## Claims and theorems
 
@@ -58,6 +178,10 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Every hash call, both bounds | exactly 127 | `xmss_sufCma_allHashes_exact_127` |
 | Every hash call and every signing request, both bounds | exactly 127 | `xmss_sufCma_everything_exact_127` |
 | `XmssSufCmaExactStatement`: all sixteen modes, both bounds | exactly 122 or 127 | `xmss_sufCma_exact` |
+| Standard direct-query security, both bounds | exactly 126 | `xmss_eufCma_direct_exact_126` |
+| Standard direct queries plus signing requests, both bounds | exactly 127 | `xmss_eufCma_requests_exact_127` |
+| Standard modes charging honest-party hashes, both bounds | exactly 127 | `xmss_eufCma_exact_127_of_honest_hashes` |
+| `XmssEufCmaExactStatement`: all sixteen standard modes, both bounds | exactly 126 or 127 | `xmss_eufCma_exact` |
 
 The direct proof now reaches the conjectured lower bound of 122 bits. It selects one deciding
 chain, charges one probe in the first lane, and charges at most 40 verification queries on the
@@ -339,10 +463,15 @@ master seed, the random oracle, and the adversary's private randomness.
 
 ```
 lake exe cache get   # Mathlib cache
-lake build           # everything, including the axiom check in XmssSecurity.lean
+lake build          # strong and standard security proofs, attacks, and axiom guards
 ```
 
 Toolchain: Lean `v4.31.0`; VCVio pinned to `cbd4144` in `lakefile.toml`.
 
-The main theorems depend only on `propext`, `Classical.choice`, and `Quot.sound`; the root module
-checks this with `#guard_msgs`, so the build fails if a `sorry` or a nonstandard axiom enters.
+`lake build` builds the single `XmssSecurity` library and the original query-budget
+tests. Its root module imports both theorem collections, so every claimed strong
+and standard bound, including the matching attacks, is checked in the same build.
+
+The main theorems depend only on `propext`, `Classical.choice`, and `Quot.sound`.
+Both theorem modules check this with `#guard_msgs`, so the build fails if a `sorry`
+or a nonstandard axiom enters.
