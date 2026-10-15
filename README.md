@@ -17,7 +17,7 @@ A standard forgery must use an epoch/message pair never requested from the signe
 including requests that returned no signature. `XmssUnforgeability.lean` currently
 proves exactly 127 bits in the fourteen modes charging some honest-party hashes.
 For the remaining two modes (direct queries, with or without signing requests),
-the proved bounds are at least 122 bits and at most 127 bits. The neighboring-message
+the proved bounds are at least 125 bits and at most 127 bits. The neighboring-message
 attack establishes the upper bound in all sixteen modes. A 127-bit direct-query
 lower bound is the only remaining basis obligation for the proposed full standard
 classification. The strong-security statements and proofs are preserved.
@@ -66,12 +66,19 @@ of any accepted, unrequested encoding by the acceptance probability times the
 expected direct encoding-query count; signing cannot create a new eligible
 candidate. `FreshAcceptancePrefix.lean` carries this estimate to the existing
 source-prefix experiment. These lemmas remove signer cost from this acceptance
-bound; assembling the full 127-bit direct-security bound remains open.
+bound; the exact direct-security classification remains open.
 `SeededTable.lean`, `Memoization.lean`, and `ReferenceHop.lean` preserve standard
 freshness through derivation presampling, repeated-request memoization, and the
 randomized reference signer. They prove that a `D`-direct-query adversary's seeded
 advantage is at most the reference advantage plus `D / 2^256`, and connect a bound
 on that reference expression back to the original semantic-budget statement.
+`PhaseAcceptance.lean` carries the fresh-encoding bound to the logged adversary
+phase. `SecondLane.lean` charges its accepted verification contribution only to
+direct encoding queries. `DecidingAssembly.lean` combines this with the existing
+first-lane and encoding-prehit estimates, and `DirectSecurity.lean` proves 125 bits
+of standard security in every counting mode. It also proves a 126-bit numerical
+bound for syntactic direct budgets of at least two; the one-query case and the
+exact bounds for the two modes without honest hashes remain unresolved.
 
 ## Claims and theorems
 

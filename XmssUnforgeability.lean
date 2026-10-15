@@ -6,6 +6,7 @@ import XmssSecurity.Proof.EUFCMA.Exact
 import XmssSecurity.Proof.EUFCMA.DirectBridge
 import XmssSecurity.Proof.EUFCMA.FreshAcceptancePrefix
 import XmssSecurity.Proof.EUFCMA.ReferenceHop
+import XmssSecurity.Proof.EUFCMA.DirectSecurity
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
@@ -23,6 +24,22 @@ theorem xmss_eufCma_secure_122 (mode : CountingMode) : XmssEufCmaSecure mode 122
 /-- info: 'XmssSecurity.xmss_eufCma_secure_122' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_eufCma_secure_122
+
+/-- Standard freshness improves direct-query security to at least 125 bits. -/
+theorem xmss_eufCma_direct_125 : XmssEufCmaSecure CountingMode.direct 125 :=
+  EUFCMA.direct_125
+
+/-- info: 'XmssSecurity.xmss_eufCma_direct_125' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_direct_125
+
+/-- Every counting mode has at least 125 bits of standard security. -/
+theorem xmss_eufCma_secure_125 (mode : CountingMode) : XmssEufCmaSecure mode 125 :=
+  EUFCMA.hasClassicalSecurityBits_of_le (Modes.direct_le mode) xmss 125 xmss_eufCma_direct_125
+
+/-- info: 'XmssSecurity.xmss_eufCma_secure_125' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_secure_125
 
 /-- The fourteen modes charging any honest-party hashes inherit 127 bits. -/
 theorem xmss_eufCma_secure_127_of_honest_hashes (mode : CountingMode)
