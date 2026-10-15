@@ -124,6 +124,10 @@ requests, and `RequestsTerminalProbe.lean` bounds the stopped terminal probe.
 `RequestsTerminalFirstLane.lean` couples this probe to a cached fresh forgery and
 proves the bound `(q - 1 + 2 E) / 2^128`, where `q > 0` bounds direct hashes plus
 signing requests and `E` is the expected number of direct encoding queries.
+`RequestsSigningActivity.lean` bounds the chance of a nonempty signing transcript
+by the expected request count `R`. `RequestsEncodingCollision.lean` then bounds
+the fresh verifier encoding-collision contribution by `R / 2^128`, because a
+collision requires a returned signature at the forged leaf.
 The remaining work is to combine cached and fresh verifier encodings with the
 second-lane and reference-game losses and complete the numerical assembly.
 
