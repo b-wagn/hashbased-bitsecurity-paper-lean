@@ -67,6 +67,11 @@ expected direct encoding-query count; signing cannot create a new eligible
 candidate. `FreshAcceptancePrefix.lean` carries this estimate to the existing
 source-prefix experiment. These lemmas remove signer cost from this acceptance
 bound; assembling the full 127-bit direct-security bound remains open.
+`SeededTable.lean`, `Memoization.lean`, and `ReferenceHop.lean` preserve standard
+freshness through derivation presampling, repeated-request memoization, and the
+randomized reference signer. They prove that a `D`-direct-query adversary's seeded
+advantage is at most the reference advantage plus `D / 2^256`, and connect a bound
+on that reference expression back to the original semantic-budget statement.
 
 ## Claims and theorems
 
