@@ -58,6 +58,15 @@ game to the existing detailed execution and prove that pruning at a semantic
 direct-query budget preserves its success probability. The remaining numerical
 bound can therefore be proved for syntactically bounded adversaries without
 weakening the statement's budget condition.
+`FreshEncoding.lean` proves that signing preserves every unrequested encoding
+input and propagates this invariant through adaptive executions.
+`FreshEncodingPrefix.lean` consequently shows that a cached standard-fresh forgery
+requires a direct encoding query. `FreshAcceptance.lean` bounds the probability
+of any accepted, unrequested encoding by the acceptance probability times the
+expected direct encoding-query count; signing cannot create a new eligible
+candidate. `FreshAcceptancePrefix.lean` carries this estimate to the existing
+source-prefix experiment. These lemmas remove signer cost from this acceptance
+bound; assembling the full 127-bit direct-security bound remains open.
 
 ## Claims and theorems
 
