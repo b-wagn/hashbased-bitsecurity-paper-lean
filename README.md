@@ -53,6 +53,11 @@ budgets; `Modes.lean` proves counting-mode monotonicity; `NeighborAttack.lean`
 proves that the concrete attack uses a fresh requested input and hence wins the
 standard game with the same probability and cost; `Exact.lean` reduces the full
 classification to its direct-security and everything-counted attack obligations.
+`Projection.lean`, `Execution.lean`, and `DirectBridge.lean` connect the standard
+game to the existing detailed execution and prove that pruning at a semantic
+direct-query budget preserves its success probability. The remaining numerical
+bound can therefore be proved for syntactically bounded adversaries without
+weakening the statement's budget condition.
 
 ## Claims and theorems
 

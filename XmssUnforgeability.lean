@@ -3,6 +3,7 @@ import XmssSecurity.Statement.EUFCMAClaims
 import XmssSecurity.Proof.EUFCMA.Reduction
 import XmssSecurity.Proof.EUFCMA.NeighborAttack
 import XmssSecurity.Proof.EUFCMA.Exact
+import XmssSecurity.Proof.EUFCMA.DirectBridge
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
