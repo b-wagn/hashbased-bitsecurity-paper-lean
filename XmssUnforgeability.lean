@@ -7,11 +7,13 @@ import XmssSecurity.Proof.EUFCMA.DirectBridge
 import XmssSecurity.Proof.EUFCMA.FreshAcceptancePrefix
 import XmssSecurity.Proof.EUFCMA.ReferenceHop
 import XmssSecurity.Proof.EUFCMA.DirectSecurity
+import XmssSecurity.Proof.EUFCMA.ReplayFallback
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
 development supplies initial lower bounds. The neighboring-message attack proves
-the upper bound in every mode; the direct 127-bit lower bound remains open. -/
+the upper bound in every mode. The exact direct-query bound remains open; a
+one-probe reference experiment already succeeds above the proposed 127-bit rate. -/
 
 namespace XmssSecurity
 
@@ -80,7 +82,8 @@ theorem xmss_eufCma_exact_127_of_honest_hashes (mode : CountingMode)
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_eufCma_exact_127_of_honest_hashes
 
-/-- The only remaining basis obligation is the direct-query 127-bit lower bound. -/
+/-- The proposed all-127 classification is equivalent to its direct-query target.
+This equivalence does not assert that the target is true. -/
 theorem xmss_eufCma_exact_iff_direct_127 :
     XmssEufCmaExactStatement ↔ XmssEufCmaDirectStatement := by
   rw [EUFCMA.exactStatement_iff_basis]

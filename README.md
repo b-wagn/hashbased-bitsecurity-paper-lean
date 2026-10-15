@@ -18,9 +18,11 @@ including requests that returned no signature. `XmssUnforgeability.lean` current
 proves exactly 127 bits in the fourteen modes charging some honest-party hashes.
 For the remaining two modes (direct queries, with or without signing requests),
 the proved bounds are at least 125 bits and at most 127 bits. The neighboring-message
-attack establishes the upper bound in all sixteen modes. A 127-bit direct-query
-lower bound is the only remaining basis obligation for the proposed full standard
-classification. The strong-security statements and proofs are preserved.
+attack establishes the upper bound in all sixteen modes. The original proposed
+all-127 classification remains an unproved target. A new kernel-checked reference
+experiment with one encoding probe succeeds above `2^-127`; connecting it to the
+logged adversary, its direct-query budget, and the seeded scheme remains in progress.
+The strong-security statements and proofs are preserved.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any
@@ -79,6 +81,16 @@ first-lane and encoding-prehit estimates, and `DirectSecurity.lean` proves 125 b
 of standard security in every counting mode. It also proves a 126-bit numerical
 bound for syntactic direct budgets of at least two; the one-query case and the
 exact bounds for the two modes without honest hashes remain unresolved.
+`RootCollision.lean` proves that an accepted encoding retains at least one final
+root-hash collision opportunity after key generation and signing.
+`ReplayCollision.lean` combines that contribution with reproducing the original
+encoding when reusing an honest signature for a fresh message. `SigningSuccess.lean`
+sharpens the fresh-signing success bound to more than `131071 / 131072`.
+`ReplayFallback.lean` checks the resulting reference experiment: query a candidate
+message's encoding, reuse the signature if it is valid, and otherwise reuse it for
+a second fresh message. Its success probability is strictly above `2^-127`, including
+signing failure. The game-level attack theorem and exact direct-only classification
+are not yet claimed.
 
 ## Claims and theorems
 
