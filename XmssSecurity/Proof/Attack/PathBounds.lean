@@ -1,0 +1,121 @@
+import XmssSecurity.Proof.EncodingRejectionProbability
+
+/-! Numerical margins for the attack that changes a uniformly chosen signature chain. -/
+
+open ENNReal
+open scoped BigOperators
+
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 1000
+
+namespace XmssSecurity.Attack
+
+/-- The exact probability of a distinct random starting value joining an honest path. -/
+noncomputable def pathMutationProbability (steps : ℕ) : ℝ≥0∞ :=
+  (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) *
+    (1 - (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ steps)
+
+private theorem real_path_mutation_lower (steps : ℕ) (hsteps : steps ≤ 40) :
+    ((steps : ℝ) - 1) / (2 ^ digestBits : ℕ) ≤
+      (1 - (1 : ℝ) / (2 ^ digestBits : ℕ)) *
+        (1 - (1 - (1 : ℝ) / (2 ^ digestBits : ℕ)) ^ steps) := by
+  let p : ℝ := 1 / (2 ^ digestBits : ℕ)
+  have hp : 0 ≤ p := by positivity
+  have hpone : p ≤ 1 := by norm_num [p, digestBits]
+  have hsmall : p ≤ 1 / 1600 := by norm_num [p, digestBits]
+  have hn : (steps : ℝ) ≤ 40 := by exact_mod_cast hsteps
+  have hnzero : (0 : ℝ) ≤ steps := by positivity
+  have hsq : (steps : ℝ) ^ 2 ≤ 1600 := by nlinarith
+  have hquad : (steps : ℝ) ^ 2 * p ≤ 1 := by
+    calc
+      _ ≤ 1600 * p := mul_le_mul_of_nonneg_right hsq hp
+      _ ≤ 1 := by linarith
+  have hdenom : 0 < 1 + (steps : ℝ) * p := by positivity
+  have hpow : (1 - p) ^ steps ≤ 1 / (1 + (steps : ℝ) * p) := by
+    have h := TargetSum.rejection_power_le
+      (1 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) (by norm_num [digestBits]) steps
+    have hr := (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mpr h
+    rw [ENNReal.toReal_pow,
+      ENNReal.toReal_sub_of_le (by norm_num [digestBits]) ENNReal.one_ne_top] at hr
+    simp only [ENNReal.toReal_div] at hr
+    rw [ENNReal.toReal_add (by finiteness) (by finiteness)] at hr
+    simpa [p, ENNReal.toReal_div, ENNReal.toReal_mul] using hr
+  suffices ((steps : ℝ) - 1) * p ≤ (1 - p) * (1 - (1 - p) ^ steps) by
+    simpa [p, div_eq_mul_inv] using this
+  calc
+    _ ≤ ((1 - p) * (steps : ℝ) * p) / (1 + (steps : ℝ) * p) := by
+      apply (le_div_iff₀ hdenom).mpr
+      nlinarith [mul_nonneg hp (sub_nonneg.mpr hquad)]
+    _ = (1 - p) * (1 - 1 / (1 + (steps : ℝ) * p)) := by
+      field_simp
+      ring
+    _ ≤ _ := mul_le_mul_of_nonneg_left (sub_le_sub_left hpow 1) (sub_nonneg.mpr hpone)
+
+/-- Losing one collision opportunity is more than enough to account for the possibility
+of an unchanged starting value and all intersections between hit events. -/
+theorem pathMutationProbability_lower (steps : ℕ) (hsteps : steps ≤ 40) :
+    ((steps - 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
+      pathMutationProbability steps := by
+  by_cases hzero : steps = 0
+  · simp [hzero]
+  have hpos : 1 ≤ steps := by omega
+  have hp : ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ ≤ 1 := by norm_num [digestBits]
+  have hpow : (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ steps ≤ 1 :=
+    pow_le_one₀ zero_le tsub_le_self
+  unfold pathMutationProbability
+  apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+  rw [ENNReal.toReal_div, ENNReal.toReal_mul,
+    ENNReal.toReal_sub_of_le hp ENNReal.one_ne_top,
+    ENNReal.toReal_sub_of_le hpow ENNReal.one_ne_top,
+    ENNReal.toReal_pow, ENNReal.toReal_sub_of_le hp ENNReal.one_ne_top]
+  rw [ENNReal.toReal_natCast, Nat.cast_sub hpos]
+  simpa [ENNReal.toReal_inv, div_eq_mul_inv] using
+    real_path_mutation_lower steps hsteps
+
+theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+    (∑ chain, (40 - (encoding chain).val - 1)) = 1443 := by
+  have heq : ∀ chain, 40 - (encoding chain).val - 1 = 39 - (encoding chain).val := by
+    intro chain
+    omega
+  simp_rw [heq]
+  rw [Finset.sum_tsub_distrib Finset.univ]
+  · have hsum : ∑ chain, (encoding chain).val = targetSum := hvalid
+    rw [hsum]
+    norm_num [numChains, targetSum]
+  · intro chain _
+    have hbound := (encoding chain).isLt
+    norm_num [chainLength, winternitzBits] at hbound
+    omega
+
+/-- The chain is chosen uniformly, without a hash query to learn the encoding. -/
+theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+    1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
+      ∑ chain, pathMutationProbability (40 - (encoding chain).val) := by
+  calc
+    _ = (∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞)) /
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+      rw [← Nat.cast_sum, sum_mutatedChainWork_sub_one encoding hvalid]
+      norm_num
+    _ = ∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞) /
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by simp only [div_eq_mul_inv, Finset.sum_mul]
+    _ ≤ _ := Finset.sum_le_sum fun chain _ => pathMutationProbability_lower _ (Nat.sub_le _ _)
+
+/-- Even after allowing signing failure and a full lost collision opportunity per chain,
+the uniform-chain strategy has a strict margin above the 123-bit threshold. -/
+theorem randomChain_mutation_margin (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+    (1 : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) <
+      (31 / 32) * ((∑ chain, pathMutationProbability (40 - (encoding chain).val)) / numChains) := by
+  have hsum := sum_pathMutationProbability_lower encoding hvalid
+  have hnumChains : (numChains : ℝ≥0∞) ≠ 0 := by norm_num [numChains]
+  calc
+    _ < (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) := by
+      apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
+      norm_num [digestBits, numChains, ENNReal.toReal_mul, ENNReal.toReal_div]
+    _ ≤ _ := by
+      gcongr
+
+/-- info: 'XmssSecurity.Attack.randomChain_mutation_margin' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms randomChain_mutation_margin
+
+end XmssSecurity.Attack
