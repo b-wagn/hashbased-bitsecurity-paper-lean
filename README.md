@@ -128,6 +128,12 @@ signing requests and `E` is the expected number of direct encoding queries.
 by the expected request count `R`. `RequestsEncodingCollision.lean` then bounds
 the fresh verifier encoding-collision contribution by `R / 2^128`, because a
 collision requires a returned signature at the forged leaf.
+`ExpectedSecondLane.lean` preserves the exact structural-query count and charges
+the verifier's extra encoding query once, giving
+`(S + 40 p (E + 1)) / 2^128`, with acceptance probability `p`.
+`ExpectedSeedHop.lean`, `ExpectedReferenceSeed.lean`, and `ExpectedDirectSeed.lean`
+transfer standard security from the reference game with loss `Z / 2^256`, where
+`Z` is its expected number of direct seed-domain queries.
 The remaining work is to combine cached and fresh verifier encodings with the
 second-lane and reference-game losses and complete the numerical assembly.
 

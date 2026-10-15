@@ -15,6 +15,8 @@ import XmssSecurity.Proof.EUFCMA.RequestsExpected
 import XmssSecurity.Proof.EUFCMA.RequestsActivity
 import XmssSecurity.Proof.EUFCMA.RequestsTerminalFirstLane
 import XmssSecurity.Proof.EUFCMA.RequestsEncodingCollision
+import XmssSecurity.Proof.EUFCMA.ExpectedSecondLane
+import XmssSecurity.Proof.EUFCMA.ExpectedDirectSeed
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
