@@ -8,12 +8,13 @@ import XmssSecurity.Proof.EUFCMA.FreshAcceptancePrefix
 import XmssSecurity.Proof.EUFCMA.ReferenceHop
 import XmssSecurity.Proof.EUFCMA.DirectSecurity
 import XmssSecurity.Proof.EUFCMA.ReplayFallback
+import XmssSecurity.Proof.EUFCMA.ReplayAccounting
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
 development supplies initial lower bounds. The neighboring-message attack proves
-the upper bound in every mode. The exact direct-query bound remains open; a
-one-probe reference experiment already succeeds above the proposed 127-bit rate. -/
+the upper bound in every mode. A fresh-message replay/fallback attack refutes
+127-bit direct-only security; the exact direct-query bound remains open. -/
 
 namespace XmssSecurity
 
@@ -72,6 +73,22 @@ theorem xmss_eufCma_attack_127 (mode : CountingMode) : XmssEufCmaAttack mode 127
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_eufCma_attack_127
 
+/-- A one-query standard forgery refutes 127 bits in the direct-only mode. -/
+theorem xmss_eufCma_direct_attack_126 : XmssEufCmaAttack CountingMode.direct 126 :=
+  EUFCMA.replay_direct_attack_126
+
+/-- info: 'XmssSecurity.xmss_eufCma_direct_attack_126' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_direct_attack_126
+
+/-- The initial uniform 127-bit conjecture is false. -/
+theorem xmss_eufCma_not_uniform_127 : ¬XmssEufCmaExactStatement :=
+  EUFCMA.not_uniform_127
+
+/-- info: 'XmssSecurity.xmss_eufCma_not_uniform_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_not_uniform_127
+
 /-- Fourteen counting modes have exactly 127 bits of standard unforgeability. -/
 theorem xmss_eufCma_exact_127_of_honest_hashes (mode : CountingMode)
     (hcharged : mode.keygen = true ∨ mode.signer = true ∨ mode.verifier = true) :
@@ -82,8 +99,8 @@ theorem xmss_eufCma_exact_127_of_honest_hashes (mode : CountingMode)
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_eufCma_exact_127_of_honest_hashes
 
-/-- The proposed all-127 classification is equivalent to its direct-query target.
-This equivalence does not assert that the target is true. -/
+/-- The initial all-127 conjecture is equivalent to its direct-query target.
+Both sides have now been refuted by the replay/fallback attack. -/
 theorem xmss_eufCma_exact_iff_direct_127 :
     XmssEufCmaExactStatement ↔ XmssEufCmaDirectStatement := by
   rw [EUFCMA.exactStatement_iff_basis]

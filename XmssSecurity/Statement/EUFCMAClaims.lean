@@ -4,13 +4,16 @@ import XmssSecurity.Statement.Security.EUFCMA
 /-!
 # Standard-unforgeability claims about XMSS
 
-The target is exactly 127 bits of classical EUF-CMA security in all sixteen counting
-modes. Unlike a strong forgery, a standard forgery cannot reuse a requested
+The initial target of exactly 127 bits in all sixteen counting modes is false:
+the proof layer constructs a one-query replay/fallback attack against the direct-only
+mode. Its lower bound is currently 125 bits and its upper bound 126 bits. Unlike a
+strong forgery, a standard forgery cannot reuse a requested
 epoch/message pair. The same-message chain-mutation attack therefore does not
 give a 122-bit upper bound here. The neighboring-encoding attack uses a different
 message and supplies the 127-bit upper bound.
 
-These are statements, not assumptions: each milestone needs a kernel-checked proof.
+The initial uniform target is retained below as a predicate that the proof layer
+explicitly refutes. These are statements, not assumptions.
 The existing SUF-CMA statement and its exact-security theorem are unchanged.
 -/
 
@@ -24,12 +27,12 @@ abbrev XmssEufCmaSecure (mode : SUFCMA.CountingMode) (bits : ℕ) : Prop :=
 abbrev XmssEufCmaAttack (mode : SUFCMA.CountingMode) (bits : ℕ) : Prop :=
   ¬ (EUFCMA.notion mode).HasClassicalSecurityBits xmss (bits + 1)
 
-/-- The proposed exact standard-unforgeability classification. -/
+/-- The initial uniform 127-bit conjecture, now refuted in the proof layer. -/
 abbrev XmssEufCmaExactStatement : Prop :=
   ∀ mode : SUFCMA.CountingMode,
     (EUFCMA.notion mode).HasExactClassicalSecurityBits xmss 127
 
-/-- The direct-query lower bound is the minimal security basis obligation. -/
+/-- The initial direct-query 127-bit conjecture, now refuted in the proof layer. -/
 abbrev XmssEufCmaDirectStatement : Prop :=
   XmssEufCmaSecure SUFCMA.CountingMode.direct 127
 

@@ -16,12 +16,13 @@ branched from the completed `proving-stuff` development without merging `main`.
 A standard forgery must use an epoch/message pair never requested from the signer,
 including requests that returned no signature. `XmssUnforgeability.lean` currently
 proves exactly 127 bits in the fourteen modes charging some honest-party hashes.
-For the remaining two modes (direct queries, with or without signing requests),
-the proved bounds are at least 125 bits and at most 127 bits. The neighboring-message
-attack establishes the upper bound in all sixteen modes. The original proposed
-all-127 classification remains an unproved target. A new kernel-checked reference
-experiment with one encoding probe succeeds above `2^-127`; connecting it to the
-logged adversary, its direct-query budget, and the seeded scheme remains in progress.
+For direct queries alone, the proved bounds are **125–126 bits**. When signing
+requests are additionally counted, they are **125–127 bits**. The neighboring-message
+attack establishes a 127-bit upper bound in all sixteen modes. A one-query
+replay/fallback attack refutes 127-bit direct-only security and therefore the initial
+all-127 conjecture. Its logged game, semantic query budget, and transfer to the
+seeded scheme are all kernel-checked. Exact classification is complete for **14 of
+16 modes (87.5%)**; this counts modes, not the fraction of remaining proof effort.
 The strong-security statements and proofs are preserved.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
@@ -89,8 +90,13 @@ sharpens the fresh-signing success bound to more than `131071 / 131072`.
 `ReplayFallback.lean` checks the resulting reference experiment: query a candidate
 message's encoding, reuse the signature if it is valid, and otherwise reuse it for
 a second fresh message. Its success probability is strictly above `2^-127`, including
-signing failure. The game-level attack theorem and exact direct-only classification
-are not yet claimed.
+signing failure. `ReplayAdversary.lean` implements the attack and proves freshness
+and its one-query count. `ReplayGame.lean` connects the logged standard game to the
+experiment, and `ReplaySeeded.lean` transfers the advantage exactly to seeded
+signing. `ReplayAccounting.lean` proves the semantic direct-query budget and the
+attack against 127 bits. The root exports `xmss_eufCma_direct_attack_126` and
+`xmss_eufCma_not_uniform_127`. The initial uniform target is retained as a refuted
+predicate, while the two remaining exact bounds are still open.
 
 ## Claims and theorems
 
