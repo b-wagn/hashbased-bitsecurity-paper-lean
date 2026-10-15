@@ -11,19 +11,17 @@ The strong-unforgeability exact-security statement is proved for **all 16 counti
 charged, and exactly 127 bits when key generation, signing hashes, or verification
 is charged. The statement layer is unchanged.
 
-Standard (non-strong) EUF-CMA is being developed separately on `proving-standard-uf`,
+Standard (non-strong) EUF-CMA is proved separately on `proving-standard-uf`,
 branched from the completed `proving-stuff` development without merging `main`.
 A standard forgery must use an epoch/message pair never requested from the signer,
-including requests that returned no signature. `XmssUnforgeability.lean` currently
-proves exactly 127 bits in the fourteen modes charging some honest-party hashes.
-For direct queries alone, the exact bound is **126 bits**. When signing
-requests are additionally counted, the proved bounds are **126–127 bits**. The neighboring-message
+including requests that returned no signature. `XmssUnforgeability.lean`
+proves exactly **126 bits** for direct queries alone and exactly **127 bits** in
+the other fifteen modes, including direct queries plus signing requests. The neighboring-message
 attack establishes a 127-bit upper bound in all sixteen modes. A one-query
 replay/fallback attack refutes 127-bit direct-only security and therefore the initial
 all-127 conjecture. Its logged game, semantic query budget, and transfer to the
 seeded scheme are all kernel-checked. A matching lower bound handles even the
-one-query case. Exact classification is complete for **15 of
-16 modes (93.75%)**; this counts modes, not the fraction of remaining proof effort.
+one-query case. Exact classification is complete for **all 16 modes (100%)**.
 The strong-security statements and proofs are preserved.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
@@ -102,14 +100,13 @@ experiment, and `ReplaySeeded.lean` transfers the advantage exactly to seeded
 signing. `ReplayAccounting.lean` proves the semantic direct-query budget and the
 attack against 127 bits. The root exports `xmss_eufCma_direct_attack_126` and
 `xmss_eufCma_not_uniform_127`. The initial uniform target is retained as a refuted
-predicate. Only the exact bound with direct queries and signing requests counted
-remains open, between 126 and 127 bits.
+predicate. The direct-plus-signing-requests mode is also complete, at exactly 127 bits.
 `RequestsBasic.lean` and `RequestsBridge.lean` connect that mode's semantic budget
 to a shared syntactic budget for direct hashes and signing requests, with pruning
 that preserves the standard game. `RequestsExpected.lean` proves that memoization
 preserves this bound and that expected encoding, structural, seed, and signing-request
-counts fit together within it. These are accounting lemmas for the final mode;
-they do not yet establish its exact security.
+counts fit together within it. These accounting lemmas supply the budget used
+in the final mode's exact-security proof.
 `FreshExpectedPrefix.lean` retains the expected encoding-query count in the
 fresh first-lane estimate. `RequestsTerminalPrune.lean` proves that stopping before
 the last charged query on an inactive branch preserves events requiring activity;
@@ -139,7 +136,11 @@ prefix and one deciding probe. `FreshMixedFirstLane.lean` retains standard
 freshness through this split, and `FreshMixedBounds.lean` averages the fresh
 encoding's acceptance probability. `RequestsLoss.lean` combines both resulting
 first-lane estimates with the second-lane, encoding-collision, prehit, and seed
-losses. The remaining step is the numerical bound using the shared query budget.
+losses. `RequestsNumerics.lean` closes the numerical bound by splitting at
+`E = 1/256`: larger encoding budgets absorb the ordinary prefix's extra loss,
+and smaller budgets use the terminal query saving. `Requests127.lean` transfers
+this bound through memoization and pruning to the standard security statement.
+The root exports `xmss_eufCma_requests_127` and `xmss_eufCma_requests_exact_127`.
 
 ## Claims and theorems
 

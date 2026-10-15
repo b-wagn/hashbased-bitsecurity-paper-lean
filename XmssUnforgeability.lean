@@ -18,13 +18,14 @@ import XmssSecurity.Proof.EUFCMA.RequestsEncodingCollision
 import XmssSecurity.Proof.EUFCMA.ExpectedSecondLane
 import XmssSecurity.Proof.EUFCMA.ExpectedDirectSeed
 import XmssSecurity.Proof.EUFCMA.RequestsLoss
+import XmssSecurity.Proof.EUFCMA.Requests127
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
 development supplies initial lower bounds. The neighboring-message attack proves
 the upper bound in every mode. A fresh-message replay/fallback attack refutes
 127-bit direct-only security, and the matching lower bound establishes exactly
-126 bits in that mode. Only the direct-plus-signing-requests mode remains open. -/
+126 bits in that mode. Counting signing requests restores exactly 127 bits. -/
 
 namespace XmssSecurity
 
@@ -125,6 +126,23 @@ theorem xmss_eufCma_exact_127_of_honest_hashes (mode : CountingMode)
 /-- info: 'XmssSecurity.xmss_eufCma_exact_127_of_honest_hashes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_eufCma_exact_127_of_honest_hashes
+
+/-- Counting direct hashes and signing requests gives 127-bit standard security. -/
+theorem xmss_eufCma_requests_127 : XmssEufCmaSecure ⟨false, false, false, true⟩ 127 :=
+  EUFCMA.Requests.secure_127
+
+/-- info: 'XmssSecurity.xmss_eufCma_requests_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_requests_127
+
+/-- The final counting mode has exactly 127 bits of standard unforgeability. -/
+theorem xmss_eufCma_requests_exact_127 :
+    (EUFCMA.notion ⟨false, false, false, true⟩).HasExactClassicalSecurityBits xmss 127 :=
+  ⟨xmss_eufCma_requests_127, xmss_eufCma_attack_127 _⟩
+
+/-- info: 'XmssSecurity.xmss_eufCma_requests_exact_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_requests_exact_127
 
 /-- The initial all-127 conjecture is equivalent to its direct-query target.
 Both sides have now been refuted by the replay/fallback attack. -/
