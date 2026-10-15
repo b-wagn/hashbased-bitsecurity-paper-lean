@@ -6,10 +6,19 @@ The development started from the 127-bit SUF-CMA proof in
 [leanEthereum/leanVM](https://github.com/leanEthereum/leanVM/tree/main/formal/xmss) and
 separates *what is claimed* from *why it holds*.
 
-The exact-security statement is proved for **all 16 counting modes** by
+The strong-unforgeability exact-security statement is proved for **all 16 counting modes** by
 `XmssSecurity.xmss_sufCma_exact`: exactly 122 bits when no honest-party hashes are
 charged, and exactly 127 bits when key generation, signing hashes, or verification
 is charged. The statement layer is unchanged.
+
+Standard (non-strong) EUF-CMA is being developed separately on `proving-standard-uf`,
+branched from the completed `proving-stuff` development without merging `main`.
+A standard forgery must use an epoch/message pair never requested from the signer,
+including requests that returned no signature. `XmssUnforgeability.lean` currently
+proves at least 122 bits in every counting mode and at least 127 bits in the fourteen
+modes charging some honest-party hashes. The proposed exact bound is 127 bits in
+all sixteen modes; the stronger direct-query lower bound and the standard-forgery
+attack are still open. The strong-security statements and proofs are preserved.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any
@@ -24,14 +33,17 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Signature schemes | `XmssSecurity/Statement/SynchronizedSignature.lean` | syntax of synchronized (epoch-based) signature schemes, eprint 2025/055 Def. 7 |
 | Random-oracle model | `XmssSecurity/Statement/RandomOracleModel.lean` | the oracle world (private sampling + hash oracle), lazy random oracle, hash-query counting |
 | Security notions | `XmssSecurity/Statement/Security/SUFCMA.lean` | strong unforgeability under chosen-message attacks (one file per notion) |
+| | `XmssSecurity/Statement/Security/EUFCMA.lean` | standard unforgeability, with freshness of the requested epoch/message pair |
 | Bit security | `XmssSecurity/Statement/BitSecurity.lean` | `SecurityNotion` and `HasClassicalSecurityBits`: `Pr[win] ≤ q / 2^bits` for every `q`-query adversary |
 | The scheme | `XmssSecurity/Statement/Scheme/Parameters.lean` | the parameter table (`n`, `w`, `v`, `T`, `h`, `L`, `A_max`, …) |
 | | `XmssSecurity/Statement/Scheme/Construction.lean` | tweaks, target-sum encoding, chains, Merkle tree, key generation, signing, verification |
 | | `XmssSecurity/Statement/Scheme/Xmss.lean` | `xmss`, the scheme as a `SynchronizedSignature` |
 | Claims | `XmssSecurity/Statement/Claims.lean` | the bit-security statements, one per notion |
+| | `XmssSecurity/Statement/EUFCMAClaims.lean` | separate standard-unforgeability targets |
 | Proofs | `XmssSecurity/Proof/` | proofs of the unchanged statement layer, including stronger numerical bounds |
 | | `XmssSecurity/Proof/Direct/` | the direct-count proof: pruning a semantically bounded adversary to a syntactically bounded one (`Basic`, `Prune`, `Bridge`), the per-term bounds (`FirstLane`, `Structural`, `Prehit`, `SeedGuessing`, `VerifierBound`), and the assembly |
 | Main theorems | `XmssSecurity.lean` | one theorem per claim, with an axiom guard |
+| | `XmssUnforgeability.lean` | standard-unforgeability lower bounds, with axiom guards |
 
 ## Claims and theorems
 
