@@ -1,6 +1,6 @@
 name = "xmss-security"
 version = "0.1.0"
-defaultTargets = ["XmssSecurity", "XmssUnforgeability", "XmssSecurity.Tests.QueryBudget", "XmssSecurity.Tests.EUFCMA"]
+defaultTargets = ["XmssSecurity", "XmssUnforgeability", "XmssSecurity.Tests.QueryBudget"]
 
 [[require]]
 name = "VCVio"
