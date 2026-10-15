@@ -19,6 +19,7 @@ import XmssSecurity.Proof.EUFCMA.ExpectedSecondLane
 import XmssSecurity.Proof.EUFCMA.ExpectedDirectSeed
 import XmssSecurity.Proof.EUFCMA.RequestsLoss
 import XmssSecurity.Proof.EUFCMA.Requests127
+import XmssSecurity.Proof.EUFCMA.Classification
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
@@ -110,7 +111,7 @@ theorem xmss_eufCma_direct_attack_126 : XmssEufCmaAttack CountingMode.direct 126
 #print axioms xmss_eufCma_direct_attack_126
 
 /-- The initial uniform 127-bit conjecture is false. -/
-theorem xmss_eufCma_not_uniform_127 : ¬XmssEufCmaExactStatement :=
+theorem xmss_eufCma_not_uniform_127 : ¬XmssEufCmaUniform127Statement :=
   EUFCMA.not_uniform_127
 
 /-- info: 'XmssSecurity.xmss_eufCma_not_uniform_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -144,15 +145,28 @@ theorem xmss_eufCma_requests_exact_127 :
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_eufCma_requests_exact_127
 
+/-- All sixteen modes have exactly the stated standard-unforgeability bits:
+126 for direct queries alone, and 127 when any additional query class is charged. -/
+theorem xmss_eufCma_exact : XmssEufCmaExactStatement :=
+  EUFCMA.exactStatement_of_basis EUFCMA.direct_126
+    (xmss_eufCma_secure_127_of_honest_hashes _ (Or.inl rfl))
+    (xmss_eufCma_secure_127_of_honest_hashes _ (Or.inr (Or.inl rfl)))
+    (xmss_eufCma_secure_127_of_honest_hashes _ (Or.inr (Or.inr rfl)))
+    xmss_eufCma_requests_127 xmss_eufCma_direct_attack_126 xmss_eufCma_everything_attack_127
+
+/-- info: 'XmssSecurity.xmss_eufCma_exact' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_exact
+
 /-- The initial all-127 conjecture is equivalent to its direct-query target.
 Both sides have now been refuted by the replay/fallback attack. -/
-theorem xmss_eufCma_exact_iff_direct_127 :
-    XmssEufCmaExactStatement ↔ XmssEufCmaDirectStatement := by
-  rw [EUFCMA.exactStatement_iff_basis]
+theorem xmss_eufCma_uniform_127_iff_direct_127 :
+    XmssEufCmaUniform127Statement ↔ XmssEufCmaDirect127Conjecture := by
+  rw [EUFCMA.uniform127Statement_iff_basis]
   exact ⟨And.left, fun hd => ⟨hd, xmss_eufCma_everything_attack_127⟩⟩
 
-/-- info: 'XmssSecurity.xmss_eufCma_exact_iff_direct_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'XmssSecurity.xmss_eufCma_uniform_127_iff_direct_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms xmss_eufCma_exact_iff_direct_127
+#print axioms xmss_eufCma_uniform_127_iff_direct_127
 
 end XmssSecurity

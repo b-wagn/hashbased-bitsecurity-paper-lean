@@ -51,7 +51,7 @@ theorem replay_direct_attack_126 : XmssEufCmaAttack SUFCMA.CountingMode.direct 1
   rw [notion_advantage_eq, Nat.cast_one, one_div] at hbound
   exact (not_lt_of_ge hbound) replay_seeded_advantage_exceeds_127
 
-theorem not_uniform_127 : ¬XmssEufCmaExactStatement := by
+theorem not_uniform_127 : ¬XmssEufCmaUniform127Statement := by
   intro h
   exact replay_direct_attack_126 (h SUFCMA.CountingMode.direct).1
 

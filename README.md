@@ -21,8 +21,15 @@ attack establishes a 127-bit upper bound in all sixteen modes. A one-query
 replay/fallback attack refutes 127-bit direct-only security and therefore the initial
 all-127 conjecture. Its logged game, semantic query budget, and transfer to the
 seeded scheme are all kernel-checked. A matching lower bound handles even the
-one-query case. Exact classification is complete for **all 16 modes (100%)**.
+one-query case. Exact classification is complete for **all 16 modes (100%)**, via
+`XmssSecurity.xmss_eufCma_exact : XmssEufCmaExactStatement`.
 The strong-security statements and proofs are preserved.
+
+| Counting mode | Strong SUF-CMA | Standard EUF-CMA |
+|---|---|---|
+| Direct hashes only | exactly 122 bits | exactly 126 bits |
+| Direct hashes plus signing requests | exactly 122 bits | exactly 127 bits |
+| Any mode charging honest-party hashes (14 modes) | exactly 127 bits | exactly 127 bits |
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any
@@ -43,22 +50,23 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | | `XmssSecurity/Statement/Scheme/Construction.lean` | tweaks, target-sum encoding, chains, Merkle tree, key generation, signing, verification |
 | | `XmssSecurity/Statement/Scheme/Xmss.lean` | `xmss`, the scheme as a `SynchronizedSignature` |
 | Claims | `XmssSecurity/Statement/Claims.lean` | the bit-security statements, one per notion |
-| | `XmssSecurity/Statement/EUFCMAClaims.lean` | separate standard-unforgeability targets |
+| | `XmssSecurity/Statement/EUFCMAClaims.lean` | standard-unforgeability classification, with the refuted uniform conjecture named separately |
 | Proofs | `XmssSecurity/Proof/` | proofs of the unchanged statement layer, including stronger numerical bounds |
 | | `XmssSecurity/Proof/Direct/` | the direct-count proof: pruning a semantically bounded adversary to a syntactically bounded one (`Basic`, `Prune`, `Bridge`), the per-term bounds (`FirstLane`, `Structural`, `Prehit`, `SeedGuessing`, `VerifierBound`), and the assembly |
 | Main theorems | `XmssSecurity.lean` | one theorem per claim, with an axiom guard |
-| | `XmssUnforgeability.lean` | standard-unforgeability bounds and fifteen exact modes, with axiom guards |
+| | `XmssUnforgeability.lean` | exact standard-unforgeability classification for all sixteen modes, with axiom guards |
 
 The standard-unforgeability proof lives under `Proof/EUFCMA/`: `Reduction.lean`
 transfers lower bounds from strong security while proving identical semantic query
 budgets; `Modes.lean` proves counting-mode monotonicity; `NeighborAttack.lean`
 proves that the concrete attack uses a fresh requested input and hence wins the
-standard game with the same probability and cost; `Exact.lean` reduces the full
-classification to its direct-security and everything-counted attack obligations.
+standard game with the same probability and cost. `Classification.lean` reduces
+the proved classification to five minimal security modes and two attacks.
+`Exact.lean` retains the basis equivalence for the refuted initial uniform conjecture.
 `Projection.lean`, `Execution.lean`, and `DirectBridge.lean` connect the standard
 game to the existing detailed execution and prove that pruning at a semantic
-direct-query budget preserves its success probability. The remaining numerical
-bound can therefore be proved for syntactically bounded adversaries without
+direct-query budget preserves its success probability. The numerical bounds are
+therefore proved for syntactically bounded adversaries without
 weakening the statement's budget condition.
 `FreshEncoding.lean` proves that signing preserves every unrequested encoding
 input and propagates this invariant through adaptive executions.
@@ -99,8 +107,10 @@ and its one-query count. `ReplayGame.lean` connects the logged standard game to 
 experiment, and `ReplaySeeded.lean` transfers the advantage exactly to seeded
 signing. `ReplayAccounting.lean` proves the semantic direct-query budget and the
 attack against 127 bits. The root exports `xmss_eufCma_direct_attack_126` and
-`xmss_eufCma_not_uniform_127`. The initial uniform target is retained as a refuted
-predicate. The direct-plus-signing-requests mode is also complete, at exactly 127 bits.
+`xmss_eufCma_not_uniform_127`. The initial uniform target is retained as the
+refuted predicate `XmssEufCmaUniform127Statement`; `XmssEufCmaExactStatement`
+expresses the proved classification using `eufCmaBits`.
+The direct-plus-signing-requests mode is also complete, at exactly 127 bits.
 `RequestsBasic.lean` and `RequestsBridge.lean` connect that mode's semantic budget
 to a shared syntactic budget for direct hashes and signing requests, with pruning
 that preserves the standard game. `RequestsExpected.lean` proves that memoization
@@ -167,6 +177,10 @@ The root exports `xmss_eufCma_requests_127` and `xmss_eufCma_requests_exact_127`
 | Every hash call, both bounds | exactly 127 | `xmss_sufCma_allHashes_exact_127` |
 | Every hash call and every signing request, both bounds | exactly 127 | `xmss_sufCma_everything_exact_127` |
 | `XmssSufCmaExactStatement`: all sixteen modes, both bounds | exactly 122 or 127 | `xmss_sufCma_exact` |
+| Standard direct-query security, both bounds | exactly 126 | `xmss_eufCma_direct_exact_126` |
+| Standard direct queries plus signing requests, both bounds | exactly 127 | `xmss_eufCma_requests_exact_127` |
+| Standard modes charging honest-party hashes, both bounds | exactly 127 | `xmss_eufCma_exact_127_of_honest_hashes` |
+| `XmssEufCmaExactStatement`: all sixteen standard modes, both bounds | exactly 126 or 127 | `xmss_eufCma_exact` |
 
 The direct proof now reaches the conjectured lower bound of 122 bits. It selects one deciding
 chain, charges one probe in the first lane, and charges at most 40 verification queries on the
