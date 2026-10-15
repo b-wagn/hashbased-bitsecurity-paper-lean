@@ -134,8 +134,12 @@ the verifier's extra encoding query once, giving
 `ExpectedSeedHop.lean`, `ExpectedReferenceSeed.lean`, and `ExpectedDirectSeed.lean`
 transfer standard security from the reference game with loss `Z / 2^256`, where
 `Z` is its expected number of direct seed-domain queries.
-The remaining work is to combine cached and fresh verifier encodings with the
-second-lane and reference-game losses and complete the numerical assembly.
+`MixedPrefixProbe.lean` combines cached and fresh encodings using one shared
+prefix and one deciding probe. `FreshMixedFirstLane.lean` retains standard
+freshness through this split, and `FreshMixedBounds.lean` averages the fresh
+encoding's acceptance probability. `RequestsLoss.lean` combines both resulting
+first-lane estimates with the second-lane, encoding-collision, prehit, and seed
+losses. The remaining step is the numerical bound using the shared query budget.
 
 ## Claims and theorems
 
