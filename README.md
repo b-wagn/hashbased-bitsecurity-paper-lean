@@ -116,9 +116,16 @@ the last charged query on an inactive branch preserves events requiring activity
 `RequestsTerminalCost.lean` proves the resulting one-query saving, both pathwise
 and in expectation. `RequestsActivity.lean` identifies the relevant activity as
 encoding queries or signing requests, bounds its probability by their expected
-counts, and proves that a cached fresh forgery requires it. Connecting the stopped
-public simulation to the first-lane coupling and completing the numerical assembly
-remain to be done.
+counts, and proves that a cached fresh forgery requires it.
+`RequestsStoppedSource.lean` transfers those events through the stopping rule.
+`RequestsEncodingActivity.lean` sharpens the necessary activity to a direct encoding
+query. `RequestsPublicTrace.lean` counts public hazards together with signing
+requests, and `RequestsTerminalProbe.lean` bounds the stopped terminal probe.
+`RequestsTerminalFirstLane.lean` couples this probe to a cached fresh forgery and
+proves the bound `(q - 1 + 2 E) / 2^128`, where `q > 0` bounds direct hashes plus
+signing requests and `E` is the expected number of direct encoding queries.
+The remaining work is to combine cached and fresh verifier encodings with the
+second-lane and reference-game losses and complete the numerical assembly.
 
 ## Claims and theorems
 
