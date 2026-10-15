@@ -16,13 +16,14 @@ branched from the completed `proving-stuff` development without merging `main`.
 A standard forgery must use an epoch/message pair never requested from the signer,
 including requests that returned no signature. `XmssUnforgeability.lean` currently
 proves exactly 127 bits in the fourteen modes charging some honest-party hashes.
-For direct queries alone, the proved bounds are **125–126 bits**. When signing
-requests are additionally counted, they are **125–127 bits**. The neighboring-message
+For direct queries alone, the exact bound is **126 bits**. When signing
+requests are additionally counted, the proved bounds are **126–127 bits**. The neighboring-message
 attack establishes a 127-bit upper bound in all sixteen modes. A one-query
 replay/fallback attack refutes 127-bit direct-only security and therefore the initial
 all-127 conjecture. Its logged game, semantic query budget, and transfer to the
-seeded scheme are all kernel-checked. Exact classification is complete for **14 of
-16 modes (87.5%)**; this counts modes, not the fraction of remaining proof effort.
+seeded scheme are all kernel-checked. A matching lower bound handles even the
+one-query case. Exact classification is complete for **15 of
+16 modes (93.75%)**; this counts modes, not the fraction of remaining proof effort.
 The strong-security statements and proofs are preserved.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
@@ -48,7 +49,7 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Proofs | `XmssSecurity/Proof/` | proofs of the unchanged statement layer, including stronger numerical bounds |
 | | `XmssSecurity/Proof/Direct/` | the direct-count proof: pruning a semantically bounded adversary to a syntactically bounded one (`Basic`, `Prune`, `Bridge`), the per-term bounds (`FirstLane`, `Structural`, `Prehit`, `SeedGuessing`, `VerifierBound`), and the assembly |
 | Main theorems | `XmssSecurity.lean` | one theorem per claim, with an axiom guard |
-| | `XmssUnforgeability.lean` | standard-unforgeability bounds and fourteen exact modes, with axiom guards |
+| | `XmssUnforgeability.lean` | standard-unforgeability bounds and fifteen exact modes, with axiom guards |
 
 The standard-unforgeability proof lives under `Proof/EUFCMA/`: `Reduction.lean`
 transfers lower bounds from strong security while proving identical semantic query
@@ -69,7 +70,7 @@ of any accepted, unrequested encoding by the acceptance probability times the
 expected direct encoding-query count; signing cannot create a new eligible
 candidate. `FreshAcceptancePrefix.lean` carries this estimate to the existing
 source-prefix experiment. These lemmas remove signer cost from this acceptance
-bound; the exact direct-security classification remains open.
+bound.
 `SeededTable.lean`, `Memoization.lean`, and `ReferenceHop.lean` preserve standard
 freshness through derivation presampling, repeated-request memoization, and the
 randomized reference signer. They prove that a `D`-direct-query adversary's seeded
@@ -80,8 +81,13 @@ phase. `SecondLane.lean` charges its accepted verification contribution only to
 direct encoding queries. `DecidingAssembly.lean` combines this with the existing
 first-lane and encoding-prehit estimates, and `DirectSecurity.lean` proves 125 bits
 of standard security in every counting mode. It also proves a 126-bit numerical
-bound for syntactic direct budgets of at least two; the one-query case and the
-exact bounds for the two modes without honest hashes remain unresolved.
+bound for syntactic direct budgets of at least two.
+`FreshProbe.lean` and `FreshFirstLane.lean` charge the final deciding probe only
+when the adversary produces a fresh, accepted encoding. `FreshFirstLaneBridge.lean`
+transfers this bound to the standard game, and `QueriedStructural.lean` preserves
+the structural-query count when caching the forged encoding. `Direct126.lean`
+combines these estimates to prove 126-bit security for every positive budget,
+including one query, and exactly 126 bits for the direct-only mode.
 `RootCollision.lean` proves that an accepted encoding retains at least one final
 root-hash collision opportunity after key generation and signing.
 `ReplayCollision.lean` combines that contribution with reproducing the original
@@ -96,7 +102,8 @@ experiment, and `ReplaySeeded.lean` transfers the advantage exactly to seeded
 signing. `ReplayAccounting.lean` proves the semantic direct-query budget and the
 attack against 127 bits. The root exports `xmss_eufCma_direct_attack_126` and
 `xmss_eufCma_not_uniform_127`. The initial uniform target is retained as a refuted
-predicate, while the two remaining exact bounds are still open.
+predicate. Only the exact bound with direct queries and signing requests counted
+remains open, between 126 and 127 bits.
 
 ## Claims and theorems
 

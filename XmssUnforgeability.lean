@@ -9,12 +9,14 @@ import XmssSecurity.Proof.EUFCMA.ReferenceHop
 import XmssSecurity.Proof.EUFCMA.DirectSecurity
 import XmssSecurity.Proof.EUFCMA.ReplayFallback
 import XmssSecurity.Proof.EUFCMA.ReplayAccounting
+import XmssSecurity.Proof.EUFCMA.Direct126
 
 /-! Standard (non-strong) unforgeability of the unchanged XMSS scheme.
 Freshness concerns the requested epoch/message pair. The completed strong-security
 development supplies initial lower bounds. The neighboring-message attack proves
 the upper bound in every mode. A fresh-message replay/fallback attack refutes
-127-bit direct-only security; the exact direct-query bound remains open. -/
+127-bit direct-only security, and the matching lower bound establishes exactly
+126 bits in that mode. Only the direct-plus-signing-requests mode remains open. -/
 
 namespace XmssSecurity
 
@@ -43,6 +45,23 @@ theorem xmss_eufCma_secure_125 (mode : CountingMode) : XmssEufCmaSecure mode 125
 /-- info: 'XmssSecurity.xmss_eufCma_secure_125' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms xmss_eufCma_secure_125
+
+/-- The fresh terminal-probe estimate gives exactly 126 direct-query bits. -/
+theorem xmss_eufCma_direct_exact_126 :
+    (EUFCMA.notion CountingMode.direct).HasExactClassicalSecurityBits xmss 126 :=
+  EUFCMA.direct_exact_126
+
+/-- info: 'XmssSecurity.xmss_eufCma_direct_exact_126' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_direct_exact_126
+
+/-- Every counting mode has at least 126 bits of standard security. -/
+theorem xmss_eufCma_secure_126 (mode : CountingMode) : XmssEufCmaSecure mode 126 :=
+  EUFCMA.hasClassicalSecurityBits_of_le (Modes.direct_le mode) xmss 126 EUFCMA.direct_126
+
+/-- info: 'XmssSecurity.xmss_eufCma_secure_126' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms xmss_eufCma_secure_126
 
 /-- The fourteen modes charging any honest-party hashes inherit 127 bits. -/
 theorem xmss_eufCma_secure_127_of_honest_hashes (mode : CountingMode)
