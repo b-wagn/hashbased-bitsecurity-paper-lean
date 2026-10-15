@@ -8,7 +8,7 @@ The target is exactly 127 bits of classical EUF-CMA security in all sixteen coun
 modes. Unlike a strong forgery, a standard forgery cannot reuse a requested
 epoch/message pair. The same-message chain-mutation attack therefore does not
 give a 122-bit upper bound here. The neighboring-encoding attack uses a different
-message and is a candidate for the 127-bit upper bound.
+message and supplies the 127-bit upper bound.
 
 These are statements, not assumptions: each milestone needs a kernel-checked proof.
 The existing SUF-CMA statement and its exact-security theorem are unchanged.

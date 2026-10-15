@@ -15,10 +15,12 @@ Standard (non-strong) EUF-CMA is being developed separately on `proving-standard
 branched from the completed `proving-stuff` development without merging `main`.
 A standard forgery must use an epoch/message pair never requested from the signer,
 including requests that returned no signature. `XmssUnforgeability.lean` currently
-proves at least 122 bits in every counting mode and at least 127 bits in the fourteen
-modes charging some honest-party hashes. The proposed exact bound is 127 bits in
-all sixteen modes; the stronger direct-query lower bound and the standard-forgery
-attack are still open. The strong-security statements and proofs are preserved.
+proves exactly 127 bits in the fourteen modes charging some honest-party hashes.
+For the remaining two modes (direct queries, with or without signing requests),
+the proved bounds are at least 122 bits and at most 127 bits. The neighboring-message
+attack establishes the upper bound in all sixteen modes. A 127-bit direct-query
+lower bound is the only remaining basis obligation for the proposed full standard
+classification. The strong-security statements and proofs are preserved.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any
@@ -43,7 +45,14 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | Proofs | `XmssSecurity/Proof/` | proofs of the unchanged statement layer, including stronger numerical bounds |
 | | `XmssSecurity/Proof/Direct/` | the direct-count proof: pruning a semantically bounded adversary to a syntactically bounded one (`Basic`, `Prune`, `Bridge`), the per-term bounds (`FirstLane`, `Structural`, `Prehit`, `SeedGuessing`, `VerifierBound`), and the assembly |
 | Main theorems | `XmssSecurity.lean` | one theorem per claim, with an axiom guard |
-| | `XmssUnforgeability.lean` | standard-unforgeability lower bounds, with axiom guards |
+| | `XmssUnforgeability.lean` | standard-unforgeability bounds and fourteen exact modes, with axiom guards |
+
+The standard-unforgeability proof lives under `Proof/EUFCMA/`: `Reduction.lean`
+transfers lower bounds from strong security while proving identical semantic query
+budgets; `Modes.lean` proves counting-mode monotonicity; `NeighborAttack.lean`
+proves that the concrete attack uses a fresh requested input and hence wins the
+standard game with the same probability and cost; `Exact.lean` reduces the full
+classification to its direct-security and everything-counted attack obligations.
 
 ## Claims and theorems
 
