@@ -1,6 +1,6 @@
 name = "xmss-security"
 version = "0.1.0"
-defaultTargets = ["XmssSecurity", "XmssUnforgeability", "XmssSecurity.Tests.QueryBudget"]
+defaultTargets = ["XmssSecurity", "XmssSecurity.Tests.QueryBudget"]
 
 [[require]]
 name = "VCVio"
@@ -9,6 +9,3 @@ rev = "cbd4144"
 
 [[lean_lib]]
 name = "XmssSecurity"
-
-[[lean_lib]]
-name = "XmssUnforgeability"

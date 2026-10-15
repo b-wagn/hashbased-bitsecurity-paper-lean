@@ -11,10 +11,10 @@ The strong-unforgeability exact-security statement is proved for **all 16 counti
 charged, and exactly 127 bits when key generation, signing hashes, or verification
 is charged. The statement layer is unchanged.
 
-Standard (non-strong) EUF-CMA is proved separately on `proving-standard-uf`,
-branched from the completed `proving-stuff` development without merging `main`.
+The single `XmssSecurity` library includes both strong and standard (non-strong)
+unforgeability. `import XmssSecurity` exposes both complete classifications.
 A standard forgery must use an epoch/message pair never requested from the signer,
-including requests that returned no signature. `XmssUnforgeability.lean`
+including requests that returned no signature. `XmssSecurity/Unforgeability.lean`
 proves exactly **126 bits** for direct queries alone and exactly **127 bits** in
 the other fifteen modes, including direct queries plus signing requests. The neighboring-message
 attack establishes a 127-bit upper bound in all sixteen modes. A one-query
@@ -53,8 +53,9 @@ The statement layer is meant to be read on its own; nothing in it depends on `Pr
 | | `XmssSecurity/Statement/EUFCMAClaims.lean` | standard-unforgeability classification, with the refuted uniform conjecture named separately |
 | Proofs | `XmssSecurity/Proof/` | proofs of the unchanged statement layer, including stronger numerical bounds |
 | | `XmssSecurity/Proof/Direct/` | the direct-count proof: pruning a semantically bounded adversary to a syntactically bounded one (`Basic`, `Prune`, `Bridge`), the per-term bounds (`FirstLane`, `Structural`, `Prehit`, `SeedGuessing`, `VerifierBound`), and the assembly |
-| Main theorems | `XmssSecurity.lean` | one theorem per claim, with an axiom guard |
-| | `XmssUnforgeability.lean` | exact standard-unforgeability classification for all sixteen modes, with axiom guards |
+| Public entry point | `XmssSecurity.lean` | imports both complete classifications, including security proofs and attacks |
+| Main theorems | `XmssSecurity/StrongUnforgeability.lean` | exact strong-unforgeability classification for all sixteen modes, with axiom guards |
+| | `XmssSecurity/Unforgeability.lean` | exact standard-unforgeability classification for all sixteen modes, with axiom guards |
 
 The standard-unforgeability proof lives under `Proof/EUFCMA/`: `Reduction.lean`
 transfers lower bounds from strong security while proving identical semantic query
@@ -462,10 +463,15 @@ master seed, the random oracle, and the adversary's private randomness.
 
 ```
 lake exe cache get   # Mathlib cache
-lake build           # everything, including the axiom check in XmssSecurity.lean
+lake build          # strong and standard security proofs, attacks, and axiom guards
 ```
 
 Toolchain: Lean `v4.31.0`; VCVio pinned to `cbd4144` in `lakefile.toml`.
 
-The main theorems depend only on `propext`, `Classical.choice`, and `Quot.sound`; the root module
-checks this with `#guard_msgs`, so the build fails if a `sorry` or a nonstandard axiom enters.
+`lake build` builds the single `XmssSecurity` library and the original query-budget
+tests. Its root module imports both theorem collections, so every claimed strong
+and standard bound, including the matching attacks, is checked in the same build.
+
+The main theorems depend only on `propext`, `Classical.choice`, and `Quot.sound`.
+Both theorem modules check this with `#guard_msgs`, so the build fails if a `sorry`
+or a nonstandard axiom enters.

@@ -1,4 +1,4 @@
-import XmssSecurity
+import XmssSecurity.StrongUnforgeability
 import XmssSecurity.Statement.EUFCMAClaims
 import XmssSecurity.Proof.EUFCMA.Reduction
 import XmssSecurity.Proof.EUFCMA.NeighborAttack
