@@ -104,6 +104,12 @@ attack against 127 bits. The root exports `xmss_eufCma_direct_attack_126` and
 `xmss_eufCma_not_uniform_127`. The initial uniform target is retained as a refuted
 predicate. Only the exact bound with direct queries and signing requests counted
 remains open, between 126 and 127 bits.
+`RequestsBasic.lean` and `RequestsBridge.lean` connect that mode's semantic budget
+to a shared syntactic budget for direct hashes and signing requests, with pruning
+that preserves the standard game. `RequestsExpected.lean` proves that memoization
+preserves this bound and that expected encoding, structural, seed, and signing-request
+counts fit together within it. These are accounting lemmas for the final mode;
+they do not yet establish its exact security.
 
 ## Claims and theorems
 
