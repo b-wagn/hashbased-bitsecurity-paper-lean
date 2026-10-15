@@ -110,6 +110,15 @@ that preserves the standard game. `RequestsExpected.lean` proves that memoizatio
 preserves this bound and that expected encoding, structural, seed, and signing-request
 counts fit together within it. These are accounting lemmas for the final mode;
 they do not yet establish its exact security.
+`FreshExpectedPrefix.lean` retains the expected encoding-query count in the
+fresh first-lane estimate. `RequestsTerminalPrune.lean` proves that stopping before
+the last charged query on an inactive branch preserves events requiring activity;
+`RequestsTerminalCost.lean` proves the resulting one-query saving, both pathwise
+and in expectation. `RequestsActivity.lean` identifies the relevant activity as
+encoding queries or signing requests, bounds its probability by their expected
+counts, and proves that a cached fresh forgery requires it. Connecting the stopped
+public simulation to the first-lane coupling and completing the numerical assembly
+remain to be done.
 
 ## Claims and theorems
 
