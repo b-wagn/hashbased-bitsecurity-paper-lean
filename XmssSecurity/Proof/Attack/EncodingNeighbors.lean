@@ -1,13 +1,69 @@
 import XmssSecurity.Proof.EncodingProbability
 
-/-! Distinct target-sum encodings obtained by moving one unit between two digits. -/
+/-! Codewords obtained from a codeword by moving one unit from one chain to another.
+
+A transfer lowers one chain by one step and raises another one by one step. It keeps the code
+when it moves a unit between two message digits (the checksum is unchanged), when it lowers a
+message digit and raises the last checksum digit (the checksum grows by one), or when it raises a
+message digit and lowers the last checksum digit (the checksum shrinks by one). Every codeword has
+at least `42` such neighbors. -/
 
 open scoped BigOperators
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
-namespace XmssSecurity.Attack
+namespace XmssSecurity
+
+namespace Checksum
+
+/-! ### Every codeword is the encoding of a digest -/
+
+theorem messagePart_injective_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y)
+    (h : messagePart x = messagePart y) : x = y := by
+  funext chain
+  rcases chain_cases chain with ⟨i, rfl⟩ | ⟨j, rfl⟩
+  · exact congrFun h i
+  · rw [hx.2 j, hy.2 j, h]
+
+theorem card_lastDigitBounded :
+    Fintype.card {f : Fin messageDigits → Digit // (f lastMessageDigit).val < 4} =
+      2 ^ digestBits := by
+  have h1 : Fintype.card {f : Fin messageDigits → Digit // (f lastMessageDigit).val < 4} =
+      Fintype.card {p : Digit × (Fin 42 → Digit) // p.1.val < 4} := by
+    apply Fintype.card_congr
+    exact Equiv.subtypeEquiv (Fin.snocEquiv (fun _ : Fin 43 => Digit)).symm (fun f => by
+      simp [Fin.snocEquiv, lastMessageDigit, messageDigits])
+  rw [h1, Fintype.card_congr (Equiv.prodSubtypeFstEquivSubtypeProd (p := fun d : Digit => d.val < 4))]
+  have h4 : Fintype.card {d : Digit // d.val < 4} = 4 := by decide
+  rw [Fintype.card_prod, Fintype.card_fun, h4, Fintype.card_fin, Fintype.card_fin]
+  norm_num [chainLength, winternitzBits, digestBits]
+
+/-- The encoding is a bijection from digests onto the code. -/
+theorem exists_digest_of_valid {x : Encoding} (hx : Valid x) : ∃ digest, encode digest = x := by
+  let toCode : Digest → {x : Encoding // Valid x} := fun digest => ⟨encode digest, encode_valid digest⟩
+  have hinj : Function.Injective toCode := fun left right h =>
+    encode_injective (congrArg Subtype.val h)
+  let toMessage : {x : Encoding // Valid x} →
+      {f : Fin messageDigits → Digit // (f lastMessageDigit).val < 4} :=
+    fun x => ⟨messagePart x.1, x.2.1⟩
+  have hmessage : Function.Injective toMessage := fun left right h =>
+    Subtype.ext (messagePart_injective_of_valid left.2 right.2 (congrArg Subtype.val h))
+  have hcard : Fintype.card Digest = Fintype.card {x : Encoding // Valid x} := by
+    apply le_antisymm (Fintype.card_le_of_injective toCode hinj)
+    calc
+      _ ≤ _ := Fintype.card_le_of_injective toMessage hmessage
+      _ = 2 ^ digestBits := card_lastDigitBounded
+      _ = _ := by simp
+  obtain ⟨digest, hdigest⟩ :=
+    ((Fintype.bijective_iff_injective_and_card toCode).2 ⟨hinj, hcard⟩).2 ⟨x, hx⟩
+  exact ⟨digest, congrArg Subtype.val hdigest⟩
+
+end Checksum
+
+namespace Attack
+
+open Checksum
 
 abbrev DecreasingChain (encoding : Encoding) :=
   {chain : ChainIndex // 0 < (encoding chain).val}
@@ -19,79 +75,6 @@ abbrev IncreasingChain (encoding : Encoding) :=
 abbrev DigitTransfer (encoding : Encoding) :=
   Σ lower : DecreasingChain encoding,
     {upper : ChainIndex // (encoding upper).val + 1 < chainLength ∧ upper ≠ lower.1}
-
-theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    28 ≤ Fintype.card (DecreasingChain encoding) := by
-  let indices := Finset.univ.filter fun chain => 0 < (encoding chain).val
-  have hsum : ∑ chain ∈ indices, (encoding chain).val = targetSum := by
-    rw [Finset.sum_filter]
-    change (∑ chain, if 0 < (encoding chain).val then (encoding chain).val else 0) = targetSum
-    have heq : ∀ chain, (if 0 < (encoding chain).val then (encoding chain).val else 0) =
-        (encoding chain).val := by intro chain; split_ifs <;> omega
-    simp_rw [heq]
-    exact hvalid
-  have hle : ∑ chain ∈ indices, (encoding chain).val ≤ indices.card * 7 := by
-    calc
-      _ ≤ ∑ _chain ∈ indices, 7 := Finset.sum_le_sum fun chain _ => by
-        have h := (encoding chain).isLt
-        norm_num [chainLength, winternitzBits] at h
-        omega
-      _ = _ := by simp
-  rw [hsum] at hle
-  have hcard : Fintype.card (DecreasingChain encoding) = indices.card := by
-    rw [Fintype.card_subtype]
-  norm_num [targetSum] at hle
-  omega
-
-theorem increasingChain_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    15 ≤ Fintype.card (IncreasingChain encoding) := by
-  let indices := Finset.univ.filter fun chain => (encoding chain).val + 1 < chainLength
-  have hsum : ∑ chain ∈ indices, (7 - (encoding chain).val) = 99 := by
-    rw [Finset.sum_filter]
-    have heq : ∀ chain, (if (encoding chain).val + 1 < chainLength then 7 - (encoding chain).val else 0) =
-        7 - (encoding chain).val := by
-      intro chain
-      have h := (encoding chain).isLt
-      norm_num [chainLength, winternitzBits] at h ⊢
-      omega
-    simp_rw [heq]
-    simpa [Checksum.verificationWork, verificationChainHashes, chainLength, winternitzBits,
-      numChains, targetSum] using Checksum.verificationWork_eq encoding hvalid
-  have hle : ∑ chain ∈ indices, (7 - (encoding chain).val) ≤ indices.card * 7 := by
-    calc
-      _ ≤ ∑ _chain ∈ indices, 7 := Finset.sum_le_sum fun chain _ => Nat.sub_le _ _
-      _ = _ := by simp
-  rw [hsum] at hle
-  have hcard : Fintype.card (IncreasingChain encoding) = indices.card := by
-    rw [Fintype.card_subtype]
-  omega
-
-theorem digitTransfer_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    392 ≤ Fintype.card (DigitTransfer encoding) := by
-  have hdecrease := decreasingChain_card_lower encoding hvalid
-  have hincrease := increasingChain_card_lower encoding hvalid
-  have hchoices : ∀ lower : DecreasingChain encoding,
-      14 ≤ Fintype.card {upper : ChainIndex //
-        (encoding upper).val + 1 < chainLength ∧ upper ≠ lower.1} := by
-    intro lower
-    let indices := Finset.univ.filter fun chain => (encoding chain).val + 1 < chainLength
-    have hcard : Fintype.card {upper : ChainIndex //
-        (encoding upper).val + 1 < chainLength ∧ upper ≠ lower.1} =
-        (indices.erase lower.1).card := by
-      rw [Fintype.card_subtype]
-      apply congrArg Finset.card
-      ext upper
-      simp [indices, and_comm]
-    rw [hcard]
-    have htotal : Fintype.card (IncreasingChain encoding) = indices.card := by
-      rw [Fintype.card_subtype]
-    have h := Finset.pred_card_le_card_erase (s := indices) (a := lower.1)
-    omega
-  rw [Fintype.card_sigma]
-  calc
-    392 ≤ Fintype.card (DecreasingChain encoding) * 14 := by omega
-    _ = ∑ _lower : DecreasingChain encoding, 14 := by simp
-    _ ≤ _ := Finset.sum_le_sum fun lower _ => hchoices lower
 
 def transferEncoding (encoding : Encoding) (transfer : DigitTransfer encoding) : Encoding :=
   Function.update (Function.update encoding transfer.1.1
@@ -113,27 +96,21 @@ theorem transferEncoding_other (encoding : Encoding) (transfer : DigitTransfer e
     transferEncoding encoding transfer chain = encoding chain := by
   simp [transferEncoding, hlower, hupper]
 
-theorem transferEncoding_valid (encoding : Encoding) (hvalid : Checksum.Valid encoding)
-    (transfer : DigitTransfer encoding) : Checksum.Valid (transferEncoding encoding transfer) := by
-  have hpoint : ∀ chain, (transferEncoding encoding transfer chain).val +
-      (if chain = transfer.1.1 then 1 else 0) =
+/-- The value of a transferred chain, as a natural number. -/
+theorem transferEncoding_val (encoding : Encoding) (transfer : DigitTransfer encoding)
+    (chain : ChainIndex) :
+    (transferEncoding encoding transfer chain).val + (if chain = transfer.1.1 then 1 else 0) =
       (encoding chain).val + (if chain = transfer.2.1 then 1 else 0) := by
-    intro chain
-    by_cases hlower : chain = transfer.1.1
+  by_cases hlower : chain = transfer.1.1
+  · subst chain
+    simp only [transferEncoding_lower, if_true, if_neg (Ne.symm transfer.2.2.2), Nat.add_zero]
+    have h := transfer.1.2
+    omega
+  · by_cases hupper : chain = transfer.2.1
     · subst chain
-      simp only [transferEncoding_lower, if_true, if_neg (Ne.symm transfer.2.2.2), Nat.add_zero]
-      have h := transfer.1.2
-      omega
-    · by_cases hupper : chain = transfer.2.1
-      · subst chain
-        simp [hlower]
-      · rw [transferEncoding_other _ _ _ hlower hupper]
-        simp [hlower, hupper]
-  have hsum := congrArg (fun values : ChainIndex → ℕ => ∑ chain, values chain) (funext hpoint)
-  simp only [Finset.sum_add_distrib, Finset.sum_ite_eq', Finset.mem_univ, if_true] at hsum
-  change (∑ chain, (transferEncoding encoding transfer chain).val) = targetSum
-  change (∑ chain, (encoding chain).val) = targetSum at hvalid
-  omega
+      simp [hlower]
+    · rw [transferEncoding_other _ _ _ hlower hupper]
+      simp [hlower, hupper]
 
 theorem transferEncoding_lt_iff (encoding : Encoding) (transfer : DigitTransfer encoding)
     (chain : ChainIndex) :
@@ -179,46 +156,512 @@ theorem transferEncoding_injective (encoding : Encoding) : Function.Injective (t
   subst rightUpper
   rfl
 
-/-- The unique digest containing the encoding and zero padding bits. -/
+/-! ### The three kinds of transfers that keep the code -/
+
+/-- The last checksum digit, of weight one. -/
+def lastChecksumChain : ChainIndex := checksumChain ⟨2, by decide⟩
+
+/-- The bound of message digit `i`: `4` for the last one, which has two bits, and `2^w` otherwise. -/
+def digitBound (i : Fin messageDigits) : ℕ := if i = lastMessageDigit then 4 else chainLength
+
+/-- Message digits that can be raised within the code. -/
+def raisable (encoding : Encoding) : Finset (Fin messageDigits) :=
+  Finset.univ.filter fun i => (encoding (messageChain i)).val + 1 < digitBound i
+
+/-- Message digits that can be lowered. -/
+def lowerable (encoding : Encoding) : Finset (Fin messageDigits) :=
+  Finset.univ.filter fun i => 0 < (encoding (messageChain i)).val
+
+theorem digitBound_le (i : Fin messageDigits) : digitBound i ≤ chainLength := by
+  unfold digitBound
+  split <;> simp [chainLength, winternitzBits]
+
+theorem messageChain_ne_checksumChain (i : Fin messageDigits) (j : Fin checksumDigits) :
+    messageChain i ≠ checksumChain j := by
+  intro h
+  have := congrArg Fin.val h
+  simp only [messageChain_val, checksumChain_val] at this
+  have := i.isLt
+  simp only [messageDigits] at *
+  omega
+
+theorem messageChain_injective : Function.Injective messageChain := fun i j h =>
+  Fin.ext (by simpa only [messageChain_val] using congrArg Fin.val h)
+
+/-- The checksum of the message digits of a transferred word, through the pointwise identity of
+`transferEncoding_val`. -/
+theorem checksum_transfer (encoding : Encoding) (transfer : DigitTransfer encoding) :
+    checksum (messagePart (transferEncoding encoding transfer)) +
+        (if ∃ i, transfer.2.1 = messageChain i then 1 else 0) =
+      checksum (messagePart encoding) + (if ∃ j, transfer.1.1 = messageChain j then 1 else 0) := by
+  classical
+  have hpoint : ∀ i : Fin messageDigits,
+      (chainLength - 1 - (messagePart (transferEncoding encoding transfer) i).val) +
+          (if messageChain i = transfer.2.1 then 1 else 0) =
+        (chainLength - 1 - (messagePart encoding i).val) +
+          (if messageChain i = transfer.1.1 then 1 else 0) := by
+    intro i
+    have hval := transferEncoding_val encoding transfer (messageChain i)
+    have hbound := (transferEncoding encoding transfer (messageChain i)).isLt
+    have hbound' := (encoding (messageChain i)).isLt
+    simp only [messagePart] at *
+    simp only [chainLength, winternitzBits] at *
+    split_ifs at hval ⊢ <;> omega
+  have hsum := congrArg (fun values : Fin messageDigits → ℕ => ∑ i, values i) (funext hpoint)
+  simp only [Finset.sum_add_distrib] at hsum
+  have hcount : ∀ chain : ChainIndex,
+      (∑ i : Fin messageDigits, if messageChain i = chain then 1 else 0) =
+        if ∃ i, chain = messageChain i then 1 else 0 := by
+    intro chain
+    split_ifs with h
+    · obtain ⟨i, rfl⟩ := h
+      rw [Finset.sum_eq_single i]
+      · simp
+      · intro k _ hk
+        simp [messageChain_injective.ne hk]
+      · simp
+    · apply Finset.sum_eq_zero
+      intro k _
+      simp only [ite_eq_right_iff, one_ne_zero, imp_false]
+      exact fun hk => h ⟨k, hk.symm⟩
+  rw [hcount, hcount] at hsum
+  exact hsum
+
+theorem transferEncoding_messagePart_last (encoding : Encoding) (hvalid : Valid encoding)
+    (transfer : DigitTransfer encoding)
+    (hroom : ∀ i, transfer.2.1 = messageChain i → (encoding (messageChain i)).val + 1 < digitBound i) :
+    (transferEncoding encoding transfer (messageChain lastMessageDigit)).val < 4 := by
+  have hval := transferEncoding_val encoding transfer (messageChain lastMessageDigit)
+  have hlast := hvalid.1
+  by_cases hupper : messageChain lastMessageDigit = transfer.2.1
+  · have h := hroom lastMessageDigit hupper.symm
+    simp only [digitBound, if_true] at h
+    split_ifs at hval <;> omega
+  · split_ifs at hval <;> omega
+
+/-- A transfer keeps the code when its checksum digits are those of the new checksum. -/
+theorem transferEncoding_valid_of (encoding : Encoding) (hvalid : Valid encoding)
+    (transfer : DigitTransfer encoding)
+    (hroom : ∀ i, transfer.2.1 = messageChain i → (encoding (messageChain i)).val + 1 < digitBound i)
+    (hdigits : ∀ j, transferEncoding encoding transfer (checksumChain j) =
+      checksumDigit (checksum (messagePart (transferEncoding encoding transfer))) j) :
+    Valid (transferEncoding encoding transfer) :=
+  ⟨transferEncoding_messagePart_last encoding hvalid transfer hroom, hdigits⟩
+
+theorem checksumChain_injective : Function.Injective checksumChain := fun i j h =>
+  Fin.ext (by have := congrArg Fin.val h; simp only [checksumChain_val] at this; omega)
+
+theorem lastChecksumChain_ne_messageChain (i : Fin messageDigits) :
+    lastChecksumChain ≠ messageChain i :=
+  (messageChain_ne_checksumChain i _).symm
+
+/-- The last checksum digit is the checksum modulo `2^w`. -/
+theorem lastChecksumDigit_eq (encoding : Encoding) (hvalid : Valid encoding) :
+    (encoding lastChecksumChain).val = checksum (messagePart encoding) % chainLength := by
+  unfold lastChecksumChain
+  rw [hvalid.2]
+  simp [checksumDigit, checksumDigits]
+
+theorem raisable_room (encoding : Encoding) {i : Fin messageDigits} (hi : i ∈ raisable encoding) :
+    (encoding (messageChain i)).val + 1 < chainLength :=
+  lt_of_lt_of_le (Finset.mem_filter.mp hi).2 (digitBound_le i)
+
+/-- Lower message digit `j` and raise message digit `i`. -/
+def messageTransfer (encoding : Encoding) (j i : Fin messageDigits) (hj : j ∈ lowerable encoding)
+    (hi : i ∈ raisable encoding) (hne : i ≠ j) : DigitTransfer encoding :=
+  ⟨⟨messageChain j, (Finset.mem_filter.mp hj).2⟩,
+    ⟨messageChain i, raisable_room encoding hi, messageChain_injective.ne hne⟩⟩
+
+/-- Lower message digit `j` and raise the last checksum digit. -/
+def lowerTransfer (encoding : Encoding) (j : Fin messageDigits) (hj : j ∈ lowerable encoding)
+    (hc : (encoding lastChecksumChain).val + 1 < chainLength) : DigitTransfer encoding :=
+  ⟨⟨messageChain j, (Finset.mem_filter.mp hj).2⟩,
+    ⟨lastChecksumChain, hc, lastChecksumChain_ne_messageChain j⟩⟩
+
+/-- Raise message digit `i` and lower the last checksum digit. -/
+def raiseTransfer (encoding : Encoding) (i : Fin messageDigits) (hi : i ∈ raisable encoding)
+    (hc : 0 < (encoding lastChecksumChain).val) : DigitTransfer encoding :=
+  ⟨⟨lastChecksumChain, hc⟩,
+    ⟨messageChain i, raisable_room encoding hi, (lastChecksumChain_ne_messageChain i).symm⟩⟩
+
+theorem checksumChain_cases (j : Fin checksumDigits) :
+    j = ⟨0, by decide⟩ ∨ j = ⟨1, by decide⟩ ∨ j = ⟨2, by decide⟩ := by
+  rcases j with ⟨_ | _ | _ | k, hj⟩
+  · exact Or.inl rfl
+  · exact Or.inr (Or.inl rfl)
+  · exact Or.inr (Or.inr rfl)
+  · exfalso
+    simp only [checksumDigits] at hj
+    omega
+
+theorem messageTransfer_valid (encoding : Encoding) (hvalid : Valid encoding)
+    (j i : Fin messageDigits) (hj : j ∈ lowerable encoding) (hi : i ∈ raisable encoding)
+    (hne : i ≠ j) : Valid (transferEncoding encoding (messageTransfer encoding j i hj hi hne)) := by
+  let transfer := messageTransfer encoding j i hj hi hne
+  apply transferEncoding_valid_of encoding hvalid transfer
+  · intro k hk
+    have : i = k := messageChain_injective hk
+    subst this
+    exact (Finset.mem_filter.mp hi).2
+  · intro c
+    have hsum := checksum_transfer encoding transfer
+    have hup : ∃ k, transfer.2.1 = messageChain k := ⟨i, rfl⟩
+    have hlow : ∃ k, transfer.1.1 = messageChain k := ⟨j, rfl⟩
+    rw [if_pos hup, if_pos hlow] at hsum
+    have hcsum : checksum (messagePart (transferEncoding encoding transfer)) =
+        checksum (messagePart encoding) := by omega
+    rw [hcsum, transferEncoding_other encoding transfer _
+      (messageChain_ne_checksumChain j c).symm (messageChain_ne_checksumChain i c).symm]
+    exact hvalid.2 c
+
+theorem lowerTransfer_valid (encoding : Encoding) (hvalid : Valid encoding)
+    (j : Fin messageDigits) (hj : j ∈ lowerable encoding)
+    (hc : (encoding lastChecksumChain).val + 1 < chainLength) :
+    Valid (transferEncoding encoding (lowerTransfer encoding j hj hc)) := by
+  let transfer := lowerTransfer encoding j hj hc
+  apply transferEncoding_valid_of encoding hvalid transfer
+  · intro k hk
+    exact absurd hk (lastChecksumChain_ne_messageChain k)
+  · intro c
+    have hsum := checksum_transfer encoding transfer
+    have hup : ¬∃ k, transfer.2.1 = messageChain k := fun ⟨k, hk⟩ =>
+      lastChecksumChain_ne_messageChain k hk
+    have hlow : ∃ k, transfer.1.1 = messageChain k := ⟨j, rfl⟩
+    rw [if_neg hup, if_pos hlow] at hsum
+    have hlast := lastChecksumDigit_eq encoding hvalid
+    simp only [chainLength, winternitzBits] at hc hlast
+    set csum := checksum (messagePart encoding)
+    rw [Nat.add_zero] at hsum
+    rw [hsum]
+    rcases checksumChain_cases c with rfl | rfl | rfl
+    · rw [transferEncoding_other encoding transfer _ (messageChain_ne_checksumChain j _).symm
+        (fun h => by have := checksumChain_injective h; simp at this), hvalid.2]
+      ext
+      simp only [checksumDigit, checksumDigits, chainLength, winternitzBits]
+      omega
+    · rw [transferEncoding_other encoding transfer _ (messageChain_ne_checksumChain j _).symm
+        (fun h => by have := checksumChain_injective h; simp at this), hvalid.2]
+      ext
+      simp only [checksumDigit, checksumDigits, chainLength, winternitzBits]
+      omega
+    · ext
+      have hupper : (transferEncoding encoding transfer lastChecksumChain).val =
+          (encoding lastChecksumChain).val + 1 := transferEncoding_upper encoding transfer
+      change (transferEncoding encoding transfer lastChecksumChain).val = _
+      rw [hupper]
+      simp only [checksumDigit, checksumDigits, chainLength, winternitzBits]
+      omega
+
+theorem raiseTransfer_valid (encoding : Encoding) (hvalid : Valid encoding)
+    (i : Fin messageDigits) (hi : i ∈ raisable encoding)
+    (hc : 0 < (encoding lastChecksumChain).val) :
+    Valid (transferEncoding encoding (raiseTransfer encoding i hi hc)) := by
+  let transfer := raiseTransfer encoding i hi hc
+  apply transferEncoding_valid_of encoding hvalid transfer
+  · intro k hk
+    have : i = k := messageChain_injective hk
+    subst this
+    exact (Finset.mem_filter.mp hi).2
+  · intro c
+    have hsum := checksum_transfer encoding transfer
+    have hup : ∃ k, transfer.2.1 = messageChain k := ⟨i, rfl⟩
+    have hlow : ¬∃ k, transfer.1.1 = messageChain k := fun ⟨k, hk⟩ =>
+      lastChecksumChain_ne_messageChain k hk
+    rw [if_pos hup, if_neg hlow] at hsum
+    have hlast := lastChecksumDigit_eq encoding hvalid
+    simp only [chainLength, winternitzBits] at hc hlast
+    set csum := checksum (messagePart encoding)
+    rw [Nat.add_zero] at hsum
+    have hcsum : checksum (messagePart (transferEncoding encoding transfer)) = csum - 1 := by
+      omega
+    rw [hcsum]
+    rcases checksumChain_cases c with rfl | rfl | rfl
+    · rw [transferEncoding_other encoding transfer _
+        (fun h => by have := checksumChain_injective h; simp at this)
+        (messageChain_ne_checksumChain i _).symm, hvalid.2]
+      ext
+      simp only [checksumDigit, checksumDigits, chainLength, winternitzBits]
+      omega
+    · rw [transferEncoding_other encoding transfer _
+        (fun h => by have := checksumChain_injective h; simp at this)
+        (messageChain_ne_checksumChain i _).symm, hvalid.2]
+      ext
+      simp only [checksumDigit, checksumDigits, chainLength, winternitzBits]
+      omega
+    · ext
+      have hlower : (transferEncoding encoding transfer lastChecksumChain).val =
+          (encoding lastChecksumChain).val - 1 := transferEncoding_lower encoding transfer
+      change (transferEncoding encoding transfer lastChecksumChain).val = _
+      rw [hlower]
+      simp only [checksumDigit, checksumDigits, chainLength, winternitzBits]
+      omega
+
+/-! ### Counting the neighbors -/
+
+/-- The transfers that keep the code. -/
+abbrev ValidTransfer (encoding : Encoding) :=
+  {transfer : DigitTransfer encoding // Valid (transferEncoding encoding transfer)}
+
+theorem mem_lowerable_or_raisable (encoding : Encoding) (i : Fin messageDigits) :
+    i ∈ lowerable encoding ∨ i ∈ raisable encoding := by
+  by_cases h : 0 < (encoding (messageChain i)).val
+  · exact Or.inl (Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩)
+  · refine Or.inr (Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩)
+    have hbound : 4 ≤ digitBound i := by
+      unfold digitBound
+      split <;> simp [chainLength, winternitzBits]
+    omega
+
+theorem card_lowerable_add_raisable (encoding : Encoding) :
+    messageDigits ≤ (lowerable encoding).card + (raisable encoding).card := by
+  have hunion : lowerable encoding ∪ raisable encoding = Finset.univ := by
+    ext i
+    simp only [Finset.mem_union, Finset.mem_univ, iff_true]
+    exact mem_lowerable_or_raisable encoding i
+  calc
+    messageDigits = (lowerable encoding ∪ raisable encoding).card := by simp [hunion]
+    _ ≤ _ := Finset.card_union_le _ _
+
+/-- With no lowerable message digit, all message digits are zero and the last checksum digit is
+`301 mod 8 = 5`. -/
+theorem lowerable_nonempty (encoding : Encoding) (hvalid : Valid encoding)
+    (hc : (encoding lastChecksumChain).val = 0 ∨ (encoding lastChecksumChain).val = 7) :
+    (lowerable encoding).Nonempty := by
+  by_contra hempty
+  rw [Finset.not_nonempty_iff_eq_empty] at hempty
+  have hzero : ∀ i, (messagePart encoding i).val = 0 := by
+    intro i
+    by_contra hi
+    have : i ∈ lowerable encoding := Finset.mem_filter.mpr ⟨Finset.mem_univ _, by
+      change 0 < (messagePart encoding i).val; omega⟩
+    rw [hempty] at this
+    simp at this
+  have hcsum : checksum (messagePart encoding) = 301 := by
+    unfold checksum
+    simp only [hzero]
+    simp [chainLength, winternitzBits, messageDigits]
+  have hlast := lastChecksumDigit_eq encoding hvalid
+  rw [hcsum] at hlast
+  simp only [chainLength, winternitzBits] at hlast
+  omega
+
+/-- With no raisable message digit, every message digit is at its maximum, the checksum is `4`, and
+so is the last checksum digit. -/
+theorem raisable_nonempty (encoding : Encoding) (hvalid : Valid encoding)
+    (hc : (encoding lastChecksumChain).val = 0 ∨ (encoding lastChecksumChain).val = 7) :
+    (raisable encoding).Nonempty := by
+  by_contra hempty
+  rw [Finset.not_nonempty_iff_eq_empty] at hempty
+  have hmax : ∀ i, (messagePart encoding i).val + 1 ≥ digitBound i := by
+    intro i
+    by_contra hi
+    have : i ∈ raisable encoding := Finset.mem_filter.mpr ⟨Finset.mem_univ _, by
+      change (messagePart encoding i).val + 1 < digitBound i; omega⟩
+    rw [hempty] at this
+    simp at this
+  have hterm : ∀ i, chainLength - 1 - (messagePart encoding i).val =
+      if i = lastMessageDigit then 4 else 0 := by
+    intro i
+    have h := hmax i
+    have hbound := (messagePart encoding i).isLt
+    unfold digitBound at h
+    split_ifs at h ⊢ with hi
+    · subst hi
+      have hlast := hvalid.1
+      change (messagePart encoding lastMessageDigit).val < 4 at hlast
+      simp only [chainLength, winternitzBits] at *
+      omega
+    · simp only [chainLength, winternitzBits] at *
+      omega
+  have hcsum : checksum (messagePart encoding) = 4 := by
+    unfold checksum
+    simp only [hterm]
+    simp
+  have hlast := lastChecksumDigit_eq encoding hvalid
+  rw [hcsum] at hlast
+  simp only [chainLength, winternitzBits] at hlast
+  omega
+
+theorem lowerTransfer_lower (encoding : Encoding) (j : Fin messageDigits) (hj) (hc) :
+    (lowerTransfer encoding j hj hc).1.1 = messageChain j := rfl
+
+theorem lowerTransfer_upper (encoding : Encoding) (j : Fin messageDigits) (hj) (hc) :
+    (lowerTransfer encoding j hj hc).2.1 = lastChecksumChain := rfl
+
+theorem raiseTransfer_lower (encoding : Encoding) (i : Fin messageDigits) (hi) (hc) :
+    (raiseTransfer encoding i hi hc).1.1 = lastChecksumChain := rfl
+
+theorem raiseTransfer_upper (encoding : Encoding) (i : Fin messageDigits) (hi) (hc) :
+    (raiseTransfer encoding i hi hc).2.1 = messageChain i := rfl
+
+theorem digitTransfer_ext {encoding : Encoding} {left right : DigitTransfer encoding}
+    (hlower : left.1.1 = right.1.1) (hupper : left.2.1 = right.2.1) : left = right := by
+  rcases left with ⟨⟨leftLower, hleftLower⟩, ⟨leftUpper, hleftUpper⟩⟩
+  rcases right with ⟨⟨rightLower, hrightLower⟩, ⟨rightUpper, hrightUpper⟩⟩
+  dsimp only at hlower hupper
+  subst rightLower
+  subst rightUpper
+  rfl
+
+/-- Every codeword has at least `42` neighbors in the code. -/
+theorem validTransfer_card_lower (encoding : Encoding) (hvalid : Valid encoding) :
+    42 ≤ Fintype.card (ValidTransfer encoding) := by
+  have hsize := card_lowerable_add_raisable encoding
+  simp only [messageDigits] at hsize
+  let c := (encoding lastChecksumChain).val
+  have hcle : c < 8 := (encoding lastChecksumChain).isLt
+  -- Lowering transfers, available when the last checksum digit can be raised.
+  have hlowerInj : ∀ hc : c + 1 < chainLength,
+      Function.Injective (fun j : {j // j ∈ lowerable encoding} =>
+        (⟨lowerTransfer encoding j.1 j.2 hc, lowerTransfer_valid encoding hvalid j.1 j.2 hc⟩ :
+          ValidTransfer encoding)) := by
+    intro hc left right h
+    have := congrArg (fun t : ValidTransfer encoding => t.1.1.1) h
+    exact Subtype.ext (messageChain_injective this)
+  have hraiseInj : ∀ hc : 0 < c,
+      Function.Injective (fun i : {i // i ∈ raisable encoding} =>
+        (⟨raiseTransfer encoding i.1 i.2 hc, raiseTransfer_valid encoding hvalid i.1 i.2 hc⟩ :
+          ValidTransfer encoding)) := by
+    intro hc left right h
+    have := congrArg (fun t : ValidTransfer encoding => t.1.2.1) h
+    exact Subtype.ext (messageChain_injective this)
+  by_cases hmid : 0 < c ∧ c + 1 < chainLength
+  · -- Both kinds are available: at least `|lowerable| + |raisable| ≥ 43` transfers.
+    let f := fun j : {j // j ∈ lowerable encoding} =>
+      (⟨lowerTransfer encoding j.1 j.2 hmid.2, lowerTransfer_valid encoding hvalid j.1 j.2 hmid.2⟩ :
+        ValidTransfer encoding)
+    let g := fun i : {i // i ∈ raisable encoding} =>
+      (⟨raiseTransfer encoding i.1 i.2 hmid.1, raiseTransfer_valid encoding hvalid i.1 i.2 hmid.1⟩ :
+        ValidTransfer encoding)
+    have hinj : Function.Injective (Sum.elim f g) := by
+      refine (hlowerInj hmid.2).sumElim (hraiseInj hmid.1) ?_
+      intro j i h
+      have := congrArg (fun t : ValidTransfer encoding => t.1.2.1) h
+      exact lastChecksumChain_ne_messageChain i this
+    have hcard := Fintype.card_le_of_injective _ hinj
+    rw [Fintype.card_sum, Fintype.card_coe, Fintype.card_coe] at hcard
+    have hcard' : _ ≤ Fintype.card (ValidTransfer encoding) :=
+      hcard.trans (le_of_eq (Fintype.card_congr (Equiv.refl _)))
+    omega
+  · have hedge : c = 0 ∨ c = 7 := by
+      simp only [chainLength, winternitzBits, not_and_or, not_lt] at hmid
+      omega
+    have hlowerNonempty := lowerable_nonempty encoding hvalid hedge
+    have hraiseNonempty := raisable_nonempty encoding hvalid hedge
+    rcases hedge with hzero | hseven
+    · -- Lower any message digit and raise the checksum, or move a unit to a fixed lowerable digit's
+      -- partners: at least `|lowerable| + |raisable| - 1` transfers.
+      have hc : c + 1 < chainLength := by simp [chainLength, winternitzBits]; omega
+      obtain ⟨j0, hj0⟩ := hlowerNonempty
+      let f := fun j : {j // j ∈ lowerable encoding} =>
+        (⟨lowerTransfer encoding j.1 j.2 hc, lowerTransfer_valid encoding hvalid j.1 j.2 hc⟩ :
+          ValidTransfer encoding)
+      let g := fun i : {i // i ∈ (raisable encoding).erase j0} =>
+        (⟨messageTransfer encoding j0 i.1 hj0 (Finset.mem_of_mem_erase i.2)
+            (Finset.ne_of_mem_erase i.2),
+          messageTransfer_valid encoding hvalid j0 i.1 hj0 (Finset.mem_of_mem_erase i.2)
+            (Finset.ne_of_mem_erase i.2)⟩ : ValidTransfer encoding)
+      have hginj : Function.Injective g := by
+        intro left right h
+        have := congrArg (fun t : ValidTransfer encoding => t.1.2.1) h
+        exact Subtype.ext (messageChain_injective this)
+      have hinj : Function.Injective (Sum.elim f g) := by
+        refine (hlowerInj hc).sumElim hginj ?_
+        intro j i h
+        have := congrArg (fun t : ValidTransfer encoding => t.1.2.1) h
+        exact lastChecksumChain_ne_messageChain i.1 this
+      have hcard := Fintype.card_le_of_injective _ hinj
+      rw [Fintype.card_sum, Fintype.card_coe, Fintype.card_coe] at hcard
+      have hcard' : _ ≤ Fintype.card (ValidTransfer encoding) :=
+        hcard.trans (le_of_eq (Fintype.card_congr (Equiv.refl _)))
+      have herase := Finset.pred_card_le_card_erase (s := raisable encoding) (a := j0)
+      omega
+    · have hc : 0 < c := by omega
+      obtain ⟨i0, hi0⟩ := hraiseNonempty
+      let f := fun i : {i // i ∈ raisable encoding} =>
+        (⟨raiseTransfer encoding i.1 i.2 hc, raiseTransfer_valid encoding hvalid i.1 i.2 hc⟩ :
+          ValidTransfer encoding)
+      let g := fun j : {j // j ∈ (lowerable encoding).erase i0} =>
+        (⟨messageTransfer encoding j.1 i0 (Finset.mem_of_mem_erase j.2) hi0
+            (Finset.ne_of_mem_erase j.2).symm,
+          messageTransfer_valid encoding hvalid j.1 i0 (Finset.mem_of_mem_erase j.2) hi0
+            (Finset.ne_of_mem_erase j.2).symm⟩ : ValidTransfer encoding)
+      have hginj : Function.Injective g := by
+        intro left right h
+        have := congrArg (fun t : ValidTransfer encoding => t.1.1.1) h
+        exact Subtype.ext (messageChain_injective this)
+      have hinj : Function.Injective (Sum.elim f g) := by
+        refine (hraiseInj hc).sumElim hginj ?_
+        intro i j h
+        have := congrArg (fun t : ValidTransfer encoding => t.1.1.1) h
+        exact lastChecksumChain_ne_messageChain j.1 this
+      have hcard := Fintype.card_le_of_injective _ hinj
+      rw [Fintype.card_sum, Fintype.card_coe, Fintype.card_coe] at hcard
+      have hcard' : _ ≤ Fintype.card (ValidTransfer encoding) :=
+        hcard.trans (le_of_eq (Fintype.card_congr (Equiv.refl _)))
+      have herase := Finset.pred_card_le_card_erase (s := lowerable encoding) (a := i0)
+      omega
+
+/-! ### The neighbor digests -/
+
+/-- The digest of a codeword. -/
 noncomputable def digestOfEncoding (encoding : Encoding) : Digest :=
-  Classical.choose (Checksum.digestView_surjective (encoding, 0))
+  if hvalid : Valid encoding then Classical.choose (exists_digest_of_valid hvalid) else 0
 
-theorem digestOfEncoding_view (encoding : Encoding) :
-    Checksum.digestView (digestOfEncoding encoding) = (encoding, 0) :=
-  Classical.choose_spec (Checksum.digestView_surjective (encoding, 0))
+theorem encode_digestOfEncoding (encoding : Encoding) (hvalid : Valid encoding) :
+    encode (digestOfEncoding encoding) = encoding := by
+  unfold digestOfEncoding
+  rw [dif_pos hvalid]
+  exact Classical.choose_spec (exists_digest_of_valid hvalid)
 
-theorem digestOfEncoding_injective : Function.Injective digestOfEncoding := by
-  intro left right heq
-  have hview := congrArg Checksum.digestView heq
-  rw [digestOfEncoding_view, digestOfEncoding_view] at hview
-  exact congrArg Prod.fst hview
+theorem digestOfEncoding_decode (encoding : Encoding) (hvalid : Valid encoding) :
+    decodeDigest (digestOfEncoding encoding) = some encoding := by
+  unfold decodeDigest
+  rw [encode_digestOfEncoding encoding hvalid]
 
-theorem digestOfEncoding_decode (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    Checksum.decodeDigest (digestOfEncoding encoding) = some encoding :=
-  Checksum.decodeDigest_eq_some_iff.mpr ⟨digestOfEncoding_view encoding, hvalid⟩
+/-- The transfers that keep the code. -/
+noncomputable def neighborTransfers (encoding : Encoding) : Finset (DigitTransfer encoding) := by
+  classical
+  exact Finset.univ.filter fun transfer => Valid (transferEncoding encoding transfer)
+
+theorem mem_neighborTransfers {encoding : Encoding} {transfer : DigitTransfer encoding} :
+    transfer ∈ neighborTransfers encoding ↔ Valid (transferEncoding encoding transfer) := by
+  classical
+  unfold neighborTransfers
+  simp
 
 noncomputable def neighborDigests (encoding : Encoding) : Finset Digest :=
-  Finset.univ.image fun transfer : DigitTransfer encoding => digestOfEncoding (transferEncoding encoding transfer)
+  (neighborTransfers encoding).image fun transfer =>
+    digestOfEncoding (transferEncoding encoding transfer)
 
 theorem neighborDigests_card (encoding : Encoding) :
-    (neighborDigests encoding).card = Fintype.card (DigitTransfer encoding) := by
+    (neighborDigests encoding).card = (neighborTransfers encoding).card := by
   unfold neighborDigests
-  have hinj : Function.Injective (fun transfer : DigitTransfer encoding =>
-      digestOfEncoding (transferEncoding encoding transfer)) :=
-    fun _ _ heq => transferEncoding_injective encoding (digestOfEncoding_injective heq)
-  rw [Finset.card_image_of_injective _ hinj]
-  exact Finset.card_univ
+  apply Finset.card_image_of_injOn
+  intro left hleft right hright heq
+  apply transferEncoding_injective encoding
+  have hl := encode_digestOfEncoding _ (mem_neighborTransfers.mp hleft)
+  have hr := encode_digestOfEncoding _ (mem_neighborTransfers.mp hright)
+  rw [← hl, ← hr]
+  exact congrArg encode heq
 
-theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    392 ≤ (neighborDigests encoding).card := by
-  rw [neighborDigests_card]
-  exact digitTransfer_card_lower encoding hvalid
+theorem neighborTransfers_card (encoding : Encoding) :
+    (neighborTransfers encoding).card = Fintype.card (ValidTransfer encoding) := by
+  classical
+  unfold neighborTransfers
+  rw [Fintype.card_subtype]
 
-theorem neighborDigests_decode (encoding : Encoding) (hvalid : Checksum.Valid encoding)
-    (digest : Digest) (hmem : digest ∈ neighborDigests encoding) :
-    ∃ transfer : DigitTransfer encoding, Checksum.decodeDigest digest = some (transferEncoding encoding transfer) := by
-  obtain ⟨transfer, _, rfl⟩ := Finset.mem_image.mp hmem
-  exact ⟨transfer, digestOfEncoding_decode _ (transferEncoding_valid encoding hvalid transfer)⟩
+theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : Valid encoding) :
+    42 ≤ (neighborDigests encoding).card := by
+  rw [neighborDigests_card, neighborTransfers_card]
+  exact validTransfer_card_lower encoding hvalid
+
+theorem neighborDigests_decode (encoding : Encoding) (digest : Digest)
+    (hmem : digest ∈ neighborDigests encoding) :
+    ∃ transfer : DigitTransfer encoding,
+      decodeDigest digest = some (transferEncoding encoding transfer) := by
+  obtain ⟨transfer, htransfer, rfl⟩ := Finset.mem_image.mp hmem
+  exact ⟨transfer, digestOfEncoding_decode _ (mem_neighborTransfers.mp htransfer)⟩
 
 /-- info: 'XmssSecurity.Attack.neighborDigests_card_lower' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -228,4 +671,6 @@ theorem neighborDigests_decode (encoding : Encoding) (hvalid : Checksum.Valid en
 #guard_msgs (whitespace := lax) in
 #print axioms neighborDigests_decode
 
-end XmssSecurity.Attack
+end Attack
+
+end XmssSecurity

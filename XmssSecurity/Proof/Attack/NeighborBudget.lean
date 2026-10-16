@@ -97,6 +97,7 @@ theorem xmss_sign_queryBound (secretKey : Seeded.SecretKey) (leafIndex : LeafInd
     (xmss.sign secretKey leafIndex message).IsQueryBoundP IsHashQuery (signingAttemptLimit * 2) := by
   change (liftComp (Seeded.sign secretKey leafIndex message : OracleComp HashSpec (Option Signature))
     OracleWorld).IsQueryBoundP _ _
+  rw [Seeded.sign_eq_signFrom]
   exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ => True) (q := IsHashQuery)
     (fun input => by change True ↔ IsHashQuery (.inr input); simp [IsHashQuery])
     (seededSignFrom_queryBound secretKey leafIndex message signingAttemptLimit 0)
@@ -104,7 +105,7 @@ theorem xmss_sign_queryBound (secretKey : Seeded.SecretKey) (leafIndex : LeafInd
 theorem seededKeygenQueryBudget_le : seededKeygenQueryBudget ≤ 2 ^ 42 := by
   norm_num [seededKeygenQueryBudget, treeHashQueryCount, treeHeight, lifetime, numChains, chainLength, winternitzBits]
 
-def neighborEverythingBudget : ℕ := 2 ^ 124 + 2 ^ 122
+def neighborEverythingBudget : ℕ := 2 ^ 126 + 2 ^ 124 + 2 ^ 120
 
 theorem neighbor_total_budget_le :
     seededKeygenQueryBudget + (signingAttemptLimit * 2 + neighborDirectBudget) + Direct.verifierQueryBound + 1 ≤
@@ -113,10 +114,10 @@ theorem neighbor_total_budget_le :
     (Nat.add_le_add_right seededKeygenQueryBudget_le _) _) _) ?_
   norm_num [neighborEverythingBudget, neighborDirectBudget, neighborSearchSteps, preimageSearchSteps,
     signingAttemptLimit, Direct.verifierQueryBound, verificationChainHashes, treeHeight,
-    numChains, chainLength, winternitzBits, targetSum]
+    numChains, chainLength, winternitzBits]
 
 theorem neighborEverythingBudget_ratio :
-    (neighborEverythingBudget : ℝ≥0∞) / ((2 ^ 128 : ℕ) : ℝ≥0∞) = 5 / 64 := by
+    (neighborEverythingBudget : ℝ≥0∞) / ((2 ^ 128 : ℕ) : ℝ≥0∞) = 81 / 256 := by
   apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
   norm_num [neighborEverythingBudget, ENNReal.toReal_div]
 

@@ -18,9 +18,7 @@ theorem encodingDecode_of_cache_le (initialCache finalCache : QueryCache HashSpe
     CacheView.decodedEncoding finalCache parameter leafIndex (message, randomness) = some encoding := by
   obtain ⟨output, hcached⟩ := CacheView.encodingInput_cached_of_decode_some initialCache
     parameter leafIndex message randomness encoding hdecode
-  unfold CacheView.encodingHash at hdecode ⊢
-  rw [CacheView.digestAt_eq_of_cache_eq_some hcached] at hdecode
-  rw [CacheView.digestAt_eq_of_cache_eq_some (hle hcached)]
+  rw [← CacheView.decodedEncoding_eq_of_input_eq (hcached.trans (hle hcached).symm)]
   exact hdecode
 
 def checkNeighborPreimage (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message)
@@ -124,10 +122,11 @@ noncomputable def selectedNeighborTransfer (encoding : Encoding) (digest : Diges
 theorem selectedNeighborTransfer_decode (encoding : Encoding) (hvalid : Checksum.Valid encoding)
     (digest : Digest) (hmem : digest ∈ neighborDigests encoding) :
     Checksum.decodeDigest digest = some (transferEncoding encoding (selectedNeighborTransfer encoding digest hmem)) := by
-  have heq := (Classical.choose_spec (Finset.mem_image.mp hmem)).2
+  have hspec := Classical.choose_spec (Finset.mem_image.mp hmem)
+  have heq := hspec.2
   change digestOfEncoding (transferEncoding encoding (selectedNeighborTransfer encoding digest hmem)) = digest at heq
   conv_lhs => rw [← heq]
-  exact digestOfEncoding_decode _ (transferEncoding_valid encoding hvalid _)
+  exact digestOfEncoding_decode _ (mem_neighborTransfers.mp hspec.1)
 
 noncomputable def neighborVerificationContinuation (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (original : Signature) (encoding : Encoding)
@@ -153,7 +152,7 @@ theorem neighborVerificationContinuation_lower
     (message : Message) (position : ℕ) (output : HashOutput) (searchCache : QueryCache HashSpec)
     (hsearch : (some (position, output), searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache)) :
-    2 / 17 ≤ Pr[= true | neighborVerificationContinuation keyResult.1.1 request.epoch message
+    2 / 5 ≤ Pr[= true | neighborVerificationContinuation keyResult.1.1 request.epoch message
       original encoding (some (position, output)) searchCache] := by
   classical
   obtain ⟨_, _, hneighbor, hcached⟩ := findHash_success_cached _ _ _ _ _ _ _ _ hsearch
@@ -163,8 +162,8 @@ theorem neighborVerificationContinuation_lower
   have hdecode : CacheView.decodedEncoding searchCache keyResult.1.2.parameter
       request.epoch (message, BitVec.ofNat randomnessBits position) =
         some (transferEncoding encoding (selectedNeighborTransfer encoding (truncateHash output) hneighbor)) := by
-    unfold CacheView.encodingHash
-    rw [CacheView.digestAt_eq_of_cache_eq_some hcached]
+    rw [CacheView.decodedEncoding_eq_of_cache_eq_some hcached, CacheView.encodingHash,
+      CacheView.digestAt_eq_of_cache_eq_some hcached]
     exact selectedNeighborTransfer_decode encoding hvalid _ hneighbor
   have hsignLe := xmssRom_cache_le _ keyResult.2 (some original, signCache) hsign
   have hsearchLe := CacheReplay.randomOracle_cache_le _ signCache (some (position, output), searchCache) hsearch
@@ -188,13 +187,13 @@ theorem neighborVerificationExperiment_lower
     (hreplay : original = CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch original.randomness encoding)
     (message : Message) (hne : message ≠ request.message) :
-    (3 / 4 : ℝ≥0∞) * (2 / 17) ≤ Pr[= true | neighborVerificationExperiment keyResult.1.1 request.epoch message
+    (6 / 7 : ℝ≥0∞) * (2 / 5) ≤ Pr[= true | neighborVerificationExperiment keyResult.1.1 request.epoch message
       original encoding signCache] := by
   classical
   let search := (simulateQ randomOracle
     (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache
   calc
-    _ ≤ Pr[fun result => result.1 ≠ none | search] * (2 / 17) :=
+    _ ≤ Pr[fun result => result.1 ≠ none | search] * (2 / 5) :=
       mul_le_mul_left (le_of_lt (findEncodingNeighbor_success_after_signing keyResult hkey request
         (some original) signCache hsign message hne encoding hvalid)) _
     _ ≤ _ := by
@@ -233,10 +232,10 @@ theorem signedNeighborExperiment_lower
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (request : SignRequest) (message : Message) (hne : message ≠ request.message) :
-    (127 / 128 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
+    (127 / 128 : ℝ≥0∞) * ((6 / 7) * (2 / 5)) ≤
       Pr[= true | signedNeighborExperiment keyResult request message] := by
   classical
-  let lower : ℝ≥0∞ := (3 / 4) * (2 / 17)
+  let lower : ℝ≥0∞ := (6 / 7) * (2 / 5)
   let signing := (simulateQ romImpl
     (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc
@@ -263,11 +262,11 @@ theorem signedNeighborExperiment_lower
         rw [hzero]
         simp
 
-theorem signedNeighborExperiment_exceeds_five_sixtyfourths
+theorem signedNeighborExperiment_exceeds_eightyone_256ths
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (request : SignRequest) (message : Message) (hne : message ≠ request.message) :
-    5 / 64 < Pr[= true | signedNeighborExperiment keyResult request message] := by
+    81 / 256 < Pr[= true | signedNeighborExperiment keyResult request message] := by
   apply lt_of_lt_of_le _ (signedNeighborExperiment_lower keyResult hkey request message hne)
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_div]
@@ -276,8 +275,8 @@ theorem signedNeighborExperiment_exceeds_five_sixtyfourths
 #guard_msgs (whitespace := lax) in
 #print axioms predecessorVerificationExperiment_probability
 
-/-- info: 'XmssSecurity.Attack.signedNeighborExperiment_exceeds_five_sixtyfourths' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'XmssSecurity.Attack.signedNeighborExperiment_exceeds_eightyone_256ths' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms signedNeighborExperiment_exceeds_five_sixtyfourths
+#print axioms signedNeighborExperiment_exceeds_eightyone_256ths
 
 end XmssSecurity.Attack

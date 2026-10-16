@@ -2,7 +2,7 @@ import XmssSecurity.Proof.Attack.HashSearch
 import XmssSecurity.Proof.EncodingRejectionProbability
 
 /-! A bounded predecessor search that includes the genuine cached predecessor with
-probability `1/16`, and otherwise searches distinct fresh inputs. -/
+probability `1/4`, and otherwise searches distinct fresh inputs. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -11,23 +11,23 @@ set_option maxRecDepth 1000
 
 namespace XmssSecurity.Attack
 
-abbrev PreimagePrefix := BitVec 4
+abbrev PreimagePrefix := BitVec 2
 
-def preimageSearchSteps : ℕ := 2 ^ 124
+def preimageSearchSteps : ℕ := 2 ^ 126
 
 def preimageCandidate (block : PreimagePrefix) (position : ℕ) : Digest :=
-  block ++ BitVec.ofNat 124 position
+  block ++ BitVec.ofNat 126 position
 
-def preimagePrefix (value : Digest) : PreimagePrefix := value.extractLsb' 124 4
+def preimagePrefix (value : Digest) : PreimagePrefix := value.extractLsb' 126 2
 
-def preimagePosition (value : Digest) : ℕ := (value.extractLsb' 0 124).toNat
+def preimagePosition (value : Digest) : ℕ := (value.extractLsb' 0 126).toNat
 
 @[simp] theorem preimageCandidate_prefix (block : PreimagePrefix) (position : ℕ) :
     preimagePrefix (preimageCandidate block position) = block :=
   BitVec.extractLsb'_append_eq_left
 
 theorem preimagePosition_lt (value : Digest) : preimagePosition value < preimageSearchSteps :=
-  (value.extractLsb' 0 124).isLt
+  (value.extractLsb' 0 126).isLt
 
 @[simp] theorem preimageCandidate_reconstruct (value : Digest) :
     preimageCandidate (preimagePrefix value) (preimagePosition value) = value := by
@@ -38,11 +38,11 @@ theorem preimageCandidate_separate (block : PreimagePrefix) (i j : ℕ)
     (hi : i < preimageSearchSteps) (hj : j < preimageSearchSteps) (hne : i ≠ j) :
     preimageCandidate block i ≠ preimageCandidate block j := by
   intro heq
-  have hlow := congrArg (fun value : Digest => value.extractLsb' 0 124) heq
+  have hlow := congrArg (fun value : Digest => value.extractLsb' 0 126) heq
   simp only [preimageCandidate, BitVec.extractLsb'_append_eq_right] at hlow
   have hnat := congrArg BitVec.toNat hlow
-  change i < 2 ^ 124 at hi
-  change j < 2 ^ 124 at hj
+  change i < 2 ^ 126 at hi
+  change j < 2 ^ 126 at hj
   simp only [BitVec.toNat_ofNat, Nat.mod_eq_of_lt hi, Nat.mod_eq_of_lt hj] at hnat
   exact hne hnat
 
@@ -99,7 +99,7 @@ theorem findDigestPreimage_failure (input : Digest → HashInput) (hinj : Functi
     · intro i _ _
       exact hfresh _ (preimageCandidate_ne_of_prefix_ne block genuine hprefix i)
 
-/-- Pick one of sixteen disjoint blocks and search its `2^124` candidate predecessors. -/
+/-- Pick one of four disjoint blocks and search its `2^126` candidate predecessors. -/
 noncomputable def randomDigestPreimage (input : Digest → HashInput) (target : Digest)
     (cache : QueryCache HashSpec) :
     ProbComp (PreimagePrefix × (Option (ℕ × HashOutput) × QueryCache HashSpec)) := do
@@ -108,7 +108,7 @@ noncomputable def randomDigestPreimage (input : Digest → HashInput) (target : 
   return (block, result)
 
 theorem uniform_preimagePrefix_ne_probability (block : PreimagePrefix) :
-    Pr[fun other => other ≠ block | $ᵗ PreimagePrefix] = 15 / 16 := by
+    Pr[fun other => other ≠ block | $ᵗ PreimagePrefix] = 3 / 4 := by
   classical
   rw [probEvent_uniformSample]
   simp only [ne_eq, Finset.filter_ne', Finset.card_erase_of_mem (Finset.mem_univ block),
@@ -120,7 +120,7 @@ theorem randomDigestPreimage_failure (input : Digest → HashInput) (hinj : Func
     (hhit : ∃ output, cache (input genuine) = some output ∧ truncateHash output = target)
     (hfresh : ∀ value, value ≠ genuine → cache (input value) = none) :
     Pr[fun result => result.2.1 = none | randomDigestPreimage input target cache] =
-      (15 / 16) * (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ preimageSearchSteps := by
+      (3 / 4) * (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ preimageSearchSteps := by
   classical
   unfold randomDigestPreimage
   rw [probEvent_bind_eq_tsum]
@@ -136,11 +136,11 @@ theorem randomDigestPreimage_failure (input : Digest → HashInput) (hinj : Func
     _ = _ := by rw [uniform_preimagePrefix_ne_probability]
 
 theorem preimage_rejection_power_le :
-    (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ preimageSearchSteps ≤ 16 / 17 := by
+    (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ preimageSearchSteps ≤ 4 / 5 := by
   calc
     _ ≤ 1 / (1 + preimageSearchSteps * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) :=
       Checksum.rejection_power_le _ (by norm_num [digestBits]) _
-    _ = 16 / 17 := by
+    _ = 4 / 5 := by
       apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
       rw [ENNReal.toReal_div, ENNReal.toReal_add (by finiteness) (by finiteness)]
       norm_num [preimageSearchSteps, digestBits, ENNReal.toReal_mul, ENNReal.toReal_inv]
@@ -149,12 +149,12 @@ theorem randomDigestPreimage_success (input : Digest → HashInput) (hinj : Func
     (target genuine : Digest) (cache : QueryCache HashSpec)
     (hhit : ∃ output, cache (input genuine) = some output ∧ truncateHash output = target)
     (hfresh : ∀ value, value ≠ genuine → cache (input value) = none) :
-    2 / 17 ≤ Pr[fun result => result.2.1 ≠ none | randomDigestPreimage input target cache] := by
-  have hfailure : Pr[fun result => result.2.1 = none | randomDigestPreimage input target cache] ≤ 15 / 17 := by
+    2 / 5 ≤ Pr[fun result => result.2.1 ≠ none | randomDigestPreimage input target cache] := by
+  have hfailure : Pr[fun result => result.2.1 = none | randomDigestPreimage input target cache] ≤ 3 / 5 := by
     rw [randomDigestPreimage_failure input hinj target genuine cache hhit hfresh]
     calc
-      _ ≤ (15 / 16) * (16 / 17) := mul_le_mul_right preimage_rejection_power_le _
-      _ = 15 / 17 := by
+      _ ≤ (3 / 4) * (4 / 5) := mul_le_mul_right preimage_rejection_power_le _
+      _ = 3 / 5 := by
         apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
         norm_num [ENNReal.toReal_mul, ENNReal.toReal_div]
   have hsum := probEvent_compl (randomDigestPreimage input target cache) (fun result => result.2.1 = none)
