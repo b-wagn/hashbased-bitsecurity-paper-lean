@@ -47,7 +47,7 @@ theorem uniformChainVerification_lower
     (request : SignRequest) (signature : Signature) (finalCache : QueryCache HashSpec)
     (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
       (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
-    (1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains ≤
+    (1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains ≤
       Pr[= true | uniformChainVerification keyResult.1.1 request signature finalCache] := by
   obtain ⟨encoding, hvalid, heq⟩ := uniformChainVerification_probability keyResult hkey
     request signature finalCache hsign
@@ -67,10 +67,10 @@ theorem signedMutationExperiment_probability_lower
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (request : SignRequest) :
-    (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
+    (127 / 128 : ℝ≥0∞) * ((1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
       Pr[= true | signedMutationExperiment keyResult request] := by
   classical
-  let lower : ℝ≥0∞ := (1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains
+  let lower : ℝ≥0∞ := (1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains
   let signing := (simulateQ romImpl
     (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc

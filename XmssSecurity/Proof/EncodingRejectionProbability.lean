@@ -192,7 +192,7 @@ theorem Checksum.rejection_power_le (p : ℝ≥0∞) (hp : p ≤ 1) (attempts : 
 theorem Checksum.capped_rejection_bound_lt :
     (1 - acceptanceProbability) ^ signingAttemptLimit +
       (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
-        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32 := by
+        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 128 := by
   rw [acceptanceProbability_eq_one]
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
@@ -200,14 +200,14 @@ theorem Checksum.capped_rejection_bound_lt :
     ENNReal.toReal_inv]
 
 /-- In the reference scheme, a fresh signing request succeeds with probability greater than
-`31/32`; randomizer repetitions are included in the failure bound. -/
+`127/128`; randomizer repetitions are included in the failure bound. -/
 theorem Concrete.precomputedCappedSign_failure_lt
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec)
     (hcache : cachedEncodingInputCount cache secretKey.parameter = 0) :
     Pr[fun result : Option Signature × QueryCache HashSpec => result.1 = none |
       (simulateQ romImpl (precomputedCappedSign secretKey leafIndex message)).run cache] <
-      1 / 32 := by
+      1 / 128 := by
   rw [precomputedCappedSign]
   have hbound := precomputedSignBoundedAttempts_failure_le signingAttemptLimit secretKey leafIndex
     message cache 0 (by simpa using hcache.le)
@@ -218,7 +218,7 @@ theorem Concrete.precomputedCappedSign_success_gt
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec)
     (hcache : cachedEncodingInputCount cache secretKey.parameter = 0) :
-    31 / 32 < Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
+    127 / 128 < Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
       (simulateQ romImpl (precomputedCappedSign secretKey leafIndex message)).run cache] := by
   let computation :=
     (simulateQ romImpl (precomputedCappedSign secretKey leafIndex message)).run cache
@@ -232,8 +232,8 @@ theorem Concrete.precomputedCappedSign_success_gt
   have hfailureReal := (ENNReal.toReal_lt_toReal probEvent_ne_top (by finiteness)).mpr hfailure
   apply (ENNReal.toReal_lt_toReal (by finiteness) probEvent_ne_top).mp
   norm_num [ENNReal.toReal_div] at hfailureReal ⊢
-  change (Pr[fun result => result.1 = none | computation]).toReal < 1 / 32 at hfailureReal
-  change 31 / 32 < (Pr[fun result => result.1 ≠ none | computation]).toReal
+  change (Pr[fun result => result.1 = none | computation]).toReal < 1 / 128 at hfailureReal
+  change 127 / 128 < (Pr[fun result => result.1 ≠ none | computation]).toReal
   linarith
 
 /-- The reference key-generation cache meets the fresh-encoding condition. -/
@@ -241,7 +241,7 @@ theorem Concrete.precomputedCappedSign_success_after_keygen
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (message : Message) :
-    31 / 32 < Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
+    127 / 128 < Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
       (simulateQ romImpl (precomputedCappedSign keyResult.1.2 leafIndex message)).run keyResult.2] :=
   precomputedCappedSign_success_gt _ _ _ _ (keygen_cachedEncodingInputCount_eq_zero keyResult hkey)
 

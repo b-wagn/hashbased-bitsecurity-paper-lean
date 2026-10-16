@@ -71,8 +71,8 @@ theorem chainMutation_gameCounted_requests :
         · rcases uniformOrHash <;> rfl
         · rfl))
   rw [himpl, ← QueryCounting.simulate_withCost, show chainMutationSufCmaAdversary.main publicKey =
-    chainMutationMain from rfl, chainMutation_counted]
-  simp only [simulateQ_map, WriterT.run_map', bind_map_left]
+    chainMutationMain from rfl, chainMutation_counted, simulateQ_map, WriterT.run_map',
+    bind_map_left]
   rfl
 
 theorem chainMutation_experiment_requests :

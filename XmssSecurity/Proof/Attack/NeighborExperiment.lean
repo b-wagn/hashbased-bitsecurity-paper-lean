@@ -233,7 +233,7 @@ theorem signedNeighborExperiment_lower
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (request : SignRequest) (message : Message) (hne : message ≠ request.message) :
-    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
+    (127 / 128 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
       Pr[= true | signedNeighborExperiment keyResult request message] := by
   classical
   let lower : ℝ≥0∞ := (3 / 4) * (2 / 17)

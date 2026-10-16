@@ -171,7 +171,7 @@ theorem verifyMutatedSignature_run
       (encodingHash keyResult.1.1.parameter leafIndex message randomness : OracleComp HashSpec Digest)).run cache
     >>= _ = _
   rw [hparameter, encodingHash_run_cached _ _ _ _ _ _ hdecode]
-  simp only [pure_bind, hdecode]
+  simp only [pure_bind, CacheView.decodeDigest_of_decodedEncoding hdecode]
   rw [simulateQ_bind, StateT.run_bind,
     recoverMutatedEndpoints_run keyResult hkey leafIndex chain encoding randomness value cache hle,
     bind_map_left]

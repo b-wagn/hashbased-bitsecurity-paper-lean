@@ -177,15 +177,15 @@ theorem signedNeighborExperiment_le_referenceRest
 theorem neighbor_referenceRest_lower
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
+    (127 / 128 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
       Pr[= true | (simulateQ romImpl
         (Seeded.gameRest Concrete.scheme neighborAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] :=
   (signedNeighborExperiment_lower keyResult hkey neighborRequest neighborMessage neighborMessage_ne_request).trans
     (signedNeighborExperiment_le_referenceRest keyResult hkey)
 
 theorem neighbor_reference_advantage_lower :
-    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤ forgeAdvantage Concrete.scheme neighborAdversary := by
-  let lower : ℝ≥0∞ := (31 / 32) * ((3 / 4) * (2 / 17))
+    (127 / 128 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤ forgeAdvantage Concrete.scheme neighborAdversary := by
+  let lower : ℝ≥0∞ := (127 / 128) * ((3 / 4) * (2 / 17))
   let keys := (simulateQ romImpl Concrete.scheme.keygen).run ∅
   have hmass : ∑' keyResult, Pr[= keyResult | keys] = 1 := tsum_probOutput_eq_one' (by simp)
   unfold forgeAdvantage gameCore

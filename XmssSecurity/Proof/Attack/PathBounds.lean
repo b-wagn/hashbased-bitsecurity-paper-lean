@@ -73,15 +73,16 @@ theorem pathMutationProbability_lower (steps : ℕ) (hsteps : steps ≤ 40) :
     real_path_mutation_lower steps hsteps
 
 theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    (∑ chain, (40 - (encoding chain).val - 1)) = 1443 := by
+    1493 ≤ (∑ chain, (40 - (encoding chain).val - 1)) := by
   have heq : ∀ chain, 40 - (encoding chain).val - 1 = 39 - (encoding chain).val := by
     intro chain
     omega
   simp_rw [heq]
   rw [Finset.sum_tsub_distrib Finset.univ]
-  · have hsum : ∑ chain, (encoding chain).val = targetSum := hvalid
-    rw [hsum]
-    norm_num [numChains, targetSum]
+  · have hsum := Checksum.sum_digits_le encoding hvalid
+    simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, smul_eq_mul]
+    norm_num [numChains, messageDigits, chainLength, winternitzBits] at hsum ⊢
+    omega
   · intro chain _
     have hbound := (encoding chain).isLt
     norm_num [chainLength, winternitzBits] at hbound
@@ -89,26 +90,28 @@ theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : Checksum.Va
 
 /-- The chain is chosen uniformly, without a hash query to learn the encoding. -/
 theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
+    1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
       ∑ chain, pathMutationProbability (40 - (encoding chain).val) := by
   calc
-    _ = (∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞)) /
+    _ ≤ (∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞)) /
         ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
-      rw [← Nat.cast_sum, sum_mutatedChainWork_sub_one encoding hvalid]
-      norm_num
+      rw [← Nat.cast_sum]
+      gcongr
+      exact_mod_cast sum_mutatedChainWork_sub_one encoding hvalid
     _ = ∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞) /
         ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by simp only [div_eq_mul_inv, Finset.sum_mul]
     _ ≤ _ := Finset.sum_le_sum fun chain _ => pathMutationProbability_lower _ (Nat.sub_le _ _)
 
 /-- Even after allowing signing failure and a full lost collision opportunity per chain,
-the uniform-chain strategy has a strict margin above the 123-bit threshold. -/
+the uniform-chain strategy has a strict margin above the 123-bit threshold: the digits of a
+codeword sum to at most `301`, so the chain-mutation work sums to at least `46 · 39 - 301 = 1493`. -/
 theorem randomChain_mutation_margin (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     (1 : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) <
-      (31 / 32) * ((∑ chain, pathMutationProbability (40 - (encoding chain).val)) / numChains) := by
+      (127 / 128) * ((∑ chain, pathMutationProbability (40 - (encoding chain).val)) / numChains) := by
   have hsum := sum_pathMutationProbability_lower encoding hvalid
   have hnumChains : (numChains : ℝ≥0∞) ≠ 0 := by norm_num [numChains]
   calc
-    _ < (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) := by
+    _ < (127 / 128 : ℝ≥0∞) * ((1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) := by
       apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
       norm_num [digestBits, numChains, ENNReal.toReal_mul, ENNReal.toReal_div]
     _ ≤ _ := by

@@ -195,7 +195,7 @@ theorem signedMutationExperiment_le_referenceRest
 theorem chainMutation_referenceRest_lower
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
+    (127 / 128 : ℝ≥0∞) * ((1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
       Pr[fun result => result.1 = true |
         (simulateQ romImpl (Seeded.gameRest Concrete.scheme chainMutationAdversary
           keyResult.1.1 keyResult.1.2)).run keyResult.2] :=
@@ -203,9 +203,9 @@ theorem chainMutation_referenceRest_lower
     (signedMutationExperiment_le_referenceRest keyResult)
 
 theorem chainMutation_reference_advantage_lower :
-    (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
+    (127 / 128 : ℝ≥0∞) * ((1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
       forgeAdvantage Concrete.scheme chainMutationAdversary := by
-  let lower : ℝ≥0∞ := (31 / 32) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains)
+  let lower : ℝ≥0∞ := (127 / 128) * ((1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains)
   let keys := (simulateQ romImpl Concrete.scheme.keygen).run ∅
   have hmass : ∑' keyResult, Pr[= keyResult | keys] = 1 := tsum_probOutput_eq_one' (by simp)
   rw [forgeAdvantage_eq_gameWithCache]
