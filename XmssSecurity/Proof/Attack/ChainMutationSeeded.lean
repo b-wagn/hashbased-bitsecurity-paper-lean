@@ -53,10 +53,10 @@ theorem chainMutation_seeded_advantage_exceeds_123 :
   rw [chainMutation_seeded_advantage_eq_reference]
   exact chainMutation_reference_advantage_exceeds_123
 
-theorem chainMutation_requests_attack : XmssSufCmaAttack ⟨false, false, false, true⟩ 122 :=
+theorem chainMutation_requests_attack : ¬(SUFCMA.notion ⟨false, false, false, true⟩).HasClassicalSecurityBits xmss (122 + 1) :=
   requests_attack_of_chainMutation_advantage chainMutation_seeded_advantage_exceeds_123
 
-theorem chainMutation_direct_attack : XmssSufCmaDirectAttackStatement :=
+theorem chainMutation_direct_attack : ¬(SUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss (122 + 1) :=
   Modes.not_hasClassicalSecurityBits_of_le (Modes.direct_le _) xmss 123 chainMutation_requests_attack
 
 /-- info: 'XmssSecurity.Attack.chainMutation_requests_attack' depends on axioms: [propext, Classical.choice, Quot.sound] -/

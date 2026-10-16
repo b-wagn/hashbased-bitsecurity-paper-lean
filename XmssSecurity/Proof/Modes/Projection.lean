@@ -18,7 +18,7 @@ open SUFCMA
 variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
 
 theorem map_fst_gameCounted [DecidableEq Msg] [DecidableEq Sig] (mode : CountingMode)
-    (cost : spec.Domain → ℕ) (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (cost : spec.Domain → ℕ) (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
     Prod.fst <$> gameCounted mode cost scheme adversary = game scheme adversary := by
   have h : ∀ m : CountingMode, Prod.fst <$> gameCounted m cost scheme adversary =

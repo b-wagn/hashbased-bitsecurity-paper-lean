@@ -1,5 +1,6 @@
 import XmssSecurity.Statement.Security.EUFCMA
 import XmssSecurity.Proof.Modes.Lattice
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-! Counting-mode monotonicity for standard unforgeability. The shared accounting
 lemmas retain the standard freshness predicate throughout the experiment. -/
@@ -16,7 +17,7 @@ variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
 
 /-- The experiment as `gameCounted`, returning the charge per kind instead of its weighted sum. -/
 def gameDetailed [DecidableEq Msg] (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × Charges) := do
   let ((pk, sk), keygenCharged) ← chargeWith (fun t => Kind.single .keygen (cost t)) scheme.keygen
   let (((forgery, adversaryCharged), log) :
@@ -24,7 +25,7 @@ def gameDetailed [DecidableEq Msg] (cost : spec.Domain → ℕ)
     (simulateQ
       ((QueryImpl.ofLift spec
           (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost
-            (fun t => Kind.single .direct (cost t)) +
+            (fun t => Kind.single .hash (cost t)) +
         signingOracleDetailed cost scheme sk)
       (adversary.main pk)).run.run
   let (verified, verifierCharged) ← chargeWith (fun t => Kind.single .verifier (cost t))
@@ -34,7 +35,7 @@ def gameDetailed [DecidableEq Msg] (cost : spec.Domain → ℕ)
 
 /-- The counted experiment of a mode is the detailed one with its charge weighted. -/
 theorem gameCounted_eq_map_gameDetailed [DecidableEq Msg] (m : CountingMode)
-    (cost : spec.Domain → ℕ) (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (cost : spec.Domain → ℕ) (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) :
     gameCounted m cost scheme adversary =
       (fun r => (r.1, m.weight r.2)) <$> gameDetailed cost scheme adversary := by
@@ -65,7 +66,7 @@ variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Inp
 
 /-- The experiment of `notion m` is the detailed experiment with its charge weighted by `m`. -/
 lemma experiment_notion_eq (m : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion m).experiment scheme adversary =
       (fun r => (r.1, m.weight r.2)) <$>
@@ -76,7 +77,7 @@ lemma experiment_notion_eq (m : CountingMode)
 
 /-- The winning probability does not depend on the counting mode. -/
 theorem advantage_eq_of_mode (m m' : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion m).advantage scheme adversary = (notion m').advantage scheme adversary := by
   simp only [SecurityNotion.advantage, experiment_notion_eq, probEvent_map]
@@ -84,7 +85,7 @@ theorem advantage_eq_of_mode (m m' : CountingMode)
 
 /-- A query bound for a mode is a query bound for every mode charging less. -/
 theorem hasQueryBound_of_le {m m' : CountingMode} (h : m.Le m')
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) (q : ℕ)
     (hq : (notion m').HasQueryBound scheme adversary q) :
     (notion m).HasQueryBound scheme adversary q := by
@@ -96,7 +97,7 @@ theorem hasQueryBound_of_le {m m' : CountingMode} (h : m.Le m')
 
 /-- Security for a mode is security for every mode charging more. -/
 theorem hasClassicalSecurityBits_of_le {m m' : CountingMode} (h : m.Le m')
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) (hs : (notion m).HasClassicalSecurityBits scheme bits) :
     (notion m').HasClassicalSecurityBits scheme bits := by
   intro q hq adversary hb
@@ -105,7 +106,7 @@ theorem hasClassicalSecurityBits_of_le {m m' : CountingMode} (h : m.Le m')
 
 /-- An attack on a mode is an attack on every mode charging less. -/
 theorem not_hasClassicalSecurityBits_of_le {m m' : CountingMode} (h : m.Le m')
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) (hs : ¬ (notion m').HasClassicalSecurityBits scheme bits) :
     ¬ (notion m).HasClassicalSecurityBits scheme bits :=
   fun hm => hs (hasClassicalSecurityBits_of_le h scheme bits hm)

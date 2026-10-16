@@ -87,7 +87,7 @@ theorem charge_xmss_keygen :
 theorem gameCounted_keygen_eq
     {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
     [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) (K : ℕ)
     (hkeygen : SUFCMA.charge cost scheme.keygen = (fun keys => (keys, K)) <$> scheme.keygen) :
     SUFCMA.gameCounted ⟨true, false, false, false⟩ cost scheme adversary =

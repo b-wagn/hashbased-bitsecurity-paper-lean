@@ -48,7 +48,7 @@ theorem directFreshLoss_le_126 (D : ℕ) (hD : 1 ≤ D) :
   push_cast
   nlinarith
 
-theorem direct_126 : XmssEufCmaSecure SUFCMA.CountingMode.direct 126 := by
+theorem direct_126 : (EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss 126 := by
   apply direct_security_of_reference_bound
   intro adversary D hD hbound
   exact (reference_advantage_add_seed_loss_le_fresh adversary D hbound).trans (directFreshLoss_le_126 D hD)

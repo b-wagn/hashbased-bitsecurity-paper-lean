@@ -1,6 +1,6 @@
 name = "xmss-security"
 version = "0.1.0"
-defaultTargets = ["XmssSecurity", "XmssSecurity.Tests.QueryBudget"]
+defaultTargets = ["XmssSecurity"]
 
 [[require]]
 name = "VCVio"

@@ -1,4 +1,5 @@
 import XmssSecurity.Statement.Security.EUFCMA
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-! Standard and strong unforgeability use identical executions and query charges.
 Only the final freshness predicate differs. This transfers every strong-security
@@ -45,7 +46,7 @@ theorem CountedOutcome.strongWin_of_standardWin [DecidableEq Msg] [DecidableEq S
   exact ⟨⟨hwin.1.1, fun h => hwin.1.2 (containsRequest_of_contains _ _ h)⟩, hwin.2⟩
 
 def recordedGame (mode : CountingMode) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) : OracleComp spec (CountedOutcome Msg Sig L) := do
   let ((pk, sk), keygenCharged) ← charge (costIf mode.keygen cost) scheme.keygen
   let (((forgery, adversaryCharged), log) :
@@ -61,7 +62,7 @@ def recordedGame (mode : CountingMode) (cost : spec.Domain → ℕ)
 
 theorem gameCounted_eq_map_recordedGame [DecidableEq Msg]
     (mode : CountingMode) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
     gameCounted mode cost scheme adversary = CountedOutcome.standardResult <$> recordedGame mode cost scheme adversary := by
   unfold gameCounted recordedGame
@@ -75,7 +76,7 @@ theorem gameCounted_eq_map_recordedGame [DecidableEq Msg]
 
 theorem strong_gameCounted_eq_map_recordedGame [DecidableEq Msg] [DecidableEq Sig]
     (mode : CountingMode) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
     SUFCMA.gameCounted mode cost scheme adversary =
       CountedOutcome.strongResult <$> recordedGame mode cost scheme adversary := by
@@ -92,14 +93,14 @@ variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 variable [DecidableEq Msg] [DecidableEq Sig]
 
 noncomputable def recordedExperiment (mode : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     ProbComp (CountedOutcome Msg Sig L) :=
   RandomOracleModel.run (recordedGame mode (RandomOracleModel.hashCost Input Output) scheme adversary)
 
 omit [DecidableEq Sig] in
 theorem experiment_eq_map_recordedExperiment (mode : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion mode).experiment scheme adversary =
       CountedOutcome.standardResult <$> recordedExperiment mode scheme adversary := by
@@ -107,7 +108,7 @@ theorem experiment_eq_map_recordedExperiment (mode : CountingMode)
     gameCounted_eq_map_recordedGame, simulateQ_map, StateT.run'_map']
 
 theorem strong_experiment_eq_map_recordedExperiment (mode : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (SUFCMA.notion mode).experiment scheme adversary =
       CountedOutcome.strongResult <$> recordedExperiment mode scheme adversary := by
@@ -115,7 +116,7 @@ theorem strong_experiment_eq_map_recordedExperiment (mode : CountingMode)
     strong_gameCounted_eq_map_recordedGame, simulateQ_map, StateT.run'_map']
 
 theorem hasQueryBound_iff_strong (mode : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) (q : ℕ) :
     (notion mode).HasQueryBound scheme adversary q ↔
       (SUFCMA.notion mode).HasQueryBound scheme adversary q := by
@@ -132,7 +133,7 @@ theorem hasQueryBound_iff_strong (mode : CountingMode)
     exact h outcome.strongResult (by rw [support_map]; exact ⟨outcome, houtcome, rfl⟩)
 
 theorem advantage_le_strong (mode : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion mode).advantage scheme adversary ≤ (SUFCMA.notion mode).advantage scheme adversary := by
   unfold SecurityNotion.advantage
@@ -142,7 +143,7 @@ theorem advantage_le_strong (mode : CountingMode)
   exact outcome.strongWin_of_standardWin hwin
 
 theorem security_of_strong (mode : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) (bits : ℕ)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) (bits : ℕ)
     (hstrong : (SUFCMA.notion mode).HasClassicalSecurityBits scheme bits) :
     (notion mode).HasClassicalSecurityBits scheme bits := by
   intro q hq adversary hbudget

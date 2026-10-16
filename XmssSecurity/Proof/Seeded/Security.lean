@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.Seeded.KeygenBudget
-import XmssSecurity.Proof
+import XmssSecurity.Proof.CappedExactFirstLaneBound
 
 open OracleComp OracleSpec ENNReal
 

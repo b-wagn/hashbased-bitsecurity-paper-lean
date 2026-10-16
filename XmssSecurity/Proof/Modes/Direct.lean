@@ -47,7 +47,7 @@ theorem run_liftM_logged {α : Type} (computation : OracleComp spec α) :
   rfl
 
 /-- The signing oracle charging nothing is the logged signing oracle lifted to the charged run. -/
-theorem signingOracleCounted_zero (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK)
+theorem signingOracleCounted_zero (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK)
     (request : SignRequest Msg L) :
     signingOracleCounted (fun _ => 0) 0 scheme sk request =
       (liftM (signingOracle scheme sk request) : ChargedRun spec Msg Sig L (Option Sig)) := by
@@ -61,7 +61,7 @@ theorem signingOracleCounted_zero (scheme : SynchronizedSignature spec PK SK Msg
 
 /-- The combined implementation of the direct mode is the one of the legacy direct game. -/
 theorem impl_direct_eq (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK) :
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK) :
     (QueryImpl.ofLift spec
         (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost cost +
       signingOracleCounted (fun _ => 0) 0 scheme sk =
@@ -77,7 +77,7 @@ theorem impl_direct_eq (cost : spec.Domain → ℕ)
 
 /-- The counted game of the direct mode is the legacy direct game. -/
 theorem gameCounted_direct_eq [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) :
     gameCounted CountingMode.direct cost scheme adversary =
       gameCountedDirect cost scheme adversary := by
@@ -98,7 +98,7 @@ section RandomOracleModel
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
   [DecidableEq Msg] [DecidableEq Sig]
-  (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+  (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
   (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L)
 
 /-- The experiment of the direct mode is the experiment of the legacy direct notion. -/

@@ -2,9 +2,9 @@ import XmssSecurity.Statement.Scheme.Construction
 import XmssSecurity.Statement.Security.SUFCMA
 
 /-!
-# XMSS as a synchronized signature scheme
+# XMSS as an epoch-based signature scheme
 
-The instance `xmss` of `SynchronizedSignature` in the random-oracle world of the construction:
+The instance `xmss` of `EpochBasedSignature` in the random-oracle world of the construction:
 key generation samples the 256-bit master seed and derives everything else through the hash
 oracle; signing and verification are the deterministic algorithms of `Construction.lean`.
 
@@ -19,7 +19,7 @@ namespace XmssSecurity
 /-- `SIG = (Gen, Sig, Ver)` of the specification: sample the master seed and derive the keys,
 sign with at most `A_max` randomizer trials, and verify. -/
 noncomputable def xmss :
-    SynchronizedSignature OracleWorld PublicKey Seeded.SecretKey Message Signature lifetime where
+    EpochBasedSignature OracleWorld PublicKey Seeded.SecretKey Message Signature lifetime where
   keygen := do
     let seed ← liftM sampleMasterSeed
     liftM (Seeded.keygenFromSeed seed)

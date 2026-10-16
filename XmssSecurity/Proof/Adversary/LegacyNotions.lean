@@ -1,4 +1,5 @@
 import XmssSecurity.Statement.Security.SUFCMA
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-!
 # The two original counting notions
@@ -42,7 +43,7 @@ variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
 oracles by `cost`. Signing requests cost nothing, and neither do the hash calls of key generation,
 of the signer, or of the final verification. -/
 def gameCountedDirect [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × ℕ) := do
   let (pk, sk) ← scheme.keygen
   let (((forgery, charged), log) :
@@ -60,14 +61,14 @@ variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 /-- SUF-CMA in the random-oracle model, charging every hash call of the experiment. -/
 noncomputable def notionTotal [DecidableEq Msg] [DecidableEq Sig] :
     SecurityNotion
-      (SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) where
+      (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) where
   Adversary := Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
   experiment := fun scheme adversary => RandomOracleModel.experiment (game scheme adversary)
 
 /-- SUF-CMA in the random-oracle model, charging only the adversary's own hash calls. -/
 noncomputable def notionDirect [DecidableEq Msg] [DecidableEq Sig] :
     SecurityNotion
-      (SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) where
+      (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) where
   Adversary := Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
   experiment := fun scheme adversary =>
     RandomOracleModel.run (gameCountedDirect (fun | .inl _ => 0 | .inr _ => 1) scheme adversary)

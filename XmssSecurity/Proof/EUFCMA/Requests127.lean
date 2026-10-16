@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.EUFCMA.RequestsNumerics
 import XmssSecurity.Proof.EUFCMA.RequestsBridge
-import XmssSecurity.Statement.EUFCMAClaims
+import XmssSecurity.Statement.Scheme.Xmss
+import XmssSecurity.Statement.Security.EUFCMA
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-! Standard unforgeability has 127-bit security when direct hashes and signing
 requests share the query budget. -/
@@ -22,7 +24,7 @@ theorem reference_add_seed_le_127 (adversary : XmssSecurity.Adversary) (q : ℕ)
   · exact (reference_add_seed_le_terminalLoss adversary q (by omega) hbound).trans
       (terminalLoss_le_127 q hq _ _ _ _ hbudget (le_of_not_ge hlarge))
 
-theorem secure_127 : XmssEufCmaSecure mode 127 := by
+theorem secure_127 : (EUFCMA.notion mode).HasClassicalSecurityBits xmss 127 := by
   apply security_of_isQueryBound
   intro adversary q hq hbound
   exact (forgeAdvantage_deterministic_le_reference_expectedDirectSeed adversary).trans

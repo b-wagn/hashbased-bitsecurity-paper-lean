@@ -1,4 +1,5 @@
 import XmssSecurity.Statement.Security.SUFCMA
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-!
 # Monotonicity of the counting modes
@@ -130,19 +131,9 @@ end charge
 
 /-! ## The kinds of charged queries -/
 
-/-- The kinds of queries that may be charged to the adversary. -/
-inductive Kind
-  /-- The adversary's own queries to the ambient oracles. -/
-  | direct
-  /-- The queries of key generation. -/
-  | keygen
-  /-- The queries of the signer. -/
-  | signer
-  /-- The queries of the final verification. -/
-  | verifier
-  /-- The signing requests. -/
-  | requests
-  deriving DecidableEq
+/-- The kinds of queries that may be charged to the adversary: the statement's `QueryKind`, with
+`hash` the adversary's own queries to the ambient oracles and `sign` its signing requests. -/
+abbrev Kind := SUFCMA.QueryKind
 
 /-- A charge per kind of query. -/
 abbrev Charges := Kind → ℕ
@@ -166,14 +157,14 @@ open Modes
 /-- The number of queries charged by `m` out of a charge per kind: the adversary's own queries,
 and the kinds selected by `m`. -/
 def weight (m : CountingMode) : Charges →+ ℕ where
-  toFun c := c .direct + m.keygen.toNat * c .keygen + m.signer.toNat * c .signer +
-    m.verifier.toNat * c .verifier + m.requests.toNat * c .requests
+  toFun c := c .hash + m.keygen.toNat * c .keygen + m.signer.toNat * c .signer +
+    m.verifier.toNat * c .verifier + m.requests.toNat * c .sign
   map_zero' := by simp
   map_add' c c' := by simp only [Pi.add_apply]; ring
 
 lemma weight_apply (m : CountingMode) (c : Charges) :
-    m.weight c = c .direct + m.keygen.toNat * c .keygen + m.signer.toNat * c .signer +
-      m.verifier.toNat * c .verifier + m.requests.toNat * c .requests := rfl
+    m.weight c = c .hash + m.keygen.toNat * c .keygen + m.signer.toNat * c .signer +
+      m.verifier.toNat * c .verifier + m.requests.toNat * c .sign := rfl
 
 lemma toNat_le_toNat {b b' : Bool} (h : b → b') : b.toNat ≤ b'.toNat := by
   cases b <;> cases b' <;> simp_all
@@ -196,7 +187,7 @@ lemma costIf_eq (b : Bool) (cost : spec.Domain → ℕ) (t : spec.Domain) :
   cases b <;> simp [costIf]
 
 lemma weight_single_direct (m : CountingMode) (cost : spec.Domain → ℕ) (t : spec.Domain) :
-    m.weight (Kind.single .direct (cost t)) = cost t := by
+    m.weight (Kind.single .hash (cost t)) = cost t := by
   simp [weight_apply]
 
 lemma weight_single_keygen (m : CountingMode) (cost : spec.Domain → ℕ) (t : spec.Domain) :
@@ -212,7 +203,7 @@ lemma weight_single_verifier (m : CountingMode) (cost : spec.Domain → ℕ) (t 
   simp [weight_apply, costIf_eq]
 
 lemma weight_single_requests (m : CountingMode) :
-    m.weight (Kind.single .requests 1) = if m.requests then 1 else 0 := by
+    m.weight (Kind.single .sign 1) = if m.requests then 1 else 0 := by
   cases h : m.requests <;> simp [weight_apply, h]
 
 end SUFCMA.CountingMode
@@ -235,19 +226,19 @@ abbrev DetailedRun (spec : OracleSpec ι) (Msg Sig : Type) (L : ℕ) : Type → 
 /-- The signing oracle of `gameDetailed`: as `signingOracleCounted`, charging the signer's queries
 at `cost` as kind `signer` and one unit of kind `requests` per request. -/
 def signingOracleDetailed (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK) :
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK) :
     QueryImpl (SigningSpec Msg Sig L) (DetailedRun spec Msg Sig L) :=
   fun request => do
     let (answer, charged) ← liftM (chargeWith (fun t => Kind.single .signer (cost t))
       (scheme.sign sk request.epoch request.message))
     AddWriterT.addTell (M := WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
-      (Kind.single .requests 1 + charged)
+      (Kind.single .sign 1 + charged)
     liftM (tell [⟨request, answer⟩] : WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec) Unit)
     return answer
 
 /-- The experiment as `gameCounted`, returning the charge per kind instead of its weighted sum. -/
 def gameDetailed [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × Charges) := do
   let ((pk, sk), keygenCharged) ← chargeWith (fun t => Kind.single .keygen (cost t)) scheme.keygen
   let (((forgery, adversaryCharged), log) :
@@ -255,7 +246,7 @@ def gameDetailed [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ
     (simulateQ
       ((QueryImpl.ofLift spec
           (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost
-            (fun t => Kind.single .direct (cost t)) +
+            (fun t => Kind.single .hash (cost t)) +
         signingOracleDetailed cost scheme sk)
       (adversary.main pk)).run.run
   let (verified, verifierCharged) ← chargeWith (fun t => Kind.single .verifier (cost t))
@@ -280,7 +271,7 @@ lemma liftM_map_chargedRun {α β : Type} (g : α → β) (x : OracleComp spec �
 
 /-- The counted signing oracle of a mode is the detailed one with its charge weighted. -/
 lemma signingOracleCounted_eq_relabelT (m : CountingMode) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK)
     (request : SignRequest Msg L) :
     signingOracleCounted (costIf m.signer cost) (if m.requests then 1 else 0) scheme sk request =
       relabelT m.weight (signingOracleDetailed cost scheme sk request) := by
@@ -299,7 +290,7 @@ lemma signingOracleCounted_eq_relabelT (m : CountingMode) (cost : spec.Domain �
 
 /-- The adversary's run of a mode is the detailed one with its charge weighted. -/
 lemma simulateQ_counted_eq_relabelT (m : CountingMode) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK) {α : Type}
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK) {α : Type}
     (x : OracleComp (spec + SigningSpec Msg Sig L) α) :
     simulateQ
       ((QueryImpl.ofLift spec
@@ -308,7 +299,7 @@ lemma simulateQ_counted_eq_relabelT (m : CountingMode) (cost : spec.Domain → �
       relabelT m.weight (simulateQ
         ((QueryImpl.ofLift spec
             (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost
-              (fun t => Kind.single .direct (cost t)) +
+              (fun t => Kind.single .hash (cost t)) +
           signingOracleDetailed cost scheme sk) x) := by
   refine simulateQ_eq_relabelT m.weight _ _ (fun t => ?_) x
   rcases t with t | request
@@ -319,7 +310,7 @@ lemma simulateQ_counted_eq_relabelT (m : CountingMode) (cost : spec.Domain → �
 
 /-- The counted experiment of a mode is the detailed one with its charge weighted. -/
 theorem gameCounted_eq_map_gameDetailed [DecidableEq Msg] [DecidableEq Sig] (m : CountingMode)
-    (cost : spec.Domain → ℕ) (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (cost : spec.Domain → ℕ) (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) :
     gameCounted m cost scheme adversary =
       (fun r => (r.1, m.weight r.2)) <$> gameDetailed cost scheme adversary := by
@@ -352,7 +343,7 @@ variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Inp
 
 /-- The experiment of `notion m` is the detailed experiment with its charge weighted by `m`. -/
 lemma experiment_notion_eq (m : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion m).experiment scheme adversary =
       (fun r => (r.1, m.weight r.2)) <$>
@@ -363,7 +354,7 @@ lemma experiment_notion_eq (m : CountingMode)
 
 /-- The winning probability does not depend on the counting mode. -/
 theorem advantage_eq_of_mode (m m' : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion m).advantage scheme adversary = (notion m').advantage scheme adversary := by
   simp only [SecurityNotion.advantage, experiment_notion_eq, probEvent_map]
@@ -371,7 +362,7 @@ theorem advantage_eq_of_mode (m m' : CountingMode)
 
 /-- A query bound for a mode is a query bound for every mode charging less. -/
 theorem hasQueryBound_of_le {m m' : CountingMode} (h : m.Le m')
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) (q : ℕ)
     (hq : (notion m').HasQueryBound scheme adversary q) :
     (notion m).HasQueryBound scheme adversary q := by
@@ -383,7 +374,7 @@ theorem hasQueryBound_of_le {m m' : CountingMode} (h : m.Le m')
 
 /-- Security for a mode is security for every mode charging more. -/
 theorem hasClassicalSecurityBits_of_le {m m' : CountingMode} (h : m.Le m')
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) (hs : (notion m).HasClassicalSecurityBits scheme bits) :
     (notion m').HasClassicalSecurityBits scheme bits := by
   intro q hq adversary hb
@@ -392,7 +383,7 @@ theorem hasClassicalSecurityBits_of_le {m m' : CountingMode} (h : m.Le m')
 
 /-- An attack on a mode is an attack on every mode charging less. -/
 theorem not_hasClassicalSecurityBits_of_le {m m' : CountingMode} (h : m.Le m')
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) (hs : ¬ (notion m').HasClassicalSecurityBits scheme bits) :
     ¬ (notion m).HasClassicalSecurityBits scheme bits :=
   fun hm => hs (hasClassicalSecurityBits_of_le h scheme bits hm)

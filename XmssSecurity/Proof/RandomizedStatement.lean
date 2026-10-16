@@ -1,4 +1,5 @@
 import XmssSecurity.Statement.Scheme.Xmss
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 open OracleComp OracleSpec ENNReal
 
@@ -23,7 +24,7 @@ noncomputable def romImpl : QueryImpl OracleWorld (StateT (QueryCache HashSpec) 
   unifFwdImpl HashSpec +
     (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp))
 
-/-- The interface of a synchronized signature scheme in the random-oracle experiment. -/
+/-- The interface of an epoch-based signature scheme in the random-oracle experiment. -/
 structure Scheme (Key : Type := Seeded.SecretKey) where
   keygen : OracleComp OracleWorld (PublicKey × Key)
   sign : Key → LeafIndex → Message → OracleComp OracleWorld (Option Signature)

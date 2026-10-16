@@ -36,7 +36,7 @@ theorem countHashQueries_support_bound {α : Type} (computation : OracleComp Ora
       · simp [IsHashQuery] at htailBound hbound ⊢
         omega
 
-theorem liftWorldToAdversary_counted {Key α : Type} (scheme : SynchronizedSignature OracleWorld PublicKey Key Message Signature lifetime) (secretKey : Key)
+theorem liftWorldToAdversary_counted {Key α : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Signature lifetime) (secretKey : Key)
     (requestCost : ℕ) (computation : OracleComp OracleWorld α) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
@@ -61,7 +61,7 @@ theorem liftWorldToAdversary_counted {Key α : Type} (scheme : SynchronizedSigna
       intro result
       cases input <;> rfl
 
-theorem signingOracleCounted_run {Key : Type} (scheme : SynchronizedSignature OracleWorld PublicKey Key Message Signature lifetime) (secretKey : Key)
+theorem signingOracleCounted_run {Key : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Signature lifetime) (secretKey : Key)
     (requestCost : ℕ) (request : XmssSecurity.SignRequest) :
     (SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput)
       requestCost scheme secretKey request).run.run =
@@ -74,7 +74,7 @@ theorem signingOracleCounted_run {Key : Type} (scheme : SynchronizedSignature Or
     map_pure, mul_one, one_mul]
   rfl
 
-theorem neighborMain_counted {Key : Type} (scheme : SynchronizedSignature OracleWorld PublicKey Key Message Signature lifetime) (secretKey : Key) (publicKey : PublicKey) :
+theorem neighborMain_counted {Key : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Signature lifetime) (secretKey : Key) (publicKey : PublicKey) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
           (RandomOracleModel.hashCost HashInput HashOutput) +
@@ -148,7 +148,7 @@ theorem neighbor_everything_advantage :
     Modes.notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
   rfl
 
-theorem neighbor_everything_attack : XmssSufCmaEverythingAttackStatement := by
+theorem neighbor_everything_attack : ¬(SUFCMA.notion SUFCMA.CountingMode.everything).HasClassicalSecurityBits xmss (127 + 1) := by
   intro hsecure
   have hbound := hsecure neighborEverythingBudget (by norm_num [neighborEverythingBudget])
     neighborSufCmaAdversary neighbor_everything_queryBound

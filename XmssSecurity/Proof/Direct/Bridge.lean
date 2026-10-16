@@ -51,7 +51,7 @@ theorem bind_map_fst_eq {ι : Type} {spec : OracleSpec ι} {ι' : Type}
 /-- The counted game projects to the game. -/
 theorem gameCounted_map_fst {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
     [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
     Prod.fst <$> SUFCMA.gameCountedDirect cost scheme adversary = SUFCMA.game scheme adversary := by
   unfold SUFCMA.gameCountedDirect SUFCMA.game

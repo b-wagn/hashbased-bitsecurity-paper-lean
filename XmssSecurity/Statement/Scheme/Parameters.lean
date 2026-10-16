@@ -2,7 +2,7 @@
 # XMSS instance parameters
 
 The parameter table of the XMSS instance for Ethereum's post-quantum consensus (`doc/xmss/main.tex`
-of the leanVM repository, Section 1). Everything else in `Construction.lean` is defined in terms
+of the leanVM repository, Section 1). Everything else in `Scheme/` is defined in terms
 of these constants, so this file is the single place to read the concrete numbers.
 
 | Symbol  | Lean                  | Value   | Meaning                                 |
@@ -20,7 +20,7 @@ of these constants, so this file is the single place to read the concrete number
 | `A_max` | `signingAttemptLimit` | `2^32`  | maximum randomizer trials per signature |
 
 The master seed has 256 bits and the tweak has 128 bits (16 bytes); both are fixed by the byte
-layout in `Construction.lean`.
+layout in `Types.lean` and `Hashing.lean`.
 -/
 
 namespace XmssSecurity

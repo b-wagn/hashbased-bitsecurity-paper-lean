@@ -1,206 +1,28 @@
-import XmssSecurity.Statement.Scheme.Parameters
-import XmssSecurity.Statement.RandomOracleModel
+import XmssSecurity.Statement.Scheme.Types
+import XmssSecurity.Statement.Scheme.Hashing
+import XmssSecurity.Statement.Scheme.TargetSum
 import VCVio.OracleComp.QueryTracking.LoggingOracle
 
 /-!
 # XMSS construction
 
-Types, serialized hash inputs, the target-sum encoding, hash chains, the Merkle tree, key
-generation, signing, and verification of the XMSS instance specified in `doc/xmss/main.tex` of the
-leanVM repository, in terms of the constants of `Parameters.lean`.
+The algorithms of the XMSS instance specified in `doc/xmss/main.tex` of the leanVM repository:
+verification, key generation, and signing. The types are in `Types.lean`, the hash routines in
+`Hashing.lean`, and the target-sum encoding in `TargetSum.lean`.
 
-The hash function `H` is the random oracle `HashSpec`; every hash call is an oracle query. Key
-generation derives the public parameter, all WOTS chain starts, and the signing randomizers from a
-256-bit master seed in separate hash domains, and stores every chain value and Merkle node.
+`Concrete` contains verification and the chain and tree computations; `Seeded` contains key
+generation and signing from a 256-bit master seed. Key generation derives the public parameter
+and all WOTS chain starts from the master seed in separate hash domains, computes the Merkle root,
+and stores every chain value and Merkle node in the secret key; signing derives its randomizers
+from the master seed. Out-of-range branches only make the definitions total; honest algorithms
+never reach them.
 -/
 
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
 
-/-! ## Types and hash-input layout -/
-
-abbrev MasterSeed := BitVec 256
-
-abbrev Digest := BitVec digestBits
-abbrev HashOutput := BitVec hashOutputBits
-abbrev Message := BitVec messageBits
-abbrev PublicParameter := BitVec publicParameterBits
-abbrev Randomness := BitVec randomnessBits
-/-- `idx < L`. -/
-abbrev LeafIndex := Fin lifetime
-abbrev ChainIndex := Fin numChains
-abbrev Digit := Fin chainLength
-/-- A chain step; the tweak carries `2^w * i + step`. -/
-abbrev ChainStep := Fin (chainLength - 1)
-/-- A level of the stored tree, `0` the leaves and `h` the root. -/
-abbrev MerkleHeight := Fin (treeHeight + 1)
-/-- A level of the authentication path, below the root; the tweak carries `level + 1`. -/
-abbrev MerkleLevel := Fin treeHeight
-/-- A node within a level. Level `ℓ` only uses the values below `2^(h - ℓ)`. -/
-abbrev MerkleNode := Fin lifetime
-abbrev Encoding := ChainIndex → Digit
-abbrev HashInput := List UInt8
-
-/-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
-def truncateHash (output : HashOutput) : Digest :=
-  output.extractLsb' 0 digestBits
-
-/-- `pk = (root, P)`. -/
-structure PublicKey where
-  root : Digest
-  parameter : PublicParameter
-deriving DecidableEq
-
-/-- Cached chain starts, chain values and Merkle nodes, together with the public parameter. -/
-structure SecretKey where
-  parameter : PublicParameter
-  chainStart : LeafIndex → ChainIndex → Digest
-  chainValue : LeafIndex → ChainIndex → Digit → Digest
-  treeValue : MerkleHeight → MerkleNode → Digest
-
-/-- `sigma = (rho, sigma_OTS, path_ep)`: the encoding randomness, the `v` chain values and the `h` authentication nodes. -/
-structure Signature where
-  randomness : Randomness
-  chainValue : ChainIndex → Digest
-  authPath : Fin treeHeight → Digest
-deriving DecidableEq
-
-/-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
-def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
-  List.ofFn fun index : Fin byteCount =>
-    UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
-
-/-- The three fields of the specification's `enc(t, p, j)`. -/
-structure TweakFields where
-  tag : BitVec 8
-  position : BitVec 32
-  leafIndex : BitVec 32
-deriving DecidableEq
-
-/-- The protocol domain separator. -/
-def protocolDomainSep : UInt8 := 0
-
-/-- The specification's 16 tweak bytes `protocol_domain_sep || tag || 0 || 0 || position || 0^4 || leafIndex`, each field serialized least significant byte first. -/
-def fieldBytes (fields : TweakFields) : List UInt8 :=
-  [protocolDomainSep] ++ bytesLE 1 fields.tag ++ [0, 0] ++ bytesLE 4 fields.position ++
-    List.replicate 4 0 ++ bytesLE 4 fields.leafIndex
-
-/-- Convert the specification's three integer fields to their fixed widths. -/
-def tweakFields (tag position leafIndex : Nat) : TweakFields :=
-  ⟨BitVec.ofNat 8 tag, BitVec.ofNat 32 position, BitVec.ofNat 32 leafIndex⟩
-
-/-- The verification hash domains, tweak types `1` to `4`. -/
-inductive HashDomain where
-  | chain (leafIndex : LeafIndex) (chain : ChainIndex) (step : ChainStep)
-  | leaf (leafIndex : LeafIndex)
-  | merkle (level : MerkleLevel) (node : MerkleNode)
-  | encoding (leafIndex : LeafIndex)
-deriving DecidableEq
-
-/-- Serialize a typed hash domain into the fields of a tweak. -/
-def hashDomainFields : HashDomain → TweakFields
-  | .chain leafIndex chain step => tweakFields 1 (chainLength * chain + step) leafIndex
-  | .leaf leafIndex => tweakFields 2 0 leafIndex
-  | .merkle level node => tweakFields 3 (level.val + 1) node
-  | .encoding leafIndex => tweakFields 4 0 leafIndex
-
-/-- The exact 16 bytes supplied by the specification as a hash tweak. -/
-def tweakBytes (domain : HashDomain) : List UInt8 :=
-  fieldBytes (hashDomainFields domain)
-
-/-- The random-oracle input `tweak || parameter || message` used by every tweakable hash call. -/
-def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
-    (message : HashInput) : HashInput :=
-  tweakBytes domain ++ bytesLE 16 parameter ++ message
-
-/-- `tweak(7, trial, leafIndex) || P || S || m`. -/
-def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
-    (leafIndex : LeafIndex) (message : Message) (trial : BitVec 32) : HashInput :=
-  fieldBytes ⟨7#8, trial, BitVec.ofNat 32 leafIndex.val⟩ ++
-    bytesLE 16 parameter ++ bytesLE 32 seed ++ bytesLE 32 message
-
-inductive KeygenDomain where
-  | parameter
-  | chain (leafIndex : LeafIndex) (chain : ChainIndex)
-deriving DecidableEq
-
-def keygenDomainFields : KeygenDomain → TweakFields
-  | .parameter => tweakFields 5 0 0
-  | .chain leafIndex chain => tweakFields 0 chain leafIndex
-
-/-- `tweak || P || S`; parameter derivation uses `P = 0`. -/
-def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
-    (seed : MasterSeed) : HashInput :=
-  fieldBytes (keygenDomainFields domain) ++ bytesLE 16 parameter ++ bytesLE 32 seed
-
-/-! ### The target-sum code
-
-`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the code is the words of digit sum `T = 195`. -/
-
-namespace TargetSum
-
-/-- The digit sum of a word. -/
-def sum (x : Encoding) : Nat := ∑ i, (x i).val
-
-/-- Membership in the code `C`: digit sum `T`. -/
-def Valid (x : Encoding) : Prop := sum x = targetSum
-
-instance : DecidablePred Valid :=
-  fun x => inferInstanceAs (Decidable (sum x = targetSum))
-
-/-- `v / 2 = 21` digits in each half of the digest. -/
-def digitsPerHalf : Nat := numChains / 2
-
-/-- Offset of a three-bit digit, skipping padding bits 63 and 127. -/
-def digitOffset (i : ChainIndex) : Nat :=
-  winternitzBits * i.val + if i.val < digitsPerHalf then 0 else 1
-
-/-- `x_i`, the three bits of the digest at the digit's offset. -/
-def digestEncoding (digest : Digest) : Encoding :=
-  fun i => (digest.extractLsb' (digitOffset i) winternitzBits).toFin
-
-/-- Decode the concrete little-endian layout used by `IncEnc`: 21 three-bit digits, padding bit 63, 21 digits, and padding bit 127. A digest decodes exactly when both padding bits are clear and the digits reach the target sum. -/
-def decodeDigest (digest : Digest) : Option Encoding :=
-  if digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false ∧ Valid (digestEncoding digest)
-  then some (digestEncoding digest) else none
-
-end TargetSum
-
-/-! ## The algorithms
-
-`Concrete` contains the hash and verification routines; `Seeded` contains key generation and signing. Hashing routines work in any monad with access to `HashSpec`. The experiment samples the master seed and charges every hash call, including repeated calls. Out-of-range branches only make the definitions total; honest algorithms never reach them. -/
-
-/-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
-abbrev HashSpec := RandomOracleModel.HashSpec HashInput HashOutput
-
-/-- Private uniform sampling and the shared hash oracle. Only hash calls count toward the query budget. -/
-abbrev OracleWorld := RandomOracleModel.World HashInput HashOutput
-
-/-- Enter a query log into a cache, in order. -/
-def extendHashCacheWithLog (initialCache : QueryCache HashSpec) :
-    QueryLog HashSpec → QueryCache HashSpec
-  | [] => initialCache
-  | ⟨input, output⟩ :: tail =>
-      extendHashCacheWithLog (initialCache.cacheQuery input output) tail
-
-/-- The cache a query log records. -/
-def hashCacheOfLog (log : QueryLog HashSpec) : QueryCache HashSpec :=
-  extendHashCacheWithLog ∅ log
-
 namespace Concrete
-
-/-- `m || rho || 0^64`. -/
-def encodingPayload (message : Message) (randomness : Randomness) : HashInput :=
-  bytesLE 32 message ++ bytesLE 24 randomness ++ List.replicate 8 0
-
-/-- `pk_0 || ... || pk_{v-1}`. -/
-def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
-  (List.ofFn endpoints).flatMap (bytesLE 16)
-
-/-- The two children of a Merkle node. -/
-def nodePayload (left right : Digest) : HashInput :=
-  bytesLE 16 left ++ bytesLE 16 right
 
 /-- Run the `n` computations in index order and collect their results. -/
 def sequenceFin {m : Type → Type} [Monad m] {n : Nat}
@@ -213,36 +35,6 @@ def sequenceFin {m : Type → Type} [Monad m] {n : Nat}
       return Fin.cases head tail
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-
-/-- One query to the random oracle `H`. -/
-def oracleHash (input : HashInput) : m HashOutput :=
-  HasQuery.query (spec := HashSpec) (m := m) input
-
-/-- `Th(P, tw, M) = Truncate_n(H(tw || P || M))`. -/
-def tweakableHash
-    (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) : m Digest := do
-  let output ← oracleHash (tweakableHashInput parameter domain payload)
-  return truncateHash output
-
-/-- The digest `D` of `IncEnc(P, m, rho, idx)`. -/
-def encodingHash (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (message : Message) (randomness : Randomness) : m Digest :=
-  tweakableHash parameter (.encoding leafIndex) (encodingPayload message randomness)
-
-/-- One chain step, under `tweak_chain(idx, i, step + 1)`. -/
-def chainHash (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (step : ChainStep) (value : Digest) : m Digest :=
-  tweakableHash parameter (.chain leafIndex chain step) (bytesLE 16 value)
-
-/-- `X_{0,idx}`, the hash of the `v` public values. -/
-def leafHash (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (endpoints : ChainIndex → Digest) : m Digest :=
-  tweakableHash parameter (.leaf leafIndex) (leafPayload endpoints)
-
-/-- `X_{level+1,node}` from its two children. -/
-def nodeHash (parameter : PublicParameter) (level : MerkleLevel) (node : MerkleNode)
-    (left right : Digest) : m Digest :=
-  tweakableHash parameter (.merkle level node) (nodePayload left right)
 
 /-! ### Verification -/
 
@@ -313,7 +105,7 @@ def verify (publicKey : PublicKey) (leafIndex : LeafIndex)
   let leaf ← leafHash publicKey.parameter leafIndex endpoints
   verifyAfterLeaf publicKey leafIndex signature leaf
 
-/-! ### Precomputed chains and tree -/
+/-! ### Key generation: chains and tree -/
 
 /-- `pk_{idx,i} = Chain(P, 0, 2^w - 1, sk_{idx,i})` for every chain. -/
 def oneTimePublicKey (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
@@ -352,6 +144,28 @@ def treeNode (parameter : PublicParameter) (secret : LeafIndex → ChainIndex �
 def rootNode : MerkleNode :=
   ⟨0, by simp [lifetime]⟩
 
+end Concrete
+
+/-! ### Key generation: the stored chain values and tree nodes
+
+Key generation computes the Merkle root through the oracle while logging its hash queries. The
+secret key stores every chain value and Merkle node; they are read off that log: the chain and
+tree computations are re-run with each hash query answered from the logged values
+(`precomputedSecretKey`), so no further oracle query is made. -/
+
+/-- Enter a query log into a cache, in order. -/
+def extendHashCacheWithLog (initialCache : QueryCache HashSpec) :
+    QueryLog HashSpec → QueryCache HashSpec
+  | [] => initialCache
+  | ⟨input, output⟩ :: tail =>
+      extendHashCacheWithLog (initialCache.cacheQuery input output) tail
+
+/-- The cache a query log records. -/
+def hashCacheOfLog (log : QueryLog HashSpec) : QueryCache HashSpec :=
+  extendHashCacheWithLog ∅ log
+
+namespace Concrete
+
 /-- Answer a hash query from a recorded query cache, and by 0 for an unrecorded input. -/
 def replayHash (cache : QueryCache HashSpec) : QueryImpl HashSpec Id :=
   fun input => (cache input).getD 0
@@ -370,38 +184,11 @@ def precomputedSecretKey (parameter : PublicParameter)
     evalWithAnswerFn (replayHash cache)
       (treeNode parameter secret height.val node : OracleComp HashSpec Digest)
 
-/-! ### Signing -/
-
-/-- `floor(idx / 2^level) xor 1`, the sibling on the path. -/
-def authenticationPathNode (leafIndex : LeafIndex) (level : MerkleLevel) : MerkleNode :=
-  merkleNodeOfNat (Nat.xor (leafIndex.val / 2 ^ level.val) 1)
-
-/-- The signature once the encoding is found. -/
-def precomputedSignWithEncoding (secretKey : SecretKey) (leafIndex : LeafIndex)
-    (randomness : Randomness) (encoding : Encoding) : Signature :=
-  { randomness := randomness
-    chainValue := fun chain => secretKey.chainValue leafIndex chain (encoding chain)
-    authPath := fun level => secretKey.treeValue level.castSucc (authenticationPathNode leafIndex level) }
-
-/-- One attempt: hash once, and sign if the digest encodes. -/
-def precomputedSignAttempt (secretKey : SecretKey) (leafIndex : LeafIndex)
-    (message : Message) (randomness : Randomness) : m (Option Signature) := do
-  let digest ← encodingHash secretKey.parameter leafIndex message randomness
-  let some encoding := TargetSum.decodeDigest digest | return none
-  return some (precomputedSignWithEncoding secretKey leafIndex randomness encoding)
-
 attribute [irreducible] verifyAfterLeaf treeNode
 
 end Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-
-def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
-  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
-
-def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
-    (message : Message) (trial : BitVec 32) : m Randomness := do
-  return (← Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message trial)).extractLsb' 0 randomnessBits
 
 noncomputable def sampleMasterSeed : ProbComp MasterSeed :=
   letI := SampleableType.ofFintype MasterSeed
@@ -422,6 +209,34 @@ def keygenFromSeed (seed : MasterSeed) : OracleComp HashSpec (PublicKey × Secre
     OracleComp HashSpec Digest).withQueryLog
   let precomputed := Concrete.precomputedSecretKey parameter secret (hashCacheOfLog result.2)
   return (⟨result.1, parameter⟩, ⟨seed, precomputed⟩)
+
+end Seeded
+
+/-! ### Signing -/
+
+namespace Concrete
+
+/-- `floor(idx / 2^level) xor 1`, the sibling on the path. -/
+def authenticationPathNode (leafIndex : LeafIndex) (level : MerkleLevel) : MerkleNode :=
+  merkleNodeOfNat (Nat.xor (leafIndex.val / 2 ^ level.val) 1)
+
+/-- The signature once the encoding is found. -/
+def precomputedSignWithEncoding (secretKey : SecretKey) (leafIndex : LeafIndex)
+    (randomness : Randomness) (encoding : Encoding) : Signature :=
+  { randomness := randomness
+    chainValue := fun chain => secretKey.chainValue leafIndex chain (encoding chain)
+    authPath := fun level => secretKey.treeValue level.castSucc (authenticationPathNode leafIndex level) }
+
+/-- One attempt: hash once, and sign if the digest encodes. -/
+def precomputedSignAttempt (secretKey : SecretKey) (leafIndex : LeafIndex)
+    (message : Message) (randomness : Randomness) : m (Option Signature) := do
+  let digest ← encodingHash secretKey.parameter leafIndex message randomness
+  let some encoding := TargetSum.decodeDigest digest | return none
+  return some (precomputedSignWithEncoding secretKey leafIndex randomness encoding)
+
+end Concrete
+
+namespace Seeded
 
 /-- Derive trials in increasing order, stopping at the first admissible encoding. -/
 def signFrom (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) : Nat → Nat → m (Option Signature)

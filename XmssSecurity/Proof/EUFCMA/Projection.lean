@@ -15,7 +15,7 @@ open SUFCMA
 variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
 
 theorem map_fst_gameCounted_direct [DecidableEq Msg] (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
     Prod.fst <$> gameCounted CountingMode.direct cost scheme adversary = game scheme adversary := by
   unfold gameCounted game
@@ -29,7 +29,7 @@ theorem map_fst_gameCounted_direct [DecidableEq Msg] (cost : spec.Domain → ℕ
       ¬SigningTranscript.ContainsRequest result.2 result.1) && verified))
 
 theorem map_fst_gameCounted [DecidableEq Msg] (mode : CountingMode) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
     Prod.fst <$> gameCounted mode cost scheme adversary = game scheme adversary := by
   have h : ∀ m : CountingMode, Prod.fst <$> gameCounted m cost scheme adversary =
@@ -40,7 +40,7 @@ theorem map_fst_gameCounted [DecidableEq Msg] (mode : CountingMode) (cost : spec
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output] [DecidableEq Msg]
 
 theorem advantage_eq_game (mode : CountingMode)
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion mode).advantage scheme adversary =
       Pr[= true | RandomOracleModel.run (game scheme adversary)] := by

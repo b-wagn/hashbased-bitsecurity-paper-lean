@@ -1,4 +1,4 @@
-import XmssSecurity.Statement.SynchronizedSignature
+import XmssSecurity.Statement.EpochBasedSignature
 import XmssSecurity.Statement.RandomOracleModel
 import XmssSecurity.Statement.BitSecurity
 import VCVio.OracleComp.QueryTracking.LoggingOracle
@@ -7,36 +7,28 @@ import VCVio.OracleComp.QueryTracking.CostModel
 /-!
 # Strong unforgeability under chosen-message attacks
 
-The synchronized security experiment `SY-UF-CMA` of Definition 8 of eprint 2025/055 (which is
-strong unforgeability, Remark 2 there), for a synchronized signature scheme in the random-oracle
-model:
+The experiment `SUFCMA_SIG(A)` of Definition 2 of the manuscript, for an epoch-based signature
+scheme `SIG = (Gen, Sig, Ver)` in the random-oracle model and an adversary `A`:
 
-1. the game generates `(pk, sk) ← Gen` and runs the adversary on `pk`;
-2. the adversary may query the hash oracle, sample privately, and request signatures `(ep, m)`;
-   every request is answered by `Sig(sk, ep, m)` and recorded;
-3. the adversary outputs a forgery `(ep*, m*, σ*)` and wins if `Ver(pk, ep*, m*, σ*) = 1`, the
-   signer never answered the request `(ep*, m*)` with `σ*`, and no epoch was requested twice.
+1. generate keys `(pk, sk) ← Gen`;
+2. run `A` on `pk`, with access to the hash oracle, private uniform sampling, and the signing
+   oracle `Sig(ep, m)`, which answers by `Sig(sk, ep, m)` (a signature, or `⊥` if the signer
+   fails) and records the request and the answer;
+3. obtain from `A` a forgery `(ep*, m*, σ*)`;
+4. determine winning: `v = 1` if `Ver(pk, ep*, m*, σ*) = 1`, the signing oracle never answered the
+   request `(ep*, m*)` with `σ*`, and no epoch was requested twice; otherwise `v = 0`;
+5. count queries, one count per `QueryKind`: the signing queries of `A` (`q_S`), the hash queries
+   `A` made directly (`q_H`), and the hash queries of key generation (`q_Gen`), of the signer
+   summed over all signing queries (`q_Sig`), and of the verification in step 4 (`q_Ver`);
+6. output `v` and the counts.
 
-The adversary has no verification oracle; the only verification is the game's final check.
+The signing oracle answers every request, but a transcript with two requests for the same epoch
+makes the forgery lose (`SigningTranscript.Valid`): the honest signer never signs twice for the
+same epoch. The adversary has no verification oracle; the only verification is the experiment's
+final check. Every hash call counts one unit, also for a repeated input; uniform sampling is free.
 
-The paper's signing oracle refuses a second request for an epoch; here a repeated epoch is still
-answered (the adversary learns one more signature), but such a transcript invalidates the forgery
-(`SigningTranscript.Valid`). The two formulations are equivalent for the bit-security claim. An
-adversary of the paper's game becomes one of this game by answering a repeated request with
-`none` locally instead of forwarding it: the transcript stays valid, no query is added, and the
-winning probability is unchanged. An adversary of this game becomes one of the paper's game by
-forwarding every request: once it repeats an epoch it cannot win here, and whatever it does in
-the paper's game only helps.
-
-## Counting modes
-
-The number `q` of queries charged to the adversary always includes its own hash calls, one unit
-per call also for a repeated input. A `CountingMode` says which of the following are charged in
-addition: the hash calls of key generation, the hash calls of the signer while answering signing
-requests, the hash calls of the final verification of the forgery, and one unit per signing
-request. This gives sixteen notions `notion mode`, one `SecurityNotion` per mode. `direct`
-charges nothing extra: the same bound must hold against adversaries whose own work is small,
-whatever the honest parties compute. `allHashes` charges every hash call of the experiment.
+`securityGame` is this experiment in the random-oracle model, as a `SecurityGame`
+(`BitSecurity.lean`); a counting mode then selects which of the counts form the adversary's work.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -89,121 +81,94 @@ instance [DecidableEq Msg] [DecidableEq Sig] (log : QueryLog (SigningSpec Msg Si
 
 end SigningTranscript
 
-/-- Which queries of the experiment are charged to the adversary in addition to its own hash
-calls, which are always charged. -/
-structure CountingMode where
-  /-- Charge the hash calls of key generation. -/
-  keygen : Bool
-  /-- Charge the hash calls of the signer while answering the adversary's signing requests. -/
-  signer : Bool
-  /-- Charge the hash calls of the final verification of the forgery. -/
-  verifier : Bool
-  /-- Charge one unit per signing request. -/
-  requests : Bool
-deriving DecidableEq, Repr
+/-! ## Counting queries -/
 
-namespace CountingMode
+/-- The kinds of queries counted by the experiment. -/
+inductive QueryKind where
+  /-- `q_S`: the adversary's signing queries. -/
+  | sign
+  /-- `q_H`: the hash queries the adversary makes directly. -/
+  | hash
+  /-- `q_Gen`: the hash queries of key generation. -/
+  | keygen
+  /-- `q_Sig`: the hash queries of the signer, summed over all signing queries. -/
+  | signer
+  /-- `q_Ver`: the hash queries of the verification of the forgery. -/
+  | verifier
+deriving DecidableEq, Fintype, Repr
 
-/-- Only the adversary's own hash calls. -/
-def direct : CountingMode := ⟨false, false, false, false⟩
+/-- A count per kind of query. -/
+abbrev QueryCounts := QueryKind → ℕ
 
-/-- Every hash call of the experiment: key generation, the adversary, the signer, and the
-verification of the forgery. -/
-def allHashes : CountingMode := ⟨true, true, true, false⟩
-
-/-- Every hash call of the experiment and every signing request. -/
-def everything : CountingMode := ⟨true, true, true, true⟩
-
-end CountingMode
+/-- `n` queries of kind `kind`, and none of the other kinds. -/
+def QueryCounts.single (kind : QueryKind) (n : ℕ) : QueryCounts := Pi.single kind n
 
 variable {ι : Type} {spec : OracleSpec ι} {PK SK : Type}
 
-/-- The cost `cost` if `charged`, and the zero cost otherwise. -/
-def costIf (charged : Bool) (cost : spec.Domain → ℕ) : spec.Domain → ℕ :=
-  if charged then cost else fun _ => 0
-
-/-- Run a computation and return its result together with the sum of `cost` over the queries it
-made. -/
-def charge {α : Type} (cost : spec.Domain → ℕ) (computation : OracleComp spec α) :
-    OracleComp spec (α × ℕ) :=
+/-- Run a computation, and also return the sum of `cost` over the queries it makes. -/
+def countQueries {ω : Type} [AddCommMonoid ω] {α : Type} (cost : spec.Domain → ω)
+    (computation : OracleComp spec α) : OracleComp spec (α × ω) :=
   (fun result => (result.1, Multiplicative.toAdd result.2)) <$>
     (simulateQ (addCostOracle cost) computation).run
+
+/-! ## The experiment -/
 
 /-- An adaptive adversary: given the public key, it may use the ambient oracles and the signing
 oracle, and returns a claimed forgery. -/
 structure Adversary {ι : Type} (spec : OracleSpec ι) (PK Msg Sig : Type) (L : ℕ) where
   main : PK → OracleComp (spec + SigningSpec Msg Sig L) (Forgery Msg Sig L)
 
-/-- The signing oracle: answer by the scheme's signer and record the request and answer. -/
-def signingOracle (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK) :
-    QueryImpl (SigningSpec Msg Sig L)
-      (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec)) :=
-  QueryImpl.withLogging fun request => scheme.sign sk request.epoch request.message
+/-- The adversary's run in the experiment: the counts so far, the signing log, and the ambient
+oracles. -/
+abbrev CountedRun (spec : OracleSpec ι) (Msg Sig : Type) (L : ℕ) : Type → Type :=
+  AddWriterT QueryCounts (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
 
-/-- The experiment, before any accounting: key generation, the adversary with the ambient oracles
-forwarded and the logged signing oracle, and verification of the forgery. The notions are stated
-with `gameCounted`, which adds the accounting; `Proof/Modes/` shows that `gameCounted` projects
-to `game` in every mode. -/
-def game [DecidableEq Msg] [DecidableEq Sig]
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
-    (adversary : Adversary spec PK Msg Sig L) : OracleComp spec Bool := do
-  let (pk, sk) ← scheme.keygen
-  let ((forgery, log) : Forgery Msg Sig L × QueryLog (SigningSpec Msg Sig L)) ←
-    (simulateQ
-      (QueryImpl.ofLift spec (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec)) +
-        signingOracle scheme sk)
-      (adversary.main pk)).run
-  let verified ← scheme.verify pk forgery.epoch forgery.message forgery.signature
-  return decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified
-
-/-- The monad of the adversary's run in `gameCounted`: the charged units, the signing log, and
-the ambient oracles. -/
-abbrev ChargedRun (spec : OracleSpec ι) (Msg Sig : Type) (L : ℕ) : Type → Type :=
-  AddWriterT ℕ (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
-
-/-- The signing oracle of `gameCounted`: as `signingOracle`, additionally charging the signer's
-queries by `signerCost` and `requestCost` units per request. -/
-def signingOracleCounted (signerCost : spec.Domain → ℕ) (requestCost : ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK) :
-    QueryImpl (SigningSpec Msg Sig L) (ChargedRun spec Msg Sig L) :=
+/-- The signing oracle `Sig(ep, m)` of the experiment: answer by `Sig(sk, ep, m)`, count one
+signing query and the signer's hash queries (each at `cost`), and record the request and the
+answer. -/
+def countedSigningOracle (cost : spec.Domain → ℕ)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK) :
+    QueryImpl (SigningSpec Msg Sig L) (CountedRun spec Msg Sig L) :=
   fun request => do
-    let (answer, charged) ← liftM (charge signerCost (scheme.sign sk request.epoch request.message))
+    let (answer, signerCounts) ← liftM (countQueries (fun t => QueryCounts.single .signer (cost t))
+      (scheme.sign sk request.epoch request.message))
     AddWriterT.addTell (M := WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
-      (requestCost + charged)
+      (QueryCounts.single .sign 1 + signerCounts)
     liftM (tell [⟨request, answer⟩] : WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec) Unit)
     return answer
 
-/-- The experiment as `game`, additionally returning the number of queries charged to the
-adversary under `mode`: its own queries to the ambient oracles at `cost`, and, as the mode says,
-the queries of key generation at `cost`, the queries of the signer at `cost`, the queries of the
-final verification at `cost`, and one unit per signing request. -/
-def gameCounted [DecidableEq Msg] [DecidableEq Sig] (mode : CountingMode)
-    (cost : spec.Domain → ℕ) (scheme : SynchronizedSignature spec PK SK Msg Sig L)
-    (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × ℕ) := do
-  let ((pk, sk), keygenCharged) ← charge (costIf mode.keygen cost) scheme.keygen
-  let (((forgery, adversaryCharged), log) :
-      (Forgery Msg Sig L × Multiplicative ℕ) × QueryLog (SigningSpec Msg Sig L)) ←
+/-- The experiment `SUFCMA_SIG(A)`: key generation, the adversary with the ambient oracles and the
+signing oracle, and verification of the forgery. It returns the winning bit `v` and the count of
+each kind of query, where every query of the ambient oracles counts `cost` (in the random-oracle
+model: one per hash call, none per uniform sample). -/
+def experiment [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
+    (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × QueryCounts) := do
+  let ((pk, sk), keygenCounts) ←
+    countQueries (fun t => QueryCounts.single .keygen (cost t)) scheme.keygen
+  let (((forgery, adversaryCounts), log) :
+      (Forgery Msg Sig L × Multiplicative QueryCounts) × QueryLog (SigningSpec Msg Sig L)) ←
     (simulateQ
       ((QueryImpl.ofLift spec
-          (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost cost +
-        signingOracleCounted (costIf mode.signer cost) (if mode.requests then 1 else 0) scheme sk)
+          (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost
+            (fun t => QueryCounts.single .hash (cost t)) +
+        countedSigningOracle cost scheme sk)
       (adversary.main pk)).run.run
-  let (verified, verifierCharged) ← charge (costIf mode.verifier cost)
+  let (verified, verifierCounts) ← countQueries (fun t => QueryCounts.single .verifier (cost t))
     (scheme.verify pk forgery.epoch forgery.message forgery.signature)
   return (decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified,
-    keygenCharged + Multiplicative.toAdd adversaryCharged + verifierCharged)
+    keygenCounts + Multiplicative.toAdd adversaryCounts + verifierCounts)
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 
-/-- SUF-CMA in the random-oracle model for synchronized signature schemes, charging the hash calls
-selected by `mode` (one unit per hash call, also for a repeated input; uniform samples are free)
-and, if `mode.requests`, one unit per signing request. -/
-noncomputable def notion [DecidableEq Msg] [DecidableEq Sig] (mode : CountingMode) :
-    SecurityNotion
-      (SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) where
+/-- SUF-CMA in the random-oracle model: the experiment with the lazily sampled random oracle,
+counting one unit per hash call (also for a repeated input) and nothing per uniform sample. -/
+noncomputable def securityGame [DecidableEq Msg] [DecidableEq Sig] :
+    SecurityGame (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+      QueryKind where
   Adversary := Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
   experiment := fun scheme adversary =>
     RandomOracleModel.run
-      (gameCounted mode (RandomOracleModel.hashCost Input Output) scheme adversary)
+      (SUFCMA.experiment (RandomOracleModel.hashCost Input Output) scheme adversary)
 
 end XmssSecurity.SUFCMA

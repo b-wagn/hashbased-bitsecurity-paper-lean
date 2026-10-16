@@ -1,5 +1,6 @@
-import XmssSecurity.Statement.Claims
+import XmssSecurity.Statement.Scheme.Xmss
 import XmssSecurity.Proof.Modes.Lattice
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-!
 # A basis for the exact-security conjecture
@@ -21,11 +22,11 @@ theorem le_everything (mode : CountingMode) : mode.Le CountingMode.everything :=
 
 /-- The three minimal modes charging an honest party cover every such counting mode. -/
 theorem secure_127_of_minimal_modes
-    (hk : XmssSufCmaSecure ⟨true, false, false, false⟩ 127)
-    (hs : XmssSufCmaSecure ⟨false, true, false, false⟩ 127)
-    (hv : XmssSufCmaSecure ⟨false, false, true, false⟩ 127)
+    (hk : (SUFCMA.notion ⟨true, false, false, false⟩).HasClassicalSecurityBits xmss 127)
+    (hs : (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 127)
+    (hv : (SUFCMA.notion ⟨false, false, true, false⟩).HasClassicalSecurityBits xmss 127)
     (mode : CountingMode) (h : (mode.keygen || mode.signer || mode.verifier) = true) :
-    XmssSufCmaSecure mode 127 := by
+    (SUFCMA.notion mode).HasClassicalSecurityBits xmss 127 := by
   simp only [Bool.or_eq_true] at h
   rcases h with (hkeygen | hsigner) | hverifier
   · exact hasClassicalSecurityBits_of_le (by simp [CountingMode.Le, hkeygen]) xmss 127 hk
@@ -35,20 +36,18 @@ theorem secure_127_of_minimal_modes
 /-- Assemble the exact-security picture from the four minimal security modes and two maximal
 attack modes. All six inputs are required. -/
 theorem exactStatement_of_basis
-    (hd : XmssSufCmaSecure CountingMode.direct 122)
-    (hk : XmssSufCmaSecure ⟨true, false, false, false⟩ 127)
-    (hs : XmssSufCmaSecure ⟨false, true, false, false⟩ 127)
-    (hv : XmssSufCmaSecure ⟨false, false, true, false⟩ 127)
-    (ha122 : XmssSufCmaAttack ⟨false, false, false, true⟩ 122)
-    (ha127 : XmssSufCmaEverythingAttackStatement) : XmssSufCmaExactStatement := by
+    (hd : (SUFCMA.notion CountingMode.direct).HasClassicalSecurityBits xmss 122)
+    (hk : (SUFCMA.notion ⟨true, false, false, false⟩).HasClassicalSecurityBits xmss 127)
+    (hs : (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 127)
+    (hv : (SUFCMA.notion ⟨false, false, true, false⟩).HasClassicalSecurityBits xmss 127)
+    (ha122 : ¬(SUFCMA.notion ⟨false, false, false, true⟩).HasClassicalSecurityBits xmss (122 + 1))
+    (ha127 : ¬(SUFCMA.notion SUFCMA.CountingMode.everything).HasClassicalSecurityBits xmss (127 + 1)) : (∀ mode : SUFCMA.CountingMode, (SUFCMA.notion mode).HasExactClassicalSecurityBits xmss (if mode.keygen || mode.signer || mode.verifier then 127 else 122)) := by
   intro mode
   by_cases h : (mode.keygen || mode.signer || mode.verifier) = true
-  · have hbits : conjecturedBits mode = 127 := by simp [conjecturedBits, h]
-    rw [hbits]
+  · rw [if_pos h]
     exact ⟨secure_127_of_minimal_modes hk hs hv mode h,
       not_hasClassicalSecurityBits_of_le (le_everything mode) xmss 128 ha127⟩
-  · have hbits : conjecturedBits mode = 122 := by simp [conjecturedBits, h]
-    rw [hbits]
+  · rw [if_neg h]
     have hnone : mode.keygen = false ∧ mode.signer = false ∧ mode.verifier = false := by
       simpa only [Bool.or_eq_true, not_or, Bool.not_eq_true, and_assoc] using h
     exact ⟨hasClassicalSecurityBits_of_le (direct_le mode) xmss 122 hd,
@@ -56,13 +55,13 @@ theorem exactStatement_of_basis
         (by simp [CountingMode.Le, hnone.1, hnone.2.1, hnone.2.2]) xmss 123 ha122⟩
 
 /-- These six obligations are equivalent to the unchanged statement of the full conjecture. -/
-theorem exactStatement_iff_basis : XmssSufCmaExactStatement ↔
-    XmssSufCmaSecure CountingMode.direct 122 ∧
-    XmssSufCmaSecure ⟨true, false, false, false⟩ 127 ∧
-    XmssSufCmaSecure ⟨false, true, false, false⟩ 127 ∧
-    XmssSufCmaSecure ⟨false, false, true, false⟩ 127 ∧
-    XmssSufCmaAttack ⟨false, false, false, true⟩ 122 ∧
-    XmssSufCmaEverythingAttackStatement := by
+theorem exactStatement_iff_basis : (∀ mode : SUFCMA.CountingMode, (SUFCMA.notion mode).HasExactClassicalSecurityBits xmss (if mode.keygen || mode.signer || mode.verifier then 127 else 122)) ↔
+    (SUFCMA.notion CountingMode.direct).HasClassicalSecurityBits xmss 122 ∧
+    (SUFCMA.notion ⟨true, false, false, false⟩).HasClassicalSecurityBits xmss 127 ∧
+    (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 127 ∧
+    (SUFCMA.notion ⟨false, false, true, false⟩).HasClassicalSecurityBits xmss 127 ∧
+    ¬(SUFCMA.notion ⟨false, false, false, true⟩).HasClassicalSecurityBits xmss (122 + 1) ∧
+    ¬(SUFCMA.notion SUFCMA.CountingMode.everything).HasClassicalSecurityBits xmss (127 + 1) := by
   constructor
   · intro h
     exact ⟨(h CountingMode.direct).1, (h ⟨true, false, false, false⟩).1,

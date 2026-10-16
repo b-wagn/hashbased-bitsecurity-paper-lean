@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.EUFCMA.ReplaySeeded
 import XmssSecurity.Proof.EUFCMA.DirectBridge
-import XmssSecurity.Statement.EUFCMAClaims
+import XmssSecurity.Statement.Scheme.Xmss
+import XmssSecurity.Statement.Security.EUFCMA
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-! The replay/fallback adversary has semantic direct budget one and refutes
 127-bit standard unforgeability of the original seeded scheme in that mode. -/
@@ -45,13 +47,13 @@ theorem replay_statement_direct_queryBound :
   obtain ⟨won, _, rfl⟩ := hresult
   exact le_rfl
 
-theorem replay_direct_attack_126 : XmssEufCmaAttack SUFCMA.CountingMode.direct 126 := by
+theorem replay_direct_attack_126 : ¬(EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss (126 + 1) := by
   intro hsecure
   have hbound := hsecure 1 le_rfl replayStatementAdversary replay_statement_direct_queryBound
   rw [notion_advantage_eq, Nat.cast_one, one_div] at hbound
   exact (not_lt_of_ge hbound) replay_seeded_advantage_exceeds_127
 
-theorem not_uniform_127 : ¬XmssEufCmaUniform127Statement := by
+theorem not_uniform_127 : ¬(∀ mode : SUFCMA.CountingMode, (EUFCMA.notion mode).HasExactClassicalSecurityBits xmss 127) := by
   intro h
   exact replay_direct_attack_126 (h SUFCMA.CountingMode.direct).1
 

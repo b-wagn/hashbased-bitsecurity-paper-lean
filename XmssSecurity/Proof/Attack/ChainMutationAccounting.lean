@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.Attack.ChainMutation
 import XmssSecurity.Proof.Modes.Projection
-import XmssSecurity.Statement.Claims
+import XmssSecurity.Statement.Scheme.Xmss
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-! The mutation adversary has budget one in the statement's counted experiment. -/
 
@@ -17,7 +18,7 @@ open SUFCMA
 
 variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
 
-theorem signingOracleCounted_requests (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+theorem signingOracleCounted_requests (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (sk : SK) (requestCost : ℕ) (request : SUFCMA.SignRequest Msg L) :
     signingOracleCounted (fun _ => 0) requestCost scheme sk request =
       ((SUFCMA.signingOracle scheme sk).withAddCost (fun _ => requestCost)) request := by
@@ -31,7 +32,7 @@ theorem signingOracleCounted_requests (scheme : SynchronizedSignature spec PK SK
     LawfulAppend.append_empty, AddWriterT.addTell]
 
 theorem impl_requests_eq (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK) :
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK) :
     (QueryImpl.ofLift spec
         (WriterT (QueryLog (SUFCMA.SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost cost +
       signingOracleCounted (fun _ => 0) 1 scheme sk =
@@ -99,7 +100,7 @@ theorem chainMutation_requests_advantage :
 theorem requests_attack_of_chainMutation_advantage
     (hadvantage : (1 : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) <
       forgeAdvantage Seeded.scheme chainMutationAdversary) :
-    XmssSufCmaAttack ⟨false, false, false, true⟩ 122 := by
+    ¬(SUFCMA.notion ⟨false, false, false, true⟩).HasClassicalSecurityBits xmss (122 + 1) := by
   intro hsecure
   have hbound := hsecure 1 le_rfl chainMutationSufCmaAdversary chainMutation_requests_queryBound
   rw [chainMutation_requests_advantage, Nat.cast_one] at hbound

@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.ConsistentQueryBound
-import XmssSecurity.Statement.Claims
+import XmssSecurity.Statement.Scheme.Xmss
 import XmssSecurity.Proof.Adversary.LegacyNotions
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-!
 # From the statement to the proof's game

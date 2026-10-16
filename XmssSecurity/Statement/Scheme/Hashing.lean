@@ -1,0 +1,150 @@
+import XmssSecurity.Statement.Scheme.Types
+
+/-!
+# XMSS hashing
+
+How XMSS calls the hash function: the serialization of hash inputs (little-endian byte strings
+and the 16-byte tweaks of the specification), the hash domains, and the hash routines built on a
+single oracle query `oracleHash`: the tweakable hash `Th` and its uses for the message encoding,
+chain steps, leaves, and Merkle nodes, and the derivation of keys and randomizers from the master
+seed. The hash routines work in any monad with access to `HashSpec`.
+-/
+
+open OracleComp OracleSpec
+
+namespace XmssSecurity
+
+/-! ## Hash inputs and tweaks -/
+
+/-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
+def truncateHash (output : HashOutput) : Digest :=
+  output.extractLsb' 0 digestBits
+
+/-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
+def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
+  List.ofFn fun index : Fin byteCount =>
+    UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
+
+/-- The three fields of the specification's `enc(t, p, j)`. -/
+structure TweakFields where
+  tag : BitVec 8
+  position : BitVec 32
+  leafIndex : BitVec 32
+deriving DecidableEq
+
+/-- The protocol domain separator. -/
+def protocolDomainSep : UInt8 := 0
+
+/-- The specification's 16 tweak bytes `protocol_domain_sep || tag || 0 || 0 || position || 0^4 || leafIndex`, each field serialized least significant byte first. -/
+def fieldBytes (fields : TweakFields) : List UInt8 :=
+  [protocolDomainSep] ++ bytesLE 1 fields.tag ++ [0, 0] ++ bytesLE 4 fields.position ++
+    List.replicate 4 0 ++ bytesLE 4 fields.leafIndex
+
+/-- Convert the specification's three integer fields to their fixed widths. -/
+def tweakFields (tag position leafIndex : Nat) : TweakFields :=
+  ⟨BitVec.ofNat 8 tag, BitVec.ofNat 32 position, BitVec.ofNat 32 leafIndex⟩
+
+/-- The verification hash domains, tweak types `1` to `4`. -/
+inductive HashDomain where
+  | chain (leafIndex : LeafIndex) (chain : ChainIndex) (step : ChainStep)
+  | leaf (leafIndex : LeafIndex)
+  | merkle (level : MerkleLevel) (node : MerkleNode)
+  | encoding (leafIndex : LeafIndex)
+deriving DecidableEq
+
+/-- Serialize a typed hash domain into the fields of a tweak. -/
+def hashDomainFields : HashDomain → TweakFields
+  | .chain leafIndex chain step => tweakFields 1 (chainLength * chain + step) leafIndex
+  | .leaf leafIndex => tweakFields 2 0 leafIndex
+  | .merkle level node => tweakFields 3 (level.val + 1) node
+  | .encoding leafIndex => tweakFields 4 0 leafIndex
+
+/-- The exact 16 bytes supplied by the specification as a hash tweak. -/
+def tweakBytes (domain : HashDomain) : List UInt8 :=
+  fieldBytes (hashDomainFields domain)
+
+/-- The random-oracle input `tweak || parameter || message` used by every tweakable hash call. -/
+def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
+    (message : HashInput) : HashInput :=
+  tweakBytes domain ++ bytesLE 16 parameter ++ message
+
+/-- `tweak(7, trial, leafIndex) || P || S || m`. -/
+def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
+    (leafIndex : LeafIndex) (message : Message) (trial : BitVec 32) : HashInput :=
+  fieldBytes ⟨7#8, trial, BitVec.ofNat 32 leafIndex.val⟩ ++
+    bytesLE 16 parameter ++ bytesLE 32 seed ++ bytesLE 32 message
+
+inductive KeygenDomain where
+  | parameter
+  | chain (leafIndex : LeafIndex) (chain : ChainIndex)
+deriving DecidableEq
+
+def keygenDomainFields : KeygenDomain → TweakFields
+  | .parameter => tweakFields 5 0 0
+  | .chain leafIndex chain => tweakFields 0 chain leafIndex
+
+/-- `tweak || P || S`; parameter derivation uses `P = 0`. -/
+def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
+    (seed : MasterSeed) : HashInput :=
+  fieldBytes (keygenDomainFields domain) ++ bytesLE 16 parameter ++ bytesLE 32 seed
+
+/-! ## Hash routines -/
+
+namespace Concrete
+
+/-- `m || rho || 0^64`. -/
+def encodingPayload (message : Message) (randomness : Randomness) : HashInput :=
+  bytesLE 32 message ++ bytesLE 24 randomness ++ List.replicate 8 0
+
+/-- `pk_0 || ... || pk_{v-1}`. -/
+def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
+  (List.ofFn endpoints).flatMap (bytesLE 16)
+
+/-- The two children of a Merkle node. -/
+def nodePayload (left right : Digest) : HashInput :=
+  bytesLE 16 left ++ bytesLE 16 right
+
+variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+
+/-- One query to the random oracle `H`. -/
+def oracleHash (input : HashInput) : m HashOutput :=
+  HasQuery.query (spec := HashSpec) (m := m) input
+
+/-- `Th(P, tw, M) = Truncate_n(H(tw || P || M))`. -/
+def tweakableHash
+    (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) : m Digest := do
+  let output ← oracleHash (tweakableHashInput parameter domain payload)
+  return truncateHash output
+
+/-- The digest `D` of `IncEnc(P, m, rho, idx)`. -/
+def encodingHash (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (message : Message) (randomness : Randomness) : m Digest :=
+  tweakableHash parameter (.encoding leafIndex) (encodingPayload message randomness)
+
+/-- One chain step, under `tweak_chain(idx, i, step + 1)`. -/
+def chainHash (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
+    (step : ChainStep) (value : Digest) : m Digest :=
+  tweakableHash parameter (.chain leafIndex chain step) (bytesLE 16 value)
+
+/-- `X_{0,idx}`, the hash of the `v` public values. -/
+def leafHash (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (endpoints : ChainIndex → Digest) : m Digest :=
+  tweakableHash parameter (.leaf leafIndex) (leafPayload endpoints)
+
+/-- `X_{level+1,node}` from its two children. -/
+def nodeHash (parameter : PublicParameter) (level : MerkleLevel) (node : MerkleNode)
+    (left right : Digest) : m Digest :=
+  tweakableHash parameter (.merkle level node) (nodePayload left right)
+
+end Concrete
+
+variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+
+def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
+  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
+
+def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
+    (message : Message) (trial : BitVec 32) : m Randomness := do
+  return (← Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message trial)).extractLsb' 0 randomnessBits
+
+end XmssSecurity

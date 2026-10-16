@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.EUFCMA.DecidingAssembly
 import XmssSecurity.Proof.EUFCMA.ReferenceHop
-import XmssSecurity.Statement.EUFCMAClaims
+import XmssSecurity.Statement.Scheme.Xmss
+import XmssSecurity.Statement.Security.EUFCMA
+import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 /-! An intermediate direct-security bound. Standard freshness removes the free
 forty-query second-lane allowance, improving the inherited 122-bit result to 125
@@ -60,7 +62,7 @@ theorem directPrefixLoss_le_126_of_two_le (D : ℕ) (hD : 2 ≤ D) :
   push_cast
   linarith
 
-theorem direct_125 : XmssEufCmaSecure SUFCMA.CountingMode.direct 125 := by
+theorem direct_125 : (EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss 125 := by
   apply direct_security_of_reference_bound
   intro adversary D hD hbound
   exact (reference_advantage_add_seed_loss_le adversary D hbound).trans (directPrefixLoss_le_125 D hD)

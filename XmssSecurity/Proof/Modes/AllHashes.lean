@@ -107,7 +107,7 @@ theorem simulateQ_withAddCost_ofLift_apply (impl : QueryImpl spec m) (cost : spe
 
 /-- The charged signing oracle, query by query. -/
 theorem simulateQ_signingOracleCounted_apply (impl : QueryImpl spec m) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK)
     (r : SUFCMA.SignRequest Msg L) :
     simulateQ impl (SUFCMA.signingOracleCounted cost 0 scheme sk r).run.run =
       swapLayers <$>
@@ -121,7 +121,7 @@ theorem simulateQ_signingOracleCounted_apply (impl : QueryImpl spec m) (cost : s
 /-- Query by query, the charged oracles of `gameCounted allHashes` simulated with `impl` are the
 oracles of `game` simulated with the charging implementation. -/
 theorem simulateQ_countedOracles_apply (impl : QueryImpl spec m) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK)
     (t : (spec + SUFCMA.SigningSpec Msg Sig L).Domain) :
     simulateQ impl
       (((QueryImpl.ofLift spec LogW).withAddCost cost +
@@ -135,7 +135,7 @@ theorem simulateQ_countedOracles_apply (impl : QueryImpl spec m) (cost : spec.Do
 /-- The adversary's run of `gameCounted allHashes` simulated with `impl` is its run of `game`
 simulated with the charging implementation. -/
 theorem simulateQ_adversaryRun (impl : QueryImpl spec m) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L) (sk : SK)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) (pk : PK) :
     simulateQ impl
       (simulateQ ((QueryImpl.ofLift spec LogW).withAddCost cost +
@@ -151,7 +151,7 @@ variable [DecidableEq Msg] [DecidableEq Sig]
 /-- `gameCounted allHashes` simulated with `impl` is `game` simulated with the charging
 implementation, converting the cost. -/
 theorem simulateQ_gameCounted_allHashes (impl : QueryImpl spec m) (cost : spec.Domain → ℕ)
-    (scheme : SynchronizedSignature spec PK SK Msg Sig L)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
     simulateQ impl (SUFCMA.gameCounted SUFCMA.CountingMode.allHashes cost scheme adversary) =
       (fun r => (r.1, Multiplicative.toAdd r.2)) <$>
@@ -175,7 +175,7 @@ variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 
 /-- The experiment of the mode `allHashes` is the experiment of the total notion. -/
 theorem notion_allHashes_experiment_eq
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (SUFCMA.notion SUFCMA.CountingMode.allHashes).experiment scheme adversary =
       SUFCMA.notionTotal.experiment scheme adversary := by
@@ -187,7 +187,7 @@ theorem notion_allHashes_experiment_eq
 
 /-- The advantage of an adversary is the same in the mode `allHashes` and the total notion. -/
 theorem notion_allHashes_advantage_eq
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (SUFCMA.notion SUFCMA.CountingMode.allHashes).advantage scheme adversary =
       SUFCMA.notionTotal.advantage scheme adversary := by
@@ -197,7 +197,7 @@ theorem notion_allHashes_advantage_eq
 /-- The query bounds of an adversary are the same in the mode `allHashes` and the total
 notion. -/
 theorem notion_allHashes_hasQueryBound_iff
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) (q : ℕ) :
     (SUFCMA.notion SUFCMA.CountingMode.allHashes).HasQueryBound scheme adversary q ↔
       SUFCMA.notionTotal.HasQueryBound scheme adversary q := by
@@ -206,7 +206,7 @@ theorem notion_allHashes_hasQueryBound_iff
 
 /-- The mode `allHashes` and the total notion give the same bit security. -/
 theorem notion_allHashes_hasClassicalSecurityBits_iff
-    (scheme : SynchronizedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) :
     (SUFCMA.notion SUFCMA.CountingMode.allHashes).HasClassicalSecurityBits scheme bits ↔
       SUFCMA.notionTotal.HasClassicalSecurityBits scheme bits := by
