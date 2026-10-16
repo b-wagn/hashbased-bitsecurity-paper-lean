@@ -8,9 +8,8 @@ The public entry point for the `XmssSecurity` library. Importing this module che
 classifications of strong (SUF-CMA) and standard (EUF-CMA) unforgeability under all sixteen
 counting modes:
 
-* `xmss_sufCma_exact` (`Statement/StrongUnforgeabilityTheorems.lean`): exactly 122 bits when no
-  honest-party hashes are charged, and exactly 127 bits when key generation, signer, or
-  verification hashes are charged.
-* `xmss_eufCma_exact` (`Statement/UnforgeabilityTheorems.lean`): exactly 126 bits for direct
-  queries alone, and exactly 127 bits when any additional query class is charged.
+* `xmss_sufCma_exact` (`Statement/StrongUnforgeabilityTheorems.lean`) and `xmss_eufCma_exact`
+  (`Statement/UnforgeabilityTheorems.lean`): exactly 127 bits when key generation or verification
+  hashes are charged; otherwise exactly 124 bits when the signer's hashes and the signing requests
+  are charged, 123 bits when only the signer's hashes are, and 122 bits when neither is.
 -/

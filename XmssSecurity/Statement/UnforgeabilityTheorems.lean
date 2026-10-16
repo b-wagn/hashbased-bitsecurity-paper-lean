@@ -7,10 +7,10 @@ import XmssSecurity.Proof.Main.Unforgeability
 /-!
 # Standard unforgeability of XMSS: the theorem
 
-This file states and proves the exact classical bit security of XMSS under standard
-unforgeability (EUF-CMA, `Security/EUFCMA.lean`) in the random-oracle model, for each of the
-sixteen counting modes that count the adversary's own hash queries. The rest of `Statement/`
-contains only definitions; the proof lives under `Proof/`.
+This file states and proves the exact classical bit security of XMSS with the checksummed WOTS
+encoding under standard unforgeability (EUF-CMA, `Security/EUFCMA.lean`) in the random-oracle
+model, for each of the sixteen counting modes that count the adversary's own hash queries. The
+rest of `Statement/` contains only definitions; the proof lives under `Proof/`.
 
 A standard forgery must use an epoch/message pair never requested from the signer, including
 requests that returned no signature. Bit security and the counting modes are as in
@@ -18,21 +18,24 @@ requests that returned no signature. Bit security and the counting modes are as 
 
 | Counting mode `Z` (with `hash ∈ Z`) | Exact bits |
 |---|---|
-| `Z = {hash}` | 126 |
-| any further kind in `Z` (15 modes) | 127 |
+| none of `keygen`, `signer`, `verifier` in `Z` (`{hash}` and `{hash, sign}`) | 122 |
+| `{hash, signer}` | 123 |
+| `{hash, signer, sign}` | 124 |
+| `keygen` or `verifier` in `Z` (12 modes) | 127 |
+
+The levels are those of strong unforgeability.
 
 ## Why these levels
 
-* 126 bits. The matching attack requests one signature and makes one hash query of its own:
-  it queries the encoding of a second, fresh message under the signature's randomness. If that
-  encoding decodes, it submits the signature for the second message; otherwise it submits the
-  signature for a third fresh message, whose encoding only the verifier computes. Its success
-  probability is strictly above `2^-127`, which refutes 127 bits when only its one hash query
-  is counted.
-* 127 bits in the other modes. Counting any further kind of query at least doubles the replay
-  attack's work, so it no longer refutes 127 bits. The matching attack is
-  the neighboring-message forgery (the standard-unforgeability analogue of the 127-bit attack
-  in `StrongUnforgeabilityTheorems.lean`); it refutes 128 bits even with every kind of query counted.
+* The security proofs are those of strong unforgeability: a standard forgery is a strong one.
+* 122, 123, 124 bits. Every digest encodes, so a signature for one message already answers half
+  of a forgery for any other message at the same epoch. The matching attack requests one
+  signature and submits it unchanged for a fresh message. The verifier hashes a fresh leaf and `32`
+  tree nodes along the honest authentication path, and each of these `33` fresh hash calls hits the
+  honest value with probability `1 / 2^128`; the attack succeeds with probability above
+  `32 / 2^128`. Its work is as for the strong attack: `1`, `2`, or `3`.
+* 127 bits in the other modes: the neighboring-codeword attack of
+  `StrongUnforgeabilityTheorems.lean` forges a fresh message.
 -/
 
 namespace XmssSecurity
@@ -40,12 +43,16 @@ namespace XmssSecurity
 open SUFCMA
 
 /-- The exact standard-unforgeability classification of XMSS: under every counting mode `Z` that
-counts the adversary's own hash queries, XMSS has exactly 126 bits of classical EUF-CMA security
-if `Z` counts only those, and exactly 127 bits if `Z` counts any further kind of query. -/
+counts the adversary's own hash queries, XMSS has exactly 127 bits of classical EUF-CMA security
+if `Z` counts the hash queries of key generation or verification, and otherwise exactly 124 bits if
+`Z` counts the signer's hash queries and the signing queries, 123 bits if it counts the signer's
+hash queries only, and 122 bits if it counts neither. -/
 theorem xmss_eufCma_exact (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
     (EUFCMA.securityGame).HasExactClassicalSecurityBits xmss Z
-      (if QueryKind.keygen ∈ Z ∨ QueryKind.signer ∈ Z ∨ QueryKind.verifier ∈ Z ∨
-        QueryKind.sign ∈ Z then 127 else 126) :=
+      (if QueryKind.keygen ∈ Z ∨ QueryKind.verifier ∈ Z then 127
+      else if QueryKind.signer ∈ Z ∧ QueryKind.sign ∈ Z then 124
+      else if QueryKind.signer ∈ Z then 123
+      else 122) :=
   Proof.eufCma_exact_of_hash_mem Z hZ
 
 /-- info: 'XmssSecurity.xmss_eufCma_exact' depends on axioms: [propext, Classical.choice, Quot.sound] -/
