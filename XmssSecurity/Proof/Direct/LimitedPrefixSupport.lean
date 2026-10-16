@@ -100,7 +100,7 @@ theorem limitedFirstLanePrefix_accepted_probability_le_expected {α : Type}
     Pr[LimitedPrefixHasAcceptedEncoding key.secretKey.parameter |
       (simulateQ (eagerTraceImpl table) (limitedFirstLanePrefix limit key edgeHigh computation
         (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) counters)).run] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample
+      Checksum.acceptanceProbability * expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample
         (limitedFirstLanePrefix limit key edgeHigh computation
           (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) counters) () := by
   apply le_trans _ (traceEncodingAcceptance_probability_le_expected table _)

@@ -44,10 +44,9 @@ theorem outcomeChainValueHasKeygenOrigin_eq_table
     (horigin : OutcomeChainValueHasKeygenOrigin keygenCache finalCache secretKey
       outcome chain) :
     ∃ encoding,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash finalCache secretKey.parameter
+      Concrete.CacheView.decodedEncoding finalCache secretKey.parameter
           outcome.forgery.epoch
-          (outcome.forgery.message, outcome.forgery.signature.randomness)) =
+          (outcome.forgery.message, outcome.forgery.signature.randomness) =
         some encoding ∧
       outcome.forgery.signature.chainValue chain =
         keygenChainValueTable keygenCache secretKey chain
@@ -72,10 +71,9 @@ theorem winningOutcomeChainValueHasKeygenOrigin_eq_table
     (horigin : WinningOutcomeChainValueHasKeygenOrigin keygenCache finalCache
       secretKey outcome chain) :
     ∃ encoding,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash finalCache secretKey.parameter
+      Concrete.CacheView.decodedEncoding finalCache secretKey.parameter
           outcome.forgery.epoch
-          (outcome.forgery.message, outcome.forgery.signature.randomness)) =
+          (outcome.forgery.message, outcome.forgery.signature.randomness) =
         some encoding ∧
       outcome.forgery.signature.chainValue chain =
         keygenChainValueTable keygenCache secretKey chain
@@ -90,9 +88,8 @@ noncomputable def returnedChainValueIndices
   classical
   exact Finset.univ.filter fun index => ∃ request signature encoding,
     SigningTranscript.Returned log request signature ∧
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash cache secretKey.parameter request.epoch
-          (request.message, signature.randomness)) = some encoding ∧
+      Concrete.CacheView.decodedEncoding cache secretKey.parameter request.epoch
+          (request.message, signature.randomness) = some encoding ∧
       index.1 = request.epoch ∧ encoding chain ≤ index.2
 
 @[simp]
@@ -102,9 +99,8 @@ theorem mem_returnedChainValueIndices_iff
     index ∈ returnedChainValueIndices cache secretKey log chain ↔
       ∃ request signature encoding,
         SigningTranscript.Returned log request signature ∧
-          TargetSum.decodeDigest
-            (Concrete.CacheView.encodingHash cache secretKey.parameter request.epoch
-              (request.message, signature.randomness)) = some encoding ∧
+          Concrete.CacheView.decodedEncoding cache secretKey.parameter request.epoch
+              (request.message, signature.randomness) = some encoding ∧
           index.1 = request.epoch ∧ encoding chain ≤ index.2 := by
   classical
   simp only [returnedChainValueIndices, Finset.mem_filter, Finset.mem_univ, true_and]

@@ -7,7 +7,7 @@ open scoped BigOperators
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
-namespace XmssSecurity.TargetSum
+namespace XmssSecurity.Checksum
 
 /-- Digit strings of a given length and sum. -/
 abbrev Words (radix length total : ℕ) :=
@@ -117,4 +117,4 @@ theorem validDigests_card_eq_wordCount :
   rw [validDigests, ← Fintype.card_subtype, Fintype.card_congr validDigestEquivEncoding]
   rfl
 
-end XmssSecurity.TargetSum
+end XmssSecurity.Checksum

@@ -69,9 +69,8 @@ theorem Concrete.precomputedSignBoundedAttempts_success_replay
           request.message)).run initialCache))
     (hle : resultCache ≤ largerCache) :
     ∃ encoding,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash largerCache secretKey.parameter request.epoch
-          (request.message, signature.randomness)) = some encoding ∧
+      Concrete.CacheView.decodedEncoding largerCache secretKey.parameter request.epoch
+          (request.message, signature.randomness) = some encoding ∧
       signature = Concrete.CacheReplay.signWithEncoding largerCache secretKey
         request.epoch signature.randomness encoding := by
   obtain ⟨randomness, attemptCache, finalAttemptCache, hattempt, hattemptLe⟩ :=
@@ -89,8 +88,12 @@ theorem Concrete.precomputedSignBoundedAttempts_success_replay
     have hrandomness : randomness = signature.randomness := by
       simpa only [Concrete.precomputedSignWithEncoding] using
         congrArg Signature.randomness heval
+    obtain ⟨output, hcached⟩ := Concrete.CacheReplay.precomputedSignAttempt_run_encodingInput_cached
+      secretKey request.epoch request.message randomness attemptCache finalAttemptCache
+      (some signature) hattempt
     refine ⟨encoding, ?_, ?_⟩
-    · rw [← hrandomness]
+    · rw [← hrandomness,
+        Concrete.CacheView.decodedEncoding_eq_of_cache_eq_some ((hattemptLe.trans hle) hcached)]
       exact hdecode
     · rw [← hrandomness, ← heval]
       exact hconsistent largerCache hkeygenLe request.epoch randomness encoding
@@ -108,9 +111,8 @@ theorem Concrete.precomputedCappedSign_success_replay
           request.message)).run initialCache))
     (hle : resultCache ≤ largerCache) :
     ∃ encoding,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash largerCache secretKey.parameter request.epoch
-          (request.message, signature.randomness)) = some encoding ∧
+      Concrete.CacheView.decodedEncoding largerCache secretKey.parameter request.epoch
+          (request.message, signature.randomness) = some encoding ∧
       signature = Concrete.CacheReplay.signWithEncoding largerCache secretKey
         request.epoch signature.randomness encoding := by
   rw [Concrete.precomputedCappedSign] at hmem

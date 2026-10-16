@@ -55,7 +55,8 @@ theorem erases_sign (known : QueryCache HashSpec)
     (hknown : ∀ position, known (randomizerInputs sk.parameter seed position) = some (randomizers position))
     (leafIndex : LeafIndex) (message : Message) :
     Erases known (sign ⟨seed, sk⟩ leafIndex message : OracleComp HashSpec _)
-      (tableSign randomizers sk leafIndex message) :=
-  erases_signFrom known seed sk randomizers hknown leafIndex message _ _
+      (tableSign randomizers sk leafIndex message) := by
+  rw [sign_eq_signFrom]
+  exact erases_signFrom known seed sk randomizers hknown leafIndex message _ _
 
 end XmssSecurity.Seeded

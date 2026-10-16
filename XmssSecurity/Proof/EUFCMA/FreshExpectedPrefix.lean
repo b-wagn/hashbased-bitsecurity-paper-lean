@@ -16,7 +16,7 @@ theorem sourcePrefix_freshAccepted_probability_le_expected (adversary : XmssSecu
     (key : ProgrammedGlobalChainKeygenView)
     (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen) :
     Pr[SourcePrefixFreshAccepted key | sourcePrefixExecution adversary key] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount
+      Checksum.acceptanceProbability * expectedSimulatedQueryCount
         (cappedUnloggedMappedAdversaryImpl key.publicKey (materializePrecomputation key.cache key.secretKey))
         (Direct.IsDirectEncodingQuery key.secretKey.parameter) (adversary.main key.publicKey) key.cache := by
   have hbound := probEvent_freshAccepted_le_expected_directEncoding key.publicKey
@@ -36,7 +36,7 @@ theorem sourcePrefix_freshAccepted_probability_le_expected (adversary : XmssSecu
 
 theorem sourcePrefixProgram_freshAccepted_probability_le_expected (adversary : XmssSecurity.Adversary) :
     Pr[fun result => SourcePrefixFreshAccepted result.1 result.2 | sourcePrefixProgram adversary] ≤
-      TargetSum.acceptanceProbability * Direct.expectedDirectEncodingQueries adversary := by
+      Checksum.acceptanceProbability * Direct.expectedDirectEncodingQueries adversary := by
   let credit := fun keyResult : (PublicKey × SecretKey) × QueryCache HashSpec =>
     expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
       (Direct.IsDirectEncodingQuery keyResult.1.2.parameter) (adversary.main keyResult.1.1) keyResult.2
@@ -67,7 +67,7 @@ theorem freshPrefixFirstLane_probability_le_expected (adversary : XmssSecurity.A
     (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[fun result => FreshPrefixFirstLaneEvent result.1 result.2 | sourcePrefixProgram adversary] ≤
       (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability * Direct.expectedDirectEncodingQueries adversary) /
+        (Checksum.acceptanceProbability * Direct.expectedDirectEncodingQueries adversary) /
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   apply (accepted_event_probability_le_of_relTriple
     (source := sourcePrefixProgram adversary)

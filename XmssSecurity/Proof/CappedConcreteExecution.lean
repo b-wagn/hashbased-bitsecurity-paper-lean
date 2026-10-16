@@ -127,9 +127,8 @@ theorem capped_detailed_execution_consistent_of_signing
     (hsigning : ∀ request signature,
       SigningTranscript.Returned execution.1.signingLog request signature →
       ∃ encoding,
-        TargetSum.decodeDigest
-          (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
-            request.epoch (request.message, signature.randomness)) = some encoding ∧
+        Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
+            request.epoch (request.message, signature.randomness) = some encoding ∧
         signature = Concrete.CacheReplay.signWithEncoding execution.2 execution.1.secretKey
           request.epoch signature.randomness encoding) :
     ConcreteOutcomeConsistent execution.2 execution.1 :=

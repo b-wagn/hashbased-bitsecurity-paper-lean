@@ -134,8 +134,8 @@ theorem signing_success_replay_at_keygen
     (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
       (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
     ∃ encoding,
-      TargetSum.decodeDigest (CacheView.encodingHash finalCache keyResult.1.2.parameter
-        request.epoch (request.message, signature.randomness)) = some encoding ∧
+      CacheView.decodedEncoding finalCache keyResult.1.2.parameter
+        request.epoch (request.message, signature.randomness) = some encoding ∧
       signature = CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 request.epoch
         signature.randomness encoding := by
   have hle := xmssRom_cache_le _ keyResult.2 (some signature, finalCache) hsign
@@ -172,8 +172,8 @@ theorem mutationRoot_probability_after_successful_signing
     (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
       (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
     ∃ encoding,
-      TargetSum.decodeDigest (CacheView.encodingHash finalCache keyResult.1.2.parameter
-        request.epoch (request.message, signature.randomness)) = some encoding ∧
+      CacheView.decodedEncoding finalCache keyResult.1.2.parameter
+        request.epoch (request.message, signature.randomness) = some encoding ∧
       signature = CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 request.epoch
         signature.randomness encoding ∧
       ∀ chain, Pr[fun outcome => outcome.1 ≠ signature.chainValue chain ∧

@@ -19,7 +19,7 @@ def HasFreshAcceptedEncodingInLog (parameter : PublicParameter) (cache : QueryCa
     ¬ SigningTranscript.ContainsRequest log forgery ∧
     cache (CacheView.encodingInput parameter forgery.epoch
       (forgery.message, forgery.signature.randomness)) = some output ∧
-    TargetSum.ValidDigest (truncateHash output)
+    Checksum.ValidDigest (truncateHash output)
 
 theorem sourceDirectTraced_log_projection (publicKey : PublicKey) (secretKey : SecretKey)
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
@@ -83,7 +83,7 @@ theorem freshAccepted_adversaryPhase_le_expectedDirect (adversary : XmssSecurity
     (hempty : ∀ leaf payload, cache (CacheView.encodingInput secretKey.parameter leaf payload) = none) :
     Pr[fun result => HasFreshAcceptedEncodingInLog secretKey.parameter result.2 result.1.2 |
       (simulateQ romImpl (adversaryPhase adversary publicKey secretKey)).run cache] ≤
-      TargetSum.acceptanceProbability *
+      Checksum.acceptanceProbability *
         expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
           (Direct.IsDirectEncodingQuery secretKey.parameter) (adversary.main publicKey) cache := by
   have hbound := probEvent_freshAccepted_le_expected_directEncoding publicKey secretKey

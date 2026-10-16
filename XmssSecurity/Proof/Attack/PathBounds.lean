@@ -32,7 +32,7 @@ private theorem real_path_mutation_lower (steps : ℕ) (hsteps : steps ≤ 40) :
       _ ≤ 1 := by linarith
   have hdenom : 0 < 1 + (steps : ℝ) * p := by positivity
   have hpow : (1 - p) ^ steps ≤ 1 / (1 + (steps : ℝ) * p) := by
-    have h := TargetSum.rejection_power_le
+    have h := Checksum.rejection_power_le
       (1 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) (by norm_num [digestBits]) steps
     have hr := (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mpr h
     rw [ENNReal.toReal_pow,
@@ -72,7 +72,7 @@ theorem pathMutationProbability_lower (steps : ℕ) (hsteps : steps ≤ 40) :
   simpa [ENNReal.toReal_inv, div_eq_mul_inv] using
     real_path_mutation_lower steps hsteps
 
-theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     (∑ chain, (40 - (encoding chain).val - 1)) = 1443 := by
   have heq : ∀ chain, 40 - (encoding chain).val - 1 = 39 - (encoding chain).val := by
     intro chain
@@ -88,7 +88,7 @@ theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : TargetSum.V
     omega
 
 /-- The chain is chosen uniformly, without a hash query to learn the encoding. -/
-theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
       ∑ chain, pathMutationProbability (40 - (encoding chain).val) := by
   calc
@@ -102,7 +102,7 @@ theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : Target
 
 /-- Even after allowing signing failure and a full lost collision opportunity per chain,
 the uniform-chain strategy has a strict margin above the 123-bit threshold. -/
-theorem randomChain_mutation_margin (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem randomChain_mutation_margin (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     (1 : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) <
       (31 / 32) * ((∑ chain, pathMutationProbability (40 - (encoding chain).val)) / numChains) := by
   have hsum := sum_pathMutationProbability_lower encoding hvalid

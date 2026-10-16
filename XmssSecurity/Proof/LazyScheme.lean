@@ -56,7 +56,7 @@ noncomputable def signAttempt {m : Type → Type} [Monad m] [HasQuery HashSpec m
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) : m (Option Signature) := do
   let digest ← encodingHash secretKey.parameter leafIndex message randomness
-  match TargetSum.decodeDigest digest with
+  match Checksum.decodeDigest digest with
   | none => pure none
   | some encoding => some <$> signWithEncoding secretKey leafIndex randomness encoding
 

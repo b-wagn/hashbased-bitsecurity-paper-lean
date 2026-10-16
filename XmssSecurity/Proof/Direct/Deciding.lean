@@ -39,15 +39,13 @@ noncomputable def signedEncoding (cache : QueryCache HashSpec) (parameter : Publ
   match returnedAt log leafIndex with
   | none => none
   | some (request, signature) =>
-      TargetSum.decodeDigest
-        (CacheView.encodingHash cache parameter leafIndex (request.message, signature.randomness))
+      CacheView.decodedEncoding cache parameter leafIndex (request.message, signature.randomness)
 
 /-- The encoding of the forgery, read from the cache. -/
 noncomputable def forgedEncoding (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (forgery : Forgery) : Option Encoding :=
-  TargetSum.decodeDigest
-    (CacheView.encodingHash cache parameter forgery.epoch
-      (forgery.message, forgery.signature.randomness))
+  CacheView.decodedEncoding cache parameter forgery.epoch
+      (forgery.message, forgery.signature.randomness)
 
 /-- The honest chain value of chain `chain` at `leafIndex` at `digit`, replayed from the cache. -/
 noncomputable def honestChainValue (cache : QueryCache HashSpec) (secretKey : SecretKey)

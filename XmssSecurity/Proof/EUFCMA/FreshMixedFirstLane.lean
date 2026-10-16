@@ -28,7 +28,7 @@ theorem freshMixedPrefixEvent_none (key : ProgrammedGlobalChainKeygenView)
 
 noncomputable def freshMixedPrefixProbability (adversary : XmssSecurity.Adversary) : ℝ≥0∞ :=
   Pr[fun pair => FreshMixedPrefixEvent pair.1.1 pair.1.2
-    (TargetSum.decodeDigest (truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
+    (Checksum.decodeDigest (truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
 
 theorem sourcePrefixFinish_standardFresh (adversary : XmssSecurity.Adversary)
     (key : ProgrammedGlobalChainKeygenView) (prefixResult : Forgery × SourceExactTracedState)
@@ -52,7 +52,7 @@ theorem sourcePrefixFinish_freshFirstLane_probability_le_mixed_add_encoding (adv
     (hprefix : prefixResult ∈ support (sourcePrefixExecution adversary key)) :
     Pr[fun result => SourceWinningFreshFirstLane (key, result) | sourcePrefixFinish key prefixResult] ≤
       Pr[fun output => FreshMixedPrefixEvent key prefixResult
-        (TargetSum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] +
+        (Checksum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] +
       Pr[fun result => SourcePrefixForgedEncodingFresh (key, prefixResult) ∧
         SourceWinningEncodingEvent (key, result) | sourcePrefixFinish key prefixResult] := by
   by_cases hfresh : ¬ SigningTranscript.ContainsRequest prefixResult.2.2.toSigningLog prefixResult.1
@@ -70,7 +70,7 @@ theorem sourcePrefixFinish_freshFirstLane_probability_le_mixed_add_encoding (adv
 theorem freshMixedPrefixProbability_eq_prefix (adversary : XmssSecurity.Adversary) :
     freshMixedPrefixProbability adversary =
       Pr[fun pair : MixedEncodingPrefixResult => FreshMixedPrefixEvent pair.1.1 pair.1.2
-        (TargetSum.decodeDigest (truncateHash pair.2)) | do
+        (Checksum.decodeDigest (truncateHash pair.2)) | do
           let prefixPair ← sourcePrefixProgram adversary
           let output ← ($ᵗ HashOutput)
           pure (prefixPair, output)] := by

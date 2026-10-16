@@ -16,20 +16,20 @@ open Concrete
 theorem signedEncoding_valid (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (log : QueryLog SigningSpec) (leafIndex : LeafIndex) (encoding : Encoding)
     (h : signedEncoding cache parameter log leafIndex = some encoding) :
-    TargetSum.Valid encoding := by
+    Checksum.Valid encoding := by
   unfold signedEncoding at h
   split at h
   · cases h
-  · exact (TargetSum.decodeDigest_eq_some_iff.mp h).2
+  · exact (Concrete.CacheView.decodedEncoding_valid h)
 
 /-- If every chain is trivial, the signed and forged encodings coincide. -/
 theorem signedEncoding_eq_of_all_trivial (cache : QueryCache HashSpec) (secretKey : SecretKey)
     (log : QueryLog SigningSpec) (forgery : Forgery) (encoding : Encoding)
-    (hvalid : TargetSum.Valid encoding)
+    (hvalid : Checksum.Valid encoding)
     (htrivial : ∀ chain, ChainTrivial cache secretKey log forgery encoding chain) :
     signedEncoding cache secretKey.parameter log forgery.epoch = some encoding := by
   obtain ⟨signed, hsigned, _, _⟩ := htrivial ⟨0, by simp [numChains]⟩
-  have heq : signed = encoding := TargetSum.eq_of_pointwiseLE_of_valid
+  have heq : signed = encoding := Checksum.eq_of_pointwiseLE_of_valid
     (signedEncoding_valid cache secretKey.parameter log forgery.epoch signed hsigned) hvalid
     (fun chain => by
       obtain ⟨signed', hsigned', hle, _⟩ := htrivial chain
@@ -67,15 +67,14 @@ theorem encoding_event_of_all_trivial (cache : QueryCache HashSpec) (outcome : G
         outcome.forgery.signature.randomness encoding).authPath) :
     OutcomeBadEventOccurs cache outcome .encoding := by
   have hsigned := signedEncoding_eq_of_all_trivial cache outcome.secretKey outcome.signingLog
-    outcome.forgery encoding (TargetSum.decodeDigest_eq_some_iff.mp hdecode).2 htrivial
+    outcome.forgery encoding (Concrete.CacheView.decodedEncoding_valid hdecode) htrivial
   cases hreturned : returnedAt outcome.signingLog outcome.forgery.epoch with
   | none => simp [signedEncoding, hreturned] at hsigned
   | some pair =>
     rcases pair with ⟨request, signature⟩
     obtain ⟨hentry, hepoch⟩ := returned_of_returnedAt _ _ _ _ hreturned
-    have hsignedDecode : TargetSum.decodeDigest
-        (CacheView.encodingHash cache outcome.secretKey.parameter request.epoch
-          (request.message, signature.randomness)) = some encoding := by
+    have hsignedDecode : CacheView.decodedEncoding cache outcome.secretKey.parameter request.epoch
+          (request.message, signature.randomness) = some encoding := by
       simpa only [signedEncoding, hreturned, hepoch] using hsigned
     obtain ⟨actual, hactual, hsignature⟩ := hconsistent.signing request signature hentry
     have hactualEq : actual = encoding := Option.some.inj (hactual.symm.trans hsignedDecode)
@@ -105,14 +104,15 @@ theorem encoding_event_of_all_trivial (cache : QueryCache HashSpec) (outcome : G
       · rw [hrequest]
         exact congrArg₂ SUFCMA.SignRequest.mk hepoch (congrArg Prod.fst heq)
       · exact hanswer.trans (congrArg some hsig)
-    have hforgedDecode : TargetSum.decodeDigest
-        (CacheView.encodingHash cache outcome.secretKey.parameter request.epoch
-          (outcome.forgery.message, outcome.forgery.signature.randomness)) = some encoding := by
+    have hforgedDecode : CacheView.decodedEncoding cache outcome.secretKey.parameter request.epoch
+          (outcome.forgery.message, outcome.forgery.signature.randomness) = some encoding := by
       simpa only [forgedEncoding, hepoch] using hdecode
     refine ⟨(outcome.won_eq_true_iff.mp hwin).2.2,
       Or.inl ⟨request, signature, encoding, encoding, hsignedDecode, hforgedDecode,
         hentry, hepoch, ?_⟩⟩
-    exact TargetSum.hash_collision_of_same_decodedEncoding _ hinput hsignedDecode hforgedDecode
+    exact Checksum.hash_collision_of_same_decodedEncoding _ hinput
+      (CacheView.decodeDigest_of_decodedEncoding hsignedDecode)
+      (CacheView.decodeDigest_of_decodedEncoding hforgedDecode)
 
 /-- A structural collision lying on the selected chain or above its leaf. -/
 def DecidingStructuralCollision (cache : QueryCache HashSpec) (outcome : GameOutcome)

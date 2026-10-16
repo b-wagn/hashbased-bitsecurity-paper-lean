@@ -20,8 +20,8 @@ theorem verifyReplay_run
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (message : Message) (encoding : Encoding) (randomness : Randomness)
     (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
-    (hdecode : TargetSum.decodeDigest (CacheView.encodingHash cache keyResult.1.2.parameter
-      leafIndex (message, randomness)) = some encoding) :
+    (hdecode : CacheView.decodedEncoding cache keyResult.1.2.parameter
+      leafIndex (message, randomness) = some encoding) :
     (simulateQ randomOracle (verify keyResult.1.1 leafIndex message
       (CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness encoding) :
         OracleComp HashSpec Bool)).run cache = pure (true, cache) := by
@@ -52,11 +52,11 @@ theorem verifyReplay_run
 noncomputable def digestCollisionRate : ℝ≥0∞ := ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹
 
 noncomputable def replayCollisionRate : ℝ≥0∞ :=
-  TargetSum.acceptanceProbability * digestCollisionRate +
+  Checksum.acceptanceProbability * digestCollisionRate +
     digestCollisionRate * (1 - digestCollisionRate)
 
 noncomputable def replayScore (target : Digest) (output : HashOutput) : ℝ≥0∞ :=
-  (if TargetSum.ValidDigest (truncateHash output) then digestCollisionRate else 0) +
+  (if Checksum.ValidDigest (truncateHash output) then digestCollisionRate else 0) +
     (if truncateHash output = target then 1 - digestCollisionRate else 0)
 
 theorem digestCollisionRate_le_one : digestCollisionRate ≤ 1 := by
@@ -72,11 +72,11 @@ theorem replayScore_average (target : Digest) :
     apply tsum_congr
     intro output
     split <;> simp only [*, mul_zero, zero_mul]
-  have hvalid : Pr[fun output : HashOutput => TargetSum.ValidDigest (truncateHash output) |
-      $ᵗ HashOutput] = TargetSum.acceptanceProbability := by
-    change Pr[TargetSum.ValidDigest ∘ truncateHash | $ᵗ HashOutput] = _
+  have hvalid : Pr[fun output : HashOutput => Checksum.ValidDigest (truncateHash output) |
+      $ᵗ HashOutput] = Checksum.acceptanceProbability := by
+    change Pr[Checksum.ValidDigest ∘ truncateHash | $ᵗ HashOutput] = _
     rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput, ← probEvent_def]
-    exact TargetSum.probEvent_validDigest_uniform
+    exact Checksum.probEvent_validDigest_uniform
   have heq : Pr[fun output : HashOutput => truncateHash output = target | $ᵗ HashOutput] =
       digestCollisionRate := Rom.uniform_truncate_probability target
   unfold replayScore
@@ -87,7 +87,7 @@ theorem replayScore_average (target : Digest) :
 theorem replayScore_le_cached_verification
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (leafIndex : LeafIndex) (message : Message) (encoding : Encoding) (hvalid : TargetSum.Valid encoding)
+    (leafIndex : LeafIndex) (message : Message) (encoding : Encoding) (hvalid : Checksum.Valid encoding)
     (randomness : Randomness) (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
     (hroot : RootCache keyResult.1.2.parameter leafIndex keyResult.1.1.root cache)
     (hfresh : cache (CacheView.encodingInput keyResult.1.2.parameter leafIndex (message, randomness)) = none)
@@ -105,14 +105,14 @@ theorem replayScore_le_cached_verification
   have hcached : CacheView.encodingHash updated keyResult.1.2.parameter leafIndex (message, randomness) =
       truncateHash output := by simp [updated, CacheView.encodingHash, CacheView.digestAt]
   by_cases heq : truncateHash output = digestOfEncoding encoding
-  · have hdecode : TargetSum.decodeDigest (CacheView.encodingHash updated keyResult.1.2.parameter
-        leafIndex (message, randomness)) = some encoding := by
+  · have hdecode : CacheView.decodedEncoding updated keyResult.1.2.parameter
+        leafIndex (message, randomness) = some encoding := by
       rw [hcached, heq]
       exact digestOfEncoding_decode encoding hvalid
     have hle' : keyResult.2 ≤ updated := hle.trans (QueryCache.le_cacheQuery cache hfresh)
     rw [verifyReplay_run keyResult hkey leafIndex message encoding randomness updated hle' hdecode]
-    have hv : TargetSum.ValidDigest (truncateHash output) := by
-      rw [TargetSum.ValidDigest, heq, digestOfEncoding_decode encoding hvalid]
+    have hv : Checksum.ValidDigest (truncateHash output) := by
+      rw [Checksum.ValidDigest, heq, digestOfEncoding_decode encoding hvalid]
       simp
     simp only [replayScore, if_pos hv, if_pos heq,
       add_tsub_cancel_of_le digestCollisionRate_le_one, probEvent_pure, if_true, le_refl]
@@ -125,8 +125,8 @@ theorem replayScore_le_cached_verification
       · rw [Deciding.keygen_publicKey_parameter_eq keyResult hkey]
         exact rootCache_cache_encoding _ _ _ _ hroot _ _ _ output
       · rw [Deciding.keygen_publicKey_parameter_eq keyResult hkey]
-        change TargetSum.decodeDigest (CacheView.encodingHash updated keyResult.1.2.parameter
-          leafIndex (message, randomness)) = some acceptedEncoding
+        change CacheView.decodedEncoding updated keyResult.1.2.parameter
+          leafIndex (message, randomness) = some acceptedEncoding
         rwa [hcached]
     · exact zero_le
 
@@ -150,7 +150,7 @@ theorem verify_fresh_run (publicKey : PublicKey) (leafIndex : LeafIndex)
 theorem verify_fresh_replay_probability_ge
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (leafIndex : LeafIndex) (message : Message) (encoding : Encoding) (hvalid : TargetSum.Valid encoding)
+    (leafIndex : LeafIndex) (message : Message) (encoding : Encoding) (hvalid : Checksum.Valid encoding)
     (randomness : Randomness) (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
     (hroot : RootCache keyResult.1.2.parameter leafIndex keyResult.1.1.root cache)
     (hfresh : cache (CacheView.encodingInput keyResult.1.2.parameter leafIndex (message, randomness)) = none) :

@@ -49,9 +49,12 @@ theorem signedEncoding_eq_of_cache_le (initialCache finalCache : QueryCache Hash
     obtain ⟨output, houtput⟩ := CacheView.encodingInput_cached_of_decode_some initialCache
       secretKey.parameter request.epoch request.message signature.randomness encoding hdecode
     rw [hepoch] at houtput
-    have hhash := encodingHash_eq_of_cached initialCache finalCache hle secretKey.parameter
-      leafIndex (request.message, signature.randomness) (by simp [houtput])
-    simp only [signedEncoding, hreturned, hhash]
+    have hdec : CacheView.decodedEncoding initialCache secretKey.parameter leafIndex
+        (request.message, signature.randomness) =
+        CacheView.decodedEncoding finalCache secretKey.parameter leafIndex
+          (request.message, signature.randomness) :=
+      CacheView.decodedEncoding_eq_of_input_eq (houtput.trans (hle houtput).symm)
+    simp only [signedEncoding, hreturned, hdec]
 
 theorem forgedEncoding_eq_of_cache_le (initialCache finalCache : QueryCache HashSpec)
     (hle : initialCache ≤ finalCache) (parameter : PublicParameter) (forgery : Forgery)
@@ -59,7 +62,8 @@ theorem forgedEncoding_eq_of_cache_le (initialCache finalCache : QueryCache Hash
       (forgery.message, forgery.signature.randomness)) ≠ none) :
     forgedEncoding initialCache parameter forgery = forgedEncoding finalCache parameter forgery := by
   unfold forgedEncoding
-  rw [encodingHash_eq_of_cached initialCache finalCache hle parameter forgery.epoch _ hcached]
+  obtain ⟨output, houtput⟩ := Option.ne_none_iff_exists.mp hcached
+  exact CacheView.decodedEncoding_eq_of_input_eq (houtput.symm.trans (hle houtput.symm).symm)
 
 theorem honestChainValue_eq_of_keygen_cache_le
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)

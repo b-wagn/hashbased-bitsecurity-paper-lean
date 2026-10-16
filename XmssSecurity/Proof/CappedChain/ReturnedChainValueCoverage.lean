@@ -23,10 +23,9 @@ theorem returnedChainValueCovered_iff
     index ∈ ReturnedChainValueCovered cache secretKey log chain ↔
       ∃ request signature encoding,
         SigningTranscript.Returned log request signature ∧
-          TargetSum.decodeDigest
-            (Concrete.CacheView.encodingHash cache secretKey.parameter
+          Concrete.CacheView.decodedEncoding cache secretKey.parameter
               request.epoch
-              (request.message, signature.randomness)) = some encoding ∧
+              (request.message, signature.randomness) = some encoding ∧
           index.1 = request.epoch ∧ encoding chain ≤ index.2 := by
   exact mem_returnedChainValueIndexList_iff cache secretKey log chain index
 
@@ -47,9 +46,8 @@ theorem returnedChainValueCovered_contains_returned
     (log : QueryLog SigningSpec) (chain : ChainIndex)
     (request : SignRequest) (signature : Signature) (encoding : Encoding)
     (hreturned : SigningTranscript.Returned log request signature)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash cache secretKey.parameter request.epoch
-        (request.message, signature.randomness)) = some encoding) :
+    (hdecode : Concrete.CacheView.decodedEncoding cache secretKey.parameter request.epoch
+        (request.message, signature.randomness) = some encoding) :
     (request.epoch, encoding chain) ∈
       ReturnedChainValueCovered cache secretKey log chain := by
   rw [returnedChainValueCovered_iff]

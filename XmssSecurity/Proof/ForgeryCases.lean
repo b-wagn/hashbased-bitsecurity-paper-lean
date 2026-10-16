@@ -17,13 +17,13 @@ noncomputable def SameLeafIndexBadEventOccurs {EncodingInput : Type}
     (signedEncoding forgedEncoding : Encoding)
     (signedValue forgedValue : ChainIndex → Digest)
     (signedPath forgedPath : Nat → Digest)
-    (hsignedValid : TargetSum.Valid signedEncoding) : BadEvent → Prop
+    (hsignedValid : Checksum.Valid signedEncoding) : BadEvent → Prop
   | .encoding => signedInput ≠ forgedInput ∧ encodingHash signedInput = encodingHash forgedInput
   | .chain chain =>
       Wots.IsBackwardWitnessAt step signedEncoding forgedEncoding signedValue forgedValue chain
   | .suffixCollision slot =>
-      ∃ position : TargetSum.SuffixPosition signedEncoding,
-        TargetSum.enumerateSuffixPositions signedEncoding hsignedValid position = slot ∧
+      ∃ position : Checksum.SuffixPosition signedEncoding,
+        Checksum.enumerateSuffixPositions signedEncoding hsignedValid position = slot ∧
         Wots.IsSuffixCollisionAt step signedEncoding forgedEncoding signedValue forgedValue position
   | .leaf => Wots.HasLeafCollision leafHash
       (recoveredEndpoints step forgedEncoding forgedValue)
@@ -42,8 +42,8 @@ theorem classify_sameLeafIndex_forgery {EncodingInput : Type}
     (signedEncoding forgedEncoding : Encoding)
     (signedValue forgedValue : ChainIndex → Digest)
     (signedPath forgedPath : Nat → Digest)
-    (hsignedEncoding : TargetSum.decodeDigest (encodingHash signedInput) = some signedEncoding)
-    (hforgedEncoding : TargetSum.decodeDigest (encodingHash forgedInput) = some forgedEncoding)
+    (hsignedEncoding : Checksum.decodeDigest (encodingHash signedInput) = some signedEncoding)
+    (hforgedEncoding : Checksum.decodeDigest (encodingHash forgedInput) = some forgedEncoding)
     (hroot : Merkle.ascend nodeHash forgedPath 0 treeHeight
         (leafHash (recoveredEndpoints step forgedEncoding forgedValue)) =
       Merkle.ascend nodeHash signedPath 0 treeHeight
@@ -60,8 +60,8 @@ theorem classify_sameLeafIndex_forgery {EncodingInput : Type}
         (leafHash (recoveredEndpoints step forgedEncoding forgedValue))
         (leafHash (recoveredEndpoints step signedEncoding signedValue)) := by
   classical
-  have hsignedValid := (TargetSum.decodeDigest_eq_some_iff.mp hsignedEncoding).2
-  have hforgedValid := (TargetSum.decodeDigest_eq_some_iff.mp hforgedEncoding).2
+  have hsignedValid := (Checksum.decodeDigest_valid hsignedEncoding)
+  have hforgedValid := (Checksum.decodeDigest_valid hforgedEncoding)
   rcases Merkle.sameXmssPath_or_hasCollision nodeHash forgedPath signedPath
       (leafHash (recoveredEndpoints step forgedEncoding forgedValue))
       (leafHash (recoveredEndpoints step signedEncoding signedValue)) hroot with
@@ -84,7 +84,7 @@ theorem classify_sameLeafIndex_forgery {EncodingInput : Type}
             · exact hneValue hvalue
             · exact hnePath fun offset hoffset => (hpath offset hoffset).symm
           · left
-            exact TargetSum.hash_collision_of_same_decodedEncoding encodingHash hinput
+            exact Checksum.hash_collision_of_same_decodedEncoding encodingHash hinput
               hsignedEncoding hforgedEncoding
         · exact Or.inr <| Or.inr <| Or.inl <|
             Wots.suffixCollision_of_sameEncoding_of_values_ne step signedEncoding
@@ -107,8 +107,8 @@ theorem sameLeafIndex_forgery_has_badEvent {EncodingInput : Type}
     (signedEncoding forgedEncoding : Encoding)
     (signedValue forgedValue : ChainIndex → Digest)
     (signedPath forgedPath : Nat → Digest)
-    (hsignedEncoding : TargetSum.decodeDigest (encodingHash signedInput) = some signedEncoding)
-    (hforgedEncoding : TargetSum.decodeDigest (encodingHash forgedInput) = some forgedEncoding)
+    (hsignedEncoding : Checksum.decodeDigest (encodingHash signedInput) = some signedEncoding)
+    (hforgedEncoding : Checksum.decodeDigest (encodingHash forgedInput) = some forgedEncoding)
     (hroot : Merkle.ascend nodeHash forgedPath 0 treeHeight
         (leafHash (recoveredEndpoints step forgedEncoding forgedValue)) =
       Merkle.ascend nodeHash signedPath 0 treeHeight
@@ -117,8 +117,8 @@ theorem sameLeafIndex_forgery_has_badEvent {EncodingInput : Type}
       ¬Merkle.SamePathSegment signedPath forgedPath 0 treeHeight) :
     ∃ event, SameLeafIndexBadEventOccurs encodingHash step leafHash nodeHash
       signedInput forgedInput signedEncoding forgedEncoding signedValue forgedValue
-      signedPath forgedPath (TargetSum.decodeDigest_eq_some_iff.mp hsignedEncoding).2 event := by
-  have hsignedValid := (TargetSum.decodeDigest_eq_some_iff.mp hsignedEncoding).2
+      signedPath forgedPath (Checksum.decodeDigest_valid hsignedEncoding) event := by
+  have hsignedValid := (Checksum.decodeDigest_valid hsignedEncoding)
   rcases classify_sameLeafIndex_forgery encodingHash step leafHash nodeHash
       signedInput forgedInput signedEncoding forgedEncoding signedValue forgedValue
       signedPath forgedPath hsignedEncoding hforgedEncoding hroot hstrong with
@@ -127,7 +127,7 @@ theorem sameLeafIndex_forgery_has_badEvent {EncodingInput : Type}
   · obtain ⟨chain, hchain⟩ := hbackward
     exact ⟨.chain chain, hchain⟩
   · obtain ⟨position, hposition⟩ := hsuffix
-    exact ⟨.suffixCollision (TargetSum.enumerateSuffixPositions signedEncoding hsignedValid position),
+    exact ⟨.suffixCollision (Checksum.enumerateSuffixPositions signedEncoding hsignedValid position),
       position, rfl, hposition⟩
   · exact ⟨.leaf, hleaf⟩
   · obtain ⟨level, hlevel⟩ := hmerkle
@@ -140,12 +140,12 @@ noncomputable def FreshLeafIndexBadEventOccurs
     (forgedEncoding : Encoding)
     (forgedValue secret : ChainIndex → Digest)
     (forgedPath honestPath : Nat → Digest)
-    (hforgedValid : TargetSum.Valid forgedEncoding) : BadEvent → Prop
+    (hforgedValid : Checksum.Valid forgedEncoding) : BadEvent → Prop
   | .encoding => False
   | .chain chain => Wots.IsFreshChainValueAt step forgedEncoding forgedValue secret chain
   | .suffixCollision slot =>
-      ∃ position : TargetSum.SuffixPosition forgedEncoding,
-        TargetSum.enumerateSuffixPositions forgedEncoding hforgedValid position = slot ∧
+      ∃ position : Checksum.SuffixPosition forgedEncoding,
+        Checksum.enumerateSuffixPositions forgedEncoding hforgedValid position = slot ∧
         Wots.IsSuffixCollisionAt step forgedEncoding forgedEncoding
           (fun i => Wots.signChain (step i) (forgedEncoding i) (secret i)) forgedValue position
   | .leaf => Wots.HasLeafCollision leafHash
@@ -204,7 +204,7 @@ theorem freshLeafIndex_forgery_has_badEvent
     (forgedEncoding : Encoding)
     (forgedValue secret : ChainIndex → Digest)
     (forgedPath honestPath : Nat → Digest)
-    (hforgedValid : TargetSum.Valid forgedEncoding)
+    (hforgedValid : Checksum.Valid forgedEncoding)
     (hroot : Merkle.ascend nodeHash forgedPath 0 treeHeight
         (leafHash (recoveredEndpoints step forgedEncoding forgedValue)) =
       Merkle.ascend nodeHash honestPath 0 treeHeight
@@ -216,7 +216,7 @@ theorem freshLeafIndex_forgery_has_badEvent
   · obtain ⟨chain, hchain⟩ := hchain
     exact ⟨.chain chain, hchain⟩
   · obtain ⟨position, hposition⟩ := hsuffix
-    exact ⟨.suffixCollision (TargetSum.enumerateSuffixPositions forgedEncoding hforgedValid position),
+    exact ⟨.suffixCollision (Checksum.enumerateSuffixPositions forgedEncoding hforgedValid position),
       position, rfl, hposition⟩
   · exact ⟨.leaf, hleaf⟩
   · obtain ⟨level, hlevel⟩ := hmerkle

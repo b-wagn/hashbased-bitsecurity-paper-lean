@@ -6,7 +6,7 @@ Each row equation is checked by the kernel, without native_decide. -/
 set_option maxRecDepth 2000
 set_option maxHeartbeats 1000000
 
-namespace XmssSecurity.TargetSum
+namespace XmssSecurity.Checksum
 
 private def row0 : List ℕ := [
   1] ++ List.replicate 195 0
@@ -992,4 +992,4 @@ theorem wordCount_eight_fortyTwo_195 :
   rw [← countRow_getD_eq_wordCount 8 195 42 195 le_rfl, row42_eq]
   decide +kernel
 
-end XmssSecurity.TargetSum
+end XmssSecurity.Checksum

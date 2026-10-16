@@ -34,7 +34,7 @@ theorem AcceptedEncodingGrowth.trans {parameter : PublicParameter}
 
 theorem AcceptedEncodingGrowth.cacheQuery (parameter : PublicParameter) (cache : QueryCache HashSpec)
     (input : HashInput) (output : HashOutput) (trace : ActionTrace GlobalChainValueIndex)
-    (htrace : TargetSum.ValidDigest (truncateHash output) → TraceHasAcceptedEncoding trace) :
+    (htrace : Checksum.ValidDigest (truncateHash output) → TraceHasAcceptedEncoding trace) :
     AcceptedEncodingGrowth parameter cache (cache.cacheQuery input output) trace := by
   intro haccepted
   by_cases hinitial : HasAcceptedEncoding parameter cache
@@ -392,7 +392,7 @@ theorem coupledPrefix_forgedEncodingAccepted_implies_trace (adversary : Adversar
 
 theorem coupledPrefix_forgedEncodingAccepted_probability_le_expected (adversary : Adversary) :
     Pr[CoupledPrefixForgedEncodingAccepted | coupledFirstLaneProgram (publicPrefixExecution adversary)] ≤
-      TargetSum.acceptanceProbability * expectedEagerQueryCount IsEncodingSample
+      Checksum.acceptanceProbability * expectedEagerQueryCount IsEncodingSample
         (publicFirstLaneProgram (publicPrefixExecution adversary)) := by
   calc
     _ ≤ Pr[fun result => TraceHasAcceptedEncoding result.2.2 |
@@ -418,7 +418,7 @@ theorem decidingFirstLane_probability_le_expected_and_encodingSamples
     Pr[WinningDecidingFirstLaneBadEventOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
       ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ *
         (expectedCoupledHazards D (publicPrefixExecution adversary) +
-          TargetSum.acceptanceProbability * expectedEagerQueryCount IsEncodingSample
+          Checksum.acceptanceProbability * expectedEagerQueryCount IsEncodingSample
             (publicFirstLaneProgram (publicPrefixExecution adversary))) := by
   refine (decidingFirstLane_probability_le_expected_prefix_and_accepted adversary D hD hcached).trans ?_
   exact mul_le_mul' le_rfl

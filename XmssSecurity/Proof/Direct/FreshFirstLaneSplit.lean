@@ -66,14 +66,14 @@ theorem sourcePrefixFinish_fresh_encoding_probability_le (adversary : Adversary)
 theorem sourcePrefix_accepted_probability_le (adversary : Adversary) :
     Pr[fun result => HasAcceptedEncoding result.1.secretKey.parameter result.2.2.1.1.1 |
       sourcePrefixProgram adversary] ≤
-        TargetSum.acceptanceProbability *
+        Checksum.acceptanceProbability *
           (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) := by
   rw [← sourceCountedPrefixProgram_source_projection, probEvent_map]
   exact sourceCountedPrefix_accepted_probability_le adversary
 
 theorem freshSourceEncodingProbability_le_source_credit (adversary : Adversary) :
     freshSourceEncodingProbability adversary ≤
-      (TargetSum.acceptanceProbability *
+      (Checksum.acceptanceProbability *
         (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary)) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   let rate := ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹
@@ -119,7 +119,7 @@ theorem freshFirstLaneProbability_le_encoding_add_revealed (adversary : Adversar
 
 theorem freshFirstLaneProbability_le_source_credit_add_revealed (adversary : Adversary) :
     freshFirstLaneProbability adversary ≤
-      (TargetSum.acceptanceProbability *
+      (Checksum.acceptanceProbability *
         (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary)) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞) + freshRevealedProbability adversary :=
   (freshFirstLaneProbability_le_encoding_add_revealed adversary).trans

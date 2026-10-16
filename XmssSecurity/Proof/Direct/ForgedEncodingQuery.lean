@@ -99,7 +99,7 @@ theorem randomOracle_bind_randomOracle_same {β : Type} (input : HashInput)
 /-- The verifier after its encoding hash. -/
 noncomputable def verifyAfterDigest (publicKey : PublicKey) (leafIndex : LeafIndex)
     (signature : Signature) (digest : Digest) : OracleComp HashSpec Bool :=
-  match TargetSum.decodeDigest digest with
+  match Checksum.decodeDigest digest with
   | none => pure false
   | some encoding => do
       let endpoints ← Concrete.recoverEndpoints publicKey.parameter leafIndex encoding signature
@@ -112,11 +112,12 @@ theorem concrete_verify_eq_query_bind (publicKey : PublicKey) (leafIndex : LeafI
       (liftM (HashSpec.query (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
         (message, signature.randomness))) >>= fun output =>
           verifyAfterDigest publicKey leafIndex signature (truncateHash output)) := by
-  unfold Concrete.verify Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash
+  simp only [Concrete.verify_eq_decode]
+  unfold Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash
     verifyAfterDigest
   simp only [bind_assoc, pure_bind]
   refine bind_congr fun output => ?_
-  cases TargetSum.decodeDigest (truncateHash output) <;> rfl
+  cases Checksum.decodeDigest (truncateHash output) <;> rfl
 
 /-- The verifier under the random oracle: the encoding query, then the rest. -/
 theorem simulateQ_romImpl_scheme_verify (publicKey : PublicKey) (leafIndex : LeafIndex)

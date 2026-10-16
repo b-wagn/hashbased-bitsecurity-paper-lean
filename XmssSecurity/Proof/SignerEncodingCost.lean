@@ -59,7 +59,7 @@ theorem expectedQueries_precomputedSignAttempt
       congr 1
       apply ENNReal.tsum_eq_zero.mpr
       intro result
-      cases TargetSum.decodeDigest result.1 <;>
+      cases Checksum.decodeDigest result.1 <;>
         simp only [expectedSimulatedQueryCount_pure, mul_zero]
     _ = _ := by
       rw [add_zero]
@@ -153,7 +153,7 @@ theorem Concrete.precomputedSignAttempt_lift_hash_eq_world
   rw [precomputedSignAttempt, liftM_bind, hencoding, precomputedSignAttempt]
   apply bind_congr
   intro digest
-  cases TargetSum.decodeDigest digest <;> simp only [liftM_pure]
+  cases Checksum.decodeDigest digest <;> simp only [liftM_pure]
 
 theorem Seeded.signFrom_lift_hash_eq_world
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : ℕ) :

@@ -99,7 +99,7 @@ theorem xmss_sign_afterKeygen_success_le_half_expectedHashQueries
     (leafIndex : LeafIndex) (message : Message) :
     Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
       (simulateQ romImpl (xmss.sign keyResult.1.2 leafIndex message)).run keyResult.2] ≤
-      (TargetSum.acceptanceProbability / 2) * expectedSimulatedQueryCount romImpl IsHashQuery
+      (Checksum.acceptanceProbability / 2) * expectedSimulatedQueryCount romImpl IsHashQuery
         (xmss.sign keyResult.1.2 leafIndex message) keyResult.2 :=
   xmss_sign_success_le_half_expectedHashQueries _ _ _ _ (xmss_keygen_no_acceptedEncoding keyResult hkey)
 

@@ -29,12 +29,12 @@ noncomputable def queryDigestRisk (state : EncodingMonitor.State) (leafIndex : L
     (digest : Digest) : ℝ≥0∞ :=
   match state.signed leafIndex with
   | some target => if digest = target then 1 else State.pendingRisk state
-  | none => if TargetSum.ValidDigest digest then State.pendingRisk (state.addPending leafIndex digest)
+  | none => if Checksum.ValidDigest digest then State.pendingRisk (state.addPending leafIndex digest)
       else State.pendingRisk state
 
 noncomputable def signDigestRisk (state : EncodingMonitor.State) (leafIndex : LeafIndex)
     (digest : Digest) : ℝ≥0∞ :=
-  if TargetSum.ValidDigest digest then
+  if Checksum.ValidDigest digest then
     match state.signed leafIndex with
     | some _ => 0
     | none => if digest ∈ state.pending leafIndex then 1
@@ -47,13 +47,13 @@ theorem observedRisk_query (state : EncodingMonitor.State) (leafIndex : LeafInde
   cases hsigned : state.signed leafIndex with
   | some target => simp [State.applyObserved, queryDigestRisk, observedRisk, hsigned]
   | none =>
-      by_cases hvalid : TargetSum.ValidDigest (truncateHash output) <;>
+      by_cases hvalid : Checksum.ValidDigest (truncateHash output) <;>
         simp [State.applyObserved, queryDigestRisk, observedRisk, hsigned, hvalid]
 
 theorem observedRisk_sign (state : EncodingMonitor.State) (leafIndex : LeafIndex)
     (output : HashOutput) : observedRisk (State.applyObserved state (.sign leafIndex output)) =
       signDigestRisk state leafIndex (truncateHash output) := by
-  by_cases hvalid : TargetSum.ValidDigest (truncateHash output)
+  by_cases hvalid : Checksum.ValidDigest (truncateHash output)
   · cases hsigned : state.signed leafIndex <;>
       simp [State.applyObserved, signDigestRisk, observedRisk, hsigned, hvalid]
   · simp [State.applyObserved, signDigestRisk, observedRisk, hvalid]
@@ -80,12 +80,12 @@ theorem expected_queryDigestRisk_le (state : EncodingMonitor.State) (leafIndex :
   | none =>
       calc
         _ ≤ ∑' digest, Pr[= digest | $ᵗ Digest] *
-            (State.pendingRisk state + if TargetSum.ValidDigest digest then
-              (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0) := by
+            (State.pendingRisk state + if Checksum.ValidDigest digest then
+              (Checksum.validDigests.card : ℝ≥0∞)⁻¹ else 0) := by
           apply ENNReal.tsum_le_tsum
           intro digest
           apply mul_le_mul' le_rfl
-          by_cases hvalid : TargetSum.ValidDigest digest
+          by_cases hvalid : Checksum.ValidDigest digest
           · simpa only [queryDigestRisk, hsigned, if_pos hvalid] using
               State.pendingRisk_addPending_le state leafIndex digest
           · simp [queryDigestRisk, hsigned, hvalid]
@@ -106,14 +106,14 @@ theorem expected_signDigestRisk_le (state : EncodingMonitor.State) (leafIndex : 
           apply ENNReal.tsum_le_tsum
           intro digest
           apply mul_le_mul' le_rfl
-          by_cases hvalid : TargetSum.ValidDigest digest <;>
+          by_cases hvalid : Checksum.ValidDigest digest <;>
             simp [signDigestRisk, hsigned, hvalid]
         _ = _ := by
           rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' (probFailure_of_liftM_PMF _), one_mul]
   | none =>
       let remaining := State.pendingRisk (state.install leafIndex 0)
       let removed := ((state.pending leafIndex).card : ℝ≥0∞) *
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹
       have hrisk : remaining + removed = State.pendingRisk state := State.pendingRisk_install_add _ _ _
       have hremaining : ∀ digest, State.pendingRisk (state.install leafIndex digest) = remaining := by
         intro digest
@@ -121,18 +121,18 @@ theorem expected_signDigestRisk_le (state : EncodingMonitor.State) (leafIndex : 
         rw [EncodingMonitor.State.pendingCount_install_eq state leafIndex digest 0]
       calc
         _ ≤ ∑' digest, Pr[= digest | $ᵗ Digest] *
-            (remaining + if TargetSum.ValidDigest digest then
+            (remaining + if Checksum.ValidDigest digest then
               if digest ∈ state.pending leafIndex then 1 else 0 else removed) := by
           apply ENNReal.tsum_le_tsum
           intro digest
           apply mul_le_mul' le_rfl
-          by_cases hvalid : TargetSum.ValidDigest digest
+          by_cases hvalid : Checksum.ValidDigest digest
           · by_cases hmem : digest ∈ state.pending leafIndex <;>
               simp [signDigestRisk, hsigned, hvalid, hmem, hremaining]
           · simp only [signDigestRisk, if_neg hvalid]
             exact hrisk.ge
         _ = remaining + ∑' digest, Pr[= digest | $ᵗ Digest] *
-            (if TargetSum.ValidDigest digest then
+            (if Checksum.ValidDigest digest then
               if digest ∈ state.pending leafIndex then 1 else 0 else removed) := by
           simp_rw [mul_add]
           rw [ENNReal.tsum_add, ENNReal.tsum_mul_right,

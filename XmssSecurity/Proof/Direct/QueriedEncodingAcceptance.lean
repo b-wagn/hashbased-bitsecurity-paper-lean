@@ -15,7 +15,7 @@ theorem hasAcceptedEncoding_randomOracle_probability_le (parameter : PublicParam
     (input : HashInput) (cache : QueryCache HashSpec) :
     Pr[fun result => HasAcceptedEncoding parameter result.2 | (randomOracle (spec := HashSpec) input).run cache] ≤
       (if HasAcceptedEncoding parameter cache then 1 else 0) +
-        (if cache input = none then TargetSum.acceptanceProbability else 0) := by
+        (if cache input = none then Checksum.acceptanceProbability else 0) := by
   by_cases haccepted : HasAcceptedEncoding parameter cache
   · rw [if_pos haccepted]
     exact le_add_right probEvent_le_one
@@ -66,7 +66,7 @@ theorem acceptedPrefix_withForgedEncodingQuery_probability_le (adversary : Adver
         initialCache] ≤
       Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2 |
         (simulateQ romImpl (Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache] +
-      TargetSum.acceptanceProbability * Pr[fun result =>
+      Checksum.acceptanceProbability * Pr[fun result =>
         result.2 (forgeryEncodingInput publicKey result.1.1) = none |
         (simulateQ romImpl (Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache] := by
   rw [adversaryPhase_withForgedEncodingQuery_eq, simulateQ_bind, StateT.run_bind,
@@ -92,7 +92,7 @@ theorem acceptedPrefix_withForgedEncodingQuery_probability_le_expected (adversar
     Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2 |
       (simulateQ romImpl (Deciding.adversaryPhase (withForgedEncodingQuery adversary) publicKey secretKey)).run
         initialCache] ≤
-      TargetSum.acceptanceProbability *
+      Checksum.acceptanceProbability *
         (expectedSimulatedQueryCount romImpl (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
           (Deciding.adversaryPhase adversary publicKey secretKey) initialCache +
         Pr[fun result => result.2 (forgeryEncodingInput publicKey result.1.1) = none |

@@ -49,9 +49,9 @@ theorem forgeAdvantage_le_deciding_lanes (adversary : XmssSecurity.Adversary) :
       exact add_le_add le_rfl (probEvent_or_le _ WinningEncodingPrehitOccurs _)
 
 theorem acceptance_forty_rate_le_digest_rate :
-    TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) ≤
+    Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) ≤
       (1 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
-  apply (mul_le_mul' TargetSum.acceptanceProbability_upper.le le_rfl).trans
+  apply (mul_le_mul' Checksum.acceptanceProbability_upper.le le_rfl).trans
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_div, digestBits]
 

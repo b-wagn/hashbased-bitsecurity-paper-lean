@@ -128,7 +128,7 @@ noncomputable def globalFirstLaneSigningAttempt
     Concrete.signingRandomness
   let encoded ← globalFirstLaneEncodingHashQuery keyView.secretKey
     request.epoch request.message randomness state
-  match TargetSum.decodeDigest (truncateHash encoded.1) with
+  match Checksum.decodeDigest (truncateHash encoded.1) with
   | none => pure (none, encoded.2)
   | some encoding => do
       let result ← globalFirstLaneLiftRevealProbe
@@ -385,7 +385,7 @@ theorem globalFirstLaneSigningAttempt_hazardBound
     (globalFirstLaneEncodingHashQuery_hazardBound keyView.secretKey
       request.epoch request.message randomness state)
   intro encoded _
-  cases hdecode : TargetSum.decodeDigest (truncateHash encoded.1) with
+  cases hdecode : Checksum.decodeDigest (truncateHash encoded.1) with
   | none =>
       exact OracleComp.isQueryBoundP_pure
         (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
@@ -898,7 +898,7 @@ noncomputable def globalFirstLaneErasedSigningAttemptRaw
     Concrete.signingRandomness
   let encoded ← globalFirstLaneErasedEncodingHashQuery keyView.secretKey
     request.epoch request.message randomness state
-  match TargetSum.decodeDigest (truncateHash encoded.1) with
+  match Checksum.decodeDigest (truncateHash encoded.1) with
   | none => pure (none, encoded.2)
   | some encoding => do
       let result ← (revealGlobalSignatureChains request encoding allChains
@@ -920,7 +920,7 @@ theorem globalFirstLaneErase_signingAttempt_raw
   apply (globalFirstLaneErase_encodingHashQuery keyView.secretKey request.epoch
     request.message randomness state).bind
   intro encoded
-  cases hdecode : TargetSum.decodeDigest (truncateHash encoded.1) with
+  cases hdecode : Checksum.decodeDigest (truncateHash encoded.1) with
   | none => exact GlobalFirstLaneErases.pure _
   | some encoding =>
       apply (globalFirstLaneErases_liftRevealProbe
@@ -938,7 +938,7 @@ noncomputable def globalFirstLaneErasedSigningAttempt
     Concrete.signingRandomness
   let encoded ← globalFirstLaneErasedEncodingDigestQuery keyView.secretKey
     request.epoch request.message randomness state
-  match TargetSum.decodeDigest encoded.1 with
+  match Checksum.decodeDigest encoded.1 with
   | none => pure (none, encoded.2)
   | some encoding => do
       let result ← (revealGlobalSignatureChains request encoding allChains

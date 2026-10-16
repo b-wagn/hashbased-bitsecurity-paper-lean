@@ -94,7 +94,7 @@ theorem coupledLimitedPrefix_accepted_probability_le (adversary : Adversary) (li
       CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     Pr[CoupledLimitedPrefixAccepted | coupledFirstLaneProgram (publicLimitedPrefixExecution limit adversary)] ≤
-      TargetSum.acceptanceProbability *
+      Checksum.acceptanceProbability *
         (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
         (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) :=
   (probEvent_le_source_add_bad_of_relTriple SourceCountedPrefixAccepted CoupledLimitedPrefixAccepted
@@ -107,7 +107,7 @@ theorem expectedCoupledLimitedProbe_hazards_le_source_credit (adversary : Advers
       CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     expectedCoupledHazards (limit + 1) (publicLimitedAcceptedPrefixProbeExecution limit adversary) ≤
-      (limit : ℝ≥0∞) + (TargetSum.acceptanceProbability *
+      (limit : ℝ≥0∞) + (Checksum.acceptanceProbability *
         (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
         (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) :=
   (expectedCoupledLimitedProbe_hazards_le limit adversary).trans

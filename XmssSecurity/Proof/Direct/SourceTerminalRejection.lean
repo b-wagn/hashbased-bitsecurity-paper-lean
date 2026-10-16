@@ -52,7 +52,7 @@ theorem exhaustedSource_firstLane_probability_le_acceptance
       let result ← (simulateQ (countedSourceImpl (materializePrecomputation key.cache key.secretKey))
         computation).run state
       let finished ← sourcePrefixFinish key (result.1, result.2.toSource)
-      pure (key, finished)] ≤ TargetSum.acceptanceProbability := by
+      pure (key, finished)] ≤ Checksum.acceptanceProbability := by
   apply probEvent_bind_le_of_forall_le
   intro result hresult
   simp only [bind_pure_comp, probEvent_map, Function.comp_def]
@@ -74,7 +74,7 @@ theorem lastNonencodingSource_firstLane_probability_le_acceptance
       let result ← (simulateQ (countedSourceImpl (materializePrecomputation key.cache key.secretKey))
         (liftM ((OracleWorld + SigningSpec).query (.inl (.inr input))) >>= next)).run state
       let finished ← sourcePrefixFinish key (result.1, result.2.toSource)
-      pure (key, finished)] ≤ TargetSum.acceptanceProbability := by
+      pure (key, finished)] ≤ Checksum.acceptanceProbability := by
   apply probEvent_bind_le_of_forall_le
   intro result hresult
   simp only [bind_pure_comp, probEvent_map, Function.comp_def]

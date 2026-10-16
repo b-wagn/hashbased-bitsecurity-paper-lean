@@ -49,7 +49,7 @@ noncomputable def SameLeafIndexBadEventOccurs
     (signedMessage forgedMessage : Message)
     (signedEncoding forgedEncoding : Encoding)
     (signedSignature forgedSignature : Signature)
-    (hsignedValid : TargetSum.Valid signedEncoding) : BadEvent → Prop :=
+    (hsignedValid : Checksum.Valid signedEncoding) : BadEvent → Prop :=
   XmssSecurity.SameLeafIndexBadEventOccurs
     (CacheView.encodingHash cache parameter leafIndex)
     (fun chain => CacheView.chainStep cache parameter leafIndex chain)
@@ -68,12 +68,10 @@ theorem sameLeafIndex_forgery_has_badEvent
     (signedMessage forgedMessage : Message)
     (signedEncoding forgedEncoding : Encoding)
     (signedSignature forgedSignature : Signature)
-    (hsignedEncoding : TargetSum.decodeDigest
-      (CacheView.encodingHash cache parameter leafIndex
-        (signedMessage, signedSignature.randomness)) = some signedEncoding)
-    (hforgedEncoding : TargetSum.decodeDigest
-      (CacheView.encodingHash cache parameter leafIndex
-        (forgedMessage, forgedSignature.randomness)) = some forgedEncoding)
+    (hsignedEncoding : CacheView.decodedEncoding cache parameter leafIndex
+        (signedMessage, signedSignature.randomness) = some signedEncoding)
+    (hforgedEncoding : CacheView.decodedEncoding cache parameter leafIndex
+        (forgedMessage, forgedSignature.randomness) = some forgedEncoding)
     (hroot : Merkle.ascend (CacheView.nodeHash cache parameter leafIndex)
         (signaturePath forgedSignature) 0 treeHeight
         (CacheView.leafHash cache parameter leafIndex
@@ -90,7 +88,7 @@ theorem sameLeafIndex_forgery_has_badEvent
     ∃ event, SameLeafIndexBadEventOccurs cache parameter leafIndex
       signedMessage forgedMessage signedEncoding forgedEncoding
       signedSignature forgedSignature
-      (TargetSum.decodeDigest_eq_some_iff.mp hsignedEncoding).2 event := by
+      (CacheView.decodedEncoding_valid hsignedEncoding) event := by
   exact XmssSecurity.sameLeafIndex_forgery_has_badEvent
     (CacheView.encodingHash cache parameter leafIndex)
     (fun chain => CacheView.chainStep cache parameter leafIndex chain)
@@ -101,13 +99,14 @@ theorem sameLeafIndex_forgery_has_badEvent
     signedEncoding forgedEncoding
     signedSignature.chainValue forgedSignature.chainValue
     (signaturePath signedSignature) (signaturePath forgedSignature)
-    hsignedEncoding hforgedEncoding hroot (strong_components hstrong)
+    (CacheView.decodeDigest_of_decodedEncoding hsignedEncoding)
+    (CacheView.decodeDigest_of_decodedEncoding hforgedEncoding) hroot (strong_components hstrong)
 
 noncomputable def FreshLeafIndexBadEventOccurs
     (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
     (forgedEncoding : Encoding) (forgedSignature : Signature)
     (secret : ChainIndex → Digest) (honestPath : Nat → Digest)
-    (hforgedValid : TargetSum.Valid forgedEncoding) : BadEvent → Prop :=
+    (hforgedValid : Checksum.Valid forgedEncoding) : BadEvent → Prop :=
   XmssSecurity.FreshLeafIndexBadEventOccurs
     (fun chain => CacheView.chainStep cache parameter leafIndex chain)
     (CacheView.leafHash cache parameter leafIndex)
@@ -120,7 +119,7 @@ theorem freshLeafIndex_forgery_has_badEvent
     (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
     (forgedEncoding : Encoding) (forgedSignature : Signature)
     (secret : ChainIndex → Digest) (honestPath : Nat → Digest)
-    (hforgedValid : TargetSum.Valid forgedEncoding)
+    (hforgedValid : Checksum.Valid forgedEncoding)
     (hroot : Merkle.ascend (CacheView.nodeHash cache parameter leafIndex)
         (signaturePath forgedSignature) 0 treeHeight
         (CacheView.leafHash cache parameter leafIndex

@@ -191,7 +191,7 @@ theorem verify_isQueryBoundP_of_imp_isDecidingInput (publicKey : PublicKey)
     (hparam : publicKey.parameter = parameter) (message : Message) (signature : Signature) :
     (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool).IsQueryBoundP
       p decidingQueryBound := by
-  unfold Concrete.verify
+  simp only [Concrete.verify_eq_decode]
   have hsplit : decidingQueryBound = 0 + ((chainLength - 1) + (1 + treeHeight)) := by
     unfold decidingQueryBound; omega
   rw [hsplit]
@@ -201,7 +201,7 @@ theorem verify_isQueryBoundP_of_imp_isDecidingInput (publicKey : PublicKey)
     rw [hparam] at h
     exact not_isDecidingInput_encoding parameter leafIndex chain _ _ (hp _ h)
   intro digest _
-  cases hdecode : TargetSum.decodeDigest digest with
+  cases hdecode : Checksum.decodeDigest digest with
   | none => simp
   | some encoding =>
       simp only

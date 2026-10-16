@@ -158,7 +158,7 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
     (Concrete.encodingHash keyResult.1.2.parameter leafIndex message randomness)
       largerCache digestResult (by
         simpa [Concrete.materializePrecomputation] using hdigestResult)
-  cases hdecode : TargetSum.decodeDigest digestResult.1 with
+  cases hdecode : Checksum.decodeDigest digestResult.1 with
   | none =>
     simp only
   | some encoding =>

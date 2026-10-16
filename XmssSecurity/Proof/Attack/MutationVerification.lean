@@ -125,8 +125,7 @@ theorem recoverMutatedEndpoints_run
 
 theorem encodingHash_run_cached (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (leafIndex : LeafIndex) (message : Message) (randomness : Randomness) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (CacheView.encodingHash cache parameter leafIndex (message, randomness)) = some encoding) :
+    (hdecode : CacheView.decodedEncoding cache parameter leafIndex (message, randomness) = some encoding) :
     (simulateQ randomOracle (encodingHash parameter leafIndex message randomness :
       OracleComp HashSpec Digest)).run cache =
       pure (CacheView.encodingHash cache parameter leafIndex (message, randomness), cache) := by
@@ -156,8 +155,7 @@ theorem verifyMutatedSignature_run
     (leafIndex : LeafIndex) (chain : ChainIndex) (message : Message)
     (encoding : Encoding) (randomness : Randomness) (value : Digest)
     (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
-    (hdecode : TargetSum.decodeDigest
-      (CacheView.encodingHash cache keyResult.1.2.parameter leafIndex (message, randomness)) = some encoding) :
+    (hdecode : CacheView.decodedEncoding cache keyResult.1.2.parameter leafIndex (message, randomness) = some encoding) :
     (simulateQ randomOracle (verify keyResult.1.1 leafIndex message
       (CappedChain.replaceSignatureChainValue
         (CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness encoding)
@@ -168,7 +166,7 @@ theorem verifyMutatedSignature_run
           (CacheReplay.oneTimePublicKey keyResult.2 keyResult.1.2.parameter
             keyResult.1.2.chainStart leafIndex) value)).run cache := by
   have hparameter := Deciding.keygen_publicKey_parameter_eq keyResult hkey
-  rw [verify, simulateQ_bind, StateT.run_bind]
+  rw [verify_eq_decode, simulateQ_bind, StateT.run_bind]
   change (simulateQ randomOracle
       (encodingHash keyResult.1.1.parameter leafIndex message randomness : OracleComp HashSpec Digest)).run cache
     >>= _ = _
@@ -201,8 +199,7 @@ theorem randomMutationVerification_run
     (leafIndex : LeafIndex) (chain : ChainIndex) (message : Message)
     (encoding : Encoding) (randomness : Randomness)
     (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
-    (hdecode : TargetSum.decodeDigest
-      (CacheView.encodingHash cache keyResult.1.2.parameter leafIndex (message, randomness)) = some encoding) :
+    (hdecode : CacheView.decodedEncoding cache keyResult.1.2.parameter leafIndex (message, randomness) = some encoding) :
     randomMutationVerification keyResult.1.1 leafIndex message
         (CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness encoding) chain cache =
       (fun result => (result.1, (decide (result.2.1 = keyResult.1.1.root), result.2.2))) <$>
@@ -224,8 +221,8 @@ theorem mutationVerification_probability_after_successful_signing
     (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
       (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
     ∃ encoding,
-      TargetSum.decodeDigest (CacheView.encodingHash finalCache keyResult.1.2.parameter
-        request.epoch (request.message, signature.randomness)) = some encoding ∧
+      CacheView.decodedEncoding finalCache keyResult.1.2.parameter
+        request.epoch (request.message, signature.randomness) = some encoding ∧
       ∀ chain, Pr[fun outcome => outcome.1 ≠ signature.chainValue chain ∧ outcome.2.1 = true |
         randomMutationVerification keyResult.1.1 request.epoch request.message signature chain finalCache] =
         pathMutationProbability (40 - (encoding chain).val) := by

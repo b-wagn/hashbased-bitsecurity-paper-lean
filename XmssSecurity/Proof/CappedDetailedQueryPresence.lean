@@ -11,10 +11,9 @@ theorem capped_detailed_execution_verified_leaf_cached
     (hmem : execution ∈ support (detailedGameWithCache Concrete.scheme adversary))
     (hverified : execution.1.verified = true) :
     ∃ encoding output,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+      Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
           execution.1.forgery.epoch
-          (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+          (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
           some encoding ∧
       execution.2
         (Concrete.CacheView.leafInput execution.1.secretKey.parameter
@@ -66,10 +65,9 @@ theorem capped_detailed_execution_verified_leaf_cached_as
     (hgame : execution ∈ support
       (detailedGameWithCache Concrete.scheme adversary))
     (encoding : Encoding) (hverified : execution.1.verified = true)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hdecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some encoding) :
     ∃ output, execution.2
       (Concrete.CacheView.leafInput execution.1.secretKey.parameter

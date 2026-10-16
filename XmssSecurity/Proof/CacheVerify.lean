@@ -8,9 +8,8 @@ namespace XmssSecurity.Concrete
 noncomputable def verifyFromCache (cache : QueryCache HashSpec)
     (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message)
     (signature : Signature) : Bool :=
-  match TargetSum.decodeDigest
-      (CacheView.encodingHash cache publicKey.parameter leafIndex
-        (message, signature.randomness)) with
+  match CacheView.decodedEncoding cache publicKey.parameter leafIndex
+        (message, signature.randomness) with
   | none => false
   | some encoding =>
       decide (Merkle.ascend (CacheView.nodeHash cache publicKey.parameter leafIndex)
@@ -25,9 +24,8 @@ theorem verifyFromCache_eq_true_iff (cache : QueryCache HashSpec)
     (signature : Signature) :
     verifyFromCache cache publicKey leafIndex message signature = true ↔
       ∃ encoding,
-        TargetSum.decodeDigest
-          (CacheView.encodingHash cache publicKey.parameter leafIndex
-            (message, signature.randomness)) = some encoding ∧
+        CacheView.decodedEncoding cache publicKey.parameter leafIndex
+            (message, signature.randomness) = some encoding ∧
         Merkle.ascend (CacheView.nodeHash cache publicKey.parameter leafIndex)
           (signaturePath signature) 0 treeHeight
           (CacheView.leafHash cache publicKey.parameter leafIndex
@@ -58,16 +56,14 @@ theorem sameLeafIndex_badEvent_of_verifyFromCache
     (hforged : verifyFromCache cache publicKey leafIndex forgedMessage forgedSignature = true)
     (hstrong : signedMessage ≠ forgedMessage ∨ signedSignature ≠ forgedSignature) :
     ∃ signedEncoding forgedEncoding,
-      ∃ hsignedEncoding : TargetSum.decodeDigest
-        (CacheView.encodingHash cache publicKey.parameter leafIndex
-          (signedMessage, signedSignature.randomness)) = some signedEncoding,
-      ∃ _hforgedEncoding : TargetSum.decodeDigest
-        (CacheView.encodingHash cache publicKey.parameter leafIndex
-          (forgedMessage, forgedSignature.randomness)) = some forgedEncoding,
+      ∃ hsignedEncoding : CacheView.decodedEncoding cache publicKey.parameter leafIndex
+          (signedMessage, signedSignature.randomness) = some signedEncoding,
+      ∃ _hforgedEncoding : CacheView.decodedEncoding cache publicKey.parameter leafIndex
+          (forgedMessage, forgedSignature.randomness) = some forgedEncoding,
       ∃ event, SameLeafIndexBadEventOccurs cache publicKey.parameter leafIndex
         signedMessage forgedMessage signedEncoding forgedEncoding
         signedSignature forgedSignature
-        (TargetSum.decodeDigest_eq_some_iff.mp hsignedEncoding).2 event := by
+        (Concrete.CacheView.decodedEncoding_valid hsignedEncoding) event := by
   obtain ⟨signedEncoding, hsignedEncoding, hsignedRoot⟩ :=
     (verifyFromCache_eq_true_iff cache publicKey leafIndex signedMessage signedSignature).mp hsigned
   obtain ⟨forgedEncoding, hforgedEncoding, hforgedRoot⟩ :=

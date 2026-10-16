@@ -12,11 +12,10 @@ def actionTraceOutcome
 noncomputable def actionTracedForgeryEncoding
     (result : ((((PublicKey × SecretKey) × QueryCache HashSpec) ×
       (GameOutcome × QueryCache HashSpec)) × AttackerActionTrace)) : Encoding :=
-  (TargetSum.decodeDigest
-    (Concrete.CacheView.encodingHash result.1.2.2 result.1.1.1.2.parameter
+  (Concrete.CacheView.decodedEncoding result.1.2.2 result.1.1.1.2.parameter
       result.1.2.1.forgery.epoch
       (result.1.2.1.forgery.message,
-        result.1.2.1.forgery.signature.randomness))).getD
+        result.1.2.1.forgery.signature.randomness)).getD
           (fun _ => ⟨0, by simp [chainLength]⟩)
 
 end XmssSecurity.CappedChain

@@ -223,18 +223,6 @@ theorem digestAt_eq_of_cache_eq_some {cache : QueryCache HashSpec} {input : Hash
     digestAt cache input = truncateHash output := by
   simp [digestAt, hcache]
 
-theorem encodingInput_cached_of_decode_some
-    (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (message : Message) (randomness : Randomness) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (encodingHash cache parameter leafIndex (message, randomness)) = some encoding) :
-    ∃ output, cache (encodingInput parameter leafIndex (message, randomness)) = some output := by
-  cases hcache : cache (encodingInput parameter leafIndex (message, randomness)) with
-  | some output => exact ⟨output, rfl⟩
-  | none =>
-      rw [encodingHash, digestAt, hcache, TargetSum.decodeDigest_zero_eq_none] at hdecode
-      contradiction
-
 @[simp]
 theorem chainStep_eq (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (leafIndex : LeafIndex) (chain : ChainIndex) (position : Nat) (value : Digest)

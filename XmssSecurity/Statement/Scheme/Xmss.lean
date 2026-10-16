@@ -17,7 +17,7 @@ open OracleComp OracleSpec
 namespace XmssSecurity
 
 /-- `SIG = (Gen, Sig, Ver)` of the specification: sample the master seed and derive the keys,
-sign with at most `A_max` randomizer trials, and verify. -/
+sign with a single randomizer, and verify. -/
 noncomputable def xmss :
     EpochBasedSignature OracleWorld PublicKey Seeded.SecretKey Message Signature lifetime where
   keygen := do

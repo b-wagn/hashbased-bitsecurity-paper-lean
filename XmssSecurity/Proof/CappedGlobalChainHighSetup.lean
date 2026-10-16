@@ -1004,7 +1004,7 @@ noncomputable def globalFilteredCausalSigningAttempt
       (Concrete.encodingHash keyView.secretKey.parameter request.epoch
         request.message randomness)).run state.cache)
   let encodedState := { state with cache := encoded.2 }
-  match TargetSum.decodeDigest encoded.1 with
+  match Checksum.decodeDigest encoded.1 with
   | none => pure (none, encodedState)
   | some encoding => do
       let result ← (revealGlobalSignatureChains request encoding allChains
@@ -1149,7 +1149,7 @@ theorem relTriple_programmed_globalFilteredCausalSigningAttempt
   intro leftEncoded rightEncoded hencoded
   have hdigestEq : leftEncoded.1 = rightEncoded.1 := hencoded.output_eq
   rw [← hdigestEq]
-  cases hdecode : TargetSum.decodeDigest leftEncoded.1 with
+  cases hdecode : Checksum.decodeDigest leftEncoded.1 with
   | none =>
       simp only [simulateQ_pure, StateT.run_pure, WriterT.run_pure]
       apply relTriple_pure_pure

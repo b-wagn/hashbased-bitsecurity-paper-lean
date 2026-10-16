@@ -462,10 +462,10 @@ theorem globalFirstLaneSigningAttempt_support_decompose
         ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
           (globalFirstLaneEncodingHashQuery keyView.secretKey request.epoch
             request.message randomness state)).run) ∧
-      ((TargetSum.decodeDigest (truncateHash encodedHead.1.1) = none ∧
+      ((Checksum.decodeDigest (truncateHash encodedHead.1.1) = none ∧
           result = ((none, encodedHead.1.2), encodedHead.2)) ∨
         ∃ encoding revealedHead,
-          TargetSum.decodeDigest (truncateHash encodedHead.1.1) =
+          Checksum.decodeDigest (truncateHash encodedHead.1.1) =
               some encoding ∧
             revealedHead ∈ support
               ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
@@ -497,7 +497,7 @@ theorem globalFirstLaneSigningAttempt_support_decompose
   rw [support_map] at htail
   obtain ⟨tailResult, htail, rfl⟩ := htail
   refine ⟨randomness, encodedHead, hencoded, ?_⟩
-  cases hdecode : TargetSum.decodeDigest (truncateHash encodedHead.1.1) with
+  cases hdecode : Checksum.decodeDigest (truncateHash encodedHead.1.1) with
   | none =>
       simp [hdecode] at htail
       subst tailResult
@@ -653,7 +653,7 @@ theorem globalFirstLaneSigningAttempt_summary
   · obtain ⟨hdecode, hresultEq⟩ := hreject
     subst result
     have hinvalidDigest :
-        ¬TargetSum.ValidDigest (truncateHash encodedHead.1.1) := by
+        ¬Checksum.ValidDigest (truncateHash encodedHead.1.1) := by
       intro ⟨encoding, hencoding⟩
       rw [hdecode] at hencoding
       contradiction
@@ -1231,7 +1231,7 @@ theorem globalFirstLaneVerifierHashExecution_simulateQ_cache_le
 noncomputable def concreteVerificationAfterDigest
     (publicKey : PublicKey) (leafIndex : LeafIndex) (signature : Signature)
     (digest : Digest) : OracleComp HashSpec Bool :=
-  match TargetSum.decodeDigest digest with
+  match Checksum.decodeDigest digest with
   | none => pure false
   | some encoding => do
       let endpoints ← Concrete.recoverEndpoints publicKey.parameter leafIndex
@@ -1247,10 +1247,11 @@ theorem concreteVerify_eq_encodingHash_bind_afterDigest
       let digest ← Concrete.encodingHash publicKey.parameter leafIndex message
         signature.randomness
       concreteVerificationAfterDigest publicKey leafIndex signature digest) := by
-  unfold Concrete.verify concreteVerificationAfterDigest
+  simp only [Concrete.verify_eq_decode]
+  unfold concreteVerificationAfterDigest
   apply bind_congr
   intro digest
-  cases TargetSum.decodeDigest digest <;> rfl
+  cases Checksum.decodeDigest digest <;> rfl
 
 theorem globalFirstLaneVerifier_eq_hashExecution
     (keyView : ProgrammedGlobalChainKeygenView)

@@ -30,7 +30,7 @@ theorem freshEncodingCollision_afterKeygen_probability_le (adversary : Adversary
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
     Pr[FreshEncodingCollisionEvent keyResult.1.1 | freshEncodingCollisionAfterKeygen adversary keyResult] ≤
-      (TargetSum.acceptanceProbability * expectedSimulatedQueryCount romImpl
+      (Checksum.acceptanceProbability * expectedSimulatedQueryCount romImpl
         (CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter)
         (adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
@@ -71,7 +71,7 @@ noncomputable def freshEncodingCollisionProbability (adversary : Adversary) : �
 
 theorem freshEncodingCollisionProbability_le_expectedEncoding (adversary : Adversary) :
     freshEncodingCollisionProbability adversary ≤
-      (TargetSum.acceptanceProbability * expectedPrefixEncodingQueries adversary) /
+      (Checksum.acceptanceProbability * expectedPrefixEncodingQueries adversary) /
         ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   unfold freshEncodingCollisionProbability
   let encoding := fun keyResult : (PublicKey × SecretKey) × QueryCache HashSpec =>
@@ -79,7 +79,7 @@ theorem freshEncodingCollisionProbability_le_expectedEncoding (adversary : Adver
       (adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2
   calc
     _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
-        (encoding keyResult * (TargetSum.acceptanceProbability / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
+        (encoding keyResult * (Checksum.acceptanceProbability / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
       apply ENNReal.tsum_le_tsum
       intro keyResult
       by_cases hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
@@ -98,7 +98,7 @@ theorem freshEncodingCollisionProbability_le_expectedEncoding (adversary : Adver
 
 theorem freshEncodingCollisionProbability_le_source_credit (adversary : Adversary) :
     freshEncodingCollisionProbability adversary ≤
-      (TargetSum.acceptanceProbability *
+      (Checksum.acceptanceProbability *
         (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary)) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞) :=
   (freshEncodingCollisionProbability_le_expectedEncoding adversary).trans

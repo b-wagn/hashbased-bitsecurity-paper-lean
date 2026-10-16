@@ -15,15 +15,15 @@ open Concrete CappedChain Deciding
 def SourcePrefixFreshAccepted (key : ProgrammedGlobalChainKeygenView)
     (result : Forgery × SourceExactTracedState) : Prop :=
   ¬ SigningTranscript.ContainsRequest result.2.2.toSigningLog result.1 ∧
-    ∃ encoding, TargetSum.decodeDigest (CacheView.encodingHash result.2.1.1.1 key.secretKey.parameter
-      result.1.epoch (result.1.message, result.1.signature.randomness)) = some encoding
+    ∃ encoding, CacheView.decodedEncoding result.2.1.1.1 key.secretKey.parameter
+      result.1.epoch (result.1.message, result.1.signature.randomness) = some encoding
 
 theorem sourcePrefix_freshAccepted_probability_le (adversary : XmssSecurity.Adversary)
     (key : ProgrammedGlobalChainKeygenView)
     (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen)
     (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[SourcePrefixFreshAccepted key | sourcePrefixExecution adversary key] ≤
-      TargetSum.acceptanceProbability * (D : ℝ≥0∞) := by
+      Checksum.acceptanceProbability * (D : ℝ≥0∞) := by
   have hbound := probEvent_freshAccepted_le_direct_budget key.publicKey
     (materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
     (keygen_cache_none_encodingInput key.keyResult

@@ -20,7 +20,7 @@ def replayCandidate : Message := 1
 def replayFallbackMessage : Message := 2
 
 noncomputable def replaySelectedMessage (output : HashOutput) : Message :=
-  if TargetSum.ValidDigest (truncateHash output) then replayCandidate else replayFallbackMessage
+  if Checksum.ValidDigest (truncateHash output) then replayCandidate else replayFallbackMessage
 
 theorem replaySelectedMessage_fresh (output : HashOutput) :
     replaySelectedMessage output ≠ replayRequest.message := by

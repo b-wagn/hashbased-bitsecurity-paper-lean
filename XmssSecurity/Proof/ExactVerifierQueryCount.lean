@@ -1,7 +1,8 @@
 import XmssSecurity.Proof.ExactKeygenQueryCount
 import XmssSecurity.Proof.Direct.VerifierBound
 
-/-! Every accepting verification uses exactly 133 hash queries. -/
+/-! Every verification uses `1 + work + 1 + 32` hash queries, where `work` is the number of chain
+steps of its encoding; an accepting verification therefore uses at least `34`. -/
 
 open OracleComp OracleSpec
 
@@ -24,8 +25,8 @@ theorem leafHash (parameter : PublicParameter) (leafIndex : LeafIndex)
 theorem recoverEndpoints (parameter : PublicParameter) (leafIndex : LeafIndex)
     (encoding : Encoding) (signature : Signature) :
     ExactQueryCount (Concrete.recoverEndpoints parameter leafIndex encoding signature :
-      OracleComp HashSpec (ChainIndex → Digest)) (TargetSum.verificationWork encoding) := by
-  unfold Concrete.recoverEndpoints TargetSum.verificationWork
+      OracleComp HashSpec (ChainIndex → Digest)) (Checksum.verificationWork encoding) := by
+  unfold Concrete.recoverEndpoints Checksum.verificationWork
   apply sequenceFin
   intro chain
   apply chainWalk
@@ -74,7 +75,7 @@ theorem countHashQueries_verify (publicKey : PublicKey) (leafIndex : LeafIndex)
     countHashQueries (Concrete.scheme.verify publicKey leafIndex message signature) = (do
       let digest ← (liftM (Concrete.encodingHash publicKey.parameter leafIndex message
         signature.randomness : OracleComp HashSpec Digest) : OracleComp OracleWorld Digest)
-      match TargetSum.decodeDigest digest with
+      match Checksum.decodeDigest digest with
       | none => pure (false, 1)
       | some encoding =>
           let endpoints ← liftM (Concrete.recoverEndpoints publicKey.parameter leafIndex
@@ -83,35 +84,33 @@ theorem countHashQueries_verify (publicKey : PublicKey) (leafIndex : LeafIndex)
             OracleComp HashSpec Digest)
           let verified ← liftM (Concrete.verifyAfterLeaf publicKey leafIndex signature leaf :
             OracleComp HashSpec Bool)
-          pure (verified, Direct.verifierQueryBound)) := by
+          pure (verified, 1 + (Checksum.verificationWork encoding + (1 + treeHeight)))) := by
   change countHashQueries (liftM (Concrete.verify publicKey leafIndex message signature :
     OracleComp HashSpec Bool) : OracleComp OracleWorld Bool) = _
-  rw [Concrete.verify, liftM_bind, countHashQueries_bind,
+  rw [Concrete.verify_eq_decode, liftM_bind, countHashQueries_bind,
     countHashQueries_lift_exact (ExactQueryCount.encodingHash _ _ _ _)]
   simp only [bind_map_left]
   apply bind_congr
   intro digest
-  cases hdecode : TargetSum.decodeDigest digest with
+  cases hdecode : Checksum.decodeDigest digest with
   | none => simp [countHashQueries_pure]
   | some encoding =>
-      have hwork := TargetSum.verificationWork_eq encoding (Direct.decodeDigest_valid hdecode)
       simp only [liftM_bind, countHashQueries_bind,
         countHashQueries_lift_exact (ExactQueryCount.recoverEndpoints _ _ _ _),
         countHashQueries_lift_exact (ExactQueryCount.leafHash _ _ _),
         countHashQueries_lift_exact (ExactQueryCount.verifyAfterLeaf _ _ _ _),
-        bind_map_left, bind_assoc, pure_bind, hwork]
-      rfl
+        bind_map_left, bind_assoc, pure_bind]
 
-theorem verify_queryCount_eq_of_accepts (publicKey : PublicKey) (leafIndex : LeafIndex)
+theorem verify_queryCount_ge_of_accepts (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (signature : Signature) (cache : QueryCache HashSpec)
     (result : (Bool × ℕ) × QueryCache HashSpec)
     (hresult : result ∈ support ((simulateQ romImpl (countHashQueries
       (Concrete.scheme.verify publicKey leafIndex message signature))).run cache))
-    (haccepts : result.1.1 = true) : result.1.2 = Direct.verifierQueryBound := by
+    (haccepts : result.1.1 = true) : Direct.verifierAcceptedMinimum ≤ result.1.2 := by
   rw [countHashQueries_verify, simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hresult
   obtain ⟨⟨digest, cache₁⟩, _hdigest, hrest⟩ := hresult
   dsimp only at hrest
-  cases hdecode : TargetSum.decodeDigest digest with
+  cases hdecode : Checksum.decodeDigest digest with
   | none =>
       simp only [hdecode, simulateQ_pure, StateT.run_pure, support_pure,
         Set.mem_singleton_iff] at hrest
@@ -123,6 +122,7 @@ theorem verify_queryCount_eq_of_accepts (publicKey : PublicKey) (leafIndex : Lea
         ⟨⟨verified, cache₄⟩, _hverified, hfinal⟩⟩⟩ := hrest
       simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hfinal
       subst result
-      rfl
+      simp only [Direct.verifierAcceptedMinimum]
+      omega
 
 end XmssSecurity

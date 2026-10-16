@@ -1,6 +1,6 @@
 import XmssSecurity.Statement.Scheme.Types
 import XmssSecurity.Statement.Scheme.Hashing
-import XmssSecurity.Statement.Scheme.TargetSum
+import XmssSecurity.Statement.Scheme.Checksum
 import VCVio.OracleComp.QueryTracking.LoggingOracle
 
 /-!
@@ -8,14 +8,14 @@ import VCVio.OracleComp.QueryTracking.LoggingOracle
 
 The algorithms of the XMSS instance specified in `doc/xmss/main.tex` of the leanVM repository:
 verification, key generation, and signing. The types are in `Types.lean`, the hash routines in
-`Hashing.lean`, and the target-sum encoding in `TargetSum.lean`.
+`Hashing.lean`, and the checksummed WOTS encoding in `Checksum.lean`.
 
 `Concrete` contains verification and the chain and tree computations; `Seeded` contains key
 generation and signing from a 256-bit master seed. Key generation derives the public parameter
 and all WOTS chain starts from the master seed in separate hash domains, computes the Merkle root,
-and stores every chain value and Merkle node in the secret key; signing derives its randomizers
-from the master seed. Out-of-range branches only make the definitions total; honest algorithms
-never reach them.
+and stores every chain value and Merkle node in the secret key; signing derives its randomizer
+from the master seed and makes a single attempt, since every digest encodes. Out-of-range
+branches only make the definitions total; honest algorithms never reach them.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -100,8 +100,7 @@ def verifyAfterLeaf
 def verify (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (signature : Signature) : m Bool := do
   let digest ← encodingHash publicKey.parameter leafIndex message signature.randomness
-  let some encoding := TargetSum.decodeDigest digest | return false
-  let endpoints ← recoverEndpoints publicKey.parameter leafIndex encoding signature
+  let endpoints ← recoverEndpoints publicKey.parameter leafIndex (Checksum.encode digest) signature
   let leaf ← leafHash publicKey.parameter leafIndex endpoints
   verifyAfterLeaf publicKey leafIndex signature leaf
 
@@ -227,28 +226,17 @@ def precomputedSignWithEncoding (secretKey : SecretKey) (leafIndex : LeafIndex)
     chainValue := fun chain => secretKey.chainValue leafIndex chain (encoding chain)
     authPath := fun level => secretKey.treeValue level.castSucc (authenticationPathNode leafIndex level) }
 
-/-- One attempt: hash once, and sign if the digest encodes. -/
-def precomputedSignAttempt (secretKey : SecretKey) (leafIndex : LeafIndex)
-    (message : Message) (randomness : Randomness) : m (Option Signature) := do
-  let digest ← encodingHash secretKey.parameter leafIndex message randomness
-  let some encoding := TargetSum.decodeDigest digest | return none
-  return some (precomputedSignWithEncoding secretKey leafIndex randomness encoding)
-
 end Concrete
 
 namespace Seeded
 
-/-- Derive trials in increasing order, stopping at the first admissible encoding. -/
-def signFrom (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) : Nat → Nat → m (Option Signature)
-  | 0, _ => pure none
-  | attempts + 1, trial => do
-      let randomness ← deriveRandomizer secretKey.precomputed.parameter secretKey.seed leafIndex message (BitVec.ofNat 32 trial)
-      match ← Concrete.precomputedSignAttempt secretKey.precomputed leafIndex message randomness with
-      | some signature => return some signature
-      | none => signFrom secretKey leafIndex message attempts (trial + 1)
-
-def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) : m (Option Signature) :=
-  signFrom secretKey leafIndex message signingAttemptLimit 0
+/-- `Sig(sk, idx, m)`: derive the randomizer `rho` (trial `0`), hash the message, and reveal the
+chain values at the digits of its checksummed encoding. Signing never fails. -/
+def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) : m (Option Signature) := do
+  let randomness ← deriveRandomizer secretKey.precomputed.parameter secretKey.seed leafIndex message 0
+  let digest ← Concrete.encodingHash secretKey.precomputed.parameter leafIndex message randomness
+  return some (Concrete.precomputedSignWithEncoding secretKey.precomputed leafIndex randomness
+    (Checksum.encode digest))
 
 end Seeded
 

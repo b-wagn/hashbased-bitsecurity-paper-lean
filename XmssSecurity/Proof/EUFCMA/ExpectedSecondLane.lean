@@ -50,7 +50,7 @@ theorem decidingSecondLane_probability_le_expected (adversary : XmssSecurity.Adv
       detailedGameWithCache Concrete.scheme adversary] ≤
       expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         (expectedDirectEncodingQueries adversary + 1) *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
   have hsecond := decidingSecondLane_probability_le_expectedEncoding (withForgedEncodingQuery adversary) (by
     intro key hkey result hresult
     have hcached := adversaryPhase_withForgedEncodingQuery_cached adversary key.1.1 key.1.2 key.2 result hresult

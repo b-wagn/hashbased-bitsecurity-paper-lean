@@ -14,9 +14,8 @@ theorem Concrete.precomputedSignAttempt_none_attemptedInput_ne_of_later_decode
         (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
           OracleComp HashSpec (Option Signature))).run initialCache))
     (hle : resultCache ≤ largerCache) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache secretKey.parameter targetLeafIndex
-        targetInput) = some encoding) :
+    (hdecode : Concrete.CacheView.decodedEncoding largerCache secretKey.parameter targetLeafIndex
+        targetInput = some encoding) :
     Concrete.CacheView.encodingInput secretKey.parameter leafIndex (message, randomness) ≠
       Concrete.CacheView.encodingInput secretKey.parameter targetLeafIndex targetInput := by
   intro heq
@@ -24,15 +23,7 @@ theorem Concrete.precomputedSignAttempt_none_attemptedInput_ne_of_later_decode
     (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
       OracleComp HashSpec (Option Signature)) initialCache resultCache largerCache none hmem hle
   unfold Concrete.precomputedSignAttempt at heval
-  simp only [evalWithAnswerFn_bind, Concrete.CacheReplay.eval_encodingHash] at heval
-  have hattemptDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache secretKey.parameter leafIndex
-        (message, randomness)) = some encoding := by
-    unfold Concrete.CacheView.encodingHash at hdecode ⊢
-    rw [heq]
-    exact hdecode
-  rw [hattemptDecode] at heval
-  cases heval
+  simp [Checksum.decodeDigest] at heval
 
 theorem Concrete.precomputedSignAttempt_none_preserves_later_valid_encodingInput
     (secretKey : SecretKey) (leafIndex targetLeafIndex : LeafIndex)
@@ -43,9 +34,8 @@ theorem Concrete.precomputedSignAttempt_none_preserves_later_valid_encodingInput
         (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
           OracleComp HashSpec (Option Signature))).run initialCache))
     (hle : resultCache ≤ largerCache) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache secretKey.parameter targetLeafIndex
-        targetInput) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding largerCache secretKey.parameter targetLeafIndex
+        targetInput = some encoding)
     (hnone : initialCache
       (Concrete.CacheView.encodingInput secretKey.parameter targetLeafIndex targetInput) = none) :
     resultCache
@@ -120,9 +110,8 @@ theorem Concrete.precomputedSignBoundedAttempts_preserves_later_valid_other_enco
         (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
           initialCache))
     (hle : resultCache ≤ largerCache) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache secretKey.parameter targetLeafIndex
-        targetInput) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding largerCache secretKey.parameter targetLeafIndex
+        targetInput = some encoding)
     (hother : ∀ signature, result = some signature →
       Concrete.CacheView.encodingInput secretKey.parameter leafIndex
           (message, signature.randomness) ≠
@@ -194,9 +183,8 @@ theorem Concrete.precomputedCappedSign_preserves_later_valid_other_encodingInput
       ((simulateQ romImpl
         (Concrete.precomputedCappedSign secretKey leafIndex message)).run initialCache))
     (hle : resultCache ≤ largerCache) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache secretKey.parameter targetLeafIndex
-        targetInput) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding largerCache secretKey.parameter targetLeafIndex
+        targetInput = some encoding)
     (hother : ∀ signature, result = some signature →
       Concrete.CacheView.encodingInput secretKey.parameter leafIndex
           (message, signature.randomness) ≠
@@ -302,9 +290,8 @@ theorem Concrete.precomputedCappedSign_success_decode
       ((simulateQ romImpl
         (Concrete.precomputedCappedSign secretKey request.epoch
           request.message)).run initialCache)) :
-    ∃ encoding, TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash finalCache secretKey.parameter request.epoch
-        (request.message, signature.randomness)) = some encoding := by
+    ∃ encoding, Concrete.CacheView.decodedEncoding finalCache secretKey.parameter request.epoch
+        (request.message, signature.randomness) = some encoding := by
   obtain ⟨randomness, attemptCache, resultCache, hattempt, hle⟩ :=
     Concrete.precomputedSignBoundedAttempts_success_origin signingAttemptLimit secretKey
       request.epoch request.message initialCache finalCache signature (by
@@ -322,7 +309,12 @@ theorem Concrete.precomputedCappedSign_success_decode
     have hrandomness : randomness = signature.randomness := by
       simpa only [Concrete.precomputedSignWithEncoding] using
         congrArg Signature.randomness heval
-    exact ⟨encoding, by simpa only [hrandomness] using hdecode⟩
+    obtain ⟨output, hcached⟩ := Concrete.CacheReplay.precomputedSignAttempt_run_encodingInput_cached
+      secretKey request.epoch request.message randomness attemptCache resultCache
+      (some signature) hattempt
+    refine ⟨encoding, ?_⟩
+    rw [← hrandomness, Concrete.CacheView.decodedEncoding_eq_of_cache_eq_some (hle hcached)]
+    exact hdecode
   · simp at heval
 
 theorem Concrete.precomputedCappedSign_success_encodingInput_cached

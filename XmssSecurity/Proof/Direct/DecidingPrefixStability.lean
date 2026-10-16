@@ -22,8 +22,7 @@ theorem globalReturnedChainValueCovered_mono_cache (initialCache finalCache : Qu
   refine ⟨request, signature, encoding, hreturned, ?_, hleaf, hdigit⟩
   obtain ⟨output, houtput⟩ := CacheView.encodingInput_cached_of_decode_some initialCache
     secretKey.parameter request.epoch request.message signature.randomness encoding hdecode
-  rw [← encodingHash_eq_of_cached initialCache finalCache hle secretKey.parameter _ _
-    (by simp [houtput])]
+  rw [← CacheView.decodedEncoding_eq_of_input_eq (houtput.trans (hle houtput).symm)]
   exact hdecode
 
 theorem keyView_honestChainValue_eq_table (key : ProgrammedGlobalChainKeygenView)

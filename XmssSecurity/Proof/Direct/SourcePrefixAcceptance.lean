@@ -24,7 +24,7 @@ theorem countedSource_accepted_probability_le {α : Type} (publicKey : PublicKey
     (hcache : ¬HasAcceptedEncoding secretKey.parameter cache) :
     Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2.counts.cache |
       (simulateQ (countedSourceImpl secretKey) computation).run (CountedSourceState.initial cache)] ≤
-      TargetSum.acceptanceProbability *
+      Checksum.acceptanceProbability *
         (expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
           (Direct.IsDirectEncodingQuery secretKey.parameter) computation cache +
           ∑' result, Pr[= result | (simulateQ (countedSourceImpl secretKey) computation).run
@@ -73,7 +73,7 @@ def SourceCountedPrefixAccepted (result : ProgrammedGlobalChainKeygenView × (Fo
 
 theorem sourceCountedPrefix_accepted_probability_le (adversary : Adversary) :
     Pr[SourceCountedPrefixAccepted | sourceCountedPrefixProgram adversary] ≤
-      TargetSum.acceptanceProbability *
+      Checksum.acceptanceProbability *
         (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) := by
   let credit := fun keyResult : (PublicKey × SecretKey) × QueryCache HashSpec =>
     expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
@@ -98,7 +98,7 @@ theorem sourceCountedPrefix_accepted_probability_le (adversary : Adversary) :
   rw [probEvent_bind_eq_tsum]
   calc
     _ ≤ ∑' key, Pr[= key | trajectoryProgrammedGlobalChainKeygen] *
-        (TargetSum.acceptanceProbability * credit (Concrete.materializeCachedKeyResult key.keyResult)) := by
+        (Checksum.acceptanceProbability * credit (Concrete.materializeCachedKeyResult key.keyResult)) := by
       apply ENNReal.tsum_le_tsum
       intro key
       by_cases hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen
@@ -112,7 +112,7 @@ theorem sourceCountedPrefix_accepted_probability_le (adversary : Adversary) :
         exact ⟨key, hkey, rfl⟩
       · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul, zero_mul]
     _ = _ := by
-      simp_rw [mul_left_comm _ TargetSum.acceptanceProbability]
+      simp_rw [mul_left_comm _ Checksum.acceptanceProbability]
       rw [ENNReal.tsum_mul_left, hmean]
 
 /-- info: 'XmssSecurity.Deciding.sourceCountedPrefix_accepted_probability_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/

@@ -235,8 +235,7 @@ theorem publicKey_eq_publicKeyFromCache (cache : QueryCache HashSpec)
 theorem verifyFromCache_signWithEncoding (cache : QueryCache HashSpec)
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (CacheView.encodingHash cache secretKey.parameter leafIndex (message, randomness)) =
+    (hdecode : CacheView.decodedEncoding cache secretKey.parameter leafIndex (message, randomness) =
         some encoding) :
     Concrete.verifyFromCache cache (publicKeyFromCache cache secretKey) leafIndex message
       (signWithEncoding cache secretKey leafIndex randomness encoding) = true := by

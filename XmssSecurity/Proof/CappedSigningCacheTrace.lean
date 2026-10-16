@@ -11,9 +11,8 @@ def SigningCacheEntry.PreservesOtherValidEncodingInputs
     (secretKey : SecretKey) (entry : SigningCacheEntry) : Prop :=
   ∀ signature, entry.signature = some signature →
     ∀ targetLeafIndex targetInput encoding,
-      TargetSum.decodeDigest
-          (Concrete.CacheView.encodingHash entry.finalCache secretKey.parameter
-            targetLeafIndex targetInput) = some encoding →
+      Concrete.CacheView.decodedEncoding entry.finalCache secretKey.parameter
+            targetLeafIndex targetInput = some encoding →
       Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch
           (entry.request.message, signature.randomness) ≠
         Concrete.CacheView.encodingInput secretKey.parameter targetLeafIndex targetInput →
@@ -552,9 +551,8 @@ theorem SigningCacheEntry.freshForgedEncodingCollision_finalCache_none_of_valid
     (hcache : entry.finalCache ≤ gameCache)
     (hevent : entry.FreshForgedEncodingCollision secretKey forgery gameCache)
     (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash gameCache secretKey.parameter forgery.epoch
-        (forgery.message, forgery.signature.randomness)) = some encoding) :
+    (hdecode : Concrete.CacheView.decodedEncoding gameCache secretKey.parameter forgery.epoch
+        (forgery.message, forgery.signature.randomness) = some encoding) :
     entry.finalCache
       (Concrete.CacheView.encodingInput secretKey.parameter forgery.epoch
         (forgery.message, forgery.signature.randomness)) = none := by
@@ -568,14 +566,11 @@ theorem SigningCacheEntry.freshForgedEncodingCollision_finalCache_none_of_valid
       have hgame := hcache hlocal
       have houtput : localOutput = forgedOutput :=
         Option.some.inj (hgame.symm.trans hforged)
-      have hdecodeLocal : TargetSum.decodeDigest
-          (Concrete.CacheView.encodingHash entry.finalCache secretKey.parameter
-            forgery.epoch (forgery.message, forgery.signature.randomness)) =
+      have hdecodeLocal : Concrete.CacheView.decodedEncoding entry.finalCache secretKey.parameter
+            forgery.epoch (forgery.message, forgery.signature.randomness) =
           some encoding := by
-        rw [Concrete.CacheView.encodingHash,
-          Concrete.CacheView.digestAt_eq_of_cache_eq_some hlocal, houtput,
-          ← Concrete.CacheView.digestAt_eq_of_cache_eq_some hforged,
-          ← Concrete.CacheView.encodingHash]
+        rw [Concrete.CacheView.decodedEncoding_eq_of_input_eq
+          (hlocal.trans ((congrArg some houtput).trans hforged.symm))]
         exact hdecode
       have hnone := hpreserves signature hsignature forgery.epoch
         (forgery.message, forgery.signature.randomness) encoding hdecodeLocal hne
@@ -590,9 +585,8 @@ theorem SigningCacheEntry.postSigningFreshForgedEncodingCollision_of_valid_fresh
     (hcache : entry.finalCache ≤ gameCache)
     (hevent : entry.FreshForgedEncodingCollision secretKey forgery gameCache)
     (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash gameCache secretKey.parameter forgery.epoch
-        (forgery.message, forgery.signature.randomness)) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding gameCache secretKey.parameter forgery.epoch
+        (forgery.message, forgery.signature.randomness) = some encoding)
     (signature : Signature) (hsignature : entry.signature = some signature)
     (hsignedFresh : entry.initialCache
       (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch

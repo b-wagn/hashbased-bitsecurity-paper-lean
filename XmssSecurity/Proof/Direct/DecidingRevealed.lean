@@ -30,7 +30,7 @@ theorem deciding_revealed_chain_event (cache : QueryCache HashSpec) (outcome : G
   refine ⟨⟨hwin, hverified, ?_⟩, hverified, encoding, hdecode, hvalue⟩
   cases hreturned : returnedAt outcome.signingLog outcome.forgery.epoch with
   | none =>
-    refine Or.inr ⟨encoding, (TargetSum.decodeDigest_eq_some_iff.mp hdecode).2,
+    refine Or.inr ⟨encoding, (Concrete.CacheView.decodedEncoding_valid hdecode),
       no_returned_of_returnedAt_none _ _ hreturned, hdecode, ?_⟩
     exact hvalue
   | some pair =>
@@ -41,9 +41,8 @@ theorem deciding_revealed_chain_event (cache : QueryCache HashSpec) (outcome : G
         outcome.forgery.epoch = some signed := by
       simpa only [signedEncoding, hreturned, hepoch] using hsigned
     have hlt := hbelow signed hsigned'
-    have hforged : TargetSum.decodeDigest
-        (CacheView.encodingHash cache outcome.secretKey.parameter request.epoch
-          (outcome.forgery.message, outcome.forgery.signature.randomness)) = some encoding := by
+    have hforged : CacheView.decodedEncoding cache outcome.secretKey.parameter request.epoch
+          (outcome.forgery.message, outcome.forgery.signature.randomness) = some encoding := by
       simpa only [forgedEncoding, hepoch] using hdecode
     refine Or.inl ⟨request, signature, signed, encoding, hsigned, hforged, hentry, hepoch, ?_⟩
     change Wots.IsBackwardWitnessAt _ signed encoding signature.chainValue

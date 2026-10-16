@@ -12,9 +12,9 @@ private theorem counts_finite (q : ℕ) (E S Z R : ℝ≥0∞) (hbudget : E + S 
   have hfinite : E + S + Z + R ≠ ⊤ := ne_top_of_le_ne_top (by finiteness) hbudget
   simpa only [ENNReal.add_ne_top, and_assoc] using hfinite
 
-private theorem acceptance_real_upper : TargetSum.acceptanceProbability.toReal ≤ (1 : ℝ) / 2 ^ 14 := by
-  have h := (ENNReal.toReal_le_toReal TargetSum.acceptanceProbability_ne_top
-    (by finiteness)).mpr TargetSum.acceptanceProbability_upper.le
+private theorem acceptance_real_upper : Checksum.acceptanceProbability.toReal ≤ (1 : ℝ) / 2 ^ 14 := by
+  have h := (ENNReal.toReal_le_toReal Checksum.acceptanceProbability_ne_top
+    (by finiteness)).mpr Checksum.acceptanceProbability_upper.le
   norm_num [ENNReal.toReal_div] at h ⊢
   exact h
 
@@ -22,7 +22,7 @@ theorem expectedLoss_le_127 (q : ℕ) (E S Z R : ℝ≥0∞)
     (hbudget : E + S + Z + R ≤ q) (hlarge : (1 : ℝ≥0∞) / 256 ≤ E) :
     expectedLoss q E S Z R ≤ (q : ℝ≥0∞) / ((2 ^ 127 : ℕ) : ℝ≥0∞) := by
   obtain ⟨hE, hS, hZ, hR⟩ := counts_finite q E S Z R hbudget
-  have hpfinite := TargetSum.acceptanceProbability_ne_top
+  have hpfinite := Checksum.acceptanceProbability_ne_top
   have hbudgetReal := (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mpr hbudget
   simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_natCast] at hbudgetReal
   have hlargeReal := (ENNReal.toReal_le_toReal (by finiteness) hE).mpr hlarge
@@ -40,7 +40,7 @@ theorem terminalLoss_le_127 (q : ℕ) (hq : 1 ≤ q) (E S Z R : ℝ≥0∞)
     (hbudget : E + S + Z + R ≤ q) (hsmall : E ≤ (1 : ℝ≥0∞) / 256) :
     terminalLoss q E S Z R ≤ (q : ℝ≥0∞) / ((2 ^ 127 : ℕ) : ℝ≥0∞) := by
   obtain ⟨hE, hS, hZ, hR⟩ := counts_finite q E S Z R hbudget
-  have hpfinite := TargetSum.acceptanceProbability_ne_top
+  have hpfinite := Checksum.acceptanceProbability_ne_top
   have hbudgetReal := (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mpr hbudget
   simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_natCast] at hbudgetReal
   have hsmallReal := (ENNReal.toReal_le_toReal hE (by finiteness)).mpr hsmall

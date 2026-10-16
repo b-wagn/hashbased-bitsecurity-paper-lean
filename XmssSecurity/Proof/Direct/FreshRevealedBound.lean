@@ -13,7 +13,7 @@ namespace XmssSecurity.Deciding
 open CappedChain FirstLaneOracleSimulation
 
 abbrev AcceptedEncodingPrefixResult :=
-  (ProgrammedGlobalChainKeygenView × (Forgery × SourceExactTracedState)) × TargetSum.AcceptedHashOutput
+  (ProgrammedGlobalChainKeygenView × (Forgery × SourceExactTracedState)) × Checksum.AcceptedHashOutput
 
 theorem acceptedFreshRevealedProbability_le (adversary : Adversary) (limit : Nat)
     (hbudget : ∀ key ∈ support trajectoryProgrammedGlobalChainKeygen,
@@ -23,7 +23,7 @@ theorem acceptedFreshRevealedProbability_le (adversary : Adversary) (limit : Nat
       ((limit : ℝ≥0∞) + 1) / ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   let sampled : ProbComp AcceptedEncodingPrefixResult := do
     let prefixPair ← sourcePrefixProgram adversary
-    let output ← ($ᵗ TargetSum.AcceptedHashOutput)
+    let output ← ($ᵗ Checksum.AcceptedHashOutput)
     pure (prefixPair, output)
   have heq : acceptedFreshRevealedProbability adversary =
       Pr[fun result => SourcePrefixForgedEncodingFresh result.1 ∧
@@ -34,7 +34,7 @@ theorem acceptedFreshRevealedProbability_le (adversary : Adversary) (limit : Nat
   rw [heq]
   calc
     _ ≤ Pr[fun pair : AcceptedEncodingPrefixResult => RevealedEncodingPrefixEvent pair.1.1 pair.1.2
-        (TargetSum.acceptedHashEncoding pair.2) | sampled] := by
+        (Checksum.acceptedHashEncoding pair.2) | sampled] := by
       apply probEvent_bind_le_probEvent (mx := sampled)
       intro pair hpair hnone
       dsimp only [sampled] at hpair
@@ -50,27 +50,27 @@ theorem acceptedFreshRevealedProbability_le (adversary : Adversary) (limit : Nat
       exact hnone (sourcePrefixFinishAfterHash_revealed_implies_prefixEvent adversary key hkey
         prefixResult hprefix output hevent.1 execution hfinish hevent.2)
     _ = Pr[fun pair : AcceptedEncodingPrefixResult => RevealedEncodingPrefixEvent pair.1.1 pair.1.2
-        (TargetSum.acceptedHashEncoding pair.2) | do
-          let output ← ($ᵗ TargetSum.AcceptedHashOutput)
+        (Checksum.acceptedHashEncoding pair.2) | do
+          let output ← ($ᵗ Checksum.AcceptedHashOutput)
           let prefixPair ← sourcePrefixProgram adversary
           pure (prefixPair, output)] := by
       apply probEvent_eq_of_evalDist_eq
       exact OracleComp.DeferredSampling.evalDist_bind_comm
-        (sourcePrefixProgram adversary) ($ᵗ TargetSum.AcceptedHashOutput)
+        (sourcePrefixProgram adversary) ($ᵗ Checksum.AcceptedHashOutput)
         (fun prefixPair output => pure (prefixPair, output))
     _ ≤ _ := by
       apply probEvent_bind_le_of_forall_le
       intro output _
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
       exact revealedEncodingPrefixEvent_probability_le adversary limit hbudget
-        (TargetSum.acceptedHashEncoding output)
+        (Checksum.acceptedHashEncoding output)
 
 theorem freshRevealedProbability_le (adversary : Adversary) (limit : Nat)
     (hbudget : ∀ key ∈ support trajectoryProgrammedGlobalChainKeygen,
       CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     freshRevealedProbability adversary ≤
-      TargetSum.acceptanceProbability * (((limit : ℝ≥0∞) + 1) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) := by
+      Checksum.acceptanceProbability * (((limit : ℝ≥0∞) + 1) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) := by
   rw [freshRevealedProbability_eq_acceptance_mul]
   exact mul_le_mul' le_rfl (acceptedFreshRevealedProbability_le adversary limit hbudget)
 

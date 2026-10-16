@@ -93,7 +93,7 @@ theorem extract_of_distinct_valid_encodings {α : Type}
     (step : ChainIndex → Nat → α → α)
     (signedEncoding forgedEncoding : Encoding)
     (signedValue forgedValue : ChainIndex → α)
-    (hsigned : TargetSum.Valid signedEncoding) (hforged : TargetSum.Valid forgedEncoding)
+    (hsigned : Checksum.Valid signedEncoding) (hforged : Checksum.Valid forgedEncoding)
     (hne : signedEncoding ≠ forgedEncoding)
     (hendpoints : ∀ i,
       recoverChain (step i) (forgedEncoding i) (forgedValue i) =
@@ -106,7 +106,7 @@ theorem extract_of_distinct_valid_encodings {α : Type}
           (walk (step i) (forgedEncoding i).val
             ((signedEncoding i).val - (forgedEncoding i).val) (forgedValue i))
           (signedValue i)) := by
-  obtain ⟨i, hi⟩ := TargetSum.exists_forged_lt_signed hsigned hforged hne
+  obtain ⟨i, hi⟩ := Checksum.exists_forged_lt_signed hsigned hforged hne
   refine ⟨i, hi, ?_⟩
   apply backward_value_or_hasStepCollision
   · exact hi.le
@@ -157,7 +157,7 @@ theorem backwardWitness_eq_honest_or_hasStepCollision {α : Type}
 def IsSuffixCollisionAt {α : Type} (step : ChainIndex → Nat → α → α)
     (signedEncoding forgedEncoding : Encoding)
     (signedValue forgedValue : ChainIndex → α)
-    (position : TargetSum.SuffixPosition signedEncoding) : Prop :=
+    (position : Checksum.SuffixPosition signedEncoding) : Prop :=
   let i := position.1
   let offset := position.2.val
   let forgedAtSigned := walk (step i) (forgedEncoding i).val
@@ -180,7 +180,7 @@ theorem classify_distinct_valid_encodings {α : Type}
     (step : ChainIndex → Nat → α → α)
     (signedEncoding forgedEncoding : Encoding)
     (signedValue forgedValue : ChainIndex → α)
-    (hsigned : TargetSum.Valid signedEncoding) (hforged : TargetSum.Valid forgedEncoding)
+    (hsigned : Checksum.Valid signedEncoding) (hforged : Checksum.Valid forgedEncoding)
     (hne : signedEncoding ≠ forgedEncoding)
     (hendpoints : ∀ i,
       recoverChain (step i) (forgedEncoding i) (forgedValue i) =

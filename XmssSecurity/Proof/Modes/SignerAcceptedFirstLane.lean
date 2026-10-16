@@ -18,7 +18,7 @@ theorem signer_acceptedPrefixFirstLane_probability_le_source_credit
     Pr[fun result => AcceptedPrefixFirstLaneEvent result.1 result.2 |
       sourcePrefixProgram (memoAdversary (Security.embed adversary))] ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) :=
@@ -31,7 +31,7 @@ theorem signer_cached_seeded_loss_le_source_credit (adversary : Security.Stateme
     (hcached : HasCachedForgedEncoding (memoAdversary (Security.embed adversary))) :
     forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) +
@@ -52,11 +52,11 @@ theorem signer_firstLane_probability_le_accepted_add_fresh
     Pr[WinningDecidingFirstLaneBadEventOccurs |
       cappedDetailedGameWithEncodingTrace (memoAdversary (Security.embed adversary))] ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        TargetSum.acceptanceProbability * Pr[SourcePrefixForgedEncodingFresh |
+        Checksum.acceptanceProbability * Pr[SourcePrefixForgedEncodingFresh |
           sourcePrefixProgram (memoAdversary (Security.embed adversary))] :=
   (decidingFirstLane_probability_le_accepted_add_fresh _).trans
     (add_le_add (signer_acceptedPrefixFirstLane_probability_le_source_credit adversary q hsmall hbound) le_rfl)

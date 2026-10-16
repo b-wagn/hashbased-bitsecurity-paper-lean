@@ -655,7 +655,7 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_stateExtends
     Concrete.CacheReplay.randomOracle_cache_le
       (Concrete.encodingHash keyView.secretKey.parameter request.epoch
         request.message randomness) state.cache encoded hencoded
-  cases hdecode : TargetSum.decodeDigest encoded.1 with
+  cases hdecode : Checksum.decodeDigest encoded.1 with
   | none =>
       simp only [hdecode, simulateQ_pure, WriterT.run_pure] at hresult
       subst result
@@ -1177,7 +1177,7 @@ theorem simulate_eagerTrace_globalFilteredCausalSigningAttempt_support_replays
   rw [support_map] at hencodedTrace
   obtain ⟨encoded, _hencoded, rfl⟩ := hencodedTrace
   simp only [List.nil_append] at hresult
-  cases hdecode : TargetSum.decodeDigest encoded.1 with
+  cases hdecode : Checksum.decodeDigest encoded.1 with
   | none =>
       simp only [hdecode, simulateQ_pure, WriterT.run_pure] at hresult
       subst result

@@ -83,7 +83,7 @@ theorem freshFirstLane_withForgedEncodingQuery_probability_le
     (adversary : XmssSecurity.Adversary) (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[WinningFreshFirstLane | cappedDetailedGameWithEncodingTrace (Direct.withForgedEncodingQuery adversary)] ≤
       ((D + 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability * ((D + 1 : ℕ) : ℝ≥0∞)) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) :=
+        (Checksum.acceptanceProbability * ((D + 1 : ℕ) : ℝ≥0∞)) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) :=
   (freshFirstLane_probability_le_prefix_of_cached (Direct.withForgedEncodingQuery adversary)
     (sourcePrefixExecution_withForgedEncodingQuery_cached adversary)).trans
       (freshPrefixFirstLane_probability_le (Direct.withForgedEncodingQuery adversary) (D + 1)

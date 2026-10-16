@@ -5,9 +5,9 @@ import VCVio.OracleComp.QueryTracking.SubSpec
 /-!
 # The verifier's worst-case hash queries
 
-One verification makes at most `verifierQueryBound = 1 + 99 + 1 + 32 = 133` hash queries on
+One verification makes at most `verifierQueryBound = 1 + 322 + 1 + 32 = 356` hash queries on
 every branch, whatever the oracle answers: the encoding hash; if the digest decodes, the
-`verificationWork x = 99` chain steps of a valid encoding, the leaf hash and the `32` Merkle levels.
+`verificationWork x ≤ 322` chain steps of an encoding, the leaf hash and the `32` Merkle levels.
 The bound is stated syntactically (`IsQueryBoundP`) and, for every starting cache, as a
 `HashQueryBound` of the lifted verifier in the random-oracle world.
 -/
@@ -62,8 +62,8 @@ theorem recoverEndpoints_isQueryBoundP (parameter : PublicParameter) (leafIndex 
     (encoding : Encoding) (signature : Signature) :
     (Concrete.recoverEndpoints parameter leafIndex encoding signature :
       OracleComp HashSpec (ChainIndex → Digest)).IsQueryBoundP (fun _ => True)
-        (TargetSum.verificationWork encoding) := by
-  unfold Concrete.recoverEndpoints TargetSum.verificationWork
+        (Checksum.verificationWork encoding) := by
+  unfold Concrete.recoverEndpoints Checksum.verificationWork
   exact sequenceFin_isQueryBoundP _ _ _ fun chain =>
     chainWalk_isQueryBoundP _ _ _ _ _ _
 
@@ -104,32 +104,30 @@ theorem verifyAfterLeaf_isQueryBoundP (publicKey : PublicKey) (leafIndex : LeafI
   exact hbind
 
 theorem decodeDigest_valid {digest : Digest} {encoding : Encoding}
-    (h : TargetSum.decodeDigest digest = some encoding) : TargetSum.Valid encoding := by
-  exact (TargetSum.decodeDigest_eq_some_iff.mp h).2
+    (h : Checksum.decodeDigest digest = some encoding) : Checksum.Valid encoding := by
+  exact Checksum.decodeDigest_valid h
 
 /-! ## The verifier -/
 
-/-- One verification makes at most `verifierQueryBound = 133` hash queries on every branch. -/
+/-- One verification makes at most `verifierQueryBound = 356` hash queries on every branch. -/
 theorem verify_isQueryBoundP (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (signature : Signature) :
     (Concrete.verify publicKey leafIndex message signature :
       OracleComp HashSpec Bool).IsQueryBoundP (fun _ => True) verifierQueryBound := by
-  unfold Concrete.verify
+  simp only [Concrete.verify_eq_decode]
   have hsplit : verifierQueryBound = 1 + (verificationChainHashes + (1 + treeHeight)) := by
     unfold verifierQueryBound; omega
   rw [hsplit]
   refine OracleComp.isQueryBoundP_bind (tweakableHash_isQueryBoundP _ _ _) ?_
   intro digest _
-  cases hdecode : TargetSum.decodeDigest digest with
+  cases hdecode : Checksum.decodeDigest digest with
   | none => simp
   | some encoding =>
       simp only
-      have hwork := TargetSum.verificationWork_eq encoding (decodeDigest_valid hdecode)
       refine OracleComp.isQueryBoundP_bind ?_ fun endpoints _ =>
         OracleComp.isQueryBoundP_bind (tweakableHash_isQueryBoundP _ _ _) fun leaf _ =>
           verifyAfterLeaf_isQueryBoundP _ _ _ _
-      rw [← hwork]
-      exact recoverEndpoints_isQueryBoundP _ _ _ _
+      exact (recoverEndpoints_isQueryBoundP _ _ _ _).mono (Checksum.verificationWork_le encoding)
 
 /-! ## The lifted verifier -/
 

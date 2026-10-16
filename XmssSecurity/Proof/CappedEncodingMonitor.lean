@@ -9,7 +9,7 @@ set_option maxRecDepth 100000
 noncomputable def State.pendingRisk
     (state : EncodingMonitor.State) : ℝ≥0∞ :=
   (state.pendingCount : ℝ≥0∞) *
-    (TargetSum.validDigests.card : ℝ≥0∞)⁻¹
+    (Checksum.validDigests.card : ℝ≥0∞)⁻¹
 
 theorem State.pendingRisk_empty :
     State.pendingRisk EncodingMonitor.State.empty = 0 := by
@@ -20,7 +20,7 @@ theorem State.pendingRisk_install_add
     (state : EncodingMonitor.State) (leafIndex : LeafIndex) (digest : Digest) :
     State.pendingRisk (state.install leafIndex digest) +
         (state.pending leafIndex).card *
-          (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ =
+          (Checksum.validDigests.card : ℝ≥0∞)⁻¹ =
       State.pendingRisk state := by
   unfold State.pendingRisk
   rw [← add_mul, ← Nat.cast_add,
@@ -30,18 +30,18 @@ theorem State.pendingRisk_addPending_le
     (state : EncodingMonitor.State) (leafIndex : LeafIndex) (digest : Digest) :
     State.pendingRisk (state.addPending leafIndex digest) ≤
       State.pendingRisk state +
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ := by
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹ := by
   unfold State.pendingRisk
   calc
     ((state.addPending leafIndex digest).pendingCount : ℝ≥0∞) *
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ ≤
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹ ≤
       ((state.pendingCount + 1 : Nat) : ℝ≥0∞) *
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ := by
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹ := by
           gcongr
           exact_mod_cast state.pendingCount_addPending_le leafIndex digest
     _ = (state.pendingCount : ℝ≥0∞) *
-          (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ +
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ := by
+          (Checksum.validDigests.card : ℝ≥0∞)⁻¹ +
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹ := by
           push_cast
           rw [add_mul, one_mul]
 
@@ -62,23 +62,23 @@ theorem uniformDigest_if_eq_probability_le
 theorem uniformDigest_valid_bonus_sum_eq :
     ∑ digest : Digest,
         Pr[= digest | $ᵗ Digest] *
-          (if TargetSum.ValidDigest digest then
-            (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0) =
+          (if Checksum.ValidDigest digest then
+            (Checksum.validDigests.card : ℝ≥0∞)⁻¹ else 0) =
       (Fintype.card Digest : ℝ≥0∞)⁻¹ := by
   simp_rw [probOutput_uniformSample]
   simp_rw [mul_ite, mul_zero]
   rw [Finset.sum_ite, Finset.sum_const_zero, add_zero,
     Finset.sum_const, nsmul_eq_mul]
-  change (TargetSum.validDigests.card : ℝ≥0∞) *
+  change (Checksum.validDigests.card : ℝ≥0∞) *
       ((Fintype.card Digest : ℝ≥0∞)⁻¹ *
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹) = _
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹) = _
   calc
     _ = (Fintype.card Digest : ℝ≥0∞)⁻¹ *
-        ((TargetSum.validDigests.card : ℝ≥0∞) *
-          (TargetSum.validDigests.card : ℝ≥0∞)⁻¹) := by ac_rfl
+        ((Checksum.validDigests.card : ℝ≥0∞) *
+          (Checksum.validDigests.card : ℝ≥0∞)⁻¹) := by ac_rfl
     _ = (Fintype.card Digest : ℝ≥0∞)⁻¹ * 1 := by
       rw [ENNReal.mul_inv_cancel]
-      · exact_mod_cast Nat.ne_of_gt TargetSum.validDigests_card_pos
+      · exact_mod_cast Nat.ne_of_gt Checksum.validDigests_card_pos
       · exact ENNReal.natCast_ne_top _
     _ = _ := mul_one _
 
@@ -100,21 +100,21 @@ theorem uniformDigest_mem_bonus_sum_eq (targets : Finset Digest) :
 theorem uniformDigest_valid_scaled_bonus_sum_eq (scale : Nat) :
     ∑ digest : Digest,
         Pr[= digest | $ᵗ Digest] *
-          (if TargetSum.ValidDigest digest then
+          (if Checksum.ValidDigest digest then
             (scale : ℝ≥0∞) *
-              (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0) =
+              (Checksum.validDigests.card : ℝ≥0∞)⁻¹ else 0) =
       (scale : ℝ≥0∞) *
         (Fintype.card Digest : ℝ≥0∞)⁻¹ := by
   calc
     _ = (scale : ℝ≥0∞) *
         (∑ digest : Digest,
           Pr[= digest | $ᵗ Digest] *
-            (if TargetSum.ValidDigest digest then
-              (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0)) := by
+            (if Checksum.ValidDigest digest then
+              (Checksum.validDigests.card : ℝ≥0∞)⁻¹ else 0)) := by
           rw [Finset.mul_sum]
           apply Finset.sum_congr rfl
           intro digest _hdigest
-          by_cases hvalid : TargetSum.ValidDigest digest
+          by_cases hvalid : Checksum.ValidDigest digest
           · simp only [hvalid, ↓reduceIte]
             ac_rfl
           · simp only [hvalid, ↓reduceIte, mul_zero]
@@ -123,24 +123,24 @@ theorem uniformDigest_valid_scaled_bonus_sum_eq (scale : Nat) :
 theorem uniformDigest_sign_bonus_sum_le (targets : Finset Digest) :
     ∑ digest : Digest,
         Pr[= digest | $ᵗ Digest] *
-          (if TargetSum.ValidDigest digest then
+          (if Checksum.ValidDigest digest then
             if digest ∈ targets then 1 else 0
           else
             (targets.card : ℝ≥0∞) *
-              (TargetSum.validDigests.card : ℝ≥0∞)⁻¹) ≤
+              (Checksum.validDigests.card : ℝ≥0∞)⁻¹) ≤
       (targets.card : ℝ≥0∞) *
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ := by
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹ := by
   let removed := (targets.card : ℝ≥0∞) *
-    (TargetSum.validDigests.card : ℝ≥0∞)⁻¹
+    (Checksum.validDigests.card : ℝ≥0∞)⁻¹
   calc
     _ ≤ ∑ digest : Digest,
         Pr[= digest | $ᵗ Digest] *
           ((if digest ∈ targets then 1 else 0) +
-            if TargetSum.ValidDigest digest then 0 else removed) := by
+            if Checksum.ValidDigest digest then 0 else removed) := by
           apply Finset.sum_le_sum
           intro digest _hdigest
           apply mul_le_mul_right
-          by_cases hvalid : TargetSum.ValidDigest digest
+          by_cases hvalid : Checksum.ValidDigest digest
           · by_cases hmem : digest ∈ targets <;>
               simp only [hvalid, hmem, ↓reduceIte, add_zero, le_refl]
           · by_cases hmem : digest ∈ targets
@@ -153,22 +153,22 @@ theorem uniformDigest_sign_bonus_sum_le (targets : Finset Digest) :
             (if digest ∈ targets then 1 else 0)) +
         ∑ digest : Digest,
           Pr[= digest | $ᵗ Digest] *
-            (if TargetSum.ValidDigest digest then 0 else removed) := by
+            (if Checksum.ValidDigest digest then 0 else removed) := by
               simp_rw [mul_add]
               rw [Finset.sum_add_distrib]
     _ = (∑ digest : Digest,
           Pr[= digest | $ᵗ Digest] *
-            (if TargetSum.ValidDigest digest then removed else 0)) +
+            (if Checksum.ValidDigest digest then removed else 0)) +
         ∑ digest : Digest,
           Pr[= digest | $ᵗ Digest] *
-            (if TargetSum.ValidDigest digest then 0 else removed) := by
+            (if Checksum.ValidDigest digest then 0 else removed) := by
               have hfirst :
                 ∑ digest : Digest,
                     Pr[= digest | $ᵗ Digest] *
                       (if digest ∈ targets then 1 else 0) =
                   ∑ digest : Digest,
                     Pr[= digest | $ᵗ Digest] *
-                      (if TargetSum.ValidDigest digest then removed else 0) := by
+                      (if Checksum.ValidDigest digest then removed else 0) := by
                 calc
                   _ = (targets.card : ℝ≥0∞) *
                         (Fintype.card Digest : ℝ≥0∞)⁻¹ :=
@@ -182,7 +182,7 @@ theorem uniformDigest_sign_bonus_sum_le (targets : Finset Digest) :
           rw [← Finset.sum_add_distrib]
           apply Finset.sum_congr rfl
           intro digest _hdigest
-          by_cases hvalid : TargetSum.ValidDigest digest <;> simp [hvalid]
+          by_cases hvalid : Checksum.ValidDigest digest <;> simp [hvalid]
     _ = removed := by
           rw [← Finset.sum_mul]
           have hmass : ∑ digest : Digest, Pr[= digest | $ᵗ Digest] = 1 :=
@@ -194,7 +194,7 @@ noncomputable def applyUniformSignAttemptMonitor
     (resume : Digest → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) : ProbComp Bool := do
   let digest ← $ᵗ Digest
-  if TargetSum.ValidDigest digest then
+  if Checksum.ValidDigest digest then
     match state.signed leafIndex with
     | some _ => pure false
     | none =>
@@ -225,7 +225,7 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
                   apply Finset.sum_le_sum
                   intro digest _hdigest
                   apply mul_le_mul_right
-                  by_cases hvalid : TargetSum.ValidDigest digest
+                  by_cases hvalid : Checksum.ValidDigest digest
                   · simp [hvalid, hsigned]
                   · simpa [hvalid] using hresume digest state
         _ = _ := by
@@ -237,7 +237,7 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
       let base := (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹
       let remaining := State.pendingRisk (state.install leafIndex 0)
       let removed := ((state.pending leafIndex).card : ℝ≥0∞) *
-        (TargetSum.validDigests.card : ℝ≥0∞)⁻¹
+        (Checksum.validDigests.card : ℝ≥0∞)⁻¹
       have hrisk : remaining + removed = State.pendingRisk state := by
         exact State.pendingRisk_install_add state leafIndex 0
       unfold applyUniformSignAttemptMonitor
@@ -246,13 +246,13 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
         _ ≤ ∑ digest : Digest,
             Pr[= digest | $ᵗ Digest] *
               (base + remaining +
-                if TargetSum.ValidDigest digest then
+                if Checksum.ValidDigest digest then
                   if digest ∈ state.pending leafIndex then 1 else 0
                 else removed) := by
                   apply Finset.sum_le_sum
                   intro digest _hdigest
                   apply mul_le_mul_right
-                  by_cases hvalid : TargetSum.ValidDigest digest
+                  by_cases hvalid : Checksum.ValidDigest digest
                   · simp only [hvalid, ↓reduceIte, hsigned]
                     by_cases hmem : digest ∈ state.pending leafIndex
                     · simp [hmem]
@@ -272,20 +272,20 @@ theorem applyUniformSignAttemptMonitor_true_probability_le
         _ = (base + remaining) +
             ∑ digest : Digest,
               Pr[= digest | $ᵗ Digest] *
-                (if TargetSum.ValidDigest digest then
+                (if Checksum.ValidDigest digest then
                   if digest ∈ state.pending leafIndex then 1 else 0
                 else removed) := by
                   rw [show (∑ digest : Digest,
                       Pr[= digest | $ᵗ Digest] *
                         (base + remaining +
-                          (if TargetSum.ValidDigest digest then
+                          (if Checksum.ValidDigest digest then
                             if digest ∈ state.pending leafIndex then 1 else 0
                           else removed))) =
                       (∑ digest : Digest,
                         Pr[= digest | $ᵗ Digest] * (base + remaining)) +
                       ∑ digest : Digest,
                         Pr[= digest | $ᵗ Digest] *
-                          (if TargetSum.ValidDigest digest then
+                          (if Checksum.ValidDigest digest then
                             if digest ∈ state.pending leafIndex then 1 else 0
                           else removed) by
                             rw [← Finset.sum_add_distrib]
@@ -310,7 +310,7 @@ noncomputable def applyUniformQueryMonitor
   | some target =>
       if digest = target then pure true else resume digest state
   | none =>
-      if TargetSum.ValidDigest digest then
+      if Checksum.ValidDigest digest then
         resume digest (state.addPending leafIndex digest)
       else resume digest state
 
@@ -344,19 +344,19 @@ theorem applyUniformQueryMonitor_true_probability_le
         ∑ digest : Digest,
             Pr[= digest | $ᵗ Digest] *
               Pr[(· = true) |
-                if TargetSum.ValidDigest digest then
+                if Checksum.ValidDigest digest then
                   resume digest (state.addPending leafIndex digest)
                 else resume digest state] ≤
           ∑ digest : Digest,
             Pr[= digest | $ᵗ Digest] *
               ((fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
                 State.pendingRisk state +
-                if TargetSum.ValidDigest digest then
-                  (TargetSum.validDigests.card : ℝ≥0∞)⁻¹ else 0) := by
+                if Checksum.ValidDigest digest then
+                  (Checksum.validDigests.card : ℝ≥0∞)⁻¹ else 0) := by
                     apply Finset.sum_le_sum
                     intro digest _hdigest
                     apply mul_le_mul_right
-                    by_cases hvalid : TargetSum.ValidDigest digest
+                    by_cases hvalid : Checksum.ValidDigest digest
                     · simp only [hvalid, ↓reduceIte]
                       calc
                         Pr[(· = true) |
@@ -368,7 +368,7 @@ theorem applyUniformQueryMonitor_true_probability_le
                         _ ≤ (fuel : ℝ≥0∞) *
                               (Fintype.card Digest : ℝ≥0∞)⁻¹ +
                             (State.pendingRisk state +
-                              (TargetSum.validDigests.card : ℝ≥0∞)⁻¹) := by
+                              (Checksum.validDigests.card : ℝ≥0∞)⁻¹) := by
                                 gcongr
                                 exact State.pendingRisk_addPending_le state leafIndex digest
                         _ = _ := by ac_rfl
@@ -449,7 +449,7 @@ noncomputable def applyHashOutputQueryMonitor
   | some target =>
       if digest = target then pure true else resume output state
   | none =>
-      if TargetSum.ValidDigest digest then
+      if Checksum.ValidDigest digest then
         resume output (state.addPending leafIndex digest)
       else resume output state
 
@@ -459,7 +459,7 @@ noncomputable def applyHashOutputSignAttemptMonitor
     (state : EncodingMonitor.State) : ProbComp Bool := do
   let output ← uniformHashOutput
   let digest := truncateHash output
-  if TargetSum.ValidDigest digest then
+  if Checksum.ValidDigest digest then
     match state.signed leafIndex with
     | some _ => pure false
     | none =>
@@ -478,7 +478,7 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
     | some target =>
         if result.1 = target then pure true else resume result.2 state
     | none =>
-        if TargetSum.ValidDigest result.1 then
+        if Checksum.ValidDigest result.1 then
           resume result.2 (state.addPending leafIndex result.1)
         else resume result.2 state
   calc
@@ -490,7 +490,7 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
       intro digest
       cases hsigned : state.signed leafIndex with
       | none =>
-          by_cases hvalid : TargetSum.ValidDigest digest <;>
+          by_cases hvalid : Checksum.ValidDigest digest <;>
             simp only [hvalid, ↓reduceIte]
       | some target =>
           by_cases heq : digest = target
@@ -515,7 +515,7 @@ theorem applyProgrammedSignAttemptMonitor_evalDist_eq
     evalDist (applyProgrammedSignAttemptMonitor leafIndex resume state) =
       evalDist (applyHashOutputSignAttemptMonitor leafIndex resume state) := by
   let continuation := fun result : Digest × HashOutput =>
-    if TargetSum.ValidDigest result.1 then
+    if Checksum.ValidDigest result.1 then
       match state.signed leafIndex with
       | some _ => pure false
       | none =>
@@ -529,7 +529,7 @@ theorem applyProgrammedSignAttemptMonitor_evalDist_eq
       unfold applyProgrammedSignAttemptMonitor applyUniformSignAttemptMonitor continuation
       apply OracleComp.DeferredSampling.evalDist_bind_congr_left
       intro digest
-      by_cases hvalid : TargetSum.ValidDigest digest
+      by_cases hvalid : Checksum.ValidDigest digest
       · simp only [hvalid, ↓reduceIte]
         cases hsigned : state.signed leafIndex with
         | some target =>
@@ -562,12 +562,12 @@ noncomputable def State.applyObserved
       match state.signed leafIndex with
       | some target => some (state, digest = target)
       | none =>
-          if TargetSum.ValidDigest digest then
+          if Checksum.ValidDigest digest then
             some (state.addPending leafIndex digest, false)
           else some (state, false)
   | .sign leafIndex output =>
       let digest := truncateHash output
-      if TargetSum.ValidDigest digest then
+      if Checksum.ValidDigest digest then
         match state.signed leafIndex with
         | some _ => none
         | none => some (state.install leafIndex digest, digest ∈ state.pending leafIndex)
@@ -591,7 +591,7 @@ theorem applyHashOutputQueryMonitor_eq_observed
       by_cases heq : truncateHash output = target <;>
         simp [hsigned, heq]
   | none =>
-      by_cases hvalid : TargetSum.ValidDigest (truncateHash output) <;>
+      by_cases hvalid : Checksum.ValidDigest (truncateHash output) <;>
         simp [hsigned, hvalid]
 
 theorem applyHashOutputSignAttemptMonitor_eq_observed
@@ -607,7 +607,7 @@ theorem applyHashOutputSignAttemptMonitor_eq_observed
   unfold applyHashOutputSignAttemptMonitor State.applyObserved
   apply bind_congr
   intro output
-  by_cases hvalid : TargetSum.ValidDigest (truncateHash output)
+  by_cases hvalid : Checksum.ValidDigest (truncateHash output)
   · cases hsigned : state.signed leafIndex with
     | some target => simp [hvalid, hsigned]
     | none =>
@@ -624,8 +624,8 @@ noncomputable def runObserved : EncodingMonitor.State →
       | some (nextState, hit) => hit || runObserved nextState actions
 
 def ActionValid : EncodingMonitor.ObservedAction → Prop
-  | .query _ output => TargetSum.ValidDigest (truncateHash output)
-  | .sign _ output => TargetSum.ValidDigest (truncateHash output)
+  | .query _ output => Checksum.ValidDigest (truncateHash output)
+  | .sign _ output => Checksum.ValidDigest (truncateHash output)
 
 noncomputable instance : DecidablePred ActionValid :=
   Classical.decPred _
@@ -711,15 +711,15 @@ theorem validActions_sublist
 
 def State.Valid (state : EncodingMonitor.State) : Prop :=
   (∀ leafIndex digest, state.signed leafIndex = some digest →
-    TargetSum.ValidDigest digest) ∧
-  ∀ leafIndex digest, digest ∈ state.pending leafIndex → TargetSum.ValidDigest digest
+    Checksum.ValidDigest digest) ∧
+  ∀ leafIndex digest, digest ∈ state.pending leafIndex → Checksum.ValidDigest digest
 
 theorem State.valid_empty : State.Valid EncodingMonitor.State.empty := by
   constructor <;> simp [EncodingMonitor.State.empty]
 
 theorem State.Valid.addPending
     (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
-    (hvalid : TargetSum.ValidDigest digest) :
+    (hvalid : Checksum.ValidDigest digest) :
     State.Valid (state.addPending leafIndex digest) := by
   constructor
   · exact hstate.1
@@ -733,7 +733,7 @@ theorem State.Valid.addPending
 
 theorem State.Valid.install
     (hstate : State.Valid state) (leafIndex : LeafIndex) (digest : Digest)
-    (hvalid : TargetSum.ValidDigest digest) :
+    (hvalid : Checksum.ValidDigest digest) :
     State.Valid (state.install leafIndex digest) := by
   constructor
   · intro candidate value hsigned

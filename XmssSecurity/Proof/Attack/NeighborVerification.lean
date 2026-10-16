@@ -155,8 +155,7 @@ theorem verifyTransferredSignature_run
       leafIndex original.randomness encoding)
     (message : Message) (randomness : Randomness) (transfer : DigitTransfer encoding)
     (preimage advanced : Digest) (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
-    (hdecode : TargetSum.decodeDigest
-      (CacheView.encodingHash cache keyResult.1.2.parameter leafIndex (message, randomness)) =
+    (hdecode : CacheView.decodedEncoding cache keyResult.1.2.parameter leafIndex (message, randomness) =
         some (transferEncoding encoding transfer))
     (hadvanced : advanced =
       (CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness

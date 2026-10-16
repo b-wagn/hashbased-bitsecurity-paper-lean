@@ -49,7 +49,7 @@ theorem uniform_truncate_mem_probability (targets : Finset Digest) :
 noncomputable def neighborAcceptanceProbability (encoding : Encoding) : ℝ≥0∞ :=
   (neighborDigests encoding).card / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
 
-theorem neighborAcceptanceProbability_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem neighborAcceptanceProbability_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     392 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤ neighborAcceptanceProbability encoding := by
   apply ENNReal.div_le_div_right
   exact_mod_cast neighborDigests_card_lower encoding hvalid
@@ -58,12 +58,12 @@ theorem neighborAcceptanceProbability_le_one (encoding : Encoding) : neighborAcc
   rw [neighborAcceptanceProbability, ← uniform_truncate_mem_probability]
   exact probEvent_le_one
 
-theorem neighbor_rejection_power_lt_quarter (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem neighbor_rejection_power_lt_quarter (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     (1 - neighborAcceptanceProbability encoding) ^ neighborSearchSteps < 1 / 4 := by
   have hp := neighborAcceptanceProbability_lower encoding hvalid
   calc
     _ ≤ 1 / (1 + neighborSearchSteps * neighborAcceptanceProbability encoding) :=
-      TargetSum.rejection_power_le _ (neighborAcceptanceProbability_le_one encoding) _
+      Checksum.rejection_power_le _ (neighborAcceptanceProbability_le_one encoding) _
     _ ≤ 1 / (1 + neighborSearchSteps * (392 / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by gcongr
     _ < 1 / 4 := by
       apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
@@ -121,7 +121,7 @@ theorem findEncodingNeighbor_success_after_signing
     (hsign : (answer, signCache) ∈ support ((simulateQ romImpl
       (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
     (message : Message) (hne : message ≠ request.message)
-    (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+    (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     3 / 4 < Pr[fun result => result.1 ≠ none |
       (simulateQ randomOracle (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache] := by
   let computation := (simulateQ randomOracle

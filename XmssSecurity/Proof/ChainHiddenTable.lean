@@ -45,16 +45,14 @@ theorem WinningOutcomeBadEventOccurs.chain_coordinate_lt_returned
     {cache : QueryCache HashSpec} {outcome : GameOutcome} {chain : ChainIndex}
     (hevent : WinningOutcomeBadEventOccurs cache outcome (.chain chain))
     (forgedEncoding : Encoding)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash cache outcome.secretKey.parameter
+    (hforgedDecode : Concrete.CacheView.decodedEncoding cache outcome.secretKey.parameter
         outcome.forgery.epoch
-        (outcome.forgery.message, outcome.forgery.signature.randomness)) =
+        (outcome.forgery.message, outcome.forgery.signature.randomness) =
       some forgedEncoding)
     (request : SignRequest) (signature : Signature) (signedEncoding : Encoding)
     (hreturned : SigningTranscript.Returned outcome.signingLog request signature)
-    (hsignedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash cache outcome.secretKey.parameter request.epoch
-        (request.message, signature.randomness)) = some signedEncoding)
+    (hsignedDecode : Concrete.CacheView.decodedEncoding cache outcome.secretKey.parameter request.epoch
+        (request.message, signature.randomness) = some signedEncoding)
     (hleafIndex : request.epoch = outcome.forgery.epoch) :
     forgedEncoding chain < signedEncoding chain := by
   rcases hevent.2.2 with hsame | hfresh
@@ -91,9 +89,8 @@ noncomputable def returnedChainValueIndices
   classical
   exact Finset.univ.filter fun index => ∃ request signature encoding,
     SigningTranscript.Returned log request signature ∧
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash cache secretKey.parameter request.epoch
-          (request.message, signature.randomness)) = some encoding ∧
+      Concrete.CacheView.decodedEncoding cache secretKey.parameter request.epoch
+          (request.message, signature.randomness) = some encoding ∧
       index.1 = request.epoch ∧ encoding chain ≤ index.2
 
 @[simp]
@@ -103,9 +100,8 @@ theorem mem_returnedChainValueIndices_iff
     index ∈ returnedChainValueIndices cache secretKey log chain ↔
       ∃ request signature encoding,
         SigningTranscript.Returned log request signature ∧
-          TargetSum.decodeDigest
-            (Concrete.CacheView.encodingHash cache secretKey.parameter request.epoch
-              (request.message, signature.randomness)) = some encoding ∧
+          Concrete.CacheView.decodedEncoding cache secretKey.parameter request.epoch
+              (request.message, signature.randomness) = some encoding ∧
           index.1 = request.epoch ∧ encoding chain ≤ index.2 := by
   classical
   simp only [returnedChainValueIndices, Finset.mem_filter, Finset.mem_univ, true_and]
@@ -116,10 +112,9 @@ theorem WinningOutcomeBadEventOccurs.forged_chain_coordinate_not_mem_returned
     {cache : QueryCache HashSpec} {outcome : GameOutcome} {chain : ChainIndex}
     (hevent : WinningOutcomeBadEventOccurs cache outcome (.chain chain))
     (forgedEncoding : Encoding)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash cache outcome.secretKey.parameter
+    (hforgedDecode : Concrete.CacheView.decodedEncoding cache outcome.secretKey.parameter
         outcome.forgery.epoch
-        (outcome.forgery.message, outcome.forgery.signature.randomness)) =
+        (outcome.forgery.message, outcome.forgery.signature.randomness) =
       some forgedEncoding) :
     (outcome.forgery.epoch, forgedEncoding chain) ∉
       returnedChainValueIndices cache outcome.secretKey outcome.signingLog chain := by

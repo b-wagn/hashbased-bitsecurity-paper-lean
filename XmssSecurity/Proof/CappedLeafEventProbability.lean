@@ -167,7 +167,7 @@ theorem leafCollision_afterKeygen_orientation
 theorem fresh_leaf_badEvent_is_collision
     (cache : QueryCache HashSpec) (secretKey : SecretKey) (leafIndex : LeafIndex)
     (forgedEncoding : Encoding) (forgedSignature : Signature)
-    (honestPath : Nat → Digest) (hforgedValid : TargetSum.Valid forgedEncoding)
+    (honestPath : Nat → Digest) (hforgedValid : Checksum.Valid forgedEncoding)
     (hevent : Concrete.FreshLeafIndexBadEventOccurs cache secretKey.parameter leafIndex
       forgedEncoding forgedSignature (secretKey.chainStart leafIndex) honestPath
       hforgedValid .leaf) :
@@ -195,10 +195,9 @@ theorem detailed_execution_verified_leaf_cached_as
     (execution : GameOutcome × QueryCache HashSpec)
     (hgame : execution ∈ support (detailedGameWithCache Concrete.scheme adversary))
     (encoding : Encoding) (hverified : execution.1.verified = true)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hdecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some encoding) :
     ∃ output, execution.2
       (Concrete.CacheView.leafInput execution.1.secretKey.parameter execution.1.forgery.epoch
@@ -227,14 +226,13 @@ theorem fresh_leaf_event_afterKeygen_orientation
           keyResult.2))
     (hevent : OutcomeBadEventOccurs execution.2 execution.1 .leaf)
     (hfresh : ∃ forgedEncoding,
-      ∃ hforgedValid : TargetSum.Valid forgedEncoding,
+      ∃ hforgedValid : Checksum.Valid forgedEncoding,
       (¬ ∃ request signature,
         SigningTranscript.Returned execution.1.signingLog request signature ∧
           request.epoch = execution.1.forgery.epoch) ∧
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+      Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
           execution.1.forgery.epoch
-          (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+          (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
           some forgedEncoding ∧
       Concrete.FreshLeafIndexBadEventOccurs execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch forgedEncoding execution.1.forgery.signature
@@ -297,7 +295,7 @@ theorem same_leaf_badEvent_is_collision
     (cache : QueryCache HashSpec) (secretKey : SecretKey) (request : SignRequest)
     (signature forgedSignature : Signature) (forgedMessage : Message)
     (signedEncoding forgedEncoding : Encoding)
-    (hsignedValid : TargetSum.Valid signedEncoding)
+    (hsignedValid : Checksum.Valid signedEncoding)
     (hsignature : signature = Concrete.CacheReplay.signWithEncoding cache secretKey
       request.epoch signature.randomness signedEncoding)
     (hevent : Concrete.SameLeafIndexBadEventOccurs cache secretKey.parameter request.epoch
@@ -328,9 +326,8 @@ theorem detailed_execution_returned_signature_eq
     (execution : GameOutcome × QueryCache HashSpec)
     (hgame : execution ∈ support (detailedGameWithCache Concrete.scheme adversary))
     (request : SignRequest) (signature : Signature) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
-        request.epoch (request.message, signature.randomness)) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
+        request.epoch (request.message, signature.randomness) = some encoding)
     (hreturned : SigningTranscript.Returned execution.1.signingLog request signature) :
     signature = Concrete.CacheReplay.signWithEncoding execution.2 execution.1.secretKey
       request.epoch signature.randomness encoding := by
@@ -370,13 +367,11 @@ theorem same_leaf_witness_afterKeygen_orientation
     (hverified : execution.1.verified = true)
     (request : SignRequest) (signature : Signature)
     (signedEncoding forgedEncoding : Encoding)
-    (hsignedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
-        request.epoch (request.message, signature.randomness)) = some signedEncoding)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hsignedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
+        request.epoch (request.message, signature.randomness) = some signedEncoding)
+    (hforgedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         request.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding)
     (hreturned : SigningTranscript.Returned execution.1.signingLog request signature)
     (hleafIndex : request.epoch = execution.1.forgery.epoch)
@@ -384,7 +379,7 @@ theorem same_leaf_witness_afterKeygen_orientation
       execution.1.secretKey.parameter request.epoch request.message
       execution.1.forgery.message signedEncoding forgedEncoding signature
       execution.1.forgery.signature
-      (TargetSum.decodeDigest_eq_some_iff.mp hsignedDecode).2 .leaf) :
+      (Concrete.CacheView.decodedEncoding_valid hsignedDecode) .leaf) :
     Rom.AdaptiveFreshDigestCollisionWith keyResult.2 execution.2
       (keygenLeafTargetInput keyResult.1.2 keyResult.2) := by
   have hkeys := detailedGameAfterKeygen_keys_eq adversary keyResult.1.1 keyResult.1.2
@@ -393,13 +388,11 @@ theorem same_leaf_witness_afterKeygen_orientation
     execution hafter
   have hsignature := detailed_execution_returned_signature_eq adversary execution hgame
     request signature signedEncoding hsignedDecode hreturned
-  have hdecodeLeafIndex := congrArg (fun leafIndex => TargetSum.decodeDigest
-    (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter leafIndex
-      (execution.1.forgery.message, execution.1.forgery.signature.randomness))) hleafIndex
-  have hforgedDecode' : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+  have hdecodeLeafIndex := congrArg (fun leafIndex => Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter leafIndex
+      (execution.1.forgery.message, execution.1.forgery.signature.randomness)) hleafIndex
+  have hforgedDecode' : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding := hdecodeLeafIndex.symm.trans hforgedDecode
   obtain ⟨forgedOutput, hforgedCached⟩ :=
     capped_detailed_execution_verified_leaf_cached_as adversary execution hgame forgedEncoding
@@ -407,7 +400,7 @@ theorem same_leaf_witness_afterKeygen_orientation
   have hleafCollision := same_leaf_badEvent_is_collision execution.2
     execution.1.secretKey request signature execution.1.forgery.signature
     execution.1.forgery.message signedEncoding forgedEncoding
-    (TargetSum.decodeDigest_eq_some_iff.mp hsignedDecode).2 hsignature hleafEvent
+    (Concrete.CacheView.decodedEncoding_valid hsignedDecode) hsignature hleafEvent
   rw [hleafIndex] at hleafCollision
   exact leafCollision_afterKeygen_orientation adversary keyResult hkeygen execution
     hafter execution.1.secretKey hkeys.2 execution.1.forgery.epoch

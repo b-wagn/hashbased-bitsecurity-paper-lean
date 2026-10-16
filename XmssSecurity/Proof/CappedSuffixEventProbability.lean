@@ -11,10 +11,9 @@ theorem detailed_execution_verified_chain_query_cached_as
     (execution : GameOutcome × QueryCache HashSpec)
     (hmem : execution ∈ support (detailedGameWithCache Concrete.scheme adversary))
     (encoding : Encoding) (hverified : execution.1.verified = true)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hdecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some encoding)
     (chain : ChainIndex) (offset : Nat)
     (hoffset : offset < chainLength - 1 - (encoding chain).val) :
@@ -59,9 +58,8 @@ theorem detailed_execution_verified_chain_query_cached_as
       (Concrete.verify publicKey forgery.epoch forgery.message forgery.signature :
         OracleComp HashSpec Bool)
   rw [hroute] at hverify
-  have hdecodePublic : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash finalCache publicKey.parameter forgery.epoch
-        (forgery.message, forgery.signature.randomness)) = some encoding := by
+  have hdecodePublic : Concrete.CacheView.decodedEncoding finalCache publicKey.parameter forgery.epoch
+        (forgery.message, forgery.signature.randomness) = some encoding := by
     rw [hparameter]
     exact hdecode
   rw [← hparameter]
@@ -201,7 +199,7 @@ theorem chainCollision_afterKeygen_orientation
 theorem same_suffix_collision_facts
     (cache : QueryCache HashSpec) (secretKey : SecretKey) (request : SignRequest)
     (signature forgedSignature : Signature) (signedEncoding forgedEncoding : Encoding)
-    (position : TargetSum.SuffixPosition signedEncoding)
+    (position : Checksum.SuffixPosition signedEncoding)
     (hsignature : signature = Concrete.CacheReplay.signWithEncoding cache secretKey
       request.epoch signature.randomness signedEncoding)
     (hsuffix : Wots.IsSuffixCollisionAt
@@ -278,7 +276,7 @@ theorem same_suffix_collision_facts
 theorem fresh_suffix_collision_facts
     (cache : QueryCache HashSpec) (secretKey : SecretKey) (leafIndex : LeafIndex)
     (forgedSignature : Signature) (encoding : Encoding)
-    (position : TargetSum.SuffixPosition encoding)
+    (position : Checksum.SuffixPosition encoding)
     (hsuffix : Wots.IsSuffixCollisionAt
       (fun chain => Concrete.CacheView.chainStep cache secretKey.parameter leafIndex chain)
       encoding encoding
@@ -340,12 +338,11 @@ theorem fresh_suffix_witness_afterKeygen_orientation
         (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1 keyResult.1.2)).run
           keyResult.2))
     (forgedEncoding : Encoding) (hverified : execution.1.verified = true)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hforgedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding)
-    (position : TargetSum.SuffixPosition forgedEncoding)
+    (position : Checksum.SuffixPosition forgedEncoding)
     (hsuffix : Wots.IsSuffixCollisionAt
       (fun chain => Concrete.CacheView.chainStep execution.2
         execution.1.secretKey.parameter execution.1.forgery.epoch chain)
@@ -401,17 +398,15 @@ theorem same_suffix_witness_afterKeygen_orientation
     (hverified : execution.1.verified = true)
     (request : SignRequest) (signature : Signature)
     (signedEncoding forgedEncoding : Encoding)
-    (hsignedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
-        request.epoch (request.message, signature.randomness)) = some signedEncoding)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hsignedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
+        request.epoch (request.message, signature.randomness) = some signedEncoding)
+    (hforgedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         request.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding)
     (hreturned : SigningTranscript.Returned execution.1.signingLog request signature)
     (hleafIndex : request.epoch = execution.1.forgery.epoch)
-    (position : TargetSum.SuffixPosition signedEncoding)
+    (position : Checksum.SuffixPosition signedEncoding)
     (hsuffix : Wots.IsSuffixCollisionAt
       (fun chain => Concrete.CacheView.chainStep execution.2
         execution.1.secretKey.parameter request.epoch chain)
@@ -452,14 +447,12 @@ theorem same_suffix_witness_afterKeygen_orientation
       candidateLeafIndex chain)
     (forgedEncoding chain).val recoveryOffset
     (execution.1.forgery.signature.chainValue chain)
-  have hdecodeLeafIndex := congrArg (fun candidateLeafIndex => TargetSum.decodeDigest
-    (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+  have hdecodeLeafIndex := congrArg (fun candidateLeafIndex => Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
       candidateLeafIndex
-      (execution.1.forgery.message, execution.1.forgery.signature.randomness))) hleafIndex
-  have hforgedDecode' : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+      (execution.1.forgery.message, execution.1.forgery.signature.randomness)) hleafIndex
+  have hforgedDecode' : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding := hdecodeLeafIndex.symm.trans hforgedDecode
   obtain ⟨forgedOutput, hforgedCached⟩ :=
     detailed_execution_verified_chain_query_cached_as adversary execution hgame
@@ -498,9 +491,9 @@ theorem suffixCollision_event_afterKeygen_orientation
   rcases hevent.2 with hsame | hfresh
   · obtain ⟨request, signature, signedEncoding, forgedEncoding, hsignedDecode,
       hforgedDecode, hreturned, hleafIndex, hbad⟩ := hsame
-    change ∃ position : TargetSum.SuffixPosition signedEncoding,
-      TargetSum.enumerateSuffixPositions signedEncoding
-        (TargetSum.decodeDigest_eq_some_iff.mp hsignedDecode).2 position = slot ∧
+    change ∃ position : Checksum.SuffixPosition signedEncoding,
+      Checksum.enumerateSuffixPositions signedEncoding
+        (Concrete.CacheView.decodedEncoding_valid hsignedDecode) position = slot ∧
       Wots.IsSuffixCollisionAt
         (fun chain => Concrete.CacheView.chainStep execution.2
           execution.1.secretKey.parameter request.epoch chain)
@@ -511,8 +504,8 @@ theorem suffixCollision_event_afterKeygen_orientation
       execution hafter hevent.1 request signature signedEncoding forgedEncoding
       hsignedDecode hforgedDecode hreturned hleafIndex position hsuffix
   · obtain ⟨forgedEncoding, hforgedValid, _hunsigned, hforgedDecode, hbad⟩ := hfresh
-    change ∃ position : TargetSum.SuffixPosition forgedEncoding,
-      TargetSum.enumerateSuffixPositions forgedEncoding hforgedValid position = slot ∧
+    change ∃ position : Checksum.SuffixPosition forgedEncoding,
+      Checksum.enumerateSuffixPositions forgedEncoding hforgedValid position = slot ∧
       Wots.IsSuffixCollisionAt
         (fun chain => Concrete.CacheView.chainStep execution.2
           execution.1.secretKey.parameter execution.1.forgery.epoch chain)

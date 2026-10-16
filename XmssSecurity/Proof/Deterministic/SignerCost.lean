@@ -34,7 +34,7 @@ theorem countHashQueries_precomputedSignAttempt
   simp only [bind_map_left, map_bind]
   apply bind_congr
   intro digest
-  cases TargetSum.decodeDigest digest <;>
+  cases Checksum.decodeDigest digest <;>
     simp only [countHashQueries_pure, pure_bind, map_pure, Nat.add_zero]
 
 namespace Seeded

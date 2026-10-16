@@ -17,14 +17,14 @@ theorem signer_seeded_loss_le_source_credit_add_fresh (adversary : Security.Stat
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
     forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
         freshFirstLaneProbability (memoAdversary (Security.embed adversary)) +
         forgedEncodingFreshProbability (memoAdversary (Security.embed adversary)) *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
   have hfirst := (decidingFirstLane_probability_le_accepted_add_fresh_contribution
     (memoAdversary (Security.embed adversary))).trans
       (add_le_add (signer_acceptedPrefixFirstLane_probability_le_source_credit adversary q hsmall hbound) le_rfl)
@@ -40,14 +40,14 @@ theorem signer_advantage_le_source_credit_add_fresh (adversary : Security.Statem
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
     (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
         freshFirstLaneProbability (memoAdversary (Security.embed adversary)) +
         forgedEncodingFreshProbability (memoAdversary (Security.embed adversary)) *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
     notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
   exact signer_seeded_loss_le_source_credit_add_fresh adversary q hsmall hbound
@@ -57,14 +57,14 @@ theorem signer_advantage_le_source_credit_add_fresh_revealed (adversary : Securi
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
     (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (2 * TargetSum.acceptanceProbability *
+        (2 * Checksum.acceptanceProbability *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
         freshRevealedProbability (memoAdversary (Security.embed adversary)) +
         forgedEncodingFreshProbability (memoAdversary (Security.embed adversary)) *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
   apply (signer_advantage_le_source_credit_add_fresh adversary q hsmall hbound).trans
   apply (add_le_add (add_le_add le_rfl
     (freshFirstLaneProbability_le_source_credit_add_revealed _)) le_rfl).trans_eq

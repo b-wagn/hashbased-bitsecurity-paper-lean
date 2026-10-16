@@ -135,7 +135,7 @@ theorem sourceCountedPrefixFirstLane_probability_le (adversary : Adversary) (lim
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     Pr[SourceCountedPrefixFirstLane | sourceCountedPrefixProgram adversary] ≤
       (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)) /
             ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   apply (accepted_event_probability_le_of_relTriple SourceCountedPrefixFirstLane SourceCountedPrefixAccepted
@@ -170,7 +170,7 @@ theorem acceptedPrefixFirstLane_probability_le_source_credit (adversary : Advers
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     Pr[fun result => AcceptedPrefixFirstLaneEvent result.1 result.2 | sourcePrefixProgram adversary] ≤
       (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)) /
             ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [← sourceCountedPrefixProgram_source_projection, probEvent_map]

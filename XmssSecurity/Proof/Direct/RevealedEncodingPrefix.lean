@@ -102,12 +102,12 @@ theorem sourcePrefixFinishAfterHash_revealed_implies_prefixEvent (adversary : Ad
     (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen)
     (prefixResult : Forgery × SourceExactTracedState)
     (hprefix : prefixResult ∈ support (sourcePrefixExecution adversary key))
-    (output : TargetSum.AcceptedHashOutput)
+    (output : Checksum.AcceptedHashOutput)
     (hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult))
     (execution : (Forgery × Bool) × SourceExactTracedState)
     (hfinish : execution ∈ support (sourcePrefixFinishAfterHash key prefixResult output.1))
     (hevent : SourceWinningRevealedEvent (key, execution)) :
-    RevealedEncodingPrefixEvent key prefixResult (TargetSum.acceptedHashEncoding output) := by
+    RevealedEncodingPrefixEvent key prefixResult (Checksum.acceptedHashEncoding output) := by
   have hlogs := cappedBothTracedMappedAdversaryImpl_logs_eq key.publicKey
     (materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey)
     ((((key.cache, []), []), [])) prefixResult rfl hprefix
@@ -132,14 +132,14 @@ theorem sourcePrefixFinishAfterHash_revealed_implies_prefixEvent (adversary : Ad
     (trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)
   change key.publicKey.parameter = key.secretKey.parameter at hparameter
   have hdecode : forgedEncoding verified.2 outcome.secretKey.parameter outcome.forgery =
-      some (TargetSum.acceptedHashEncoding output) := by
-    change TargetSum.decodeDigest (CacheView.encodingHash verified.2 key.secretKey.parameter
-      prefixResult.1.epoch (prefixResult.1.message, prefixResult.1.signature.randomness)) = _
+      some (Checksum.acceptedHashEncoding output) := by
+    change CacheView.decodedEncoding verified.2 key.secretKey.parameter
+      prefixResult.1.epoch (prefixResult.1.message, prefixResult.1.signature.randomness) = _
     change verified.2 (CacheView.encodingInput key.publicKey.parameter prefixResult.1.epoch
       (prefixResult.1.message, prefixResult.1.signature.randomness)) = some output.1 at houtput
     rw [hparameter] at houtput
     rw [CacheView.encodingHash, CacheView.digestAt_eq_of_cache_eq_some houtput]
-    exact TargetSum.acceptedHashEncoding_decode output
+    exact Checksum.acceptedHashEncoding_decode output
   apply revealedEncodingPrefixEvent_of_winning_revealed adversary key hkey prefixResult hprefix
     (outcome, verified.2) hafter _ _ _ hdecode
   · simpa only [cappedBothEncodingProjection, sourceGlobalExactProgramResult,

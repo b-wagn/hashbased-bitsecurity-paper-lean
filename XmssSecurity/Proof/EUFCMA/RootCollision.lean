@@ -212,13 +212,13 @@ even if the remaining signature components are arbitrary. -/
 theorem verify_cached_encoding_probability_ge (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (signature : Signature) (encoding : Encoding) (cache : QueryCache HashSpec)
     (hroot : RootCache publicKey.parameter leafIndex publicKey.root cache)
-    (hdecode : TargetSum.decodeDigest (CacheView.encodingHash cache publicKey.parameter
-      leafIndex (message, signature.randomness)) = some encoding) :
+    (hdecode : CacheView.decodedEncoding cache publicKey.parameter
+      leafIndex (message, signature.randomness) = some encoding) :
     ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ ≤
       Pr[fun result : Bool × QueryCache HashSpec => result.1 = true |
         (simulateQ randomOracle (verify publicKey leafIndex message signature :
           OracleComp HashSpec Bool)).run cache] := by
-  rw [verify, simulateQ_bind, StateT.run_bind,
+  rw [verify_eq_decode, simulateQ_bind, StateT.run_bind,
     Attack.encodingHash_run_cached _ _ _ _ _ _ hdecode, pure_bind, hdecode]
   rw [simulateQ_bind, StateT.run_bind]
   apply le_probEvent_bind_of_forall_le

@@ -11,10 +11,9 @@ theorem detailed_execution_verified_merkle_query_cached_as
     (execution : GameOutcome × QueryCache HashSpec)
     (hmem : execution ∈ support (detailedGameWithCache Concrete.scheme adversary))
     (encoding : Encoding) (hverified : execution.1.verified = true)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hdecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some encoding)
     (level : MerkleLevel) :
     ∃ output, execution.2
@@ -63,9 +62,8 @@ theorem detailed_execution_verified_merkle_query_cached_as
       (Concrete.verify publicKey forgery.epoch forgery.message forgery.signature :
         OracleComp HashSpec Bool)
   rw [hroute] at hverify
-  have hdecodePublic : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash finalCache publicKey.parameter forgery.epoch
-        (forgery.message, forgery.signature.randomness)) = some encoding := by
+  have hdecodePublic : Concrete.CacheView.decodedEncoding finalCache publicKey.parameter forgery.epoch
+        (forgery.message, forgery.signature.randomness) = some encoding := by
     rw [hparameter]
     exact hdecode
   rw [← hparameter]
@@ -318,10 +316,9 @@ theorem merkle_path_collision_afterKeygen_orientation
     (hverified : execution.1.verified = true)
     (leafIndex : LeafIndex) (hleafIndex : leafIndex = execution.1.forgery.epoch)
     (forgedEncoding : Encoding)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hforgedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding)
     (honestPath : Nat → Digest) (honestLeaf : Digest) (level : MerkleLevel)
     (hevent : Merkle.IsXmssPathCollisionAt
@@ -417,13 +414,11 @@ theorem same_merkle_witness_afterKeygen_orientation
     (hverified : execution.1.verified = true)
     (request : SignRequest) (signature : Signature)
     (signedEncoding forgedEncoding : Encoding)
-    (hsignedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
-        request.epoch (request.message, signature.randomness)) = some signedEncoding)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hsignedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
+        request.epoch (request.message, signature.randomness) = some signedEncoding)
+    (hforgedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         request.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding)
     (hreturned : SigningTranscript.Returned execution.1.signingLog request signature)
     (hleafIndex : request.epoch = execution.1.forgery.epoch)
@@ -432,19 +427,17 @@ theorem same_merkle_witness_afterKeygen_orientation
       execution.1.secretKey.parameter request.epoch request.message
       execution.1.forgery.message signedEncoding forgedEncoding signature
       execution.1.forgery.signature
-      (TargetSum.decodeDigest_eq_some_iff.mp hsignedDecode).2 (.merkle level)) :
+      (Concrete.CacheView.decodedEncoding_valid hsignedDecode) (.merkle level)) :
     Rom.AdaptiveFreshDigestCollisionWith keyResult.2 execution.2
       (keygenMerkleTargetInput keyResult.1.2 keyResult.2) := by
   have hgame := CappedLeaf.afterKeygen_execution_mem_detailedGame adversary keyResult hkeygen execution hafter
   have hsignature := CappedLeaf.detailed_execution_returned_signature_eq adversary execution hgame
     request signature signedEncoding hsignedDecode hreturned
-  have hdecodeLeafIndex := congrArg (fun leafIndex => TargetSum.decodeDigest
-    (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter leafIndex
-      (execution.1.forgery.message, execution.1.forgery.signature.randomness))) hleafIndex
-  have hforgedDecode' : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+  have hdecodeLeafIndex := congrArg (fun leafIndex => Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter leafIndex
+      (execution.1.forgery.message, execution.1.forgery.signature.randomness)) hleafIndex
+  have hforgedDecode' : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding := hdecodeLeafIndex.symm.trans hforgedDecode
   change Merkle.IsXmssPathCollisionAt
     (Concrete.CacheView.nodeHash execution.2 execution.1.secretKey.parameter request.epoch)
@@ -491,10 +484,9 @@ theorem fresh_merkle_witness_afterKeygen_orientation
           keyResult.2))
     (hverified : execution.1.verified = true)
     (forgedEncoding : Encoding)
-    (hforgedDecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+    (hforgedDecode : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+        (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
         some forgedEncoding)
     (level : MerkleLevel)
     (hevent : Concrete.FreshLeafIndexBadEventOccurs execution.2
@@ -504,7 +496,7 @@ theorem fresh_merkle_witness_afterKeygen_orientation
       (Concrete.signaturePath
         (Concrete.CacheReplay.signWithEncoding execution.2 execution.1.secretKey
           execution.1.forgery.epoch execution.1.forgery.signature.randomness forgedEncoding))
-      (TargetSum.decodeDigest_eq_some_iff.mp hforgedDecode).2 (.merkle level)) :
+      (Concrete.CacheView.decodedEncoding_valid hforgedDecode) (.merkle level)) :
     Rom.AdaptiveFreshDigestCollisionWith keyResult.2 execution.2
       (keygenMerkleTargetInput keyResult.1.2 keyResult.2) := by
   let honestSignature := Concrete.CacheReplay.signWithEncoding execution.2

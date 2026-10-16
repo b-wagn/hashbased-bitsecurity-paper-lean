@@ -1,4 +1,4 @@
-import XmssSecurity.Statement.Scheme.Xmss
+import XmssSecurity.Proof.SchemeCompat
 import XmssSecurity.Proof.Legacy.PerModeNotionsEUFCMA
 
 open OracleComp OracleSpec ENNReal

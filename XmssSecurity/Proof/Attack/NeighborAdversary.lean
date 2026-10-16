@@ -51,7 +51,7 @@ noncomputable def neighborAfterSigning (publicKey : PublicKey) : Option Signatur
   | some original => do
       let digest ← liftM (encodingHash publicKey.parameter neighborRequest.epoch
         neighborRequest.message original.randomness : OracleComp HashSpec Digest)
-      match TargetSum.decodeDigest digest with
+      match Checksum.decodeDigest digest with
       | none => pure fallbackSignature
       | some encoding => neighborAfterEncoding publicKey original encoding
 

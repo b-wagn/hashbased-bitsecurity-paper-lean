@@ -267,16 +267,19 @@ theorem eval_verifyAfterLeaf (cache : QueryCache HashSpec) (publicKey : PublicKe
         (Concrete.signaturePath signature) 0 treeHeight leaf = publicKey.root) := by
   simp [Concrete.verifyAfterLeaf]
 
-@[simp]
 theorem eval_verify (cache : QueryCache HashSpec) (publicKey : PublicKey)
-    (leafIndex : LeafIndex) (message : Message) (signature : Signature) :
+    (leafIndex : LeafIndex) (message : Message) (signature : Signature)
+    (hcached : ∃ output, cache (CacheView.encodingInput publicKey.parameter leafIndex
+      (message, signature.randomness)) = some output) :
     evalWithAnswerFn (answerFn cache)
       (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool) =
       Concrete.verifyFromCache cache publicKey leafIndex message signature := by
   classical
-  unfold Concrete.verify Concrete.verifyFromCache
+  simp only [Concrete.verify_eq_decode]
+  unfold Concrete.verifyFromCache
+  rw [CacheView.decodedEncoding_eq_of_cached hcached]
   simp only [evalWithAnswerFn_bind, eval_encodingHash]
-  cases TargetSum.decodeDigest
+  cases Checksum.decodeDigest
     (CacheView.encodingHash cache publicKey.parameter leafIndex (message, signature.randomness)) <;> simp
 
 theorem randomOracle_query_caches (input : HashInput)
@@ -404,6 +407,56 @@ theorem eval_answerFn_largerCache_eq_of_mem_support {α : Type}
       rw [hqueryEval]
       exact ih output middleCache resultCache result hrest hle
 
+/-- A verification run records its encoding query. -/
+theorem verify_run_encodingInput_cached
+    (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message)
+    (signature : Signature) (initialCache finalCache : QueryCache HashSpec)
+    (result : Bool)
+    (hmem : (result, finalCache) ∈ support
+      ((simulateQ randomOracle
+        (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)).run
+          initialCache)) :
+    ∃ output, finalCache (CacheView.encodingInput publicKey.parameter leafIndex
+      (message, signature.randomness)) = some output := by
+  simp only [Concrete.verify_eq_decode] at hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨⟨digest, digestCache⟩, hdigest, hrest⟩ := hmem
+  have hle : digestCache ≤ finalCache := randomOracle_cache_le _ digestCache _ hrest
+  unfold Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash at hdigest
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hdigest
+  obtain ⟨⟨output, middleCache⟩, hquery, hpure⟩ := hdigest
+  simp only [simulateQ_pure, StateT.run_pure, support_pure,
+    Set.mem_singleton_iff] at hpure
+  cases hpure
+  exact ⟨output, hle (randomOracle_query_caches (tweakableHashInput publicKey.parameter
+    (.encoding leafIndex) (encodingPayload message signature.randomness)) _ _ _
+    (by simpa using hquery))⟩
+
+/-- A signing attempt records its encoding query. -/
+theorem precomputedSignAttempt_run_encodingInput_cached
+    (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
+    (randomness : Randomness) (initialCache finalCache : QueryCache HashSpec)
+    (result : Option Signature)
+    (hmem : (result, finalCache) ∈ support
+      ((simulateQ randomOracle
+        (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+          OracleComp HashSpec (Option Signature))).run initialCache)) :
+    ∃ output, finalCache (CacheView.encodingInput secretKey.parameter leafIndex
+      (message, randomness)) = some output := by
+  unfold Concrete.precomputedSignAttempt at hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨⟨digest, digestCache⟩, hdigest, hrest⟩ := hmem
+  have hle : digestCache ≤ finalCache := randomOracle_cache_le _ digestCache _ hrest
+  unfold Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash at hdigest
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hdigest
+  obtain ⟨⟨output, middleCache⟩, hquery, hpure⟩ := hdigest
+  simp only [simulateQ_pure, StateT.run_pure, support_pure,
+    Set.mem_singleton_iff] at hpure
+  cases hpure
+  exact ⟨output, hle (randomOracle_query_caches (tweakableHashInput secretKey.parameter
+    (.encoding leafIndex) (encodingPayload message randomness)) _ _ _
+    (by simpa using hquery))⟩
+
 theorem verifyFromCache_eq_of_mem_support
     (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message)
     (signature : Signature) (initialCache finalCache : QueryCache HashSpec)
@@ -413,7 +466,8 @@ theorem verifyFromCache_eq_of_mem_support
         (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)).run
           initialCache)) :
     Concrete.verifyFromCache finalCache publicKey leafIndex message signature = result := by
-  rw [← eval_verify]
+  rw [← eval_verify _ _ _ _ _ (verify_run_encodingInput_cached publicKey leafIndex message
+    signature initialCache finalCache result hmem)]
   exact eval_answerFn_finalCache_eq_of_mem_support
     (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)
     initialCache finalCache result hmem

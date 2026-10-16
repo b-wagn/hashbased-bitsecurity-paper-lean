@@ -1,5 +1,6 @@
 import XmssSecurity.Proof.IdealStatement
 import XmssSecurity.Proof.Wots
+import XmssSecurity.Proof.EncodingLemmas
 
 /-!
 Proof-side mirrors of the sealed statement definitions, and rewrite lemmas restating them so proofs can unfold them without unsealing.
@@ -50,6 +51,78 @@ def merkleInput (parameter : PublicParameter) (level : MerkleLevel)
 def encodingHash (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (leafIndex : LeafIndex) (input : Message × Randomness) : Digest :=
   digestAt cache (encodingInput parameter leafIndex input)
+
+/-- The encoding of a recorded encoding query, and `none` for an unrecorded input. Every digest
+decodes, so a decoded encoding read from the cache witnesses that the query was made. -/
+def decodedEncoding (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (input : Message × Randomness) : Option Encoding :=
+  match cache (encodingInput parameter leafIndex input) with
+  | some output => Checksum.decodeDigest (truncateHash output)
+  | none => none
+
+theorem encodingInput_cached_of_decode_some
+    (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (message : Message) (randomness : Randomness) (encoding : Encoding)
+    (hdecode : decodedEncoding cache parameter leafIndex (message, randomness) = some encoding) :
+    ∃ output, cache (encodingInput parameter leafIndex (message, randomness)) = some output := by
+  unfold decodedEncoding at hdecode
+  split at hdecode
+  · exact ⟨_, by assumption⟩
+  · cases hdecode
+
+theorem decodedEncoding_eq_of_cache_eq_some {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {output : HashOutput} (hcache : cache (encodingInput parameter leafIndex input) = some output) :
+    decodedEncoding cache parameter leafIndex input =
+      Checksum.decodeDigest (encodingHash cache parameter leafIndex input) := by
+  simp [decodedEncoding, encodingHash, digestAt, hcache]
+
+theorem decodedEncoding_eq_of_input_eq {left right : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    (h : left (encodingInput parameter leafIndex input) =
+      right (encodingInput parameter leafIndex input)) :
+    decodedEncoding left parameter leafIndex input =
+      decodedEncoding right parameter leafIndex input := by
+  simp only [decodedEncoding, h]
+
+theorem decodedEncoding_eq_of_cached {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    (hcache : ∃ output, cache (encodingInput parameter leafIndex input) = some output) :
+    decodedEncoding cache parameter leafIndex input =
+      Checksum.decodeDigest (encodingHash cache parameter leafIndex input) := by
+  obtain ⟨output, houtput⟩ := hcache
+  exact decodedEncoding_eq_of_cache_eq_some houtput
+
+theorem decodeDigest_of_decodedEncoding {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {encoding : Encoding} (hdecode : decodedEncoding cache parameter leafIndex input = some encoding) :
+    Checksum.decodeDigest (encodingHash cache parameter leafIndex input) = some encoding := by
+  rcases input with ⟨message, randomness⟩
+  rw [← decodedEncoding_eq_of_cached (encodingInput_cached_of_decode_some cache parameter leafIndex
+    message randomness encoding hdecode)]
+  exact hdecode
+
+theorem decodedEncoding_valid {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {encoding : Encoding} (hdecode : decodedEncoding cache parameter leafIndex input = some encoding) :
+    Checksum.Valid encoding :=
+  Checksum.decodeDigest_valid (decodeDigest_of_decodedEncoding hdecode)
+
+theorem decodedEncoding_eq_some_iff {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {encoding : Encoding} :
+    decodedEncoding cache parameter leafIndex input = some encoding ↔
+      (∃ output, cache (encodingInput parameter leafIndex input) = some output) ∧
+        Checksum.decodeDigest (encodingHash cache parameter leafIndex input) = some encoding := by
+  constructor
+  · intro h
+    rcases input with ⟨message, randomness⟩
+    exact ⟨encodingInput_cached_of_decode_some cache parameter leafIndex message randomness
+      encoding h, decodeDigest_of_decodedEncoding h⟩
+  · rintro ⟨hcached, h⟩
+    rw [decodedEncoding_eq_of_cached hcached]
+    exact h
+
 
 def chainStep (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (leafIndex : LeafIndex) (chain : ChainIndex) (position : Nat) (value : Digest) : Digest :=

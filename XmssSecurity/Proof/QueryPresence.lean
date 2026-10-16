@@ -22,6 +22,18 @@ theorem tweakableHash_query_cached
   cases hrest
   exact ⟨output, randomOracle_query_caches _ _ _ _ (by simpa using hquery), rfl⟩
 
+theorem encodingHash_query_cached
+    (parameter : PublicParameter) (leafIndex : LeafIndex) (message : Message)
+    (randomness : Randomness) (initialCache finalCache : QueryCache HashSpec) (digest : Digest)
+    (hmem : (digest, finalCache) ∈ support
+      ((simulateQ randomOracle
+        (Concrete.encodingHash parameter leafIndex message randomness :
+          OracleComp HashSpec Digest)).run initialCache)) :
+    ∃ output, finalCache (CacheView.encodingInput parameter leafIndex (message, randomness)) =
+      some output ∧ digest = truncateHash output :=
+  tweakableHash_query_cached parameter (.encoding leafIndex)
+    (Concrete.encodingPayload message randomness) initialCache finalCache digest hmem
+
 theorem leafAt_query_cached_in_largerCache
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest) (leafIndex : LeafIndex)
     (initialCache resultCache largerCache : QueryCache HashSpec) (digest : Digest)
@@ -348,17 +360,16 @@ theorem verify_true_leaf_query_cached_in_largerCache
           OracleComp HashSpec Bool)).run initialCache))
     (hle : resultCache ≤ largerCache) :
     ∃ encoding output,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash largerCache publicKey.parameter leafIndex
-          (message, signature.randomness)) = some encoding ∧
+      Concrete.CacheView.decodedEncoding largerCache publicKey.parameter leafIndex
+          (message, signature.randomness) = some encoding ∧
       largerCache (Concrete.CacheView.leafInput publicKey.parameter leafIndex
         (XmssSecurity.recoveredEndpoints
           (fun chain => Concrete.CacheView.chainStep largerCache publicKey.parameter leafIndex chain)
           encoding signature.chainValue)) = some output := by
-  unfold Concrete.verify at hmem
+  simp only [Concrete.verify_eq_decode] at hmem
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
   obtain ⟨⟨digest, digestCache⟩, hdigest, hafterDigest⟩ := hmem
-  cases hdecode : TargetSum.decodeDigest digest with
+  cases hdecode : Checksum.decodeDigest digest with
   | none =>
       simp only [hdecode, simulateQ_pure, StateT.run_pure, support_pure,
         Set.mem_singleton_iff, Prod.mk.injEq, Bool.true_eq_false] at hafterDigest
@@ -400,8 +411,11 @@ theorem verify_true_leaf_query_cached_in_largerCache
           OracleComp HashSpec Digest) initialCache digestCache largerCache digest hdigest
           hdigestCacheLe
       rw [eval_encodingHash] at hdigestEval
+      obtain ⟨digestOutput, hdigestCached, _⟩ := encodingHash_query_cached publicKey.parameter
+        leafIndex message signature.randomness initialCache digestCache digest hdigest
       refine ⟨encoding, output, ?_, ?_⟩
-      · rw [hdigestEval]
+      · rw [CacheView.decodedEncoding_eq_of_cache_eq_some (hdigestCacheLe hdigestCached),
+          hdigestEval]
         exact hdecode
       · rw [hendpointsEval]
         exact hleafLe hleafCached

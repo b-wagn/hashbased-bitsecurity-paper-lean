@@ -10,21 +10,21 @@ noncomputable def sourceEncodingReserve (adversary : Adversary) : ℝ≥0∞ :=
   (3 / 4 : ℝ≥0∞) * (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary)
 
 theorem source_encoding_rate_add_reserve_le :
-    encodingPrehitRate + TargetSum.acceptanceProbability *
+    encodingPrehitRate + Checksum.acceptanceProbability *
         ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
         (3 / 4 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) ≤
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  unfold encodingPrehitRate TargetSum.acceptanceProbability
+  unfold encodingPrehitRate Checksum.acceptanceProbability
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   simp (disch := finiteness) only [ENNReal.toReal_add]
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_div,
     signingAttemptLimit, randomnessBits, digestBits]
 
 theorem source_signer_rate_add_reserve_le :
-    TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
+    Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
       (3 / 4 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) ≤
         (2 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
-  unfold TargetSum.acceptanceProbability
+  unfold Checksum.acceptanceProbability
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   simp (disch := finiteness) only [ENNReal.toReal_add]
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_div, digestBits]
@@ -42,13 +42,13 @@ theorem sourceSecondaryLoss_add_encodingReserve_le (adversary : Adversary) :
   unfold sourceSecondaryLoss sourceEncodingReserve
   calc
     _ = expectedDirectEncodingQueries adversary *
-          (encodingPrehitRate + TargetSum.acceptanceProbability *
+          (encodingPrehitRate + Checksum.acceptanceProbability *
             ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
             (3 / 4 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
         expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞) +
         expectedSourceSignerHashes adversary *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
             (3 / 4 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) := by
       simp only [div_eq_mul_inv]
       ring
@@ -63,9 +63,9 @@ theorem sourceSecondaryLoss_add_encodingReserve_le (adversary : Adversary) :
     _ = _ := by simp only [div_eq_mul_inv]; ring
 
 theorem acceptance_credit_add_half_le_reserve (credit : ℝ≥0∞) (hcredit : 1 ≤ credit) :
-    TargetSum.acceptanceProbability * credit + 1 / 2 ≤ (3 / 4 : ℝ≥0∞) * credit := by
-  have hprob : TargetSum.acceptanceProbability ≤ (1 / 4 : ℝ≥0∞) := by
-    unfold TargetSum.acceptanceProbability
+    Checksum.acceptanceProbability * credit + 1 / 2 ≤ (3 / 4 : ℝ≥0∞) * credit := by
+  have hprob : Checksum.acceptanceProbability ≤ (1 / 4 : ℝ≥0∞) := by
+    unfold Checksum.acceptanceProbability
     apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
     norm_num [ENNReal.toReal_div, digestBits]
   have hsum : (1 / 4 : ℝ≥0∞) + 1 / 2 = 3 / 4 := by

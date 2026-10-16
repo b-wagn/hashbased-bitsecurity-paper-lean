@@ -15,7 +15,7 @@ set_option maxRecDepth 1000
 
 namespace XmssSecurity
 
-theorem TargetSum.probEvent_validDigest_uniformHashOutput :
+theorem Checksum.probEvent_validDigest_uniformHashOutput :
     Pr[fun output : HashOutput => ValidDigest (truncateHash output) | $ᵗ HashOutput] =
       acceptanceProbability := by
   change Pr[ValidDigest ∘ truncateHash | $ᵗ HashOutput] = _
@@ -25,7 +25,7 @@ theorem TargetSum.probEvent_validDigest_uniformHashOutput :
 
 def HasAcceptedEncoding (parameter : PublicParameter) (cache : QueryCache HashSpec) : Prop :=
   ∃ input output, cache input = some output ∧
-    (encodingInputLeafIndex? parameter input).isSome ∧ TargetSum.ValidDigest (truncateHash output)
+    (encodingInputLeafIndex? parameter input).isSome ∧ Checksum.ValidDigest (truncateHash output)
 
 noncomputable instance (parameter : PublicParameter) : DecidablePred (HasAcceptedEncoding parameter) :=
   Classical.decPred _
@@ -34,7 +34,7 @@ theorem hasAcceptedEncoding_cacheQuery_iff
     (parameter : PublicParameter) (cache : QueryCache HashSpec)
     (input : HashInput) (output : HashOutput) (hcache : ¬HasAcceptedEncoding parameter cache) :
     HasAcceptedEncoding parameter (cache.cacheQuery input output) ↔
-      (encodingInputLeafIndex? parameter input).isSome ∧ TargetSum.ValidDigest (truncateHash output) := by
+      (encodingInputLeafIndex? parameter input).isSome ∧ Checksum.ValidDigest (truncateHash output) := by
   constructor
   · rintro ⟨candidate, answer, hanswer, hencoding, hvalid⟩
     by_cases heq : candidate = input
@@ -52,7 +52,7 @@ theorem hasAcceptedEncoding_romImpl_step_le
     (hcache : ¬HasAcceptedEncoding parameter cache) :
     Pr[fun result => HasAcceptedEncoding parameter result.2 | (romImpl input).run cache] ≤
       if CappedEncodingMonitor.IsEncodingHashQuery parameter input
-        then TargetSum.acceptanceProbability else 0 := by
+        then Checksum.acceptanceProbability else 0 := by
   classical
   cases input with
   | inl uniformIndex =>
@@ -81,7 +81,7 @@ theorem hasAcceptedEncoding_romImpl_step_le
           by_cases hencoding : (encodingInputLeafIndex? parameter hashInput).isSome
           · simp only [hencoding, true_and, CappedEncodingMonitor.IsEncodingHashQuery_inr,
               if_true, uniformHashOutput]
-            exact TargetSum.probEvent_validDigest_uniformHashOutput.le
+            exact Checksum.probEvent_validDigest_uniformHashOutput.le
           · simp [hencoding, CappedEncodingMonitor.IsEncodingHashQuery_inr]
 
 /-- This bound counts actual encoding queries, including adaptive honest signing attempts. -/
@@ -90,12 +90,12 @@ theorem probEvent_hasAcceptedEncoding_le_expectedQueries
     (cache : QueryCache HashSpec) (hcache : ¬HasAcceptedEncoding parameter cache) :
     Pr[fun result => HasAcceptedEncoding parameter result.2 |
       (simulateQ romImpl computation).run cache] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount romImpl
+      Checksum.acceptanceProbability * expectedSimulatedQueryCount romImpl
         (CappedEncodingMonitor.IsEncodingHashQuery parameter) computation cache := by
   simpa only [if_neg hcache, zero_add] using
     probEvent_state_le_initial_add_expectedQueryCount romImpl
       (CappedEncodingMonitor.IsEncodingHashQuery parameter) (HasAcceptedEncoding parameter)
-      TargetSum.acceptanceProbability (hasAcceptedEncoding_romImpl_step_le parameter)
+      Checksum.acceptanceProbability (hasAcceptedEncoding_romImpl_step_le parameter)
       computation cache
 
 theorem not_hasAcceptedEncoding_of_no_encodingInputs
@@ -127,8 +127,7 @@ theorem Concrete.precomputedKeygen_no_acceptedEncoding
 theorem hasAcceptedEncoding_of_decode
     (parameter : PublicParameter) (cache : QueryCache HashSpec)
     (leafIndex : LeafIndex) (message : Message) (randomness : Randomness) (encoding : Encoding)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash cache parameter leafIndex (message, randomness)) =
+    (hdecode : Concrete.CacheView.decodedEncoding cache parameter leafIndex (message, randomness) =
         some encoding) : HasAcceptedEncoding parameter cache := by
   obtain ⟨output, hcached⟩ := Concrete.CacheView.encodingInput_cached_of_decode_some cache
     parameter leafIndex message randomness encoding hdecode
@@ -151,7 +150,7 @@ theorem Concrete.precomputedCappedSign_success_le_expectedEncodingQueries
     (hcache : ¬HasAcceptedEncoding secretKey.parameter cache) :
     Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
       (simulateQ romImpl (precomputedCappedSign secretKey request.epoch request.message)).run cache] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount romImpl
+      Checksum.acceptanceProbability * expectedSimulatedQueryCount romImpl
         (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
         (precomputedCappedSign secretKey request.epoch request.message) cache := by
   apply le_trans _ (probEvent_hasAcceptedEncoding_le_expectedQueries _ _ _ hcache)

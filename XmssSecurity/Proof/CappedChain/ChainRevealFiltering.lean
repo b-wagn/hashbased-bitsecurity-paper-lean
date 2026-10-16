@@ -25,9 +25,8 @@ noncomputable def returnedChainValueIndexList
     match entry.2 with
     | none => []
     | some signature =>
-        match TargetSum.decodeDigest
-            (Concrete.CacheView.encodingHash cache secretKey.parameter
-              entry.1.epoch (entry.1.message, signature.randomness)) with
+        match Concrete.CacheView.decodedEncoding cache secretKey.parameter
+              entry.1.epoch (entry.1.message, signature.randomness) with
         | none => []
         | some encoding =>
             chainSuffixValueIndices entry.1.epoch (encoding chain)).dedup
@@ -41,9 +40,8 @@ theorem mem_returnedChainValueIndexList_iff
     index ∈ returnedChainValueIndexList cache secretKey log chain ↔
       ∃ request signature encoding,
         SigningTranscript.Returned log request signature ∧
-          TargetSum.decodeDigest
-            (Concrete.CacheView.encodingHash cache secretKey.parameter request.epoch
-              (request.message, signature.randomness)) = some encoding ∧
+          Concrete.CacheView.decodedEncoding cache secretKey.parameter request.epoch
+              (request.message, signature.randomness) = some encoding ∧
           index.1 = request.epoch ∧ encoding chain ≤ index.2 := by
   simp only [returnedChainValueIndexList, List.mem_dedup, List.mem_flatMap]
   constructor
@@ -51,9 +49,8 @@ theorem mem_returnedChainValueIndexList_iff
     cases hsignature : entry.2 with
     | none => simp [hsignature] at hindex
     | some signature =>
-        cases hdecode : TargetSum.decodeDigest
-            (Concrete.CacheView.encodingHash cache secretKey.parameter
-              entry.1.epoch (entry.1.message, signature.randomness)) with
+        cases hdecode : Concrete.CacheView.decodedEncoding cache secretKey.parameter
+              entry.1.epoch (entry.1.message, signature.randomness) with
         | none => simp [hsignature, hdecode] at hindex
         | some encoding =>
             simp only [hsignature, hdecode] at hindex

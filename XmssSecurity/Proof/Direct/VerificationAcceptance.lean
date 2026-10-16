@@ -11,24 +11,24 @@ set_option backward.isDefEq.respectTransparency false
 namespace XmssSecurity.Direct
 
 theorem verifyAfterDigest_eq_false_of_invalid (publicKey : PublicKey) (leafIndex : LeafIndex)
-    (signature : Signature) (digest : Digest) (hinvalid : ¬TargetSum.ValidDigest digest) :
+    (signature : Signature) (digest : Digest) (hinvalid : ¬Checksum.ValidDigest digest) :
     verifyAfterDigest publicKey leafIndex signature digest = pure false := by
   unfold verifyAfterDigest
-  cases hdecode : TargetSum.decodeDigest digest with
+  cases hdecode : Checksum.decodeDigest digest with
   | none => rfl
   | some encoding => exact (hinvalid ⟨encoding, hdecode⟩).elim
 
 theorem uniformValidHashOutput_bind_probability_le {α : Type}
     (continuation : HashOutput → ProbComp α) (event : α → Prop) (bound : ℝ≥0∞)
-    (hvalid : ∀ output, TargetSum.ValidDigest (truncateHash output) → Pr[event | continuation output] ≤ bound)
-    (hinvalid : ∀ output, ¬TargetSum.ValidDigest (truncateHash output) → Pr[event | continuation output] = 0) :
-    Pr[event | ($ᵗ HashOutput) >>= continuation] ≤ TargetSum.acceptanceProbability * bound := by
+    (hvalid : ∀ output, Checksum.ValidDigest (truncateHash output) → Pr[event | continuation output] ≤ bound)
+    (hinvalid : ∀ output, ¬Checksum.ValidDigest (truncateHash output) → Pr[event | continuation output] = 0) :
+    Pr[event | ($ᵗ HashOutput) >>= continuation] ≤ Checksum.acceptanceProbability * bound := by
   classical
-  rw [probEvent_bind_eq_tsum, ← TargetSum.probEvent_validDigest_uniformHashOutput,
+  rw [probEvent_bind_eq_tsum, ← Checksum.probEvent_validDigest_uniformHashOutput,
     probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
   apply ENNReal.tsum_le_tsum
   intro output
-  by_cases houtput : TargetSum.ValidDigest (truncateHash output)
+  by_cases houtput : Checksum.ValidDigest (truncateHash output)
   · simp only [houtput, if_true]
     exact mul_le_mul' le_rfl (hvalid output houtput)
   · simp only [houtput, if_false, hinvalid output houtput, mul_zero, zero_mul, le_refl]
@@ -52,7 +52,7 @@ theorem verify_probability_le_acceptance_of_fresh (publicKey : PublicKey) (leafI
       (message, signature.randomness)) = none) :
     Pr[fun result => result.1 = true |
       (simulateQ romImpl (Concrete.scheme.verify publicKey leafIndex message signature)).run cache] ≤
-      TargetSum.acceptanceProbability := by
+      Checksum.acceptanceProbability := by
   rw [verify_run_fresh publicKey leafIndex message signature cache hfresh]
   simpa only [mul_one] using uniformValidHashOutput_bind_probability_le _
     (fun result : Bool × QueryCache HashSpec => result.1 = true) 1
@@ -64,7 +64,7 @@ theorem verify_probability_eq_zero_of_cached_invalid (publicKey : PublicKey) (le
     (message : Message) (signature : Signature) (cache : QueryCache HashSpec) (output : HashOutput)
     (hcached : cache (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
       (message, signature.randomness)) = some output)
-    (hinvalid : ¬TargetSum.ValidDigest (truncateHash output)) :
+    (hinvalid : ¬Checksum.ValidDigest (truncateHash output)) :
     Pr[fun result => result.1 = true |
       (simulateQ romImpl (Concrete.scheme.verify publicKey leafIndex message signature)).run cache] = 0 := by
   rw [simulateQ_romImpl_scheme_verify, StateT.run_bind, QueryImpl.withCaching_run_some _ hcached,
@@ -76,7 +76,7 @@ theorem verify_probability_le_acceptance_of_noAcceptedEncoding (publicKey : Publ
     (hcache : ¬HasAcceptedEncoding publicKey.parameter cache) :
     Pr[fun result => result.1 = true |
       (simulateQ romImpl (Concrete.scheme.verify publicKey leafIndex message signature)).run cache] ≤
-      TargetSum.acceptanceProbability := by
+      Checksum.acceptanceProbability := by
   cases hentry : cache (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
       (message, signature.randomness)) with
   | none => exact verify_probability_le_acceptance_of_fresh _ _ _ _ _ hentry
@@ -95,7 +95,7 @@ theorem verification_prefix_event_probability_le {α : Type}
       let result ← head
       let verified ← (simulateQ romImpl (Concrete.scheme.verify (publicKey result)
         (forgery result).epoch (forgery result).message (forgery result).signature)).run (cache result)
-      pure (result, verified)] ≤ TargetSum.acceptanceProbability * Pr[event | head] := by
+      pure (result, verified)] ≤ Checksum.acceptanceProbability * Pr[event | head] := by
   classical
   rw [probEvent_bind_eq_tsum, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
   apply ENNReal.tsum_le_tsum
@@ -104,7 +104,7 @@ theorem verification_prefix_event_probability_le {α : Type}
   by_cases hresult : result ∈ support head
   · by_cases hevent : event result
     · simp only [hevent, if_true, Function.comp_def, true_and]
-      rw [mul_comm TargetSum.acceptanceProbability]
+      rw [mul_comm Checksum.acceptanceProbability]
       exact mul_le_mul' le_rfl (verify_probability_le_acceptance_of_noAcceptedEncoding _ _ _ _ _
         (hrejecting result hresult hevent))
     · simp only [Function.comp_def, hevent, false_and, if_false, mul_zero]

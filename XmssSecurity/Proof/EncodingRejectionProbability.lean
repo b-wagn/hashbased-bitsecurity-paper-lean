@@ -33,7 +33,7 @@ theorem Concrete.precomputedSignAttempt_run_fresh
       (precomputedSignAttempt secretKey leafIndex message randomness :
         OracleComp HashSpec (Option Signature))).run cache =
       (fun output : HashOutput =>
-        ((TargetSum.decodeDigest (truncateHash output)).map
+        ((Checksum.decodeDigest (truncateHash output)).map
           (precomputedSignWithEncoding secretKey leafIndex randomness),
         cache.cacheQuery (CacheView.encodingInput secretKey.parameter leafIndex
           (message, randomness)) output)) <$> ($ᵗ HashOutput) := by
@@ -48,9 +48,9 @@ theorem Concrete.precomputedSignAttempt_run_fresh
   apply bind_congr
   intro output
   simp only [Function.comp_apply]
-  cases TargetSum.decodeDigest (truncateHash output) <;> simp
+  cases Checksum.decodeDigest (truncateHash output) <;> simp
 
-theorem TargetSum.probEvent_invalidDigest_uniformHashOutput :
+theorem Checksum.probEvent_invalidDigest_uniformHashOutput :
     Pr[fun output : HashOutput => ¬ ValidDigest (truncateHash output) | $ᵗ HashOutput] =
       1 - acceptanceProbability := by
   have hvalid : Pr[fun output : HashOutput => ValidDigest (truncateHash output) |
@@ -86,14 +86,14 @@ theorem Concrete.precomputedSignBoundedAttempts_failure_le
     Pr[fun result : Option Signature × QueryCache HashSpec => result.1 = none |
       (simulateQ romImpl (precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
         cache] ≤
-      (1 - TargetSum.acceptanceProbability) ^ attempts +
+      (1 - Checksum.acceptanceProbability) ^ attempts +
         (attempts : ℝ≥0∞) * (known + attempts) * ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ := by
   classical
   induction attempts generalizing cache known with
   | zero => simp [precomputedSignBoundedAttempts]
   | succ attempts ih =>
       rw [precomputedSignBoundedAttempts_run_succ_eq]
-      let a : ℝ≥0∞ := 1 - TargetSum.acceptanceProbability
+      let a : ℝ≥0∞ := 1 - Checksum.acceptanceProbability
       let r : ℝ≥0∞ := ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹
       let b : ℝ≥0∞ := a ^ attempts + (attempts : ℝ≥0∞) * (known + 1 + attempts) * r
       have ha : a ≤ 1 := tsub_le_self
@@ -116,7 +116,7 @@ theorem Concrete.precomputedSignBoundedAttempts_failure_le
             | some value => exact (hmiss ⟨value, hcache⟩).elim
           rw [precomputedSignAttempt_run_fresh _ _ _ _ _ hfresh, bind_map_left]
           refine (probEvent_bind_le_event_mul _ _ _
-            (fun output => ¬ TargetSum.ValidDigest (truncateHash output)) b ?_).trans_eq ?_
+            (fun output => ¬ Checksum.ValidDigest (truncateHash output)) b ?_).trans_eq ?_
           · intro output
             have hnext : cachedEncodingInputCount
                 (cache.cacheQuery (CacheView.encodingInput secretKey.parameter leafIndex
@@ -126,15 +126,15 @@ theorem Concrete.precomputedSignBoundedAttempts_failure_le
                   simpa using cachedEncodingInputCount_cacheQuery_le cache secretKey.parameter
                     (CacheView.encodingInput secretKey.parameter leafIndex (message, randomness)) output
                 _ ≤ _ := by simpa using add_le_add hknown (le_refl (1 : ℝ≥0∞))
-            cases hdecode : TargetSum.decodeDigest (truncateHash output) with
+            cases hdecode : Checksum.decodeDigest (truncateHash output) with
             | none =>
-                simpa [precomputedSignBoundedAttemptsContinuation, TargetSum.ValidDigest,
+                simpa [precomputedSignBoundedAttemptsContinuation, Checksum.ValidDigest,
                   hdecode, b, a, r, Nat.cast_add, Nat.cast_one] using
                   ih (cache.cacheQuery (CacheView.encodingInput secretKey.parameter leafIndex
                     (message, randomness)) output) (known + 1) hnext
             | some encoding =>
                 simp [precomputedSignBoundedAttemptsContinuation]
-          · rw [TargetSum.probEvent_invalidDigest_uniformHashOutput]
+          · rw [Checksum.probEvent_invalidDigest_uniformHashOutput]
         · apply add_le_add _ le_rfl
           exact (uniform_signingRandomness_encodingInput_cacheHit_le_cachedEncodingEntryCount
             secretKey.parameter leafIndex message cache).trans
@@ -176,7 +176,7 @@ private theorem real_rejection_power_mul_le_one (p : ℝ) (hpone : p ≤ 1)
         _ ≤ 1 := ih
 
 /-- A rational geometric-tail bound avoids evaluating a power with billions of factors. -/
-theorem TargetSum.rejection_power_le (p : ℝ≥0∞) (hp : p ≤ 1) (attempts : ℕ) :
+theorem Checksum.rejection_power_le (p : ℝ≥0∞) (hp : p ≤ 1) (attempts : ℕ) :
     (1 - p) ^ attempts ≤ 1 / (1 + (attempts : ℝ≥0∞) * p) := by
   have hpfinite : p ≠ ⊤ := ne_top_of_le_ne_top ENNReal.one_ne_top hp
   have hpreal : p.toReal ≤ 1 := by
@@ -189,20 +189,15 @@ theorem TargetSum.rejection_power_le (p : ℝ≥0∞) (hp : p ≤ 1) (attempts :
     ENNReal.toReal_div, ENNReal.toReal_add (by finiteness) (by finiteness)]
   simpa only [ENNReal.toReal_one, ENNReal.toReal_mul, ENNReal.toReal_natCast] using hbound
 
-theorem TargetSum.capped_rejection_bound_lt :
+theorem Checksum.capped_rejection_bound_lt :
     (1 - acceptanceProbability) ^ signingAttemptLimit +
       (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
         ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32 := by
-  have hpow : (1 - acceptanceProbability) ^ signingAttemptLimit ≤
-      1 / (1 + (signingAttemptLimit : ℝ≥0∞) * (1 / ((2 ^ 15 : ℕ) : ℝ≥0∞))) :=
-    (pow_le_pow_left' (tsub_le_tsub_left acceptanceProbability_lower.le 1) signingAttemptLimit).trans
-      (rejection_power_le _ (by norm_num) _)
-  apply lt_of_le_of_lt (add_le_add hpow le_rfl)
+  rw [acceptanceProbability_eq_one]
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
-  simp only [ENNReal.toReal_div, ENNReal.toReal_mul, ENNReal.toReal_inv]
-  rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
-  norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul]
+  norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul,
+    ENNReal.toReal_inv]
 
 /-- In the reference scheme, a fresh signing request succeeds with probability greater than
 `31/32`; randomizer repetitions are included in the failure bound. -/
@@ -217,7 +212,7 @@ theorem Concrete.precomputedCappedSign_failure_lt
   have hbound := precomputedSignBoundedAttempts_failure_le signingAttemptLimit secretKey leafIndex
     message cache 0 (by simpa using hcache.le)
   simp only [Nat.cast_zero, zero_add] at hbound
-  exact hbound.trans_lt TargetSum.capped_rejection_bound_lt
+  exact hbound.trans_lt Checksum.capped_rejection_bound_lt
 
 theorem Concrete.precomputedCappedSign_success_gt
     (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)

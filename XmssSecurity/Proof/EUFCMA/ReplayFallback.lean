@@ -16,35 +16,35 @@ noncomputable def replayFallbackExperiment (publicKey : PublicKey) (leafIndex : 
     (candidate fallback : Message) (signature : Signature) (cache : QueryCache HashSpec) : ProbComp Bool := do
   let probe ← (randomOracle (CacheView.encodingInput publicKey.parameter leafIndex
     (candidate, signature.randomness))).run cache
-  let message := if TargetSum.ValidDigest (truncateHash probe.1) then candidate else fallback
+  let message := if Checksum.ValidDigest (truncateHash probe.1) then candidate else fallback
   let result ← (simulateQ randomOracle (verify publicKey leafIndex message signature :
     OracleComp HashSpec Bool)).run probe.2
   return result.1
 
 noncomputable def replayFallbackRate : ℝ≥0∞ :=
-  replayCollisionRate + (1 - TargetSum.acceptanceProbability) * replayCollisionRate
+  replayCollisionRate + (1 - Checksum.acceptanceProbability) * replayCollisionRate
 
 theorem replayFallbackScore_average (target : Digest) :
     (∑' output, Pr[= output | $ᵗ HashOutput] *
       (replayScore target output +
-        if ¬ TargetSum.ValidDigest (truncateHash output) then replayCollisionRate else 0)) =
+        if ¬ Checksum.ValidDigest (truncateHash output) then replayCollisionRate else 0)) =
       replayFallbackRate := by
   classical
   simp_rw [mul_add]
   rw [ENNReal.tsum_add, replayScore_average]
   unfold replayFallbackRate
   congr 1
-  rw [← TargetSum.probEvent_invalidDigest_uniformHashOutput, probEvent_eq_tsum_ite,
+  rw [← Checksum.probEvent_invalidDigest_uniformHashOutput, probEvent_eq_tsum_ite,
     ← ENNReal.tsum_mul_right]
   apply tsum_congr
   intro output
-  by_cases hvalid : TargetSum.ValidDigest (truncateHash output) <;> simp [hvalid]
+  by_cases hvalid : Checksum.ValidDigest (truncateHash output) <;> simp [hvalid]
 
 theorem replayFallbackExperiment_lower
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (candidate fallback : Message) (hne : fallback ≠ candidate)
-    (encoding : Encoding) (hvalid : TargetSum.Valid encoding) (randomness : Randomness)
+    (encoding : Encoding) (hvalid : Checksum.Valid encoding) (randomness : Randomness)
     (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
     (hroot : RootCache keyResult.1.2.parameter leafIndex keyResult.1.1.root cache)
     (hcandidate : cache (CacheView.encodingInput keyResult.1.2.parameter leafIndex
@@ -55,7 +55,7 @@ theorem replayFallbackExperiment_lower
       (CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness encoding) cache] := by
   classical
   have hparameter := Deciding.keygen_publicKey_parameter_eq keyResult hkey
-  have htarget : TargetSum.ValidDigest (digestOfEncoding encoding) :=
+  have htarget : Checksum.ValidDigest (digestOfEncoding encoding) :=
     ⟨encoding, digestOfEncoding_decode encoding hvalid⟩
   unfold replayFallbackExperiment
   change replayFallbackRate ≤ Pr[= true | (randomOracle (CacheView.encodingInput keyResult.1.1.parameter
@@ -67,7 +67,7 @@ theorem replayFallbackExperiment_lower
   intro output
   apply mul_le_mul' le_rfl
   simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-  by_cases haccepted : TargetSum.ValidDigest (truncateHash output)
+  by_cases haccepted : Checksum.ValidDigest (truncateHash output)
   · simp only [haccepted, if_true, not_true_eq_false, if_false, add_zero]
     exact replayScore_le_cached_verification keyResult hkey leafIndex candidate encoding hvalid randomness
       cache hle hroot hcandidate output
@@ -139,7 +139,7 @@ theorem signedReplayFallbackExperiment_lower
             apply mul_le_mul' le_rfl
             rw [hreplay]
             apply replayFallbackExperiment_lower keyResult hkey request.epoch candidate fallback hne
-              encoding (TargetSum.decodeDigest_eq_some_iff.mp hdecode).2 original.randomness signCache
+              encoding (Concrete.CacheView.decodedEncoding_valid hdecode) original.randomness signCache
             · exact xmssRom_cache_le _ keyResult.2 (some original, signCache) hmem
             · exact rootCache_after_signing keyResult.1.2 request.epoch keyResult.1.1.root request
                 (some original) keyResult.2 signCache (rootCache_after_keygen keyResult hkey request.epoch) hmem
@@ -154,7 +154,7 @@ theorem signedReplayFallbackExperiment_lower
 
 theorem signedReplayFallbackRate_gt_127 :
     ((2 ^ 127 : ℕ) : ℝ≥0∞)⁻¹ < (131071 / 131072 : ℝ≥0∞) * replayFallbackRate := by
-  unfold replayFallbackRate replayCollisionRate digestCollisionRate TargetSum.acceptanceProbability
+  unfold replayFallbackRate replayCollisionRate digestCollisionRate Checksum.acceptanceProbability
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_mul, ENNReal.toReal_inv,
     ENNReal.toReal_div, ENNReal.toReal_natCast]

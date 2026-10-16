@@ -55,7 +55,7 @@ theorem verificationPhase_winning_probability_le_acceptance_of_fresh (publicKey 
     (hfresh : cache (forgeryEncodingInput publicKey prefixResult.1) = none) :
     Pr[fun result => result.1.won = true |
       (simulateQ romImpl (verificationPhase publicKey secretKey prefixResult)).run cache] ≤
-        TargetSum.acceptanceProbability :=
+        Checksum.acceptanceProbability :=
   (verificationPhase_winning_probability_le_verified publicKey secretKey prefixResult cache).trans
     (verify_probability_le_acceptance_of_fresh _ _ _ _ _ hfresh)
 
@@ -64,7 +64,7 @@ theorem verificationPhase_winning_probability_le_acceptance_of_noAcceptedEncodin
     (hcache : ¬HasAcceptedEncoding publicKey.parameter cache) :
     Pr[fun result => result.1.won = true |
       (simulateQ romImpl (verificationPhase publicKey secretKey prefixResult)).run cache] ≤
-        TargetSum.acceptanceProbability :=
+        Checksum.acceptanceProbability :=
   (verificationPhase_winning_probability_le_verified publicKey secretKey prefixResult cache).trans
     (verify_probability_le_acceptance_of_noAcceptedEncoding _ _ _ _ _ hcache)
 
@@ -91,7 +91,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_acceptance_of_fresh (key : P
     (prefixResult : Forgery × SourceExactTracedState)
     (hfresh : prefixResult.2.1.1.1 (forgeryEncodingInput key.publicKey prefixResult.1) = none) :
     Pr[fun result => SourceWinningDecidingFirstLaneEvent (key, result) | sourcePrefixFinish key prefixResult] ≤
-      TargetSum.acceptanceProbability :=
+      Checksum.acceptanceProbability :=
   (sourcePrefixFinish_firstLane_probability_le_verified key prefixResult).trans
     (verify_probability_le_acceptance_of_fresh _ _ _ _ _ hfresh)
 
@@ -99,7 +99,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_acceptance_of_noAcceptedEnco
     (key : ProgrammedGlobalChainKeygenView) (prefixResult : Forgery × SourceExactTracedState)
     (hcache : ¬HasAcceptedEncoding key.publicKey.parameter prefixResult.2.1.1.1) :
     Pr[fun result => SourceWinningDecidingFirstLaneEvent (key, result) | sourcePrefixFinish key prefixResult] ≤
-      TargetSum.acceptanceProbability :=
+      Checksum.acceptanceProbability :=
   (sourcePrefixFinish_firstLane_probability_le_verified key prefixResult).trans
     (verify_probability_le_acceptance_of_noAcceptedEncoding _ _ _ _ _ hcache)
 
@@ -113,7 +113,7 @@ theorem sourceFirstLane_prefix_event_probability_le {α : Type} (head : ProbComp
         event result.1 ∧ SourceWinningDecidingFirstLaneEvent (key result.1, result.2) | do
       let result ← head
       let outcome ← sourcePrefixFinish (key result) (prefixResult result)
-      pure (result, outcome)] ≤ TargetSum.acceptanceProbability * Pr[event | head] :=
+      pure (result, outcome)] ≤ Checksum.acceptanceProbability * Pr[event | head] :=
   prefix_event_bind_probability_le _ _ _ _ _ (fun result hresult hevent =>
     sourcePrefixFinish_firstLane_probability_le_acceptance_of_noAcceptedEncoding _ _
       (hrejecting result hresult hevent))
@@ -127,7 +127,7 @@ theorem sourceFirstLane_fresh_prefix_event_probability_le {α : Type} (head : Pr
         event result.1 ∧ SourceWinningDecidingFirstLaneEvent (key result.1, result.2) | do
       let result ← head
       let outcome ← sourcePrefixFinish (key result) (prefixResult result)
-      pure (result, outcome)] ≤ TargetSum.acceptanceProbability * Pr[event | head] :=
+      pure (result, outcome)] ≤ Checksum.acceptanceProbability * Pr[event | head] :=
   prefix_event_bind_probability_le _ _ _ _ _ (fun result hresult hevent =>
     sourcePrefixFinish_firstLane_probability_le_acceptance_of_fresh _ _ (hfresh result hresult hevent))
 
@@ -141,7 +141,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_accepted_add_fresh (adversar
     (hprefix : prefixResult ∈ support (sourcePrefixExecution adversary key)) :
     Pr[fun result => SourceWinningDecidingFirstLaneEvent (key, result) | sourcePrefixFinish key prefixResult] ≤
       (if AcceptedPrefixFirstLaneEvent key prefixResult then 1 else 0) +
-        (if SourcePrefixForgedEncodingFresh (key, prefixResult) then TargetSum.acceptanceProbability else 0) := by
+        (if SourcePrefixForgedEncodingFresh (key, prefixResult) then Checksum.acceptanceProbability else 0) := by
   classical
   by_cases haccepted : AcceptedPrefixFirstLaneEvent key prefixResult
   · rw [if_pos haccepted]
@@ -167,7 +167,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_accepted_add_fresh (adversar
 theorem decidingFirstLane_probability_le_accepted_add_fresh (adversary : Adversary) :
     Pr[WinningDecidingFirstLaneBadEventOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
       Pr[fun result => AcceptedPrefixFirstLaneEvent result.1 result.2 | sourcePrefixProgram adversary] +
-        TargetSum.acceptanceProbability * Pr[SourcePrefixForgedEncodingFresh | sourcePrefixProgram adversary] := by
+        Checksum.acceptanceProbability * Pr[SourcePrefixForgedEncodingFresh | sourcePrefixProgram adversary] := by
   classical
   rw [decidingFirstLane_probability_eq_source, sourceProgram_eq_prefix_finish, probEvent_bind_eq_tsum,
     probEvent_eq_tsum_ite, probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]

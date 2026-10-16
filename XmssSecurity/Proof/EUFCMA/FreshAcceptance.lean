@@ -17,7 +17,7 @@ def HasFreshAcceptedEncoding (parameter : PublicParameter) (state : SourceTraced
     ¬ SigningTranscript.ContainsRequest state.2.toSigningLog forgery ∧
     state.1 (CacheView.encodingInput parameter forgery.epoch
       (forgery.message, forgery.signature.randomness)) = some output ∧
-    TargetSum.ValidDigest (truncateHash output)
+    Checksum.ValidDigest (truncateHash output)
 
 noncomputable instance (parameter : PublicParameter) : DecidablePred (HasFreshAcceptedEncoding parameter) :=
   Classical.decPred _
@@ -39,7 +39,7 @@ theorem hasFreshAcceptedEncoding_cacheQuery (parameter : PublicParameter)
     (cache : QueryCache HashSpec) (trace : AttackerActionTrace) (input : HashInput) (output : HashOutput)
     (hstate : ¬ HasFreshAcceptedEncoding parameter (cache, trace))
     (hnew : HasFreshAcceptedEncoding parameter (cache.cacheQuery input output, trace)) :
-    (encodingInputLeafIndex? parameter input).isSome ∧ TargetSum.ValidDigest (truncateHash output) := by
+    (encodingInputLeafIndex? parameter input).isSome ∧ Checksum.ValidDigest (truncateHash output) := by
   obtain ⟨forgery, answer, hfresh, hcache, hvalid⟩ := hnew
   dsimp only at hfresh hcache
   by_cases heq : CacheView.encodingInput parameter forgery.epoch
@@ -77,7 +77,7 @@ theorem hasFreshAcceptedEncoding_query_le (publicKey : PublicKey) (secretKey : S
     (hstate : ¬ HasFreshAcceptedEncoding secretKey.parameter state) :
     Pr[fun result => HasFreshAcceptedEncoding secretKey.parameter result.2 |
       (sourceDirectTracedMappedAdversaryImpl publicKey secretKey input).run state] ≤
-      if IsDirectEncodingQuery secretKey.parameter input then TargetSum.acceptanceProbability else 0 := by
+      if IsDirectEncodingQuery secretKey.parameter input then Checksum.acceptanceProbability else 0 := by
   classical
   rcases state with ⟨cache, trace⟩
   rcases input with (uniformInput | hashInput) | request
@@ -112,7 +112,7 @@ theorem hasFreshAcceptedEncoding_query_le (publicKey : PublicKey) (secretKey : S
         rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, probEvent_map]
         by_cases hencoding : (encodingInputLeafIndex? secretKey.parameter hashInput).isSome
         · rw [if_pos (by exact hencoding)]
-          apply le_trans _ TargetSum.probEvent_validDigest_uniformHashOutput.le
+          apply le_trans _ Checksum.probEvent_validDigest_uniformHashOutput.le
           apply probEvent_mono''
           intro output hnew
           exact (hasFreshAcceptedEncoding_cacheQuery _ _ _ _ _ hstate hnew).2
@@ -137,20 +137,20 @@ theorem probEvent_freshAccepted_le_expected_directEncoding (publicKey : PublicKe
     (hstate : ¬ HasFreshAcceptedEncoding secretKey.parameter state) :
     Pr[fun result => HasFreshAcceptedEncoding secretKey.parameter result.2 |
       (simulateQ (sourceDirectTracedMappedAdversaryImpl publicKey secretKey) computation).run state] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount
+      Checksum.acceptanceProbability * expectedSimulatedQueryCount
         (sourceDirectTracedMappedAdversaryImpl publicKey secretKey)
         (IsDirectEncodingQuery secretKey.parameter) computation state := by
   simpa only [if_neg hstate, zero_add] using
     probEvent_state_le_initial_add_expectedQueryCount (sourceDirectTracedMappedAdversaryImpl publicKey secretKey)
       (IsDirectEncodingQuery secretKey.parameter) (HasFreshAcceptedEncoding secretKey.parameter)
-      TargetSum.acceptanceProbability (hasFreshAcceptedEncoding_query_le publicKey secretKey)
+      Checksum.acceptanceProbability (hasFreshAcceptedEncoding_query_le publicKey secretKey)
       computation state
 
 theorem hasFreshAcceptedEncoding_of_decode (parameter : PublicParameter)
     (state : SourceTracedState) (forgery : Forgery) (encoding : Encoding)
     (hfresh : ¬ SigningTranscript.ContainsRequest state.2.toSigningLog forgery)
-    (hdecode : TargetSum.decodeDigest (CacheView.encodingHash state.1 parameter forgery.epoch
-      (forgery.message, forgery.signature.randomness)) = some encoding) :
+    (hdecode : CacheView.decodedEncoding state.1 parameter forgery.epoch
+      (forgery.message, forgery.signature.randomness) = some encoding) :
     HasFreshAcceptedEncoding parameter state := by
   obtain ⟨output, hcached⟩ := CacheView.encodingInput_cached_of_decode_some state.1 parameter
     forgery.epoch forgery.message forgery.signature.randomness encoding hdecode
@@ -181,7 +181,7 @@ theorem probEvent_freshAccepted_le_direct_budget (publicKey : PublicKey) (secret
     (D : ℕ) (hD : computation.IsQueryBoundP Direct.IsDirectHashQuery D) :
     Pr[fun result => HasFreshAcceptedEncoding secretKey.parameter result.2 |
       (simulateQ (sourceDirectTracedMappedAdversaryImpl publicKey secretKey) computation).run (cache, [])] ≤
-      TargetSum.acceptanceProbability * (D : ℝ≥0∞) := by
+      Checksum.acceptanceProbability * (D : ℝ≥0∞) := by
   apply (probEvent_freshAccepted_le_expected_directEncoding publicKey secretKey computation (cache, [])
     (no_freshAcceptedEncoding_of_no_encodingInputs _ _ _ hempty)).trans
   apply mul_le_mul' le_rfl

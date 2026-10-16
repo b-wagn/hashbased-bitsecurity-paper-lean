@@ -28,7 +28,7 @@ theorem decidingSecondLane_afterKeygen_le_expectedEncoding_add_fresh (adversary 
           (adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2 +
         Pr[fun result => result.2 (forgeryEncodingInput keyResult.1.1 result.1.1) = none |
           (simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2]) *
-        (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
+        (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
   have hparameter := keygen_publicKey_parameter_eq keyResult hkey
   have hsecond := decidingSecondLane_afterKeygen_le_expected_accepted
     (withForgedEncodingQuery adversary) keyResult hkey (fun result hresult => by
@@ -63,7 +63,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding_add_fresh (adversary 
       detailedGameWithCache Concrete.scheme adversary] ≤
       expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         (expectedPrefixEncodingQueries adversary + forgedEncodingFreshProbability adversary) *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
   unfold detailedGameWithCache detailedGameCore
   simp only [detailedGameAfterKeygen_eq_phases]
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
@@ -77,7 +77,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding_add_fresh (adversary 
   let fresh := fun keyResult : (PublicKey × SecretKey) × QueryCache HashSpec =>
     Pr[fun result => result.2 (forgeryEncodingInput keyResult.1.1 result.1.1) = none |
       (simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2]
-  let rate := TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))
+  let rate := Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))
   calc
     _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
         (structural keyResult / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
@@ -106,7 +106,7 @@ theorem decidingSecondLane_probability_le_source_credit_add_fresh (adversary : A
       expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary +
           forgedEncodingFreshProbability adversary) *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) :=
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) :=
   (decidingSecondLane_probability_le_expectedEncoding_add_fresh adversary).trans
     (add_le_add le_rfl (mul_le_mul' (add_le_add (expectedPrefixEncodingQueries_le adversary) le_rfl) le_rfl))
 

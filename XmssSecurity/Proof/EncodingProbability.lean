@@ -1,6 +1,6 @@
-import XmssSecurity.Proof.EncodingCardinalityCertificate
+import XmssSecurity.Proof.CappedEncodingRejection
 
-/-! Exact acceptance probability of the target-sum encoding. -/
+/-! The acceptance probability of the checksummed encoding: every digest decodes. -/
 
 open OracleComp ENNReal
 open scoped BigOperators
@@ -8,63 +8,57 @@ open scoped BigOperators
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
-namespace XmssSecurity.TargetSum
+namespace XmssSecurity.Checksum
 
-theorem validDigests_card_exact :
-    validDigests.card = 11539185377238682781344003244544752 := by
-  rw [validDigests_card_eq_wordCount]
-  exact wordCount_eight_fortyTwo_195
-
-noncomputable def acceptanceProbability : ℝ≥0∞ :=
-  11539185377238682781344003244544752 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
+/-- Every digest encodes, so a uniform digest is accepted with probability one. -/
+noncomputable def acceptanceProbability : ℝ≥0∞ := 1
 
 theorem probEvent_validDigest_uniform :
     Pr[ValidDigest | $ᵗ Digest] = acceptanceProbability := by
   rw [probEvent_uniformSample]
   change (validDigests.card : ℝ≥0∞) / Fintype.card Digest = _
-  rw [validDigests_card_exact]
-  simp [acceptanceProbability]
+  rw [validDigests_card]
+  simp [acceptanceProbability, ENNReal.div_self]
 
 theorem acceptanceProbability_pos : 0 < acceptanceProbability := by
   simp [acceptanceProbability]
 
 theorem acceptanceProbability_ne_top : acceptanceProbability ≠ ⊤ := by
-  unfold acceptanceProbability
-  finiteness
+  simp [acceptanceProbability]
 
-theorem acceptanceProbability_lower :
-    (1 : ℝ≥0∞) / ((2 ^ 15 : ℕ) : ℝ≥0∞) < acceptanceProbability := by
-  apply (ENNReal.toReal_lt_toReal (by finiteness) acceptanceProbability_ne_top).mp
-  norm_num [acceptanceProbability, ENNReal.toReal_div, digestBits]
+theorem acceptanceProbability_eq_one : acceptanceProbability = 1 := rfl
 
-theorem acceptanceProbability_upper :
-    acceptanceProbability < (1 : ℝ≥0∞) / ((2 ^ 14 : ℕ) : ℝ≥0∞) := by
-  apply (ENNReal.toReal_lt_toReal acceptanceProbability_ne_top (by finiteness)).mp
-  norm_num [acceptanceProbability, ENNReal.toReal_div, digestBits]
-
-/-- info: 'XmssSecurity.TargetSum.validDigests_card_exact' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms validDigests_card_exact
-
-/-- info: 'XmssSecurity.TargetSum.acceptanceProbability_lower' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms acceptanceProbability_lower
-
-/-- info: 'XmssSecurity.TargetSum.acceptanceProbability_upper' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms acceptanceProbability_upper
-
-/-- The collision opportunities from mutating a uniformly chosen chain average to 1485 / 42.
-The choice needs no query to discover the signed encoding. -/
-theorem sum_mutatedChainWork (encoding : Encoding) (hvalid : Valid encoding) :
-    (∑ chain, (40 - (encoding chain).val)) = 1485 := by
-  rw [Finset.sum_tsub_distrib Finset.univ]
-  · have hsum : ∑ chain, (encoding chain).val = targetSum := hvalid
-    rw [hsum]
-    norm_num [numChains, targetSum]
-  · intro chain _
-    have hbound := (encoding chain).isLt
-    norm_num [chainLength, winternitzBits] at hbound
+/-- The digits of a codeword sum to at most `len_1 · (2^w - 1) = 301`: the checksum digits sum to
+at most the checksum, which the message digits fall short of their maximum by. -/
+theorem sum_digits_le (encoding : Encoding) (hvalid : Valid encoding) :
+    ∑ chain, (encoding chain).val ≤ messageDigits * (chainLength - 1) := by
+  have hsplit := Fin.sum_univ_add (a := messageDigits) (b := checksumDigits)
+    (fun chain => (encoding chain).val)
+  have hsplit' : ∑ chain, (encoding chain).val =
+      ∑ i, (messagePart encoding i).val + ∑ j, (encoding (checksumChain j)).val := hsplit
+  rw [hsplit']
+  have hcheck : ∑ j, (encoding (checksumChain j)).val ≤ checksum (messagePart encoding) := by
+    simp only [hvalid.2]
+    have hdigits : checksum (messagePart encoding) =
+        64 * (checksumDigit (checksum (messagePart encoding)) (0 : Fin 3)).val +
+          8 * (checksumDigit (checksum (messagePart encoding)) (1 : Fin 3)).val +
+            (checksumDigit (checksum (messagePart encoding)) (2 : Fin 3)).val :=
+      checksum_eq_digits (checksum (messagePart encoding)) (checksum_lt_pow _)
+    change ∑ j : Fin 3, (checksumDigit (checksum (messagePart encoding)) j).val ≤ _
+    rw [Fin.sum_univ_three]
     omega
+  have htotal : ∑ i, (messagePart encoding i).val + checksum (messagePart encoding) =
+      messageDigits * (chainLength - 1) := by
+    unfold checksum
+    rw [← Finset.sum_add_distrib]
+    calc
+      _ = ∑ _i : Fin messageDigits, (chainLength - 1) := by
+        apply Finset.sum_congr rfl
+        intro i _
+        have := (messagePart encoding i).isLt
+        simp only [chainLength, winternitzBits] at *
+        omega
+      _ = _ := by simp
+  omega
 
-end XmssSecurity.TargetSum
+end XmssSecurity.Checksum

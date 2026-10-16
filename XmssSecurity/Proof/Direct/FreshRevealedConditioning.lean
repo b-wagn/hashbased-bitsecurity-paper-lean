@@ -34,7 +34,7 @@ theorem sourcePrefixFinish_eq_uniform_afterHash (key : ProgrammedGlobalChainKeyg
 
 theorem sourcePrefixFinishAfterHash_revealed_probability_eq_zero_of_invalid
     (key : ProgrammedGlobalChainKeygenView) (prefixResult : Forgery × SourceExactTracedState)
-    (output : HashOutput) (hinvalid : ¬TargetSum.ValidDigest (truncateHash output)) :
+    (output : HashOutput) (hinvalid : ¬Checksum.ValidDigest (truncateHash output)) :
     Pr[fun result => SourceWinningRevealedEvent (key, result) |
       sourcePrefixFinishAfterHash key prefixResult output] = 0 := by
   unfold sourcePrefixFinishAfterHash
@@ -46,23 +46,23 @@ theorem sourcePrefixFinish_fresh_revealed_probability_eq_acceptance_mul
     (key : ProgrammedGlobalChainKeygenView) (prefixResult : Forgery × SourceExactTracedState)
     (hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult)) :
     Pr[fun result => SourceWinningRevealedEvent (key, result) | sourcePrefixFinish key prefixResult] =
-      TargetSum.acceptanceProbability * Pr[fun result => SourceWinningRevealedEvent (key, result) |
-        ($ᵗ TargetSum.AcceptedHashOutput) >>= fun output => sourcePrefixFinishAfterHash key prefixResult output.1] := by
+      Checksum.acceptanceProbability * Pr[fun result => SourceWinningRevealedEvent (key, result) |
+        ($ᵗ Checksum.AcceptedHashOutput) >>= fun output => sourcePrefixFinishAfterHash key prefixResult output.1] := by
   rw [sourcePrefixFinish_eq_uniform_afterHash _ _ hfresh]
-  exact TargetSum.uniformHashOutput_bind_probability_eq_acceptance_mul _ _
+  exact Checksum.uniformHashOutput_bind_probability_eq_acceptance_mul _ _
     (sourcePrefixFinishAfterHash_revealed_probability_eq_zero_of_invalid key prefixResult)
 
 noncomputable def acceptedFreshRevealedProbability (adversary : Adversary) : ℝ≥0∞ :=
   Pr[fun result => SourcePrefixForgedEncodingFresh result.1 ∧
       SourceWinningRevealedEvent (result.1.1, result.2) | do
     let prefixPair ← sourcePrefixProgram adversary
-    let output ← ($ᵗ TargetSum.AcceptedHashOutput)
+    let output ← ($ᵗ Checksum.AcceptedHashOutput)
     let result ← sourcePrefixFinishAfterHash prefixPair.1 prefixPair.2 output.1
     pure (prefixPair, result)]
 
 theorem freshRevealedProbability_eq_acceptance_mul (adversary : Adversary) :
     freshRevealedProbability adversary =
-      TargetSum.acceptanceProbability * acceptedFreshRevealedProbability adversary := by
+      Checksum.acceptanceProbability * acceptedFreshRevealedProbability adversary := by
   classical
   unfold freshRevealedProbability acceptedFreshRevealedProbability
   rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum, ← ENNReal.tsum_mul_left]

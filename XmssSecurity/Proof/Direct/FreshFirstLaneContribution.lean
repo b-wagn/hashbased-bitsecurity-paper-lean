@@ -21,7 +21,7 @@ noncomputable def freshFirstLaneProbability (adversary : Adversary) : ℝ≥0∞
 
 theorem freshFirstLaneProbability_le_acceptance (adversary : Adversary) :
     freshFirstLaneProbability adversary ≤
-      TargetSum.acceptanceProbability * forgedEncodingFreshProbability adversary := by
+      Checksum.acceptanceProbability * forgedEncodingFreshProbability adversary := by
   rw [forgedEncodingFreshProbability_eq_source]
   exact sourceFirstLane_fresh_prefix_event_probability_le (sourcePrefixProgram adversary)
     Prod.fst Prod.snd SourcePrefixForgedEncodingFresh (fun _ _ h => h)

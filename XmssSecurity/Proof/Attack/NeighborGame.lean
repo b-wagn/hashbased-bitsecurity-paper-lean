@@ -146,8 +146,8 @@ theorem neighborAfterEncoding_probability_ge_experiment (publicKey : PublicKey) 
 
 theorem neighborAfterSigning_probability_ge_experiment (publicKey : PublicKey) (original : Signature)
     (encoding : Encoding) (cache : QueryCache HashSpec)
-    (hdecode : TargetSum.decodeDigest (CacheView.encodingHash cache publicKey.parameter
-      neighborRequest.epoch (neighborRequest.message, original.randomness)) = some encoding) :
+    (hdecode : CacheView.decodedEncoding cache publicKey.parameter
+      neighborRequest.epoch (neighborRequest.message, original.randomness) = some encoding) :
     Pr[= true | neighborVerificationExperiment publicKey neighborRequest.epoch neighborMessage original encoding cache] ≤
       Pr[= true | (simulateQ romImpl (do
         let signature ← neighborAfterSigning publicKey (some original)

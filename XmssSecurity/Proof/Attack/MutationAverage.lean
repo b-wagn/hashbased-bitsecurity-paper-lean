@@ -28,12 +28,12 @@ theorem uniformChainVerification_probability
     (request : SignRequest) (signature : Signature) (finalCache : QueryCache HashSpec)
     (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
       (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
-    ∃ encoding, TargetSum.Valid encoding ∧
+    ∃ encoding, Checksum.Valid encoding ∧
       Pr[= true | uniformChainVerification keyResult.1.1 request signature finalCache] =
         (∑ chain, pathMutationProbability (40 - (encoding chain).val)) / numChains := by
   obtain ⟨encoding, hdecode, hprob⟩ := mutationVerification_probability_after_successful_signing
     keyResult hkey request signature finalCache hsign
-  refine ⟨encoding, (TargetSum.decodeDigest_eq_some_iff.mp hdecode).2, ?_⟩
+  refine ⟨encoding, (Concrete.CacheView.decodedEncoding_valid hdecode), ?_⟩
   unfold uniformChainVerification
   rw [← probEvent_eq_eq_probOutput, probEvent_bind_eq_tsum]
   simp only [bind_pure_comp, probEvent_map, Function.comp_def, decide_eq_true_eq,

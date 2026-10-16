@@ -45,6 +45,14 @@ theorem encodingHash_eq_of_comparableCaches (leftCache rightCache : QueryCache H
   unfold CacheView.encodingHash CacheView.digestAt
   rw [hcaches _ ⟨leaf, input.1, input.2, rfl⟩]
 
+theorem decodedEncoding_eq_of_comparableCaches (leftCache rightCache : QueryCache HashSpec)
+    (parameter : PublicParameter)
+    (hcaches : HashCachesAgreeOn (GlobalSigningComparableHashInput parameter) leftCache rightCache)
+    (leaf : LeafIndex) (input : Message × Randomness) :
+    CacheView.decodedEncoding leftCache parameter leaf input =
+      CacheView.decodedEncoding rightCache parameter leaf input :=
+  CacheView.decodedEncoding_eq_of_input_eq (hcaches _ ⟨leaf, input.1, input.2, rfl⟩)
+
 theorem signedEncoding_eq_of_comparableCaches (leftCache rightCache : QueryCache HashSpec)
     (parameter : PublicParameter)
     (hcaches : HashCachesAgreeOn (GlobalSigningComparableHashInput parameter) leftCache rightCache)
@@ -53,7 +61,7 @@ theorem signedEncoding_eq_of_comparableCaches (leftCache rightCache : QueryCache
   unfold signedEncoding
   split
   · rfl
-  · rw [encodingHash_eq_of_comparableCaches _ _ _ hcaches]
+  · rw [decodedEncoding_eq_of_comparableCaches _ _ _ hcaches]
 
 theorem prefixProbeEncoding_eq_of_comparableCaches (leftCache rightCache : QueryCache HashSpec)
     (parameter : PublicParameter)
@@ -62,7 +70,7 @@ theorem prefixProbeEncoding_eq_of_comparableCaches (leftCache rightCache : Query
     prefixProbeEncoding leftCache parameter forgery =
       prefixProbeEncoding rightCache parameter forgery := by
   unfold prefixProbeEncoding forgedEncoding
-  rw [encodingHash_eq_of_comparableCaches _ _ _ hcaches]
+  rw [decodedEncoding_eq_of_comparableCaches _ _ _ hcaches]
 
 theorem prefixFirstLaneEvent_good_implies_hit
     (left : ProgrammedGlobalChainKeygenView)

@@ -9,7 +9,7 @@ open scoped Classical
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
-namespace XmssSecurity.TargetSum
+namespace XmssSecurity.Checksum
 
 abbrev AcceptedHashOutput := {output : HashOutput // ValidDigest (truncateHash output)}
 
@@ -74,8 +74,8 @@ theorem uniformHashOutput_bind_probability_eq_acceptance_mul {α : Type}
       dsimp only [weight]
       rw [hinvalid output hinvalidOutput, mul_zero])).symm
 
-/-- info: 'XmssSecurity.TargetSum.uniformHashOutput_bind_probability_eq_acceptance_mul' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'XmssSecurity.Checksum.uniformHashOutput_bind_probability_eq_acceptance_mul' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms uniformHashOutput_bind_probability_eq_acceptance_mul
 
-end XmssSecurity.TargetSum
+end XmssSecurity.Checksum

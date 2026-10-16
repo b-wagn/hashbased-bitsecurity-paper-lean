@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.EncodingCardinality
+import XmssSecurity.Proof.EncodingProbability
 
 /-! Distinct target-sum encodings obtained by moving one unit between two digits. -/
 
@@ -20,7 +20,7 @@ abbrev DigitTransfer (encoding : Encoding) :=
   Σ lower : DecreasingChain encoding,
     {upper : ChainIndex // (encoding upper).val + 1 < chainLength ∧ upper ≠ lower.1}
 
-theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     28 ≤ Fintype.card (DecreasingChain encoding) := by
   let indices := Finset.univ.filter fun chain => 0 < (encoding chain).val
   have hsum : ∑ chain ∈ indices, (encoding chain).val = targetSum := by
@@ -43,7 +43,7 @@ theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Val
   norm_num [targetSum] at hle
   omega
 
-theorem increasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem increasingChain_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     15 ≤ Fintype.card (IncreasingChain encoding) := by
   let indices := Finset.univ.filter fun chain => (encoding chain).val + 1 < chainLength
   have hsum : ∑ chain ∈ indices, (7 - (encoding chain).val) = 99 := by
@@ -55,8 +55,8 @@ theorem increasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Val
       norm_num [chainLength, winternitzBits] at h ⊢
       omega
     simp_rw [heq]
-    simpa [TargetSum.verificationWork, verificationChainHashes, chainLength, winternitzBits,
-      numChains, targetSum] using TargetSum.verificationWork_eq encoding hvalid
+    simpa [Checksum.verificationWork, verificationChainHashes, chainLength, winternitzBits,
+      numChains, targetSum] using Checksum.verificationWork_eq encoding hvalid
   have hle : ∑ chain ∈ indices, (7 - (encoding chain).val) ≤ indices.card * 7 := by
     calc
       _ ≤ ∑ _chain ∈ indices, 7 := Finset.sum_le_sum fun chain _ => Nat.sub_le _ _
@@ -66,7 +66,7 @@ theorem increasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Val
     rw [Fintype.card_subtype]
   omega
 
-theorem digitTransfer_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem digitTransfer_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     392 ≤ Fintype.card (DigitTransfer encoding) := by
   have hdecrease := decreasingChain_card_lower encoding hvalid
   have hincrease := increasingChain_card_lower encoding hvalid
@@ -113,8 +113,8 @@ theorem transferEncoding_other (encoding : Encoding) (transfer : DigitTransfer e
     transferEncoding encoding transfer chain = encoding chain := by
   simp [transferEncoding, hlower, hupper]
 
-theorem transferEncoding_valid (encoding : Encoding) (hvalid : TargetSum.Valid encoding)
-    (transfer : DigitTransfer encoding) : TargetSum.Valid (transferEncoding encoding transfer) := by
+theorem transferEncoding_valid (encoding : Encoding) (hvalid : Checksum.Valid encoding)
+    (transfer : DigitTransfer encoding) : Checksum.Valid (transferEncoding encoding transfer) := by
   have hpoint : ∀ chain, (transferEncoding encoding transfer chain).val +
       (if chain = transfer.1.1 then 1 else 0) =
       (encoding chain).val + (if chain = transfer.2.1 then 1 else 0) := by
@@ -181,21 +181,21 @@ theorem transferEncoding_injective (encoding : Encoding) : Function.Injective (t
 
 /-- The unique digest containing the encoding and zero padding bits. -/
 noncomputable def digestOfEncoding (encoding : Encoding) : Digest :=
-  Classical.choose (TargetSum.digestView_surjective (encoding, 0))
+  Classical.choose (Checksum.digestView_surjective (encoding, 0))
 
 theorem digestOfEncoding_view (encoding : Encoding) :
-    TargetSum.digestView (digestOfEncoding encoding) = (encoding, 0) :=
-  Classical.choose_spec (TargetSum.digestView_surjective (encoding, 0))
+    Checksum.digestView (digestOfEncoding encoding) = (encoding, 0) :=
+  Classical.choose_spec (Checksum.digestView_surjective (encoding, 0))
 
 theorem digestOfEncoding_injective : Function.Injective digestOfEncoding := by
   intro left right heq
-  have hview := congrArg TargetSum.digestView heq
+  have hview := congrArg Checksum.digestView heq
   rw [digestOfEncoding_view, digestOfEncoding_view] at hview
   exact congrArg Prod.fst hview
 
-theorem digestOfEncoding_decode (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
-    TargetSum.decodeDigest (digestOfEncoding encoding) = some encoding :=
-  TargetSum.decodeDigest_eq_some_iff.mpr ⟨digestOfEncoding_view encoding, hvalid⟩
+theorem digestOfEncoding_decode (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
+    Checksum.decodeDigest (digestOfEncoding encoding) = some encoding :=
+  Checksum.decodeDigest_eq_some_iff.mpr ⟨digestOfEncoding_view encoding, hvalid⟩
 
 noncomputable def neighborDigests (encoding : Encoding) : Finset Digest :=
   Finset.univ.image fun transfer : DigitTransfer encoding => digestOfEncoding (transferEncoding encoding transfer)
@@ -209,14 +209,14 @@ theorem neighborDigests_card (encoding : Encoding) :
   rw [Finset.card_image_of_injective _ hinj]
   exact Finset.card_univ
 
-theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
     392 ≤ (neighborDigests encoding).card := by
   rw [neighborDigests_card]
   exact digitTransfer_card_lower encoding hvalid
 
-theorem neighborDigests_decode (encoding : Encoding) (hvalid : TargetSum.Valid encoding)
+theorem neighborDigests_decode (encoding : Encoding) (hvalid : Checksum.Valid encoding)
     (digest : Digest) (hmem : digest ∈ neighborDigests encoding) :
-    ∃ transfer : DigitTransfer encoding, TargetSum.decodeDigest digest = some (transferEncoding encoding transfer) := by
+    ∃ transfer : DigitTransfer encoding, Checksum.decodeDigest digest = some (transferEncoding encoding transfer) := by
   obtain ⟨transfer, _, rfl⟩ := Finset.mem_image.mp hmem
   exact ⟨transfer, digestOfEncoding_decode _ (transferEncoding_valid encoding hvalid transfer)⟩
 

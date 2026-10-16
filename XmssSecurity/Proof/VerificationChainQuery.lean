@@ -13,19 +13,18 @@ theorem verify_true_chain_query_cached_as_in_largerCache
       ((simulateQ randomOracle
         (Concrete.verify publicKey leafIndex message signature :
           OracleComp HashSpec Bool)).run initialCache))
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache publicKey.parameter leafIndex
-        (message, signature.randomness)) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding largerCache publicKey.parameter leafIndex
+        (message, signature.randomness) = some encoding)
     (hle : resultCache ≤ largerCache) :
     ∃ output, largerCache
       (Concrete.CacheView.chainInput publicKey.parameter leafIndex chain
         ⟨(encoding chain).val + offset, by omega⟩
         (Wots.walk (Concrete.CacheView.chainStep largerCache publicKey.parameter leafIndex chain)
           (encoding chain).val offset (signature.chainValue chain))) = some output := by
-  unfold Concrete.verify at hmem
+  simp only [Concrete.verify_eq_decode] at hmem
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
   obtain ⟨⟨digest, digestCache⟩, hdigest, hafterDigest⟩ := hmem
-  cases hactualDecode : TargetSum.decodeDigest digest with
+  cases hactualDecode : Checksum.decodeDigest digest with
   | none =>
       simp only [hactualDecode, simulateQ_pure, StateT.run_pure, support_pure,
         Set.mem_singleton_iff, Prod.mk.injEq, Bool.true_eq_false] at hafterDigest
@@ -47,8 +46,9 @@ theorem verify_true_chain_query_cached_as_in_largerCache
         initialCache digestCache largerCache digest hdigest (hdigestResultLe.trans hle)
       rw [eval_encodingHash] at hdigestEval
       have hencoding : actualEncoding = encoding := by
-        rw [hdigestEval, hactualDecode] at hdecode
-        exact Option.some.inj hdecode
+        have hdecode' := Concrete.CacheView.decodeDigest_of_decodedEncoding hdecode
+        rw [hdigestEval, hactualDecode] at hdecode'
+        exact Option.some.inj hdecode'
       subst actualEncoding
       simp only [hactualDecode] at hafterDigest
       rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hafterDigest

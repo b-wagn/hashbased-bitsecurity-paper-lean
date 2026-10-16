@@ -103,7 +103,7 @@ theorem limitedPrefixForgedEncodingAccepted_probability_le_expected
     Pr[LimitedPrefixForgedEncodingAccepted key |
       (simulateQ (eagerTraceImpl table) (limitedFirstLanePrefix limit key edgeHigh computation
         (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample
+      Checksum.acceptanceProbability * expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample
         (limitedFirstLanePrefix limit key edgeHigh computation
           (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩) () := by
   apply le_trans _ (limitedFirstLanePrefix_accepted_probability_le_expected table limit key hkey edgeHigh computation _)
@@ -147,7 +147,7 @@ theorem expected_limitedAcceptedPrefixProbe_hazards_le
       expectedSimulatedQueryCount (eagerUnitImpl table) IsHazardQuery
         (limitedFirstLanePrefix limit key edgeHigh computation
           (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩) () +
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample
+      Checksum.acceptanceProbability * expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample
         (limitedFirstLanePrefix limit key edgeHigh computation
           (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩) () := by
   rw [expected_limitedAcceptedPrefixProbe_hazards]

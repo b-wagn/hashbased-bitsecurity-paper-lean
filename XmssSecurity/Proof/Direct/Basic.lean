@@ -16,7 +16,8 @@ This file fixes the vocabulary shared by that proof:
 * `pruneDirect n`: the program truncated after `n` direct hash queries (further hash queries are
   answered by `default` without a query), which turns the statement's semantic query bound into a
   syntactic one;
-* `verifierQueryBound`: the hash calls of one verification, `1 + 99 + 1 + 32 = 133`.
+* `verifierQueryBound`: an upper bound on the hash calls of one verification,
+  `1 + 322 + 1 + 32 = 356`.
 -/
 
 open OracleComp OracleSpec
@@ -64,11 +65,17 @@ theorem IsDirectQueryBound.mono {adversary : Adversary} {D D' : ℕ}
     (h : IsDirectQueryBound adversary D) (hle : D ≤ D') : IsDirectQueryBound adversary D' :=
   fun publicKey => (h publicKey).mono hle
 
-/-- The hash calls of one verification whose encoding decodes: the encoding hash, the
-`v·(2^w - 1) - T = 99` chain steps, the leaf hash, and the `h = 32` Merkle levels. -/
+/-- An upper bound on the hash calls of one verification: the encoding hash, at most
+`v·(2^w - 1) = 322` chain steps, the leaf hash, and the `h = 32` Merkle levels. -/
 def verifierQueryBound : ℕ := 1 + verificationChainHashes + 1 + treeHeight
 
-theorem verifierQueryBound_eq : verifierQueryBound = 133 := by decide
+theorem verifierQueryBound_eq : verifierQueryBound = 356 := by decide
+
+/-- A lower bound on the hash calls of one accepting verification: the encoding hash, the leaf
+hash, and the `h = 32` Merkle levels. -/
+def verifierAcceptedMinimum : ℕ := 1 + 1 + treeHeight
+
+theorem verifierAcceptedMinimum_eq : verifierAcceptedMinimum = 34 := by decide
 
 /-! ## Pruning -/
 

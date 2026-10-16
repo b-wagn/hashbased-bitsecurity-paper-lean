@@ -14,7 +14,7 @@ open Direct
 
 noncomputable def directFreshLoss (D : ℕ) : ℝ≥0∞ :=
   ((2 * D + 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-    TargetSum.acceptanceProbability * ((41 * (D + 1) : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
+    Checksum.acceptanceProbability * ((41 * (D + 1) : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
     (signingAttemptLimit : ℝ≥0∞) * ((D + 1 : ℕ) : ℝ≥0∞) * ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ +
     D / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
@@ -34,9 +34,9 @@ theorem reference_advantage_add_seed_loss_le_fresh (adversary : XmssSecurity.Adv
 theorem directFreshLoss_le_126 (D : ℕ) (hD : 1 ≤ D) :
     directFreshLoss D ≤ (D : ℝ≥0∞) / ((2 ^ 126 : ℕ) : ℝ≥0∞) := by
   have hD' : (1 : ℝ) ≤ D := by exact_mod_cast hD
-  have hpfinite := TargetSum.acceptanceProbability_ne_top
-  have hp : TargetSum.acceptanceProbability.toReal ≤ (1 : ℝ) / 2 ^ 14 := by
-    have h := (ENNReal.toReal_le_toReal hpfinite (by finiteness)).mpr TargetSum.acceptanceProbability_upper.le
+  have hpfinite := Checksum.acceptanceProbability_ne_top
+  have hp : Checksum.acceptanceProbability.toReal ≤ (1 : ℝ) / 2 ^ 14 := by
+    have h := (ENNReal.toReal_le_toReal hpfinite (by finiteness)).mpr Checksum.acceptanceProbability_upper.le
     norm_num [ENNReal.toReal_div] at h ⊢
     exact h
   have hmul := mul_le_mul_of_nonneg_right hp (show (0 : ℝ) ≤ (D : ℝ) + 1 by positivity)

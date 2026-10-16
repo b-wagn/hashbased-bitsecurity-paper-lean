@@ -22,7 +22,7 @@ noncomputable def mixedEncodingPrefixProgram (adversary : Adversary) : ProbComp 
 
 noncomputable def mixedEncodingPrefixProbability (adversary : Adversary) : ℝ≥0∞ :=
   Pr[fun pair => MixedEncodingPrefixEvent pair.1.1 pair.1.2
-    (TargetSum.decodeDigest (truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
+    (Checksum.decodeDigest (truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
 
 theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
     (hbudget : ∀ key ∈ support trajectoryProgrammedGlobalChainKeygen,
@@ -30,29 +30,29 @@ theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     mixedEncodingPrefixProbability adversary ≤
       (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ * (TargetSum.acceptanceProbability *
+        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ * (Checksum.acceptanceProbability *
           (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
-            TargetSum.acceptanceProbability) := by
+            Checksum.acceptanceProbability) := by
   let base := (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)
   let rate := ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹
-  let credit := TargetSum.acceptanceProbability *
+  let credit := Checksum.acceptanceProbability *
     (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)
   unfold mixedEncodingPrefixProbability mixedEncodingPrefixProgram
   rw [probEvent_bind_eq_tsum]
   calc
     _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-        (base + rate * (credit + if TargetSum.ValidDigest (truncateHash output) then 1 else 0)) := by
+        (base + rate * (credit + if Checksum.ValidDigest (truncateHash output) then 1 else 0)) := by
       apply ENNReal.tsum_le_tsum
       intro output
       apply mul_le_mul' le_rfl
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
       have h := mixedEncodingPrefixEvent_probability_le_source_credit adversary limit hbudget
-        (TargetSum.decodeDigest (truncateHash output))
-      have hvalid : (TargetSum.decodeDigest (truncateHash output)).isSome ↔
-          TargetSum.ValidDigest (truncateHash output) := Option.isSome_iff_exists
+        (Checksum.decodeDigest (truncateHash output))
+      have hvalid : (Checksum.decodeDigest (truncateHash output)).isSome ↔
+          Checksum.ValidDigest (truncateHash output) := Option.isSome_iff_exists
       simp only [hvalid] at h
       exact h
-    _ = base + rate * (credit + TargetSum.acceptanceProbability) := by
+    _ = base + rate * (credit + Checksum.acceptanceProbability) := by
       rw [mul_add]
       simp_rw [mul_add]
       rw [ENNReal.tsum_add, ENNReal.tsum_mul_right,
@@ -61,7 +61,7 @@ theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
       rw [ENNReal.tsum_add, ENNReal.tsum_mul_right,
         tsum_probOutput_eq_one' (probFailure_of_liftM_PMF _), one_mul]
       congr 1
-      rw [← TargetSum.probEvent_validDigest_uniformHashOutput, probEvent_eq_tsum_ite,
+      rw [← Checksum.probEvent_validDigest_uniformHashOutput, probEvent_eq_tsum_ite,
         ← ENNReal.tsum_mul_left]
       apply tsum_congr
       intro output

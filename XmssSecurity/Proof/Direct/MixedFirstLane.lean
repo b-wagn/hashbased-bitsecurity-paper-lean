@@ -24,7 +24,7 @@ theorem sourcePrefix_forgedEncoding_eq_none_of_fresh
     (prefixResult.1.message, prefixResult.1.signature.randomness)) = none at hfresh
   rw [hparameter] at hfresh
   simp only [forgedEncoding, CacheView.encodingHash, CacheView.digestAt, hfresh,
-    TargetSum.decodeDigest_zero_eq_none]
+    Checksum.decodeDigest_zero_eq_none]
 
 theorem sourcePrefixFinish_fresh_revealed_probability_le_mixed (adversary : Adversary)
     (key : ProgrammedGlobalChainKeygenView) (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen)
@@ -33,17 +33,17 @@ theorem sourcePrefixFinish_fresh_revealed_probability_le_mixed (adversary : Adve
     (hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult)) :
     Pr[fun result => SourceWinningRevealedEvent (key, result) | sourcePrefixFinish key prefixResult] ≤
       Pr[fun output => MixedEncodingPrefixEvent key prefixResult
-        (TargetSum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] := by
+        (Checksum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] := by
   rw [sourcePrefixFinish_eq_uniform_afterHash _ _ hfresh]
   apply probEvent_bind_le_probEvent
   intro output _ hnone
-  by_cases hvalid : TargetSum.ValidDigest (truncateHash output)
+  by_cases hvalid : Checksum.ValidDigest (truncateHash output)
   · apply probEvent_eq_zero
     intro result hresult hevent
-    let accepted : TargetSum.AcceptedHashOutput := ⟨output, hvalid⟩
+    let accepted : Checksum.AcceptedHashOutput := ⟨output, hvalid⟩
     apply hnone
     refine Or.inr ⟨sourcePrefix_forgedEncoding_eq_none_of_fresh key hkey prefixResult hfresh,
-      TargetSum.acceptedHashEncoding accepted, TargetSum.acceptedHashEncoding_decode accepted, ?_⟩
+      Checksum.acceptedHashEncoding accepted, Checksum.acceptedHashEncoding_decode accepted, ?_⟩
     exact sourcePrefixFinishAfterHash_revealed_implies_prefixEvent adversary key hkey prefixResult hprefix
       accepted hfresh result hresult hevent
   · exact sourcePrefixFinishAfterHash_revealed_probability_eq_zero_of_invalid key prefixResult output hvalid
@@ -54,7 +54,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_mixed_add_encoding (adversar
     (hprefix : prefixResult ∈ support (sourcePrefixExecution adversary key)) :
     Pr[fun result => SourceWinningDecidingFirstLaneEvent (key, result) | sourcePrefixFinish key prefixResult] ≤
       Pr[fun output => MixedEncodingPrefixEvent key prefixResult
-        (TargetSum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] +
+        (Checksum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] +
       Pr[fun result => SourcePrefixForgedEncodingFresh (key, prefixResult) ∧
         SourceWinningEncodingEvent (key, result) | sourcePrefixFinish key prefixResult] := by
   by_cases hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult)
@@ -74,7 +74,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_mixed_add_encoding (adversar
   · simp only [hfresh, false_and, probEvent_False, add_zero]
     by_cases haccepted : AcceptedPrefixFirstLaneEvent key prefixResult
     · have htrue : Pr[fun output => MixedEncodingPrefixEvent key prefixResult
-          (TargetSum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] = 1 := by
+          (Checksum.decodeDigest (truncateHash output)) | $ᵗ HashOutput] = 1 := by
         simp [MixedEncodingPrefixEvent, haccepted]
       rw [htrue]
       exact probEvent_le_one
@@ -97,7 +97,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_mixed_add_encoding (adversar
 theorem mixedEncodingPrefixProbability_eq_prefix (adversary : Adversary) :
     mixedEncodingPrefixProbability adversary =
       Pr[fun pair : MixedEncodingPrefixResult => MixedEncodingPrefixEvent pair.1.1 pair.1.2
-        (TargetSum.decodeDigest (truncateHash pair.2)) | do
+        (Checksum.decodeDigest (truncateHash pair.2)) | do
           let prefixPair ← sourcePrefixProgram adversary
           let output ← ($ᵗ HashOutput)
           pure (prefixPair, output)] := by
@@ -131,7 +131,7 @@ theorem decidingFirstLane_probability_le_shared_prefix (adversary : Adversary) (
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     Pr[WinningDecidingFirstLaneBadEventOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
       (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           (2 * (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) + 1)) /
             ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   apply (decidingFirstLane_probability_le_mixed_add_encoding adversary).trans

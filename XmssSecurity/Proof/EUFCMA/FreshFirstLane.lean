@@ -109,7 +109,7 @@ theorem freshPrefix_acceptance_coupling (adversary : XmssSecurity.Adversary) (D 
 theorem sourcePrefixProgram_freshAccepted_probability_le (adversary : XmssSecurity.Adversary)
     (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[fun result => SourcePrefixFreshAccepted result.1 result.2 | sourcePrefixProgram adversary] ≤
-      TargetSum.acceptanceProbability * (D : ℝ≥0∞) := by
+      Checksum.acceptanceProbability * (D : ℝ≥0∞) := by
   unfold sourcePrefixProgram
   apply probEvent_bind_le_of_forall_le
   intro key hkey
@@ -120,7 +120,7 @@ theorem freshPrefixFirstLane_probability_le (adversary : XmssSecurity.Adversary)
     (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[fun result => FreshPrefixFirstLaneEvent result.1 result.2 | sourcePrefixProgram adversary] ≤
       (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability * D) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+        (Checksum.acceptanceProbability * D) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   apply (accepted_event_probability_le_of_relTriple
     (source := sourcePrefixProgram adversary)
     (target := coupledFirstLaneProgram (publicPrefixExecution adversary))

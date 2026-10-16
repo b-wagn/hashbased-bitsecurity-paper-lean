@@ -3,9 +3,10 @@ import Mathlib.Data.BitVec
 
 namespace XmssSecurity
 
-def verificationChainHashes : Nat := numChains * (chainLength - 1) - targetSum
+/-- An upper bound on the WOTS chain edges one verification walks: `v · (2^w - 1) = 322`. -/
+def verificationChainHashes : Nat := numChains * (chainLength - 1)
 
-namespace TargetSum
+namespace Checksum
 
 open scoped BigOperators
 
@@ -20,182 +21,167 @@ def verificationWork (x : Encoding) : Nat :=
 abbrev SuffixPosition (x : Encoding) :=
   Σ i : ChainIndex, Fin (chainLength - 1 - (x i).val)
 
-/-- Every valid encoding makes the verifier walk exactly 99 WOTS chain edges. -/
-theorem verificationWork_eq (x : Encoding) (hx : Valid x) :
-    verificationWork x = verificationChainHashes := by
-  unfold Valid sum at hx
+/-- Every encoding makes the verifier walk at most `322` WOTS chain edges. -/
+theorem verificationWork_le (x : Encoding) : verificationWork x ≤ verificationChainHashes := by
   unfold verificationWork verificationChainHashes
-  rw [Finset.sum_tsub_distrib Finset.univ]
-  · simp only [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-    exact congrArg (numChains * (chainLength - 1) - ·) hx
-  · intro i _
-    exact Nat.le_pred_of_lt (x i).isLt
+  calc
+    _ ≤ ∑ _i : ChainIndex, (chainLength - 1) := Finset.sum_le_sum fun i _ => Nat.sub_le _ _
+    _ = _ := by simp
 
-theorem card_suffixPosition (x : Encoding) (hx : Valid x) :
-    Fintype.card (SuffixPosition x) = verificationChainHashes := by
-  rw [Fintype.card_sigma]
-  simpa [verificationWork] using verificationWork_eq x hx
+/-- The verifier's chain positions, numbered injectively below `322`. -/
+def enumerateSuffixPositions (x : Encoding) (_hx : Valid x) :
+    SuffixPosition x ↪ Fin verificationChainHashes where
+  toFun position := ⟨(chainLength - 1) * position.1.val + position.2.val, by
+    have hchain := position.1.isLt
+    have hstep := position.2.isLt
+    simp only [verificationChainHashes, numChains, chainLength, winternitzBits] at *
+    omega⟩
+  inj' := by
+    rintro ⟨i, k⟩ ⟨i', k'⟩ h
+    have hk := k.isLt
+    have hk' := k'.isLt
+    simp only [Fin.mk.injEq, chainLength, winternitzBits] at h hk hk'
+    have hi : i = i' := Fin.ext (by omega)
+    subst hi
+    have : k = k' := Fin.ext (by omega)
+    subst this
+    rfl
 
-noncomputable def enumerateSuffixPositions (x : Encoding) (hx : Valid x) :
-    SuffixPosition x ≃ Fin verificationChainHashes :=
-  Fintype.equivFinOfCardEq (card_suffixPosition x hx)
+/-! ### Chains of the message and of the checksum -/
 
-/-! The encoding-view decomposition of a digest: the 42 three-bit digits together with the two padding bits 63 and 127, packed as a `Fin 4`. The statement's `decodeDigest` tests the padding bits directly; `decodeDigest_eq_decodeView` below restates it through this view. -/
+theorem messageChain_val (i : Fin messageDigits) : (messageChain i).val = i.val := rfl
 
-/-- The two unused digest bits accompany the 42 three-bit digits. -/
-abbrev EncodingView := Encoding × Fin 4
+theorem checksumChain_val (j : Fin checksumDigits) :
+    (checksumChain j).val = messageDigits + j.val := rfl
 
-def digestPadding (digest : Digest) : Fin 4 :=
-  ⟨(if digest.getLsbD 63 then 1 else 0) +
-    (if digest.getLsbD 127 then 2 else 0), by
-      cases digest.getLsbD 63 <;> cases digest.getLsbD 127 <;> simp⟩
-
-/-- The concrete little-endian layout used by `IncEnc`: 21 digits, one padding bit, 21 digits, and one padding bit. -/
-def digestView (digest : Digest) : EncodingView :=
-  (digestEncoding digest, digestPadding digest)
-
-def ValidView (view : EncodingView) : Prop :=
-  view.2 = 0 ∧ Valid view.1
-
-noncomputable def decodeView (view : EncodingView) : Option Encoding := by
-  classical
-  exact if ValidView view then some view.1 else none
-
-theorem digestPadding_eq_zero_iff {digest : Digest} :
-    digestPadding digest = 0 ↔
-      digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false := by
-  cases h63 : digest.getLsbD 63 <;> cases h127 : digest.getLsbD 127 <;>
-    simp [digestPadding, h63, h127, Fin.ext_iff]
-
-theorem decodeDigest_eq_decodeView (digest : Digest) :
-    decodeDigest digest = decodeView (digestView digest) := by
-  classical
-  unfold decodeDigest decodeView
-  refine if_congr ?_ rfl rfl
-  simp only [ValidView, digestView, digestPadding_eq_zero_iff, and_assoc]
-
-theorem digestPadding_eq_iff {left right : Digest} :
-    digestPadding left = digestPadding right ↔
-      left.getLsbD 63 = right.getLsbD 63 ∧
-      left.getLsbD 127 = right.getLsbD 127 := by
-  generalize hl0 : left.getLsbD 63 = leftLow
-  generalize hl1 : left.getLsbD 127 = leftHigh
-  generalize hr0 : right.getLsbD 63 = rightLow
-  generalize hr1 : right.getLsbD 127 = rightHigh
-  cases leftLow <;> cases leftHigh <;> cases rightLow <;> cases rightHigh <;>
-    simp [digestPadding, hl0, hl1, hr0, hr1]
-
-theorem digestView_injective : Function.Injective digestView := by
-  intro left right hview
-  have hencoding : digestEncoding left = digestEncoding right :=
-    congrArg Prod.fst hview
-  have hpadding : digestPadding left = digestPadding right :=
-    congrArg Prod.snd hview
-  have hpaddingBits := digestPadding_eq_iff.mp hpadding
-  apply BitVec.eq_of_getLsbD_eq
-  intro bit hbit
-  have hbelow128 : bit < 128 := by simpa [digestBits] using hbit
-  by_cases heq63 : bit = 63
-  · simpa [heq63] using hpaddingBits.1
-  by_cases heq127 : bit = 127
-  · simpa [heq127] using hpaddingBits.2
-  by_cases hlow : bit < 63
-  · let chain : ChainIndex := ⟨bit / winternitzBits, by
-      change bit / 3 < 42
-      omega⟩
-    let offsetBit := bit % winternitzBits
-    have hoffsetBit : offsetBit < winternitzBits := by
-      exact Nat.mod_lt bit (by decide)
-    have hoffset : digitOffset chain + offsetBit = bit := by
-      unfold digitOffset
-      change 3 * (bit / 3) + (if bit / 3 < 21 then 0 else 1) + bit % 3 = bit
-      rw [if_pos (by omega)]
-      have hdiv := Nat.mod_add_div bit 3
+/-- Every chain carries a message digit or a checksum digit. -/
+theorem chain_cases (chain : ChainIndex) :
+    (∃ i, chain = messageChain i) ∨ (∃ j, chain = checksumChain j) := by
+  by_cases h : chain.val < messageDigits
+  · exact Or.inl ⟨⟨chain.val, h⟩, Fin.ext rfl⟩
+  · refine Or.inr ⟨⟨chain.val - messageDigits, ?_⟩, Fin.ext ?_⟩
+    · have := chain.isLt
+      simp only [numChains, messageDigits, checksumDigits] at *
       omega
-    have hextract :
-        left.extractLsb' (digitOffset chain) winternitzBits =
-          right.extractLsb' (digitOffset chain) winternitzBits := by
-      apply BitVec.toFin_injective
-      exact congrFun hencoding chain
-    have hlocalBit := congrArg (fun value => value.getLsbD offsetBit) hextract
-    simpa [BitVec.getLsbD_extractLsb', hoffsetBit, hoffset] using hlocalBit
-  · have hge64 : 64 ≤ bit := by omega
-    have hbelow127 : bit < 127 := by omega
-    let shifted := bit - 64
-    let chain : ChainIndex := ⟨digitsPerHalf + shifted / winternitzBits, by
-      change 21 + (bit - 64) / 3 < 42
-      omega⟩
-    let offsetBit := shifted % winternitzBits
-    have hoffsetBit : offsetBit < winternitzBits := by
-      exact Nat.mod_lt shifted (by decide)
-    have hoffset : digitOffset chain + offsetBit = bit := by
-      unfold digitOffset
-      change 3 * (21 + (bit - 64) / 3) +
-        (if 21 + (bit - 64) / 3 < 21 then 0 else 1) + (bit - 64) % 3 = bit
-      rw [if_neg (by omega)]
-      have hdiv := Nat.mod_add_div (bit - 64) 3
+    · simp only [checksumChain_val]
       omega
-    have hextract :
-        left.extractLsb' (digitOffset chain) winternitzBits =
-          right.extractLsb' (digitOffset chain) winternitzBits := by
-      apply BitVec.toFin_injective
-      exact congrFun hencoding chain
-    have hlocalBit := congrArg (fun value => value.getLsbD offsetBit) hextract
-    simpa [BitVec.getLsbD_extractLsb', hoffsetBit, hoffset] using hlocalBit
 
-theorem decodeView_eq_some_iff {view : EncodingView} {x : Encoding} :
-    decodeView view = some x ↔ view = (x, 0) ∧ Valid x := by
-  classical
-  rcases view with ⟨digits, padding⟩
-  simp only [decodeView, ValidView]
-  split <;> rename_i hview
-  · simp only [Option.some.injEq, Prod.mk.injEq]
-    constructor
-    · intro hdigits
-      subst x
-      exact ⟨⟨rfl, hview.1⟩, hview.2⟩
-    · exact fun h => h.1.1
-  · simp only [Prod.mk.injEq]
-    constructor
-    · intro heq
-      cases heq
-    · rintro ⟨⟨hdigits, hpadding⟩, hvalid⟩
-      exfalso
-      apply hview
-      refine ⟨hpadding, ?_⟩
-      exact hdigits.symm ▸ hvalid
+theorem encode_messageChain (digest : Digest) (i : Fin messageDigits) :
+    encode digest (messageChain i) = messageDigit digest i := by
+  unfold encode
+  rw [dif_pos (by simp [messageChain_val])]
+  rfl
+
+theorem encode_checksumChain (digest : Digest) (j : Fin checksumDigits) :
+    encode digest (checksumChain j) = checksumDigit (checksum (messageDigit digest)) j := by
+  unfold encode
+  rw [dif_neg (by simp [checksumChain_val])]
+  congr 1
+  ext
+  simp [checksumChain_val]
+
+theorem messagePart_encode (digest : Digest) : messagePart (encode digest) = messageDigit digest := by
+  funext i
+  exact encode_messageChain digest i
+
+/-- The checksum is at most `len_1 · (2^w - 1) = 301`. -/
+theorem checksum_le (digits : Fin messageDigits → Digit) :
+    checksum digits ≤ messageDigits * (chainLength - 1) := by
+  unfold checksum
+  calc
+    _ ≤ ∑ _i : Fin messageDigits, (chainLength - 1) := Finset.sum_le_sum fun i _ => Nat.sub_le _ _
+    _ = _ := by simp
+
+/-- The three checksum digits represent the checksum exactly. -/
+theorem checksum_eq_digits (csum : Nat) (hcsum : csum < chainLength ^ checksumDigits) :
+    csum = chainLength ^ 2 * (checksumDigit csum ⟨0, by decide⟩).val +
+      chainLength * (checksumDigit csum ⟨1, by decide⟩).val +
+        (checksumDigit csum ⟨2, by decide⟩).val := by
+  simp only [checksumDigit, checksumDigits, chainLength, winternitzBits] at *
+  norm_num at *
+  omega
+
+/-- Digitwise comparison of checksum digits compares the checksums. -/
+theorem checksum_le_of_digits_le {left right : Nat}
+    (hleft : left < chainLength ^ checksumDigits) (hright : right < chainLength ^ checksumDigits)
+    (hdigits : ∀ j, checksumDigit left j ≤ checksumDigit right j) : left ≤ right := by
+  rw [checksum_eq_digits left hleft, checksum_eq_digits right hright]
+  have h0 := hdigits ⟨0, by decide⟩
+  have h1 := hdigits ⟨1, by decide⟩
+  have h2 := hdigits ⟨2, by decide⟩
+  rw [Fin.le_def] at h0 h1 h2
+  simp only [chainLength, winternitzBits] at *
+  omega
+
+theorem checksum_lt_pow (digits : Fin messageDigits → Digit) :
+    checksum digits < chainLength ^ checksumDigits :=
+  (checksum_le digits).trans_lt (by decide)
+
+/-! ### Validity -/
+
+theorem messageDigit_last_lt (digest : Digest) : (messageDigit digest lastMessageDigit).val < 4 := by
+  unfold messageDigit lastMessageDigit
+  change (BitVec.extractLsb' _ _ digest).toNat < 4
+  have hdigest := digest.isLt
+  simp only [winternitzBits, messageDigits, digestBits] at *
+  simp [BitVec.extractLsb'_toNat]
+  omega
+
+theorem encode_valid (digest : Digest) : Valid (encode digest) := by
+  refine ⟨?_, fun j => ?_⟩
+  · rw [encode_messageChain]
+    exact messageDigit_last_lt digest
+  · rw [encode_checksumChain, messagePart_encode]
 
 theorem decodeDigest_eq_some_iff {digest : Digest} {x : Encoding} :
-    decodeDigest digest = some x ↔ digestView digest = (x, 0) ∧ Valid x := by
-  rw [decodeDigest_eq_decodeView]
-  exact decodeView_eq_some_iff
+    decodeDigest digest = some x ↔ encode digest = x ∧ Valid x := by
+  unfold decodeDigest
+  constructor
+  · intro h
+    have hx := Option.some.inj h
+    exact ⟨hx, hx ▸ encode_valid digest⟩
+  · exact fun h => congrArg some h.1
 
-theorem decodeDigest_zero_eq_none : decodeDigest (0 : Digest) = none := by
-  cases hdecode : decodeDigest (0 : Digest) with
-  | none => rfl
-  | some encoding =>
-      exfalso
-      have hview := decodeDigest_eq_some_iff.mp hdecode
-      have hencoding : digestEncoding (0 : Digest) = encoding :=
-        congrArg Prod.fst hview.1
-      rw [← hencoding] at hview
-      have hsum : sum (digestEncoding (0 : Digest)) = 0 := by
-        unfold sum
-        apply Finset.sum_eq_zero
-        intro chain _
-        simp [digestEncoding]
-      unfold Valid at hview
-      rw [hsum] at hview
-      exact (by decide : (0 : Nat) ≠ targetSum) hview.2
+theorem decodeDigest_valid {digest : Digest} {x : Encoding} (h : decodeDigest digest = some x) :
+    Valid x :=
+  (decodeDigest_eq_some_iff.mp h).2
 
-/-- A valid target-sum encoding and zero padding determine one exact 128-bit digest. -/
+/-- The message digits determine the digest. -/
+theorem messageDigit_injective : Function.Injective messageDigit := by
+  intro left right hdigits
+  apply BitVec.eq_of_getLsbD_eq
+  intro bit hbit
+  have hbelow : bit < 128 := by simpa [digestBits] using hbit
+  let digit : Fin messageDigits := ⟨bit / winternitzBits, by
+    change bit / 3 < 43
+    omega⟩
+  let offsetBit := bit % winternitzBits
+  have hoffsetBit : offsetBit < winternitzBits := Nat.mod_lt bit (by decide)
+  have hoffset : winternitzBits * digit.val + offsetBit = bit := by
+    change 3 * (bit / 3) + bit % 3 = bit
+    have := Nat.mod_add_div bit 3
+    omega
+  have hextract :
+      left.extractLsb' (winternitzBits * digit.val) winternitzBits =
+        right.extractLsb' (winternitzBits * digit.val) winternitzBits := by
+    apply BitVec.toFin_injective
+    exact congrFun hdigits digit
+  have hlocalBit := congrArg (fun value => value.getLsbD offsetBit) hextract
+  simpa [BitVec.getLsbD_extractLsb', hoffsetBit, hoffset] using hlocalBit
+
+theorem encode_injective : Function.Injective encode := by
+  intro left right h
+  apply messageDigit_injective
+  rw [← messagePart_encode left, ← messagePart_encode right, h]
+
+/-- A digest is determined by its encoding. -/
 theorem digest_eq_of_decodeDigest_eq_some {left right : Digest} {x : Encoding}
     (hleft : decodeDigest left = some x) (hright : decodeDigest right = some x) :
-  left = right := by
-  apply digestView_injective
-  rw [(decodeDigest_eq_some_iff.mp hleft).1, (decodeDigest_eq_some_iff.mp hright).1]
+    left = right :=
+  encode_injective ((decodeDigest_eq_some_iff.mp hleft).1.trans
+    (decodeDigest_eq_some_iff.mp hright).1.symm)
 
-/-- Two distinct encoding-hash inputs decoding to the same valid encoding form a target collision. -/
+/-- Two distinct encoding-hash inputs decoding to the same encoding form a target collision. -/
 theorem hash_collision_of_same_decodedEncoding {α : Type} (hash : α → Digest)
     {left right : α} {x : Encoding} (hne : left ≠ right)
     (hleft : decodeDigest (hash left) = some x)
@@ -203,21 +189,39 @@ theorem hash_collision_of_same_decodedEncoding {α : Type} (hash : α → Digest
     left ≠ right ∧ hash left = hash right :=
   ⟨hne, digest_eq_of_decodeDigest_eq_some hleft hright⟩
 
+/-- No codeword dominates another one: the checksum increases when message digits decrease. -/
 theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y)
     (hxy : PointwiseLE x y) : x = y := by
-  by_contra hne
-  have hlt : ∃ i ∈ Finset.univ, (x i).val < (y i).val := by
-    by_contra h
-    push Not at h
-    apply hne
-    funext i
-    exact Fin.ext (Nat.le_antisymm (hxy i) (h i (Finset.mem_univ i)))
-  have hsum : sum x < sum y := by
-    apply Finset.sum_lt_sum
-    · intro i _
-      exact hxy i
-    · exact hlt
-  exact (Nat.ne_of_lt hsum) (hx.trans hy.symm)
+  have hmessage : ∀ i, (messagePart x i).val ≤ (messagePart y i).val := fun i => hxy _
+  -- The checksum of `y` is at most the checksum of `x`.
+  have hdown : checksum (messagePart y) ≤ checksum (messagePart x) := by
+    unfold checksum
+    exact Finset.sum_le_sum fun i _ => Nat.sub_le_sub_left (hmessage i) _
+  -- The checksum digits of `x` are at most those of `y`.
+  have hup : checksum (messagePart x) ≤ checksum (messagePart y) := by
+    apply checksum_le_of_digits_le (checksum_lt_pow _) (checksum_lt_pow _)
+    intro j
+    rw [← hx.2 j, ← hy.2 j]
+    exact hxy _
+  have hcsum : checksum (messagePart x) = checksum (messagePart y) := le_antisymm hup hdown
+  have hterms : ∀ i, (messagePart x i).val = (messagePart y i).val := by
+    have hsum : ∑ i, (chainLength - 1 - (messagePart y i).val) =
+        ∑ i, (chainLength - 1 - (messagePart x i).val) := hcsum.symm
+    have hle : ∀ i ∈ Finset.univ, chainLength - 1 - (messagePart y i).val ≤
+        chainLength - 1 - (messagePart x i).val := fun i _ => Nat.sub_le_sub_left (hmessage i) _
+    have heach := (Finset.sum_eq_sum_iff_of_le hle).mp hsum
+    intro i
+    have hi := heach i (Finset.mem_univ i)
+    have hxi := (messagePart x i).isLt
+    have hyi := (messagePart y i).isLt
+    have := hmessage i
+    simp only [chainLength, winternitzBits] at *
+    omega
+  funext chain
+  rcases chain_cases chain with ⟨i, rfl⟩ | ⟨j, rfl⟩
+  · exact Fin.ext (hterms i)
+  · have hparts : messagePart x = messagePart y := funext fun i => Fin.ext (hterms i)
+    rw [hx.2 j, hy.2 j, hparts]
 
 theorem incomparable_of_valid_of_ne {x y : Encoding} (hx : Valid x) (hy : Valid y)
     (hne : x ≠ y) : Incomparable x y := by
@@ -233,6 +237,6 @@ theorem exists_forged_lt_signed {signedEncoding forgedEncoding : Encoding}
   have hnot := (incomparable_of_valid_of_ne hsigned hforged hne).1
   simpa only [PointwiseLE, not_forall, not_le] using hnot
 
-end TargetSum
+end Checksum
 
 end XmssSecurity

@@ -16,10 +16,10 @@ theorem signer_seeded_loss_le_terminal_credit (adversary : Security.StatementAdv
     forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
       ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
-        ((2 + TargetSum.acceptanceProbability) *
+        ((2 + Checksum.acceptanceProbability) *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary))) +
-          2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability *
+          2 * Checksum.acceptanceProbability + 40 * Checksum.acceptanceProbability *
             forgedEncodingFreshProbability (memoAdversary (Security.embed adversary))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   have hfirst := decidingFirstLane_probability_le_terminal_credit
@@ -39,10 +39,10 @@ theorem signer_advantage_le_terminal_credit (adversary : Security.StatementAdver
     (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
       ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
-        ((2 + TargetSum.acceptanceProbability) *
+        ((2 + Checksum.acceptanceProbability) *
           (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (memoAdversary (Security.embed adversary))) +
-          2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability *
+          2 * Checksum.acceptanceProbability + 40 * Checksum.acceptanceProbability *
             forgedEncodingFreshProbability (memoAdversary (Security.embed adversary))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
@@ -52,17 +52,17 @@ theorem signer_advantage_le_terminal_credit (adversary : Security.StatementAdver
 theorem terminal_allowance_le_one (adversary : Adversary)
     (hcredit : expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary ≤
       (1 / 512 : ℝ≥0∞)) :
-    (2 + TargetSum.acceptanceProbability) *
+    (2 + Checksum.acceptanceProbability) *
         (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) +
-      2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability *
+      2 * Checksum.acceptanceProbability + 40 * Checksum.acceptanceProbability *
         forgedEncodingFreshProbability adversary ≤ 1 := by
   calc
-    _ ≤ (2 + TargetSum.acceptanceProbability) * (1 / 512 : ℝ≥0∞) +
-        2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability * 1 :=
+    _ ≤ (2 + Checksum.acceptanceProbability) * (1 / 512 : ℝ≥0∞) +
+        2 * Checksum.acceptanceProbability + 40 * Checksum.acceptanceProbability * 1 :=
       add_le_add (add_le_add (mul_le_mul' le_rfl hcredit) le_rfl)
         (mul_le_mul' le_rfl (forgedEncodingFreshProbability_le_one adversary))
     _ ≤ _ := by
-      unfold TargetSum.acceptanceProbability
+      unfold Checksum.acceptanceProbability
       apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
       simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_mul]
       norm_num [ENNReal.toReal_div, ENNReal.toReal_inv, digestBits]

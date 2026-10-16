@@ -8,13 +8,13 @@ open OracleComp OracleSpec ENNReal
 namespace XmssSecurity.EUFCMA
 
 theorem capped_rejection_bound_lt_one_over_131072 :
-    (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit +
+    (1 - Checksum.acceptanceProbability) ^ signingAttemptLimit +
       (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
         ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 131072 := by
-  have hpow : (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit ≤
+  have hpow : (1 - Checksum.acceptanceProbability) ^ signingAttemptLimit ≤
       1 / (1 + (signingAttemptLimit : ℝ≥0∞) * (1 / ((2 ^ 15 : ℕ) : ℝ≥0∞))) :=
-    (pow_le_pow_left' (tsub_le_tsub_left TargetSum.acceptanceProbability_lower.le 1) signingAttemptLimit).trans
-      (TargetSum.rejection_power_le _ (by norm_num) _)
+    (pow_le_pow_left' (tsub_le_tsub_left Checksum.acceptanceProbability_lower.le 1) signingAttemptLimit).trans
+      (Checksum.rejection_power_le _ (by norm_num) _)
   apply lt_of_le_of_lt (add_le_add hpow le_rfl)
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   rw [ENNReal.toReal_add (by finiteness) (by finiteness)]

@@ -29,7 +29,7 @@ theorem secondLane_withForgedEncodingQuery_le (adversary : XmssSecurity.Adversar
         ¬ DecidingChainValueRevealed execution.2 execution.1 |
       detailedGameWithCache Concrete.scheme (withForgedEncodingQuery adversary)] ≤
       (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) + ((D + 1 : ℕ) : ℝ≥0∞) *
-        (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
+        (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
   have hqueried := withForgedEncodingQuery_isDirectQueryBound adversary D hD
   have hsecond := decidingSecondLane_probability_le_expectedEncoding (withForgedEncodingQuery adversary) (by
     intro key hkey result hresult

@@ -69,16 +69,16 @@ theorem successful_adversary_counted_bound
     (verification : Bool × QueryCache HashSpec)
     (hverification : verification ∈ support ((simulateQ romImpl
       (xmss.verify publicKey forgery.epoch forgery.message forgery.signature)).run cache'))
-    (haccepts : verification.1 = true) : charged + Direct.verifierQueryBound ≤ q := by
+    (haccepts : verification.1 = true) : charged + Direct.verifierAcceptedMinimum ≤ q := by
   rw [← countHashQueries_run_forget _ cache', support_map] at hverification
   obtain ⟨countedVerification, hcounted, hproject⟩ := hverification
   have hverified : countedVerification.1.1 = true :=
     (congrArg Prod.fst hproject).trans haccepts
-  have hcount := verify_queryCount_eq_of_accepts publicKey forgery.epoch forgery.message
+  have hcount := verify_queryCount_ge_of_accepts publicKey forgery.epoch forgery.message
     forgery.signature cache' countedVerification hcounted hverified
-  rw [← hcount]
-  exact adversary_counted_add_verification_bound adversary q hbound publicKey secretKey cache hkeys
-    forgery charged log cache' hadversary countedVerification hcounted
+  exact (Nat.add_le_add_left hcount _).trans
+    (adversary_counted_add_verification_bound adversary q hbound publicKey secretKey cache hkeys
+      forgery charged log cache' hadversary countedVerification hcounted)
 
 noncomputable def verifierPayoff (publicKey : PublicKey)
     (result : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec) : ℝ≥0∞ :=
@@ -96,7 +96,7 @@ theorem verifierPayoff_eq_zero_of_over_budget
     (hadversary : (((forgery, charged), log), cache') ∈ support ((simulateQ romImpl
       (simulateQ (Security.adversaryImpl secretKey)
         (QueryCounting.counted Direct.IsDirectHashQuery (adversary.main publicKey))).run).run cache))
-    (hover : q < charged + Direct.verifierQueryBound) :
+    (hover : q < charged + Direct.verifierAcceptedMinimum) :
     verifierPayoff publicKey ((forgery, log), cache') = 0 := by
   unfold verifierPayoff
   rw [← probEvent_eq_eq_probOutput]
@@ -118,7 +118,7 @@ theorem forgeAdvantage_le_prune_of_verifier_bound
     (hbound : (SUFCMA.notion ⟨false, false, true, false⟩).HasQueryBound xmss adversary q) :
     forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
       forgeAdvantage Seeded.scheme
-        (Direct.pruneAdversary (q - Direct.verifierQueryBound) (Security.embed adversary)) := by
+        (Direct.pruneAdversary (q - Direct.verifierAcceptedMinimum) (Security.embed adversary)) := by
   unfold forgeAdvantage gameCore
   simp only [simulateQ_bind, StateT.run'_bind', probOutput_bind_eq_tsum]
   apply ENNReal.tsum_le_tsum
@@ -134,7 +134,7 @@ theorem forgeAdvantage_le_prune_of_verifier_bound
         (simulateQ (Security.adversaryImpl secretKey) (adversary.main publicKey)).run).run cache] *
         verifierPayoff publicKey result) ≤
       ∑' result, Pr[= result | (simulateQ romImpl (simulateQ (Security.adversaryImpl secretKey)
-        (Direct.pruneDirect (q - Direct.verifierQueryBound) (adversary.main publicKey))).run).run cache] *
+        (Direct.pruneDirect (q - Direct.verifierAcceptedMinimum) (adversary.main publicKey))).run).run cache] *
         verifierPayoff publicKey result
     apply Direct.expected_logged_le_prune_of_zero_over_budget
     rintro ⟨⟨⟨forgery, charged⟩, log⟩, cache'⟩ hadversary hover
@@ -145,7 +145,7 @@ theorem forgeAdvantage_le_prune_of_verifier_bound
 theorem forgeAdvantage_eq_zero_of_small_verifier_budget
     (adversary : Security.StatementAdversary) (q : ℕ)
     (hbound : (SUFCMA.notion ⟨false, false, true, false⟩).HasQueryBound xmss adversary q)
-    (hsmall : q < Direct.verifierQueryBound) :
+    (hsmall : q < Direct.verifierAcceptedMinimum) :
     forgeAdvantage Seeded.scheme (Security.embed adversary) = 0 := by
   unfold forgeAdvantage gameCore
   simp only [simulateQ_bind, StateT.run'_bind', probOutput_bind_eq_tsum]
@@ -185,14 +185,14 @@ theorem sufCmaVerifier_127 :
       _ ≤ _ := by gcongr
   · rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
       notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
-    by_cases hsmall : q < Direct.verifierQueryBound
+    by_cases hsmall : q < Direct.verifierAcceptedMinimum
     · rw [forgeAdvantage_eq_zero_of_small_verifier_budget adversary q hbound hsmall]
       exact zero_le
     · refine (forgeAdvantage_le_prune_of_verifier_bound adversary q hbound).trans
         ((Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
           (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))).trans
           (sharedDecidingLoss_le_127_of_gap _ q ?_ (by omega)))
-      rw [Direct.verifierQueryBound_eq] at hsmall ⊢
+      rw [Direct.verifierAcceptedMinimum_eq] at hsmall ⊢
       omega
 
 end XmssSecurity.Modes

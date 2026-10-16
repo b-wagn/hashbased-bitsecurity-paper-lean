@@ -13,13 +13,13 @@ namespace XmssSecurity.EUFCMA.Requests
 open Direct Deciding
 
 noncomputable def expectedLoss (q : ℕ) (E S Z R : ℝ≥0∞) : ℝ≥0∞ :=
-  ((q : ℝ≥0∞) + S + R + 41 * TargetSum.acceptanceProbability * (E + 1)) /
+  ((q : ℝ≥0∞) + S + R + 41 * Checksum.acceptanceProbability * (E + 1)) /
       ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
     encodingPrehitRate * E + Z / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
 noncomputable def terminalLoss (q : ℕ) (E S Z R : ℝ≥0∞) : ℝ≥0∞ :=
-  (((q - 1 : ℕ) : ℝ≥0∞) + S + R + 2 * E + 2 * TargetSum.acceptanceProbability +
-      40 * TargetSum.acceptanceProbability * (E + 1)) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
+  (((q - 1 : ℕ) : ℝ≥0∞) + S + R + 2 * E + 2 * Checksum.acceptanceProbability +
+      40 * Checksum.acceptanceProbability * (E + 1)) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
     encodingPrehitRate * E + Z / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
 theorem reference_add_seed_le_expectedLoss (adversary : XmssSecurity.Adversary) (q : ℕ)

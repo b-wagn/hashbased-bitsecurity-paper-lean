@@ -26,10 +26,9 @@ noncomputable def OutcomeChainValueRevealed (cache : QueryCache HashSpec)
     (outcome : GameOutcome) (chain : ChainIndex) : Prop :=
   outcome.verified = true ∧
     ∃ encoding,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash cache outcome.secretKey.parameter
+      Concrete.CacheView.decodedEncoding cache outcome.secretKey.parameter
           outcome.forgery.epoch
-          (outcome.forgery.message, outcome.forgery.signature.randomness)) = some encoding ∧
+          (outcome.forgery.message, outcome.forgery.signature.randomness) = some encoding ∧
       outcome.forgery.signature.chainValue chain =
         Wots.signChain
           (Concrete.CacheView.chainStep cache outcome.secretKey.parameter
@@ -40,10 +39,9 @@ noncomputable def OutcomeChainValueHasKeygenOrigin (keygenCache finalCache : Que
     (secretKey : SecretKey) (outcome : GameOutcome) (chain : ChainIndex) : Prop :=
   outcome.verified = true ∧
     ∃ encoding,
-      TargetSum.decodeDigest
-        (Concrete.CacheView.encodingHash finalCache secretKey.parameter
+      Concrete.CacheView.decodedEncoding finalCache secretKey.parameter
           outcome.forgery.epoch
-          (outcome.forgery.message, outcome.forgery.signature.randomness)) = some encoding ∧
+          (outcome.forgery.message, outcome.forgery.signature.randomness) = some encoding ∧
       (((encoding chain).val = 0 ∧
           outcome.forgery.signature.chainValue chain =
             secretKey.chainStart outcome.forgery.epoch chain) ∨
@@ -162,7 +160,7 @@ theorem chain_event_afterKeygen_revealed_or_collision
         have hsignedLt := (signedEncoding chain).isLt
         have hforgedLe := hchain.1.le
         omega
-      let position : TargetSum.SuffixPosition forgedEncoding :=
+      let position : Checksum.SuffixPosition forgedEncoding :=
         ⟨chain, ⟨offset, hposition⟩⟩
       have hsuffix : Wots.IsSuffixCollisionAt
           (fun candidateChain => Concrete.CacheView.chainStep execution.2
@@ -178,10 +176,9 @@ theorem chain_event_afterKeygen_revealed_or_collision
         simp only [Nat.sub_self, Wots.walk_zero]
         exact ⟨le_rfl, by simpa only [hleafIndex] using hne,
           by simpa only [hleafIndex] using heq⟩
-      have hforgedDecode' : TargetSum.decodeDigest
-          (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
+      have hforgedDecode' : Concrete.CacheView.decodedEncoding execution.2 execution.1.secretKey.parameter
             execution.1.forgery.epoch
-            (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
+            (execution.1.forgery.message, execution.1.forgery.signature.randomness) =
           some forgedEncoding := by
         simpa [hleafIndex] using hforgedDecode
       rw [keygenChainTargetInput_eq_capped]

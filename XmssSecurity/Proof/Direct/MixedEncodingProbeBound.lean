@@ -160,7 +160,7 @@ theorem mixedEncodingPrefixEvent_probability_le_source_credit (adversary : Adver
     Pr[fun result => MixedEncodingPrefixEvent result.1 result.2 fallback | sourcePrefixProgram adversary] ≤
       (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ *
-          (TargetSum.acceptanceProbability *
+          (Checksum.acceptanceProbability *
             (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
               if fallback.isSome then 1 else 0) := by
   apply (mixedEncodingPrefixEvent_probability_le adversary limit hbudget fallback).trans

@@ -131,7 +131,7 @@ theorem verify_noSeed (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (signature : Signature) :
     (verify publicKey leafIndex message signature : OracleComp HashSpec Bool).IsQueryBoundP
       MaySeedHit 0 := by
-  rw [verify]
+  rw [verify_eq_decode]
   refine OracleComp.isQueryBoundP_bind (m := 0) (encodingHash_noSeed _ _ _ _) ?_
   intro digest _
   split

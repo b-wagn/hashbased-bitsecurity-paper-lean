@@ -48,7 +48,7 @@ inductive VerifiedDigestRun
         ((simulateQ randomOracle
           (Concrete.encodingHash publicKey.parameter leafIndex message signature.randomness :
             OracleComp HashSpec Digest)).run initialCache))
-      (decode_eq : TargetSum.decodeDigest digest = some actualEncoding)
+      (decode_eq : Checksum.decodeDigest digest = some actualEncoding)
       (rest_mem : (true, resultCache) ∈ support
         ((simulateQ randomOracle
           (verificationAfterEncoding publicKey leafIndex signature actualEncoding)).run digestCache))
@@ -63,10 +63,10 @@ theorem verify_true_digestRun
         (Concrete.verify publicKey leafIndex message signature :
           OracleComp HashSpec Bool)).run initialCache)) :
     VerifiedDigestRun publicKey leafIndex message signature initialCache resultCache := by
-  unfold Concrete.verify at hmem
+  simp only [Concrete.verify_eq_decode] at hmem
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
   obtain ⟨⟨digest, digestCache⟩, hdigest, hafterDigest⟩ := hmem
-  cases hdecode : TargetSum.decodeDigest digest with
+  cases hdecode : Checksum.decodeDigest digest with
   | none =>
       simp only [hdecode, simulateQ_pure, StateT.run_pure, support_pure,
         Set.mem_singleton_iff, Prod.mk.injEq, Bool.true_eq_false] at hafterDigest
@@ -90,7 +90,7 @@ inductive VerifiedEndpointsRun
         ((simulateQ randomOracle
           (Concrete.encodingHash publicKey.parameter leafIndex message signature.randomness :
             OracleComp HashSpec Digest)).run initialCache))
-      (decode_eq : TargetSum.decodeDigest digest = some actualEncoding)
+      (decode_eq : Checksum.decodeDigest digest = some actualEncoding)
       (endpoints_mem : (endpoints, endpointsCache) ∈ support
         ((simulateQ randomOracle
           (Concrete.recoverEndpoints publicKey.parameter leafIndex actualEncoding signature :
@@ -129,7 +129,7 @@ inductive VerifiedLeafRun
         ((simulateQ randomOracle
           (Concrete.encodingHash publicKey.parameter leafIndex message signature.randomness :
             OracleComp HashSpec Digest)).run initialCache))
-      (decode_eq : TargetSum.decodeDigest digest = some actualEncoding)
+      (decode_eq : Checksum.decodeDigest digest = some actualEncoding)
       (endpoints_mem : (endpoints, endpointsCache) ∈ support
         ((simulateQ randomOracle
           (Concrete.recoverEndpoints publicKey.parameter leafIndex actualEncoding signature :
@@ -213,9 +213,8 @@ theorem verify_true_authenticationRoot_support_in_largerCache
       ((simulateQ randomOracle
         (Concrete.verify publicKey leafIndex message signature :
           OracleComp HashSpec Bool)).run initialCache))
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache publicKey.parameter leafIndex
-        (message, signature.randomness)) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding largerCache publicKey.parameter leafIndex
+        (message, signature.randomness) = some encoding)
     (hle : resultCache ≤ largerCache) :
     VerifiedAuthenticationRootRun publicKey leafIndex signature encoding resultCache largerCache := by
   have leafRun :=
@@ -232,8 +231,9 @@ theorem verify_true_authenticationRoot_support_in_largerCache
     initialCache digestCache largerCache digest hdigest (hdigestLe.trans hle)
   rw [eval_encodingHash] at hdigestEval
   have hencoding : actualEncoding = encoding := by
-    rw [hdigestEval, hactualDecode] at hdecode
-    exact Option.some.inj hdecode
+    have hdecode' := Concrete.CacheView.decodeDigest_of_decodedEncoding hdecode
+    rw [hdigestEval, hactualDecode] at hdecode'
+    exact Option.some.inj hdecode'
   subst actualEncoding
   have hendpointsEval := eval_answerFn_largerCache_eq_of_mem_support
     (Concrete.recoverEndpoints publicKey.parameter leafIndex encoding signature :
@@ -339,9 +339,8 @@ theorem verify_true_merkle_query_cached_as_in_largerCache
       ((simulateQ randomOracle
         (Concrete.verify publicKey leafIndex message signature :
           OracleComp HashSpec Bool)).run initialCache))
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash largerCache publicKey.parameter leafIndex
-        (message, signature.randomness)) = some encoding)
+    (hdecode : Concrete.CacheView.decodedEncoding largerCache publicKey.parameter leafIndex
+        (message, signature.randomness) = some encoding)
     (hle : resultCache ≤ largerCache) :
     ∃ output, resultCache
       (Concrete.CacheView.nodeInput publicKey.parameter leafIndex target

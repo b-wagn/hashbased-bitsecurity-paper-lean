@@ -21,8 +21,8 @@ def IsEncodingSample : (World Index).Domain → Prop
 noncomputable instance : DecidablePred (IsEncodingSample (Index := Index)) := Classical.decPred _
 
 noncomputable def acceptedEncodingAction : ObservedAction Index → Bool
-  | .encoding (.query _ output) => decide (TargetSum.ValidDigest (truncateHash output))
-  | .encoding (.sign _ output) => decide (TargetSum.ValidDigest (truncateHash output))
+  | .encoding (.query _ output) => decide (Checksum.ValidDigest (truncateHash output))
+  | .encoding (.sign _ output) => decide (Checksum.ValidDigest (truncateHash output))
   | .chain _ => false
 
 noncomputable def TraceHasAcceptedEncoding (trace : ActionTrace Index) : Prop :=
@@ -38,18 +38,18 @@ omit [Fintype Index] [DecidableEq Index] in
 theorem traceFragment_encodingAcceptance (table : Index → Digest)
     (input : (World Index).Domain) :
     Pr[fun output => TraceHasAcceptedEncoding (traceFragment input output) | eagerImpl table input] ≤
-      if IsEncodingSample input then TargetSum.acceptanceProbability else 0 := by
+      if IsEncodingSample input then Checksum.acceptanceProbability else 0 := by
   cases input with
   | encodingQuery leafIndex =>
       simpa only [TraceHasAcceptedEncoding, traceFragment, acceptedEncodingAction,
         List.any_cons, List.any_nil, Bool.or_false, decide_eq_true_eq,
         eagerImpl, uniformHashOutput, IsEncodingSample, if_true] using
-          TargetSum.probEvent_validDigest_uniformHashOutput.le
+          Checksum.probEvent_validDigest_uniformHashOutput.le
   | encodingSignAttempt leafIndex =>
       simpa only [TraceHasAcceptedEncoding, traceFragment, acceptedEncodingAction,
         List.any_cons, List.any_nil, Bool.or_false, decide_eq_true_eq,
         eagerImpl, uniformHashOutput, IsEncodingSample, if_true] using
-          TargetSum.probEvent_validDigest_uniformHashOutput.le
+          Checksum.probEvent_validDigest_uniformHashOutput.le
   | uniform n => simp [TraceHasAcceptedEncoding, traceFragment, IsEncodingSample]
   | probe index target =>
       simp [TraceHasAcceptedEncoding, traceFragment, acceptedEncodingAction, IsEncodingSample]
@@ -61,7 +61,7 @@ theorem traceEncodingAcceptance_probability_le_expected (table : Index → Diges
     (computation : OracleComp (World Index) α) :
     Pr[fun result => TraceHasAcceptedEncoding result.2 |
       (simulateQ (eagerTraceImpl table) computation).run] ≤
-      TargetSum.acceptanceProbability *
+      Checksum.acceptanceProbability *
         expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample computation () := by
   classical
   induction computation using OracleComp.inductionOn with
@@ -73,7 +73,7 @@ theorem traceEncodingAcceptance_probability_le_expected (table : Index → Diges
             let tail ← (simulateQ (eagerTraceImpl table) (next output)).run
             pure (tail.1, traceFragment input output ++ tail.2))] ≤
           (if TraceHasAcceptedEncoding (traceFragment input output) then 1 else 0) +
-            TargetSum.acceptanceProbability *
+            Checksum.acceptanceProbability *
               expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample (next output) () := by
         rw [bind_pure_comp, probEvent_map]
         by_cases hhead : TraceHasAcceptedEncoding (traceFragment input output)
@@ -92,22 +92,22 @@ theorem traceEncodingAcceptance_probability_le_expected (table : Index → Diges
       calc
         _ ≤ ∑' output, Pr[= output | eagerImpl table input] *
             ((if TraceHasAcceptedEncoding (traceFragment input output) then 1 else 0) +
-              TargetSum.acceptanceProbability *
+              Checksum.acceptanceProbability *
                 expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample (next output) ()) :=
           ENNReal.tsum_le_tsum fun output => mul_le_mul' le_rfl (hpointwise output)
         _ = Pr[fun output => TraceHasAcceptedEncoding (traceFragment input output) | eagerImpl table input] +
-            TargetSum.acceptanceProbability *
+            Checksum.acceptanceProbability *
               ∑' output, Pr[= output | eagerImpl table input] *
                 expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample (next output) () := by
-          simp_rw [mul_add, mul_left_comm (Pr[= _ | _]) TargetSum.acceptanceProbability]
+          simp_rw [mul_add, mul_left_comm (Pr[= _ | _]) Checksum.acceptanceProbability]
           rw [ENNReal.tsum_add, ENNReal.tsum_mul_left]
           congr 1
           rw [probEvent_eq_tsum_ite]
           apply tsum_congr
           intro output
           split_ifs <;> simp
-        _ ≤ (if IsEncodingSample input then TargetSum.acceptanceProbability else 0) +
-            TargetSum.acceptanceProbability *
+        _ ≤ (if IsEncodingSample input then Checksum.acceptanceProbability else 0) +
+            Checksum.acceptanceProbability *
               ∑' output, Pr[= output | eagerImpl table input] *
                 expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample (next output) () :=
           add_le_add (traceFragment_encodingAcceptance table input) le_rfl
@@ -116,16 +116,16 @@ theorem traceEncodingAcceptance_probability_le_expected (table : Index → Diges
 theorem traceEncodingAcceptance_eager_probability_le_expected
     (computation : OracleComp (World Index) α) :
     Pr[fun result => TraceHasAcceptedEncoding result.2.2 | eagerExperiment computation] ≤
-      TargetSum.acceptanceProbability * expectedEagerQueryCount IsEncodingSample computation := by
+      Checksum.acceptanceProbability * expectedEagerQueryCount IsEncodingSample computation := by
   simp only [eagerExperiment, bind_pure_comp, probEvent_bind_eq_tsum, probEvent_map, Function.comp_def]
   calc
     _ ≤ ∑' table, Pr[= table | RevealProbeOracleSimulation.eagerTableSample] *
-        (TargetSum.acceptanceProbability *
+        (Checksum.acceptanceProbability *
           expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample computation ()) :=
       ENNReal.tsum_le_tsum fun table => mul_le_mul' le_rfl
         (traceEncodingAcceptance_probability_le_expected table computation)
     _ = _ := by
-      simp_rw [mul_left_comm (Pr[= _ | _]) TargetSum.acceptanceProbability]
+      simp_rw [mul_left_comm (Pr[= _ | _]) Checksum.acceptanceProbability]
       rw [ENNReal.tsum_mul_left]
       rfl
 

@@ -14,23 +14,23 @@ noncomputable def sourceSecondaryLoss (adversary : Adversary) : ℝ≥0∞ :=
   encodingPrehitRate * expectedDirectEncodingQueries adversary +
     (expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
       (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) *
-        (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)))) +
+        (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)))) +
     expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞)
 
 theorem source_encoding_loss_rate_le_half :
-    encodingPrehitRate + TargetSum.acceptanceProbability *
+    encodingPrehitRate + Checksum.acceptanceProbability *
         ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) ≤
       (1 / 2 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
-  unfold encodingPrehitRate TargetSum.acceptanceProbability
+  unfold encodingPrehitRate Checksum.acceptanceProbability
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   simp (disch := finiteness) only [ENNReal.toReal_add]
   norm_num [ENNReal.toReal_add, ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_div,
     signingAttemptLimit, randomnessBits, digestBits]
 
 theorem source_signer_loss_rate_le :
-    TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) ≤
+    Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) ≤
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  unfold TargetSum.acceptanceProbability
+  unfold Checksum.acceptanceProbability
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_div, digestBits]
 
@@ -47,12 +47,12 @@ theorem sourceSecondaryLoss_le_half_nonstructural (adversary : Adversary) :
   unfold sourceSecondaryLoss
   calc
     _ = expectedDirectEncodingQueries adversary *
-          (encodingPrehitRate + TargetSum.acceptanceProbability *
+          (encodingPrehitRate + Checksum.acceptanceProbability *
             ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) +
         expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞) +
         expectedSourceSignerHashes adversary *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by ring
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by ring
     _ ≤ expectedDirectEncodingQueries adversary * ((1 / 2 : ℝ≥0∞) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
         expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +

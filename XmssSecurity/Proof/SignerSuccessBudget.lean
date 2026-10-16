@@ -18,8 +18,7 @@ theorem Concrete.precomputedSignAttempt_replay_success_hasAcceptedEncoding
     HasAcceptedEncoding secretKey.parameter cache := by
   unfold precomputedSignAttempt at heval
   simp only [evalWithAnswerFn_bind, CacheReplay.eval_encodingHash] at heval
-  cases hdecode : TargetSum.decodeDigest
-      (CacheView.encodingHash cache secretKey.parameter leafIndex (message, randomness)) with
+  cases hdecode : CacheView.decodedEncoding cache secretKey.parameter leafIndex (message, randomness) with
   | none => simp [hdecode, evalWithAnswerFn_pure] at heval
   | some encoding => exact hasAcceptedEncoding_of_decode _ _ _ _ _ _ hdecode
 
@@ -72,7 +71,7 @@ theorem xmss_sign_success_le_half_expectedHashQueries
     (cache : QueryCache HashSpec) (hcache : ¬HasAcceptedEncoding secretKey.precomputed.parameter cache) :
     Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
       (simulateQ romImpl (xmss.sign secretKey leafIndex message)).run cache] ≤
-      (TargetSum.acceptanceProbability / 2) * expectedSimulatedQueryCount romImpl IsHashQuery
+      (Checksum.acceptanceProbability / 2) * expectedSimulatedQueryCount romImpl IsHashQuery
         (xmss.sign secretKey leafIndex message) cache := by
   calc
     _ ≤ Pr[fun result => HasAcceptedEncoding secretKey.precomputed.parameter result.2 |
@@ -83,7 +82,7 @@ theorem xmss_sign_success_le_half_expectedHashQueries
       | none => exact (hsuccess rfl).elim
       | some signature =>
           exact xmss_sign_hasAcceptedEncoding_of_success _ _ _ _ _ signature hresult
-    _ ≤ TargetSum.acceptanceProbability * expectedSimulatedQueryCount romImpl
+    _ ≤ Checksum.acceptanceProbability * expectedSimulatedQueryCount romImpl
         (CappedEncodingMonitor.IsEncodingHashQuery secretKey.precomputed.parameter)
         (xmss.sign secretKey leafIndex message) cache :=
       probEvent_hasAcceptedEncoding_le_expectedQueries _ _ _ hcache

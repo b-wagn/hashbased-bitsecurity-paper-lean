@@ -149,7 +149,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding (adversary : Adversar
       detailedGameWithCache Concrete.scheme adversary] ≤
       Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         expectedPrefixEncodingQueries adversary *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
+          (Checksum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
   unfold detailedGameWithCache detailedGameCore
   simp only [detailedGameAfterKeygen_eq_phases]
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
@@ -162,7 +162,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding (adversary : Adversar
     expectedSimulatedQueryCount romImpl
       (CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter)
       (adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2
-  let rate := TargetSum.acceptanceProbability *
+  let rate := Checksum.acceptanceProbability *
     ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
   calc
     _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
@@ -180,7 +180,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding (adversary : Adversar
           keyResult.1.2.parameter (adversaryPhase adversary keyResult.1.1 keyResult.1.2)
           keyResult.2 (precomputedKeygen_no_acceptedEncoding keyResult hkey)
         calc
-          _ ≤ (TargetSum.acceptanceProbability * encoding keyResult) *
+          _ ≤ (Checksum.acceptanceProbability * encoding keyResult) *
               ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := mul_le_mul' haccepted le_rfl
           _ = encoding keyResult * rate := by dsimp only [rate]; ac_rfl
       · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul, zero_mul]

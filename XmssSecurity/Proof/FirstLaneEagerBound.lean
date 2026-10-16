@@ -178,7 +178,7 @@ theorem applyEncodingRequest_true_probability_le
             cases hsigned : state.signed leafIndex with
             | none =>
                 by_cases hvalid :
-                    TargetSum.ValidDigest (truncateHash output) <;>
+                    Checksum.ValidDigest (truncateHash output) <;>
                   simp [CappedEncodingMonitor.State.applyObserved, hsigned,
                     hvalid]
             | some target =>
@@ -219,7 +219,7 @@ theorem applyEncodingRequest_true_probability_le
                 apply bind_congr
                 intro output
                 by_cases hvalid :
-                    TargetSum.ValidDigest (truncateHash output) <;>
+                    Checksum.ValidDigest (truncateHash output) <;>
                   simp [CappedEncodingMonitor.State.applyObserved, hsigned,
                     hvalid]
               have hdist :
@@ -247,7 +247,7 @@ theorem applyEncodingRequest_true_probability_le
                     ((2 ^ digestBits : Nat) : ENNReal)⁻¹ +
                   encodingPendingRisk (some state))
                 fun output _ => ?_).trans ?_
-              · by_cases hvalid : TargetSum.ValidDigest (truncateHash output)
+              · by_cases hvalid : Checksum.ValidDigest (truncateHash output)
                 · rw [show CappedEncodingMonitor.State.applyObserved state
                       (.sign leafIndex output) = none by
                     simp [CappedEncodingMonitor.State.applyObserved, hsigned,

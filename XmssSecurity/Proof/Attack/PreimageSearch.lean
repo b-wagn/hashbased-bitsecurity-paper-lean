@@ -139,7 +139,7 @@ theorem preimage_rejection_power_le :
     (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ preimageSearchSteps ≤ 16 / 17 := by
   calc
     _ ≤ 1 / (1 + preimageSearchSteps * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) :=
-      TargetSum.rejection_power_le _ (by norm_num [digestBits]) _
+      Checksum.rejection_power_le _ (by norm_num [digestBits]) _
     _ = 16 / 17 := by
       apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
       rw [ENNReal.toReal_div, ENNReal.toReal_add (by finiteness) (by finiteness)]
