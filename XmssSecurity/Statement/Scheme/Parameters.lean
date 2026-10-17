@@ -2,9 +2,12 @@
 # XMSS instance parameters
 
 The parameter table of the XMSS instance for Ethereum's post-quantum consensus (`doc/xmss/main.tex`
-of the leanVM repository, Section 1), with the one-time signature replaced by WOTS with a
-checksum, as in SLH-DSA (FIPS 205, Section 5). Everything else in `Scheme/` is defined in terms
-of these constants, so this file is the single place to read the concrete numbers.
+of the leanVM repository, Section 1) that does not depend on the WOTS encoding. Everything else
+in `Scheme/` is defined in terms of these constants. The two encodings fix the remaining
+parameters: the target-sum encoding of the leanVM instance in `TargetSum.lean` (`v = 42` chains,
+target sum `T = 195`, at most `A_max = 2^32` randomizer trials), and the WOTS encoding with a
+checksum of SLH-DSA (FIPS 205) in `Checksum.lean` (`len_1 = 43` message digits and `len_2 = 3`
+checksum digits, `v = 46` chains, a single randomizer).
 
 | Symbol  | Lean                  | Value   | Meaning                                 |
 |---------|-----------------------|---------|-----------------------------------------|
@@ -14,15 +17,11 @@ of these constants, so this file is the single place to read the concrete number
 | `ℓ_p`   | `publicParameterBits` | 128     | public parameter length                 |
 | `ℓ_rnd` | `randomnessBits`      | 192     | randomizer length                       |
 | `w`     | `winternitzBits`      | 3       | chunk size in bits                      |
-| `len_1` | `messageDigits`       | 43      | digits of the message digest            |
-| `len_2` | `checksumDigits`      | 3       | digits of the checksum                  |
-| `v`     | `numChains`           | 46      | code length (number of chains)          |
 | `h`     | `treeHeight`          | 32      | Merkle tree height                      |
 | `L`     | `lifetime`            | `2^32`  | lifetime (number of epochs)             |
 
-`len_1 = ⌈n / w⌉ = 43` and `len_2 = ⌊log_{2^w}(len_1 · (2^w - 1))⌋ + 1 = 3`, the lengths of FIPS 205
-for `lg_w = w`. The master seed has 256 bits and the tweak has 128 bits (16 bytes); both are fixed
-by the byte layout in `Types.lean` and `Hashing.lean`.
+The master seed has 256 bits and the tweak has 128 bits (16 bytes); both are fixed by the byte
+layout in `Types.lean` and `Hashing.lean`.
 -/
 
 namespace XmssSecurity
@@ -53,17 +52,5 @@ def winternitzBits : Nat := 3
 
 /-- `2^w`: the number of values on a hash chain. -/
 def chainLength : Nat := 2 ^ winternitzBits
-
-/-- `len_1 = ⌈n / w⌉`: the number of digits of the message digest. -/
-def messageDigits : Nat := 43
-
-/-- `len_2 = ⌊log_{2^w}(len_1 · (2^w - 1))⌋ + 1`: the number of checksum digits. -/
-def checksumDigits : Nat := 3
-
-/-- `v = len_1 + len_2 = 46`: the code length, i.e. the number of chains. The first `len_1`
-chains carry the message digits and the last `len_2` the checksum digits. -/
-def numChains : Nat := 46
-
-theorem numChains_eq : numChains = messageDigits + checksumDigits := rfl
 
 end XmssSecurity

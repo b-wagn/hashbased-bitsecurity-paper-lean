@@ -44,9 +44,10 @@ def fieldBytes (fields : TweakFields) : List UInt8 :=
 def tweakFields (tag position leafIndex : Nat) : TweakFields :=
   ⟨BitVec.ofNat 8 tag, BitVec.ofNat 32 position, BitVec.ofNat 32 leafIndex⟩
 
-/-- The verification hash domains, tweak types `1` to `4`. -/
+/-- The verification hash domains, tweak types `1` to `4`. A chain step names its chain by its
+index `i`. -/
 inductive HashDomain where
-  | chain (leafIndex : LeafIndex) (chain : ChainIndex) (step : ChainStep)
+  | chain (leafIndex : LeafIndex) (chain : Nat) (step : ChainStep)
   | leaf (leafIndex : LeafIndex)
   | merkle (level : MerkleLevel) (node : MerkleNode)
   | encoding (leafIndex : LeafIndex)
@@ -74,9 +75,10 @@ def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
   fieldBytes ⟨7#8, trial, BitVec.ofNat 32 leafIndex.val⟩ ++
     bytesLE 16 parameter ++ bytesLE 32 seed ++ bytesLE 32 message
 
+/-- The key-derivation domains: the public parameter, and the start of chain `i` of a leaf. -/
 inductive KeygenDomain where
   | parameter
-  | chain (leafIndex : LeafIndex) (chain : ChainIndex)
+  | chain (leafIndex : LeafIndex) (chain : Nat)
 deriving DecidableEq
 
 def keygenDomainFields : KeygenDomain → TweakFields
@@ -97,7 +99,7 @@ def encodingPayload (message : Message) (randomness : Randomness) : HashInput :=
   bytesLE 32 message ++ bytesLE 24 randomness ++ List.replicate 8 0
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
-def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=
+def leafPayload {v : Nat} (endpoints : Fin v → Digest) : HashInput :=
   (List.ofFn endpoints).flatMap (bytesLE 16)
 
 /-- The two children of a Merkle node. -/
@@ -116,20 +118,19 @@ def tweakableHash
   let output ← oracleHash (tweakableHashInput parameter domain payload)
   return truncateHash output
 
-/-- The message digest `D = Th(P, tweak_enc(idx), m || rho)`, which `Checksum.encode` turns into
-the WOTS encoding. -/
+/-- The message digest `D = Th(P, tweak_enc(idx), m || rho)`, which the WOTS encoding decodes. -/
 def encodingHash (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) : m Digest :=
   tweakableHash parameter (.encoding leafIndex) (encodingPayload message randomness)
 
 /-- One chain step, under `tweak_chain(idx, i, step + 1)`. -/
-def chainHash (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
+def chainHash {v : Nat} (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : Fin v)
     (step : ChainStep) (value : Digest) : m Digest :=
-  tweakableHash parameter (.chain leafIndex chain step) (bytesLE 16 value)
+  tweakableHash parameter (.chain leafIndex chain.val step) (bytesLE 16 value)
 
 /-- `X_{0,idx}`, the hash of the `v` public values. -/
-def leafHash (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (endpoints : ChainIndex → Digest) : m Digest :=
+def leafHash {v : Nat} (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (endpoints : Fin v → Digest) : m Digest :=
   tweakableHash parameter (.leaf leafIndex) (leafPayload endpoints)
 
 /-- `X_{level+1,node}` from its two children. -/

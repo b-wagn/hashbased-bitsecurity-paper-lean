@@ -1,0 +1,246 @@
+import XmssSecurity.Proof.Checksum.IdealStatement
+import XmssSecurity.Proof.Checksum.Wots
+import XmssSecurity.Proof.Checksum.EncodingLemmas
+
+/-!
+Proof-side mirrors of the sealed statement definitions, and rewrite lemmas restating them so proofs can unfold them without unsealing.
+
+The statement stores the precomputed secret key as `evalWithAnswerFn (replayHash cache)` runs of its own oracle algorithms. `Wots.walk`, `CacheView`, and `CacheReplay` are the equivalent first-order forms of those replays that the proof works with; `Proof.CacheReplayEval` bridges the two.
+-/
+
+open OracleComp OracleSpec
+
+namespace XmssSecurity.Checksum
+
+@[simp]
+theorem truncateHash_zero : truncateHash 0 = 0 := by decide
+
+namespace Concrete
+
+namespace CacheView
+
+def digestAt (cache : QueryCache HashSpec) (input : HashInput) : Digest :=
+  match cache input with
+  | some output => truncateHash output
+  | none => 0
+
+def tweakableHash (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (domain : HashDomain) (payload : HashInput) : Digest :=
+  digestAt cache (XmssSecurity.Checksum.tweakableHashInput parameter domain payload)
+
+def encodingInput (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (input : Message × Randomness) : HashInput :=
+  XmssSecurity.Checksum.tweakableHashInput parameter (.encoding leafIndex)
+    (Concrete.encodingPayload input.1 input.2)
+
+def chainInput (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
+    (position : ChainStep) (value : Digest) : HashInput :=
+  XmssSecurity.Checksum.tweakableHashInput parameter (.chain leafIndex chain position)
+    (Concrete.digestBytes value)
+
+def leafInput (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (endpoints : ChainIndex → Digest) : HashInput :=
+  XmssSecurity.Checksum.tweakableHashInput parameter (.leaf leafIndex)
+    (Concrete.leafPayload endpoints)
+
+def merkleInput (parameter : PublicParameter) (level : MerkleLevel)
+    (node : MerkleNode) (left right : Digest) : HashInput :=
+  XmssSecurity.Checksum.tweakableHashInput parameter (.merkle level node)
+    (Concrete.nodePayload left right)
+
+def encodingHash (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (input : Message × Randomness) : Digest :=
+  digestAt cache (encodingInput parameter leafIndex input)
+
+/-- The encoding of a recorded encoding query, and `none` for an unrecorded input. Every digest
+decodes, so a decoded encoding read from the cache witnesses that the query was made. -/
+def decodedEncoding (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (input : Message × Randomness) : Option Encoding :=
+  match cache (encodingInput parameter leafIndex input) with
+  | some output => Checksum.decodeDigest (truncateHash output)
+  | none => none
+
+theorem encodingInput_cached_of_decode_some
+    (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (message : Message) (randomness : Randomness) (encoding : Encoding)
+    (hdecode : decodedEncoding cache parameter leafIndex (message, randomness) = some encoding) :
+    ∃ output, cache (encodingInput parameter leafIndex (message, randomness)) = some output := by
+  unfold decodedEncoding at hdecode
+  split at hdecode
+  · exact ⟨_, by assumption⟩
+  · cases hdecode
+
+theorem decodedEncoding_eq_of_cache_eq_some {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {output : HashOutput} (hcache : cache (encodingInput parameter leafIndex input) = some output) :
+    decodedEncoding cache parameter leafIndex input =
+      Checksum.decodeDigest (encodingHash cache parameter leafIndex input) := by
+  simp [decodedEncoding, encodingHash, digestAt, hcache]
+
+theorem decodedEncoding_eq_of_input_eq {left right : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    (h : left (encodingInput parameter leafIndex input) =
+      right (encodingInput parameter leafIndex input)) :
+    decodedEncoding left parameter leafIndex input =
+      decodedEncoding right parameter leafIndex input := by
+  simp only [decodedEncoding, h]
+
+theorem decodedEncoding_eq_of_cached {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    (hcache : ∃ output, cache (encodingInput parameter leafIndex input) = some output) :
+    decodedEncoding cache parameter leafIndex input =
+      Checksum.decodeDigest (encodingHash cache parameter leafIndex input) := by
+  obtain ⟨output, houtput⟩ := hcache
+  exact decodedEncoding_eq_of_cache_eq_some houtput
+
+theorem decodeDigest_of_decodedEncoding {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {encoding : Encoding} (hdecode : decodedEncoding cache parameter leafIndex input = some encoding) :
+    Checksum.decodeDigest (encodingHash cache parameter leafIndex input) = some encoding := by
+  rcases input with ⟨message, randomness⟩
+  rw [← decodedEncoding_eq_of_cached (encodingInput_cached_of_decode_some cache parameter leafIndex
+    message randomness encoding hdecode)]
+  exact hdecode
+
+theorem decodedEncoding_valid {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {encoding : Encoding} (hdecode : decodedEncoding cache parameter leafIndex input = some encoding) :
+    Checksum.Valid encoding :=
+  Checksum.decodeDigest_valid (decodeDigest_of_decodedEncoding hdecode)
+
+theorem decodedEncoding_eq_some_iff {cache : QueryCache HashSpec}
+    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
+    {encoding : Encoding} :
+    decodedEncoding cache parameter leafIndex input = some encoding ↔
+      (∃ output, cache (encodingInput parameter leafIndex input) = some output) ∧
+        Checksum.decodeDigest (encodingHash cache parameter leafIndex input) = some encoding := by
+  constructor
+  · intro h
+    rcases input with ⟨message, randomness⟩
+    exact ⟨encodingInput_cached_of_decode_some cache parameter leafIndex message randomness
+      encoding h, decodeDigest_of_decodedEncoding h⟩
+  · rintro ⟨hcached, h⟩
+    rw [decodedEncoding_eq_of_cached hcached]
+    exact h
+
+
+def chainStep (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (chain : ChainIndex) (position : Nat) (value : Digest) : Digest :=
+  if hposition : position < chainLength - 1 then
+    digestAt cache (chainInput parameter leafIndex chain ⟨position, hposition⟩ value)
+  else
+    0
+
+def leafHash (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (endpoints : ChainIndex → Digest) : Digest :=
+  digestAt cache (leafInput parameter leafIndex endpoints)
+
+def merkleHash (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (level : MerkleLevel) (node : MerkleNode) (left right : Digest) : Digest :=
+  digestAt cache (merkleInput parameter level node left right)
+
+abbrev nodeIndex (leafIndex : LeafIndex) (level : Nat) : MerkleNode :=
+  Concrete.nodeIndex leafIndex level
+
+def authenticationNodePayload (leafIndex : LeafIndex) (level : Nat)
+    (current sibling : Digest) : HashInput :=
+  if leafIndex.val.testBit level then
+    Concrete.nodePayload sibling current
+  else
+    Concrete.nodePayload current sibling
+
+def nodeInput (parameter : PublicParameter) (leafIndex : LeafIndex) (level : MerkleLevel)
+    (current sibling : Digest) : HashInput :=
+  XmssSecurity.Checksum.tweakableHashInput parameter (.merkle level (nodeIndex leafIndex level.val))
+    (authenticationNodePayload leafIndex level.val current sibling)
+
+def nodeHash (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (level : Nat) (left right : Digest) : Digest :=
+  if hlevel : level < treeHeight then
+    digestAt cache (nodeInput parameter leafIndex ⟨level, hlevel⟩ left right)
+  else
+    0
+
+end CacheView
+
+namespace CacheReplay
+
+def oneTimePublicKey (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (secret : LeafIndex → ChainIndex → Digest) (leafIndex : LeafIndex) : ChainIndex → Digest :=
+  fun chain => Wots.walk (CacheView.chainStep cache parameter leafIndex chain) 0
+    (chainLength - 1) (secret leafIndex chain)
+
+def leafAt (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (secret : LeafIndex → ChainIndex → Digest) (leafIndex : LeafIndex) : Digest :=
+  CacheView.leafHash cache parameter leafIndex
+    (oneTimePublicKey cache parameter secret leafIndex)
+
+def treeNode (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (secret : LeafIndex → ChainIndex → Digest) : Nat → MerkleNode → Digest
+  | 0, node => leafAt cache parameter secret node
+  | levels + 1, node =>
+      if hlevel : levels < treeHeight then
+        CacheView.merkleHash cache parameter ⟨levels, hlevel⟩ node
+          (treeNode cache parameter secret levels (Concrete.childNode node false))
+          (treeNode cache parameter secret levels (Concrete.childNode node true))
+      else
+        0
+
+attribute [irreducible] treeNode
+
+end CacheReplay
+
+attribute [local semireducible] treeNode CacheReplay.treeNode sampleSecret signingRandomness
+
+noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Digest) :=
+  SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)
+
+noncomputable local instance : SampleableType Randomness :=
+  SampleableType.ofFintype Randomness
+
+@[simp]
+theorem treeNode_zero_eq {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
+    (node : MerkleNode) :
+    treeNode (m := m) parameter secret 0 node =
+      leafAt (m := m) parameter secret node := rfl
+
+theorem treeNode_succ_eq {m : Type → Type} [Monad m] [HasQuery HashSpec m]
+    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
+    (levels : Nat) (node : MerkleNode) :
+    treeNode (m := m) parameter secret (levels + 1) node = (do
+      let left ← treeNode (m := m) parameter secret levels (childNode node false)
+      let right ← treeNode (m := m) parameter secret levels (childNode node true)
+      if hlevel : levels < treeHeight then
+        nodeHash (m := m) parameter ⟨levels, hlevel⟩ node left right
+      else
+        pure 0) := rfl
+
+theorem sampleSecret_eq : sampleSecret = $ᵗ (LeafIndex → ChainIndex → Digest) := rfl
+
+theorem signingRandomness_eq : signingRandomness = $ᵗ Randomness := rfl
+
+namespace CacheReplay
+
+@[simp]
+theorem treeNode_zero_eq (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (secret : LeafIndex → ChainIndex → Digest) (node : MerkleNode) :
+    treeNode cache parameter secret 0 node = leafAt cache parameter secret node := by
+  with_unfolding_all rfl
+
+theorem treeNode_succ_eq (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (secret : LeafIndex → ChainIndex → Digest) (levels : Nat) (node : MerkleNode) :
+    treeNode cache parameter secret (levels + 1) node =
+      if hlevel : levels < treeHeight then
+        CacheView.merkleHash cache parameter ⟨levels, hlevel⟩ node
+          (treeNode cache parameter secret levels (Concrete.childNode node false))
+          (treeNode cache parameter secret levels (Concrete.childNode node true))
+      else
+        0 := by
+  with_unfolding_all rfl
+
+end CacheReplay
+
+end Concrete
+
+end XmssSecurity.Checksum

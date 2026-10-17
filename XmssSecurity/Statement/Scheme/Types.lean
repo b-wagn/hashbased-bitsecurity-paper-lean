@@ -4,11 +4,12 @@ import XmssSecurity.Statement.RandomOracleModel
 /-!
 # XMSS types
 
-The data types of the XMSS instance (`doc/xmss/main.tex` of the leanVM repository, with the
-checksummed WOTS encoding of `Checksum.lean` in place of its target-sum encoding), in terms of
+The data types of the XMSS instance (`doc/xmss/main.tex` of the leanVM repository), in terms of
 the constants of `Parameters.lean`: seeds, digests, messages, indices, encodings, keys, and
-signatures. It also fixes the random-oracle world of XMSS: the hash function `H` maps byte strings
-to 256-bit outputs and is the random oracle `HashSpec`, so every hash call is an oracle query.
+signatures. Encodings, secret keys, and signatures depend on the number `v` of WOTS chains, which
+the encoding fixes (`WotsEncoding`). It also fixes the random-oracle world of XMSS: the hash
+function `H` maps byte strings to 256-bit outputs and is the random oracle `HashSpec`, so every
+hash call is an oracle query.
 -/
 
 open OracleComp OracleSpec
@@ -26,7 +27,6 @@ abbrev PublicParameter := BitVec publicParameterBits
 abbrev Randomness := BitVec randomnessBits
 /-- `idx < L`. -/
 abbrev LeafIndex := Fin lifetime
-abbrev ChainIndex := Fin numChains
 abbrev Digit := Fin chainLength
 /-- A chain step; the tweak carries `2^w * i + step`. -/
 abbrev ChainStep := Fin (chainLength - 1)
@@ -36,8 +36,19 @@ abbrev MerkleHeight := Fin (treeHeight + 1)
 abbrev MerkleLevel := Fin treeHeight
 /-- A node within a level. Level `ℓ` only uses the values below `2^(h - ℓ)`. -/
 abbrev MerkleNode := Fin lifetime
-abbrev Encoding := ChainIndex → Digit
+/-- A word of `v` digits, one per chain. -/
+abbrev Encoding (v : Nat) := Fin v → Digit
 abbrev HashInput := List UInt8
+
+/-! ## The WOTS encoding -/
+
+/-- A WOTS encoding: the number `v` of chains, the partial map from message digests to codewords
+(`none` when a digest does not encode), and the number `A_max` of randomizer trials of the
+signer. -/
+structure WotsEncoding where
+  numChains : Nat
+  decode : Digest → Option (Encoding numChains)
+  signingAttempts : Nat
 
 /-! ## Keys and signatures -/
 
@@ -47,17 +58,19 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- Cached chain starts, chain values and Merkle nodes, together with the public parameter. -/
-structure SecretKey where
+/-- Cached chain starts, chain values and Merkle nodes of `v` chains per leaf, together with the
+public parameter. -/
+structure SecretKey (v : Nat) where
   parameter : PublicParameter
-  chainStart : LeafIndex → ChainIndex → Digest
-  chainValue : LeafIndex → ChainIndex → Digit → Digest
+  chainStart : LeafIndex → Fin v → Digest
+  chainValue : LeafIndex → Fin v → Digit → Digest
   treeValue : MerkleHeight → MerkleNode → Digest
 
-/-- `sigma = (rho, sigma_OTS, path_ep)`: the encoding randomness, the `v` chain values and the `h` authentication nodes. -/
-structure Signature where
+/-- `sigma = (rho, sigma_OTS, path_ep)`: the encoding randomness, the `v` chain values and the `h`
+authentication nodes. -/
+structure Signature (v : Nat) where
   randomness : Randomness
-  chainValue : ChainIndex → Digest
+  chainValue : Fin v → Digest
   authPath : Fin treeHeight → Digest
 deriving DecidableEq
 
