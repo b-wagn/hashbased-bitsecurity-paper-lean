@@ -65,6 +65,21 @@ and the requests charged and `q = 3`, the adversary signs once without hashing o
 signing; the two cases are weighted by the probability of signing, for at most
 `45 / 2^128 + 3 / 2^256`.
 
+## Correctness
+
+`Statement/Security/Correctness.lean` defines the correctness experiment of the manuscript: the
+adversary adaptively requests signatures, a repeated epoch is answered by `⊥`, and the experiment
+outputs `1` if a request is answered by `⊥` or by a signature that does not verify. The
+correctness error is at most `δ` if every adversary making at most `q` signing requests outputs
+`1` with probability at most `δ · q`; its hash queries are not limited.
+
+`xmssChecksum_correct` (`Statement/CorrectnessTheorems.lean`) proves that the checksum scheme has
+correctness error `0`. With the target sum, signing fails when all `2^32` randomizers give digests
+that do not decode. That probability is astronomically small, but bounding it against an adversary
+with unlimited hash queries, which may learn the master seed and search for a bad message, needs
+a union bound over all messages that is not formalized; the target-sum scheme has no correctness
+theorem yet.
+
 ## Layout
 
 * `Statement/`: the definitions (security games, bit security, the scheme) and the four theorem
@@ -88,6 +103,7 @@ implementation and cannot replace an audit.
 |---|---|
 | `xmssTargetSum_sufCma_exact`, `xmssChecksum_sufCma_exact` | `Statement/StrongUnforgeabilityTheorems.lean` |
 | `xmssTargetSum_eufCma_exact`, `xmssChecksum_eufCma_exact` | `Statement/UnforgeabilityTheorems.lean` |
+| `xmssChecksum_correct` | `Statement/CorrectnessTheorems.lean` |
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing queries count as the adversary's work. The probability is over the
@@ -102,12 +118,12 @@ lake build          # strong and standard security proofs, attacks, and axiom gu
 
 Toolchain: Lean `v4.31.0`; VCVio pinned to `cbd4144` in `lakefile.toml`.
 
-`lake build` builds the single `XmssSecurity` library. Its root module imports both theorem
-files, so all four classifications, including the matching attacks, are checked in the same
-build.
+`lake build` builds the single `XmssSecurity` library. Its root module imports the three theorem
+files, so the four classifications, including the matching attacks, and the correctness theorem
+are checked in the same build.
 To check that the statement layer imports the proof layer only through the theorem files, run
 `scripts/check_statement_imports.sh`.
 
 The main theorems depend only on `propext`, `Classical.choice`, and `Quot.sound`.
-Both theorem files check this with `#guard_msgs`, so the build fails if a `sorry`
+The theorem files check this with `#guard_msgs`, so the build fails if a `sorry`
 or a nonstandard axiom enters.

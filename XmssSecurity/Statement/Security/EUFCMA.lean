@@ -3,9 +3,9 @@ import XmssSecurity.Statement.Security.SUFCMA
 /-!
 # Standard unforgeability under chosen-message attacks
 
-The experiment `EUFCMA_SIG(A)` of Definition 2 of the manuscript: the experiment
-`SUFCMA_SIG(A)` of `SUFCMA.lean`, with the same oracles and the same query counts, except that
-a forgery must be for an epoch/message pair `(ep*, m*)` that is not in the table `Signed`, i.e. for
+The experiment `EUFCMA_SIG(A)` of the definition of unforgeability of the manuscript: the experiment
+`SUFCMA_SIG(A)` of `SUFCMA.lean`, with the same oracles and the same query counts, except that a
+forgery must be for an epoch/message pair `(ep*, m*)` that is not in the table `Signed`, i.e. for
 which `(m*, σ) ≠ Signed[ep*]` for every `σ ∈ Σ ∪ {⊥}`. A request counts as submitted even if the
 signer returned `⊥`. Changing only the signature on a previously requested pair does not win.
 -/

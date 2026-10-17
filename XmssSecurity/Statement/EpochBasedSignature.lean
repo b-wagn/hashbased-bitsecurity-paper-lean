@@ -14,7 +14,8 @@ random-oracle model, `spec` provides private uniform sampling and the hash oracl
 XMSS only key generation samples, and signing and verification are deterministic given the
 oracle.
 
-Correctness (the paper's correctness error `δ`) is not part of the statements of this development.
+Correctness, the correctness error `δ` of the manuscript, is defined by an experiment in
+`Security/Correctness.lean`.
 -/
 
 open OracleComp OracleSpec

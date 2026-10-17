@@ -7,8 +7,8 @@ import VCVio.OracleComp.QueryTracking.CostModel
 /-!
 # Strong unforgeability under chosen-message attacks
 
-The experiment `SUFCMA_SIG(A)` of Definition 2 of the manuscript, for an epoch-based signature
-scheme `SIG = (Gen, Sig, Ver)` in the random-oracle model and an adversary `A`:
+The experiment `SUFCMA_SIG(A)` of the definition of unforgeability of the manuscript, for an
+epoch-based signature scheme `SIG = (Gen, Sig, Ver)` in the random-oracle model and an adversary `A`:
 
 1. generate keys `(pk, sk) ← Gen`;
 2. run `A` on `pk`, with access to the hash oracle, private uniform sampling, and the signing

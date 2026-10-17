@@ -1,5 +1,6 @@
 import XmssSecurity.Statement.StrongUnforgeabilityTheorems
 import XmssSecurity.Statement.UnforgeabilityTheorems
+import XmssSecurity.Statement.CorrectnessTheorems
 
 /-!
 # Security of XMSS in the random-oracle model
@@ -18,4 +19,7 @@ otherwise 122 bits (SUF-CMA), or 126 bits for `{hash}` and 127 bits for `{hash, 
 With the checksum: exactly 127 bits when key generation or verification hashes are charged;
 otherwise 124 bits when the signer's hashes and the signing requests are charged, 123 bits when
 only the signer's hashes are, and 122 bits when neither is, under both notions.
+
+It also checks `xmssChecksum_correct` (`Statement/CorrectnessTheorems.lean`): the checksum scheme
+has correctness error `0`.
 -/
