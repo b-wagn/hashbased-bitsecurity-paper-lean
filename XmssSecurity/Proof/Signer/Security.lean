@@ -1,5 +1,6 @@
 import XmssSecurity.Proof.Modes.Keygen
 import XmssSecurity.Proof.Modes.Projection
+import XmssSecurity.Proof.NoSign.SignerBridge
 
 /-!
 # Security when the signer's hash calls are charged
@@ -76,18 +77,47 @@ theorem signer_advantage_le_of_loss (requests : Bool) (bits : ℕ) (hbits : bits
   exact (Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
     (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))).trans (hloss hq)
 
+/-- The no-signature loss `(2q + 2) / 2^128 + q / 2^256` is below `q / 2^bits` when
+`2q + 3 ≤ 2^(128 - bits) q`; stated for the two levels used. -/
+theorem noSignLoss_le (q bits : ℕ) (hq : 1 ≤ q) (hbits : bits ≤ 124) :
+    ((2 * q + 2 : ℕ) : ℝ≥0∞) * NoSign.digestInverse + q / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤
+      (q : ℝ≥0∞) / ((2 ^ bits : ℕ) : ℝ≥0∞) := by
+  have hq' : (1 : ℝ) ≤ q := by exact_mod_cast hq
+  have hpow : (2 : ℝ) ^ bits ≤ 2 ^ 124 := pow_le_pow_right₀ (by norm_num) hbits
+  unfold NoSign.digestInverse
+  apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+  simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_div, ENNReal.toReal_mul,
+    ENNReal.toReal_inv, ENNReal.toReal_natCast]
+  push_cast
+  simp only [digestBits]
+  have hsmall : (q : ℝ) / 2 ^ 256 ≤ q / 2 ^ 128 :=
+    div_le_div_of_nonneg_left (by positivity) (by positivity) (by norm_num)
+  have hlevel : (q : ℝ) / 2 ^ 124 ≤ q / 2 ^ bits :=
+    div_le_div_of_nonneg_left (by positivity) (by positivity) hpow
+  have hsum : ((2 : ℝ) * (q : ℝ) + 2) / (2 : ℝ) ^ 128 + (q : ℝ) / (2 : ℝ) ^ 128 =
+      (3 * (q : ℝ) + 2) / (2 : ℝ) ^ 128 := by ring
+  have hmain : (3 * (q : ℝ) + 2) / (2 : ℝ) ^ 128 ≤ (q : ℝ) / (2 : ℝ) ^ 124 := by
+    rw [div_le_div_iff₀ (by positivity) (by positivity)]
+    nlinarith
+  rw [← div_eq_mul_inv]
+  linarith
+
 theorem sufCmaSigner_123 :
     (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 123 := by
   intro q hq adversary hbound
   by_cases hsmall : q = 1
-  · sorry
+  · exact (NoSign.signer_small_advantage_le false adversary q (by simp [hsmall]) hbound).trans
+      (noSignLoss_le q 123 hq (by norm_num))
   · exact signer_advantage_le_of_loss false 123 (by norm_num) adversary q hbound
       (sharedDecidingLoss_le_123 q (by omega))
 
 theorem sufCmaSignerRequests_124 :
     (SUFCMA.notion ⟨false, true, false, true⟩).HasClassicalSecurityBits xmss 124 := by
   intro q hq adversary hbound
-  by_cases hsmall : q ≤ 3
+  by_cases hsmall : q ≤ 2
+  · exact (NoSign.signer_small_advantage_le true adversary q (by simp; omega) hbound).trans
+      (noSignLoss_le q 124 hq le_rfl)
+  by_cases hthree : q = 3
   · sorry
   · exact signer_advantage_le_of_loss true 124 (by norm_num) adversary q hbound
       (sharedDecidingLoss_le_124 q (by omega))
