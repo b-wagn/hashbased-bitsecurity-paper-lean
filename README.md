@@ -1,7 +1,8 @@
 # Security of XMSS in the random-oracle model, in Lean 4
 
 Machine-checked security statements and proofs for the XMSS instance of Ethereum's
-post-quantum consensus, in Lean 4 using [VCVio](https://github.com/Verified-zkEVM/VCVio).
+post-quantum consensus with the one-time signature replaced by WOTS with a checksum, as in
+SLH-DSA (FIPS 205), in Lean 4 using [VCVio](https://github.com/Verified-zkEVM/VCVio).
 The development started from the 127-bit SUF-CMA proof in
 [leanEthereum/leanVM](https://github.com/leanEthereum/leanVM/tree/main/formal/xmss) and
 separates *what is claimed* from *why it holds*.
@@ -23,9 +24,20 @@ sixteen modes with `q_H ∈ Z`.
 
 | Counting mode `Z` (with `q_H ∈ Z`) | Strong SUF-CMA | Standard EUF-CMA |
 |---|---|---|
-| `{q_H}` | exactly 122 bits | exactly 126 bits |
-| `{q_H, q_S}` | exactly 122 bits | exactly 127 bits |
-| `Z` contains `q_Gen`, `q_Sig`, or `q_Ver` (14 modes) | exactly 127 bits | exactly 127 bits |
+| `{q_H}`, `{q_H, q_S}` | exactly 122 bits | exactly 122 bits |
+| `{q_H, q_Sig}` | exactly 123 bits | exactly 123 bits |
+| `{q_H, q_S, q_Sig}` | exactly 124 bits | exactly 124 bits |
+| `Z` contains `q_Gen` or `q_Ver` (12 modes) | exactly 127 bits | exactly 127 bits |
+
+The encoding (`Statement/Scheme/Checksum.lean`) reads a 128-bit digest as `len_1 = 43` digits of
+`w = 3` bits and appends the `len_2 = 3` base-8 digits of the checksum `Σ (7 - x_i)`, for
+`v = 46` chains. Every digest encodes, so the signer makes a single attempt and costs two hash
+calls (the randomizer and the encoding).
+
+*Status (work in progress).* Two cases are still open: the budget `q = 1` when the signer's hash
+calls are charged, and the budgets `q ≤ 3` when the signer's hash calls and the signing queries
+are charged (`Proof/Signer/Security.lean`). Until they are closed, the axiom checks in the two
+theorem files fail.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any
@@ -37,8 +49,8 @@ implementation and cannot replace an audit.
 
 | Theorem | File | Result |
 |---|---|---|
-| `xmss_sufCma_exact` | `Statement/StrongUnforgeabilityTheorems.lean` | SUF-CMA, every `Z` with `q_H ∈ Z`: exactly 127 bits if `Z` contains `q_Gen`, `q_Sig`, or `q_Ver`, else exactly 122 bits |
-| `xmss_eufCma_exact` | `Statement/UnforgeabilityTheorems.lean` | EUF-CMA, every `Z` with `q_H ∈ Z`: exactly 126 bits if `Z = {q_H}`, else exactly 127 bits |
+| `xmss_sufCma_exact` | `Statement/StrongUnforgeabilityTheorems.lean` | SUF-CMA, every `Z` with `q_H ∈ Z`: exactly 127 bits if `Z` contains `q_Gen` or `q_Ver`, else 124 bits if it contains `q_Sig` and `q_S`, 123 bits if it contains `q_Sig`, and 122 bits otherwise |
+| `xmss_eufCma_exact` | `Statement/UnforgeabilityTheorems.lean` | EUF-CMA, the same levels |
 
 
 
