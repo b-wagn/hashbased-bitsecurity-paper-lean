@@ -34,10 +34,12 @@ The encoding (`Statement/Scheme/Checksum.lean`) reads a 128-bit digest as `len_1
 `v = 46` chains. Every digest encodes, so the signer makes a single attempt and costs two hash
 calls (the randomizer and the encoding).
 
-*Status (work in progress).* Two cases are still open: the budget `q = 1` when the signer's hash
-calls are charged, and the budgets `q ≤ 3` when the signer's hash calls and the signing queries
-are charged (`Proof/Signer/Security.lean`). Until they are closed, the axiom checks in the two
-theorem files fail.
+Small budgets in the signer modes, where the adversary can afford at most one signature, use a
+separate argument (`Proof/NoSign/`): an adversary that does not sign must forge the honest top
+sibling of the Merkle tree, which it never sees, or make a fresh top query collide with the root,
+so it wins with probability at most `(2q + 2) / 2^128`. With the signer and the requests charged
+and `q = 3`, the adversary signs once without hashing or hashes without signing; the two cases
+are weighted by the probability of signing, for at most `45 / 2^128`.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any

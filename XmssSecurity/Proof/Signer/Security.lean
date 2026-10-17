@@ -1,6 +1,6 @@
 import XmssSecurity.Proof.Modes.Keygen
 import XmssSecurity.Proof.Modes.Projection
-import XmssSecurity.Proof.NoSign.SignerBridge
+import XmssSecurity.Proof.NoSign.ThreeBudget
 
 /-!
 # Security when the signer's hash calls are charged
@@ -10,9 +10,11 @@ charged. A signing request costs the signer two hash calls, so the adversary's o
 are at most its budget `q`, and the direct-query loss `(2q + 43) / 2^128` of
 `Direct.sharedDecidingLoss` is below `q / 2^123` for `q ≥ 2` and below `q / 2^124` for `q ≥ 4`.
 
-TODO (work in progress): the budgets `q = 1` when the signer is charged and `q ≤ 3` when the
-signer and the requests are charged, where the adversary can afford at most one signature and
-the loss above is too large.
+The smaller budgets, where the adversary can afford at most one signature, use `Proof/NoSign/`:
+below the cost of a request the adversary never signs and wins with probability at most
+`(2q + 2) / 2^128 + q / 2^256` (`NoSign.signer_small_advantage_le`), and at the budget `3` of one
+request with the requests charged, at most `45 / 2^128 + 3 / 2^256`
+(`NoSign.signerRequests_three_advantage_le`).
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -118,7 +120,13 @@ theorem sufCmaSignerRequests_124 :
   · exact (NoSign.signer_small_advantage_le true adversary q (by simp; omega) hbound).trans
       (noSignLoss_le q 124 hq le_rfl)
   by_cases hthree : q = 3
-  · sorry
+  · subst hthree
+    refine (NoSign.signerRequests_three_advantage_le adversary hbound).trans ?_
+    unfold NoSign.digestInverse
+    apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
+    simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_div, ENNReal.toReal_mul,
+      ENNReal.toReal_inv, ENNReal.toReal_natCast]
+    norm_num [digestBits]
   · exact signer_advantage_le_of_loss true 124 (by norm_num) adversary q hbound
       (sharedDecidingLoss_le_124 q (by omega))
 
