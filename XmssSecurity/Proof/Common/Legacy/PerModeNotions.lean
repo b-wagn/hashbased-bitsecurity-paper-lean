@@ -1,4 +1,4 @@
-import XmssSecurity.Statement.Security.EUFCMA
+import XmssSecurity.Proof.Common.LossyGames
 
 /-!
 # The per-mode formulation of the security notions
@@ -6,8 +6,8 @@ import XmssSecurity.Statement.Security.EUFCMA
 The formulation of bit security and of SUF-CMA and EUF-CMA that the proofs were written against:
 one `SecurityNotion` per counting mode, whose experiment returns the winning bit and the single
 number of queries charged under that mode (`gameCounted`, `notion`). The statement layer instead
-has one experiment per notion returning a count per kind of query (`SUFCMA.experiment`,
-`EUFCMA.experiment`) and lets bit security sum the kinds of a counting mode;
+has one experiment per notion returning a count per kind of query (`SUFCMA.lossyExperiment`,
+`EUFCMA.lossyExperiment` of `LossyGames.lean`) and lets bit security sum the kinds of a counting mode;
 `Proof/Modes/QueryKinds.lean` proves the two formulations equivalent. The EUF-CMA part is in
 `PerModeNotionsEUFCMA.lean`.
 

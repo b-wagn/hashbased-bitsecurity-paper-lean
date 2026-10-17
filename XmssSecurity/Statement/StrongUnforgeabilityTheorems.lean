@@ -2,9 +2,9 @@ import XmssSecurity.Statement.BitSecurity
 import XmssSecurity.Statement.Security.SUFCMA
 import XmssSecurity.Statement.Scheme.TargetSum
 import XmssSecurity.Statement.Scheme.Checksum
-import XmssSecurity.Proof.TargetSum.Main.StrongUnforgeability
+import XmssSecurity.Proof.TargetSum.Main.PaperGames
 import XmssSecurity.Proof.TargetSum.Scheme.Bridge
-import XmssSecurity.Proof.Checksum.Main.StrongUnforgeability
+import XmssSecurity.Proof.Checksum.Main.PaperGames
 import XmssSecurity.Proof.Checksum.Scheme.Bridge
 
 /-!

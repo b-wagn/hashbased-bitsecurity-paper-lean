@@ -46,8 +46,8 @@ theorem eufCma_exact (mode : CountingMode) :
 
 /-- The classification for counting modes given as sets of query kinds containing the adversary's
 own hash queries. -/
-theorem eufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
-    (EUFCMA.securityGame).HasExactClassicalSecurityBits xmss Z
+theorem lossyEufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
+    (EUFCMA.lossyGame).HasExactClassicalSecurityBits xmss Z
       (if QueryKind.keygen ∈ Z ∨ QueryKind.signer ∈ Z ∨ QueryKind.verifier ∈ Z ∨
         QueryKind.sign ∈ Z then 127 else 126) := by
   rw [Modes.eufHasExactClassicalSecurityBits_iff Z hZ]

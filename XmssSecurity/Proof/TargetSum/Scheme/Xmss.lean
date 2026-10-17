@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.TargetSum.Scheme.Construction
-import XmssSecurity.Statement.Security.SUFCMA
+import XmssSecurity.Proof.Common.LossyGames
 
 /-!
 # XMSS as an epoch-based signature scheme (proof copy for the target-sum encoding)

@@ -127,8 +127,8 @@ theorem sufCma_exact (mode : CountingMode) :
 
 /-- The classification for counting modes given as sets of query kinds containing the adversary's
 own hash queries. -/
-theorem sufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
-    (SUFCMA.securityGame).HasExactClassicalSecurityBits xmss Z
+theorem lossySufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
+    (SUFCMA.lossyGame).HasExactClassicalSecurityBits xmss Z
       (if QueryKind.keygen ∈ Z ∨ QueryKind.signer ∈ Z ∨ QueryKind.verifier ∈ Z then 127 else 122) := by
   rw [Modes.hasExactClassicalSecurityBits_iff Z hZ]
   have hbits : (if (Modes.modeOf Z).keygen || (Modes.modeOf Z).signer || (Modes.modeOf Z).verifier

@@ -11,11 +11,11 @@ The library proves the exact classical bit security of both schemes for **all 16
 that charge the adversary's own hash queries**, under both strong (SUF-CMA) and standard
 (EUF-CMA) unforgeability. Each classification is one theorem, in
 `XmssSecurity/Statement/StrongUnforgeabilityTheorems.lean` and
-`XmssSecurity/Statement/UnforgeabilityTheorems.lean`. A standard forgery must use an
-epoch/message pair never requested from the signer, including requests that returned no
-signature. In both games a transcript that requests two signatures for the same epoch loses, and
-private uniform sampling is free: only hash calls, and signing requests where the mode says so,
-are charged.
+`XmssSecurity/Statement/UnforgeabilityTheorems.lean`. As in the manuscript, the signing oracle
+answers a request for an epoch it already signed by `⊥`, without running the signer. A standard
+forgery must use an epoch/message pair never requested from the signer, including requests that
+returned no signature. Private uniform sampling is free: only hash calls, and signing requests
+where the mode says so, are charged.
 
 As in the manuscript, each notion has a single experiment that outputs whether the adversary
 wins together with five query counts: the adversary's signing queries `q_S` and direct hash
@@ -69,7 +69,11 @@ signing; the two cases are weighted by the probability of signing, for at most
 
 * `Statement/`: the definitions (security games, bit security, the scheme) and the four theorem
   statements. Only the theorem files import the proof layer.
-* `Proof/Common/`: proofs that do not depend on the scheme (counting modes, query counting).
+* `Proof/Common/`: proofs that do not depend on the scheme (counting modes, query counting). The
+  proofs were written for a variant of the games in which a repeated epoch makes the forgery lose
+  (`LossyGames.lean`); `RepeatedEpochs.lean` transfers them to the statement's games: an
+  adversary that answers its own repeated requests by `⊥` wins the variant with the same
+  probability and is charged no more, and every attack makes a single signing request.
 * `Proof/TargetSum/` and `Proof/Checksum/`: the proofs for each scheme. Each works with a copy of
   the construction specialized to its encoding (`Scheme/`), and `Scheme/Bridge.lean` proves that
   the copy is the statement's scheme.

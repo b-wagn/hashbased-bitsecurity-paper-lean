@@ -4,12 +4,14 @@ import XmssSecurity.Proof.Common.EUFCMA.Modes
 /-!
 # Counting modes as sets of query kinds
 
-The statement layer has one experiment per notion, returning a count per `QueryKind`, and a
-counting mode is a set `Z` of kinds whose counts are summed (`SecurityGame`). The proofs use the
-per-mode formulation of `Proof/Legacy/PerModeNotions.lean`: one notion per `CountingMode`, whose
-experiment returns the single charged number. This file proves the two formulations equivalent
-for every set `Z` containing the adversary's own hash queries: the statement's experiment is
-`gameDetailed` (by definition), and summing the kinds in `Z` is the weight of the mode `modeOf Z`.
+The statement layer has one experiment per notion, returning a count per `QueryKind`, and a counting
+mode is a set `Z` of kinds whose counts are summed (`SecurityGame`). This file works with the
+variant `lossyGame` of the statement's game in which a repeated epoch loses (`LossyGames.lean`). The
+proofs use the per-mode formulation of `Proof/Legacy/PerModeNotions.lean`: one notion per
+`CountingMode`, whose experiment returns the single charged number. This file proves the two
+formulations equivalent for every set `Z` containing the adversary's own hash queries: the
+experiment of `lossyGame` is `gameDetailed` (by definition), and summing the kinds in `Z` is the
+weight of the mode `modeOf Z`.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -44,7 +46,7 @@ variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Inp
 /-- The statement's experiment is the per-kind experiment of the proofs. -/
 lemma experiment_eq_gameDetailed {ι : Type} {spec : OracleSpec ι} (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    SUFCMA.experiment cost scheme adversary = gameDetailed cost scheme adversary := rfl
+    SUFCMA.lossyExperiment cost scheme adversary = gameDetailed cost scheme adversary := rfl
 
 /-- The per-mode experiment of `modeOf Z` is the statement's experiment with the counts of the
 kinds in `Z` summed. -/
@@ -53,7 +55,7 @@ lemma notion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (notion (modeOf Z)).experiment scheme adversary =
       (fun r => (r.1, ∑ kind ∈ Z, r.2 kind)) <$>
-        (SUFCMA.securityGame (PK := PK) (SK := SK)).experiment scheme adversary := by
+        (SUFCMA.lossyGame (PK := PK) (SK := SK)).experiment scheme adversary := by
   rw [experiment_notion_eq]
   simp only [sum_eq_weight Z hZ]
   rfl
@@ -62,17 +64,17 @@ lemma notion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
 theorem hasClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) :
-    (SUFCMA.securityGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits ↔
+    (SUFCMA.lossyGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits ↔
       (notion (modeOf Z)).HasClassicalSecurityBits scheme bits := by
   have hadv : ∀ adversary,
-      (SUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
+      (SUFCMA.lossyGame (PK := PK) (SK := SK)).advantage scheme adversary =
         (notion (modeOf Z)).advantage scheme adversary := by
     intro adversary
     simp only [SecurityGame.advantage, SecurityNotion.advantage,
       notion_experiment_eq Z hZ scheme adversary, probEvent_map]
     rfl
   have hbound : ∀ adversary q,
-      (SUFCMA.securityGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q ↔
+      (SUFCMA.lossyGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q ↔
         (notion (modeOf Z)).HasQueryBound scheme adversary q := by
     intro adversary q
     simp only [SecurityGame.HasQueryBound, SecurityNotion.HasQueryBound,
@@ -92,7 +94,7 @@ per-mode notion. -/
 theorem hasExactClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) :
-    (SUFCMA.securityGame (PK := PK) (SK := SK)).HasExactClassicalSecurityBits scheme Z bits ↔
+    (SUFCMA.lossyGame (PK := PK) (SK := SK)).HasExactClassicalSecurityBits scheme Z bits ↔
       (notion (modeOf Z)).HasExactClassicalSecurityBits scheme bits := by
   simp only [SecurityGame.HasExactClassicalSecurityBits,
     SecurityNotion.HasExactClassicalSecurityBits, hasClassicalSecurityBits_iff Z hZ]
@@ -107,7 +109,7 @@ variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Inp
 /-- The statement's EUF-CMA experiment is the per-kind experiment of the proofs. -/
 lemma eufExperiment_eq_gameDetailed {ι : Type} {spec : OracleSpec ι} (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    EUFCMA.experiment cost scheme adversary = EUFCMA.gameDetailed cost scheme adversary := rfl
+    EUFCMA.lossyExperiment cost scheme adversary = EUFCMA.gameDetailed cost scheme adversary := rfl
 
 /-- The per-mode EUF-CMA experiment of `modeOf Z` is the statement's experiment with the counts
 of the kinds in `Z` summed. -/
@@ -116,7 +118,7 @@ lemma eufNotion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
     (EUFCMA.notion (modeOf Z)).experiment scheme adversary =
       (fun r => (r.1, ∑ kind ∈ Z, r.2 kind)) <$>
-        (EUFCMA.securityGame (PK := PK) (SK := SK)).experiment scheme adversary := by
+        (EUFCMA.lossyGame (PK := PK) (SK := SK)).experiment scheme adversary := by
   rw [EUFCMA.experiment_notion_eq]
   simp only [sum_eq_weight Z hZ]
   rfl
@@ -126,17 +128,17 @@ notion. -/
 theorem eufHasClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) :
-    (EUFCMA.securityGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits ↔
+    (EUFCMA.lossyGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits ↔
       (EUFCMA.notion (modeOf Z)).HasClassicalSecurityBits scheme bits := by
   have hadv : ∀ adversary,
-      (EUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
+      (EUFCMA.lossyGame (PK := PK) (SK := SK)).advantage scheme adversary =
         (EUFCMA.notion (modeOf Z)).advantage scheme adversary := by
     intro adversary
     simp only [SecurityGame.advantage, SecurityNotion.advantage,
       eufNotion_experiment_eq Z hZ scheme adversary, probEvent_map]
     rfl
   have hbound : ∀ adversary q,
-      (EUFCMA.securityGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q ↔
+      (EUFCMA.lossyGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q ↔
         (EUFCMA.notion (modeOf Z)).HasQueryBound scheme adversary q := by
     intro adversary q
     simp only [SecurityGame.HasQueryBound, SecurityNotion.HasQueryBound,
@@ -156,7 +158,7 @@ per-mode notion. -/
 theorem eufHasExactClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) :
-    (EUFCMA.securityGame (PK := PK) (SK := SK)).HasExactClassicalSecurityBits scheme Z bits ↔
+    (EUFCMA.lossyGame (PK := PK) (SK := SK)).HasExactClassicalSecurityBits scheme Z bits ↔
       (EUFCMA.notion (modeOf Z)).HasExactClassicalSecurityBits scheme bits := by
   simp only [SecurityGame.HasExactClassicalSecurityBits,
     SecurityNotion.HasExactClassicalSecurityBits, eufHasClassicalSecurityBits_iff Z hZ]

@@ -38,8 +38,8 @@ theorem exactLevel_modeOf (Z : Finset QueryKind) :
 
 /-- The classification for counting modes given as sets of query kinds containing the adversary's
 own hash queries. -/
-theorem sufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
-    (SUFCMA.securityGame).HasExactClassicalSecurityBits xmss Z
+theorem lossySufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
+    (SUFCMA.lossyGame).HasExactClassicalSecurityBits xmss Z
       (if QueryKind.keygen ∈ Z ∨ QueryKind.verifier ∈ Z then 127
       else if QueryKind.signer ∈ Z ∧ QueryKind.sign ∈ Z then 124
       else if QueryKind.signer ∈ Z then 123

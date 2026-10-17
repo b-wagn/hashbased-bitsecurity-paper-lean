@@ -12,20 +12,22 @@ scheme `SIG = (Gen, Sig, Ver)` in the random-oracle model and an adversary `A`:
 
 1. generate keys `(pk, sk) ← Gen`;
 2. run `A` on `pk`, with access to the hash oracle, private uniform sampling, and the signing
-   oracle `Sig(ep, m)`, which answers by `Sig(sk, ep, m)` (a signature, or `⊥` if the signer
-   fails) and records the request and the answer;
+   oracle `Sig(ep, m)`: if `Signed[ep] ≠ ⊥`, it returns `⊥`; otherwise it computes
+   `σ ← Sig(sk, ep, m)` (a signature, or `⊥` if the signer fails), sets `Signed[ep] := (m, σ)`,
+   and returns `σ`;
 3. obtain from `A` a forgery `(ep*, m*, σ*)`;
-4. determine winning: `v = 1` if `Ver(pk, ep*, m*, σ*) = 1`, the signing oracle never answered the
-   request `(ep*, m*)` with `σ*`, and no epoch was requested twice; otherwise `v = 0`;
+4. determine winning: `v = 1` if `Ver(pk, ep*, m*, σ*) = 1` and `(m*, σ*) ≠ Signed[ep*]`;
+   otherwise `v = 0`;
 5. count queries, one count per `QueryKind`: the signing queries of `A` (`q_S`), the hash queries
    `A` made directly (`q_H`), and the hash queries of key generation (`q_Gen`), of the signer
    summed over all signing queries (`q_Sig`), and of the verification in step 4 (`q_Ver`);
 6. output `v` and the counts.
 
-The signing oracle answers every request, but a transcript with two requests for the same epoch
-makes the forgery lose (`SigningTranscript.Valid`): the honest signer never signs twice for the
-same epoch. The adversary has no verification oracle; the only verification is the experiment's
-final check. Every hash call counts one unit, also for a repeated input; uniform sampling is free.
+The honest signer never signs twice for the same epoch: a second request for an epoch is answered
+by `⊥` without running the signer. It still counts as a signing query, and the signer makes no hash
+query for it. The table `Signed` is the list of the answered requests, in order. The adversary has
+no verification oracle; the only verification is the experiment's final check. Every hash call
+counts one unit, also for a repeated input; uniform sampling is free.
 
 `securityGame` is this experiment in the random-oracle model, as a `SecurityGame`
 (`BitSecurity.lean`); a counting mode then selects which of the counts form the adversary's work.
@@ -60,16 +62,9 @@ abbrev SigningSpec (Msg Sig : Type) (L : ℕ) : OracleSpec (SignRequest Msg L) :
 
 namespace SigningTranscript
 
-/-- No epoch is requested twice. The adversary may request signatures adaptively, but a transcript
-with two requests at the same epoch cannot win. -/
-def Valid (log : QueryLog (SigningSpec Msg Sig L)) : Prop :=
-  (log.map fun entry => entry.1.epoch).Nodup
-
-instance (log : QueryLog (SigningSpec Msg Sig L)) : Decidable (Valid log) :=
-  inferInstanceAs (Decidable ((log.map fun entry => entry.1.epoch).Nodup))
-
-/-- The signer answered the forgery's request with the forgery's signature. A different signature
-for a requested epoch and message is therefore a valid strong forgery. -/
+/-- The signer answered the forgery's request with the forgery's signature:
+`(m*, σ*) = Signed[ep*]`. A different signature for a requested epoch and message is therefore a
+valid strong forgery. -/
 def Contains [DecidableEq Msg] [DecidableEq Sig] (log : QueryLog (SigningSpec Msg Sig L))
     (forgery : Forgery Msg Sig L) : Prop :=
   ∃ entry ∈ log, entry.1 = forgery.request ∧ entry.2 = some forgery.signature
@@ -118,45 +113,56 @@ oracle, and returns a claimed forgery. -/
 structure Adversary {ι : Type} (spec : OracleSpec ι) (PK Msg Sig : Type) (L : ℕ) where
   main : PK → OracleComp (spec + SigningSpec Msg Sig L) (Forgery Msg Sig L)
 
-/-- The adversary's run in the experiment: the counts so far, the signing log, and the ambient
-oracles. -/
+/-- The adversary's run in the experiment: the counts so far, the table `Signed` of answered
+requests, and the ambient oracles. -/
 abbrev CountedRun (spec : OracleSpec ι) (Msg Sig : Type) (L : ℕ) : Type → Type :=
-  AddWriterT QueryCounts (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
+  AddWriterT QueryCounts (StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
 
-/-- The signing oracle `Sig(ep, m)` of the experiment: answer by `Sig(sk, ep, m)`, count one
-signing query and the signer's hash queries (each at `cost`), and record the request and the
-answer. -/
+/-- Whether the table `Signed` has an entry at epoch `ep`, i.e. `Signed[ep] ≠ ⊥`. -/
+def SigningTranscript.Signed (signed : QueryLog (SigningSpec Msg Sig L)) (epoch : Fin L) : Bool :=
+  signed.any fun entry => decide (entry.1.epoch = epoch)
+
+/-- The signing oracle `Sig(ep, m)` of the experiment. It counts one signing query. If
+`Signed[ep] ≠ ⊥`, it returns `⊥`. Otherwise it answers by `Sig(sk, ep, m)`, counts the signer's
+hash queries (each at `cost`), and records the request and the answer as `Signed[ep]`. -/
 def countedSigningOracle (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L) (sk : SK) :
     QueryImpl (SigningSpec Msg Sig L) (CountedRun spec Msg Sig L) :=
   fun request => do
-    let (answer, signerCounts) ← liftM (countQueries (fun t => QueryCounts.single .signer (cost t))
-      (scheme.sign sk request.epoch request.message))
-    AddWriterT.addTell (M := WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
-      (QueryCounts.single .sign 1 + signerCounts)
-    liftM (tell [⟨request, answer⟩] : WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec) Unit)
-    return answer
+    AddWriterT.addTell (M := StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
+      (QueryCounts.single .sign 1)
+    let signed ← liftM (get : StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec) _)
+    if SigningTranscript.Signed signed request.epoch then
+      return none
+    else
+      let (answer, signerCounts) ← liftM (countQueries
+        (fun t => QueryCounts.single .signer (cost t)) (scheme.sign sk request.epoch request.message))
+      AddWriterT.addTell (M := StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
+        signerCounts
+      liftM (set (signed ++ [⟨request, answer⟩]) :
+        StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec) Unit)
+      return answer
 
 /-- The experiment `SUFCMA_SIG(A)`: key generation, the adversary with the ambient oracles and the
-signing oracle, and verification of the forgery. It returns the winning bit `v` and the count of
-each kind of query, where every query of the ambient oracles counts `cost` (in the random-oracle
-model: one per hash call, none per uniform sample). -/
+signing oracle, starting from the empty table `Signed`, and verification of the forgery. It
+returns the winning bit `v` and the count of each kind of query, where every query of the ambient
+oracles counts `cost` (in the random-oracle model: one per hash call, none per uniform sample). -/
 def experiment [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × QueryCounts) := do
   let ((pk, sk), keygenCounts) ←
     countQueries (fun t => QueryCounts.single .keygen (cost t)) scheme.keygen
-  let (((forgery, adversaryCounts), log) :
+  let (((forgery, adversaryCounts), signed) :
       (Forgery Msg Sig L × Multiplicative QueryCounts) × QueryLog (SigningSpec Msg Sig L)) ←
-    (simulateQ
+    ((simulateQ
       ((QueryImpl.ofLift spec
-          (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost
+          (StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost
             (fun t => QueryCounts.single .hash (cost t)) +
         countedSigningOracle cost scheme sk)
-      (adversary.main pk)).run.run
+      (adversary.main pk)).run.run [])
   let (verified, verifierCounts) ← countQueries (fun t => QueryCounts.single .verifier (cost t))
     (scheme.verify pk forgery.epoch forgery.message forgery.signature)
-  return (decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified,
+  return (decide (¬SigningTranscript.Contains signed forgery) && verified,
     keygenCounts + Multiplicative.toAdd adversaryCounts + verifierCounts)
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
