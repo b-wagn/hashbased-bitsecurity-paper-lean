@@ -20,6 +20,7 @@ With the checksum: exactly 127 bits when key generation or verification hashes a
 otherwise 124 bits when the signer's hashes and the signing requests are charged, 123 bits when
 only the signer's hashes are, and 122 bits when neither is, under both notions.
 
-It also checks `xmssChecksum_correct` (`Statement/CorrectnessTheorems.lean`): the checksum scheme
-has correctness error `0`.
+It also checks `xmssTargetSum_correct` and `xmssChecksum_correct`
+(`Statement/CorrectnessTheorems.lean`): the target-sum scheme has correctness error at most
+`2^-64864`, and the checksum scheme has correctness error `0`.
 -/

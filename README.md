@@ -74,11 +74,15 @@ correctness error is at most `δ` if every adversary making at most `q` signing 
 `1` with probability at most `δ · q`; its hash queries are not limited.
 
 `xmssChecksum_correct` (`Statement/CorrectnessTheorems.lean`) proves that the checksum scheme has
-correctness error `0`. With the target sum, signing fails when all `2^32` randomizers give digests
-that do not decode. That probability is astronomically small, but bounding it against an adversary
-with unlimited hash queries, which may learn the master seed and search for a bad message, needs
-a union bound over all messages that is not formalized; the target-sum scheme has no correctness
-theorem yet.
+correctness error `0`. `xmssTargetSum_correct` proves that the target-sum scheme has correctness
+error at most `2^-64864`. With the target sum, a signature that the signer returns verifies, and
+signing fails when all `2^32` randomizers give digests that do not decode. The adversary's hash
+queries are unlimited, so it may learn the master seed and search for a bad message. The proof
+therefore fixes a public parameter, master seed, epoch, and message, and bounds the probability
+that the final oracle answers show all trials of that request failing by
+`(1 - p + 2^32 / 2^192)^(2^32) ≤ 2^-(2^16)`, where `p > 2^-15` is the probability that a uniform
+digest decodes (`Proof/TargetSum/SigningFailure.lean`). A union bound over the `2^672` such
+tuples gives the bound (`Proof/TargetSum/CorrectnessError.lean`).
 
 ## Layout
 
@@ -103,7 +107,7 @@ implementation and cannot replace an audit.
 |---|---|
 | `xmssTargetSum_sufCma_exact`, `xmssChecksum_sufCma_exact` | `Statement/StrongUnforgeabilityTheorems.lean` |
 | `xmssTargetSum_eufCma_exact`, `xmssChecksum_eufCma_exact` | `Statement/UnforgeabilityTheorems.lean` |
-| `xmssChecksum_correct` | `Statement/CorrectnessTheorems.lean` |
+| `xmssTargetSum_correct`, `xmssChecksum_correct` | `Statement/CorrectnessTheorems.lean` |
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
 specifies which hash queries and signing queries count as the adversary's work. The probability is over the
@@ -119,7 +123,7 @@ lake build          # strong and standard security proofs, attacks, and axiom gu
 Toolchain: Lean `v4.31.0`; VCVio pinned to `cbd4144` in `lakefile.toml`.
 
 `lake build` builds the single `XmssSecurity` library. Its root module imports the three theorem
-files, so the four classifications, including the matching attacks, and the correctness theorem
+files, so the four classifications, including the matching attacks, and the correctness theorems
 are checked in the same build.
 To check that the statement layer imports the proof layer only through the theorem files, run
 `scripts/check_statement_imports.sh`.
