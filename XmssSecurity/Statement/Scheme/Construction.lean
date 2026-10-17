@@ -6,7 +6,8 @@ import VCVio.OracleComp.QueryTracking.LoggingOracle
 /-!
 # XMSS construction
 
-The algorithms of the XMSS instance specified in `doc/xmss/main.tex` of the leanVM repository:
+The algorithms of the XMSS instance specified in `doc/xmss/main.tex` of the leanVM repository,
+with its target-sum encoding replaced by the checksummed WOTS encoding of SLH-DSA (FIPS 205):
 verification, key generation, and signing. The types are in `Types.lean`, the hash routines in
 `Hashing.lean`, and the checksummed WOTS encoding in `Checksum.lean`.
 

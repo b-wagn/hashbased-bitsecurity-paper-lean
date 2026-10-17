@@ -6,7 +6,7 @@ import XmssSecurity.Statement.UnforgeabilityTheorems
 
 The public entry point for the `XmssSecurity` library. Importing this module checks the exact
 classifications of strong (SUF-CMA) and standard (EUF-CMA) unforgeability under all sixteen
-counting modes:
+counting modes that charge the adversary's own hash queries:
 
 * `xmss_sufCma_exact` (`Statement/StrongUnforgeabilityTheorems.lean`) and `xmss_eufCma_exact`
   (`Statement/UnforgeabilityTheorems.lean`): exactly 127 bits when key generation or verification

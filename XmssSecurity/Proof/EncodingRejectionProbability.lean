@@ -3,7 +3,9 @@ import XmssSecurity.Proof.PrecomputedBoundedSignProbability
 import XmssSecurity.Proof.RandomOracle
 import XmssSecurity.Proof.CappedEncodingPrehitExpectedBound
 
-/-! Failure bounds for capped encoding search, including repeated randomizers. -/
+/-! Failure bounds for the capped encoding search, including repeated randomizers. With the
+checksummed encoding every digest encodes, so rejection never happens and only repeated
+randomizers remain. -/
 
 open OracleComp OracleSpec ENNReal
 open scoped BigOperators

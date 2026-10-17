@@ -175,7 +175,8 @@ def HasSuffixCollisionWitness {α : Type} (step : ChainIndex → Nat → α → 
     (signedValue forgedValue : ChainIndex → α) : Prop :=
   ∃ position, IsSuffixCollisionAt step signedEncoding forgedEncoding signedValue forgedValue position
 
-/-- The WOTS extraction alternatives are indexed by 42 chains and exactly 99 valid suffix positions. -/
+/-- Two distinct valid encodings recovering the same endpoints give a backward witness or a suffix
+collision on some chain. -/
 theorem classify_distinct_valid_encodings {α : Type}
     (step : ChainIndex → Nat → α → α)
     (signedEncoding forgedEncoding : Encoding)

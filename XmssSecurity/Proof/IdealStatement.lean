@@ -27,7 +27,7 @@ noncomputable def precomputedSignBoundedAttempts :
       | some signature => pure (some signature)
       | none => precomputedSignBoundedAttempts attempts secretKey leafIndex message
 
-/-- `Sig(sk, idx, m)`, at most `A_max` attempts. The once-per-leaf-index discipline is the game's, in `SigningTranscript.Valid`. -/
+/-- `Sig(sk, idx, m)`, at most `A_max = signingAttemptLimit = 1` attempts, each of which succeeds. The once-per-leaf-index discipline is the game's, in `SigningTranscript.Valid`. -/
 noncomputable def precomputedCappedSign (secretKey : SecretKey)
     (leafIndex : LeafIndex) (message : Message) :
     OracleComp OracleWorld (Option Signature) :=
@@ -65,7 +65,10 @@ attribute [irreducible] samplePublicParameter sampleSecret precomputedKeygen
 
 end Concrete
 
-/-- The concrete XMSS scheme: the precomputed key generation, the capped retry signer, and the ordinary verifier defined above. -/
+/-- The ideal XMSS scheme of the proofs: the precomputed key generation from uniform secrets, the
+signer with uniform randomness and `A_max = 1` attempt, and the ordinary verifier. It differs from
+the seeded statement scheme `xmss`, to which `Seeded.forgeAdvantage_deterministic_le_reference_direct`
+transfers its bounds. -/
 noncomputable def Concrete.scheme : Scheme SecretKey where
   keygen := Concrete.precomputedKeygen
   sign := Concrete.precomputedCappedSign

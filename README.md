@@ -7,12 +7,13 @@ The development started from the 127-bit SUF-CMA proof in
 [leanEthereum/leanVM](https://github.com/leanEthereum/leanVM/tree/main/formal/xmss) and
 separates *what is claimed* from *why it holds*.
 
-The library proves the exact classical bit security of XMSS for **all 16 counting modes**,
-under both strong (SUF-CMA) and standard (EUF-CMA) unforgeability. Each classification is one
+The library proves the exact classical bit security of XMSS for **all 16 counting modes that
+charge the adversary's own hash queries**, under both strong (SUF-CMA) and standard (EUF-CMA) unforgeability. Each classification is one
 theorem: `XmssSecurity.xmss_sufCma_exact` in `XmssSecurity/Statement/StrongUnforgeabilityTheorems.lean`
 and `XmssSecurity.xmss_eufCma_exact` in `XmssSecurity/Statement/UnforgeabilityTheorems.lean`.
-A standard forgery must use an epoch/message pair never requested from the signer,
-including requests that returned no signature.
+A standard forgery must use an epoch/message pair never requested from the signer. In both
+games a transcript that requests two signatures for the same epoch loses, and private uniform
+sampling is free: only hash calls, and signing requests where the mode says so, are charged.
 
 As in the manuscript, each notion has a single experiment that outputs whether the adversary
 wins together with five query counts: the adversary's signing queries `q_S` and direct hash
@@ -37,9 +38,10 @@ calls (the randomizer and the encoding).
 Small budgets in the signer modes, where the adversary can afford at most one signature, use a
 separate argument (`Proof/NoSign/`): an adversary that does not sign must forge the honest top
 sibling of the Merkle tree, which it never sees, or make a fresh top query collide with the root,
-so it wins with probability at most `(2q + 2) / 2^128`. With the signer and the requests charged
-and `q = 3`, the adversary signs once without hashing or hashes without signing; the two cases
-are weighted by the probability of signing, for at most `45 / 2^128`.
+so it wins with probability at most `(2q + 2) / 2^128 + q / 2^256` (the last term covers guessing
+the master seed). With the signer and the requests charged and `q = 3`, the adversary signs once
+without hashing or hashes without signing; the two cases are weighted by the probability of
+signing, for at most `45 / 2^128 + 3 / 2^256`.
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any

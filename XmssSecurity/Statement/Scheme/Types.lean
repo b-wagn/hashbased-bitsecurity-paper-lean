@@ -4,7 +4,8 @@ import XmssSecurity.Statement.RandomOracleModel
 /-!
 # XMSS types
 
-The data types of the XMSS instance (`doc/xmss/main.tex` of the leanVM repository), in terms of
+The data types of the XMSS instance (`doc/xmss/main.tex` of the leanVM repository, with the
+checksummed WOTS encoding of `Checksum.lean` in place of its target-sum encoding), in terms of
 the constants of `Parameters.lean`: seeds, digests, messages, indices, encodings, keys, and
 signatures. It also fixes the random-oracle world of XMSS: the hash function `H` maps byte strings
 to 256-bit outputs and is the random oracle `HashSpec`, so every hash call is an oracle query.

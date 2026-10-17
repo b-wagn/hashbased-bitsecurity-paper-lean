@@ -5,7 +5,7 @@ import VCVio.OracleComp.QueryTracking.QueryBound
 /-!
 # Direct hash queries of the adversary
 
-The 119-bit direct-count proof charges the adversary only for its own hash queries.
+The 122-bit direct-count proof charges the adversary only for its own hash queries.
 This file fixes the vocabulary shared by that proof:
 
 * `IsDirectHashQuery`: the adversary's actions that are hash queries (`.inl (.inr _)`), as

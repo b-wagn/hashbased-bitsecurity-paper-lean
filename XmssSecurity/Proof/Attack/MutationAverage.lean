@@ -54,7 +54,8 @@ theorem uniformChainVerification_lower
   rw [heq]
   exact ENNReal.div_le_div_right (sum_pathMutationProbability_lower encoding hvalid) _
 
-/-- Reject a failed signing attempt; on success choose and replace a chain uniformly. -/
+/-- Choose and replace a chain uniformly after a successful signing attempt (signing always
+succeeds; the failed branch only makes the definition total). -/
 noncomputable def signedMutationExperiment
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec) (request : SignRequest) : ProbComp Bool := do
   let result ← (simulateQ romImpl

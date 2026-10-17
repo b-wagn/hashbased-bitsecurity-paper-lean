@@ -79,7 +79,8 @@ namespace Seeded
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- Derive trials in increasing order, stopping at the first admissible encoding. -/
+/-- Derive trials in increasing order, stopping at the first admissible encoding. Every digest
+encodes, so the first trial always succeeds. -/
 def signFrom (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) :
     Nat → Nat → m (Option Signature)
   | 0, _ => pure none

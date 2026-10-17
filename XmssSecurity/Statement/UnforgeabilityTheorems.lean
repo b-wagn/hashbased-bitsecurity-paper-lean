@@ -12,8 +12,7 @@ encoding under standard unforgeability (EUF-CMA, `Security/EUFCMA.lean`) in the 
 model, for each of the sixteen counting modes that count the adversary's own hash queries. The
 rest of `Statement/` contains only definitions; the proof lives under `Proof/`.
 
-A standard forgery must use an epoch/message pair never requested from the signer, including
-requests that returned no signature. Bit security and the counting modes are as in
+A standard forgery must use an epoch/message pair never requested from the signer. Bit security and the counting modes are as in
 `StrongUnforgeabilityTheorems.lean`.
 
 | Counting mode `Z` (with `hash ∈ Z`) | Exact bits |

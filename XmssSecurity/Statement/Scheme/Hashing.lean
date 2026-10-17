@@ -116,7 +116,8 @@ def tweakableHash
   let output ← oracleHash (tweakableHashInput parameter domain payload)
   return truncateHash output
 
-/-- The digest `D` of `IncEnc(P, m, rho, idx)`. -/
+/-- The message digest `D = Th(P, tweak_enc(idx), m || rho)`, which `Checksum.encode` turns into
+the WOTS encoding. -/
 def encodingHash (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) : m Digest :=
   tweakableHash parameter (.encoding leafIndex) (encodingPayload message randomness)

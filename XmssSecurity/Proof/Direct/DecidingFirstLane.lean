@@ -34,7 +34,7 @@ theorem decidingFirstLane_implies_exactFirstLane (adversary : Adversary)
     exact Or.inr (deciding_revealed_implies_global _ _
       (capped_detailed_execution_consistent adversary _ hgame) hwin hrevealed)
 
-/-- The older estimate, retained for the intermediate 120-bit theorem. -/
+/-- The first-lane estimate from the exact first-lane bound. -/
 theorem decidingFirstLane_probability_le_existing (adversary : Adversary) (D : ℕ)
     (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[WinningDecidingFirstLaneBadEventOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
