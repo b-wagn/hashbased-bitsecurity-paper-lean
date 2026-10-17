@@ -8,7 +8,9 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.TargetSum.Direct
 
-theorem prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh (adversary : Adversary) :
+theorem prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh (adversary : Adversary)
+    (hprehit : Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
+      prehitRate * expectedDirectEncodingQueries adversary) :
     Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] +
       Pr[fun execution : GameOutcome × QueryCache HashSpec =>
         execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
@@ -17,7 +19,7 @@ theorem prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh (adversa
       expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞) ≤
         sourceSecondaryLoss adversary + Deciding.forgedEncodingFreshProbability adversary *
           (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by
-  apply (add_le_add (add_le_add (winningEncodingPrehit_probability_le_expected_direct_encoding adversary)
+  apply (add_le_add (add_le_add hprehit
     (Deciding.decidingSecondLane_probability_le_source_credit_add_fresh adversary)) le_rfl).trans_eq
   unfold sourceSecondaryLoss
   ring

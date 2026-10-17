@@ -7,10 +7,20 @@ namespace XmssSecurity.TargetSum
 abbrev CappedEncodingTraceExecution :=
   GameOutcome × ((QueryCache HashSpec × SigningCacheTrace) × EncodingActionTrace)
 
+/-- A winning encoding collision, together with a signing whose randomizer was already cached
+(a prehit) and whose signed digest another cached encoding input of its epoch shares. -/
 def WinningEncodingPrehitOccurs
     (execution : CappedEncodingTraceExecution) : Prop :=
   WinningOutcomeBadEventOccurs execution.2.1.1 execution.1 .encoding ∧
-    execution.2.1.2.HasEncodingInputPrehit execution.1.secretKey
+    ∃ entry ∈ execution.2.1.2, entry.EncodingInputPrehit execution.1.secretKey ∧
+      entry.PrehitPartnered execution.1.secretKey execution.2.1.1
+
+theorem WinningEncodingPrehitOccurs.hasEncodingInputPrehit
+    {execution : CappedEncodingTraceExecution} (h : WinningEncodingPrehitOccurs execution) :
+    WinningOutcomeBadEventOccurs execution.2.1.1 execution.1 .encoding ∧
+      execution.2.1.2.HasEncodingInputPrehit execution.1.secretKey := by
+  obtain ⟨hencoding, entry, hentry, hprehit, _⟩ := h
+  exact ⟨hencoding, entry, hentry, hprehit⟩
 
 def WinningDigestBadEventOccurs
     (execution : CappedEncodingTraceExecution) : Prop :=
@@ -47,7 +57,7 @@ theorem capped_winning_implies_encodingPrehit_or_digestBad
         hforgedCollision⟩ :=
       cappedWinning_encoding_event_trace_postSigning_decomposition adversary
         (execution.1, execution.2.1) hsigning hencoding'
-    · exact Or.inl ⟨hencoding', entry, hentry, hprehit⟩
+    · exact Or.inl ⟨hencoding', entry, hentry, hprehit.1, hprehit.2⟩
     · exact Or.inr (Or.inl ⟨hencoding',
         cappedDetailedGameWithEncodingTrace_freshSigningCollision_monitorHit
           adversary execution hmem hencoding'

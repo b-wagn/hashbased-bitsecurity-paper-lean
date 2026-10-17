@@ -8,10 +8,10 @@ import XmssSecurity.Proof.TargetSum.EncodingRejectionProbability
 
 Fix a public parameter, a master seed, an epoch, and a message. Whatever computation runs in the
 random-oracle world, the probability that its final cache shows all `A_max` trials of signing that
-message failing (`SigningFails`) is at most `(1 - p + A_max / 2^192)^A_max`
+message failing (`SigningFails`) is at most `(1 - p + A_max / 2^128)^A_max`
 (`probEvent_presampleChain_fails_le`), where `p` is the probability that a uniform digest decodes.
 A randomizer is a fresh uniform value, so it repeats an earlier one with probability at most
-`A_max / 2^192`; otherwise its digest is a fresh uniform value, which decodes with probability `p`.
+`A_max / 2^128`; otherwise its digest is a fresh uniform value, which decodes with probability `p`.
 Since `p > 2^-15`, this is at most `(1 - 2^-16)^(2^32) ≤ 2^-(2^16)` (`probEvent_signingFails_le`).
 
 The computation may query the inputs of the trials itself, in any order. The proof therefore
@@ -67,12 +67,12 @@ theorem randomizerInput_ne_digestInput (trial : ℕ) (output : HashOutput) :
 
 /-! ### The randomizer of a uniform answer is uniform -/
 
-theorem hashOutputBits_eq_randomness : hashOutputBits = 64 + randomnessBits := by decide
+theorem hashOutputBits_eq_randomness : hashOutputBits = 128 + randomnessBits := by decide
 
-/-- A 256-bit oracle answer is equivalently its high 64 bits and its low 192 bits, the
+/-- A 256-bit oracle answer is equivalently its high 128 bits and its low 128 bits, the
 randomizer. -/
-def randomnessSplitEquiv : HashOutput ≃ BitVec 64 × Randomness where
-  toFun output := ((output.cast hashOutputBits_eq_randomness).extractLsb' randomnessBits 64,
+def randomnessSplitEquiv : HashOutput ≃ BitVec 128 × Randomness where
+  toFun output := ((output.cast hashOutputBits_eq_randomness).extractLsb' randomnessBits 128,
     (output.cast hashOutputBits_eq_randomness).extractLsb' 0 randomnessBits)
   invFun halves := (halves.1 ++ halves.2).cast hashOutputBits_eq_randomness.symm
   left_inv output := by
@@ -89,18 +89,18 @@ theorem randomnessSplitEquiv_snd (output : HashOutput) :
   simp [randomnessSplitEquiv, BitVec.extractLsb']
 
 /-- The randomizer read from a uniform answer lands in a set of `T.card` values with probability
-`T.card / 2^192`. -/
+`T.card / 2^128`. -/
 theorem probEvent_randomness_mem (T : Finset Randomness) :
     Pr[fun output : HashOutput => output.extractLsb' 0 randomnessBits ∈ T | $ᵗ HashOutput] =
       T.card / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞) := by
   classical
   rw [probEvent_uniformSample]
   have hcard : (Finset.univ.filter fun output : HashOutput =>
-      output.extractLsb' 0 randomnessBits ∈ T).card = 2 ^ 64 * T.card := by
+      output.extractLsb' 0 randomnessBits ∈ T).card = 2 ^ 128 * T.card := by
     rw [← Finset.card_map randomnessSplitEquiv.toEmbedding]
     have hmap : (Finset.univ.filter fun output : HashOutput =>
         output.extractLsb' 0 randomnessBits ∈ T).map randomnessSplitEquiv.toEmbedding =
-        (Finset.univ : Finset (BitVec 64)) ×ˢ T := by
+        (Finset.univ : Finset (BitVec 128)) ×ˢ T := by
       ext pair
       simp only [Finset.mem_map, Finset.mem_filter, Finset.mem_univ, true_and,
         Equiv.toEmbedding_apply, Finset.mem_product]
@@ -612,7 +612,7 @@ theorem one_div_two_pow_le_one (bits : ℕ) : (1 : ℝ≥0∞) / ((2 ^ bits : �
   ENNReal.div_le_of_le_mul (by rw [one_mul]; exact_mod_cast Nat.one_le_two_pow)
 
 /-- A trial fails with probability at most `1 - 2^-16`, since `p > 2^-15` and a randomizer
-repeats with probability at most `A_max / 2^192`. -/
+repeats with probability at most `A_max / 2^128`. -/
 theorem trialFailure_le :
     1 - TargetSum.acceptanceProbability +
         ((signingAttemptLimit : ℕ) : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞) ≤

@@ -601,38 +601,4 @@ theorem cappedDetailedGameWithSigningTrace_winning_prehit_probability_le_expecte
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
       rfl
 
-theorem signingAttemptLimit_mul_randomness_loss_le_digest_loss
-    (queries : ℝ≥0∞) :
-    (signingAttemptLimit : ℝ≥0∞) * queries *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ ≤
-      queries / ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
-  rw [div_eq_mul_inv]
-  calc
-    (signingAttemptLimit : ℝ≥0∞) * queries *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ =
-      queries * ((signingAttemptLimit : ℝ≥0∞) *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹) := by ac_rfl
-    _ ≤ queries * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-      gcongr
-      apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-      simp only [ENNReal.toReal_mul, ENNReal.toReal_inv,
-        ENNReal.toReal_natCast]
-      norm_num [signingAttemptLimit, randomnessBits, digestBits]
-    _ = _ := rfl
-
-theorem cappedDetailedGameWithSigningTrace_winning_prehit_probability_le_expectedDigest
-    (adversary : Adversary) :
-    Pr[fun execution : GameOutcome ×
-        (QueryCache HashSpec × SigningCacheTrace) =>
-      WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
-        execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
-      cappedDetailedGameWithSigningTrace adversary] ≤
-      CappedEncodingMonitor.expectedPostKeygenEncodingQueries adversary /
-        ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
-  exact
-    (cappedDetailedGameWithSigningTrace_winning_prehit_probability_le_expected
-      adversary).trans
-        (signingAttemptLimit_mul_randomness_loss_le_digest_loss
-          (CappedEncodingMonitor.expectedPostKeygenEncodingQueries adversary))
-
 end XmssSecurity.TargetSum

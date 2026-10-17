@@ -6,7 +6,6 @@ import XmssSecurity.Proof.TargetSum.EUFCMA.Exact
 import XmssSecurity.Proof.TargetSum.EUFCMA.DirectBridge
 import XmssSecurity.Proof.TargetSum.EUFCMA.FreshAcceptancePrefix
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReferenceHop
-import XmssSecurity.Proof.TargetSum.EUFCMA.DirectSecurity
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReplayFallback
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReplayAccounting
 import XmssSecurity.Proof.TargetSum.EUFCMA.Direct126

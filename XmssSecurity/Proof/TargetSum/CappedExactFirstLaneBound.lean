@@ -1861,14 +1861,3 @@ theorem hasExactFirstLaneBounds : HasExactFirstLaneBounds := by
   exact hasExactFirstLaneBound_of_hashQueryBound q adversary hbound
 
 end XmssSecurity.TargetSum.CappedChain
-
-namespace XmssSecurity.TargetSum.Proof
-
-/-- The inherited 127-bit bound for the internal randomized scheme, assembled from the
-exact first-lane bounds above and the second-lane bound. -/
-theorem concreteScheme_has_127_bits_of_classical_security :
-    HasClassicalSecurityBits Concrete.scheme 127 :=
-  xmss_has_127_bits_of_classical_security_of_exactFirstLaneBounds
-    CappedChain.hasExactFirstLaneBounds
-
-end XmssSecurity.TargetSum.Proof

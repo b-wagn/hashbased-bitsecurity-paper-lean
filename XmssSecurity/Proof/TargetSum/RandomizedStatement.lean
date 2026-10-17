@@ -11,7 +11,7 @@ abbrev digestBytes (value : Digest) : HashInput := bytesLE 16 value
 
 abbrev messageBytes (message : Message) : HashInput := bytesLE 32 message
 
-abbrev randomnessBytes (randomness : Randomness) : HashInput := bytesLE 24 randomness
+abbrev randomnessBytes (randomness : Randomness) : HashInput := bytesLE 16 randomness
 
 end Concrete
 

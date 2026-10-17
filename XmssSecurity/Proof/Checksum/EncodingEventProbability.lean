@@ -123,7 +123,7 @@ theorem winning_encoding_event_trace_temporal_decomposition
           (Concrete.CacheView.encodingInput outcome.secretKey.parameter
             entry.request.epoch) heq.symm
 
-/-- The two budget classes are a 192-bit pre-hit on signing randomness and a 128-bit digest collision, with the latter covering both temporal orientations around signing. -/
+/-- The two budget classes are a pre-hit on the 128-bit signing randomness and a 128-bit digest collision, with the latter covering both temporal orientations around signing. -/
 theorem winning_encoding_event_trace_monitor_decomposition
     (cache : QueryCache HashSpec) (outcome : GameOutcome)
     (trace : SigningCacheTrace)

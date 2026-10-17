@@ -162,7 +162,8 @@ theorem sufCmaKeygen_127 :
       notion_direct_advantage_eq, Security.notionDirect_advantage_eq,
       Security.forgeAdvantage_prune_eq adversary (q - seededKeygenQueryCount) hdirect]
     refine (Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
-      (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))).trans
+      (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))
+        (by have := twentyTwo_le_seededKeygenQueryCount; omega)).trans
         (sharedDecidingLoss_le_127_of_gap _ q ?_ (by omega))
     have := twentyTwo_le_seededKeygenQueryCount
     omega

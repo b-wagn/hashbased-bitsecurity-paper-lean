@@ -458,7 +458,7 @@ theorem cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_le_direct
 end Direct
 
 /-- The encoding-prehit term of the second lane, charged to the adversary's direct hash
-queries only: at most `signingAttemptLimit · D / 2^randomnessBits = D / 2^160`. -/
+queries only: at most `signingAttemptLimit · D / 2^randomnessBits = D / 2^128`. -/
 theorem winningEncodingPrehit_probability_le_direct (adversary : Adversary) (D : ℕ)
     (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤

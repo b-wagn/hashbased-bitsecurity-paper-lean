@@ -40,10 +40,10 @@ theorem trialTableRun_eq (handler : QueryImpl OracleWorld (StateT State ProbComp
       | none => exact ih _
       | some result => rfl
 
-def randomizerHalves : HashOutput ≃ (BitVec 64 × Randomness) where
-  toFun output := (output.extractLsb' randomnessBits 64, output.extractLsb' 0 randomnessBits)
+def randomizerHalves : HashOutput ≃ (BitVec 128 × Randomness) where
+  toFun output := (output.extractLsb' randomnessBits 128, output.extractLsb' 0 randomnessBits)
   invFun pair := pair.1 ++ pair.2
-  left_inv output := BitVec.extractLsb'_append_extractLsb' (w := 64) (len := 192) (x := output)
+  left_inv output := BitVec.extractLsb'_append_extractLsb' (w := 128) (len := 128) (x := output)
   right_inv pair := by
     apply Prod.ext
     · exact BitVec.extractLsb'_append_eq_left
@@ -59,19 +59,19 @@ theorem evalDist_randomizer :
     𝒟[(fun output : HashOutput => output.extractLsb' 0 randomnessBits) <$> ($ᵗ HashOutput)] =
       𝒟[Concrete.signingRandomness] := by
   have h := evalDist_map_bijective_uniform_cross
-    (α := HashOutput) (β := BitVec 64 × Randomness) randomizerHalves randomizerHalves.bijective
-  have hpair := evalDist_independent_uniform_pair (α := BitVec 64) (β := Randomness)
+    (α := HashOutput) (β := BitVec 128 × Randomness) randomizerHalves randomizerHalves.bijective
+  have hpair := evalDist_independent_uniform_pair (α := BitVec 128) (β := Randomness)
   calc
     _ = 𝒟[Prod.snd <$> (randomizerHalves <$> ($ᵗ HashOutput))] := by
       simp only [Functor.map_map]; rfl
-    _ = 𝒟[Prod.snd <$> ($ᵗ (BitVec 64 × Randomness))] := by rw [evalDist_map, h, ← evalDist_map]
+    _ = 𝒟[Prod.snd <$> ($ᵗ (BitVec 128 × Randomness))] := by rw [evalDist_map, h, ← evalDist_map]
     _ = 𝒟[Prod.snd <$> (do
-        let high ← $ᵗ (BitVec 64)
+        let high ← $ᵗ (BitVec 128)
         let low ← $ᵗ Randomness
         pure (high, low))] := by rw [evalDist_map, ← hpair, ← evalDist_map]
     _ = _ := by
       simp only [map_bind, bind_pure_comp, Functor.map_map, id_map', Concrete.signingRandomness_eq]
-      exact evalDist_uniform_discard (A := BitVec 64) ($ᵗ Randomness)
+      exact evalDist_uniform_discard (A := BitVec 128) ($ᵗ Randomness)
 
 
 theorem run_freshTrialLoop_succ (hash : QueryImpl HashSpec (StateT State ProbComp))

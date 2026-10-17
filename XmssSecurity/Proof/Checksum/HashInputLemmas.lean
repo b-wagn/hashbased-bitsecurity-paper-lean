@@ -170,7 +170,7 @@ theorem messageBytes_injective : Function.Injective messageBytes :=
   bytesLE_injective 32
 
 theorem randomnessBytes_injective : Function.Injective randomnessBytes :=
-  bytesLE_injective 24
+  bytesLE_injective 16
 
 private theorem flatMap_injective_of_eq_length {α β : Type}
     (encode : α → List β) (hinjective : Function.Injective encode)
@@ -200,7 +200,7 @@ theorem encodingPayload_injective :
   have hpairs :
       messageBytes leftMessage ++ randomnessBytes leftRandomness =
         messageBytes rightMessage ++ randomnessBytes rightRandomness :=
-    List.append_left_injective (List.replicate 8 0) heq
+    List.append_left_injective (List.replicate 16 0) heq
   obtain ⟨hmessage, hrandomness⟩ := List.append_inj hpairs (by simp [messageBytes])
   exact Prod.ext (messageBytes_injective hmessage) (randomnessBytes_injective hrandomness)
 

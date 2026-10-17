@@ -42,6 +42,18 @@ def SigningCacheEntry.EncodingInputPrehit
       (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch
         (entry.request.message, signature.randomness)) = some output
 
+/-- The input the entry signed is cached with a decodable digest that another cached encoding
+input of the same epoch shares. -/
+def SigningCacheEntry.PrehitPartnered
+    (secretKey : SecretKey) (cache : QueryCache HashSpec) (entry : SigningCacheEntry) : Prop :=
+  ∃ signature output, entry.signature = some signature ∧
+    cache (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch
+      (entry.request.message, signature.randomness)) = some output ∧
+    (∃ encoding, TargetSum.decodeDigest (truncateHash output) = some encoding) ∧
+    ∃ other ≠ (entry.request.message, signature.randomness), ∃ otherOutput,
+      cache (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch other) =
+        some otherOutput ∧ truncateHash otherOutput = truncateHash output
+
 def SigningCacheEntry.PreexistingEncodingCollision
     (secretKey : SecretKey) (entry : SigningCacheEntry) : Prop :=
   ∃ signature signedOutput oldInput oldOutput,

@@ -1,5 +1,6 @@
 import XmssSecurity.Proof.TargetSum.Modes.SignerSharedPrefix
 import XmssSecurity.Proof.TargetSum.Direct.TerminalMixedFirstLane
+import XmssSecurity.Proof.TargetSum.Modes.SignerPrehit
 
 /-! Complete signer-counted 127-bit security. A terminal-query saving handles small
 expected encoding credit; the shared-prefix reserve handles the complementary case. -/
@@ -12,7 +13,7 @@ open XmssSecurity.Modes
 open Seeded Direct Deciding
 
 theorem signer_seeded_loss_le_terminal_credit (adversary : Security.StatementAdversary)
-    (q : Nat) (hpositive : 0 < q) (hsmall : q < 2 ^ 256)
+    (q : Nat) (hpositive : 0 < q) (hsmall : q < 2 ^ 256) (hq : q + 1 ≤ 2 ^ 127)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
     forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
       ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
@@ -30,12 +31,13 @@ theorem signer_seeded_loss_le_terminal_credit (adversary : Security.StatementAdv
   apply (add_le_add (forgeAdvantage_le_deciding_lanes _) le_rfl).trans
   rw [add_assoc]
   apply (add_le_add hfirst
-    (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh _)).trans_eq
+    (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh _
+      (signer_prehit_le adversary q hq hbound))).trans_eq
   simp only [div_eq_mul_inv]
   ring
 
 theorem signer_advantage_le_terminal_credit (adversary : Security.StatementAdversary)
-    (q : Nat) (hpositive : 0 < q) (hsmall : q < 2 ^ 256)
+    (q : Nat) (hpositive : 0 < q) (hsmall : q < 2 ^ 256) (hq : q + 1 ≤ 2 ^ 127)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
     (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
       ((q - 1 : Nat) : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
@@ -48,17 +50,17 @@ theorem signer_advantage_le_terminal_credit (adversary : Security.StatementAdver
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
     notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
-  exact signer_seeded_loss_le_terminal_credit adversary q hpositive hsmall hbound
+  exact signer_seeded_loss_le_terminal_credit adversary q hpositive hsmall hq hbound
 
 theorem terminal_allowance_le_one (adversary : Adversary)
     (hcredit : expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary ≤
-      (1 / 512 : ℝ≥0∞)) :
+      (1 / 128 : ℝ≥0∞)) :
     (2 + TargetSum.acceptanceProbability) *
         (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) +
       2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability *
         forgedEncodingFreshProbability adversary ≤ 1 := by
   calc
-    _ ≤ (2 + TargetSum.acceptanceProbability) * (1 / 512 : ℝ≥0∞) +
+    _ ≤ (2 + TargetSum.acceptanceProbability) * (1 / 128 : ℝ≥0∞) +
         2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability * 1 :=
       add_le_add (add_le_add (mul_le_mul' le_rfl hcredit) le_rfl)
         (mul_le_mul' le_rfl (forgedEncodingFreshProbability_le_one adversary))
@@ -72,7 +74,7 @@ theorem signer_advantage_127_of_small_encoding_credit
     (adversary : Security.StatementAdversary) (q : Nat) (hpositive : 0 < q)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
     (hcredit : expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
-      expectedSourceSignerHashes (memoAdversary (Security.embed adversary)) ≤ (1 / 512 : ℝ≥0∞)) :
+      expectedSourceSignerHashes (memoAdversary (Security.embed adversary)) ≤ (1 / 128 : ℝ≥0∞)) :
     (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
   by_cases hlarge : 2 ^ 127 ≤ q
@@ -87,7 +89,7 @@ theorem signer_advantage_127_of_small_encoding_credit
       (le_add_right le_rfl).trans (signer_sourceSecondaryLoss_add_encodingReserve_le adversary q hsmall hbound)
     have hq : ((q - 1 : Nat) : ℝ≥0∞) + 1 = (q : ℝ≥0∞) := by
       exact_mod_cast Nat.sub_add_cancel hpositive
-    apply (signer_advantage_le_terminal_credit adversary q hpositive hsmall hbound).trans
+    apply (signer_advantage_le_terminal_credit adversary q hpositive hsmall (by omega) hbound).trans
     apply (add_le_add (add_le_add le_rfl hsecondary)
       (ENNReal.div_le_div (terminal_allowance_le_one _ hcredit) le_rfl)).trans_eq
     calc
@@ -108,7 +110,7 @@ theorem signer_advantage_127_of_small_encoding_credit
 theorem sufCmaSigner_127 :
     (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 127 := by
   intro q hpositive adversary hbound
-  by_cases hcredit : (1 / 512 : ℝ≥0∞) ≤
+  by_cases hcredit : (1 / 128 : ℝ≥0∞) ≤
       expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
         expectedSourceSignerHashes (memoAdversary (Security.embed adversary))
   · exact signer_advantage_127_of_encoding_credit adversary q hbound hcredit

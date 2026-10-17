@@ -2,7 +2,9 @@ import XmssSecurity.Proof.TargetSum.Direct.EncodingPrehit
 import XmssSecurity.Proof.Common.ExpectedQueryCount
 
 /-! An expected-count version of the direct encoding-prehit bound. Keeping the count inside
-the expectation lets adaptive encoding and structural queries share one direct-query budget. -/
+the expectation lets adaptive encoding and structural queries share one direct-query budget.
+With 128-bit randomizers its rate `encodingPrehitRate = 2^32 / 2^128` is too large; the security
+proofs use `prehitRate` from `Direct/CollisionLoss.lean`. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -294,12 +296,12 @@ theorem winningEncodingPrehit_probability_le_expected_direct_encoding (adversary
     Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
       encodingPrehitRate * expectedDirectEncodingQueries adversary := by
   calc
-    _ = Pr[fun execution : GameOutcome × (QueryCache HashSpec × SigningCacheTrace) =>
+    _ ≤ Pr[fun execution : GameOutcome × (QueryCache HashSpec × SigningCacheTrace) =>
         WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
           execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
         cappedDetailedGameWithSigningTrace adversary] := by
       rw [← cappedDetailedGameWithEncodingTrace_projection, probEvent_map]
-      rfl
+      exact probEvent_mono fun execution _ h => h.hasEncodingInputPrehit
     _ ≤ _ := by
       unfold cappedDetailedGameWithSigningTrace expectedDirectEncodingQueries
       rw [probEvent_bind_eq_tsum, ← ENNReal.tsum_mul_left]

@@ -97,9 +97,9 @@ def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
 
 namespace Concrete
 
-/-- `m || rho || 0^64`. -/
+/-- `m || rho || 0^128`. -/
 def encodingPayload (message : Message) (randomness : Randomness) : HashInput :=
-  bytesLE 32 message ++ bytesLE 24 randomness ++ List.replicate 8 0
+  bytesLE 32 message ++ bytesLE 16 randomness ++ List.replicate 16 0
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload (endpoints : ChainIndex → Digest) : HashInput :=

@@ -15,7 +15,7 @@ checksum digits, `v = 46` chains, a single randomizer).
 | —       | `hashOutputBits`      | 256     | output length of the hash function `H`  |
 | `ℓ_msg` | `messageBits`         | 256     | message length                          |
 | `ℓ_p`   | `publicParameterBits` | 128     | public parameter length                 |
-| `ℓ_rnd` | `randomnessBits`      | 192     | randomizer length                       |
+| `ℓ_rnd` | `randomnessBits`      | 128     | randomizer length                       |
 | `w`     | `winternitzBits`      | 3       | chunk size in bits                      |
 | `h`     | `treeHeight`          | 32      | Merkle tree height                      |
 | `L`     | `lifetime`            | `2^32`  | lifetime (number of epochs)             |
@@ -39,7 +39,7 @@ def messageBits : Nat := 256
 def publicParameterBits : Nat := 128
 
 /-- `ℓ_rnd`: randomizer length in bits. -/
-def randomnessBits : Nat := 192
+def randomnessBits : Nat := 128
 
 /-- `h`: the Merkle tree height. -/
 def treeHeight : Nat := 32

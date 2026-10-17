@@ -56,6 +56,12 @@ forgery needs a fresh digest that decodes, which costs the adversary a hash quer
 verification, hence 126 and 127; with the checksum, a signature for one message already answers
 half of a forgery for any other message, and the standard levels equal the strong ones.
 
+Randomizers have 128 bits. With the target sum, the signer may accept a randomizer whose
+encoding hash the adversary queried before the signing request. Such a signature helps a forgery
+only together with a second input of the same epoch whose digest is the same, so the loss is at
+most `(q + 2^86) / 2^256` per expected direct encoding query of an adversary making at most
+`q < 2^127` of them (`Proof/TargetSum/Direct/CollisionLoss.lean`).
+
 Small budgets in the signer modes of the checksum scheme, where the adversary can afford at most
 one signature, use a separate argument (`Proof/Checksum/NoSign/`): an adversary that does not
 sign must forge the honest top sibling of the Merkle tree, which it never sees, or make a fresh
@@ -80,7 +86,7 @@ signing fails when all `2^32` randomizers give digests that do not decode. The a
 queries are unlimited, so it may learn the master seed and search for a bad message. The proof
 therefore fixes a public parameter, master seed, epoch, and message, and bounds the probability
 that the final oracle answers show all trials of that request failing by
-`(1 - p + 2^32 / 2^192)^(2^32) ≤ 2^-(2^16)`, where `p > 2^-15` is the probability that a uniform
+`(1 - p + 2^32 / 2^128)^(2^32) ≤ 2^-(2^16)`, where `p > 2^-15` is the probability that a uniform
 digest decodes (`Proof/TargetSum/SigningFailure.lean`). A union bound over the `2^672` such
 tuples gives the bound (`Proof/TargetSum/CorrectnessError.lean`).
 

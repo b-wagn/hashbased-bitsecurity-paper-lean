@@ -1,7 +1,7 @@
 import XmssSecurity.Proof.Common.Modes.QueryKinds
 import XmssSecurity.Proof.TargetSum.Scheme.Xmss
-import XmssSecurity.Proof.TargetSum.Adversary.Security
-import XmssSecurity.Proof.TargetSum.Direct.Assemble
+import XmssSecurity.Proof.TargetSum.Adversary.Embedding
+import XmssSecurity.Proof.TargetSum.Seeded.Security
 import XmssSecurity.Proof.TargetSum.Direct.DecidingAssemble
 import XmssSecurity.Proof.TargetSum.Direct.DecidingSecurity
 import XmssSecurity.Proof.TargetSum.Direct.DecidingSecondLaneAccepted
@@ -9,7 +9,6 @@ import XmssSecurity.Proof.TargetSum.Direct.DecidingSecondLaneFresh
 import XmssSecurity.Proof.TargetSum.Direct.DecidingFirstLaneExpected
 import XmssSecurity.Proof.TargetSum.Direct.DecidingAcceptedProbe
 import XmssSecurity.Proof.TargetSum.Direct.EncodingPrehit
-import XmssSecurity.Proof.TargetSum.Direct.LargeBudget
 import XmssSecurity.Proof.Common.Modes.Direct
 import XmssSecurity.Proof.Common.Modes.AllHashes
 import XmssSecurity.Proof.Common.Modes.Lattice
@@ -34,13 +33,11 @@ import XmssSecurity.Proof.TargetSum.Direct.SeedGuessingExpected
 import XmssSecurity.Proof.TargetSum.Direct.SourceClassBudget
 import XmssSecurity.Proof.TargetSum.Deterministic.ExpectedReferenceQueries
 import XmssSecurity.Proof.TargetSum.Modes.SignerClassBudget
-import XmssSecurity.Proof.TargetSum.Modes.SignerSecondaryLoss
 import XmssSecurity.Proof.TargetSum.Modes.SignerCachedLoss
 import XmssSecurity.Proof.TargetSum.Direct.CachedEncodingCost
 import XmssSecurity.Proof.TargetSum.Direct.LimitedAcceptanceTransfer
 import XmssSecurity.Proof.TargetSum.Modes.SignerCachedSecurity
 import XmssSecurity.Proof.TargetSum.Modes.SignerAcceptedFirstLane
-import XmssSecurity.Proof.TargetSum.Modes.SignerMixedLoss
 import XmssSecurity.Proof.TargetSum.Direct.FreshRevealedConditioning
 import XmssSecurity.Proof.TargetSum.Direct.RevealedEncodingPrefix
 import XmssSecurity.Proof.TargetSum.Direct.LimitedEncodingProbe

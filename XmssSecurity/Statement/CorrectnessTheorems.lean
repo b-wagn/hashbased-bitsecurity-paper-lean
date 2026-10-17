@@ -21,7 +21,7 @@ model, for the correctness experiment of `Security/Correctness.lean`.
   is at most `2^-64864`. A signature that the signer returns verifies, as above, so the flag is
   set only when all `A_max = 2^32` randomizer trials of a request fail. For a fixed public
   parameter, master seed, epoch, and message, the oracle answers of these trials show this with
-  probability at most `(1 - p + A_max / 2^192)^A_max ≤ 2^-(2^16)`, where `p > 2^-15` is the
+  probability at most `(1 - p + A_max / 2^128)^A_max ≤ 2^-(2^16)`, where `p > 2^-15` is the
   probability that a uniform digest decodes, whatever the adversary queries. A union bound over
   the `2^672` such tuples gives the bound.
 -/

@@ -191,7 +191,8 @@ theorem sufCmaVerifier_127 :
       exact zero_le
     · refine (forgeAdvantage_le_prune_of_verifier_bound adversary q hbound).trans
         ((Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
-          (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))).trans
+          (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))
+            (by have := Direct.verifierQueryBound_eq; omega)).trans
           (sharedDecidingLoss_le_127_of_gap _ q ?_ (by omega)))
       rw [Direct.verifierQueryBound_eq] at hsmall ⊢
       omega

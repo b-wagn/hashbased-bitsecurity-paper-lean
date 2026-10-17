@@ -272,13 +272,13 @@ theorem winningEncodingPrehit_probability_le_encoding (adversary : Adversary) (D
     Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
       (signingAttemptLimit : ℝ≥0∞) * D * ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
   calc
-    _ = Pr[fun execution : GameOutcome ×
+    _ ≤ Pr[fun execution : GameOutcome ×
           (QueryCache HashSpec × SigningCacheTrace) =>
         WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
           execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
         cappedDetailedGameWithSigningTrace adversary] := by
       rw [← cappedDetailedGameWithEncodingTrace_projection, probEvent_map]
-      rfl
+      exact probEvent_mono fun execution _ h => h.hasEncodingInputPrehit
     _ ≤ _ := by
       unfold cappedDetailedGameWithSigningTrace
       apply Direct.probEvent_bind_le_of_forall

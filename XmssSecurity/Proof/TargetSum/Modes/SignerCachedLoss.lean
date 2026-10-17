@@ -1,8 +1,8 @@
-import XmssSecurity.Proof.TargetSum.Modes.SignerSecondaryLoss
+import XmssSecurity.Proof.TargetSum.Modes.SignerClassBudget
+import XmssSecurity.Proof.TargetSum.Direct.SourceLossBudget
 import XmssSecurity.Proof.TargetSum.Modes.SignerLimitedCoupling
 
-/-! Assemble the seeded loss for adversaries whose forged encoding is already cached.
-The remaining first-lane estimate is expressed against the source budget's explicit reserve. -/
+/-! Adversaries whose forged encoding is already cached when they output the forgery. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -36,68 +36,3 @@ theorem HasCachedForgedEncoding.sourcePrefix {adversary : Adversary}
     (Deciding.sourcePrefixExecution_phase_support adversary key result hresult)
 
 end XmssSecurity.TargetSum.Direct
-
-namespace XmssSecurity.TargetSum.Modes
-open XmssSecurity.Modes
-
-open Seeded Direct Deciding
-
-theorem signer_cached_seeded_loss_le (adversary : Security.StatementAdversary)
-    (q : Nat) (hsmall : q < 2 ^ 256)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
-    (hcached : HasCachedForgedEncoding (memoAdversary (Security.embed adversary))) :
-    forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
-      ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ * expectedCoupledHazards (q + 1)
-        (publicLimitedAcceptedPrefixProbeExecution q (memoAdversary (Security.embed adversary))) +
-      sourceSecondaryLoss (memoAdversary (Security.embed adversary)) := by
-  have hfirst := (decidingFirstLane_probability_le_acceptedPrefix_of_cached _ hcached.sourcePrefix).trans
-    (signer_acceptedPrefixFirstLane_probability_le_limited_expected adversary q hsmall hbound)
-  apply (forgeAdvantage_deterministic_le_reference_expectedDirectSeed (Security.embed adversary)).trans
-  apply (add_le_add (forgeAdvantage_le_deciding_lanes _) le_rfl).trans
-  rw [add_assoc]
-  exact add_le_add hfirst (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss _ hcached)
-
-theorem signer_cached_127_of_expectedHazards (adversary : Security.StatementAdversary)
-    (q : Nat) (hsmall : q < 2 ^ 256)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
-    (hcached : HasCachedForgedEncoding (memoAdversary (Security.embed adversary)))
-    (hhazards : expectedCoupledHazards (q + 1)
-      (publicLimitedAcceptedPrefixProbeExecution q (memoAdversary (Security.embed adversary))) ≤
-        (q : ℝ≥0∞) +
-          (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) / 2 +
-            expectedDirectSeedQueries (memoAdversary (Security.embed adversary)) / 2 +
-            expectedSourceSignerHashes (memoAdversary (Security.embed adversary)))) :
-    forgeAdvantage Seeded.scheme (Security.embed adversary) ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
-  apply (signer_cached_seeded_loss_le adversary q hsmall hbound hcached).trans
-  have h := add_le_add (mul_le_mul' (le_refl (((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹)) hhazards)
-    (le_refl (sourceSecondaryLoss (memoAdversary (Security.embed adversary))))
-  apply h.trans
-  calc
-    _ = (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
-          (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) / 2 +
-            expectedDirectSeedQueries (memoAdversary (Security.embed adversary)) / 2 +
-            expectedSourceSignerHashes (memoAdversary (Security.embed adversary))) /
-              ((2 ^ digestBits : Nat) : ℝ≥0∞)) := by
-      simp only [div_eq_mul_inv]
-      ring
-    _ ≤ (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) :=
-      add_le_add le_rfl (signer_sourceSecondaryLoss_add_reserve_le adversary q hsmall hbound)
-    _ = _ := by
-      simp only [div_eq_mul_inv]
-      rw [← mul_add]
-      congr 1
-      apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
-      simp (disch := finiteness) only [ENNReal.toReal_add]
-      norm_num [ENNReal.toReal_inv, digestBits]
-
-/-- info: 'XmssSecurity.TargetSum.Modes.signer_cached_seeded_loss_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms signer_cached_seeded_loss_le
-
-/-- info: 'XmssSecurity.TargetSum.Modes.signer_cached_127_of_expectedHazards' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms signer_cached_127_of_expectedHazards
-
-end XmssSecurity.TargetSum.Modes

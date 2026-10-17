@@ -24,7 +24,8 @@ theorem winning_encoding_event_has_signed_collision
       cache (Concrete.CacheView.encodingInput outcome.secretKey.parameter request.epoch
           (outcome.forgery.message, outcome.forgery.signature.randomness)) =
         some forgedOutput ∧
-      truncateHash signedOutput = truncateHash forgedOutput := by
+      truncateHash signedOutput = truncateHash forgedOutput ∧
+      ∃ encoding, TargetSum.decodeDigest (truncateHash signedOutput) = some encoding := by
   refine ⟨hevent.signingTranscript_valid,
     hevent.signingLog_length_le_lifetime, ?_⟩
   rcases hevent.2.2 with hsame | hfresh
@@ -45,7 +46,7 @@ theorem winning_encoding_event_has_signed_collision
         outcome.secretKey.parameter request.epoch outcome.forgery.message
         outcome.forgery.signature.randomness forgedEncoding hforgedDecode
     refine ⟨request, signature, signedOutput, forgedOutput, hreturned, hleafIndex, ?_,
-      hsignedCached, hforgedCached, ?_⟩
+      hsignedCached, hforgedCached, ?_, ?_⟩
     · intro hinput
       exact hencoding.1
         (Concrete.CacheView.encodingInput_injective outcome.secretKey.parameter request.epoch
@@ -55,6 +56,9 @@ theorem winning_encoding_event_has_signed_collision
         Concrete.CacheView.encodingHash,
         Concrete.CacheView.digestAt_eq_of_cache_eq_some hforgedCached] at hencoding
       exact hencoding.2
+    · rw [Concrete.CacheView.encodingHash,
+        Concrete.CacheView.digestAt_eq_of_cache_eq_some hsignedCached] at hsignedDecode
+      exact ⟨signedEncoding, hsignedDecode⟩
   · simp [Concrete.FreshLeafIndexBadEventOccurs,
       XmssSecurity.TargetSum.FreshLeafIndexBadEventOccurs] at hfresh
 
@@ -66,11 +70,11 @@ theorem winning_encoding_event_trace_temporal_decomposition
     (hcaches : trace.CachesLe cache)
     (hcached : trace.SuccessfulEncodingsCached outcome.secretKey)
     (hevent : WinningOutcomeBadEventOccurs cache outcome .encoding) :
-    ∃ entry ∈ trace,
-      entry.PreexistingEncodingCollision outcome.secretKey ∨
-        entry.FreshForgedEncodingCollision outcome.secretKey outcome.forgery cache := by
+    ∃ entry ∈ trace, entry.PrehitPartnered outcome.secretKey cache ∧
+      (entry.PreexistingEncodingCollision outcome.secretKey ∨
+        entry.FreshForgedEncodingCollision outcome.secretKey outcome.forgery cache) := by
   obtain ⟨_hvalid, _hlength, request, signature, signedOutput, forgedOutput,
-    hreturned, hleafIndex, hne, hsigned, hforged, hdigest⟩ :=
+    hreturned, hleafIndex, hne, hsigned, hforged, hdigest, hsignedValid⟩ :=
     winning_encoding_event_has_signed_collision cache outcome hevent
   have hreturnedTrace :
       SigningTranscript.Returned trace.toSigningLog request signature := by
@@ -99,9 +103,16 @@ theorem winning_encoding_event_trace_temporal_decomposition
     dsimp [forgedInput]
     rw [← hleafIndex]
     exact hne
+  have hpartnered : entry.PrehitPartnered outcome.secretKey cache := by
+    refine ⟨signature, signedOutput, hsignature, hsigned, hsignedValid,
+      (outcome.forgery.message, outcome.forgery.signature.randomness), ?_, forgedOutput, hforged,
+      hdigest.symm⟩
+    intro heq
+    exact hne (congrArg (Concrete.CacheView.encodingInput outcome.secretKey.parameter
+      entry.request.epoch) heq.symm)
   cases hinitial : entry.initialCache forgedInput with
   | none =>
-      refine ⟨entry, hentry, Or.inr ?_⟩
+      refine ⟨entry, hentry, hpartnered, Or.inr ?_⟩
       refine ⟨signature, signedOutput, forgedOutput, hsignature, hleafIndex,
         hinitial, hlocalSigned, hforgedFinal, hdistinct, hdigest⟩
   | some oldOutput =>
@@ -109,7 +120,7 @@ theorem winning_encoding_event_trace_temporal_decomposition
       have holdOutput : oldOutput = forgedOutput :=
         Option.some.inj (holdFinal.symm.trans hforgedFinal)
       subst oldOutput
-      refine ⟨entry, hentry, Or.inl ?_⟩
+      refine ⟨entry, hentry, hpartnered, Or.inl ?_⟩
       refine ⟨signature, signedOutput,
         (outcome.forgery.message, outcome.forgery.signature.randomness),
         forgedOutput, hsignature, hlocalSigned, ?_, ?_, hdigest⟩
@@ -123,7 +134,7 @@ theorem winning_encoding_event_trace_temporal_decomposition
           (Concrete.CacheView.encodingInput outcome.secretKey.parameter
             entry.request.epoch) heq.symm
 
-/-- The two budget classes are a 192-bit pre-hit on signing randomness and a 128-bit digest collision, with the latter covering both temporal orientations around signing. -/
+/-- The two budget classes are a pre-hit on the 128-bit signing randomness and a 128-bit digest collision, with the latter covering both temporal orientations around signing. -/
 theorem winning_encoding_event_trace_monitor_decomposition
     (cache : QueryCache HashSpec) (outcome : GameOutcome)
     (trace : SigningCacheTrace)
@@ -131,17 +142,17 @@ theorem winning_encoding_event_trace_monitor_decomposition
     (hcaches : trace.CachesLe cache)
     (hcached : trace.SuccessfulEncodingsCached outcome.secretKey)
     (hevent : WinningOutcomeBadEventOccurs cache outcome .encoding) :
-    ∃ entry ∈ trace,
-      entry.EncodingInputPrehit outcome.secretKey ∨
+    ∃ entry ∈ trace, entry.PrehitPartnered outcome.secretKey cache ∧
+      (entry.EncodingInputPrehit outcome.secretKey ∨
         entry.FreshSigningEncodingCollision outcome.secretKey ∨
-          entry.FreshForgedEncodingCollision outcome.secretKey outcome.forgery cache := by
-  obtain ⟨entry, hentry, hpreexisting | hfresh⟩ :=
+          entry.FreshForgedEncodingCollision outcome.secretKey outcome.forgery cache) := by
+  obtain ⟨entry, hentry, hpartnered, hpreexisting | hfresh⟩ :=
     winning_encoding_event_trace_temporal_decomposition cache outcome trace
       hlog hcaches hcached hevent
   · rcases entry.preexistingEncodingCollision_cases outcome.secretKey hpreexisting with
       hprehit | hcollision
-    · exact ⟨entry, hentry, Or.inl hprehit⟩
-    · exact ⟨entry, hentry, Or.inr (Or.inl hcollision)⟩
-  · exact ⟨entry, hentry, Or.inr (Or.inr hfresh)⟩
+    · exact ⟨entry, hentry, hpartnered, Or.inl hprehit⟩
+    · exact ⟨entry, hentry, hpartnered, Or.inr (Or.inl hcollision)⟩
+  · exact ⟨entry, hentry, hpartnered, Or.inr (Or.inr hfresh)⟩
 
 end XmssSecurity.TargetSum

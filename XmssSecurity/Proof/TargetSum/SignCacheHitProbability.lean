@@ -184,7 +184,7 @@ theorem cachedEncodingEntryCount_mono
     intro entry hentry
     exact ⟨hle hentry.1, hentry.2⟩)
 
-/-- Running one signing query samples its 192-bit randomness first, without changing the random-oracle cache, and then performs the fixed-randomness signing attempt. -/
+/-- Running one signing query samples its 128-bit randomness first, without changing the random-oracle cache, and then performs the fixed-randomness signing attempt. -/
 theorem Concrete.sign_run_eq
     (secretKey : SecretKey)
     (leafIndex : LeafIndex) (message : Message) (cache : QueryCache HashSpec) :

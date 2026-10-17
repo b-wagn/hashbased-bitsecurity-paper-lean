@@ -707,7 +707,7 @@ theorem cappedExactEncodingBranch_implies_monitorHit
   obtain ⟨entry, hentry, hprehit | hsigning | hpostSigning⟩ :=
     cappedWinning_encoding_event_trace_postSigning_decomposition adversary
       (execution.1, execution.2.1) hsigningMem hbranch.1
-  · exact (hbranch.2 ⟨hbranch.1, entry, hentry, hprehit⟩).elim
+  · exact (hbranch.2 ⟨hbranch.1, entry, hentry, hprehit.1, hprehit.2⟩).elim
   · exact cappedDetailedGameWithEncodingTrace_freshSigningCollision_monitorHit
       adversary execution hmem hbranch.1 ⟨entry, hentry, hsigning⟩
   · obtain ⟨encoding, hdecode⟩ := hbranch.1.forgery_decode

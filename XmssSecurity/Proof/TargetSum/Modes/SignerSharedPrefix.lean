@@ -1,9 +1,13 @@
-import XmssSecurity.Proof.TargetSum.Modes.SignerMixedLoss
+import XmssSecurity.Proof.TargetSum.Modes.SignerAcceptedFirstLane
+import XmssSecurity.Proof.TargetSum.Modes.SignerPrehit
+import XmssSecurity.Proof.TargetSum.Direct.FreshFirstLaneContribution
+import XmssSecurity.Proof.TargetSum.Direct.SourceLossBudgetFresh
+import XmssSecurity.Proof.TargetSum.Direct.FreshFirstLaneSplit
 import XmssSecurity.Proof.TargetSum.Modes.SignerCachedSecurity
 import XmssSecurity.Proof.TargetSum.Direct.MixedFirstLane
 
 /-! The signer-mode assembly with one shared first-lane prefix budget. Its remaining
-fresh-verification allowance fits the encoding reserve once that expected credit is at least 1/512. -/
+fresh-verification allowance fits the encoding reserve once that expected credit is at least 1/128. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -13,7 +17,7 @@ open XmssSecurity.Modes
 open Seeded Direct Deciding
 
 theorem signer_seeded_loss_le_shared_prefix (adversary : Security.StatementAdversary)
-    (q : Nat) (hsmall : q < 2 ^ 256)
+    (q : Nat) (hsmall : q < 2 ^ 256) (hq : q + 1 ≤ 2 ^ 127)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
     forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
@@ -30,12 +34,13 @@ theorem signer_seeded_loss_le_shared_prefix (adversary : Security.StatementAdver
   apply (add_le_add (forgeAdvantage_le_deciding_lanes _) le_rfl).trans
   rw [add_assoc]
   apply (add_le_add hfirst
-    (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh _)).trans_eq
+    (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh _
+      (signer_prehit_le adversary q hq hbound))).trans_eq
   simp only [div_eq_mul_inv]
   ring
 
 theorem signer_advantage_le_shared_prefix (adversary : Security.StatementAdversary)
-    (q : Nat) (hsmall : q < 2 ^ 256)
+    (q : Nat) (hsmall : q < 2 ^ 256) (hq : q + 1 ≤ 2 ^ 127)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
     (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
@@ -47,41 +52,41 @@ theorem signer_advantage_le_shared_prefix (adversary : Security.StatementAdversa
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
     notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
-  exact signer_seeded_loss_le_shared_prefix adversary q hsmall hbound
+  exact signer_seeded_loss_le_shared_prefix adversary q hsmall hq hbound
 
 theorem mixed_probe_allowance_le_encodingReserve (adversary : Adversary)
-    (hcredit : (1 / 512 : ℝ≥0∞) ≤
+    (hcredit : (1 / 128 : ℝ≥0∞) ≤
       expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) :
     TargetSum.acceptanceProbability *
       (2 * (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) + 1 +
         40 * forgedEncodingFreshProbability adversary) ≤ sourceEncodingReserve adversary := by
   let credit := expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary
-  have hunit : (1 : ℝ≥0∞) ≤ 512 * credit := by
+  have hunit : (1 : ℝ≥0∞) ≤ 128 * credit := by
     calc
-      _ = (512 : ℝ≥0∞) * (1 / 512) := by
+      _ = (128 : ℝ≥0∞) * (1 / 128) := by
         rw [one_div]
         exact (ENNReal.mul_inv_cancel (by norm_num) (by finiteness)).symm
       _ ≤ _ := mul_le_mul' le_rfl hcredit
-  have hcount : 2 * credit + 1 + 40 * forgedEncodingFreshProbability adversary ≤ 20994 * credit := by
+  have hcount : 2 * credit + 1 + 40 * forgedEncodingFreshProbability adversary ≤ 5250 * credit := by
     calc
       _ ≤ 2 * credit + 1 + 40 * 1 :=
         add_le_add le_rfl (mul_le_mul' le_rfl (forgedEncodingFreshProbability_le_one adversary))
       _ = 2 * credit + 41 := by ring
-      _ ≤ 2 * credit + 41 * (512 * credit) :=
+      _ ≤ 2 * credit + 41 * (128 * credit) :=
         add_le_add le_rfl (by simpa using mul_le_mul' (le_refl (41 : ℝ≥0∞)) hunit)
       _ = _ := by ring
-  have hrate : TargetSum.acceptanceProbability * 20994 ≤ (3 / 4 : ℝ≥0∞) := by
+  have hrate : TargetSum.acceptanceProbability * 5250 ≤ (3 / 8 : ℝ≥0∞) := by
     unfold TargetSum.acceptanceProbability
     apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
     norm_num [ENNReal.toReal_mul, ENNReal.toReal_div, digestBits]
   calc
-    _ ≤ TargetSum.acceptanceProbability * (20994 * credit) := mul_le_mul' le_rfl hcount
-    _ = (TargetSum.acceptanceProbability * 20994) * credit := (mul_assoc _ _ _).symm
-    _ ≤ (3 / 4 : ℝ≥0∞) * credit := mul_le_mul' hrate le_rfl
+    _ ≤ TargetSum.acceptanceProbability * (5250 * credit) := mul_le_mul' le_rfl hcount
+    _ = (TargetSum.acceptanceProbability * 5250) * credit := (mul_assoc _ _ _).symm
+    _ ≤ (3 / 8 : ℝ≥0∞) * credit := mul_le_mul' hrate le_rfl
 
 theorem signer_advantage_127_of_encoding_credit (adversary : Security.StatementAdversary) (q : Nat)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
-    (hcredit : (1 / 512 : ℝ≥0∞) ≤
+    (hcredit : (1 / 128 : ℝ≥0∞) ≤
       expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
         expectedSourceSignerHashes (memoAdversary (Security.embed adversary))) :
     (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
@@ -93,7 +98,7 @@ theorem signer_advantage_127_of_encoding_credit (adversary : Security.StatementA
         (ENNReal.div_self (by norm_num) (ENNReal.natCast_ne_top _)).symm
       _ ≤ _ := ENNReal.div_le_div (by exact_mod_cast hlarge) le_rfl
   · have hsmall : q < 2 ^ 256 := (Nat.lt_of_not_ge hlarge).trans (by norm_num)
-    apply (signer_advantage_le_shared_prefix adversary q hsmall hbound).trans
+    apply (signer_advantage_le_shared_prefix adversary q hsmall (by omega) hbound).trans
     apply (add_le_add le_rfl (ENNReal.div_le_div
       (mixed_probe_allowance_le_encodingReserve _ hcredit) le_rfl)).trans
     rw [add_assoc]

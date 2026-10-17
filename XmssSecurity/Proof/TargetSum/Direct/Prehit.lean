@@ -458,19 +458,20 @@ theorem cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_le_direct
 end Direct
 
 /-- The encoding-prehit term of the second lane, charged to the adversary's direct hash
-queries only: at most `signingAttemptLimit · D / 2^randomnessBits = D / 2^160`. -/
+queries only: at most `signingAttemptLimit · D / 2^randomnessBits = D / 2^96`. This is too weak
+for the security levels; they use the collision bound of `Direct/CollisionLoss.lean`. -/
 theorem winningEncodingPrehit_probability_le_direct (adversary : Adversary) (D : ℕ)
     (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
       (signingAttemptLimit : ℝ≥0∞) * D * ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
   calc
-    _ = Pr[fun execution : GameOutcome ×
+    _ ≤ Pr[fun execution : GameOutcome ×
           (QueryCache HashSpec × SigningCacheTrace) =>
         WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
           execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
         cappedDetailedGameWithSigningTrace adversary] := by
       rw [← cappedDetailedGameWithEncodingTrace_projection, probEvent_map]
-      rfl
+      exact probEvent_mono fun execution _ h => h.hasEncodingInputPrehit
     _ ≤ _ := by
       unfold cappedDetailedGameWithSigningTrace
       apply Direct.probEvent_bind_le_of_forall
