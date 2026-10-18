@@ -4,12 +4,8 @@ import XmssSecurity.Statement.RandomOracleModel
 /-!
 # XMSS types
 
-The data types of XMSS, in terms of
-the constants of `Parameters.lean`: seeds, digests, messages, indices, encodings, keys, and
-signatures. Encodings, secret keys, and signatures depend on the number `v` of WOTS chains, which
-the encoding fixes (`WotsEncoding`). It also fixes the random-oracle world of XMSS: the hash
-function `H` maps byte strings to `n`-bit digests and is the random oracle `HashSpec`, so every
-hash call is an oracle query.
+Keys and signatures are indexed by the number of WOTS chains. `WotsEncoding` supplies the
+decoder and signing-attempt limit. `HashSpec` maps byte strings to digests.
 -/
 
 open OracleComp OracleSpec
@@ -43,9 +39,7 @@ abbrev HashInput := List UInt8
 
 /-! ## The WOTS encoding -/
 
-/-- A WOTS encoding: the number `v` of chains, the partial map from message digests to codewords
-(`none` when a digest does not encode), and the number `A_max` of randomizer trials of the
-signer. -/
+/-- Chain count, partial digest decoder, and maximum randomizer trials. -/
 structure WotsEncoding where
   numChains : Nat
   decode : Digest → Option (Encoding numChains)

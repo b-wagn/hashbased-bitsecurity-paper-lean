@@ -12,10 +12,10 @@ that charge the adversary's own hash queries**, under both strong (SUF-CMA) and 
 (EUF-CMA) unforgeability. Each classification is one theorem, in
 `XmssSecurity/Statement/StrongUnforgeabilityTheorems.lean` and
 `XmssSecurity/Statement/UnforgeabilityTheorems.lean`. As in the manuscript, the signing oracle
-answers a request for an epoch it already signed by `⊥`, without running the signer. A standard
-forgery must use an epoch/message pair never requested from the signer, including requests that
-returned no signature. Private uniform sampling is free: only hash calls, and signing requests
-where the mode says so, are charged.
+records the first request and answer at each epoch, even if signing fails; later requests at that
+epoch return `⊥` without running the signer or changing the record. A standard forgery must use
+an epoch/message pair absent from that record. Private uniform sampling is free: only hash calls,
+and signing requests where the mode says so, are charged.
 
 As in the manuscript, each notion has a single experiment that outputs whether the adversary
 wins together with five query counts: the adversary's signing queries `q_S` and direct hash
@@ -74,9 +74,10 @@ signing; the two cases are weighted by the probability of signing, for at most
 ## Correctness
 
 `Statement/Security/Correctness.lean` defines the correctness experiment of the manuscript: the
-adversary adaptively requests signatures, a repeated epoch is answered by `⊥`, and the experiment
-outputs `1` if a request is answered by `⊥` or by a signature that does not verify. The
-correctness error is at most `δ` if every adversary making at most `q` signing requests outputs
+adversary adaptively requests signatures, and the experiment outputs `1` if a first request at an
+epoch fails or returns a signature that does not verify. Repeated epochs return `⊥` without
+setting the failure flag. The correctness error is at most `δ` if every adversary making at most
+`q` signing requests outputs
 `1` with probability at most `δ · q`; its hash queries are not limited.
 
 `xmssChecksum_correct` (`Statement/CorrectnessTheorems.lean`) proves that the checksum scheme has
@@ -92,8 +93,9 @@ tuples gives the bound (`Proof/TargetSum/CorrectnessError.lean`).
 
 ## Layout
 
-* `Statement/`: the definitions (security games, bit security, the scheme) and the four theorem
-  statements. Only the theorem files import the proof layer.
+* `Statement/`: definitions and six main theorems. To review the claims, start with
+  `BitSecurity.lean`, then `Security/` for the games, `Scheme/` for the construction, and
+  `*Theorems.lean` for the results. Only the theorem files import the proof layer.
 * `Proof/Common/`: proofs that do not depend on the scheme (counting modes, query counting). The
   proofs were written for a variant of the games in which a repeated epoch makes the forgery lose
   (`LossyGames.lean`); `RepeatedEpochs.lean` transfers them to the statement's games: an

@@ -5,22 +5,7 @@ import XmssSecurity.Statement.CorrectnessTheorems
 /-!
 # Security of XMSS in the random-oracle model
 
-The public entry point for the `XmssSecurity` library. Importing this module checks the exact
-classifications of strong (SUF-CMA) and standard (EUF-CMA) unforgeability, under all sixteen
-counting modes that charge the adversary's own hash queries, of XMSS with two WOTS encodings:
-
-* `xmssTargetSum_sufCma_exact` and `xmssChecksum_sufCma_exact`
-  (`Statement/StrongUnforgeabilityTheorems.lean`);
-* `xmssTargetSum_eufCma_exact` and `xmssChecksum_eufCma_exact`
-  (`Statement/UnforgeabilityTheorems.lean`).
-
-With the target-sum encoding: exactly 127 bits when any honest party's hashes are charged, and
-otherwise 122 bits (SUF-CMA), or 126 bits for `{hash}` and 127 bits for `{hash, sign}` (EUF-CMA).
-With the checksum: exactly 127 bits when key generation or verification hashes are charged;
-otherwise 124 bits when the signer's hashes and the signing requests are charged, 123 bits when
-only the signer's hashes are, and 122 bits when neither is, under both notions.
-
-It also checks `xmssTargetSum_correct` and `xmssChecksum_correct`
-(`Statement/CorrectnessTheorems.lean`): the target-sum scheme has correctness error at most
-`2^-64864`, and the checksum scheme has correctness error `0`.
+Importing this module checks the four exact SUF-CMA/EUF-CMA classifications and the two
+correctness bounds for target-sum and checksum XMSS. See `Statement/*Theorems.lean` for the
+claims and the README for the results table and build instructions.
 -/

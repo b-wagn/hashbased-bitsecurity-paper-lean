@@ -3,21 +3,12 @@ import XmssSecurity.Statement.Security.SUFCMA
 /-!
 # Correctness
 
-The experiment `CORRECT_SIG(A)` of the definition of correctness of the manuscript, for an
-epoch-based signature scheme `SIG = (Gen, Sig, Ver)` in the random-oracle model and an adversary
-`A`:
+Generate keys and let an adaptive adversary request signatures. A first request at an epoch
+sets a failure flag if signing fails or verification rejects. Repeated epochs return `none`
+without setting the flag. The experiment returns the flag and the number of signing requests.
 
-1. generate keys `(pk, sk) ← Gen` and set `v := 0`;
-2. run `A` on `pk`, with access to the hash oracle, private uniform sampling, and the signing
-   oracle `Sig(ep, m)`: if `Signed[ep] ≠ ⊥`, it returns `⊥`; otherwise it computes
-   `σ ← Sig(sk, ep, m)` and sets `Signed[ep] := (m, σ)`; if `σ = ⊥` or `Ver(pk, ep, m, σ) = 0`, it
-   sets `v := 1`; it returns `σ`;
-3. output `v`.
-
-The experiment also outputs the number of signing queries of `A`. The correctness advantage is
-`Pr[CORRECT_SIG(A) = 1]`, and `SIG` has correctness error at most `δ` if this advantage is at
-most `δ · q` for every adversary that makes at most `q` signing queries. The adversary's hash
-queries are not limited.
+Correctness error `δ` means failure probability at most `δ · q` for every adversary making at
+most `q` signing requests with probability one. Hash queries are unlimited.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -28,23 +19,19 @@ open SUFCMA
 
 variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
 
-/-- An adaptive adversary of the correctness experiment: given the public key, it may use the
-ambient oracles and the signing oracle. -/
+/-- An adaptive adversary with the public key and access to hashing, sampling, and signing. -/
 structure Adversary {ι : Type} (spec : OracleSpec ι) (PK Msg Sig : Type) (L : ℕ) where
   main : PK → OracleComp (spec + SigningSpec Msg Sig L) Unit
 
-/-- The adversary's run in the experiment: the number of signing queries, the table `Signed` and
-the flag `v`, and the ambient oracles. -/
+/-- The request count, table `Signed`, and failure flag, over the ambient oracles. -/
 abbrev Run (spec : OracleSpec ι) (Msg Sig : Type) (L : ℕ) : Type → Type :=
   AddWriterT ℕ (StateT (QueryLog (SigningSpec Msg Sig L) × Bool) (OracleComp spec))
 
-/-- The signing oracle `Sig(ep, m)` of the experiment. It counts one signing query. If
-`Signed[ep] ≠ ⊥`, it returns `⊥`. Otherwise it signs, records the request and the answer as
-`Signed[ep]`, and sets the flag `v` if the answer is `⊥` or does not verify. -/
+/-- Count the request; for a fresh epoch, sign and flag failure or rejected verification. -/
 def signingOracle (scheme : EpochBasedSignature spec PK SK Msg Sig L) (pk : PK) (sk : SK) :
     QueryImpl (SigningSpec Msg Sig L) (Run spec Msg Sig L) :=
   fun request => do
-    AddWriterT.addTell (M := StateT (QueryLog (SigningSpec Msg Sig L) × Bool) (OracleComp spec)) 1
+    AddWriterT.addTell 1
     let (signed, failed) ←
       liftM (get : StateT (QueryLog (SigningSpec Msg Sig L) × Bool) (OracleComp spec) _)
     if SigningTranscript.Signed signed request.epoch then
@@ -58,15 +45,13 @@ def signingOracle (scheme : EpochBasedSignature spec PK SK Msg Sig L) (pk : PK) 
         StateT (QueryLog (SigningSpec Msg Sig L) × Bool) (OracleComp spec) Unit)
       return answer
 
-/-- The experiment `CORRECT_SIG(A)`: key generation, and the adversary with the ambient oracles
-and the signing oracle, starting from the empty table `Signed` and `v = 0`. It returns `v` and
-the number of signing queries. -/
+/-- Generate keys and run the adversary; return the failure flag and request count. -/
 def experiment (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × ℕ) := do
   let (pk, sk) ← scheme.keygen
   let ((_, requests), (_, failed)) ←
-    ((simulateQ (QueryImpl.ofLift spec (Run spec Msg Sig L) + signingOracle scheme pk sk)
-      (adversary.main pk)).run.run ([], false))
+    (simulateQ (QueryImpl.ofLift spec (Run spec Msg Sig L) + signingOracle scheme pk sk)
+      (adversary.main pk)).run.run ([], false)
   return (failed, Multiplicative.toAdd requests)
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
@@ -90,8 +75,7 @@ def HasRequestBound
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) (q : ℕ) : Prop :=
   Pr[fun result => result.2 ≤ q | game scheme adversary] = 1
 
-/-- Correctness error at most `δ`: every adversary that makes at most `q` signing queries makes
-signing fail, or a signature not verify, with probability at most `δ · q`. -/
+/-- At most `δ · q` failure probability for every adversary with at most `q` signing requests. -/
 def HasCorrectnessError
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (δ : ℝ≥0∞) : Prop :=

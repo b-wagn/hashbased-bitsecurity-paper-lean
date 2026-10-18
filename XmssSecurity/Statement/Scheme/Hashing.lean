@@ -3,11 +3,8 @@ import XmssSecurity.Statement.Scheme.Types
 /-!
 # XMSS hashing
 
-How XMSS calls the hash function: the serialization of hash inputs (little-endian byte strings
-and the 16-byte tweaks `enc(t, p, j)`), the hash domains, and the hash routines built on a
-single oracle query `oracleHash`: the tweakable hash `Th` and its uses for the message encoding,
-chain steps, leaves, and Merkle nodes, and the derivation of keys and randomizers from the master
-seed. The hash routines work in any monad with access to `HashSpec`.
+Byte serialization, domain separation, and hash routines. Each routine makes one query to
+`HashSpec`; integer fields are little-endian and tweaks occupy 16 bytes.
 -/
 
 open OracleComp OracleSpec

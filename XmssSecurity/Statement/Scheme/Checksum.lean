@@ -3,26 +3,10 @@ import XmssSecurity.Statement.Scheme.Xmss
 /-!
 # The WOTS encoding with a checksum
 
-The code of the XMSS instance, as in SLH-DSA (FIPS 205, Algorithms 7 and 8): a 128-bit digest is
-read as `len_1 = 43` digits of `w = 3` bits, and the checksum `csum = Σ (2^w - 1 - x_i)` of these
-digits is appended as `len_2 = 3` further digits, for `v = 46` chains. Every digest encodes, so
-the signer makes a single attempt.
-
-Digits are read in the little-endian layout of this instance: message digit `i` consists of the
-digest bits `3i, 3i + 1, 3i + 2`, least significant first. The last message digit has only the
-two bits `126` and `127`, the missing top bit counting as zero (`len_1 = ⌈128 / 3⌉`). The checksum
-digits are the base-`2^w` digits of `csum`, most significant first. This is what FIPS 205 obtains
-by shifting `csum` left by `(8 - (len_2 · w) mod 8) mod 8 = 7` bits, serializing it as two bytes,
-and reading `len_2` digits with `base_2b`.
-
-| Symbol  | Lean             | Value | Meaning                          |
-|---------|------------------|-------|----------------------------------|
-| `len_1` | `messageDigits`  | 43    | digits of the message digest     |
-| `len_2` | `checksumDigits` | 3     | digits of the checksum           |
-| `v`     | `numChains`      | 46    | code length (number of chains)   |
-
-`len_1 = ⌈n / w⌉ = 43` and `len_2 = ⌊log_{2^w}(len_1 · (2^w - 1))⌋ + 1 = 3`, the lengths of FIPS 205
-for `lg_w = w`. `xmssChecksum` is the resulting scheme.
+A digest gives 43 three-bit message digits, least significant first, with the last digit
+zero-extended. Append the three base-8 digits of `Σ (7 - x_i)`, most significant first,
+giving 46 chains. This uses the WOTS checksum construction of FIPS 205 with this instance's
+message-digit layout. Every digest encodes, so signing needs one attempt.
 -/
 
 namespace XmssSecurity

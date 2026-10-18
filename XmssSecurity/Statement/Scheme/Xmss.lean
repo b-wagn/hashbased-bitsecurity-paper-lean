@@ -4,19 +4,15 @@ import XmssSecurity.Statement.EpochBasedSignature
 /-!
 # XMSS as an epoch-based signature scheme
 
-The instance `xmss E` of `EpochBasedSignature` in the random-oracle world of the construction, for
-a WOTS encoding `E`: key generation samples the 256-bit master seed and derives everything else
-through the hash oracle; signing and verification are the deterministic algorithms of
-`Construction.lean`. The two schemes of this development are `xmssTargetSum` (`TargetSum.lean`)
-and `xmssChecksum` (`Checksum.lean`).
+`xmss E` packages the construction for encoding `E`. Key generation samples a 256-bit seed;
+signing and verification are deterministic given the hash oracle.
 -/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity
 
-/-- `SIG = (Gen, Sig, Ver)` for the encoding `E`: sample the master seed and
-derive the keys, sign with at most `A_max` randomizer trials, and verify. -/
+/-- The epoch-based signature scheme for encoding `E`. -/
 noncomputable def xmss (E : WotsEncoding) :
     EpochBasedSignature OracleWorld PublicKey (Seeded.SecretKey E.numChains) Message
       (Signature E.numChains) lifetime where

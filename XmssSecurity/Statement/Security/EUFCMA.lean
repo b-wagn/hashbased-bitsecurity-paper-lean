@@ -3,11 +3,9 @@ import XmssSecurity.Statement.Security.SUFCMA
 /-!
 # Standard unforgeability under chosen-message attacks
 
-The experiment `EUFCMA_SIG(A)` of the definition of unforgeability of the manuscript: the
-experiment of `SUFCMA.lean`, with the same oracles and the same query counts, except that a
-forgery must be for an epoch/message pair `(ep*, m*)` that is not in the table `Signed`, i.e. for
-which `(m*, σ) ≠ Signed[ep*]` for every `σ ∈ Σ ∪ {⊥}`. A request counts as submitted even if the
-signer returned `⊥`. Changing only the signature on a previously requested pair does not win.
+The SUF-CMA experiment with a stronger freshness condition: the forgery's epoch/message pair
+must be absent from `Signed`, regardless of whether the recorded signing attempt succeeded.
+As in SUF-CMA, only the first request at each epoch is recorded.
 -/
 
 open OracleComp OracleSpec
@@ -33,8 +31,7 @@ end SigningTranscript
 variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Input]
   [SampleableType Output]
 
-/-- EUF-CMA in the random-oracle model: the experiment of `SUFCMA.lean`, in which a forgery is
-fresh if its epoch/message pair is not in the table `Signed`. -/
+/-- EUF-CMA: the forgery's epoch/message pair must be absent from `Signed`. -/
 noncomputable abbrev securityGame [DecidableEq Msg] :
     SecurityGame (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
       QueryKind :=

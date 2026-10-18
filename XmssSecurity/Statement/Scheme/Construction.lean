@@ -5,18 +5,10 @@ import VCVio.OracleComp.QueryTracking.LoggingOracle
 /-!
 # XMSS construction
 
-The algorithms of XMSS for an arbitrary WOTS encoding `E` (`WotsEncoding`): verification, key
-generation, and signing. The types are in `Types.lean` and the hash routines in `Hashing.lean`. The
-two encodings of this development are in `TargetSum.lean` (the target sum) and `Checksum.lean` (the
-checksum of SLH-DSA, FIPS 205).
-
-`Concrete` contains verification and the chain and tree computations; `Seeded` contains key
-generation and signing from a 256-bit master seed. Key generation derives the public parameter
-and all WOTS chain starts from the master seed in separate hash domains, computes the Merkle root,
-and stores every chain value and Merkle node in the secret key. Signing derives randomizers from
-the master seed, trial by trial, until a digest decodes, and gives up (`⊥`) after `A_max` trials.
-Verification rejects a digest that does not decode. Out-of-range branches only make the
-definitions total; honest algorithms never reach them.
+Algorithms for a WOTS encoding `E`, using the types and hash routines of `Types.lean` and
+`Hashing.lean`. `Concrete` contains verification, chains, and the Merkle tree. `Seeded` derives
+keys and randomizers from a 256-bit seed. Signing tries at most `E.signingAttempts` randomizers;
+verification rejects digests that do not decode. Out-of-range branches make the functions total.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -149,10 +141,8 @@ end Concrete
 
 /-! ### Key generation: the stored chain values and tree nodes
 
-Key generation computes the Merkle root through the oracle while logging its hash queries. The
-secret key stores every chain value and Merkle node; they are read off that log: the chain and
-tree computations are re-run with each hash query answered from the logged values
-(`precomputedSecretKey`), so no further oracle query is made. -/
+Key generation logs the hashes used to compute the root. Replaying this log fills the secret
+key's chain and tree tables without further oracle queries. -/
 
 /-- Enter a query log into a cache, in order. -/
 def extendHashCacheWithLog (initialCache : QueryCache HashSpec) :

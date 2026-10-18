@@ -1,24 +1,9 @@
 /-!
 # XMSS instance parameters
 
-The parameters of the XMSS instance for Ethereum's post-quantum consensus that do not depend on
-the WOTS encoding. Everything else in `Scheme/` is defined in terms of these constants. The two
-encodings fix the remaining parameters: the target-sum encoding in `TargetSum.lean` (`v = 42`
-chains, target sum `T = 195`, at most `A_max = 2^32` randomizer trials), and the WOTS encoding
-with a checksum of SLH-DSA (FIPS 205) in `Checksum.lean` (`len_1 = 43` message digits and
-`len_2 = 3` checksum digits, `v = 46` chains, a single randomizer).
-
-| Symbol  | Lean             | Value  | Meaning                     |
-|---------|------------------|--------|-----------------------------|
-| `n`     | `digestBits`     | 128    | hash output length (bits)   |
-| `ℓ_msg` | `messageBits`    | 256    | message length              |
-| `w`     | `winternitzBits` | 3      | chunk size in bits          |
-| `h`     | `treeHeight`     | 32     | Merkle tree height          |
-| `L`     | `lifetime`       | `2^32` | lifetime (number of epochs) |
-
-The public parameter and the randomizers are hash outputs, so their lengths are `ℓ_p = ℓ_rnd = n`.
-The master seed has 256 bits and the tweak has 128 bits (16 bytes); both are fixed by the byte
-layout in `Types.lean` and `Hashing.lean`.
+Parameters shared by both encodings. `TargetSum.lean` and `Checksum.lean` fix the chain counts
+and signing attempts. Seeds have 256 bits; public parameters and randomizers have `digestBits`
+bits (`Types.lean`), and hash tweaks have 16 bytes (`Hashing.lean`).
 -/
 
 namespace XmssSecurity

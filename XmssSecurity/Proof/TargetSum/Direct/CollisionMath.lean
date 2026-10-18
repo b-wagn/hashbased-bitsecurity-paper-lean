@@ -1,4 +1,3 @@
-import Mathlib
 import XmssSecurity.Proof.TargetSum.Code
 import XmssSecurity.Proof.TargetSum.EncodingProbability
 

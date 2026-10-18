@@ -3,17 +3,8 @@ import XmssSecurity.Statement.Scheme.Xmss
 /-!
 # XMSS with the target-sum encoding
 
-XMSS with the target-sum code. A 128-bit digest is read as `v = 42` digits of `w = 3` bits, and it
-decodes to an encoding exactly when its two padding bits are clear and the digits sum to the target
-sum `T = 195`. The signer tries at most `A_max = 2^32` randomizers.
-
-| Symbol  | Lean                  | Value   | Meaning                                 |
-|---------|-----------------------|---------|-----------------------------------------|
-| `v`     | `numChains`           | 42      | code length (number of chains)          |
-| `T`     | `targetSum`           | 195     | target sum                              |
-| `A_max` | `signingAttemptLimit` | `2^32`  | maximum randomizer trials per signature |
-
-`xmssTargetSum` is the resulting scheme.
+A digest decodes when padding bits 63 and 127 are zero and its 42 three-bit digits sum to 195.
+The signer tries at most `2^32` randomizers. `xmssTargetSum` is the resulting scheme.
 -/
 
 namespace XmssSecurity
@@ -32,10 +23,7 @@ def signingAttemptLimit : Nat := 2 ^ 32
 abbrev ChainIndex := Fin numChains
 abbrev Encoding := ChainIndex → Digit
 
-/-! ### The target-sum code
-
-`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the
-code is the words of digit sum `T = 195`. -/
+/-! ### The target-sum code -/
 
 /-- The digit sum of a word. -/
 def sum (x : Encoding) : Nat := ∑ i, (x i).val
@@ -57,15 +45,12 @@ def digitOffset (i : ChainIndex) : Nat :=
 def digestEncoding (digest : Digest) : Encoding :=
   fun i => (digest.extractLsb' (digitOffset i) winternitzBits).toFin
 
-/-- Decode the little-endian digest layout: 21 three-bit digits, padding bit 63, 21 digits, and
-padding bit 127. A digest decodes exactly when both padding bits are clear and the digits reach the
-target sum. -/
+/-- Decode exactly when the padding bits are zero and the digit sum is `targetSum`. -/
 def decodeDigest (digest : Digest) : Option Encoding :=
   if digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false ∧ Valid (digestEncoding digest)
   then some (digestEncoding digest) else none
 
-/-- The target-sum encoding: `v = 42` chains, the target-sum decoder, and `A_max = 2^32`
-randomizer trials. -/
+/-- The target-sum encoding and signing-attempt limit. -/
 def wotsEncoding : WotsEncoding where
   numChains := numChains
   decode := decodeDigest
