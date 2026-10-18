@@ -37,7 +37,7 @@ theorem countedSourceImpl_encodingInputCount_eq_cost (secretKey : Generic.Secret
         if Generic.Direct.IsDirectEncodingQuery secretKey.parameter input then 1 else 0 := by
   simp only [countedSourceImpl, StateT.run, support_map] at hresult
   obtain ⟨handled, _hhandled, rfl⟩ := hresult
-  simp only [countedSourceUpdate, AttackerActionTrace.encodingInputCount_append,
+  simp only [countedSourceUpdate, Generic.CappedChain.AttackerActionTrace.encodingInputCount_append,
     attackerActionFragment_encodingInputCount]
   rcases input with (n | input) | request <;>
     simp only [Generic.Direct.IsDirectEncodingQuery, Generic.CappedEncodingMonitor.IsEncodingHashQuery, if_false]

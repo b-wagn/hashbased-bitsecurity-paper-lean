@@ -33,7 +33,7 @@ theorem countedSourceImpl_encodingInputCount_update (secretKey : Generic.SecretK
       (Generic.CappedChain.attackerActionFragment input result.1).encodingInputCount parameter := by
   simp only [countedSourceImpl, StateT.run, support_map] at hresult
   obtain ⟨handled, _, rfl⟩ := hresult
-  exact AttackerActionTrace.encodingInputCount_append parameter _ _
+  exact Generic.CappedChain.AttackerActionTrace.encodingInputCount_append parameter _ _
 
 theorem firstLane_signing_charge_bounds {α : Type}
     (left : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
@@ -85,7 +85,7 @@ theorem firstLane_signing_charge_bounds {α : Type}
     rw [hresultEq, Generic.CappedChain.globalExactTracedNextState]
     change (rightState.attackerTrace ++ Generic.CappedChain.attackerActionFragment (.inr request) base.1.1).encodingInputCount
       right.1.1.secretKey.parameter = _
-    simp only [AttackerActionTrace.encodingInputCount_append, attackerActionFragment_encodingInputCount,
+    simp only [Generic.CappedChain.AttackerActionTrace.encodingInputCount_append, attackerActionFragment_encodingInputCount,
       Nat.add_zero]
   have hsamples : (history ++ result.2).encodingActions.length ≤
       result.1.2.attackerTrace.encodingInputCount right.1.1.secretKey.parameter + source.2.counts.signing := by

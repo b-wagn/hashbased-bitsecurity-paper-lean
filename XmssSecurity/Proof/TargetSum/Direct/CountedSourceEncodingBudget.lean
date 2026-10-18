@@ -48,18 +48,6 @@ namespace CappedChain
 
 open Seeded
 
-/-- The number of encoding-hash inputs in an attacker trace. It is declared in the generic
-namespace so that field notation on `Generic.CappedChain.AttackerActionTrace` finds it. -/
-noncomputable def _root_.XmssSecurity.Generic.CappedChain.AttackerActionTrace.encodingInputCount
-    (parameter : PublicParameter) (trace : Generic.CappedChain.AttackerActionTrace) : Nat :=
-  trace.hashInputs.countP (fun input => (Generic.encodingInputLeafIndex? parameter input).isSome)
-
-theorem AttackerActionTrace.encodingInputCount_append (parameter : PublicParameter)
-    (left right : Generic.CappedChain.AttackerActionTrace) :
-    (left ++ right).encodingInputCount parameter =
-      left.encodingInputCount parameter + right.encodingInputCount parameter := by
-  simp only [Generic.CappedChain.AttackerActionTrace.encodingInputCount, Generic.CappedChain.AttackerActionTrace.hashInputs_append,
-    List.countP_append]
 
 theorem attackerActionFragment_encodingInputCount (parameter : PublicParameter)
     (input : (OracleWorld + Generic.SigningSpec).Domain) (output : (OracleWorld + Generic.SigningSpec).Range input) :
@@ -101,7 +89,7 @@ theorem countedSourceImpl_encodingBudget (secretKey : Generic.SecretKey)
       change Generic.cachedEncodingInputCount sample.2 secretKey.parameter ≤ _
       apply hstep.trans
       apply le_trans (add_le_add hbudget le_rfl)
-      simp only [countedSourceUpdate, AttackerActionTrace.encodingInputCount_append,
+      simp only [countedSourceUpdate, Generic.CappedChain.AttackerActionTrace.encodingInputCount_append,
         attackerActionFragment_encodingInputCount, Nat.cast_add]
       split_ifs <;> simp [add_comm, add_left_comm]
   | inr request =>
@@ -112,7 +100,7 @@ theorem countedSourceImpl_encodingBudget (secretKey : Generic.SecretKey)
       change Generic.cachedEncodingInputCount sample.2 secretKey.parameter ≤ _
       apply hstep.trans
       apply le_trans (add_le_add hbudget le_rfl)
-      simp only [countedSourceUpdate, AttackerActionTrace.encodingInputCount_append,
+      simp only [countedSourceUpdate, Generic.CappedChain.AttackerActionTrace.encodingInputCount_append,
         attackerActionFragment_encodingInputCount, Nat.add_zero, Nat.cast_add, add_assoc]
       exact le_rfl
 

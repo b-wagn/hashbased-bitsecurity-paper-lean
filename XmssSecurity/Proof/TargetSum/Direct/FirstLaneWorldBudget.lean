@@ -123,7 +123,7 @@ theorem globalFirstLane_world_encodingInputCount_update
   rw [Generic.CappedChain.globalExactTracedNextState]
   change (state.attackerTrace ++ Generic.CappedChain.attackerActionFragment (.inl input) base.1.1).encodingInputCount
     key.secretKey.parameter = _
-  rw [AttackerActionTrace.encodingInputCount_append, attackerActionFragment_encodingInputCount]
+  rw [Generic.CappedChain.AttackerActionTrace.encodingInputCount_append, attackerActionFragment_encodingInputCount]
 
 theorem countedSourceImpl_world_signing_eq (secretKey : Generic.SecretKey) (input : OracleWorld.Domain)
     (state : CountedSourceState) (result : OracleWorld.Range input × CountedSourceState)

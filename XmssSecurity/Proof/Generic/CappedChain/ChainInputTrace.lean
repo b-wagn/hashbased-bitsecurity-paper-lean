@@ -30,6 +30,18 @@ theorem AttackerActionTrace.hashInputs_append
     (left ++ right).hashInputs = left.hashInputs ++ right.hashInputs := by
   simp [AttackerActionTrace.hashInputs]
 
+/-- The number of encoding-hash inputs in an attacker trace. -/
+noncomputable def AttackerActionTrace.encodingInputCount
+    (parameter : PublicParameter) (trace : AttackerActionTrace) : Nat :=
+  trace.hashInputs.countP (fun input => (encodingInputLeafIndex? parameter input).isSome)
+
+theorem AttackerActionTrace.encodingInputCount_append (parameter : PublicParameter)
+    (left right : AttackerActionTrace) :
+    (left ++ right).encodingInputCount parameter =
+      left.encodingInputCount parameter + right.encodingInputCount parameter := by
+  simp only [AttackerActionTrace.encodingInputCount, AttackerActionTrace.hashInputs_append,
+    List.countP_append]
+
 def AttackerActionTrace.toSigningLog
     (trace : AttackerActionTrace) : QueryLog SigningSpec :=
   trace.filterMap AttackerAction.signingEntry?

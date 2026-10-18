@@ -45,7 +45,7 @@ theorem globalFirstLane_query_encodingInputCount_update
       rw [hresultEq, Generic.CappedChain.globalExactTracedNextState]
       change (state.attackerTrace ++ Generic.CappedChain.attackerActionFragment (.inr request) base.1.1).encodingInputCount
         key.secretKey.parameter = _
-      rw [AttackerActionTrace.encodingInputCount_append, attackerActionFragment_encodingInputCount]
+      rw [Generic.CappedChain.AttackerActionTrace.encodingInputCount_append, attackerActionFragment_encodingInputCount]
       rfl
 
 theorem firstLaneCounters_query_update

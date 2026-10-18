@@ -50,7 +50,7 @@ theorem activityCount_append_fragment (parameter : PublicParameter) (trace : Gen
     (input : (OracleWorld + Generic.SigningSpec).Domain) (answer : (OracleWorld + Generic.SigningSpec).Range input) :
     activityCount parameter (trace ++ Generic.CappedChain.attackerActionFragment input answer) =
       activityCount parameter trace + if IsActivity parameter input then 1 else 0 := by
-  simp only [activityCount, AttackerActionTrace.encodingInputCount_append,
+  simp only [activityCount, Generic.CappedChain.AttackerActionTrace.encodingInputCount_append,
     attackerActionFragment_encodingInputCount, Generic.CappedChain.AttackerActionTrace.toSigningLog_append,
     Generic.CappedChain.attackerActionFragment_toSigningLog, List.length_append]
   rcases input with (sample | hashInput) | request
