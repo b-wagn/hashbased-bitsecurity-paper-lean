@@ -10,6 +10,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
@@ -24,33 +26,33 @@ def finalRootDomain (leafIndex : LeafIndex) : Generic.HashDomain :=
 
 def RootCache (parameter : PublicParameter) (leafIndex : LeafIndex)
     (root : Digest) (cache : QueryCache HashSpec) : Prop :=
-  ∀ input output, Generic.AtHashAddress parameter (finalRootDomain leafIndex) input →
+  ∀ input output, AtHashAddress parameter (finalRootDomain leafIndex) input →
     cache input = some output → Generic.truncateHash output = root
 
 theorem rootCache_after_keygen
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) :
     RootCache keyResult.1.2.parameter leafIndex keyResult.1.1.root keyResult.2 := by
   let chain : ChainIndex := ⟨0, by decide⟩
   let encoding : Encoding := fun _ => ⟨0, by decide⟩
-  let position := Generic.Attack.mutationChainSteps (encoding chain) + 1 + 31
-  obtain ⟨answer, hcached, hnext⟩ := Generic.Attack.mutationReplayInputs_honest keyResult hkey
+  let position := Attack.mutationChainSteps (encoding chain) + 1 + 31
+  obtain ⟨answer, hcached, hnext⟩ := Attack.mutationReplayInputs_honest keyResult hkey
     leafIndex chain encoding chain position (by dsimp [position]; simp only [treeHeight]; omega)
-  have hroot : Generic.Attack.mutationHonestValue keyResult.2 keyResult.1.2 leafIndex chain (encoding chain)
+  have hroot : Attack.mutationHonestValue keyResult.2 keyResult.1.2 leafIndex chain (encoding chain)
       (position + 1) = keyResult.1.1.root := by
-    convert Generic.Attack.mutationHonestValue_root keyResult hkey leafIndex chain (encoding chain) using 1
+    convert Attack.mutationHonestValue_root keyResult hkey leafIndex chain (encoding chain) using 1
     simp [position, treeHeight, Nat.add_assoc]
   rw [hroot] at hnext
   intro input output haddress houtput
-  have hhonestAddress : Generic.AtHashAddress keyResult.1.2.parameter (finalRootDomain leafIndex)
-      (Generic.Attack.mutationReplayInputs keyResult.2 keyResult.1.2 leafIndex chain encoding chain position
-        (Generic.Attack.mutationHonestValue keyResult.2 keyResult.1.2 leafIndex chain (encoding chain) position)) := by
-    unfold Generic.Attack.mutationReplayInputs position
-    rw [Generic.Attack.mutationPathInput_node _ _ _ _ _ _ _ (by decide : 31 < treeHeight)]
-    simp [Generic.Concrete.CacheView.nodeInput, finalRootDomain, finalRootLevel]
-  have heq := Generic.Concrete.keygen_cache_unique_merkleAddress _
-    (Generic.Concrete.precomputedKeygen_support_oldKeygen keyResult hkey) finalRootLevel
+  have hhonestAddress : AtHashAddress keyResult.1.2.parameter (finalRootDomain leafIndex)
+      (Attack.mutationReplayInputs keyResult.2 keyResult.1.2 leafIndex chain encoding chain position
+        (Attack.mutationHonestValue keyResult.2 keyResult.1.2 leafIndex chain (encoding chain) position)) := by
+    unfold Attack.mutationReplayInputs position
+    rw [Attack.mutationPathInput_node _ _ _ _ _ _ _ (by decide : 31 < treeHeight)]
+    simp [Concrete.CacheView.nodeInput, finalRootDomain, finalRootLevel]
+  have heq := Concrete.keygen_cache_unique_merkleAddress _
+    (Concrete.precomputedKeygen_support_oldKeygen keyResult hkey) finalRootLevel
     (Generic.Concrete.nodeIndex leafIndex finalRootLevel.val) _ _ output answer haddress hhonestAddress houtput hcached
   rw [heq, hcached] at houtput
   cases houtput
@@ -60,36 +62,36 @@ theorem rootCache_preserved {α : Type} (parameter : PublicParameter) (leafIndex
     (root : Digest) (computation : OracleComp HashSpec α)
     (initialCache finalCache : QueryCache HashSpec) (result : α)
     (hroot : RootCache parameter leafIndex root initialCache)
-    (hbound : computation.IsQueryBoundP (Generic.AtHashAddress parameter (finalRootDomain leafIndex)) 0)
+    (hbound : computation.IsQueryBoundP (AtHashAddress parameter (finalRootDomain leafIndex)) 0)
     (hmem : (result, finalCache) ∈ support ((simulateQ randomOracle computation).run initialCache)) :
     RootCache parameter leafIndex root finalCache := by
   intro input output haddress houtput
   cases hcached : initialCache input with
   | none =>
-      have hnone := Generic.Concrete.CacheReplay.cache_none_of_zero_query_bound computation input
+      have hnone := Concrete.CacheReplay.cache_none_of_zero_query_bound computation input
         initialCache finalCache result (hbound.of_imp (fun candidate heq => heq ▸ haddress)) hcached hmem
       rw [houtput] at hnone
       contradiction
   | some cached =>
-      have hpersist := Generic.Concrete.CacheReplay.randomOracle_cache_le computation initialCache (result, finalCache) hmem hcached
+      have hpersist := Concrete.CacheReplay.randomOracle_cache_le computation initialCache (result, finalCache) hmem hcached
       dsimp only at hpersist
       rw [houtput] at hpersist
       cases hpersist
       exact hroot _ _ haddress hcached
 
 theorem rootCache_after_signing (secretKey : Generic.SecretKey) (leafIndex : LeafIndex)
-    (root : Digest) (request : Generic.SignRequest) (answer : Option Generic.Signature)
+    (root : Digest) (request : SignRequest) (answer : Option Generic.Signature)
     (initialCache finalCache : QueryCache HashSpec)
     (hroot : RootCache secretKey.parameter leafIndex root initialCache)
-    (hsign : (answer, finalCache) ∈ support ((simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign secretKey request.epoch request.message)).run initialCache)) :
+    (hsign : (answer, finalCache) ∈ support ((simulateQ romImpl
+      (Concrete.precomputedCappedSign secretKey request.epoch request.message)).run initialCache)) :
     RootCache secretKey.parameter leafIndex root finalCache := by
   intro input output haddress houtput
-  rw [Generic.Concrete.precomputedCappedSign] at hsign
-  have heq := Generic.Concrete.precomputedSignBoundedAttempts_preserves_unqueriedInput signingAttemptLimit
+  rw [Concrete.precomputedCappedSign] at hsign
+  have heq := Concrete.precomputedSignBoundedAttempts_preserves_unqueriedInput signingAttemptLimit
     secretKey request.epoch request.message input (fun randomness heq => by
       rw [← heq] at haddress
-      simp [Generic.Concrete.CacheView.encodingInput, finalRootDomain] at haddress)
+      simp [Concrete.CacheView.encodingInput, finalRootDomain] at haddress)
     initialCache finalCache answer hsign
   rw [heq] at houtput
   exact hroot input output haddress houtput
@@ -98,19 +100,19 @@ theorem rootCache_cache_encoding (parameter : PublicParameter) (leafIndex : Leaf
     (root : Digest) (cache : QueryCache HashSpec) (hroot : RootCache parameter leafIndex root cache)
     (epoch : LeafIndex) (message : Message) (randomness : Randomness) (output : HashOutput) :
     RootCache parameter leafIndex root
-      (cache.cacheQuery (Generic.Concrete.CacheView.encodingInput parameter epoch (message, randomness)) output) := by
+      (cache.cacheQuery (Concrete.CacheView.encodingInput parameter epoch (message, randomness)) output) := by
   intro input answer haddress hcached
-  have hne : input ≠ Generic.Concrete.CacheView.encodingInput parameter epoch (message, randomness) := by
+  have hne : input ≠ Concrete.CacheView.encodingInput parameter epoch (message, randomness) := by
     intro heq
     rw [heq] at haddress
-    simp [Generic.Concrete.CacheView.encodingInput, finalRootDomain] at haddress
+    simp [Concrete.CacheView.encodingInput, finalRootDomain] at haddress
   rw [QueryCache.cacheQuery_of_ne _ _ hne] at hcached
   exact hroot input answer haddress hcached
 
 theorem authenticationRoot_avoids_finalRoot (parameter : PublicParameter) (leafIndex : LeafIndex)
     (signature : Generic.Signature) (levels : ℕ) (hlevels : levels ≤ 31) (leaf : Digest) :
     (Generic.Concrete.authenticationRoot parameter leafIndex signature levels leaf : OracleComp HashSpec Digest).IsQueryBoundP
-      (Generic.AtHashAddress parameter (finalRootDomain leafIndex)) 0 := by
+      (AtHashAddress parameter (finalRootDomain leafIndex)) 0 := by
   induction levels with
   | zero => simp [Generic.Concrete.authenticationRoot]
   | succ levels ih =>
@@ -119,7 +121,7 @@ theorem authenticationRoot_avoids_finalRoot (parameter : PublicParameter) (leafI
       intro current _
       unfold Generic.Concrete.authenticationNodeHash
       split
-      · split <;> apply Generic.Concrete.tweakableHash_queryBound_atOtherAddress
+      · split <;> apply Concrete.tweakableHash_queryBound_atOtherAddress
         all_goals simp only [finalRootDomain, finalRootLevel, ne_eq, Generic.HashDomain.merkle.injEq, Fin.mk.injEq]
         all_goals omega
       · simp
@@ -127,11 +129,11 @@ theorem authenticationRoot_avoids_finalRoot (parameter : PublicParameter) (leafI
 theorem recoverEndpoints_avoids_finalRoot (parameter : PublicParameter) (leafIndex : LeafIndex)
     (encoding : Encoding) (signature : Generic.Signature) :
     (Generic.Concrete.recoverEndpoints parameter leafIndex encoding signature : OracleComp HashSpec (ChainIndex → Digest)).IsQueryBoundP
-      (Generic.AtHashAddress parameter (finalRootDomain leafIndex)) 0 := by
+      (AtHashAddress parameter (finalRootDomain leafIndex)) 0 := by
   unfold Generic.Concrete.recoverEndpoints
-  apply Generic.Concrete.sequenceFin_queryBound_zero
+  apply Concrete.sequenceFin_queryBound_zero
   intro chain
-  exact Generic.Concrete.chainWalk_queryBound_zero_merkleAddress _ _ _ _ _ _ _ _
+  exact Concrete.chainWalk_queryBound_zero_merkleAddress _ _ _ _ _ _ _ _
 
 theorem finalRootHash_probability_ge (parameter : PublicParameter) (leafIndex : LeafIndex)
     (root current sibling : Digest) (cache : QueryCache HashSpec)
@@ -145,18 +147,18 @@ theorem finalRootHash_probability_ge (parameter : PublicParameter) (leafIndex : 
         Pr[fun result : Digest × QueryCache HashSpec => result.1 = root |
           (simulateQ randomOracle (Generic.Concrete.nodeHash parameter finalRootLevel
             (Generic.Concrete.nodeIndex leafIndex 31) left right : OracleComp HashSpec Digest)).run cache] := by
-    let input := Generic.Concrete.CacheView.merkleInput parameter finalRootLevel (Generic.Concrete.nodeIndex leafIndex 31) left right
-    have haddress : Generic.AtHashAddress parameter (finalRootDomain leafIndex) input := by
-      simp [input, Generic.Concrete.CacheView.merkleInput, finalRootDomain, finalRootLevel]
+    let input := Concrete.CacheView.merkleInput parameter finalRootLevel (Generic.Concrete.nodeIndex leafIndex 31) left right
+    have haddress : AtHashAddress parameter (finalRootDomain leafIndex) input := by
+      simp [input, Concrete.CacheView.merkleInput, finalRootDomain, finalRootLevel]
     change _ ≤ Pr[fun result : Digest × QueryCache HashSpec => result.1 = root |
       (fun result : HashOutput × QueryCache HashSpec => (Generic.truncateHash result.1, result.2)) <$>
         (randomOracle input).run cache]
     rw [probEvent_map]
     cases hcached : cache input with
     | none =>
-        rw [Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached, probEvent_map]
-        simpa only [Function.comp_def, Generic.uniformHashOutput] using
-          (Generic.Rom.uniform_truncate_probability root).ge
+        rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, probEvent_map]
+        simpa only [Function.comp_def, uniformHashOutput] using
+          (Rom.uniform_truncate_probability root).ge
     | some output =>
         rw [QueryImpl.withCaching_run_some _ hcached]
         simp only [Function.comp_def, probEvent_pure, hroot _ _ haddress hcached, if_true]
@@ -215,14 +217,14 @@ even if the remaining signature components are arbitrary. -/
 theorem verify_cached_encoding_probability_ge (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (signature : Generic.Signature) (encoding : Encoding) (cache : QueryCache HashSpec)
     (hroot : RootCache publicKey.parameter leafIndex publicKey.root cache)
-    (hdecode : Generic.Code.decodeDigest (Generic.Concrete.CacheView.encodingHash cache publicKey.parameter
+    (hdecode : Code.decodeDigest (Concrete.CacheView.encodingHash cache publicKey.parameter
       leafIndex (message, signature.randomness)) = some encoding) :
     ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ ≤
       Pr[fun result : Bool × QueryCache HashSpec => result.1 = true |
         (simulateQ randomOracle (Generic.Concrete.verify publicKey leafIndex message signature :
           OracleComp HashSpec Bool)).run cache] := by
   rw [Generic.Concrete.verify, simulateQ_bind, StateT.run_bind,
-    Generic.Attack.encodingHash_run_cached _ _ _ _ _ _
+    Attack.encodingHash_run_cached _ _ _ _ _ _
       (TargetSum.decodedEncoding_of_decodeDigest hdecode), pure_bind, hdecode]
   rw [simulateQ_bind, StateT.run_bind]
   apply le_probEvent_bind_of_forall_le
@@ -234,7 +236,7 @@ theorem verify_cached_encoding_probability_ge (publicKey : PublicKey) (leafIndex
   rintro ⟨leaf, leafCache⟩ hleaf
   exact verifyAfterLeaf_probability_ge _ _ _ _ _
     (rootCache_preserved _ _ _ _ middleCache leafCache leaf hmiddle
-      (Generic.Concrete.tweakableHash_queryBound_atOtherAddress _ _ _ _ (by simp [finalRootDomain])) hleaf)
+      (Concrete.tweakableHash_queryBound_atOtherAddress _ _ _ _ (by simp [finalRootDomain])) hleaf)
 
 /-- info: 'XmssSecurity.TargetSum.EUFCMA.verify_cached_encoding_probability_ge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -11,37 +11,39 @@ open scoped Classical
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA.Requests
 open XmssSecurity.EUFCMA
 
 open Concrete CappedChain Deciding
 
-theorem sourcePrefixFinish_encoding_requires_request (adversary : Generic.Adversary)
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
-    (prefixResult : Generic.Forgery × Generic.CappedChain.SourceExactTracedState)
-    (hprefix : prefixResult ∈ support (Generic.Deciding.sourcePrefixExecution adversary key))
-    (result : (Generic.Forgery × Bool) × Generic.CappedChain.SourceExactTracedState)
-    (hresult : result ∈ support (Generic.Deciding.sourcePrefixFinish key prefixResult))
+theorem sourcePrefixFinish_encoding_requires_request (adversary : Adversary)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
+    (prefixResult : Forgery × CappedChain.SourceExactTracedState)
+    (hprefix : prefixResult ∈ support (Deciding.sourcePrefixExecution adversary key))
+    (result : (Forgery × Bool) × CappedChain.SourceExactTracedState)
+    (hresult : result ∈ support (Deciding.sourcePrefixFinish key prefixResult))
     (hevent : SourceWinningEncodingEvent (key, result)) :
     0 < prefixResult.2.2.toSigningLog.length := by
-  have hlogs := Generic.CappedChain.cappedBothTracedMappedAdversaryImpl_logs_eq key.publicKey
-    (Generic.Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey)
+  have hlogs := CappedChain.cappedBothTracedMappedAdversaryImpl_logs_eq key.publicKey
+    (Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey)
     ((((key.cache, []), []), [])) prefixResult rfl hprefix
-  rw [Generic.Deciding.sourcePrefixFinish, support_map] at hresult
+  rw [Deciding.sourcePrefixFinish, support_map] at hresult
   obtain ⟨verified, _, rfl⟩ := hresult
   obtain ⟨request, signature, htarget, _⟩ := winning_encoding_event_signed_target _ _ hevent
-  simp only [Generic.CappedChain.cappedBothEncodingProjection, Generic.CappedChain.sourceGlobalExactProgramResult,
-    Generic.CappedChain.sourceGlobalExactExecutionResult, hlogs] at htarget
+  simp only [CappedChain.cappedBothEncodingProjection, CappedChain.sourceGlobalExactProgramResult,
+    CappedChain.sourceGlobalExactExecutionResult, hlogs] at htarget
   by_contra hzero
   have hempty : prefixResult.2.2.toSigningLog = [] := List.length_eq_zero_iff.mp (by omega)
-  simp [hempty, Generic.Deciding.returnedAt] at htarget
+  simp [hempty, Deciding.returnedAt] at htarget
 
-theorem sourcePrefixFinish_fresh_encoding_probability_le_request (adversary : Generic.Adversary)
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (hkey : key ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (prefixResult : Generic.Forgery × Generic.CappedChain.SourceExactTracedState)
-    (hprefix : prefixResult ∈ support (Generic.Deciding.sourcePrefixExecution adversary key))
+theorem sourcePrefixFinish_fresh_encoding_probability_le_request (adversary : Adversary)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) (hkey : key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (prefixResult : Forgery × CappedChain.SourceExactTracedState)
+    (hprefix : prefixResult ∈ support (Deciding.sourcePrefixExecution adversary key))
     (hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult)) :
-    Pr[fun result => SourceWinningEncodingEvent (key, result) | Generic.Deciding.sourcePrefixFinish key prefixResult] ≤
+    Pr[fun result => SourceWinningEncodingEvent (key, result) | Deciding.sourcePrefixFinish key prefixResult] ≤
       if 0 < prefixResult.2.2.toSigningLog.length
         then ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ else 0 := by
   by_cases hactive : 0 < prefixResult.2.2.toSigningLog.length
@@ -54,23 +56,23 @@ theorem sourcePrefixFinish_fresh_encoding_probability_le_request (adversary : Ge
     intro result hresult hevent
     exact hactive (sourcePrefixFinish_encoding_requires_request adversary key prefixResult hprefix result hresult hevent)
 
-theorem freshSourceEncodingProbability_le_requests (adversary : Generic.Adversary) :
+theorem freshSourceEncodingProbability_le_requests (adversary : Adversary) :
     freshSourceEncodingProbability adversary ≤
       expectedSigningRequests adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   let rate := ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹
   unfold freshSourceEncodingProbability
   rw [probEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' pair, Pr[= pair | Generic.Deciding.sourcePrefixProgram adversary] *
+    _ ≤ ∑' pair, Pr[= pair | Deciding.sourcePrefixProgram adversary] *
         (if 0 < pair.2.2.2.toSigningLog.length then rate else 0) := by
       apply ENNReal.tsum_le_tsum
       intro pair
-      by_cases hpair : pair ∈ support (Generic.Deciding.sourcePrefixProgram adversary)
+      by_cases hpair : pair ∈ support (Deciding.sourcePrefixProgram adversary)
       · apply mul_le_mul' le_rfl
         simp only [bind_pure_comp, probEvent_map, Function.comp_def]
         by_cases hfresh : SourcePrefixForgedEncodingFresh pair
         · simp only [hfresh, true_and]
-          unfold Generic.Deciding.sourcePrefixProgram at hpair
+          unfold Deciding.sourcePrefixProgram at hpair
           simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hpair
           obtain ⟨key, hkey, prefixResult, hprefix, rfl⟩ := hpair
           exact sourcePrefixFinish_fresh_encoding_probability_le_request adversary key hkey prefixResult hprefix hfresh
@@ -78,7 +80,7 @@ theorem freshSourceEncodingProbability_le_requests (adversary : Generic.Adversar
           exact zero_le
       · rw [probOutput_eq_zero_of_not_mem_support hpair, zero_mul, zero_mul]
     _ = Pr[fun result => 0 < result.2.2.2.toSigningLog.length |
-        Generic.Deciding.sourcePrefixProgram adversary] * rate := by
+        Deciding.sourcePrefixProgram adversary] * rate := by
       rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
       apply tsum_congr
       intro pair

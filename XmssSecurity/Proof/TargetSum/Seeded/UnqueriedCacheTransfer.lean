@@ -8,30 +8,32 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Seeded
 
 theorem randomOracle_support_transfer_of_agreeOutside
     (bad : HashInput → Prop) (left right : QueryCache HashSpec)
-    (hagree : Generic.Seeded.AgreeOutside bad left right) (input : HashInput) (hinput : ¬bad input)
+    (hagree : Seeded.AgreeOutside bad left right) (input : HashInput) (hinput : ¬bad input)
     (result : HashOutput × QueryCache HashSpec)
     (hresult : result ∈ support ((randomOracle (spec := HashSpec) input).run right)) :
     ∃ cache, (result.1, cache) ∈ support ((randomOracle (spec := HashSpec) input).run left) ∧
-      Generic.Seeded.AgreeOutside bad cache result.2 := by
-  have hcache := Generic.Seeded.romImpl_support_cacheAfter (.inr input) right result hresult
+      Seeded.AgreeOutside bad cache result.2 := by
+  have hcache := Seeded.romImpl_support_cacheAfter (.inr input) right result hresult
   rcases result with ⟨answer, cache⟩
   dsimp only at hcache
   subst cache
-  exact ⟨Generic.Seeded.cacheAfter left (.inr input) answer,
-    Generic.Seeded.romImpl_support_transfer bad left right hagree (.inr input) hinput answer hresult⟩
+  exact ⟨Seeded.cacheAfter left (.inr input) answer,
+    Seeded.romImpl_support_transfer bad left right hagree (.inr input) hinput answer hresult⟩
 
 theorem support_transfer_of_no_protected_queries {α : Type}
     (bad : HashInput → Prop) [DecidablePred bad] (computation : OracleComp HashSpec α)
     (hqueries : computation.IsQueryBoundP bad 0)
-    (left right : QueryCache HashSpec) (hagree : Generic.Seeded.AgreeOutside bad left right)
+    (left right : QueryCache HashSpec) (hagree : Seeded.AgreeOutside bad left right)
     (result : α × QueryCache HashSpec)
     (hresult : result ∈ support ((simulateQ randomOracle computation).run right)) :
     ∃ cache, (result.1, cache) ∈ support ((simulateQ randomOracle computation).run left) ∧
-      Generic.Seeded.AgreeOutside bad cache result.2 := by
+      Seeded.AgreeOutside bad cache result.2 := by
   induction computation using OracleComp.inductionOn generalizing left right result with
   | pure value =>
       simp only [simulateQ_pure, StateT.run_pure, mem_support_pure_iff] at hresult

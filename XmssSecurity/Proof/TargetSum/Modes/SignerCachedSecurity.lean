@@ -16,16 +16,18 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Modes
 open XmssSecurity.Modes
 
 open Seeded Direct Deciding
 
-theorem signer_sourceSecondaryLoss_add_encodingReserve_le (adversary : Generic.Security.StatementAdversary)
+theorem signer_sourceSecondaryLoss_add_encodingReserve_le (adversary : Security.StatementAdversary)
     (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q) :
-    sourceSecondaryLoss (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
-      sourceEncodingReserve (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) /
+    sourceSecondaryLoss (Seeded.memoAdversary (Security.embed adversary)) +
+      sourceEncodingReserve (Seeded.memoAdversary (Security.embed adversary)) /
         ((2 ^ digestBits : Nat) : ℝ≥0∞) ≤ (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) :=
   (sourceSecondaryLoss_add_encodingReserve_le _).trans
     (ENNReal.div_le_div (signer_expectedClassBudget adversary q hsmall hbound) le_rfl)

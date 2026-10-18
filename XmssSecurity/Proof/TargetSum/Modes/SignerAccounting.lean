@@ -12,21 +12,23 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Modes
 open XmssSecurity.Modes
 
 attribute [local irreducible] Generic.sampleMasterSeed
 
 theorem signer_adversaryRun_counted
-    (adversary : Generic.Security.StatementAdversary) (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey) :
+    (adversary : Security.StatementAdversary) (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld
-        (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
+        (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
           (RandomOracleModel.hashCost HashInput HashOutput) +
         SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) 0
           Generic.xmss secretKey) (adversary.main publicKey)).run.run =
       (fun result => ((result.1.1, Multiplicative.ofAdd result.2), result.1.2)) <$>
-        Generic.countHashQueries ((simulateQ (Generic.Security.adversaryImpl secretKey)
+        countHashQueries ((simulateQ (Security.adversaryImpl secretKey)
           (adversary.main publicKey)).run) := by
   have h := simulateQ_adversaryRun (QueryImpl.id' OracleWorld)
     (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss secretKey adversary publicKey
@@ -35,25 +37,25 @@ theorem signer_adversaryRun_counted
       fun input : OracleWorld.Domain => if input matches .inr _ then 1 else 0 := by
     funext input
     cases input <;> rfl
-  let phase := (simulateQ (Generic.Security.adversaryImpl secretKey) (adversary.main publicKey)).run
+  let phase := (simulateQ (Security.adversaryImpl secretKey) (adversary.main publicKey)).run
   calc
     _ = swapLayers <$> (simulateQ
         ((QueryImpl.id' OracleWorld).withAddCost (RandomOracleModel.hashCost HashInput HashOutput))
         phase).run := h
     _ = (fun result => ((result.1.1, Multiplicative.ofAdd result.2), result.1.2)) <$>
-        simulateQ (QueryImpl.id' OracleWorld) (Generic.countHashQueries phase) := by
-      rw [Generic.countHashQueries, QueryCounting.simulate_withCost, hcost]
+        simulateQ (QueryImpl.id' OracleWorld) (countHashQueries phase) := by
+      rw [countHashQueries, QueryCounting.simulate_withCost, hcost]
       rfl
     _ = _ := by rw [simulateQ_id']
 
-theorem gameCounted_signer_eq (adversary : Generic.Security.StatementAdversary) :
+theorem gameCounted_signer_eq (adversary : Security.StatementAdversary) :
     SUFCMA.gameCounted ⟨false, true, false, false⟩
       (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss adversary = (do
         let (publicKey, secretKey) ← Generic.xmss.keygen
-        let ((forgery, log), charged) ← Generic.countHashQueries
-          ((simulateQ (Generic.Security.adversaryImpl secretKey) (adversary.main publicKey)).run)
+        let ((forgery, log), charged) ← countHashQueries
+          ((simulateQ (Security.adversaryImpl secretKey) (adversary.main publicKey)).run)
         let verified ← Generic.xmss.verify publicKey forgery.epoch forgery.message forgery.signature
-        pure (decide (Generic.SigningTranscript.Valid log ∧ ¬Generic.SigningTranscript.Contains log forgery) &&
+        pure (decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) &&
           verified, charged)) := by
   unfold SUFCMA.gameCounted
   simp only [SUFCMA.costIf, Bool.false_eq_true, if_false, if_true, charge_zero,

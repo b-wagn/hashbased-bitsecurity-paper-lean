@@ -19,6 +19,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.NoSign
 
 /-! ## Uniform functions -/
@@ -53,8 +55,8 @@ noncomputable local instance : SampleableType (Generic.ChainIndex → Digest) :=
 
 theorem probEvent_sampleSecret_apply (leafIndex : LeafIndex) (chain : Generic.ChainIndex)
     (target : Digest) :
-    Pr[fun secret => secret leafIndex chain = target | Generic.Concrete.sampleSecret] = digestInverse := by
-  rw [Generic.Concrete.sampleSecret_eq]
+    Pr[fun secret => secret leafIndex chain = target | Concrete.sampleSecret] = digestInverse := by
+  rw [Concrete.sampleSecret_eq]
   rw [probEvent_uniformFun_apply leafIndex (fun values : Generic.ChainIndex → Digest =>
       values chain = target)]
   rw [probEvent_uniformFun_apply chain (fun value : Digest => value = target),
@@ -65,24 +67,24 @@ theorem probEvent_sampleSecret_apply (leafIndex : LeafIndex) (chain : Generic.Ch
 /-! ## Inputs at an address -/
 
 theorem eq_tweakableHashInput_of_atHashAddress (parameter : PublicParameter)
-    (domain : Generic.HashDomain) (input : HashInput) (hinput : Generic.AtHashAddress parameter domain input) :
+    (domain : Generic.HashDomain) (input : HashInput) (hinput : AtHashAddress parameter domain input) :
     input = Generic.tweakableHashInput parameter domain (input.drop 32) := by
-  unfold Generic.AtHashAddress at hinput
+  unfold AtHashAddress at hinput
   unfold Generic.tweakableHashInput
   rw [← hinput, List.take_append_drop]
 
 /-- The key-generation tree computation never caches an input at no address. -/
 theorem rootTree_cache_none_unaddressed (parameter : PublicParameter)
     (secret : LeafIndex → Generic.ChainIndex → Digest) (input : HashInput)
-    (hinput : ¬ ∃ domain, Generic.AtHashAddress parameter domain input)
+    (hinput : ¬ ∃ domain, AtHashAddress parameter domain input)
     (result : Digest × QueryCache HashSpec)
     (hresult : result ∈ support ((simulateQ randomOracle
       (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
         OracleComp HashSpec Digest)).run ∅)) :
     result.2 input = none := by
-  apply Generic.Concrete.CacheReplay.cache_none_of_zero_query_bound _ input ∅ result.2 result.1 _ rfl
+  apply Concrete.CacheReplay.cache_none_of_zero_query_bound _ input ∅ result.2 result.1 _ rfl
     hresult
-  apply (Generic.CappedChain.Concrete.treeNode_queryBound_zero_unaddressed parameter secret
+  apply (CappedChain.Concrete.treeNode_queryBound_zero_unaddressed parameter secret
     treeHeight Generic.Concrete.rootNode).of_imp
   intro candidate heq
   subst candidate
@@ -90,15 +92,15 @@ theorem rootTree_cache_none_unaddressed (parameter : PublicParameter)
 
 theorem rootTree_cache_none_of_zero_bound (parameter : PublicParameter)
     (secret : LeafIndex → Generic.ChainIndex → Digest) (domain : Generic.HashDomain) (input : HashInput)
-    (hinput : Generic.AtHashAddress parameter domain input)
+    (hinput : AtHashAddress parameter domain input)
     (hbound : (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
-      OracleComp HashSpec Digest).IsQueryBoundP (Generic.AtHashAddress parameter domain) 0)
+      OracleComp HashSpec Digest).IsQueryBoundP (AtHashAddress parameter domain) 0)
     (result : Digest × QueryCache HashSpec)
     (hresult : result ∈ support ((simulateQ randomOracle
       (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
         OracleComp HashSpec Digest)).run ∅)) :
     result.2 input = none := by
-  apply Generic.Concrete.CacheReplay.cache_none_of_zero_query_bound _ input ∅ result.2 result.1 _ rfl
+  apply Concrete.CacheReplay.cache_none_of_zero_query_bound _ input ∅ result.2 result.1 _ rfl
     hresult
   apply hbound.of_imp
   intro candidate heq
@@ -110,7 +112,7 @@ theorem rootTree_cache_none_of_zero_bound (parameter : PublicParameter)
 theorem probEvent_rootTree_cached_le (parameter : PublicParameter)
     (secret : LeafIndex → Generic.ChainIndex → Digest) (input : HashInput)
     (hstart : ∀ leafIndex chain (hstep : 0 < chainLength - 1),
-      ¬ Generic.AtHashAddress parameter (.chain leafIndex chain ⟨0, hstep⟩) input) :
+      ¬ AtHashAddress parameter (.chain leafIndex chain ⟨0, hstep⟩) input) :
     Pr[fun result : Digest × QueryCache HashSpec => result.2 input ≠ none |
       (simulateQ randomOracle
         (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
@@ -118,7 +120,7 @@ theorem probEvent_rootTree_cached_le (parameter : PublicParameter)
   let tree := (simulateQ randomOracle
     (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
       OracleComp HashSpec Digest)).run ∅
-  rcases Classical.em (∃ domain, Generic.AtHashAddress parameter domain input) with
+  rcases Classical.em (∃ domain, AtHashAddress parameter domain input) with
     ⟨domain, hdomain⟩ | hunaddressed
   swap
   · rw [probEvent_eq_zero fun result hresult hcached =>
@@ -136,55 +138,55 @@ theorem probEvent_rootTree_cached_le (parameter : PublicParameter)
           exact hdomain
         · exact hpositive
       have himp : ∀ result ∈ support tree, result.2 input ≠ none →
-          Generic.Concrete.CacheView.chainInput parameter leafIndex chain step
-            (Generic.Wots.walk (Generic.Concrete.CacheView.chainStep result.2 parameter leafIndex chain) 0
+          Concrete.CacheView.chainInput parameter leafIndex chain step
+            (Wots.walk (Concrete.CacheView.chainStep result.2 parameter leafIndex chain) 0
               step.val (secret leafIndex chain)) = input := by
         intro result hresult hcached
         obtain ⟨output, houtput⟩ := Option.ne_none_iff_exists'.mp hcached
         obtain ⟨honestOutput, hhonest⟩ :=
-          Generic.Concrete.CacheReplay.rootTree_chain_query_cached parameter secret leafIndex chain step
+          Concrete.CacheReplay.rootTree_chain_query_cached parameter secret leafIndex chain step
             result.1 result.2 hresult
-        exact Generic.Concrete.CacheReplay.rootTree_cache_unique_chainAddress parameter secret result.1
+        exact Concrete.CacheReplay.rootTree_cache_unique_chainAddress parameter secret result.1
           result.2 hresult leafIndex chain step _ _ honestOutput output
-          (by simp [Generic.Concrete.CacheView.chainInput]) hdomain hhonest houtput
+          (by simp [Concrete.CacheView.chainInput]) hdomain hhonest houtput
       calc
         _ ≤ Pr[fun result : Digest × QueryCache HashSpec =>
-              Generic.Concrete.CacheView.chainInput parameter leafIndex chain step
-                (Generic.Wots.walk (Generic.Concrete.CacheView.chainStep result.2 parameter leafIndex chain) 0
+              Concrete.CacheView.chainInput parameter leafIndex chain step
+                (Wots.walk (Concrete.CacheView.chainStep result.2 parameter leafIndex chain) 0
                   step.val (secret leafIndex chain)) = input | tree] :=
           probEvent_mono fun result hresult hcached => himp result hresult hcached
         _ ≤ digestInverse :=
           probEvent_injective_comp_le tree _ _
-            (Generic.Concrete.CacheView.chainInput_injective parameter leafIndex chain step) _
+            (Concrete.CacheView.chainInput_injective parameter leafIndex chain step) _
             (probEvent_rootTree_chainValue_le parameter secret leafIndex chain step.val
               hpositive (by omega)) input
   | leaf leafIndex =>
       have himp : ∀ result ∈ support tree, result.2 input ≠ none →
-          Generic.Concrete.CacheView.leafInput parameter leafIndex
-            (Generic.Concrete.CacheReplay.oneTimePublicKey result.2 parameter secret leafIndex) =
+          Concrete.CacheView.leafInput parameter leafIndex
+            (Concrete.CacheReplay.oneTimePublicKey result.2 parameter secret leafIndex) =
             input := by
         intro result hresult hcached
         obtain ⟨output, houtput⟩ := Option.ne_none_iff_exists'.mp hcached
         obtain ⟨honestOutput, hhonest⟩ :=
-          Generic.Concrete.CacheReplay.rootTree_leaf_query_cached parameter secret leafIndex
+          Concrete.CacheReplay.rootTree_leaf_query_cached parameter secret leafIndex
             result.1 result.2 hresult
-        exact Generic.Concrete.CacheReplay.rootTree_cache_unique_leafAddress parameter secret result.1
+        exact Concrete.CacheReplay.rootTree_cache_unique_leafAddress parameter secret result.1
           result.2 hresult leafIndex _ _ honestOutput output
-          (by simp [Generic.Concrete.CacheView.leafInput]) hdomain hhonest houtput
-      let firstChain : Generic.ChainIndex := ⟨0, Generic.Code.numChains_pos⟩
+          (by simp [Concrete.CacheView.leafInput]) hdomain hhonest houtput
+      let firstChain : Generic.ChainIndex := ⟨0, Code.numChains_pos⟩
       calc
         _ ≤ Pr[fun result : Digest × QueryCache HashSpec =>
-              Generic.Concrete.CacheView.leafInput parameter leafIndex
-                (Generic.Concrete.CacheReplay.oneTimePublicKey result.2 parameter secret leafIndex) =
+              Concrete.CacheView.leafInput parameter leafIndex
+                (Concrete.CacheReplay.oneTimePublicKey result.2 parameter secret leafIndex) =
                 input | tree] :=
           probEvent_mono fun result hresult hcached => himp result hresult hcached
         _ ≤ digestInverse := by
           refine probEvent_injective_comp_le tree _ _
-            (Generic.Concrete.CacheView.leafInput_injective parameter leafIndex) _ (fun target => ?_)
+            (Concrete.CacheView.leafInput_injective parameter leafIndex) _ (fun target => ?_)
             input
           calc
             _ ≤ Pr[fun result : Digest × QueryCache HashSpec =>
-                  Generic.Wots.walk (Generic.Concrete.CacheView.chainStep result.2 parameter leafIndex firstChain)
+                  Wots.walk (Concrete.CacheView.chainStep result.2 parameter leafIndex firstChain)
                     0 (chainLength - 1) (secret leafIndex firstChain) = target firstChain |
                   tree] :=
               probEvent_mono fun result _ hequal => by
@@ -195,8 +197,8 @@ theorem probEvent_rootTree_cached_le (parameter : PublicParameter)
                 (by simp [chainLength, winternitzBits]) le_rfl _
   | merkle level node =>
       by_cases hnode : node.val < 2 ^ (treeHeight - (level.val + 1))
-      · have hparentValid : Generic.TreeSubtreeValid (level.val + 1) node := by
-          unfold Generic.TreeSubtreeValid lifetime
+      · have hparentValid : TreeSubtreeValid (level.val + 1) node := by
+          unfold TreeSubtreeValid lifetime
           have hlevel := level.isLt
           calc
             (node.val + 1) * 2 ^ (level.val + 1) ≤
@@ -208,51 +210,51 @@ theorem probEvent_rootTree_cached_le (parameter : PublicParameter)
               omega
         have himp : ∀ result ∈ support tree, result.2 input ≠ none →
             (fun children : Digest × Digest =>
-              Generic.Concrete.CacheView.merkleInput parameter level node children.1 children.2)
-              (Generic.Concrete.CacheReplay.treeNode result.2 parameter secret level.val
+              Concrete.CacheView.merkleInput parameter level node children.1 children.2)
+              (Concrete.CacheReplay.treeNode result.2 parameter secret level.val
                   (Generic.Concrete.childNode node false),
-                Generic.Concrete.CacheReplay.treeNode result.2 parameter secret level.val
+                Concrete.CacheReplay.treeNode result.2 parameter secret level.val
                   (Generic.Concrete.childNode node true)) = input := by
           intro result hresult hcached
           obtain ⟨output, houtput⟩ := Option.ne_none_iff_exists'.mp hcached
           obtain ⟨honestOutput, hhonest⟩ :=
-            Generic.Concrete.CacheReplay.rootTree_merkle_query_cached parameter secret level node hnode
+            Concrete.CacheReplay.rootTree_merkle_query_cached parameter secret level node hnode
               result.1 result.2 result.2 hresult le_rfl
-          exact Generic.Concrete.CacheReplay.rootTree_cache_unique_merkleAddress parameter secret
+          exact Concrete.CacheReplay.rootTree_cache_unique_merkleAddress parameter secret
             result.1 result.2 hresult level node _ _ honestOutput output
-            (by simp [Generic.Concrete.CacheView.merkleInput]) hdomain hhonest houtput
+            (by simp [Concrete.CacheView.merkleInput]) hdomain hhonest houtput
         have hinjective : Function.Injective fun children : Digest × Digest =>
-            Generic.Concrete.CacheView.merkleInput parameter level node children.1 children.2 := by
+            Concrete.CacheView.merkleInput parameter level node children.1 children.2 := by
           intro left right heq
-          apply Generic.Concrete.nodePayload_injective
-          exact Generic.payload_eq_of_tweakableHashInput_eq parameter (.merkle level node) heq
+          apply Concrete.nodePayload_injective
+          exact payload_eq_of_tweakableHashInput_eq parameter (.merkle level node) heq
         calc
           _ ≤ Pr[fun result : Digest × QueryCache HashSpec =>
                 (fun children : Digest × Digest =>
-                  Generic.Concrete.CacheView.merkleInput parameter level node children.1 children.2)
-                  (Generic.Concrete.CacheReplay.treeNode result.2 parameter secret level.val
+                  Concrete.CacheView.merkleInput parameter level node children.1 children.2)
+                  (Concrete.CacheReplay.treeNode result.2 parameter secret level.val
                       (Generic.Concrete.childNode node false),
-                    Generic.Concrete.CacheReplay.treeNode result.2 parameter secret level.val
+                    Concrete.CacheReplay.treeNode result.2 parameter secret level.val
                       (Generic.Concrete.childNode node true)) = input | tree] :=
             probEvent_mono fun result hresult hcached => himp result hresult hcached
           _ ≤ digestInverse := by
             refine probEvent_injective_comp_le tree _ _ hinjective _ (fun target => ?_) input
             calc
               _ ≤ Pr[fun result : Digest × QueryCache HashSpec =>
-                    Generic.Concrete.CacheReplay.treeNode result.2 parameter secret level.val
+                    Concrete.CacheReplay.treeNode result.2 parameter secret level.val
                       (Generic.Concrete.childNode node false) = target.1 | tree] :=
                 probEvent_mono fun result _ hequal => by rw [← hequal]
               _ ≤ digestInverse :=
                 probEvent_rootTree_treeNode_le parameter secret level.val _
                   (by have := level.isLt; omega)
-                  (Generic.childNode_subtreeValid level.val node false hparentValid) target.1
+                  (childNode_subtreeValid level.val node false hparentValid) target.1
       · rw [probEvent_eq_zero fun result hresult hcached => hcached
           (rootTree_cache_none_of_zero_bound parameter secret _ input hdomain
             (by
-              have h := Generic.Concrete.treeNode_queryBound_merkleAddress parameter secret level node
+              have h := Concrete.treeNode_queryBound_merkleAddress parameter secret level node
                 treeHeight Generic.Concrete.rootNode le_rfl
-                (by unfold Generic.TreeSubtreeValid Generic.Concrete.rootNode lifetime; norm_num)
-              have hnot : ¬ Generic.MerkleAddressInSubtree level node treeHeight Generic.Concrete.rootNode := by
+                (by unfold TreeSubtreeValid Generic.Concrete.rootNode lifetime; norm_num)
+              have hnot : ¬ MerkleAddressInSubtree level node treeHeight Generic.Concrete.rootNode := by
                 rintro ⟨_, _, hcover⟩
                 apply hnode
                 simpa [Generic.Concrete.rootNode] using hcover
@@ -262,7 +264,7 @@ theorem probEvent_rootTree_cached_le (parameter : PublicParameter)
   | encoding leafIndex =>
       rw [probEvent_eq_zero fun result hresult hcached => hcached
         (rootTree_cache_none_of_zero_bound parameter secret _ input hdomain
-          (Generic.Concrete.treeNode_queryBound_zero_encodingAddress parameter secret leafIndex
+          (Concrete.treeNode_queryBound_zero_encodingAddress parameter secret leafIndex
             treeHeight Generic.Concrete.rootNode) result hresult)]
       exact zero_le
 
@@ -274,35 +276,35 @@ theorem probEvent_keygenTree_cached_le (parameter : PublicParameter) (input : Ha
     Pr[fun result : (LeafIndex → Generic.ChainIndex → Digest) × (Digest × QueryCache HashSpec) =>
         result.2.2 input ≠ none |
       do
-        let secret ← Generic.Concrete.sampleSecret
+        let secret ← Concrete.sampleSecret
         let tree ← (simulateQ randomOracle
           (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
             OracleComp HashSpec Digest)).run ∅
         pure (secret, tree)] ≤ digestInverse := by
   rcases Classical.em (∃ leafIndex chain, ∃ hstep : 0 < chainLength - 1,
-      Generic.AtHashAddress parameter (.chain leafIndex chain ⟨0, hstep⟩) input) with
+      AtHashAddress parameter (.chain leafIndex chain ⟨0, hstep⟩) input) with
     ⟨leafIndex, chain, hstep, hdomain⟩ | hstart
   · -- A chain start: the input is cached exactly when its payload is that start.
     have hinput := eq_tweakableHashInput_of_atHashAddress parameter _ input hdomain
     calc
       _ ≤ Pr[fun secret : LeafIndex → Generic.ChainIndex → Digest =>
-            Generic.Concrete.CacheView.chainInput parameter leafIndex chain ⟨0, hstep⟩
-              (secret leafIndex chain) = input | Generic.Concrete.sampleSecret] := by
+            Concrete.CacheView.chainInput parameter leafIndex chain ⟨0, hstep⟩
+              (secret leafIndex chain) = input | Concrete.sampleSecret] := by
         refine probEvent_bind_le_of_imp _ _ _ _ fun secret _ result hresult hcached => ?_
         rw [support_bind] at hresult
         simp only [support_pure, Set.mem_iUnion, Set.mem_singleton_iff, exists_prop] at hresult
         obtain ⟨tree, htree, rfl⟩ := hresult
         obtain ⟨output, houtput⟩ := Option.ne_none_iff_exists'.mp hcached
         obtain ⟨honestOutput, hhonest⟩ :=
-          Generic.Concrete.CacheReplay.rootTree_chain_query_cached parameter secret leafIndex chain
+          Concrete.CacheReplay.rootTree_chain_query_cached parameter secret leafIndex chain
             ⟨0, hstep⟩ tree.1 tree.2 htree
-        have heq := Generic.Concrete.CacheReplay.rootTree_cache_unique_chainAddress parameter secret
+        have heq := Concrete.CacheReplay.rootTree_cache_unique_chainAddress parameter secret
           tree.1 tree.2 htree leafIndex chain ⟨0, hstep⟩ _ _ honestOutput output
-          (by simp [Generic.Concrete.CacheView.chainInput]) hdomain hhonest houtput
-        simpa [Generic.Wots.walk] using heq
+          (by simp [Concrete.CacheView.chainInput]) hdomain hhonest houtput
+        simpa [Wots.walk] using heq
       _ ≤ digestInverse :=
         probEvent_injective_comp_le _ _ _
-          (Generic.Concrete.CacheView.chainInput_injective parameter leafIndex chain ⟨0, hstep⟩) _
+          (Concrete.CacheView.chainInput_injective parameter leafIndex chain ⟨0, hstep⟩) _
           (fun target => (probEvent_sampleSecret_apply leafIndex chain target).le) input
   · push Not at hstart
     rw [probEvent_bind_eq_tsum]

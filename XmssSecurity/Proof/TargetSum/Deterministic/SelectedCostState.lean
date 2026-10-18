@@ -10,20 +10,22 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Seeded
 
 noncomputable def selectedCostHash (selected : HashInput → Prop) [DecidablePred selected] :
-    QueryImpl HashSpec (StateT Generic.Seeded.CostState ProbComp) := fun input state => do
+    QueryImpl HashSpec (StateT Seeded.CostState ProbComp) := fun input state => do
   let result ← (randomOracle input).run state.1
   pure (result.1, result.2, state.2 + if selected input then 1 else 0)
 
 theorem run_selectedCostQuery (selected : HashInput → Prop) [DecidablePred selected]
     (input : OracleWorld.Domain) (cache : QueryCache HashSpec) (cost : Nat) :
-    ((Generic.Seeded.worldHandler (selectedCostHash selected)) input).run (cache, cost) =
-      (fun result => (result.1, result.2, cost + if Generic.Seeded.hashBad selected input then 1 else 0)) <$>
-        (Generic.romImpl input).run cache := by
+    ((Seeded.worldHandler (selectedCostHash selected)) input).run (cache, cost) =
+      (fun result => (result.1, result.2, cost + if Seeded.hashBad selected input then 1 else 0)) <$>
+        (romImpl input).run cache := by
   cases input with
-  | inl input => simp [Generic.Seeded.worldHandler, Generic.Seeded.hashBad]; rfl
+  | inl input => simp [Seeded.worldHandler, Seeded.hashBad]; rfl
   | inr input =>
       change (do
         let result ← (randomOracle input).run cache
@@ -33,9 +35,9 @@ theorem run_selectedCostQuery (selected : HashInput → Prop) [DecidablePred sel
 
 theorem run_selectedCostWorld {α : Type} (selected : HashInput → Prop) [DecidablePred selected]
     (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) (cost : Nat) :
-    (simulateQ (Generic.Seeded.worldHandler (selectedCostHash selected)) computation).run (cache, cost) =
+    (simulateQ (Seeded.worldHandler (selectedCostHash selected)) computation).run (cache, cost) =
       (fun result => (result.1.1, result.2, cost + result.1.2)) <$>
-        (simulateQ Generic.romImpl (QueryCounting.counted (Generic.Seeded.hashBad selected) computation)).run cache := by
+        (simulateQ romImpl (QueryCounting.counted (Seeded.hashBad selected) computation)).run cache := by
   induction computation using OracleComp.inductionOn generalizing cache cost with
   | pure value => simp only [simulateQ_pure, QueryCounting.counted_pure, StateT.run_pure, map_pure, Nat.add_zero]
   | query_bind input next ih =>
@@ -49,9 +51,9 @@ theorem run_selectedCostWorld {α : Type} (selected : HashInput → Prop) [Decid
 theorem expectedQueries_eq_selectedCostWorld {α : Type}
     (selected : HashInput → Prop) [DecidablePred selected]
     (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount Generic.romImpl (Generic.Seeded.hashBad selected) computation cache =
+    expectedSimulatedQueryCount romImpl (Seeded.hashBad selected) computation cache =
       ∑' result, Pr[= result |
-        (simulateQ (Generic.Seeded.worldHandler (selectedCostHash selected)) computation).run (cache, 0)] *
+        (simulateQ (Seeded.worldHandler (selectedCostHash selected)) computation).run (cache, 0)] *
           (result.2.2 : ℝ≥0∞) := by
   rw [run_selectedCostWorld, tsum_probOutput_map_mul, expectedSimulatedQueryCount_eq_counted]
   simp only [Nat.zero_add]

@@ -1,11 +1,13 @@
 import XmssSecurity.Proof.Generic.Code
 import XmssSecurity.Proof.Checksum.EncodingLemmas
 
-/-! The checksummed code as an instance of `Generic.Code`, scoped to `XmssSecurity.Checksum`. -/
+/-! The checksummed code as an instance of `Code`, scoped to `XmssSecurity.Checksum`. -/
+
+open XmssSecurity.Generic
 
 namespace XmssSecurity.Checksum
 
-scoped instance code : Generic.Code where
+scoped instance code : Code where
   numChains := numChains
   numChains_pos := by decide
   numChains_lt := by decide
@@ -23,8 +25,8 @@ scoped instance code : Generic.Code where
   exists_decodes := ⟨0, encode 0, rfl⟩
 
 @[simp] theorem code_signingAttemptLimit :
-    Generic.Code.signingAttemptLimit = signingAttemptLimit := rfl
+    Code.signingAttemptLimit = signingAttemptLimit := rfl
 
-@[simp] theorem code_numChains : Generic.Code.numChains = numChains := rfl
+@[simp] theorem code_numChains : Code.numChains = numChains := rfl
 
 end XmssSecurity.Checksum

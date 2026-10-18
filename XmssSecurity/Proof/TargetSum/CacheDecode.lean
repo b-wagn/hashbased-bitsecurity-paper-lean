@@ -6,21 +6,23 @@ decode, so a decoding digest read from the cache witnesses the encoding query. -
 
 open OracleComp OracleSpec
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum
 
-open Generic.Concrete.CacheView
+open Concrete.CacheView
 
 theorem decodedEncoding_of_decodeDigest {cache : QueryCache HashSpec}
     {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
     {encoding : Generic.Encoding}
-    (h : Generic.Code.decodeDigest (encodingHash cache parameter leafIndex input) = some encoding) :
+    (h : Code.decodeDigest (encodingHash cache parameter leafIndex input) = some encoding) :
     decodedEncoding cache parameter leafIndex input = some encoding := by
   unfold encodingHash digestAt at h
   unfold decodedEncoding
   cases hcache : cache (encodingInput parameter leafIndex input) with
   | none =>
       rw [hcache] at h
-      have hzero : Generic.Code.decodeDigest (0 : Digest) = none :=
+      have hzero : Code.decodeDigest (0 : Digest) = none :=
         TargetSum.decodeDigest_zero_eq_none
       rw [hzero] at h
       cases h
@@ -31,10 +33,10 @@ theorem decodedEncoding_of_decodeDigest {cache : QueryCache HashSpec}
 theorem encodingInput_cached_of_decode_some
     (cache : QueryCache HashSpec) (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) (encoding : Generic.Encoding)
-    (hdecode : Generic.Code.decodeDigest
+    (hdecode : Code.decodeDigest
       (encodingHash cache parameter leafIndex (message, randomness)) = some encoding) :
     ∃ output, cache (encodingInput parameter leafIndex (message, randomness)) = some output :=
-  Generic.Concrete.CacheView.encodingInput_cached_of_decode_some cache parameter leafIndex message
+  Concrete.CacheView.encodingInput_cached_of_decode_some cache parameter leafIndex message
     randomness encoding (decodedEncoding_of_decodeDigest hdecode)
 
 end XmssSecurity.TargetSum

@@ -9,25 +9,27 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Modes
 open XmssSecurity.Modes
 
-open Seeded Generic.DeterministicSigning
+open Seeded DeterministicSigning
 
 theorem signer_referencePhaseCounts_bound
-    (adversary : Generic.Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
+    (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q)
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
-    (result : (Generic.Forgery × QueryLog Generic.SigningSpec) × PhaseCounts)
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (result : (Forgery × QueryLog SigningSpec) × PhaseCounts)
     (hresult : result ∈ support ((simulateQ (referencePhaseCountsImpl keyResult.1.2)
-      (Generic.DeterministicSigning.withRequestLog (Generic.DeterministicSigning.memoize (adversary.main keyResult.1.1) ∅))).run
+      (DeterministicSigning.withRequestLog (DeterministicSigning.memoize (adversary.main keyResult.1.1) ∅))).run
         ⟨keyResult.2, 0, 0⟩)) :
     result.2.direct + 2 * result.2.signing ≤ q := by
   apply signer_referencePhaseCost_le_after_keygen adversary q hsmall hbound keyResult hkey
     (result.1, result.2.weighted 2)
   have hproject := referencePhaseCounts_cost_projection keyResult.1.2
-    (Generic.DeterministicSigning.withRequestLog (Generic.DeterministicSigning.memoize (adversary.main keyResult.1.1) ∅)) ⟨keyResult.2, 0, 0⟩
+    (DeterministicSigning.withRequestLog (DeterministicSigning.memoize (adversary.main keyResult.1.1) ∅)) ⟨keyResult.2, 0, 0⟩
   simp only [PhaseCounts.weighted, Nat.mul_zero, Nat.zero_add] at hproject
   rw [← hproject, support_map]
   exact ⟨result, hresult, rfl⟩

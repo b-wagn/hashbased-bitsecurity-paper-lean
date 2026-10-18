@@ -9,11 +9,13 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Seeded
 
-open Generic.DeterministicSigning
+open DeterministicSigning
 
-attribute [local irreducible] Generic.Seeded.tableSign
+attribute [local irreducible] Seeded.tableSign
 
 noncomputable def twiceHashQuery : QueryImpl HashSpec (OracleComp HashSpec) := fun input => do
   let answer ← liftM (HashSpec.query input)
@@ -23,12 +25,12 @@ noncomputable def twiceHashQuery : QueryImpl HashSpec (OracleComp HashSpec) := f
 noncomputable def twiceHashQueries {α : Type} (computation : OracleComp HashSpec α) :
     OracleComp HashSpec α := simulateQ twiceHashQuery computation
 
-theorem evalDist_cost_twiceHashQuery (input : HashInput) (state : Generic.Seeded.CostState) :
-    𝒟[(simulateQ Generic.Seeded.costHash (twiceHashQuery input)).run state] =
+theorem evalDist_cost_twiceHashQuery (input : HashInput) (state : Seeded.CostState) :
+    𝒟[(simulateQ Seeded.costHash (twiceHashQuery input)).run state] =
       𝒟[(weightedCostHash 2 input).run state] := by
   simp only [twiceHashQuery, simulateQ_bind, simulateQ_spec_query, simulateQ_pure,
     StateT.run_bind, StateT.run_pure]
-  unfold Generic.Seeded.costHash weightedCostHash
+  unfold Seeded.costHash weightedCostHash
   simp only [StateT.run, bind_assoc, pure_bind]
   apply evalDist_bind_congr
   intro result hresult
@@ -36,11 +38,11 @@ theorem evalDist_cost_twiceHashQuery (input : HashInput) (state : Generic.Seeded
     let next ← (randomOracle (spec := HashSpec) input).run result.2
     pure (result.1, next.2, state.2 + 1 + 1))] =
       𝒟[pure (result.1, result.2, state.2 + 2)]
-  rw [QueryImpl.withCaching_run_some _ (Generic.DeterministicSigning.query_caches input state.1 result hresult), pure_bind]
+  rw [QueryImpl.withCaching_run_some _ (DeterministicSigning.query_caches input state.1 result hresult), pure_bind]
 
 theorem evalDist_cost_twiceHashQueries {α : Type}
-    (computation : OracleComp HashSpec α) (state : Generic.Seeded.CostState) :
-    𝒟[(simulateQ Generic.Seeded.costHash (twiceHashQueries computation)).run state] =
+    (computation : OracleComp HashSpec α) (state : Seeded.CostState) :
+    𝒟[(simulateQ Seeded.costHash (twiceHashQueries computation)).run state] =
       𝒟[(simulateQ (weightedCostHash 2) computation).run state] := by
   rw [twiceHashQueries, ← QueryImpl.simulateQ_compose]
   apply evalDist_simulateQ_run_congr
@@ -48,27 +50,27 @@ theorem evalDist_cost_twiceHashQueries {α : Type}
   exact evalDist_cost_twiceHashQuery input state
 
 theorem evalDist_cost_twiceHashQueries_lift {α : Type}
-    (computation : OracleComp HashSpec α) (state : Generic.Seeded.CostState) :
-    𝒟[(simulateQ (Generic.Seeded.worldHandler Generic.Seeded.costHash)
+    (computation : OracleComp HashSpec α) (state : Seeded.CostState) :
+    𝒟[(simulateQ (Seeded.worldHandler Seeded.costHash)
       (liftM (twiceHashQueries computation) : OracleComp OracleWorld α)).run state] =
-      𝒟[(simulateQ (Generic.Seeded.worldHandler (weightedCostHash 2))
+      𝒟[(simulateQ (Seeded.worldHandler (weightedCostHash 2))
         (liftM computation : OracleComp OracleWorld α)).run state] := by
-  simp only [Generic.Seeded.worldHandler, QueryImpl.simulateQ_add_liftM_right]
+  simp only [Seeded.worldHandler, QueryImpl.simulateQ_add_liftM_right]
   exact evalDist_cost_twiceHashQueries computation state
 
-noncomputable def chargedTableRun {α : Type} (randomizers : Generic.Seeded.RandomizerOutputs)
+noncomputable def chargedTableRun {α : Type} (randomizers : Seeded.RandomizerOutputs)
     (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) : OracleComp OracleWorld α :=
-  Generic.Seeded.runSigning (fun (request : Generic.SignRequest) => twiceHashQueries
-    (Generic.Seeded.tableSign randomizers secretKey request.epoch request.message)) computation
+    (computation : OracleComp (OracleWorld + SigningSpec) α) : OracleComp OracleWorld α :=
+  Seeded.runSigning (fun (request : SignRequest) => twiceHashQueries
+    (Seeded.tableSign randomizers secretKey request.epoch request.message)) computation
 
-theorem evalDist_cost_chargedTableRun {α : Type} (randomizers : Generic.Seeded.RandomizerOutputs)
+theorem evalDist_cost_chargedTableRun {α : Type} (randomizers : Seeded.RandomizerOutputs)
     (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : Generic.Seeded.CostState) :
-    𝒟[(simulateQ (Generic.Seeded.worldHandler Generic.Seeded.costHash)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : Seeded.CostState) :
+    𝒟[(simulateQ (Seeded.worldHandler Seeded.costHash)
       (chargedTableRun randomizers secretKey computation)).run state] =
       𝒟[(simulateQ (tablePhaseCostImpl randomizers secretKey) computation).run state] := by
-  rw [chargedTableRun, Generic.Seeded.simulateQ_runSigning]
+  rw [chargedTableRun, Seeded.simulateQ_runSigning]
   apply evalDist_simulateQ_run_congr
   intro input state
   cases input with
@@ -76,58 +78,58 @@ theorem evalDist_cost_chargedTableRun {α : Type} (randomizers : Generic.Seeded.
   | inr request =>
       simp only [tablePhaseCostImpl, chargedSigning_eq_weightedCostWorld]
       exact evalDist_cost_twiceHashQueries_lift
-        (Generic.Seeded.tableSign randomizers secretKey request.epoch request.message) state
+        (Seeded.tableSign randomizers secretKey request.epoch request.message) state
 
-def TablePhaseCostBound {α : Type} (randomizers : Generic.Seeded.RandomizerOutputs)
+def TablePhaseCostBound {α : Type} (randomizers : Seeded.RandomizerOutputs)
     (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) (q : Nat) : Prop :=
   ∀ result ∈ support
     ((simulateQ (tablePhaseCostImpl randomizers secretKey) computation).run (cache, 0)),
       result.2.2 ≤ q
 
 theorem tablePhaseCostBound_iff_hashQueryBound {α : Type}
-    (randomizers : Generic.Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (randomizers : Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) (q : Nat) :
     TablePhaseCostBound randomizers secretKey computation cache q ↔
-      Generic.HashQueryBound (chargedTableRun randomizers secretKey computation) cache q := by
-  rw [Generic.Seeded.hashQueryBound_iff_costState]
+      HashQueryBound (chargedTableRun randomizers secretKey computation) cache q := by
+  rw [Seeded.hashQueryBound_iff_costState]
   simp only [TablePhaseCostBound, mem_support_iff_of_evalDist_eq
     (evalDist_cost_chargedTableRun randomizers secretKey computation (cache, 0))]
 
 /-- Remove seed-dependent cache programming while retaining the complete signer charge. -/
 theorem tablePhaseCostBound_of_seed_caches {α : Type}
-    (randomizers : Generic.Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (randomizers : Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (q : Nat) (inputs : List HashInput) (caches : MasterSeed → QueryCache HashSpec)
     (cache : QueryCache HashSpec) (hsize : inputs.length + q < 2 ^ 256)
-    (hagree : ∀ seed, ¬Generic.SeedHitLog inputs seed →
-      Generic.Seeded.AgreeOutside (fun input => Generic.SeedHit input seed) (caches seed) cache)
-    (hbound : ∀ seed, ¬Generic.SeedHitLog inputs seed →
+    (hagree : ∀ seed, ¬SeedHitLog inputs seed →
+      Seeded.AgreeOutside (fun input => SeedHit input seed) (caches seed) cache)
+    (hbound : ∀ seed, ¬SeedHitLog inputs seed →
       TablePhaseCostBound randomizers secretKey computation (caches seed) q) :
     TablePhaseCostBound randomizers secretKey computation cache q := by
   rw [tablePhaseCostBound_iff_hashQueryBound]
-  apply Generic.Seeded.hashQueryBound_of_seed_caches _ q inputs caches cache hsize hagree
+  apply Seeded.hashQueryBound_of_seed_caches _ q inputs caches cache hsize hagree
   intro seed hseed
   exact (tablePhaseCostBound_iff_hashQueryBound _ _ _ _ _).1 (hbound seed hseed)
 
 /-- Repeated deterministic signing requests can be memoized without increasing cost. -/
 theorem tablePhaseCostBound_memoize {α : Type}
-    (randomizers : Generic.Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (randomizers : Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) (q : Nat)
     (hbound : TablePhaseCostBound randomizers secretKey computation cache q) :
-    TablePhaseCostBound randomizers secretKey (Generic.DeterministicSigning.memoize computation ∅) cache q := by
+    TablePhaseCostBound randomizers secretKey (DeterministicSigning.memoize computation ∅) cache q := by
   rw [tablePhaseCostBound_iff_hashQueryBound] at hbound ⊢
   unfold chargedTableRun at hbound ⊢
-  exact Generic.Seeded.hashQueryBound_runSigning_memoize
-    (fun (request : Generic.SignRequest) => twiceHashQueries
-      (Generic.Seeded.tableSign randomizers secretKey request.epoch request.message)) computation cache q hbound
+  exact Seeded.hashQueryBound_runSigning_memoize
+    (fun (request : SignRequest) => twiceHashQueries
+      (Seeded.tableSign randomizers secretKey request.epoch request.message)) computation cache q hbound
 
 theorem tablePhaseCostBound_map_iff {α β : Type}
-    (randomizers : Generic.Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (f : α → β)
+    (randomizers : Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (f : α → β)
     (cache : QueryCache HashSpec) (q : Nat) :
     TablePhaseCostBound randomizers secretKey (f <$> computation) cache q ↔
       TablePhaseCostBound randomizers secretKey computation cache q := by
@@ -135,38 +137,38 @@ theorem tablePhaseCostBound_map_iff {α β : Type}
     Set.forall_mem_image]
 
 theorem tablePhaseCostBound_withRequestLog_iff {α : Type}
-    (randomizers : Generic.Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (randomizers : Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) (q : Nat) :
-    TablePhaseCostBound randomizers secretKey (Generic.DeterministicSigning.withRequestLog computation) cache q ↔
+    TablePhaseCostBound randomizers secretKey (DeterministicSigning.withRequestLog computation) cache q ↔
       TablePhaseCostBound randomizers secretKey computation cache q := by
   have h := tablePhaseCostBound_map_iff randomizers secretKey
-    (Generic.DeterministicSigning.withRequestLog computation) Prod.fst cache q
-  rw [Generic.DeterministicSigning.fst_withRequestLog] at h
+    (DeterministicSigning.withRequestLog computation) Prod.fst cache q
+  rw [DeterministicSigning.fst_withRequestLog] at h
   exact h.symm
 
 theorem tablePhaseCostBound_logged_memoize {α : Type}
-    (randomizers : Generic.Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (randomizers : Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : TablePhaseCostBound randomizers secretKey (Generic.DeterministicSigning.withRequestLog computation) cache q) :
-    TablePhaseCostBound randomizers secretKey (Generic.DeterministicSigning.withRequestLog (Generic.DeterministicSigning.memoize computation ∅)) cache q := by
+    (hbound : TablePhaseCostBound randomizers secretKey (DeterministicSigning.withRequestLog computation) cache q) :
+    TablePhaseCostBound randomizers secretKey (DeterministicSigning.withRequestLog (DeterministicSigning.memoize computation ∅)) cache q := by
   rw [tablePhaseCostBound_withRequestLog_iff] at hbound ⊢
   exact tablePhaseCostBound_memoize randomizers secretKey computation cache q hbound
 
 theorem referencePhaseCost_logged_memo_le_of_table {α : Type}
     (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) (q : Nat)
     (hbound : ∀ randomizers,
-      TablePhaseCostBound randomizers secretKey (Generic.DeterministicSigning.withRequestLog computation) cache q)
-    (result : (α × QueryLog Generic.SigningSpec) × Generic.Seeded.CostState)
+      TablePhaseCostBound randomizers secretKey (DeterministicSigning.withRequestLog computation) cache q)
+    (result : (α × QueryLog SigningSpec) × Seeded.CostState)
     (hresult : result ∈ support ((simulateQ (referencePhaseCostImpl secretKey)
-      (Generic.DeterministicSigning.withRequestLog (Generic.DeterministicSigning.memoize computation ∅))).run (cache, 0))) :
+      (DeterministicSigning.withRequestLog (DeterministicSigning.memoize computation ∅))).run (cache, 0))) :
     result.2.2 ≤ q := by
-  have hfresh : Generic.DeterministicSigning.FreshRequests ∅ (Generic.DeterministicSigning.memoize computation ∅) := by
+  have hfresh : DeterministicSigning.FreshRequests ∅ (DeterministicSigning.memoize computation ∅) := by
     simpa only [QueryCache.empty_apply, ne_eq, not_true_eq_false, Set.setOf_false] using
-      Generic.DeterministicSigning.freshRequests_memoize computation ∅
+      DeterministicSigning.freshRequests_memoize computation ∅
   apply referencePhaseCost_le_of_table secretKey _ hfresh.withRequestLog (cache, 0) q
     (fun randomizers => tablePhaseCostBound_logged_memoize randomizers secretKey
       computation cache q (hbound randomizers)) result hresult

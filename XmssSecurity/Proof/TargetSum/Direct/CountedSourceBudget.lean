@@ -9,6 +9,8 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.CappedChain
 
 open Seeded
@@ -17,9 +19,9 @@ def CountedSourceState.charge (state : CountedSourceState) : Nat :=
   state.counts.direct + 2 * state.counts.signing
 
 theorem phaseCountsImpl_counts_mono
-    (signing : Generic.SignRequest → OracleComp OracleWorld (Option Generic.Signature))
-    (input : (OracleWorld + Generic.SigningSpec).Domain) (state : PhaseCounts)
-    (result : (OracleWorld + Generic.SigningSpec).Range input × PhaseCounts)
+    (signing : SignRequest → OracleComp OracleWorld (Option Generic.Signature))
+    (input : (OracleWorld + SigningSpec).Domain) (state : PhaseCounts)
+    (result : (OracleWorld + SigningSpec).Range input × PhaseCounts)
     (hresult : result ∈ support ((phaseCountsImpl signing input).run state)) :
     state.direct ≤ result.2.direct ∧ state.signing ≤ result.2.signing := by
   cases input with
@@ -33,8 +35,8 @@ theorem phaseCountsImpl_counts_mono
       exact ⟨le_rfl, Nat.le_add_right _ _⟩
 
 theorem countedSourceImpl_counts_mono (secretKey : Generic.SecretKey)
-    (input : (OracleWorld + Generic.SigningSpec).Domain) (state : CountedSourceState)
-    (result : (OracleWorld + Generic.SigningSpec).Range input × CountedSourceState)
+    (input : (OracleWorld + SigningSpec).Domain) (state : CountedSourceState)
+    (result : (OracleWorld + SigningSpec).Range input × CountedSourceState)
     (hresult : result ∈ support ((countedSourceImpl secretKey input).run state)) :
     state.counts.direct ≤ result.2.counts.direct ∧
       state.counts.signing ≤ result.2.counts.signing := by
@@ -45,7 +47,7 @@ theorem countedSourceImpl_counts_mono (secretKey : Generic.SecretKey)
   exact ⟨result, hresult, rfl⟩
 
 theorem countedSource_counts_mono {α : Type} (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : CountedSourceState)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState)
     (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl secretKey) computation).run state)) :
     state.counts.direct ≤ result.2.counts.direct ∧
@@ -56,14 +58,14 @@ theorem countedSource_counts_mono {α : Type} (secretKey : Generic.SecretKey)
       subst result
       exact ⟨le_rfl, le_rfl⟩
   | query_bind input next ih =>
-      rw [Generic.Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
+      rw [Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
       obtain ⟨head, hhead, htail⟩ := hresult
       have hstep := countedSourceImpl_counts_mono secretKey input state head hhead
       have hrest := ih head.1 head.2 result htail
       exact ⟨hstep.1.trans hrest.1, hstep.2.trans hrest.2⟩
 
 theorem countedSource_charge_mono {α : Type} (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : CountedSourceState)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState)
     (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl secretKey) computation).run state)) :
     state.charge ≤ result.2.charge := by
@@ -71,21 +73,21 @@ theorem countedSource_charge_mono {α : Type} (secretKey : Generic.SecretKey)
   exact Nat.add_le_add h.1 (Nat.mul_le_mul_left 2 h.2)
 
 def CountedSourceBudget {α : Type} (secretKey : Generic.SecretKey) (limit : Nat)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : CountedSourceState) : Prop :=
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState) : Prop :=
   ∀ result ∈ support ((simulateQ (countedSourceImpl secretKey) computation).run state),
     result.2.charge ≤ limit
 
 theorem CountedSourceBudget.initial_le {α : Type} {secretKey : Generic.SecretKey} {limit : Nat}
-    {computation : OracleComp (OracleWorld + Generic.SigningSpec) α} {state : CountedSourceState}
+    {computation : OracleComp (OracleWorld + SigningSpec) α} {state : CountedSourceState}
     (hbudget : CountedSourceBudget secretKey limit computation state) : state.charge ≤ limit := by
-  obtain ⟨result, hresult⟩ := Generic.probComp_support_nonempty
+  obtain ⟨result, hresult⟩ := probComp_support_nonempty
     ((simulateQ (countedSourceImpl secretKey) computation).run state)
   exact (countedSource_charge_mono secretKey computation state result hresult).trans
     (hbudget result hresult)
 
 theorem countedSourceBudget_bind_iff {α β : Type} (secretKey : Generic.SecretKey) (limit : Nat)
-    (head : OracleComp (OracleWorld + Generic.SigningSpec) α)
-    (next : α → OracleComp (OracleWorld + Generic.SigningSpec) β) (state : CountedSourceState) :
+    (head : OracleComp (OracleWorld + SigningSpec) α)
+    (next : α → OracleComp (OracleWorld + SigningSpec) β) (state : CountedSourceState) :
     CountedSourceBudget secretKey limit (head >>= next) state ↔
       ∀ result ∈ support ((simulateQ (countedSourceImpl secretKey) head).run state),
         CountedSourceBudget secretKey limit (next result.1) result.2 := by
@@ -98,8 +100,8 @@ theorem countedSourceBudget_bind_iff {α β : Type} (secretKey : Generic.SecretK
     exact h result hresult final hfinal
 
 theorem CountedSourceBudget.prefix {α β : Type} {secretKey : Generic.SecretKey} {limit : Nat}
-    {head : OracleComp (OracleWorld + Generic.SigningSpec) α}
-    {next : α → OracleComp (OracleWorld + Generic.SigningSpec) β} {state : CountedSourceState}
+    {head : OracleComp (OracleWorld + SigningSpec) α}
+    {next : α → OracleComp (OracleWorld + SigningSpec) β} {state : CountedSourceState}
     (hbudget : CountedSourceBudget secretKey limit (head >>= next) state)
     (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl secretKey) head).run state)) :
@@ -109,12 +111,12 @@ theorem CountedSourceBudget.prefix {α β : Type} {secretKey : Generic.SecretKey
   exact ⟨hnext.initial_le, hnext⟩
 
 theorem CountedSourceBudget.query_step {α : Type} {secretKey : Generic.SecretKey} {limit : Nat}
-    {input : (OracleWorld + Generic.SigningSpec).Domain}
-    {next : (OracleWorld + Generic.SigningSpec).Range input → OracleComp (OracleWorld + Generic.SigningSpec) α}
+    {input : (OracleWorld + SigningSpec).Domain}
+    {next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α}
     {state : CountedSourceState}
     (hbudget : CountedSourceBudget secretKey limit
-      (liftM ((OracleWorld + Generic.SigningSpec).query input) >>= next) state)
-    (result : (OracleWorld + Generic.SigningSpec).Range input × CountedSourceState)
+      (liftM ((OracleWorld + SigningSpec).query input) >>= next) state)
+    (result : (OracleWorld + SigningSpec).Range input × CountedSourceState)
     (hresult : result ∈ support ((countedSourceImpl secretKey input).run state)) :
     result.2.charge ≤ limit ∧ CountedSourceBudget secretKey limit (next result.1) result.2 := by
   apply hbudget.prefix result

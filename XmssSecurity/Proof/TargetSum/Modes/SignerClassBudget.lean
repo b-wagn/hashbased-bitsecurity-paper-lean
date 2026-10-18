@@ -10,6 +10,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum
 
 namespace Modes
@@ -17,26 +19,26 @@ open XmssSecurity.Modes
 
 open Seeded CappedChain Direct
 
-theorem signer_expectedClassBudget (adversary : Generic.Security.StatementAdversary)
+theorem signer_expectedClassBudget (adversary : Security.StatementAdversary)
     (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q) :
-    Generic.Direct.expectedDirectEncodingQueries (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
-      Generic.Direct.expectedDirectStructuralQueries (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
-      expectedDirectSeedQueries (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
-      2 * expectedSourceSignerHashes (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) ≤ q := by
-  unfold Generic.Direct.expectedDirectEncodingQueries Generic.Direct.expectedDirectStructuralQueries expectedDirectSeedQueries
+    Direct.expectedDirectEncodingQueries (Seeded.memoAdversary (Security.embed adversary)) +
+      Direct.expectedDirectStructuralQueries (Seeded.memoAdversary (Security.embed adversary)) +
+      expectedDirectSeedQueries (Seeded.memoAdversary (Security.embed adversary)) +
+      2 * expectedSourceSignerHashes (Seeded.memoAdversary (Security.embed adversary)) ≤ q := by
+  unfold Direct.expectedDirectEncodingQueries Direct.expectedDirectStructuralQueries expectedDirectSeedQueries
     expectedSourceSignerHashes
   rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add, ← ENNReal.tsum_add, ← ENNReal.tsum_add]
   calc
-    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] *
+    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
         (q : ℝ≥0∞) := by
       apply ENNReal.tsum_le_tsum
       intro keyResult
       rw [mul_left_comm 2, ← mul_add, ← mul_add, ← mul_add]
-      by_cases hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅)
+      by_cases hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
       · apply mul_le_mul' le_rfl
         exact reference_expectedClassBudget keyResult.1.1 keyResult.1.2 keyResult.2 keyResult.2 q
-          ((Generic.Seeded.memoAdversary (Generic.Security.embed adversary)).main keyResult.1.1)
+          ((Seeded.memoAdversary (Security.embed adversary)).main keyResult.1.1)
           (signer_countedSourceBudget_after_keygen adversary q hsmall hbound keyResult hkey)
       · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul, zero_mul]
     _ ≤ _ := by

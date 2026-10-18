@@ -11,6 +11,8 @@ lane, and the expected seed loss. All query classes refer to the same execution.
 
 open OracleComp OracleSpec ENNReal
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA.Requests
 open XmssSecurity.EUFCMA
 
@@ -26,10 +28,10 @@ noncomputable def terminalLoss (q : ℕ) (E S Z R : ℝ≥0∞) : ℝ≥0∞ :=
       40 * TargetSum.acceptanceProbability * (E + 1)) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
     prehitRate * E + Z / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
-theorem reference_add_seed_le_expectedLoss (adversary : Generic.Adversary) (q : ℕ)
+theorem reference_add_seed_le_expectedLoss (adversary : Adversary) (q : ℕ)
     (hsmall : q + 1 ≤ 2 ^ 127) (hbound : IsQueryBound adversary q) :
-    forgeAdvantage Generic.Concrete.scheme adversary + expectedDirectSeedQueries adversary / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤
-      expectedLoss q (Generic.Direct.expectedDirectEncodingQueries adversary) (Generic.Direct.expectedDirectStructuralQueries adversary)
+    forgeAdvantage Concrete.scheme adversary + expectedDirectSeedQueries adversary / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤
+      expectedLoss q (Direct.expectedDirectEncodingQueries adversary) (Direct.expectedDirectStructuralQueries adversary)
         (expectedDirectSeedQueries adversary) (expectedSigningRequests adversary) := by
   have hfirst := (freshFirstLane_probability_le_mixed_add_encoding adversary).trans
     (add_le_add (freshMixedPrefixProbability_le_expected adversary q hbound.direct)
@@ -42,10 +44,10 @@ theorem reference_add_seed_le_expectedLoss (adversary : Generic.Adversary) (q : 
   simp only [expectedLoss, div_eq_mul_inv]
   ring
 
-theorem reference_add_seed_le_terminalLoss (adversary : Generic.Adversary) (q : ℕ)
+theorem reference_add_seed_le_terminalLoss (adversary : Adversary) (q : ℕ)
     (hpositive : 0 < q) (hsmall : q + 1 ≤ 2 ^ 127) (hbound : IsQueryBound adversary q) :
-    forgeAdvantage Generic.Concrete.scheme adversary + expectedDirectSeedQueries adversary / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤
-      terminalLoss q (Generic.Direct.expectedDirectEncodingQueries adversary) (Generic.Direct.expectedDirectStructuralQueries adversary)
+    forgeAdvantage Concrete.scheme adversary + expectedDirectSeedQueries adversary / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤
+      terminalLoss q (Direct.expectedDirectEncodingQueries adversary) (Direct.expectedDirectStructuralQueries adversary)
         (expectedDirectSeedQueries adversary) (expectedSigningRequests adversary) := by
   have hfirst := (freshFirstLane_probability_le_mixed_add_encoding adversary).trans
     (add_le_add (freshMixedPrefixProbability_le_terminal adversary q hpositive hbound)

@@ -19,11 +19,13 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.NoSign
 
 /-- The forged top sibling is the honest one. -/
 def HiddenSiblingGuessed (cache : QueryCache HashSpec) (secretKey : Generic.SecretKey)
-    (forgery : Generic.Forgery) : Prop :=
+    (forgery : Forgery) : Prop :=
   forgery.signature.authPath topLevel =
     honestSibling cache secretKey.parameter secretKey.chainStart forgery.epoch
 
@@ -59,7 +61,7 @@ theorem probEvent_const_uniform {α : Type} [SampleableType α] (event : Prop) [
 noncomputable def subtrees (parameter : PublicParameter) :
     ProbComp ((LeafIndex → ChainIndex → Digest) ×
       (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec)) := do
-  let secret ← Generic.Concrete.sampleSecret
+  let secret ← Concrete.sampleSecret
   let left ← (simulateQ randomOracle
     (Generic.Concrete.treeNode parameter secret (treeHeight - 1)
       (Generic.Concrete.childNode Generic.Concrete.rootNode false) : OracleComp HashSpec Digest)).run ∅
@@ -78,7 +80,7 @@ def splitCache (parameter : PublicParameter)
 /-- Key generation with the chain starts, for a fixed parameter. -/
 noncomputable def keygenTree (parameter : PublicParameter) :
     ProbComp ((LeafIndex → ChainIndex → Digest) × (Digest × QueryCache HashSpec)) := do
-  let secret ← Generic.Concrete.sampleSecret
+  let secret ← Concrete.sampleSecret
   let tree ← (simulateQ randomOracle
     (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
       OracleComp HashSpec Digest)).run ∅
@@ -139,16 +141,16 @@ theorem honestChild_splitCache (parameter : PublicParameter)
   have hrightLe : right'.2 ≤ splitCache parameter (secret, left, right') output :=
     QueryCache.le_cacheQuery _ hnone
   have hleftLe : left.2 ≤ splitCache parameter (secret, left, right') output :=
-    (Generic.Concrete.CacheReplay.randomOracle_cache_le _ left.2 right' hright).trans hrightLe
+    (Concrete.CacheReplay.randomOracle_cache_le _ left.2 right' hright).trans hrightLe
   unfold honestChild
   cases right
-  · have heval := Generic.Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support _ ∅ left.2 _
+  · have heval := Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support _ ∅ left.2 _
       left.1 hleft hleftLe
-    rw [Generic.Concrete.CacheReplay.eval_treeNode] at heval
+    rw [Concrete.CacheReplay.eval_treeNode] at heval
     simpa using heval
-  · have heval := Generic.Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support _ left.2
+  · have heval := Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support _ left.2
       right'.2 _ right'.1 hright hrightLe
-    rw [Generic.Concrete.CacheReplay.eval_treeNode] at heval
+    rw [Concrete.CacheReplay.eval_treeNode] at heval
     simpa using heval
 
 theorem splitCache_ne_none_iff (parameter : PublicParameter)
@@ -175,11 +177,11 @@ theorem probEvent_keygenTree_honestSibling_le (parameter : PublicParameter)
   rw [probEvent_bind_eq_tsum]
   refine tsum_probOutput_mul_le_of_mem_support _ _ _ fun secret _ => ?_
   rw [bind_pure_comp, probEvent_map]
-  have hvalid : Generic.TreeSubtreeValid ((treeHeight - 1) + 1) Generic.Concrete.rootNode := by
-    unfold Generic.TreeSubtreeValid Generic.Concrete.rootNode lifetime
+  have hvalid : TreeSubtreeValid ((treeHeight - 1) + 1) Generic.Concrete.rootNode := by
+    unfold TreeSubtreeValid Generic.Concrete.rootNode lifetime
     norm_num [treeHeight]
   exact probEvent_rootTree_treeNode_le parameter secret (treeHeight - 1) _ (by omega)
-    (Generic.childNode_subtreeValid _ _ _ hvalid) target
+    (childNode_subtreeValid _ _ _ hvalid) target
 
 theorem probEvent_subtrees_honestSibling_le (parameter : PublicParameter)
     (output : HashOutput) (leafIndex : LeafIndex) (target : Digest) :
@@ -204,7 +206,7 @@ theorem probEvent_subtrees_cached_le (parameter : PublicParameter) (output : Has
 `D` cached inputs, the honest key generation below the root makes the forged sibling honest, or
 caches one of those inputs, with probability at most `(D + 1) / 2^128`. -/
 theorem probEvent_subtrees_ideal_le (parameter : PublicParameter) (output : HashOutput)
-    (forgery : Generic.Forgery) (finalCache : QueryCache HashSpec) (D : ℕ)
+    (forgery : Forgery) (finalCache : QueryCache HashSpec) (D : ℕ)
     (hinputs : ∃ inputs : List HashInput, inputs.length ≤ D ∧
       ∀ input, finalCache input ≠ none → input ∈ inputs) :
     Pr[fun sample =>
@@ -244,15 +246,15 @@ namespace XmssSecurity.Checksum.NoSign
 /-! ## The game -/
 
 /-- The adversary from the empty cache. -/
-noncomputable def idealRun (adversary : Generic.Adversary) (publicKey : PublicKey) :
-    ProbComp (Generic.Forgery × QueryCache HashSpec) :=
-  (simulateQ Generic.romImpl (forwardPhase adversary publicKey)).run ∅
+noncomputable def idealRun (adversary : Adversary) (publicKey : PublicKey) :
+    ProbComp (Forgery × QueryCache HashSpec) :=
+  (simulateQ romImpl (forwardPhase adversary publicKey)).run ∅
 
-theorem adversaryPhase_le_ideal (adversary : Generic.Adversary) (hno : NoSignQueries adversary)
+theorem adversaryPhase_le_ideal (adversary : Adversary) (hno : NoSignQueries adversary)
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec) :
-    Pr[fun prefixResult : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec =>
+    Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
         HiddenSiblingGuessed keyResult.2 keyResult.1.2 prefixResult.1.1 |
-      (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+      (simulateQ romImpl (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
         keyResult.2] ≤
       Pr[fun result => HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 ∨
           HitsCache keyResult.2 result.2 | idealRun adversary keyResult.1.1] := by
@@ -260,8 +262,8 @@ theorem adversaryPhase_le_ideal (adversary : Generic.Adversary) (hno : NoSignQue
   exact probEvent_run_le_empty (forwardPhase adversary keyResult.1.1) keyResult.2
     (HiddenSiblingGuessed keyResult.2 keyResult.1.2)
 
-theorem idealRun_inputs (adversary : Generic.Adversary) (D : ℕ) (hD : Generic.Direct.IsDirectQueryBound adversary D)
-    (publicKey : PublicKey) (result : Generic.Forgery × QueryCache HashSpec)
+theorem idealRun_inputs (adversary : Adversary) (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D)
+    (publicKey : PublicKey) (result : Forgery × QueryCache HashSpec)
     (hresult : result ∈ support (idealRun adversary publicKey)) :
     ∃ inputs : List HashInput, inputs.length ≤ D ∧
       ∀ input, result.2 input ≠ none → input ∈ inputs := by
@@ -272,24 +274,24 @@ theorem idealRun_inputs (adversary : Generic.Adversary) (D : ℕ) (hD : Generic.
 
 /-- An adversary without signing requests and with `D` direct hash queries forges the honest top
 sibling with probability at most `(D + 1) / 2^128`. -/
-theorem hiddenSibling_le (adversary : Generic.Adversary) (D : ℕ)
-    (hD : Generic.Direct.IsDirectQueryBound adversary D) (hno : NoSignQueries adversary) :
-    ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] *
-      Pr[fun prefixResult : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec =>
+theorem hiddenSibling_le (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) (hno : NoSignQueries adversary) :
+    ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.keygen).run ∅] *
+      Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
           HiddenSiblingGuessed keyResult.2 keyResult.1.2 prefixResult.1.1 |
-        (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+        (simulateQ romImpl (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
           keyResult.2] ≤
       ((D + 1 : ℕ) : ℝ≥0∞) * digestInverse := by
   let event : (PublicKey × Generic.SecretKey) × QueryCache HashSpec →
-      Generic.Forgery × QueryCache HashSpec → Prop := fun keyResult result =>
+      Forgery × QueryCache HashSpec → Prop := fun keyResult result =>
     HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 ∨ HitsCache keyResult.2 result.2
   calc
-    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] *
+    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.keygen).run ∅] *
           Pr[event keyResult | idealRun adversary keyResult.1.1] :=
       ENNReal.tsum_le_tsum fun keyResult =>
         mul_le_mul' le_rfl (adversaryPhase_le_ideal adversary hno keyResult)
     _ = Pr[fun joint => event joint.1 joint.2 |
-          (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅ >>= fun keyResult =>
+          (simulateQ romImpl Concrete.keygen).run ∅ >>= fun keyResult =>
             (fun result => (keyResult, result)) <$> idealRun adversary keyResult.1.1] := by
       rw [probEvent_bind_eq_tsum]
       refine tsum_congr fun keyResult => ?_
@@ -304,18 +306,18 @@ theorem hiddenSibling_le (adversary : Generic.Adversary) (D : ℕ)
       let keyOf : (LeafIndex → ChainIndex → Digest) → Digest × QueryCache HashSpec →
           (PublicKey × Generic.SecretKey) × QueryCache HashSpec := fun secret tree =>
         ((⟨tree.1, parameter⟩, Generic.SecretKey.withoutPrecomputation parameter secret), tree.2)
-      let observed : ProbComp (HashOutput × (Generic.Forgery × QueryCache HashSpec)) := do
+      let observed : ProbComp (HashOutput × (Forgery × QueryCache HashSpec)) := do
         let output ← $ᵗ HashOutput
         let result ← idealRun adversary ⟨Generic.truncateHash output, parameter⟩
         pure (output, result)
       let finish : ((LeafIndex → ChainIndex → Digest) ×
           (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec)) →
-          HashOutput × (Generic.Forgery × QueryCache HashSpec) →
-          ((PublicKey × Generic.SecretKey) × QueryCache HashSpec) × (Generic.Forgery × QueryCache HashSpec) :=
+          HashOutput × (Forgery × QueryCache HashSpec) →
+          ((PublicKey × Generic.SecretKey) × QueryCache HashSpec) × (Forgery × QueryCache HashSpec) :=
         fun sample seen =>
           (keyOf sample.1 (Generic.truncateHash seen.1, splitCache parameter sample seen.1), seen.2)
       have hsplit :
-          𝒟[Generic.Concrete.sampleSecret >>= fun secret =>
+          𝒟[Concrete.sampleSecret >>= fun secret =>
             (simulateQ randomOracle
               (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
                 OracleComp HashSpec Digest)).run ∅ >>= fun tree =>
@@ -323,7 +325,7 @@ theorem hiddenSibling_le (adversary : Generic.Adversary) (D : ℕ)
                 idealRun adversary (keyOf secret tree).1.1] =
           𝒟[subtrees parameter >>= fun sample => observed >>= fun seen =>
             pure (finish sample seen)] := by
-        have hkeygen : (Generic.Concrete.sampleSecret >>= fun secret =>
+        have hkeygen : (Concrete.sampleSecret >>= fun secret =>
             (simulateQ randomOracle
               (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
                 OracleComp HashSpec Digest)).run ∅ >>= fun tree =>

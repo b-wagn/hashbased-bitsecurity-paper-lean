@@ -11,54 +11,56 @@ open OracleComp.ProgramLogic.Relational
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Deciding
 
 open CappedChain FirstLaneOracleSimulation
 
-abbrev LimitedPrefixResult := Option (Generic.Forgery × Generic.CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters
+abbrev LimitedPrefixResult := Option (Forgery × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters
 
-noncomputable def appendLimitedAcceptedPrefixProbe (base : Generic.CappedChain.GlobalChainValueIndex → Digest)
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
-    (result : LimitedPrefixResult × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex) :
-    LimitedPrefixResult × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex :=
+noncomputable def appendLimitedAcceptedPrefixProbe (base : CappedChain.GlobalChainValueIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
+    (result : LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
+    LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex :=
   match result.1.1 with
   | none => result
   | some completed =>
-      if (Generic.Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome then
-        (result.1, result.2 ++ (Generic.Deciding.prefixProbeResult base completed.2.causalState.cache key.secretKey.parameter
+      if (Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome then
+        (result.1, result.2 ++ (Deciding.prefixProbeResult base completed.2.causalState.cache key.secretKey.parameter
           completed.2.attackerTrace.toSigningLog completed.1).2)
       else result
 
-theorem appendLimitedAcceptedPrefixProbe_preserves_hit (base : Generic.CappedChain.GlobalChainValueIndex → Digest)
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (result : LimitedPrefixResult × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
-    (hhit : Generic.FirstLaneOracleSimulation.CombinedHit base result.2) :
-    Generic.FirstLaneOracleSimulation.CombinedHit base (appendLimitedAcceptedPrefixProbe base key result).2 := by
+theorem appendLimitedAcceptedPrefixProbe_preserves_hit (base : CappedChain.GlobalChainValueIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) (result : LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (hhit : FirstLaneOracleSimulation.CombinedHit base result.2) :
+    FirstLaneOracleSimulation.CombinedHit base (appendLimitedAcceptedPrefixProbe base key result).2 := by
   unfold appendLimitedAcceptedPrefixProbe
   split
   · exact hhit
   · split
-    · exact Generic.FirstLaneOracleSimulation.CombinedHit.append_of_prefix base _ _ hhit
+    · exact FirstLaneOracleSimulation.CombinedHit.append_of_prefix base _ _ hhit
     · exact hhit
 
-def LimitedPrefixForgedEncodingAccepted (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
-    (result : LimitedPrefixResult × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex) : Prop :=
+def LimitedPrefixForgedEncodingAccepted (key : CappedChain.ProgrammedGlobalChainKeygenView)
+    (result : LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) : Prop :=
   ∃ completed, result.1.1 = some completed ∧
-    (Generic.Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome
+    (Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome
 
-noncomputable instance (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) :
+noncomputable instance (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     DecidablePred (LimitedPrefixForgedEncodingAccepted key) := Classical.decPred _
 
-theorem hazardCount_appendLimitedAcceptedPrefixProbe (base : Generic.CappedChain.GlobalChainValueIndex → Digest)
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (result : LimitedPrefixResult × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex) :
-    Generic.FirstLaneOracleSimulation.hazardCount (appendLimitedAcceptedPrefixProbe base key result).2 = Generic.FirstLaneOracleSimulation.hazardCount result.2 +
+theorem hazardCount_appendLimitedAcceptedPrefixProbe (base : CappedChain.GlobalChainValueIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) (result : LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
+    FirstLaneOracleSimulation.hazardCount (appendLimitedAcceptedPrefixProbe base key result).2 = FirstLaneOracleSimulation.hazardCount result.2 +
       if LimitedPrefixForgedEncodingAccepted key result then 1 else 0 := by
   classical
   rcases result with ⟨⟨completed, counters⟩, trace⟩
   cases completed with
   | none => simp [appendLimitedAcceptedPrefixProbe, LimitedPrefixForgedEncodingAccepted]
   | some completed =>
-      by_cases h : (Generic.Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome
+      by_cases h : (Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome
       all_goals simp [appendLimitedAcceptedPrefixProbe, LimitedPrefixForgedEncodingAccepted, h,
-        Generic.FirstLaneOracleSimulation.hazardCount_append, Generic.Deciding.prefixProbeResult, Generic.Deciding.decidingProbeResult_hazardCount]
+        FirstLaneOracleSimulation.hazardCount_append, Deciding.prefixProbeResult, Deciding.decidingProbeResult_hazardCount]
 
 end XmssSecurity.TargetSum.Deciding

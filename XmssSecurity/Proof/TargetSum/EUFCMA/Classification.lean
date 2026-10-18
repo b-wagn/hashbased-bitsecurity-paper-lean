@@ -9,6 +9,8 @@ import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Five minimal security modes and two attacks characterize all sixteen
 standard-unforgeability modes: direct-only has 126 bits, all others have 127. -/
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
@@ -40,7 +42,7 @@ theorem exactStatement_of_basis
   by_cases h : (mode.keygen || mode.signer || mode.verifier || mode.requests) = true
   · rw [if_pos h]
     exact ⟨secure_127_of_minimal_modes hk hs hv hr mode h,
-      not_hasClassicalSecurityBits_of_le (Generic.Modes.le_everything mode) Generic.xmss 128 ha127⟩
+      not_hasClassicalSecurityBits_of_le (Modes.le_everything mode) Generic.xmss 128 ha127⟩
   · rw [if_neg h]
     have hnone : mode.keygen = false ∧ mode.signer = false ∧ mode.verifier = false ∧ mode.requests = false := by
       simpa only [Bool.or_eq_true, not_or, Bool.not_eq_true, and_assoc] using h

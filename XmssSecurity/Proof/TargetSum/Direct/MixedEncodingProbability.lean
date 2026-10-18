@@ -10,48 +10,50 @@ open scoped Classical
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Deciding
 
 open CappedChain FirstLaneOracleSimulation
 
 abbrev MixedEncodingPrefixResult :=
-  (Generic.CappedChain.ProgrammedGlobalChainKeygenView × (Generic.Forgery × Generic.CappedChain.SourceExactTracedState)) × HashOutput
+  (CappedChain.ProgrammedGlobalChainKeygenView × (Forgery × CappedChain.SourceExactTracedState)) × HashOutput
 
-noncomputable def mixedEncodingPrefixProgram (adversary : Generic.Adversary) : ProbComp MixedEncodingPrefixResult := do
+noncomputable def mixedEncodingPrefixProgram (adversary : Adversary) : ProbComp MixedEncodingPrefixResult := do
   let output ← ($ᵗ HashOutput)
-  let prefixPair ← Generic.Deciding.sourcePrefixProgram adversary
+  let prefixPair ← Deciding.sourcePrefixProgram adversary
   pure (prefixPair, output)
 
-noncomputable def mixedEncodingPrefixProbability (adversary : Generic.Adversary) : ℝ≥0∞ :=
+noncomputable def mixedEncodingPrefixProbability (adversary : Adversary) : ℝ≥0∞ :=
   Pr[fun pair => MixedEncodingPrefixEvent pair.1.1 pair.1.2
-    (Generic.Code.decodeDigest (Generic.truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
+    (Code.decodeDigest (Generic.truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
 
-theorem mixedEncodingPrefixProbability_le (adversary : Generic.Adversary) (limit : Nat)
-    (hbudget : ∀ key ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen,
-      CountedSourceBudget (Generic.Concrete.materializePrecomputation key.cache key.secretKey)
+theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
+    (hbudget : ∀ key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen,
+      CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     mixedEncodingPrefixProbability adversary ≤
       (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ * (TargetSum.acceptanceProbability *
-          (Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
+          (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
             TargetSum.acceptanceProbability) := by
   let base := (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)
   let rate := ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹
   let credit := TargetSum.acceptanceProbability *
-    (Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)
+    (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)
   unfold mixedEncodingPrefixProbability mixedEncodingPrefixProgram
   rw [probEvent_bind_eq_tsum]
   calc
     _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-        (base + rate * (credit + if Generic.Code.ValidDigest (Generic.truncateHash output) then 1 else 0)) := by
+        (base + rate * (credit + if Code.ValidDigest (Generic.truncateHash output) then 1 else 0)) := by
       apply ENNReal.tsum_le_tsum
       intro output
       apply mul_le_mul' le_rfl
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
       have h := mixedEncodingPrefixEvent_probability_le_source_credit adversary limit hbudget
-        (Generic.Code.decodeDigest (Generic.truncateHash output))
-      have hvalid : (Generic.Code.decodeDigest (Generic.truncateHash output)).isSome ↔
-          Generic.Code.ValidDigest (Generic.truncateHash output) := Option.isSome_iff_exists
+        (Code.decodeDigest (Generic.truncateHash output))
+      have hvalid : (Code.decodeDigest (Generic.truncateHash output)).isSome ↔
+          Code.ValidDigest (Generic.truncateHash output) := Option.isSome_iff_exists
       simp only [hvalid] at h
       exact h
     _ = base + rate * (credit + TargetSum.acceptanceProbability) := by

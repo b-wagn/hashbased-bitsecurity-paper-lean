@@ -11,6 +11,8 @@ The fresh-encoding gate pays for the terminal probe, including the one-query cas
 
 open OracleComp OracleSpec ENNReal
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
@@ -22,15 +24,15 @@ noncomputable def directFreshLoss (D : ℕ) : ℝ≥0∞ :=
     ((D + 1 + 2 ^ 86 : ℕ) : ℝ≥0∞) * ((D + 1 : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) +
     D / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
-theorem reference_advantage_add_seed_loss_le_fresh (adversary : Generic.Adversary) (D : ℕ)
-    (hD : Generic.Direct.IsDirectQueryBound adversary D) (hsmall : D + 2 ≤ 2 ^ 127) :
-    forgeAdvantage Generic.Concrete.scheme adversary + D / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤ directFreshLoss D := by
-  have hqueried := Generic.Direct.withForgedEncodingQuery_isDirectQueryBound adversary D hD
+theorem reference_advantage_add_seed_loss_le_fresh (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) (hsmall : D + 2 ≤ 2 ^ 127) :
+    forgeAdvantage Concrete.scheme adversary + D / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤ directFreshLoss D := by
+  have hqueried := Direct.withForgedEncodingQuery_isDirectQueryBound adversary D hD
   rw [← forgeAdvantage_withForgedEncodingQuery adversary]
-  have hbound := (forgeAdvantage_le_fresh_deciding_lanes (Generic.Direct.withForgedEncodingQuery adversary)).trans
+  have hbound := (forgeAdvantage_le_fresh_deciding_lanes (Direct.withForgedEncodingQuery adversary)).trans
     (add_le_add (freshFirstLane_withForgedEncodingQuery_probability_le adversary D hD)
       (add_le_add (winningEncodingPrehit_probability_le_direct_collision
-          (Generic.Direct.withForgedEncodingQuery adversary) (D + 1) hqueried (by omega))
+          (Direct.withForgedEncodingQuery adversary) (D + 1) hqueried (by omega))
         (secondLane_withForgedEncodingQuery_le adversary D hD)))
   apply (add_le_add hbound le_rfl).trans_eq
   simp only [directFreshLoss, Nat.cast_add, Nat.cast_mul, Nat.cast_one, div_eq_mul_inv]

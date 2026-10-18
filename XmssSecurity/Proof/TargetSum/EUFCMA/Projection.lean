@@ -9,6 +9,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
@@ -25,7 +27,7 @@ theorem map_fst_gameCounted_direct [DecidableEq Msg] (cost : spec.Domain → ℕ
     Modes.impl_direct_eq, bind_map_left, map_bind, map_pure, zero_add, add_zero]
   apply bind_congr
   rintro ⟨pk, sk⟩
-  exact Generic.Security.bind_map_fst_eq _ _ _ (fun result => do
+  exact Security.bind_map_fst_eq _ _ _ (fun result => do
     let verified ← scheme.verify pk result.1.epoch result.1.message result.1.signature
     pure (decide (SUFCMA.SigningTranscript.Valid result.2 ∧
       ¬SigningTranscript.ContainsRequest result.2 result.1) && verified))

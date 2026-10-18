@@ -10,29 +10,31 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
-open Concrete CappedChain Generic.Deciding
+open Concrete CappedChain Deciding
 
-def SourcePrefixFreshAccepted (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
-    (result : Generic.Forgery × Generic.CappedChain.SourceExactTracedState) : Prop :=
+def SourcePrefixFreshAccepted (key : CappedChain.ProgrammedGlobalChainKeygenView)
+    (result : Forgery × CappedChain.SourceExactTracedState) : Prop :=
   ¬ SigningTranscript.ContainsRequest result.2.2.toSigningLog result.1 ∧
-    ∃ encoding, Generic.Code.decodeDigest (Generic.Concrete.CacheView.encodingHash result.2.1.1.1 key.secretKey.parameter
+    ∃ encoding, Code.decodeDigest (Concrete.CacheView.encodingHash result.2.1.1.1 key.secretKey.parameter
       result.1.epoch (result.1.message, result.1.signature.randomness)) = some encoding
 
-theorem sourcePrefix_freshAccepted_probability_le (adversary : Generic.Adversary)
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
-    (hkey : key ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (D : ℕ) (hD : Generic.Direct.IsDirectQueryBound adversary D) :
-    Pr[SourcePrefixFreshAccepted key | Generic.Deciding.sourcePrefixExecution adversary key] ≤
+theorem sourcePrefix_freshAccepted_probability_le (adversary : Adversary)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
+    (hkey : key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D) :
+    Pr[SourcePrefixFreshAccepted key | Deciding.sourcePrefixExecution adversary key] ≤
       TargetSum.acceptanceProbability * (D : ℝ≥0∞) := by
   have hbound := probEvent_freshAccepted_le_direct_budget key.publicKey
-    (Generic.Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
-    (Generic.Concrete.keygen_cache_none_encodingInput key.keyResult
-      (Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)) D (hD key.publicKey)
-  rw [← Generic.CappedChain.cappedBothTracedMappedAdversaryImpl_actionProjection key.publicKey
-    (Generic.Concrete.materializePrecomputation key.cache key.secretKey)
+    (Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
+    (Concrete.keygen_cache_none_encodingInput key.keyResult
+      (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)) D (hD key.publicKey)
+  rw [← CappedChain.cappedBothTracedMappedAdversaryImpl_actionProjection key.publicKey
+    (Concrete.materializePrecomputation key.cache key.secretKey)
     (adversary.main key.publicKey) ((key.cache, []), []) [], probEvent_map] at hbound
   apply le_trans _ hbound
   apply probEvent_mono''

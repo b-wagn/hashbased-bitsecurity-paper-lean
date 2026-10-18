@@ -10,6 +10,8 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.QueryLimiting
 
 variable {Index : Type} {spec : OracleSpec Index} {α : Type}
@@ -118,8 +120,8 @@ theorem simulate_limit_eq (fuel : Nat) (computation : OracleComp spec α)
           exact ⟨head, hhead, by rw [support_map]; exact ⟨tail, htail, rfl⟩⟩)
         rwa [measure_append, measure_query input head hhead] at h
       have haffordable : ¬(selected input ∧ fuel = 0) := by
-        obtain ⟨head, hhead⟩ := Generic.probComp_support_nonempty (impl input).run
-        obtain ⟨tail, htail⟩ := Generic.probComp_support_nonempty (simulateQ impl (next head.1)).run
+        obtain ⟨head, hhead⟩ := probComp_support_nonempty (impl input).run
+        obtain ⟨tail, htail⟩ := probComp_support_nonempty (simulateQ impl (next head.1)).run
         have h := hcont head hhead tail htail
         rintro ⟨hselected, rfl⟩
         simp only [if_pos hselected] at h

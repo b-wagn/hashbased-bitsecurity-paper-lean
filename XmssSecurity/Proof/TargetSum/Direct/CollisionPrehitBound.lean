@@ -17,6 +17,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Direct.Collision
 
 variable {q : ℕ} {secretKey : Generic.SecretKey}
@@ -24,14 +26,14 @@ variable {q : ℕ} {secretKey : Generic.SecretKey}
 /-! ### The final verification -/
 
 /-- The digests of the open prehits at an epoch. -/
-def hitSet (secretKey : Generic.SecretKey) (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace)
+def hitSet (secretKey : Generic.SecretKey) (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
     (leafIndex : LeafIndex) : Set Digest :=
   {digest | ∃ entry ∈ trace, entry.request.epoch = leafIndex ∧
     EntryOpen secretKey cache entry ∧ ∃ signature found, entry.signature = some signature ∧
       cache (input secretKey.parameter leafIndex (entry.request.message, signature.randomness)) =
         some found ∧ digest = Generic.truncateHash found}
 
-theorem ncard_hitSet_le {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem ncard_hitSet_le {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     (hnodup : trace.leafIndices.Nodup) (leafIndex : LeafIndex) :
     ((hitSet secretKey cache trace leafIndex).ncard : ℝ≥0∞) ≤
       (openCount secretKey cache trace : ℝ≥0∞) := by
@@ -40,7 +42,7 @@ theorem ncard_hitSet_le {cache : QueryCache HashSpec} {trace : Generic.SigningCa
     rw [Set.ncard_le_one]
     rintro a ⟨e1, he1, hep1, _, s1, f1, hs1, hf1, rfl⟩ b ⟨e2, he2, hep2, _, s2, f2, hs2, hf2, rfl⟩
     have heq : e1 = e2 := List.inj_on_of_nodup_map
-      (by simpa [Generic.SigningCacheTrace.leafIndices] using hnodup) he1 he2 (hep1.trans hep2.symm)
+      (by simpa [SigningCacheTrace.leafIndices] using hnodup) he1 he2 (hep1.trans hep2.symm)
     subst heq
     rw [hs1, Option.some.injEq] at hs2
     subst hs2
@@ -57,7 +59,7 @@ theorem ncard_hitSet_le {cache : QueryCache HashSpec} {trace : Generic.SigningCa
     exact_mod_cast hle1.trans hpos
 
 /-- A fresh query makes the state bad only if its digest is the digest of an open prehit. -/
-theorem stateBad_cacheQuery {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem stateBad_cacheQuery {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hinv : Inv q secretKey cache trace remaining) {leafIndex : LeafIndex}
     {fresh : Message × Randomness}
     (hfresh : cache (input secretKey.parameter leafIndex fresh) = none) (output : HashOutput)
@@ -85,11 +87,11 @@ theorem stateBad_cacheQuery {cache : QueryCache HashSpec} {trace : Generic.Signi
 
 /-- Verifying a forgery makes the state bad with probability at most the potential. -/
 theorem verify_bad_le (publicKey : PublicKey) (hparameter : publicKey.parameter = secretKey.parameter)
-    (forgery : Generic.Forgery) (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) (remaining : ℕ)
+    (forgery : Forgery) (cache : QueryCache HashSpec) (trace : SigningCacheTrace) (remaining : ℕ)
     (hinv : Inv q secretKey cache trace remaining) :
     Pr[fun result : Bool × QueryCache HashSpec =>
         trace.leafIndices.Nodup ∧ StateBad secretKey result.2 trace |
-      (simulateQ Generic.romImpl (Generic.Concrete.scheme.verify publicKey forgery.epoch forgery.message
+      (simulateQ romImpl (Concrete.scheme.verify publicKey forgery.epoch forgery.message
         forgery.signature)).run cache] ≤ potential q secretKey cache trace remaining := by
   classical
   by_cases hnodup : trace.leafIndices.Nodup
@@ -101,15 +103,15 @@ theorem verify_bad_le (publicKey : PublicKey) (hparameter : publicKey.parameter 
   set forgedInput := input secretKey.parameter forgery.epoch
     (forgery.message, forgery.signature.randomness)
   have hrest : ∀ (startCache : QueryCache HashSpec) (output : HashOutput),
-      ∀ result ∈ support ((simulateQ randomOracle (Generic.Direct.verifyAfterDigest publicKey forgery.epoch
+      ∀ result ∈ support ((simulateQ randomOracle (Direct.verifyAfterDigest publicKey forgery.epoch
         forgery.signature (Generic.truncateHash output))).run startCache),
         AgreeOnEncoding secretKey.parameter startCache result.2 := by
     intro startCache output result hresult
     rw [← hparameter]
     exact run_agree_of_noEncoding publicKey.parameter _
       (verifyAfterDigest_noEncoding _ _ _ _) startCache result hresult
-  rw [Generic.Direct.simulateQ_romImpl_scheme_verify, StateT.run_bind]
-  have hinput : Generic.Concrete.CacheView.encodingInput publicKey.parameter forgery.epoch
+  rw [Direct.simulateQ_romImpl_scheme_verify, StateT.run_bind]
+  have hinput : Concrete.CacheView.encodingInput publicKey.parameter forgery.epoch
       (forgery.message, forgery.signature.randomness) = forgedInput := by
     rw [hparameter]
   rw [hinput]
@@ -119,12 +121,12 @@ theorem verify_bad_le (publicKey : PublicKey) (hparameter : publicKey.parameter 
       refine le_trans (le_of_eq (probEvent_eq_zero fun result hresult h => hbad ?_)) bot_le
       exact (stateBad_congr (hrest cache found result hresult) trace).mp h.2
   | none =>
-      rw [Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached, Generic.uniformHashOutput,
+      rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, uniformHashOutput,
         bind_map_left, probEvent_bind_eq_tsum]
       have hstep : ∀ output : HashOutput,
           Pr[fun result : Bool × QueryCache HashSpec =>
               trace.leafIndices.Nodup ∧ StateBad secretKey result.2 trace |
-            (simulateQ randomOracle (Generic.Direct.verifyAfterDigest publicKey forgery.epoch forgery.signature
+            (simulateQ randomOracle (Direct.verifyAfterDigest publicKey forgery.epoch forgery.signature
               (Generic.truncateHash output))).run (cache.cacheQuery forgedInput output)] ≤
             if Generic.truncateHash output ∈ hitSet secretKey cache trace forgery.epoch then 1 else 0 := by
         intro output
@@ -164,26 +166,26 @@ theorem verify_bad_le (publicKey : PublicKey) (hparameter : publicKey.parameter 
 /-- The potential argument for any budget that bounds the remaining direct encoding queries
 along every supported branch. -/
 theorem collision_run_le_of_budget (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) {α : Type}
-    (terminal : α → QueryCache HashSpec → Generic.SigningCacheTrace → ℝ≥0∞)
+    (terminal : α → QueryCache HashSpec → SigningCacheTrace → ℝ≥0∞)
     (hterminal : ∀ value cache trace remaining, Inv q secretKey cache trace remaining →
       terminal value cache trace ≤ potential q secretKey cache trace remaining)
-    (Budget : OracleComp (OracleWorld + Generic.SigningSpec) α → ℕ →
-      QueryCache HashSpec × Generic.SigningCacheTrace → Prop)
+    (Budget : OracleComp (OracleWorld + SigningSpec) α → ℕ →
+      QueryCache HashSpec × SigningCacheTrace → Prop)
     (hBudget : ∀ input next remaining state, Budget (query input >>= next) remaining state →
-      (Generic.Direct.IsDirectEncodingQuery secretKey.parameter input → 0 < remaining) ∧
-      ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state),
-        ∃ remaining' ≤ (if Generic.Direct.IsDirectEncodingQuery secretKey.parameter input then remaining - 1
+      (Direct.IsDirectEncodingQuery secretKey.parameter input → 0 < remaining) ∧
+      ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state),
+        ∃ remaining' ≤ (if Direct.IsDirectEncodingQuery secretKey.parameter input then remaining - 1
           else remaining), Budget (next mid.1) remaining' mid.2) :
-    ∀ (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (remaining : ℕ)
-      (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace),
+    ∀ (computation : OracleComp (OracleWorld + SigningSpec) α) (remaining : ℕ)
+      (cache : QueryCache HashSpec) (trace : SigningCacheTrace),
         Budget computation remaining (cache, trace) →
         Inv q secretKey cache trace remaining →
-        ∑' result, Pr[= result | (simulateQ (Generic.cappedCacheTracedMappedAdversaryImpl publicKey
+        ∑' result, Pr[= result | (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey
             secretKey) computation).run (cache, trace)] *
             terminal result.1 result.2.1 result.2.2 ≤
           potential q secretKey cache trace remaining + collisionRate q *
-            expectedSimulatedQueryCount (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-              (Generic.Direct.IsDirectEncodingQuery secretKey.parameter) computation (cache, trace) := by
+            expectedSimulatedQueryCount (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+              (Direct.IsDirectEncodingQuery secretKey.parameter) computation (cache, trace) := by
   intro computation
   induction computation using OracleComp.inductionOn with
   | pure value =>
@@ -196,8 +198,8 @@ theorem collision_run_le_of_budget (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicK
       rw [simulateQ_bind, StateT.run_bind, tsum_probOutput_bind_mul,
         expectedSimulatedQueryCount_query_bind]
       simp only [simulateQ_spec_query]
-      set impl := Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
-      set predicate := Generic.Direct.IsDirectEncodingQuery secretKey.parameter
+      set impl := cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+      set predicate := Direct.IsDirectEncodingQuery secretKey.parameter
       set remaining' := if predicate input then remaining - 1 else remaining
       have hstep : (∑' mid, Pr[= mid | (impl input).run (cache, trace)] *
             potential q secretKey mid.2.1 mid.2.2 remaining') ≤
@@ -207,28 +209,28 @@ theorem collision_run_le_of_budget (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicK
             Inv q secretKey mid.2.1 mid.2.2 remaining' := by
         rcases input with (uniformInput | hashInput) | request
         · have hP : ¬ predicate (.inl (.inl uniformInput)) := by
-            simp [predicate, Generic.Direct.IsDirectEncodingQuery]
+            simp [predicate, Direct.IsDirectEncodingQuery]
           simp only [remaining', hP, if_false, add_zero]
           exact step_uniform publicKey uniformInput cache trace remaining hinv
-        · by_cases henc : (Generic.encodingInputLeafIndex? secretKey.parameter hashInput).isSome
+        · by_cases henc : (encodingInputLeafIndex? secretKey.parameter hashInput).isSome
           · obtain ⟨leafIndex, hleaf⟩ := Option.isSome_iff_exists.mp henc
-            obtain ⟨fresh, hfresh⟩ := Generic.exists_encodingInput_of_encodingInputLeafIndex?_eq_some
+            obtain ⟨fresh, hfresh⟩ := exists_encodingInput_of_encodingInputLeafIndex?_eq_some
               secretKey.parameter hashInput leafIndex hleaf
             subst hfresh
             have hP : predicate (.inl (.inr (input secretKey.parameter leafIndex fresh))) := by
-              simp [predicate, Generic.Direct.IsDirectEncodingQuery]
+              simp [predicate, Direct.IsDirectEncodingQuery]
             have hrem : 0 < remaining := hpos hP
             obtain ⟨r, rfl⟩ : ∃ r, remaining = r + 1 := ⟨remaining - 1, by omega⟩
             simp only [remaining', hP, if_true, Nat.add_sub_cancel]
             exact step_hash_encoding hq publicKey leafIndex fresh cache trace r hinv
-          · have hnone : Generic.encodingInputLeafIndex? secretKey.parameter hashInput = none :=
+          · have hnone : encodingInputLeafIndex? secretKey.parameter hashInput = none :=
               Option.not_isSome_iff_eq_none.mp henc
             have hP : ¬ predicate (.inl (.inr hashInput)) := by
-              simp [predicate, Generic.Direct.IsDirectEncodingQuery, hnone]
+              simp [predicate, Direct.IsDirectEncodingQuery, hnone]
             simp only [remaining', hP, if_false, add_zero]
             exact step_hash_other publicKey hashInput hnone cache trace remaining hinv
         · have hP : ¬ predicate (.inr request) := by
-            simp [predicate, Generic.Direct.IsDirectEncodingQuery]
+            simp [predicate, Direct.IsDirectEncodingQuery]
           simp only [remaining', hP, if_false, add_zero]
           exact step_sign hq publicKey request cache trace remaining hinv
       obtain ⟨hpotential, hinvStep⟩ := hstep
@@ -274,7 +276,7 @@ theorem leafPotential_of_empty {parameter : PublicParameter} {cache : QueryCache
   have hcached : ∀ message, cachedRandomizersAt parameter leafIndex message cache = ∅ := by
     intro message
     ext randomness
-    simp [cachedRandomizersAt, show Generic.Concrete.CacheView.encodingInput parameter leafIndex
+    simp [cachedRandomizersAt, show Concrete.CacheView.encodingInput parameter leafIndex
       (message, randomness) = input parameter leafIndex (message, randomness) from rfl,
       h (message, randomness)]
   have hvalidR : ∀ message, validRandomizers parameter cache leafIndex message = ∅ := by
@@ -286,29 +288,29 @@ theorem leafPotential_of_empty {parameter : PublicParameter} {cache : QueryCache
   simp
 
 /-- After key generation: the adversary's run and the verification. -/
-theorem collision_afterKeygen_le (adversary : Generic.Adversary) (hq : q + 1 ≤ 2 ^ 127)
+theorem collision_afterKeygen_le (adversary : Adversary) (hq : q + 1 ≤ 2 ^ 127)
     (publicKey : PublicKey) (secretKey : Generic.SecretKey) (keyCache : QueryCache HashSpec)
     (hparameter : publicKey.parameter = secretKey.parameter)
     (hempty : ∀ leafIndex entry, keyCache (input secretKey.parameter leafIndex entry) = none)
-    (Budget : OracleComp (OracleWorld + Generic.SigningSpec) Generic.Forgery → ℕ →
-      QueryCache HashSpec × Generic.SigningCacheTrace → Prop)
+    (Budget : OracleComp (OracleWorld + SigningSpec) Forgery → ℕ →
+      QueryCache HashSpec × SigningCacheTrace → Prop)
     (hBudget : ∀ input next remaining state, Budget (query input >>= next) remaining state →
-      (Generic.Direct.IsDirectEncodingQuery secretKey.parameter input → 0 < remaining) ∧
-      ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state),
-        ∃ remaining' ≤ (if Generic.Direct.IsDirectEncodingQuery secretKey.parameter input then remaining - 1
+      (Direct.IsDirectEncodingQuery secretKey.parameter input → 0 < remaining) ∧
+      ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state),
+        ∃ remaining' ≤ (if Direct.IsDirectEncodingQuery secretKey.parameter input then remaining - 1
           else remaining), Budget (next mid.1) remaining' mid.2)
     (hstart : Budget (adversary.main publicKey) q (keyCache, [])) :
-    Pr[fun execution : Generic.GameOutcome × (QueryCache HashSpec × Generic.SigningCacheTrace) =>
-        Generic.WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
+    Pr[fun execution : GameOutcome × (QueryCache HashSpec × SigningCacheTrace) =>
+        WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
           ∃ entry ∈ execution.2.2, entry.EncodingInputPrehit execution.1.secretKey ∧
             entry.PrehitPartnered execution.1.secretKey execution.2.1 |
-      Generic.cappedDetailedGameAfterKeygenWithSigningTrace adversary publicKey secretKey keyCache] ≤
+      cappedDetailedGameAfterKeygenWithSigningTrace adversary publicKey secretKey keyCache] ≤
       collisionRate q * expectedSimulatedQueryCount
-        (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey)
-        (Generic.Direct.IsDirectEncodingQuery secretKey.parameter) (adversary.main publicKey) keyCache := by
+        (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
+        (Direct.IsDirectEncodingQuery secretKey.parameter) (adversary.main publicKey) keyCache := by
   classical
-  have hnil : (Generic.SigningCacheTrace.leafIndices []).Nodup := by
-    simp [Generic.SigningCacheTrace.leafIndices]
+  have hnil : (SigningCacheTrace.leafIndices []).Nodup := by
+    simp [SigningCacheTrace.leafIndices]
   have hinv : Inv q secretKey keyCache [] q := by
     refine ⟨?_, fun entry hentry => absurd hentry (List.not_mem_nil)⟩
     have hzero : unsignedCount secretKey keyCache [] = 0 := by
@@ -325,25 +327,25 @@ theorem collision_afterKeygen_le (adversary : Generic.Adversary) (hq : q + 1 ≤
     have hsum : unsignedSum q secretKey keyCache [] = 0 := by
       unfold unsignedSum
       refine Finset.sum_eq_zero fun leafIndex _ => ?_
-      simp only [Generic.SigningCacheTrace.leafIndices, List.map_nil, List.not_mem_nil, if_false]
+      simp only [SigningCacheTrace.leafIndices, List.map_nil, List.not_mem_nil, if_false]
       exact leafPotential_of_empty (hempty leafIndex)
     simp [hsum, openCount]
-  have hterm : ∀ (forgery : Generic.Forgery) (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace)
+  have hterm : ∀ (forgery : Forgery) (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
       (remaining : ℕ), Inv q secretKey cache trace remaining →
       Pr[fun verification : Bool × QueryCache HashSpec =>
           trace.leafIndices.Nodup ∧ StateBad secretKey verification.2 trace |
-        (simulateQ Generic.romImpl (Generic.Concrete.scheme.verify publicKey forgery.epoch forgery.message
+        (simulateQ romImpl (Concrete.scheme.verify publicKey forgery.epoch forgery.message
           forgery.signature)).run cache] ≤ potential q secretKey cache trace remaining :=
     fun forgery cache trace remaining hinvState =>
       verify_bad_le publicKey hparameter forgery cache trace remaining hinvState
-  unfold Generic.cappedDetailedGameAfterKeygenWithSigningTrace
+  unfold cappedDetailedGameAfterKeygenWithSigningTrace
   rw [probEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' result, Pr[= result | (simulateQ (Generic.cappedCacheTracedMappedAdversaryImpl publicKey
+    _ ≤ ∑' result, Pr[= result | (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey
           secretKey) (adversary.main publicKey)).run (keyCache, [])] *
           Pr[fun verification : Bool × QueryCache HashSpec =>
               result.2.2.leafIndices.Nodup ∧ StateBad secretKey verification.2 result.2.2 |
-            (simulateQ Generic.romImpl (Generic.Concrete.scheme.verify publicKey result.1.epoch result.1.message
+            (simulateQ romImpl (Concrete.scheme.verify publicKey result.1.epoch result.1.message
               result.1.signature)).run result.2.1] := by
       refine ENNReal.tsum_le_tsum fun result => mul_le_mul' le_rfl ?_
       rw [probEvent_bind_eq_tsum, probEvent_eq_tsum_ite]
@@ -363,79 +365,79 @@ theorem collision_afterKeygen_le (adversary : Generic.Adversary) (hq : q + 1 ≤
       refine ⟨?_, entry, hentry, hprehit, signature, hsignature,
         out, hout, hvalid, other, hother, otherOut, hotherCache, hsame⟩
       have hvalidLog := hencoding.signingTranscript_valid
-      unfold Generic.SigningTranscript.Valid at hvalidLog
-      simpa [Generic.SigningCacheTrace.leafIndices, Generic.SigningCacheTrace.toSigningLog,
+      unfold SigningTranscript.Valid at hvalidLog
+      simpa [SigningCacheTrace.leafIndices, SigningCacheTrace.toSigningLog,
         List.map_map, Function.comp_def] using hvalidLog
     _ ≤ potential q secretKey keyCache [] q + collisionRate q *
-          expectedSimulatedQueryCount (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-            (Generic.Direct.IsDirectEncodingQuery secretKey.parameter) (adversary.main publicKey) (keyCache, []) :=
-      collision_run_le_of_budget (α := Generic.Forgery) hq publicKey
-        (fun (forgery : Generic.Forgery) (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) =>
+          expectedSimulatedQueryCount (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+            (Direct.IsDirectEncodingQuery secretKey.parameter) (adversary.main publicKey) (keyCache, []) :=
+      collision_run_le_of_budget (α := Forgery) hq publicKey
+        (fun (forgery : Forgery) (cache : QueryCache HashSpec) (trace : SigningCacheTrace) =>
           Pr[fun verification : Bool × QueryCache HashSpec =>
             trace.leafIndices.Nodup ∧ StateBad secretKey verification.2 trace |
-          (simulateQ Generic.romImpl (Generic.Concrete.scheme.verify publicKey forgery.epoch forgery.message
+          (simulateQ romImpl (Concrete.scheme.verify publicKey forgery.epoch forgery.message
             forgery.signature)).run cache])
         hterm Budget hBudget (adversary.main publicKey) q keyCache [] hstart hinv
     _ = _ := by
-      rw [hpotential, zero_add, Generic.cappedCacheTracedMappedAdversaryImpl,
-        Generic.Direct.expectedSimulatedQueryCount_extendState]
+      rw [hpotential, zero_add, cappedCacheTracedMappedAdversaryImpl,
+        Direct.expectedSimulatedQueryCount_extendState]
 
 /-- The prehit loss of a forgery is at most `collisionRate q` per expected direct encoding query,
 for any budget that bounds the adversary's direct encoding queries by `q < 2^127` along every
 supported branch. -/
-theorem winningEncodingPrehit_probability_le_collision_of_budget (adversary : Generic.Adversary) (q : ℕ)
+theorem winningEncodingPrehit_probability_le_collision_of_budget (adversary : Adversary) (q : ℕ)
     (hq : q + 1 ≤ 2 ^ 127)
-    (Budget : PublicKey → Generic.SecretKey → OracleComp (OracleWorld + Generic.SigningSpec) Generic.Forgery → ℕ →
-      QueryCache HashSpec × Generic.SigningCacheTrace → Prop)
-    (hBudget : ∀ keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅),
+    (Budget : PublicKey → Generic.SecretKey → OracleComp (OracleWorld + SigningSpec) Forgery → ℕ →
+      QueryCache HashSpec × SigningCacheTrace → Prop)
+    (hBudget : ∀ keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅),
       ∀ input next remaining state,
         Budget keyResult.1.1 keyResult.1.2 (query input >>= next) remaining state →
-        (Generic.Direct.IsDirectEncodingQuery keyResult.1.2.parameter input → 0 < remaining) ∧
-        ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl keyResult.1.1 keyResult.1.2
+        (Direct.IsDirectEncodingQuery keyResult.1.2.parameter input → 0 < remaining) ∧
+        ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl keyResult.1.1 keyResult.1.2
             input).run state),
-          ∃ remaining' ≤ (if Generic.Direct.IsDirectEncodingQuery keyResult.1.2.parameter input then remaining - 1
+          ∃ remaining' ≤ (if Direct.IsDirectEncodingQuery keyResult.1.2.parameter input then remaining - 1
             else remaining), Budget keyResult.1.1 keyResult.1.2 (next mid.1) remaining' mid.2)
-    (hstart : ∀ keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅),
+    (hstart : ∀ keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅),
       Budget keyResult.1.1 keyResult.1.2 (adversary.main keyResult.1.1) q (keyResult.2, [])) :
-    Pr[Generic.WinningEncodingPrehitOccurs | Generic.cappedDetailedGameWithEncodingTrace adversary] ≤
-      collisionRate q * Generic.Direct.expectedDirectEncodingQueries adversary := by
+    Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
+      collisionRate q * Direct.expectedDirectEncodingQueries adversary := by
   calc
-    _ ≤ Pr[fun execution : Generic.GameOutcome × (QueryCache HashSpec × Generic.SigningCacheTrace) =>
-          Generic.WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
+    _ ≤ Pr[fun execution : GameOutcome × (QueryCache HashSpec × SigningCacheTrace) =>
+          WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
             ∃ entry ∈ execution.2.2, entry.EncodingInputPrehit execution.1.secretKey ∧
               entry.PrehitPartnered execution.1.secretKey execution.2.1 |
-        Generic.cappedDetailedGameWithSigningTrace adversary] := by
-      rw [← Generic.cappedDetailedGameWithEncodingTrace_projection, probEvent_map]
+        cappedDetailedGameWithSigningTrace adversary] := by
+      rw [← cappedDetailedGameWithEncodingTrace_projection, probEvent_map]
       exact probEvent_mono fun execution _ h => h
     _ ≤ _ := by
-      unfold Generic.cappedDetailedGameWithSigningTrace Generic.Direct.expectedDirectEncodingQueries
+      unfold cappedDetailedGameWithSigningTrace Direct.expectedDirectEncodingQueries
       rw [probEvent_bind_eq_tsum, ← ENNReal.tsum_mul_left]
       refine ENNReal.tsum_le_tsum fun keyResult => ?_
       rw [← mul_assoc, mul_comm (collisionRate q), mul_assoc]
-      by_cases hkeyResult : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅)
+      by_cases hkeyResult : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
       swap
       · rw [probOutput_eq_zero_of_not_mem_support hkeyResult, zero_mul, zero_mul]
       refine mul_le_mul' le_rfl ?_
       have hparameter : keyResult.1.1.parameter = keyResult.1.2.parameter :=
-        Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkeyResult
-      have hmem : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.precomputedKeygen).run ∅) := by
-        simpa only [Generic.Concrete.scheme] using hkeyResult
+        Deciding.keygen_publicKey_parameter_eq keyResult hkeyResult
+      have hmem : keyResult ∈ support ((simulateQ romImpl Concrete.precomputedKeygen).run ∅) := by
+        simpa only [Concrete.scheme] using hkeyResult
       have hempty : ∀ leafIndex entry,
           keyResult.2 (input keyResult.1.2.parameter leafIndex entry) = none :=
         fun leafIndex entry =>
-          Generic.Concrete.precomputedKeygen_cache_none_encodingInput keyResult hmem leafIndex entry
+          Concrete.precomputedKeygen_cache_none_encodingInput keyResult hmem leafIndex entry
       exact collision_afterKeygen_le adversary hq keyResult.1.1 keyResult.1.2 keyResult.2
         hparameter hempty (Budget keyResult.1.1 keyResult.1.2) (hBudget keyResult hkeyResult)
         (hstart keyResult hkeyResult)
 
 /-- The prehit loss for an adversary making at most `q < 2^127` direct encoding queries. -/
-theorem winningEncodingPrehit_probability_le_collision (adversary : Generic.Adversary) (q : ℕ)
-    (hq : q + 1 ≤ 2 ^ 127) (hbound : Generic.Direct.IsEncodingQueryBound adversary q) :
-    Pr[Generic.WinningEncodingPrehitOccurs | Generic.cappedDetailedGameWithEncodingTrace adversary] ≤
-      collisionRate q * Generic.Direct.expectedDirectEncodingQueries adversary :=
+theorem winningEncodingPrehit_probability_le_collision (adversary : Adversary) (q : ℕ)
+    (hq : q + 1 ≤ 2 ^ 127) (hbound : Direct.IsEncodingQueryBound adversary q) :
+    Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
+      collisionRate q * Direct.expectedDirectEncodingQueries adversary :=
   winningEncodingPrehit_probability_le_collision_of_budget adversary q hq
     (fun _ secretKey computation remaining _ =>
-      computation.IsQueryBoundP (Generic.Direct.IsDirectEncodingQuery secretKey.parameter) remaining)
+      computation.IsQueryBoundP (Direct.IsDirectEncodingQuery secretKey.parameter) remaining)
     (fun _ _ input next remaining _ hbound => by
       change (liftM (OracleSpec.query input) >>= next).IsQueryBoundP _ _ at hbound
       rw [isQueryBoundP_query_bind_iff] at hbound
@@ -443,7 +445,7 @@ theorem winningEncodingPrehit_probability_le_collision (adversary : Generic.Adve
         fun mid _ => ⟨_, le_rfl, hbound.2 mid.1⟩⟩)
     (fun keyResult hkeyResult => by
       have hparameter : keyResult.1.1.parameter = keyResult.1.2.parameter :=
-        Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkeyResult
+        Deciding.keygen_publicKey_parameter_eq keyResult hkeyResult
       rw [← hparameter]
       exact hbound keyResult.1.1)
 

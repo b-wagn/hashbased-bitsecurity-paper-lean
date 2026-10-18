@@ -8,15 +8,17 @@ same direct-query budget. -/
 
 open OracleComp OracleSpec ENNReal
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
 open Deciding
 
-theorem forgeAdvantage_withForgedEncodingQuery (adversary : Generic.Adversary) :
-    forgeAdvantage Generic.Concrete.scheme (Generic.Direct.withForgedEncodingQuery adversary) =
-      forgeAdvantage Generic.Concrete.scheme adversary := by
+theorem forgeAdvantage_withForgedEncodingQuery (adversary : Adversary) :
+    forgeAdvantage Concrete.scheme (Direct.withForgedEncodingQuery adversary) =
+      forgeAdvantage Concrete.scheme adversary := by
   rw [forgeAdvantage_eq_detailedGameWithCache, forgeAdvantage_eq_detailedGameWithCache,
-    Generic.Direct.detailedGameWithCache_withForgedEncodingQuery]
+    Direct.detailedGameWithCache_withForgedEncodingQuery]
 
 end XmssSecurity.TargetSum.EUFCMA

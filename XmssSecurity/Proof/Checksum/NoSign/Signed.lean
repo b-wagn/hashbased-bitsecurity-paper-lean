@@ -17,6 +17,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.NoSign
 
 /-! ## Cache sizes -/
@@ -44,11 +46,11 @@ theorem cacheSize_cacheQuery_le (cache : QueryCache HashSpec) (input : HashInput
 
 theorem romImpl_cacheSize_le (input : OracleWorld.Domain) (cache : QueryCache HashSpec)
     (result : OracleWorld.Range input × QueryCache HashSpec)
-    (hresult : result ∈ support ((Generic.romImpl input).run cache)) :
+    (hresult : result ∈ support ((romImpl input).run cache)) :
     cacheSize result.2 ≤ cacheSize cache + if IsWorldHashQuery input then 1 else 0 := by
   rcases input with uniformIndex | hashInput
   · have hcache : result.2 = cache := by
-      simp [Generic.romImpl, unifFwdImpl, QueryImpl.liftTarget_apply,
+      simp [romImpl, unifFwdImpl, QueryImpl.liftTarget_apply,
         HasQuery.toQueryImpl_apply] at hresult
       obtain ⟨_, rfl⟩ := hresult
       rfl
@@ -68,13 +70,13 @@ theorem romImpl_cacheSize_le (input : OracleWorld.Domain) (cache : QueryCache Ha
         exact cacheSize_cacheQuery_le cache hashInput output
 
 /-- The expected number of inputs the adversary's forwarded run caches from the empty cache. -/
-noncomputable def idealSize (adversary : Generic.Adversary) (publicKey : PublicKey) : ℝ≥0∞ :=
+noncomputable def idealSize (adversary : Adversary) (publicKey : PublicKey) : ℝ≥0∞ :=
   ∑' result, Pr[= result | idealRun adversary publicKey] * cacheSize result.2
 
-theorem idealSize_le (adversary : Generic.Adversary) (publicKey : PublicKey) :
+theorem idealSize_le (adversary : Adversary) (publicKey : PublicKey) :
     idealSize adversary publicKey ≤
-      expectedSimulatedQueryCount Generic.romImpl IsWorldHashQuery (forwardPhase adversary publicKey) ∅ := by
-  have h := expectedResource_le_initial_add_expectedSimulatedQueryCount Generic.romImpl IsWorldHashQuery
+      expectedSimulatedQueryCount romImpl IsWorldHashQuery (forwardPhase adversary publicKey) ∅ := by
+  have h := expectedResource_le_initial_add_expectedSimulatedQueryCount romImpl IsWorldHashQuery
     cacheSize (fun input cache result hresult => romImpl_cacheSize_le input cache result hresult)
     (forwardPhase adversary publicKey) ∅
   rwa [cacheSize_empty, zero_add] at h
@@ -83,30 +85,30 @@ theorem idealSize_le (adversary : Generic.Adversary) (publicKey : PublicKey) :
 
 /-- The forwarded run as an implementation of the adversary's actions. -/
 noncomputable def idealImpl :
-    QueryImpl (OracleWorld + Generic.SigningSpec) (StateT (QueryCache HashSpec) ProbComp) :=
-  fun input => simulateQ Generic.romImpl (forwardOnly input)
+    QueryImpl (OracleWorld + SigningSpec) (StateT (QueryCache HashSpec) ProbComp) :=
+  fun input => simulateQ romImpl (forwardOnly input)
 
 theorem expectedWorldHash_forwardOnly_eq {α : Type}
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (cache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount Generic.romImpl IsWorldHashQuery (simulateQ forwardOnly computation)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache HashSpec) :
+    expectedSimulatedQueryCount romImpl IsWorldHashQuery (simulateQ forwardOnly computation)
         cache =
-      expectedSimulatedQueryCount idealImpl Generic.Direct.IsDirectHashQuery computation cache := by
+      expectedSimulatedQueryCount idealImpl Direct.IsDirectHashQuery computation cache := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value => simp
   | query_bind input next ih =>
       rw [simulateQ_query_bind]
       rcases input with world | request
-      · change expectedSimulatedQueryCount Generic.romImpl IsWorldHashQuery
+      · change expectedSimulatedQueryCount romImpl IsWorldHashQuery
             (liftM (OracleWorld.query world) >>= fun answer =>
               simulateQ forwardOnly (next answer)) cache = _
         rw [expectedSimulatedQueryCount_query_bind, expectedSimulatedQueryCount_query_bind]
         simp_rw [ih]
-        have hstep : (idealImpl (.inl world)).run cache = (Generic.romImpl world).run cache := by
+        have hstep : (idealImpl (.inl world)).run cache = (romImpl world).run cache := by
           simp only [idealImpl, forwardOnly, forwardWorld, QueryImpl.add_apply_inl,
             simulateQ_spec_query]
         rw [hstep]
         rcases world with uniformIndex | hashInput <;> simp [IsWorldHashQuery]
-      · change expectedSimulatedQueryCount Generic.romImpl IsWorldHashQuery
+      · change expectedSimulatedQueryCount romImpl IsWorldHashQuery
             (pure none >>= fun answer => simulateQ forwardOnly (next answer)) cache = _
         rw [pure_bind, expectedSimulatedQueryCount_query_bind]
         have hstep : (idealImpl (.inr request)).run cache = pure (none, cache) := by
@@ -116,16 +118,16 @@ theorem expectedWorldHash_forwardOnly_eq {α : Type}
         simp
 
 theorem romImpl_uniformFaithful (n : ℕ) (cache : QueryCache HashSpec) :
-    (Generic.romImpl (.inl n)).run cache =
+    (romImpl (.inl n)).run cache =
       (fun sample => (sample, cache)) <$> (unifSpec.query n : ProbComp (Fin (n + 1))) := by
-  simp [Generic.romImpl, unifFwdImpl, QueryImpl.liftTarget_apply, HasQuery.toQueryImpl_apply]
+  simp [romImpl, unifFwdImpl, QueryImpl.liftTarget_apply, HasQuery.toQueryImpl_apply]
 
 theorem idealImpl_uniformFaithful : UniformFaithful idealImpl := fun n cache => by
   simp only [idealImpl, forwardOnly, forwardWorld, QueryImpl.add_apply_inl, simulateQ_spec_query]
   exact romImpl_uniformFaithful n cache
 
 theorem mappedImpl_uniformFaithful (publicKey : PublicKey) (secretKey : Generic.SecretKey) :
-    UniformFaithful (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey) := fun n cache =>
+    UniformFaithful (cappedUnloggedMappedAdversaryImpl publicKey secretKey) := fun n cache =>
   romImpl_uniformFaithful n cache
 
 /-! ## A union bound and the public-key marginal -/
@@ -145,7 +147,7 @@ theorem probEvent_exists_le_tsum {α β : Type} (computation : ProbComp α)
 
 /-- An average over the public key of key generation. -/
 noncomputable def publicKeyAverage (value : PublicKey → ℝ≥0∞) : ℝ≥0∞ :=
-  ∑' parameter, Pr[= parameter | Generic.Concrete.samplePublicParameter] *
+  ∑' parameter, Pr[= parameter | Concrete.samplePublicParameter] *
     ∑' output, Pr[= output | ($ᵗ HashOutput : ProbComp HashOutput)] *
       value ⟨Generic.truncateHash output, parameter⟩
 
@@ -154,7 +156,7 @@ theorem tsum_probOutput_mul_const {α : Type} (computation : ProbComp α) (value
   rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' (by simp), one_mul]
 
 theorem tsum_keygen_publicKey (value : PublicKey → ℝ≥0∞) :
-    ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] *
+    ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.keygen).run ∅] *
         value keyResult.1.1 = publicKeyAverage value := by
   rw [keygen_run_eq, tsum_probOutput_bind_mul]
   unfold publicKeyAverage
@@ -187,23 +189,23 @@ theorem tsum_keygen_publicKey (value : PublicKey → ℝ≥0∞) :
   simp only [tsum_probOutput_pure_mul]
 
 theorem tsum_scheme_keygen_publicKey (value : PublicKey → ℝ≥0∞) :
-    ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] *
+    ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
         value keyResult.1.1 = publicKeyAverage value := by
-  have hdist : 𝒟[(simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] =
-      𝒟[Generic.Concrete.materializeCachedKeyResult <$> (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] := by
-    rw [Generic.Concrete.evalDist_materialized_keygen_eq_precomputedKeygen]
+  have hdist : 𝒟[(simulateQ romImpl Concrete.scheme.keygen).run ∅] =
+      𝒟[Concrete.materializeCachedKeyResult <$> (simulateQ romImpl Concrete.keygen).run ∅] := by
+    rw [Concrete.evalDist_materialized_keygen_eq_precomputedKeygen]
     rfl
   rw [← tsum_keygen_publicKey, show (∑' keyResult, Pr[= keyResult |
-      (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] * value keyResult.1.1) =
-      ∑' keyResult, Pr[= keyResult | Generic.Concrete.materializeCachedKeyResult <$>
-        (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] * value keyResult.1.1 from
+      (simulateQ romImpl Concrete.scheme.keygen).run ∅] * value keyResult.1.1) =
+      ∑' keyResult, Pr[= keyResult | Concrete.materializeCachedKeyResult <$>
+        (simulateQ romImpl Concrete.keygen).run ∅] * value keyResult.1.1 from
     tsum_congr fun keyResult => by rw [probOutput_congr rfl hdist], tsum_probOutput_map_mul]
   rfl
 
 /-! ## The hidden sibling on the executions without a request -/
 
 theorem probEvent_subtrees_ideal_le_size (parameter : PublicParameter) (output : HashOutput)
-    (forgery : Generic.Forgery) (finalCache : QueryCache HashSpec) :
+    (forgery : Forgery) (finalCache : QueryCache HashSpec) :
     Pr[fun sample =>
         HiddenSiblingGuessed (splitCache parameter sample output)
           (Generic.SecretKey.withoutPrecomputation parameter sample.1) forgery ∨
@@ -234,23 +236,23 @@ theorem probEvent_subtrees_ideal_le_size (parameter : PublicParameter) (output :
 /-- The forged top sibling of the forwarded run is the honest one with probability at most
 `(1 + N) / 2^128` on average over the public key, where `N` is the expected number of inputs the
 forwarded run caches from the empty cache. -/
-theorem hiddenSibling_forward_le (adversary : Generic.Adversary) :
-    ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] *
-      Pr[fun result : Generic.Forgery × QueryCache HashSpec =>
+theorem hiddenSibling_forward_le (adversary : Adversary) :
+    ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.keygen).run ∅] *
+      Pr[fun result : Forgery × QueryCache HashSpec =>
           HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 |
-        (simulateQ Generic.romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] ≤
+        (simulateQ romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] ≤
       digestInverse * publicKeyAverage fun publicKey => 1 + idealSize adversary publicKey := by
   let event : (PublicKey × Generic.SecretKey) × QueryCache HashSpec →
-      Generic.Forgery × QueryCache HashSpec → Prop := fun keyResult result =>
+      Forgery × QueryCache HashSpec → Prop := fun keyResult result =>
     HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 ∨ HitsCache keyResult.2 result.2
   calc
-    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] *
+    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.keygen).run ∅] *
           Pr[event keyResult | idealRun adversary keyResult.1.1] :=
       ENNReal.tsum_le_tsum fun keyResult => mul_le_mul' le_rfl
         (probEvent_run_le_empty (forwardPhase adversary keyResult.1.1) keyResult.2
           (HiddenSiblingGuessed keyResult.2 keyResult.1.2))
     _ = Pr[fun joint => event joint.1 joint.2 |
-          (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅ >>= fun keyResult =>
+          (simulateQ romImpl Concrete.keygen).run ∅ >>= fun keyResult =>
             (fun result => (keyResult, result)) <$> idealRun adversary keyResult.1.1] := by
       rw [probEvent_bind_eq_tsum]
       refine tsum_congr fun keyResult => ?_
@@ -268,18 +270,18 @@ theorem hiddenSibling_forward_le (adversary : Generic.Adversary) :
       let keyOf : (LeafIndex → ChainIndex → Digest) → Digest × QueryCache HashSpec →
           (PublicKey × Generic.SecretKey) × QueryCache HashSpec := fun secret tree =>
         ((⟨tree.1, parameter⟩, Generic.SecretKey.withoutPrecomputation parameter secret), tree.2)
-      let observed : ProbComp (HashOutput × (Generic.Forgery × QueryCache HashSpec)) := do
+      let observed : ProbComp (HashOutput × (Forgery × QueryCache HashSpec)) := do
         let output ← $ᵗ HashOutput
         let result ← idealRun adversary ⟨Generic.truncateHash output, parameter⟩
         pure (output, result)
       let finish : ((LeafIndex → ChainIndex → Digest) ×
           (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec)) →
-          HashOutput × (Generic.Forgery × QueryCache HashSpec) →
-          ((PublicKey × Generic.SecretKey) × QueryCache HashSpec) × (Generic.Forgery × QueryCache HashSpec) :=
+          HashOutput × (Forgery × QueryCache HashSpec) →
+          ((PublicKey × Generic.SecretKey) × QueryCache HashSpec) × (Forgery × QueryCache HashSpec) :=
         fun sample seen =>
           (keyOf sample.1 (Generic.truncateHash seen.1, splitCache parameter sample seen.1), seen.2)
       have hsplit :
-          𝒟[Generic.Concrete.sampleSecret >>= fun secret =>
+          𝒟[Concrete.sampleSecret >>= fun secret =>
             (simulateQ randomOracle
               (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
                 OracleComp HashSpec Digest)).run ∅ >>= fun tree =>
@@ -287,7 +289,7 @@ theorem hiddenSibling_forward_le (adversary : Generic.Adversary) :
                 idealRun adversary (keyOf secret tree).1.1] =
           𝒟[subtrees parameter >>= fun sample => observed >>= fun seen =>
             pure (finish sample seen)] := by
-        have hkeygen : (Generic.Concrete.sampleSecret >>= fun secret =>
+        have hkeygen : (Concrete.sampleSecret >>= fun secret =>
             (simulateQ randomOracle
               (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
                 OracleComp HashSpec Digest)).run ∅ >>= fun tree =>
@@ -326,39 +328,39 @@ theorem hiddenSibling_forward_le (adversary : Generic.Adversary) :
 
 /-- On the executions without a request of the game's key generation, the forged top sibling is
 the honest one with probability at most `(1 + N) / 2^128` on average over the public key. -/
-theorem hiddenSibling_unsigned_le (adversary : Generic.Adversary) :
-    ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] *
-      Pr[fun prefixResult : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec =>
+theorem hiddenSibling_unsigned_le (adversary : Adversary) :
+    ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+      Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
           HiddenSiblingGuessed keyResult.2 keyResult.1.2 prefixResult.1.1 ∧
             prefixResult.1.2 = [] |
-        (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+        (simulateQ romImpl (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
           keyResult.2] ≤
       digestInverse * publicKeyAverage fun publicKey => 1 + idealSize adversary publicKey := by
-  have hdist : 𝒟[(simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] =
-      𝒟[Generic.Concrete.materializeCachedKeyResult <$> (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] := by
-    rw [Generic.Concrete.evalDist_materialized_keygen_eq_precomputedKeygen]
+  have hdist : 𝒟[(simulateQ romImpl Concrete.scheme.keygen).run ∅] =
+      𝒟[Concrete.materializeCachedKeyResult <$> (simulateQ romImpl Concrete.keygen).run ∅] := by
+    rw [Concrete.evalDist_materialized_keygen_eq_precomputedKeygen]
     rfl
   calc
-    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] *
-          Pr[fun result : Generic.Forgery × QueryCache HashSpec =>
+    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+          Pr[fun result : Forgery × QueryCache HashSpec =>
               HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 |
-            (simulateQ Generic.romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] :=
+            (simulateQ romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] :=
       ENNReal.tsum_le_tsum fun keyResult => mul_le_mul' le_rfl
         (probEvent_realRun_noSign_le keyResult.1.2 (adversary.main keyResult.1.1) keyResult.2
           fun result => HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1)
-    _ = ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] *
-          Pr[fun result : Generic.Forgery × QueryCache HashSpec =>
+    _ = ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.keygen).run ∅] *
+          Pr[fun result : Forgery × QueryCache HashSpec =>
               HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 |
-            (simulateQ Generic.romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] := by
-      rw [show (∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] *
-          Pr[fun result : Generic.Forgery × QueryCache HashSpec =>
+            (simulateQ romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] := by
+      rw [show (∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+          Pr[fun result : Forgery × QueryCache HashSpec =>
               HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 |
-            (simulateQ Generic.romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2]) =
-          ∑' keyResult, Pr[= keyResult | Generic.Concrete.materializeCachedKeyResult <$>
-              (simulateQ Generic.romImpl Generic.Concrete.keygen).run ∅] *
-            Pr[fun result : Generic.Forgery × QueryCache HashSpec =>
+            (simulateQ romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2]) =
+          ∑' keyResult, Pr[= keyResult | Concrete.materializeCachedKeyResult <$>
+              (simulateQ romImpl Concrete.keygen).run ∅] *
+            Pr[fun result : Forgery × QueryCache HashSpec =>
                 HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 |
-              (simulateQ Generic.romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] from
+              (simulateQ romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] from
         tsum_congr fun keyResult => by rw [probOutput_congr rfl hdist], tsum_probOutput_map_mul]
       rfl
     _ ≤ _ := hiddenSibling_forward_le adversary

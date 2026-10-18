@@ -10,41 +10,43 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.CappedChain
 
 theorem countedSource_cache_projection {α : Type} (publicKey : PublicKey) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : CountedSourceState) :
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState) :
     (fun result => (result.1, result.2.counts.cache)) <$>
       (simulateQ (countedSourceImpl secretKey) computation).run state =
-        (simulateQ (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey) computation).run state.counts.cache :=
+        (simulateQ (cappedUnloggedMappedAdversaryImpl publicKey secretKey) computation).run state.counts.cache :=
   map_run_simulateQ_eq_of_query_map_eq (countedSourceImpl secretKey)
-    (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey) (fun state => state.counts.cache)
+    (cappedUnloggedMappedAdversaryImpl publicKey secretKey) (fun state => state.counts.cache)
     (countedSourceImpl_cache_projection publicKey secretKey) computation state
 
 theorem countedSource_accepted_probability_le {α : Type} (publicKey : PublicKey) (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (cache : QueryCache HashSpec)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache HashSpec)
     (hcache : ¬HasAcceptedEncoding secretKey.parameter cache) :
     Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2.counts.cache |
       (simulateQ (countedSourceImpl secretKey) computation).run (CountedSourceState.initial cache)] ≤
       TargetSum.acceptanceProbability *
-        (expectedSimulatedQueryCount (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey)
-          (Generic.Direct.IsDirectEncodingQuery secretKey.parameter) computation cache +
+        (expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
+          (Direct.IsDirectEncodingQuery secretKey.parameter) computation cache +
           ∑' result, Pr[= result | (simulateQ (countedSourceImpl secretKey) computation).run
             (CountedSourceState.initial cache)] * (result.2.counts.signing : ℝ≥0∞)) := by
   have hproject := countedSource_cache_projection publicKey secretKey computation (CountedSourceState.initial cache)
   have hprob := congrArg (fun run => Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2 | run]) hproject
-  rw [probEvent_map, Generic.CappedEncodingMonitor.cappedUnloggedMappedAdversary_simulateQ_run_eq_source] at hprob
+  rw [probEvent_map, CappedEncodingMonitor.cappedUnloggedMappedAdversary_simulateQ_run_eq_source] at hprob
   simp only [Function.comp_def, CountedSourceState.initial] at hprob
   apply le_of_eq_of_le hprob
   apply (probEvent_hasAcceptedEncoding_le_expectedQueries secretKey.parameter _ cache hcache).trans
   apply mul_le_mul' le_rfl
   have h := countedSource_expected_selected_le publicKey secretKey
-    (Generic.CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
+    (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
     (fun input h => by cases input with
       | inl input => exact h.elim
-      | inr input => simp only [Generic.IsHashQuery]) computation cache
-  have hpred : Generic.Direct.IsDirectWorldQuery (Generic.CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter) =
-      Generic.Direct.IsDirectEncodingQuery secretKey.parameter := by
+      | inr input => simp only [IsHashQuery]) computation cache
+  have hpred : Direct.IsDirectWorldQuery (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter) =
+      Direct.IsDirectEncodingQuery secretKey.parameter := by
     funext input
     rcases input with (uniform | input) | request <;> rfl
   apply h.trans
@@ -59,57 +61,57 @@ namespace XmssSecurity.TargetSum.Deciding
 
 open CappedChain
 
-noncomputable def sourceCountedPrefixExecution (adversary : Generic.Adversary) (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) :
-    ProbComp (Generic.Forgery × CountedSourceState) :=
-  (simulateQ (countedSourceImpl (Generic.Concrete.materializePrecomputation key.cache key.secretKey))
+noncomputable def sourceCountedPrefixExecution (adversary : Adversary) (key : CappedChain.ProgrammedGlobalChainKeygenView) :
+    ProbComp (Forgery × CountedSourceState) :=
+  (simulateQ (countedSourceImpl (Concrete.materializePrecomputation key.cache key.secretKey))
     (adversary.main key.publicKey)).run (CountedSourceState.initial key.cache)
 
-noncomputable def sourceCountedPrefixProgram (adversary : Generic.Adversary) :
-    ProbComp (Generic.CappedChain.ProgrammedGlobalChainKeygenView × (Generic.Forgery × CountedSourceState)) := do
-  let key ← Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen
+noncomputable def sourceCountedPrefixProgram (adversary : Adversary) :
+    ProbComp (CappedChain.ProgrammedGlobalChainKeygenView × (Forgery × CountedSourceState)) := do
+  let key ← CappedChain.trajectoryProgrammedGlobalChainKeygen
   let result ← sourceCountedPrefixExecution adversary key
   pure (key, result)
 
-def SourceCountedPrefixAccepted (result : Generic.CappedChain.ProgrammedGlobalChainKeygenView × (Generic.Forgery × CountedSourceState)) : Prop :=
+def SourceCountedPrefixAccepted (result : CappedChain.ProgrammedGlobalChainKeygenView × (Forgery × CountedSourceState)) : Prop :=
   HasAcceptedEncoding result.1.secretKey.parameter result.2.2.counts.cache
 
-theorem sourceCountedPrefix_accepted_probability_le (adversary : Generic.Adversary) :
+theorem sourceCountedPrefix_accepted_probability_le (adversary : Adversary) :
     Pr[SourceCountedPrefixAccepted | sourceCountedPrefixProgram adversary] ≤
       TargetSum.acceptanceProbability *
-        (Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) := by
+        (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) := by
   let credit := fun keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec =>
-    expectedSimulatedQueryCount (Generic.cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
-      (Generic.Direct.IsDirectEncodingQuery keyResult.1.2.parameter) (adversary.main keyResult.1.1) keyResult.2 +
+    expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
+      (Direct.IsDirectEncodingQuery keyResult.1.2.parameter) (adversary.main keyResult.1.1) keyResult.2 +
       ∑' result, Pr[= result | (simulateQ (countedSourceImpl keyResult.1.2) (adversary.main keyResult.1.1)).run
         (CountedSourceState.initial keyResult.2)] * (result.2.counts.signing : ℝ≥0∞)
-  have hmean : (∑' key, Pr[= key | Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen] *
-      credit (Generic.Concrete.materializeCachedKeyResult key.keyResult)) =
-      Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary := by
+  have hmean : (∑' key, Pr[= key | CappedChain.trajectoryProgrammedGlobalChainKeygen] *
+      credit (Concrete.materializeCachedKeyResult key.keyResult)) =
+      Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary := by
     calc
-      _ = ∑' keyResult, Pr[= keyResult | (fun key : Generic.CappedChain.ProgrammedGlobalChainKeygenView =>
-          Generic.Concrete.materializeCachedKeyResult key.keyResult) <$> Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen] *
+      _ = ∑' keyResult, Pr[= keyResult | (fun key : CappedChain.ProgrammedGlobalChainKeygenView =>
+          Concrete.materializeCachedKeyResult key.keyResult) <$> CappedChain.trajectoryProgrammedGlobalChainKeygen] *
           credit keyResult := by rw [tsum_probOutput_map_mul]
-      _ = ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] * credit keyResult := by
+      _ = ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] * credit keyResult := by
         apply tsum_congr
         intro keyResult
-        rw [probOutput_congr rfl Generic.CappedChain.evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen]
+        rw [probOutput_congr rfl CappedChain.evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen]
       _ = _ := by
         simp only [credit, mul_add, ENNReal.tsum_add]
         rfl
   unfold sourceCountedPrefixProgram
   rw [probEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' key, Pr[= key | Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen] *
-        (TargetSum.acceptanceProbability * credit (Generic.Concrete.materializeCachedKeyResult key.keyResult)) := by
+    _ ≤ ∑' key, Pr[= key | CappedChain.trajectoryProgrammedGlobalChainKeygen] *
+        (TargetSum.acceptanceProbability * credit (Concrete.materializeCachedKeyResult key.keyResult)) := by
       apply ENNReal.tsum_le_tsum
       intro key
-      by_cases hkey : key ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen
+      by_cases hkey : key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen
       · apply mul_le_mul' le_rfl
         simp only [bind_pure_comp, probEvent_map]
         apply countedSource_accepted_probability_le key.publicKey
-          (Generic.Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
-        apply Concrete.precomputedKeygen_no_acceptedEncoding (Generic.Concrete.materializeCachedKeyResult key.keyResult)
-        apply (mem_support_iff_of_evalDist_eq Generic.CappedChain.evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen _).mp
+          (Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
+        apply Concrete.precomputedKeygen_no_acceptedEncoding (Concrete.materializeCachedKeyResult key.keyResult)
+        apply (mem_support_iff_of_evalDist_eq CappedChain.evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen _).mp
         rw [support_map]
         exact ⟨key, hkey, rfl⟩
       · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul, zero_mul]

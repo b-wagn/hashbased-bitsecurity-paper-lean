@@ -7,6 +7,8 @@ open scoped BigOperators
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.TargetSum
 
 /-- Digit strings of a given length and sum. -/
@@ -84,14 +86,14 @@ theorem countRow_getD_eq_wordCount (radix cap length total : ℕ) (htotal : tota
       · rw [ih _ (by omega)]
       · rfl
 
-theorem validDigest_encoding_valid (digest : Digest) (hdigest : Generic.Code.ValidDigest digest) :
+theorem validDigest_encoding_valid (digest : Digest) (hdigest : Code.ValidDigest digest) :
     Valid (digestEncoding digest) := by
   obtain ⟨encoding, hencoding⟩ := hdigest
   have hview := decodeDigest_eq_some_iff.mp hencoding
   have hdigits : digestEncoding digest = encoding := congrArg Prod.fst hview.1
   exact hdigits ▸ hview.2
 
-noncomputable def validDigestEquivEncoding : {digest : Digest // Generic.Code.ValidDigest digest} ≃
+noncomputable def validDigestEquivEncoding : {digest : Digest // Code.ValidDigest digest} ≃
     {encoding : Encoding // Valid encoding} :=
   Equiv.ofBijective (fun digest => ⟨digestEncoding digest.1,
     validDigest_encoding_valid digest.1 digest.2⟩) (by
@@ -113,8 +115,8 @@ noncomputable def validDigestEquivEncoding : {digest : Digest // Generic.Code.Va
         exact congrArg Prod.fst hdigest)
 
 theorem validDigests_card_eq_wordCount :
-    Generic.Code.validDigests.card = wordCount chainLength numChains targetSum := by
-  rw [Generic.Code.validDigests, ← Fintype.card_subtype, Fintype.card_congr validDigestEquivEncoding]
+    Code.validDigests.card = wordCount chainLength numChains targetSum := by
+  rw [Code.validDigests, ← Fintype.card_subtype, Fintype.card_congr validDigestEquivEncoding]
   rfl
 
 end XmssSecurity.TargetSum.TargetSum

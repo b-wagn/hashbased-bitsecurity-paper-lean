@@ -10,12 +10,14 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Direct
 
-noncomputable def sourceSecondaryLoss (adversary : Generic.Adversary) : ℝ≥0∞ :=
-  prehitRate * Generic.Direct.expectedDirectEncodingQueries adversary +
-    (Generic.Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-      (Generic.Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) *
+noncomputable def sourceSecondaryLoss (adversary : Adversary) : ℝ≥0∞ :=
+  prehitRate * Direct.expectedDirectEncodingQueries adversary +
+    (Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
+      (Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) *
         (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)))) +
     expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞)
 

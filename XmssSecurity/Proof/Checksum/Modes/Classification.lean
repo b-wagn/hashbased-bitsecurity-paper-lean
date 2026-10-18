@@ -15,6 +15,8 @@ levels and four attacks in their maximal modes cover all sixteen modes, by monot
 unforgeability.
 -/
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.Modes
 open XmssSecurity.Modes
 
@@ -46,11 +48,11 @@ theorem exactStatement_of_checksumBasis
     cases signer <;> cases requests
     · exact ⟨hd, not_hasClassicalSecurityBits_of_le
         (by simp [CountingMode.Le]) Generic.xmss 123 ha122⟩
-    · exact ⟨hasClassicalSecurityBits_of_le (Generic.Modes.direct_le _) Generic.xmss 122 hd, ha122⟩
+    · exact ⟨hasClassicalSecurityBits_of_le (Modes.direct_le _) Generic.xmss 122 hd, ha122⟩
     · exact ⟨hs, ha123⟩
     · exact ⟨hsr, ha124⟩
   all_goals
-    refine ⟨?_, not_hasClassicalSecurityBits_of_le (Generic.Modes.le_everything _) Generic.xmss 128 ha127⟩
+    refine ⟨?_, not_hasClassicalSecurityBits_of_le (Modes.le_everything _) Generic.xmss 128 ha127⟩
   · exact hasClassicalSecurityBits_of_le (by simp [CountingMode.Le]) Generic.xmss 127 hv
   · exact hasClassicalSecurityBits_of_le (by simp [CountingMode.Le]) Generic.xmss 127 hk
   · exact hasClassicalSecurityBits_of_le (by simp [CountingMode.Le]) Generic.xmss 127 hk
@@ -78,11 +80,11 @@ theorem eufExactStatement_of_checksumBasis
   · cases signer <;> cases requests
     · exact ⟨hd', EUFCMA.not_hasClassicalSecurityBits_of_le
         (by simp [CountingMode.Le]) Generic.xmss 123 ha122⟩
-    · exact ⟨EUFCMA.hasClassicalSecurityBits_of_le (Generic.Modes.direct_le _) Generic.xmss 122 hd', ha122⟩
+    · exact ⟨EUFCMA.hasClassicalSecurityBits_of_le (Modes.direct_le _) Generic.xmss 122 hd', ha122⟩
     · exact ⟨hs', ha123⟩
     · exact ⟨hsr', ha124⟩
   all_goals
-    refine ⟨?_, EUFCMA.not_hasClassicalSecurityBits_of_le (Generic.Modes.le_everything _) Generic.xmss 128 ha127⟩
+    refine ⟨?_, EUFCMA.not_hasClassicalSecurityBits_of_le (Modes.le_everything _) Generic.xmss 128 ha127⟩
   · exact EUFCMA.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le]) Generic.xmss 127 hv'
   · exact EUFCMA.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le]) Generic.xmss 127 hk'
   · exact EUFCMA.hasClassicalSecurityBits_of_le (by simp [CountingMode.Le]) Generic.xmss 127 hk'

@@ -8,16 +8,18 @@ the only additional second-lane cost is the fresh final encoding allowance. -/
 
 open OracleComp OracleSpec ENNReal
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Direct
 
-theorem prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh (adversary : Generic.Adversary)
-    (hprehit : Pr[Generic.WinningEncodingPrehitOccurs | Generic.cappedDetailedGameWithEncodingTrace adversary] ≤
-      prehitRate * Generic.Direct.expectedDirectEncodingQueries adversary) :
-    Pr[Generic.WinningEncodingPrehitOccurs | Generic.cappedDetailedGameWithEncodingTrace adversary] +
-      Pr[fun execution : Generic.GameOutcome × QueryCache HashSpec =>
-        execution.1.won = true ∧ ¬ Generic.OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
-          ¬ Generic.Deciding.DecidingChainValueRevealed execution.2 execution.1 |
-        Generic.detailedGameWithCache Generic.Concrete.scheme adversary] +
+theorem prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh (adversary : Adversary)
+    (hprehit : Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
+      prehitRate * Direct.expectedDirectEncodingQueries adversary) :
+    Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] +
+      Pr[fun execution : GameOutcome × QueryCache HashSpec =>
+        execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
+          ¬ Deciding.DecidingChainValueRevealed execution.2 execution.1 |
+        detailedGameWithCache Concrete.scheme adversary] +
       expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞) ≤
         sourceSecondaryLoss adversary + Deciding.forgedEncodingFreshProbability adversary *
           (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞))) := by

@@ -10,6 +10,8 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Attack
 
 open Concrete
@@ -17,46 +19,46 @@ open Concrete
 def worldPrivateSamples {α : Type} (computation : ProbComp α) : OracleComp OracleWorld α :=
   simulateQ (fun input => liftM (OracleWorld.query (.inl input))) computation
 
-theorem liftPrivateSamples_logged {Key α : Type} (scheme : Generic.Scheme Key) (secretKey : Key)
+theorem liftPrivateSamples_logged {Key α : Type} (scheme : Scheme Key) (secretKey : Key)
     (computation : ProbComp α) :
-    (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey)
-      (Generic.Attack.liftPrivateSamples computation)).run =
+    (simulateQ (forwardOracles + signingOracle scheme secretKey)
+      (Attack.liftPrivateSamples computation)).run =
       (fun value => (value, [])) <$> worldPrivateSamples computation := by
   induction computation using OracleComp.inductionOn with
-  | pure value => simp [Generic.Attack.liftPrivateSamples, worldPrivateSamples]
+  | pure value => simp [Attack.liftPrivateSamples, worldPrivateSamples]
   | query_bind input next ih =>
-      simp only [Generic.Attack.liftPrivateSamples, worldPrivateSamples, simulateQ_bind, simulateQ_spec_query] at ih ⊢
-      simp only [QueryImpl.add_apply_inl, Generic.forwardOracles, WriterT.run_bind]
+      simp only [Attack.liftPrivateSamples, worldPrivateSamples, simulateQ_bind, simulateQ_spec_query] at ih ⊢
+      simp only [QueryImpl.add_apply_inl, forwardOracles, WriterT.run_bind]
       have hquery : (liftM (OracleWorld.query (.inl input)) :
-          WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld) (unifSpec.Range input)).run =
+          WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) (unifSpec.Range input)).run =
           (fun value => (value, [])) <$> (liftM (OracleWorld.query (.inl input)) : OracleComp OracleWorld _) := rfl
       rw [hquery]
       simp only [bind_map_left, ih, map_bind, Functor.map_map, List.nil_append]
       rfl
 
 theorem worldPrivateSamples_run {α : Type} (computation : ProbComp α) (cache : QueryCache HashSpec) :
-    (simulateQ Generic.romImpl (worldPrivateSamples computation)).run cache =
+    (simulateQ romImpl (worldPrivateSamples computation)).run cache =
       (fun value => (value, cache)) <$> computation := by
   unfold worldPrivateSamples
   rw [← QueryImpl.simulateQ_compose]
-  have hcompose : Generic.romImpl ∘ₛ (fun input => liftM (OracleWorld.query (.inl input))) =
+  have hcompose : romImpl ∘ₛ (fun input => liftM (OracleWorld.query (.inl input))) =
       unifFwdImpl HashSpec := by
     funext input
-    simp only [QueryImpl.apply_compose, simulateQ_spec_query, Generic.romImpl, QueryImpl.add_apply_inl]
+    simp only [QueryImpl.apply_compose, simulateQ_spec_query, romImpl, QueryImpl.add_apply_inl]
   rw [hcompose]
   exact unifFwdImpl.simulateQ_run computation cache
 
-theorem oneRequestSamples_logged {Key α β : Type} (scheme : Generic.Scheme Key) (secretKey : Key)
-    (request : Generic.SignRequest) (samples : ProbComp β) (finish : Option Generic.Signature → β → α) :
-    (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey) (do
-      let answer ← liftM ((OracleWorld + Generic.SigningSpec).query (.inr request))
-      let choice ← Generic.Attack.liftPrivateSamples samples
+theorem oneRequestSamples_logged {Key α β : Type} (scheme : Scheme Key) (secretKey : Key)
+    (request : SignRequest) (samples : ProbComp β) (finish : Option Generic.Signature → β → α) :
+    (simulateQ (forwardOracles + signingOracle scheme secretKey) (do
+      let answer ← liftM ((OracleWorld + SigningSpec).query (.inr request))
+      let choice ← Attack.liftPrivateSamples samples
       pure (finish answer choice))).run = (do
       let answer ← scheme.sign secretKey request.epoch request.message
       let choice ← worldPrivateSamples samples
       return (finish answer choice, [⟨request, answer⟩])) := by
   rw [simulateQ_bind, WriterT.run_bind, simulateQ_spec_query]
-  have hsign : (Generic.signingOracle scheme secretKey request).run =
+  have hsign : (signingOracle scheme secretKey request).run =
       (scheme.sign secretKey request.epoch request.message >>= fun answer =>
         pure (answer, [⟨request, answer⟩])) :=
     QueryImpl.run_withLogging_apply _ _
@@ -64,42 +66,42 @@ theorem oneRequestSamples_logged {Key α β : Type} (scheme : Generic.Scheme Key
     WriterT.run_map', liftPrivateSamples_logged, bind_pure_comp, Functor.map_map,
     Prod.map_apply, id_eq, List.append_nil]
 
-theorem chainMutationMain_logged {Key : Type} (scheme : Generic.Scheme Key) (secretKey : Key) :
-    (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey) Generic.Attack.chainMutationMain).run = (do
-      let answer ← scheme.sign secretKey Generic.Attack.mutationRequest.epoch Generic.Attack.mutationRequest.message
-      let choice ← worldPrivateSamples Generic.Attack.mutationChoice
-      return (Generic.Attack.chainMutationForgery answer choice, [⟨Generic.Attack.mutationRequest, answer⟩])) :=
-  oneRequestSamples_logged scheme secretKey Generic.Attack.mutationRequest Generic.Attack.mutationChoice Generic.Attack.chainMutationForgery
+theorem chainMutationMain_logged {Key : Type} (scheme : Scheme Key) (secretKey : Key) :
+    (simulateQ (forwardOracles + signingOracle scheme secretKey) Attack.chainMutationMain).run = (do
+      let answer ← scheme.sign secretKey Attack.mutationRequest.epoch Attack.mutationRequest.message
+      let choice ← worldPrivateSamples Attack.mutationChoice
+      return (Attack.chainMutationForgery answer choice, [⟨Attack.mutationRequest, answer⟩])) :=
+  oneRequestSamples_logged scheme secretKey Attack.mutationRequest Attack.mutationChoice Attack.chainMutationForgery
 
-theorem chainMutation_gameRest {Key : Type} (scheme : Generic.Scheme Key) (publicKey : PublicKey) (secretKey : Key) :
-    Generic.Seeded.gameRest scheme Generic.Attack.chainMutationAdversary publicKey secretKey = (do
-      let answer ← scheme.sign secretKey Generic.Attack.mutationRequest.epoch Generic.Attack.mutationRequest.message
-      let choice ← worldPrivateSamples Generic.Attack.mutationChoice
-      let forgery := Generic.Attack.chainMutationForgery answer choice
+theorem chainMutation_gameRest {Key : Type} (scheme : Scheme Key) (publicKey : PublicKey) (secretKey : Key) :
+    Seeded.gameRest scheme Attack.chainMutationAdversary publicKey secretKey = (do
+      let answer ← scheme.sign secretKey Attack.mutationRequest.epoch Attack.mutationRequest.message
+      let choice ← worldPrivateSamples Attack.mutationChoice
+      let forgery := Attack.chainMutationForgery answer choice
       let verified ← scheme.verify publicKey forgery.epoch forgery.message forgery.signature
-      return decide (Generic.SigningTranscript.Valid [⟨Generic.Attack.mutationRequest, answer⟩] ∧
-        ¬Generic.SigningTranscript.Contains [⟨Generic.Attack.mutationRequest, answer⟩] forgery) && verified) := by
-  unfold Generic.Seeded.gameRest
+      return decide (SigningTranscript.Valid [⟨Attack.mutationRequest, answer⟩] ∧
+        ¬SigningTranscript.Contains [⟨Attack.mutationRequest, answer⟩] forgery) && verified) := by
+  unfold Seeded.gameRest
   change (do
-    let result ← (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey) Generic.Attack.chainMutationMain).run
+    let result ← (simulateQ (forwardOracles + signingOracle scheme secretKey) Attack.chainMutationMain).run
     let verified ← scheme.verify publicKey result.1.epoch result.1.message result.1.signature
-    return decide (Generic.SigningTranscript.Valid result.2 ∧ ¬Generic.SigningTranscript.Contains result.2 result.1) && verified) = _
+    return decide (SigningTranscript.Valid result.2 ∧ ¬SigningTranscript.Contains result.2 result.1) && verified) = _
   rw [chainMutationMain_logged]
   simp only [bind_assoc, pure_bind]
 
 def mutationOutcome (publicKey : PublicKey) (answer : Option Generic.Signature) (choice : ChainIndex × Digest) :
     OracleComp HashSpec Bool := do
-  let forgery := Generic.Attack.chainMutationForgery answer choice
+  let forgery := Attack.chainMutationForgery answer choice
   let verified ← Generic.Concrete.verify publicKey forgery.epoch forgery.message forgery.signature
-  return decide (Generic.SigningTranscript.Valid [⟨Generic.Attack.mutationRequest, answer⟩] ∧
-    ¬Generic.SigningTranscript.Contains [⟨Generic.Attack.mutationRequest, answer⟩] forgery) && verified
+  return decide (SigningTranscript.Valid [⟨Attack.mutationRequest, answer⟩] ∧
+    ¬SigningTranscript.Contains [⟨Attack.mutationRequest, answer⟩] forgery) && verified
 
 theorem chainMutation_referenceRest_run (publicKey : PublicKey) (secretKey : Generic.SecretKey)
     (cache : QueryCache HashSpec) :
-    (simulateQ Generic.romImpl (Generic.Seeded.gameRest Generic.Concrete.scheme Generic.Attack.chainMutationAdversary publicKey secretKey)).run cache = (do
-      let result ← (simulateQ Generic.romImpl
-        (Generic.Concrete.precomputedCappedSign secretKey Generic.Attack.mutationRequest.epoch Generic.Attack.mutationRequest.message)).run cache
-      let choice ← Generic.Attack.mutationChoice
+    (simulateQ romImpl (Seeded.gameRest Concrete.scheme Attack.chainMutationAdversary publicKey secretKey)).run cache = (do
+      let result ← (simulateQ romImpl
+        (Concrete.precomputedCappedSign secretKey Attack.mutationRequest.epoch Attack.mutationRequest.message)).run cache
+      let choice ← Attack.mutationChoice
       (simulateQ randomOracle (mutationOutcome publicKey result.1 choice)).run result.2) := by
   rw [chainMutation_gameRest, simulateQ_bind, StateT.run_bind]
   apply bind_congr
@@ -107,19 +109,19 @@ theorem chainMutation_referenceRest_run (publicKey : PublicKey) (secretKey : Gen
   rw [simulateQ_bind, StateT.run_bind, worldPrivateSamples_run, bind_map_left]
   apply bind_congr
   intro choice
-  have hroute : simulateQ Generic.romImpl
-      (liftM (Generic.Concrete.verify publicKey (Generic.Attack.chainMutationForgery answer choice).epoch
-        (Generic.Attack.chainMutationForgery answer choice).message (Generic.Attack.chainMutationForgery answer choice).signature :
+  have hroute : simulateQ romImpl
+      (liftM (Generic.Concrete.verify publicKey (Attack.chainMutationForgery answer choice).epoch
+        (Attack.chainMutationForgery answer choice).message (Attack.chainMutationForgery answer choice).signature :
           OracleComp HashSpec Bool)) =
-      simulateQ randomOracle (Generic.Concrete.verify publicKey (Generic.Attack.chainMutationForgery answer choice).epoch
-        (Generic.Attack.chainMutationForgery answer choice).message (Generic.Attack.chainMutationForgery answer choice).signature :
+      simulateQ randomOracle (Generic.Concrete.verify publicKey (Attack.chainMutationForgery answer choice).epoch
+        (Attack.chainMutationForgery answer choice).message (Attack.chainMutationForgery answer choice).signature :
           OracleComp HashSpec Bool) :=
     QueryImpl.simulateQ_add_liftM_right (unifFwdImpl HashSpec)
       (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) _
   unfold mutationOutcome
   rw [simulateQ_bind, StateT.run_bind, simulateQ_bind, StateT.run_bind]
-  change (simulateQ Generic.romImpl (liftM (Generic.Concrete.verify publicKey (Generic.Attack.chainMutationForgery answer choice).epoch
-      (Generic.Attack.chainMutationForgery answer choice).message (Generic.Attack.chainMutationForgery answer choice).signature :
+  change (simulateQ romImpl (liftM (Generic.Concrete.verify publicKey (Attack.chainMutationForgery answer choice).epoch
+      (Attack.chainMutationForgery answer choice).message (Attack.chainMutationForgery answer choice).signature :
         OracleComp HashSpec Bool))).run signCache >>= _ = _
   rw [hroute]
   simp only [simulateQ_pure, StateT.run_pure]
@@ -128,17 +130,17 @@ local instance : Nonempty ChainIndex := ⟨⟨0, by decide⟩⟩
 noncomputable local instance : SampleableType ChainIndex := SampleableType.ofFintype ChainIndex
 
 theorem evalDist_bind_mutationChoice {α : Type} (next : ChainIndex × Digest → ProbComp α) :
-    evalDist (Generic.Attack.mutationChoice >>= next) = evalDist (do
+    evalDist (Attack.mutationChoice >>= next) = evalDist (do
       let chain ← $ᵗ ChainIndex
       let value ← $ᵗ Digest
       next (chain, value)) := by
-  have hchoice : evalDist Generic.Attack.mutationChoice = evalDist (do
+  have hchoice : evalDist Attack.mutationChoice = evalDist (do
       let chain ← $ᵗ ChainIndex
       let value ← $ᵗ Digest
       pure (chain, value)) := by
     calc
       _ = evalDist ($ᵗ (ChainIndex × Digest)) := by
-        rw [Generic.Attack.mutationChoice_evalDist, evalDist_uniformSample]
+        rw [Attack.mutationChoice_evalDist, evalDist_uniformSample]
         rfl
       _ = _ := evalDist_independent_uniform_pair.symm
   rw [evalDist_bind, hchoice, ← evalDist_bind]
@@ -146,33 +148,33 @@ theorem evalDist_bind_mutationChoice {α : Type} (next : ChainIndex × Digest �
 
 theorem mutationOutcome_some (publicKey : PublicKey) (signature : Generic.Signature) (choice : ChainIndex × Digest) :
     mutationOutcome publicKey (some signature) choice = (do
-      let verified ← (Generic.Concrete.verify publicKey Generic.Attack.mutationRequest.epoch Generic.Attack.mutationRequest.message
-        (Generic.CappedChain.replaceSignatureChainValue signature choice.1 choice.2) : OracleComp HashSpec Bool)
+      let verified ← (Generic.Concrete.verify publicKey Attack.mutationRequest.epoch Attack.mutationRequest.message
+        (CappedChain.replaceSignatureChainValue signature choice.1 choice.2) : OracleComp HashSpec Bool)
       return decide (choice.2 ≠ signature.chainValue choice.1) && verified) := by
-  have hcontains : Generic.SigningTranscript.Contains [⟨Generic.Attack.mutationRequest, some signature⟩]
-      (Generic.Attack.chainMutationForgery (some signature) choice) ↔
-      signature = (Generic.Attack.chainMutationForgery (some signature) choice).signature := by
-    simp [SUFCMA.SigningTranscript.Contains, Generic.Attack.chainMutationForgery, SUFCMA.Forgery.request]
-  have hfresh : ¬Generic.SigningTranscript.Contains [⟨Generic.Attack.mutationRequest, some signature⟩]
-      (Generic.Attack.chainMutationForgery (some signature) choice) ↔ choice.2 ≠ signature.chainValue choice.1 := by
+  have hcontains : SigningTranscript.Contains [⟨Attack.mutationRequest, some signature⟩]
+      (Attack.chainMutationForgery (some signature) choice) ↔
+      signature = (Attack.chainMutationForgery (some signature) choice).signature := by
+    simp [SUFCMA.SigningTranscript.Contains, Attack.chainMutationForgery, SUFCMA.Forgery.request]
+  have hfresh : ¬SigningTranscript.Contains [⟨Attack.mutationRequest, some signature⟩]
+      (Attack.chainMutationForgery (some signature) choice) ↔ choice.2 ≠ signature.chainValue choice.1 := by
     rw [hcontains]
-    exact ne_comm.trans (Generic.Attack.chainMutationForgery_distinct_iff signature choice)
+    exact ne_comm.trans (Attack.chainMutationForgery_distinct_iff signature choice)
   unfold mutationOutcome
-  simp only [Generic.Attack.chainMutation_transcript_valid, true_and, hfresh]
+  simp only [Attack.chainMutation_transcript_valid, true_and, hfresh]
   rfl
 
 noncomputable def mutationOutcomeRun (publicKey : PublicKey) (answer : Option Generic.Signature)
     (cache : QueryCache HashSpec) : ProbComp (Bool × QueryCache HashSpec) := do
-  let choice ← Generic.Attack.mutationChoice
+  let choice ← Attack.mutationChoice
   (simulateQ randomOracle (mutationOutcome publicKey answer choice)).run cache
 
 theorem mutationOutcomeRun_some_probability (publicKey : PublicKey) (signature : Generic.Signature)
     (cache : QueryCache HashSpec) :
     Pr[fun result => result.1 = true | mutationOutcomeRun publicKey (some signature) cache] =
-      Pr[= true | uniformChainVerification publicKey Generic.Attack.mutationRequest signature cache] := by
+      Pr[= true | uniformChainVerification publicKey Attack.mutationRequest signature cache] := by
   unfold mutationOutcomeRun
   rw [probEvent_def, evalDist_bind_mutationChoice, ← probEvent_def]
-  unfold uniformChainVerification Generic.Attack.randomMutationVerification
+  unfold uniformChainVerification Attack.randomMutationVerification
   rw [← probEvent_eq_eq_probOutput]
   simp only [mutationOutcome_some, bind_pure_comp, simulateQ_map, StateT.run_map,
     probEvent_bind_eq_tsum, probEvent_map, Function.comp_def,
@@ -180,9 +182,9 @@ theorem mutationOutcomeRun_some_probability (publicKey : PublicKey) (signature :
 
 theorem signedMutationExperiment_le_referenceRest
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec) :
-    Pr[= true | signedMutationExperiment keyResult Generic.Attack.mutationRequest] ≤
+    Pr[= true | signedMutationExperiment keyResult Attack.mutationRequest] ≤
       Pr[fun result => result.1 = true |
-        (simulateQ Generic.romImpl (Generic.Seeded.gameRest Generic.Concrete.scheme Generic.Attack.chainMutationAdversary
+        (simulateQ romImpl (Seeded.gameRest Concrete.scheme Attack.chainMutationAdversary
           keyResult.1.1 keyResult.1.2)).run keyResult.2] := by
   unfold signedMutationExperiment
   rw [probOutput_bind_eq_tsum, chainMutation_referenceRest_run, probEvent_bind_eq_tsum]
@@ -197,22 +199,22 @@ theorem signedMutationExperiment_le_referenceRest
 
 theorem chainMutation_referenceRest_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅)) :
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
     (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
       Pr[fun result => result.1 = true |
-        (simulateQ Generic.romImpl (Generic.Seeded.gameRest Generic.Concrete.scheme Generic.Attack.chainMutationAdversary
+        (simulateQ romImpl (Seeded.gameRest Concrete.scheme Attack.chainMutationAdversary
           keyResult.1.1 keyResult.1.2)).run keyResult.2] :=
-  (signedMutationExperiment_probability_lower keyResult hkey Generic.Attack.mutationRequest).trans
+  (signedMutationExperiment_probability_lower keyResult hkey Attack.mutationRequest).trans
     (signedMutationExperiment_le_referenceRest keyResult)
 
 theorem chainMutation_reference_advantage_lower :
     (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
-      Generic.forgeAdvantage Generic.Concrete.scheme Generic.Attack.chainMutationAdversary := by
+      forgeAdvantage Concrete.scheme Attack.chainMutationAdversary := by
   let lower : ℝ≥0∞ := (31 / 32) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains)
-  let keys := (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅
+  let keys := (simulateQ romImpl Concrete.scheme.keygen).run ∅
   have hmass : ∑' keyResult, Pr[= keyResult | keys] = 1 := tsum_probOutput_eq_one' (by simp)
-  rw [Generic.forgeAdvantage_eq_gameWithCache]
-  unfold Generic.gameWithCache Generic.gameCore
+  rw [forgeAdvantage_eq_gameWithCache]
+  unfold gameWithCache gameCore
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
   calc
     _ = ∑' keyResult, Pr[= keyResult | keys] * lower := by
@@ -229,7 +231,7 @@ theorem chainMutation_reference_advantage_lower :
 
 theorem chainMutation_reference_advantage_exceeds_123 :
     (1 : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) <
-      Generic.forgeAdvantage Generic.Concrete.scheme Generic.Attack.chainMutationAdversary := by
+      forgeAdvantage Concrete.scheme Attack.chainMutationAdversary := by
   apply lt_of_lt_of_le _ chainMutation_reference_advantage_lower
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by
     apply ENNReal.mul_ne_top

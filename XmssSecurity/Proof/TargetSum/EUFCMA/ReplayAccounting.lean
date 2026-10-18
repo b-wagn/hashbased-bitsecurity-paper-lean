@@ -13,6 +13,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
@@ -25,13 +27,13 @@ theorem replay_gameCounted_direct :
   simp only [map_bind, map_pure]
   apply bind_congr
   rintro ⟨publicKey, secretKey⟩
-  rw [Generic.Security.run_withAddCost_eq_counted _ _ (fun input => by
+  rw [Security.run_withAddCost_eq_counted _ _ (fun input => by
     rcases input with (uniformOrHash | request)
     · rcases uniformOrHash <;> rfl
     · rfl)]
   change (do
-    let result ← (simulateQ (Generic.Security.adversaryImpl secretKey)
-      (QueryCounting.counted Generic.Direct.IsDirectHashQuery (replayMain publicKey))).run
+    let result ← (simulateQ (Security.adversaryImpl secretKey)
+      (QueryCounting.counted Direct.IsDirectHashQuery (replayMain publicKey))).run
     let verified ← Generic.xmss.verify publicKey result.1.1.epoch result.1.1.message result.1.1.signature
     return (decide (SUFCMA.SigningTranscript.Valid result.2 ∧
       ¬SUFCMA.SigningTranscript.Contains result.2 result.1.1) && verified, result.1.2)) = _

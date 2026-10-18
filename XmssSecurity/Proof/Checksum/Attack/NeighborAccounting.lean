@@ -12,6 +12,8 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.Attack
 
 open SUFCMA
@@ -19,39 +21,39 @@ open SUFCMA
 attribute [local irreducible] Generic.sampleMasterSeed
 
 theorem countHashQueries_support_bound {α : Type} (computation : OracleComp OracleWorld α)
-    (bound : ℕ) (hbound : computation.IsQueryBoundP Generic.IsHashQuery bound)
-    (result : α × ℕ) (hresult : result ∈ support (Generic.countHashQueries computation)) : result.2 ≤ bound := by
+    (bound : ℕ) (hbound : computation.IsQueryBoundP IsHashQuery bound)
+    (result : α × ℕ) (hresult : result ∈ support (countHashQueries computation)) : result.2 ≤ bound := by
   induction computation using OracleComp.inductionOn generalizing bound result with
   | pure value =>
-      simp only [Generic.countHashQueries_pure, support_pure, Set.mem_singleton_iff] at hresult
+      simp only [countHashQueries_pure, support_pure, Set.mem_singleton_iff] at hresult
       subst result
       exact Nat.zero_le _
   | query_bind input next ih =>
       rw [OracleComp.isQueryBoundP_query_bind_iff] at hbound
-      rw [Generic.countHashQueries_query_bind, mem_support_bind_iff] at hresult
+      rw [countHashQueries_query_bind, mem_support_bind_iff] at hresult
       obtain ⟨answer, _, hrest⟩ := hresult
       simp only [bind_pure_comp, support_map, Set.mem_image] at hrest
       obtain ⟨tail, htail, rfl⟩ := hrest
       have htailBound := ih answer _ (hbound.2 answer) tail htail
       rcases input with uniformInput | hashInput
-      · simpa [Generic.IsHashQuery] using htailBound
-      · simp [Generic.IsHashQuery] at htailBound hbound ⊢
+      · simpa [IsHashQuery] using htailBound
+      · simp [IsHashQuery] at htailBound hbound ⊢
         omega
 
 theorem liftWorldToAdversary_counted {Key α : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Generic.Signature lifetime) (secretKey : Key)
     (requestCost : ℕ) (computation : OracleComp OracleWorld α) :
     (simulateQ
-      ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
+      ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
           (RandomOracleModel.hashCost HashInput HashOutput) +
         SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) requestCost scheme secretKey)
       (liftWorldToAdversary computation)).run.run =
-      (fun result : α × ℕ => ((result.1, Multiplicative.ofAdd result.2), ([] : QueryLog Generic.SigningSpec))) <$>
-        Generic.countHashQueries computation := by
+      (fun result : α × ℕ => ((result.1, Multiplicative.ofAdd result.2), ([] : QueryLog SigningSpec))) <$>
+        countHashQueries computation := by
   induction computation using OracleComp.inductionOn with
-  | pure value => simp [liftWorldToAdversary, Generic.countHashQueries_pure]
+  | pure value => simp [liftWorldToAdversary, countHashQueries_pure]
   | query_bind input next ih =>
       simp only [liftWorldToAdversary, simulateQ_bind, simulateQ_spec_query] at ih ⊢
-      rw [Generic.countHashQueries_query_bind]
+      rw [countHashQueries_query_bind]
       simp only [QueryImpl.add_apply_inl, QueryImpl.withAddCost_apply, QueryImpl.ofLift_apply,
         WriterT.run_bind, WriterT.run_monadLift, WriterT.run_map', Modes.run_liftM_of_liftM',
         AddWriterT.run_addTell, pure_bind, bind_map_left, map_bind, map_pure, Functor.map_map,
@@ -64,12 +66,12 @@ theorem liftWorldToAdversary_counted {Key α : Type} (scheme : EpochBasedSignatu
       cases input <;> rfl
 
 theorem signingOracleCounted_run {Key : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Generic.Signature lifetime) (secretKey : Key)
-    (requestCost : ℕ) (request : Generic.SignRequest) :
+    (requestCost : ℕ) (request : SignRequest) :
     (SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput)
       requestCost scheme secretKey request).run.run =
       (fun result : Option Generic.Signature × ℕ =>
         ((result.1, Multiplicative.ofAdd (requestCost + result.2)), [⟨request, result.1⟩])) <$>
-        Generic.countHashQueries (scheme.sign secretKey request.epoch request.message) := by
+        countHashQueries (scheme.sign secretKey request.epoch request.message) := by
   simp only [SUFCMA.signingOracleCounted, Modes.charge_hashCost_eq_countHashQueries,
     WriterT.run_bind, WriterT.run_monadLift, Modes.run_run_liftM, WriterT.run_pure,
     WriterT.run_tell, AddWriterT.run_addTell, pure_bind, bind_map_left, map_bind,
@@ -78,12 +80,12 @@ theorem signingOracleCounted_run {Key : Type} (scheme : EpochBasedSignature Orac
 
 theorem neighborMain_counted {Key : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Generic.Signature lifetime) (secretKey : Key) (publicKey : PublicKey) :
     (simulateQ
-      ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
+      ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
           (RandomOracleModel.hashCost HashInput HashOutput) +
         SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) 1 scheme secretKey)
       (neighborMain publicKey)).run.run = (do
-      let signed ← Generic.countHashQueries (scheme.sign secretKey neighborRequest.epoch neighborRequest.message)
-      let forged ← Generic.countHashQueries (neighborAfterSigning publicKey signed.1)
+      let signed ← countHashQueries (scheme.sign secretKey neighborRequest.epoch neighborRequest.message)
+      let forged ← countHashQueries (neighborAfterSigning publicKey signed.1)
       return ((neighborForgery forged.1, Multiplicative.ofAdd (1 + signed.2 + forged.2)),
         [⟨neighborRequest, signed.1⟩])) := by
   unfold neighborMain
@@ -97,10 +99,10 @@ theorem neighborMain_counted {Key : Type} (scheme : EpochBasedSignature OracleWo
 theorem neighbor_gameCounted_everything :
     SUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput HashOutput)
       Generic.xmss neighborSufCmaAdversary = (do
-      let keyResult ← Generic.countHashQueries Generic.xmss.keygen
-      let signed ← Generic.countHashQueries (Generic.xmss.sign keyResult.1.2 neighborRequest.epoch neighborRequest.message)
-      let forged ← Generic.countHashQueries (neighborAfterSigning keyResult.1.1 signed.1)
-      let verified ← Generic.countHashQueries (Generic.xmss.verify keyResult.1.1 neighborRequest.epoch neighborMessage forged.1)
+      let keyResult ← countHashQueries Generic.xmss.keygen
+      let signed ← countHashQueries (Generic.xmss.sign keyResult.1.2 neighborRequest.epoch neighborRequest.message)
+      let forged ← countHashQueries (neighborAfterSigning keyResult.1.1 signed.1)
+      let verified ← countHashQueries (Generic.xmss.verify keyResult.1.1 neighborRequest.epoch neighborMessage forged.1)
       return (verified.1, keyResult.2 + (1 + signed.2 + forged.2) + verified.2)) := by
   unfold SUFCMA.gameCounted
   simp only [CountingMode.everything, costIf, if_true, Modes.charge_hashCost_eq_countHashQueries]
@@ -122,16 +124,16 @@ theorem neighbor_counted_support_bound (result : Bool × ℕ)
   have hsignBound := countHashQueries_support_bound _ _
     (xmss_sign_queryBound keyResult.1.2 neighborRequest.epoch neighborRequest.message) signed hsign
   have hforgedBound := countHashQueries_support_bound _ neighborDirectBudget (by
-    apply (OracleComp.isQueryBoundP_congr_pred (p := Generic.Seeded.hashBad (fun _ => True))
-      (p' := Generic.IsHashQuery) (fun input => by cases input <;> simp [Generic.Seeded.hashBad, Generic.IsHashQuery])).mp
+    apply (OracleComp.isQueryBoundP_congr_pred (p := Seeded.hashBad (fun _ => True))
+      (p' := IsHashQuery) (fun input => by cases input <;> simp [Seeded.hashBad, IsHashQuery])).mp
     exact neighborAfterSigning_queryBound keyResult.1.1 signed.1) forged hforged
   have hverifier : (Generic.xmss.verify keyResult.1.1 neighborRequest.epoch neighborMessage forged.1).IsQueryBoundP
-      Generic.IsHashQuery Generic.Direct.verifierQueryBound := by
+      IsHashQuery Direct.verifierQueryBound := by
     change (liftComp (Generic.Concrete.verify keyResult.1.1 neighborRequest.epoch neighborMessage forged.1 :
       OracleComp HashSpec Bool) OracleWorld).IsQueryBoundP _ _
-    exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ => True) (q := Generic.IsHashQuery)
-      (fun input => by change True ↔ Generic.IsHashQuery (.inr input); simp [Generic.IsHashQuery])
-      (Generic.Direct.verify_isQueryBoundP _ _ _ _)
+    exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ => True) (q := IsHashQuery)
+      (fun input => by change True ↔ IsHashQuery (.inr input); simp [IsHashQuery])
+      (Direct.verify_isQueryBoundP _ _ _ _)
   have hverifiedBound := countHashQueries_support_bound _ _ hverifier verified hverified
   have htotal := neighbor_total_budget_le
   dsimp only at hkeyBound hsignBound hforgedBound hverifiedBound ⊢
@@ -141,13 +143,13 @@ theorem neighbor_everything_queryBound :
     (SUFCMA.notion CountingMode.everything).HasQueryBound Generic.xmss neighborSufCmaAdversary neighborEverythingBudget := by
   intro result hresult
   apply neighbor_counted_support_bound result
-  exact support_simulateQ_run'_subset Generic.romImpl _ ∅ hresult
+  exact support_simulateQ_run'_subset romImpl _ ∅ hresult
 
 theorem neighbor_everything_advantage :
     (SUFCMA.notion CountingMode.everything).advantage Generic.xmss neighborSufCmaAdversary =
-      Generic.forgeAdvantage Generic.Seeded.scheme neighborAdversary := by
+      forgeAdvantage Seeded.scheme neighborAdversary := by
   rw [Modes.advantage_eq_of_mode _ CountingMode.direct,
-    Modes.notion_direct_advantage_eq, Generic.Security.notionDirect_advantage_eq]
+    Modes.notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
   rfl
 
 theorem neighbor_everything_attack : ¬(SUFCMA.notion SUFCMA.CountingMode.everything).HasClassicalSecurityBits Generic.xmss (127 + 1) := by

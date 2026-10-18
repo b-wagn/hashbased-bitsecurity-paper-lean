@@ -11,27 +11,29 @@ open OracleComp.ProgramLogic.Relational
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
 open Concrete CappedChain Deciding FirstLaneOracleSimulation
 
 theorem sourcePublic_freshAccepted_iff
-    (left : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (right : Generic.Deciding.BaseHighKey)
-    (hkey : Generic.CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
-    (hleft : left ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (source : Generic.Forgery × Generic.CappedChain.SourceExactTracedState)
-    (target : (Generic.Forgery × Generic.CappedChain.GlobalHighDirectTracedState) × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
+    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (source : Forgery × CappedChain.SourceExactTracedState)
+    (target : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hforgery : source.1 = target.1.1)
-    (hgood : Generic.CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 source.2 target.1.2 target.2) :
+    (hgood : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 source.2 target.1.2 target.2) :
     SourcePrefixFreshAccepted left source ↔ PublicFreshAccepted right.1.1 target.1 := by
-  have hparameter := Generic.CappedChain.programmedGlobal_secretKey_parameter_eq left right hkey hleft hright
+  have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hkey hleft hright
   have htrace : source.2.2 = target.1.2.attackerTrace := hgood.1.2
   obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hgood.1.1
-  change Generic.CappedChain.GlobalFilteredCausalStateRelation left right.1 source.2.1.1.1 target.1.2.causalState at hcausal
-  have hencoding : Generic.Deciding.forgedEncoding source.2.1.1.1 left.secretKey.parameter source.1 =
-      Generic.Deciding.forgedEncoding target.1.2.causalState.cache right.1.1.secretKey.parameter target.1.1 := by
+  change CappedChain.GlobalFilteredCausalStateRelation left right.1 source.2.1.1.1 target.1.2.causalState at hcausal
+  have hencoding : Deciding.forgedEncoding source.2.1.1.1 left.secretKey.parameter source.1 =
+      Deciding.forgedEncoding target.1.2.causalState.cache right.1.1.secretKey.parameter target.1.1 := by
     rw [hparameter, ← hforgery]
     exact forgedEncoding_eq_of_comparableCaches _ _ _ hcausal.1 _
   constructor
@@ -43,34 +45,34 @@ theorem sourcePublic_freshAccepted_iff
     rw [← hencoding] at haccepted
     obtain ⟨encoding, hdecode⟩ := Option.isSome_iff_exists.mp haccepted
     exact ⟨by simpa only [htrace, hforgery] using hfresh, encoding,
-      Generic.Concrete.CacheView.decodeDigest_of_decodedEncoding hdecode⟩
+      Concrete.CacheView.decodeDigest_of_decodedEncoding hdecode⟩
 
 theorem freshPrefix_acceptance_coupling_afterKeygen
-    (adversary : Generic.Adversary) (D : ℕ) (hD : Generic.Direct.IsDirectQueryBound adversary D)
-    (left : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (right : Generic.Deciding.BaseHighKey)
-    (hkey : Generic.CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
-    (hleft : left ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen) :
-    RelTriple (Generic.Deciding.sourcePrefixExecution adversary left)
-      ((simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl right.1.2) (Generic.Deciding.publicPrefixExecution adversary right.1.1 right.2)).run)
+    (adversary : Adversary) (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
+    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
+    RelTriple (Deciding.sourcePrefixExecution adversary left)
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2) (Deciding.publicPrefixExecution adversary right.1.1 right.2)).run)
       (fun source target =>
         (FreshPrefixFirstLaneEvent left source → SourcePrefixFreshAccepted left source ∧
-          Generic.FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2) ∧
+          FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2) ∧
         (PublicFreshAccepted right.1.1 target.1 → SourcePrefixFreshAccepted left source ∨
-          Generic.FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2)) := by
+          FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2)) := by
   have hpk : left.publicKey = right.1.1.publicKey := hkey.1.toStable.1.2.1
-  have hcoupling := Generic.CappedChain.relTriple_sourceExact_firstLane_adversary_boundedHit_direct D D le_rfl adversary
+  have hcoupling := CappedChain.relTriple_sourceExact_firstLane_adversary_boundedHit_direct D D le_rfl adversary
     left right hkey hleft hright (hD left.publicKey)
-  have hrightProgram : (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      (Generic.Deciding.publicPrefixExecution adversary right.1.1 right.2)).run =
-    (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      ((simulateQ (Generic.CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
+  have hrightProgram : (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
+      (Deciding.publicPrefixExecution adversary right.1.1 right.2)).run =
+    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
+      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
         (adversary.main left.publicKey)).run
-          (Generic.CappedChain.GlobalHighDirectTracedState.initial (Generic.CappedChain.globalFilteredCausalKeygenState right.1.1)))).run := by
-    unfold Generic.Deciding.publicPrefixExecution
+          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1.1)))).run := by
+    unfold Deciding.publicPrefixExecution
     rw [hpk]
   rw [hrightProgram]
-  apply relTriple_post_mono (Generic.relTriple_with_support hcoupling)
+  apply relTriple_post_mono (relTriple_with_support hcoupling)
   intro source target hresult
   rcases hresult.1 with ⟨hforgery, hgood, hcount⟩ | hhit
   · have hacceptance := sourcePublic_freshAccepted_iff left right hkey hleft hright source target hforgery hgood
@@ -78,57 +80,57 @@ theorem freshPrefix_acceptance_coupling_afterKeygen
     · intro hevent
       refine ⟨hevent.2, ?_⟩
       rw [appendFreshPrefixProbe, if_pos (hacceptance.mp hevent.2),
-        Generic.FirstLaneOracleSimulation.enforceHazardTrace_eq_self_of_count_le _ D hcount]
+        FirstLaneOracleSimulation.enforceHazardTrace_eq_self_of_count_le _ D hcount]
       have hsupport := hresult.2.2
       rw [hpk] at hsupport
-      have hcovered := Generic.CappedChain.globalFirstLaneAdversary_support_returnedCovered right.1.1 right.1.2
+      have hcovered := CappedChain.globalFirstLaneAdversary_support_returnedCovered right.1.1 right.1.2
         right.2 (adversary.main right.1.1.publicKey) target hsupport
-      exact Generic.Deciding.prefixFirstLaneEvent_good_implies_hit left right hkey hleft hright source target
+      exact Deciding.prefixFirstLaneEvent_good_implies_hit left right hkey hleft hright source target
         hforgery hgood hcovered hevent.1
     · exact fun haccepted => Or.inl (hacceptance.mpr haccepted)
-  · have hprobed : Generic.FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2 := by
+  · have hprobed : FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2 := by
       unfold appendFreshPrefixProbe
       split
-      · exact Generic.FirstLaneOracleSimulation.CombinedHit.append_of_prefix _ _ _ hhit
+      · exact FirstLaneOracleSimulation.CombinedHit.append_of_prefix _ _ _ hhit
       · exact hhit
     exact ⟨fun hevent => ⟨hevent.2, hprobed⟩, fun _ => Or.inr hprobed⟩
 
-theorem freshPrefix_acceptance_coupling (adversary : Generic.Adversary) (D : ℕ)
-    (hD : Generic.Direct.IsDirectQueryBound adversary D) :
-    RelTriple (Generic.Deciding.sourcePrefixProgram adversary) (Generic.Deciding.coupledFirstLaneProgram (Generic.Deciding.publicPrefixExecution adversary))
+theorem freshPrefix_acceptance_coupling (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) :
+    RelTriple (Deciding.sourcePrefixProgram adversary) (Deciding.coupledFirstLaneProgram (Deciding.publicPrefixExecution adversary))
       (fun source target =>
         (FreshPrefixFirstLaneEvent source.1 source.2 → SourcePrefixFreshAccepted source.1 source.2 ∧
           CoupledFreshProbedHit D target) ∧
         (CoupledPrefixFreshAccepted target → SourcePrefixFreshAccepted source.1 source.2 ∨
           CoupledFreshProbedHit D target)) := by
-  unfold Generic.Deciding.sourcePrefixProgram Generic.Deciding.coupledFirstLaneProgram
-  apply relTriple_bind (Generic.relTriple_with_support
-    Generic.CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
+  unfold Deciding.sourcePrefixProgram Deciding.coupledFirstLaneProgram
+  apply relTriple_bind (relTriple_with_support
+    CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
   intro left right hkeys
   obtain ⟨hkey, hleft, hright⟩ := hkeys
   apply relTriple_bind (freshPrefix_acceptance_coupling_afterKeygen adversary D hD left right hkey hleft
-    (Generic.CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hright))
+    (CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hright))
   intro source target hresult
   exact relTriple_pure_pure hresult
 
-theorem sourcePrefixProgram_freshAccepted_probability_le (adversary : Generic.Adversary)
-    (D : ℕ) (hD : Generic.Direct.IsDirectQueryBound adversary D) :
-    Pr[fun result => SourcePrefixFreshAccepted result.1 result.2 | Generic.Deciding.sourcePrefixProgram adversary] ≤
+theorem sourcePrefixProgram_freshAccepted_probability_le (adversary : Adversary)
+    (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D) :
+    Pr[fun result => SourcePrefixFreshAccepted result.1 result.2 | Deciding.sourcePrefixProgram adversary] ≤
       TargetSum.acceptanceProbability * (D : ℝ≥0∞) := by
-  unfold Generic.Deciding.sourcePrefixProgram
+  unfold Deciding.sourcePrefixProgram
   apply probEvent_bind_le_of_forall_le
   intro key hkey
   simp only [bind_pure_comp, probEvent_map, Function.comp_def]
   exact sourcePrefix_freshAccepted_probability_le adversary key hkey D hD
 
-theorem freshPrefixFirstLane_probability_le (adversary : Generic.Adversary) (D : ℕ)
-    (hD : Generic.Direct.IsDirectQueryBound adversary D) :
-    Pr[fun result => FreshPrefixFirstLaneEvent result.1 result.2 | Generic.Deciding.sourcePrefixProgram adversary] ≤
+theorem freshPrefixFirstLane_probability_le (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) :
+    Pr[fun result => FreshPrefixFirstLaneEvent result.1 result.2 | Deciding.sourcePrefixProgram adversary] ≤
       (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         (TargetSum.acceptanceProbability * D) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   apply (accepted_event_probability_le_of_relTriple
-    (source := Generic.Deciding.sourcePrefixProgram adversary)
-    (target := Generic.Deciding.coupledFirstLaneProgram (Generic.Deciding.publicPrefixExecution adversary))
+    (source := Deciding.sourcePrefixProgram adversary)
+    (target := Deciding.coupledFirstLaneProgram (Deciding.publicPrefixExecution adversary))
     (fun result => FreshPrefixFirstLaneEvent result.1 result.2)
     (fun result => SourcePrefixFreshAccepted result.1 result.2)
     CoupledPrefixFreshAccepted (CoupledFreshProbedHit D)

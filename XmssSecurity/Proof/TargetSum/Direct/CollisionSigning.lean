@@ -17,6 +17,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Direct.Collision
 
 open CollisionMath
@@ -31,8 +33,8 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
     (message : Message) :
     ∀ (attempts : ℕ) (cache : QueryCache HashSpec)
       (result : Option Generic.Signature × QueryCache HashSpec),
-      result ∈ support ((simulateQ Generic.romImpl
-        (Generic.Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
+      result ∈ support ((simulateQ romImpl
+        (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
           cache) →
       cache ≤ result.2 ∧
       (∀ signature, result.1 = some signature →
@@ -44,7 +46,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
   induction attempts with
   | zero =>
       intro cache result hresult
-      simp only [Generic.Concrete.precomputedSignBoundedAttempts, simulateQ_pure, StateT.run_pure,
+      simp only [Concrete.precomputedSignBoundedAttempts, simulateQ_pure, StateT.run_pure,
         support_pure, Set.mem_singleton_iff] at hresult
       subst hresult
       refine ⟨le_rfl, fun signature h => by simp at h, ?_⟩
@@ -55,7 +57,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
       simp at hcache
   | succ attempts ih =>
       intro cache result hresult
-      rw [Generic.Concrete.precomputedSignBoundedAttempts_run_succ_eq, mem_support_bind_iff] at hresult
+      rw [Concrete.precomputedSignBoundedAttempts_run_succ_eq, mem_support_bind_iff] at hresult
       obtain ⟨randomness, -, hrest⟩ := hresult
       rw [mem_support_bind_iff] at hrest
       obtain ⟨attempt, hattempt, hcont⟩ := hrest
@@ -63,10 +65,10 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
       -- the attempt either reads a cached digest or samples a fresh one
       have hcases : (attempt.2 = cache ∧
             ∃ output, cache attemptInput = some output ∧
-              attempt.1 = (Generic.Code.decodeDigest (Generic.truncateHash output)).map
+              attempt.1 = (Code.decodeDigest (Generic.truncateHash output)).map
                 (Generic.Concrete.precomputedSignWithEncoding secretKey leafIndex randomness)) ∨
           (cache attemptInput = none ∧ ∃ output, attempt.2 = cache.cacheQuery attemptInput output ∧
-              attempt.1 = (Generic.Code.decodeDigest (Generic.truncateHash output)).map
+              attempt.1 = (Code.decodeDigest (Generic.truncateHash output)).map
                 (Generic.Concrete.precomputedSignWithEncoding secretKey leafIndex randomness)) := by
         cases hcached : cache attemptInput with
         | some output =>
@@ -75,7 +77,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
             subst hattempt
             exact Or.inl ⟨rfl, output, rfl, rfl⟩
         | none =>
-            rw [Generic.Concrete.precomputedSignAttempt_run_fresh secretKey leafIndex message randomness
+            rw [Concrete.precomputedSignAttempt_run_fresh secretKey leafIndex message randomness
               cache hcached, support_map] at hattempt
             obtain ⟨output, -, houtput⟩ := hattempt
             subst houtput
@@ -86,13 +88,13 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
           have hstop : result = (some signature, attempt.2) := by
             have : result ∈ support (pure (some signature, attempt.2) :
                 ProbComp (Option Generic.Signature × QueryCache HashSpec)) := by
-              simpa [Generic.Concrete.precomputedSignBoundedAttemptsContinuation, hanswer] using hcont
+              simpa [Concrete.precomputedSignBoundedAttemptsContinuation, hanswer] using hcont
             simpa using this
           subst hstop
           have hrandomness : signature.randomness = randomness := by
             rcases hcases with ⟨_, output, _, hmap⟩ | ⟨_, output, _, hmap⟩ <;>
             · rw [hanswer] at hmap
-              cases hdecode : Generic.Code.decodeDigest (Generic.truncateHash output) <;>
+              cases hdecode : Code.decodeDigest (Generic.truncateHash output) <;>
                 simp [hdecode, Generic.Concrete.precomputedSignWithEncoding] at hmap
               subst hmap
               rfl
@@ -104,7 +106,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
               rw [hrandomness, hcacheEq]
               refine ⟨output, houtput, ?_⟩
               rw [hanswer] at hmap
-              cases hdecode : Generic.Code.decodeDigest (Generic.truncateHash output) with
+              cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
               | some encoding => exact ⟨encoding, hdecode⟩
               | none => simp [hdecode] at hmap
             · intro entry hnone hvalid
@@ -120,7 +122,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
               rw [hrandomness, hcacheEq]
               refine ⟨output, by simp [attemptInput], ?_⟩
               rw [hanswer] at hmap
-              cases hdecode : Generic.Code.decodeDigest (Generic.truncateHash output) with
+              cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
               | some encoding => exact ⟨encoding, hdecode⟩
               | none => simp [hdecode] at hmap
             · intro entry hnone _hvalid
@@ -132,14 +134,14 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
                 intro heq
                 apply hne
                 rw [hrandomness]
-                exact Generic.Concrete.CacheView.encodingInput_injective _ _ heq
+                exact Concrete.CacheView.encodingInput_injective _ _ heq
               rw [QueryCache.cacheQuery_of_ne _ _ hneInput, hnone] at hfound
               simp at hfound
       | none =>
-          have hcont' : result ∈ support ((simulateQ Generic.romImpl
-              (Generic.Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
+          have hcont' : result ∈ support ((simulateQ romImpl
+              (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
                 attempt.2) := by
-            simpa [Generic.Concrete.precomputedSignBoundedAttemptsContinuation, hanswer] using hcont
+            simpa [Concrete.precomputedSignBoundedAttemptsContinuation, hanswer] using hcont
           obtain ⟨hle, hreturned, hnew⟩ := ih attempt.2 result hcont'
           rcases hcases with ⟨hcacheEq, _⟩ | ⟨hfresh, output, hcacheEq, hmap⟩
           · rw [hcacheEq] at hle hnew
@@ -166,7 +168,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
               rw [hcacheEq]
               have hneInput : input secretKey.parameter leafIndex entry ≠ attemptInput := by
                 intro heq
-                exact hentry (Generic.Concrete.CacheView.encodingInput_injective _ _ heq)
+                exact hentry (Concrete.CacheView.encodingInput_injective _ _ heq)
               rw [QueryCache.cacheQuery_of_ne _ _ hneInput]
               exact hnone
 

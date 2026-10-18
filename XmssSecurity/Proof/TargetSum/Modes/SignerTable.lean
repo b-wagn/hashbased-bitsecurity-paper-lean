@@ -7,18 +7,20 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Modes
 open XmssSecurity.Modes
 
 attribute [local irreducible] Generic.sampleMasterSeed
 
 theorem signer_phase_eq_runSigning
-    (adversary : Generic.Security.StatementAdversary) (publicKey : PublicKey)
+    (adversary : Security.StatementAdversary) (publicKey : PublicKey)
     (secretKey : Generic.Seeded.SecretKey) :
-    (simulateQ (Generic.Security.adversaryImpl secretKey) (adversary.main publicKey)).run =
-      Generic.Seeded.runSigning (fun request => Generic.Seeded.sign secretKey request.epoch request.message)
-        (Generic.DeterministicSigning.withRequestLog (adversary.main publicKey)) := by
-  rw [Generic.Seeded.runSigning_withRequestLog]
+    (simulateQ (Security.adversaryImpl secretKey) (adversary.main publicKey)).run =
+      Seeded.runSigning (fun request => Generic.Seeded.sign secretKey request.epoch request.message)
+        (DeterministicSigning.withRequestLog (adversary.main publicKey)) := by
+  rw [Seeded.runSigning_withRequestLog]
   rfl
 
 end XmssSecurity.TargetSum.Modes

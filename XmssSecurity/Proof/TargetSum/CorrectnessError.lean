@@ -15,6 +15,8 @@ seed, the epoch, and the message, so a union bound over these `2^672` tuples and
 
 open OracleComp OracleSpec ENNReal
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Correct
 
 /-- The union bound over a finite type. -/
@@ -33,12 +35,12 @@ theorem advantage_le
     (adversary : Correctness.Adversary OracleWorld PublicKey Message Generic.Signature lifetime) :
     Correctness.advantage Generic.xmss adversary ≤ 1 / 2 ^ 64864 := by
   unfold Correctness.advantage Correctness.game RandomOracleModel.run
-  rw [← Generic.Security.romImpl_eq, StateT.run'_eq, probEvent_map]
+  rw [← Security.romImpl_eq, StateT.run'_eq, probEvent_map]
   calc
     _ ≤ _ := probEvent_flag_le_exists_signingFails adversary
     _ ≤ ∑ request : PublicParameter × MasterSeed × LeafIndex × Message,
         Pr[fun result => SigningFails request.1 request.2.1 request.2.2.1 request.2.2.2 result.2 |
-          (simulateQ Generic.romImpl (Correctness.experiment Generic.xmss adversary)).run ∅] :=
+          (simulateQ romImpl (Correctness.experiment Generic.xmss adversary)).run ∅] :=
       (probEvent_mono'' fun _ ⟨parameter, seed, leafIndex, message, hfails⟩ =>
         ⟨(parameter, seed, leafIndex, message), hfails⟩).trans (probEvent_exists_le_sum _ _)
     _ ≤ ∑ _request : PublicParameter × MasterSeed × LeafIndex × Message,

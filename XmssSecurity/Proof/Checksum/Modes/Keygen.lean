@@ -11,30 +11,32 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum
 
 attribute [local irreducible] Generic.sampleMasterSeed
 
 def seededKeygenQueryCount : ℕ :=
-  1 + lifetime * numChains + Generic.treeHashQueryCount treeHeight
+  1 + lifetime * numChains + treeHashQueryCount treeHeight
 
 theorem exactQueryCount_deriveKey (parameter : PublicParameter) (domain : Generic.KeygenDomain)
     (seed : MasterSeed) :
-    Generic.ExactQueryCount (Generic.deriveKey parameter domain seed : OracleComp HashSpec Digest) 1 := by
+    ExactQueryCount (Generic.deriveKey parameter domain seed : OracleComp HashSpec Digest) 1 := by
   unfold Generic.deriveKey
-  exact (Generic.ExactQueryCount.oracleHash _).map Generic.truncateHash
+  exact (ExactQueryCount.oracleHash _).map Generic.truncateHash
 
 theorem exactQueryCount_seededKeygenFromSeed (seed : MasterSeed) :
-    Generic.ExactQueryCount (Generic.Seeded.keygenFromSeed seed) seededKeygenQueryCount := by
-  have hchains (parameter : PublicParameter) : Generic.ExactQueryCount
+    ExactQueryCount (Generic.Seeded.keygenFromSeed seed) seededKeygenQueryCount := by
+  have hchains (parameter : PublicParameter) : ExactQueryCount
       (Generic.Concrete.sequenceFin fun leafIndex => Generic.Concrete.sequenceFin fun chain =>
         (Generic.deriveKey parameter (.chain leafIndex chain) seed : OracleComp HashSpec Digest))
       (lifetime * numChains) := by
-    have hinner (leafIndex : LeafIndex) := Generic.ExactQueryCount.sequenceFin
+    have hinner (leafIndex : LeafIndex) := ExactQueryCount.sequenceFin
       (fun chain : ChainIndex => (Generic.deriveKey parameter (.chain leafIndex chain) seed :
         OracleComp HashSpec Digest)) (fun _ => 1)
       (fun chain => exactQueryCount_deriveKey parameter (.chain leafIndex chain) seed)
-    have houter := Generic.ExactQueryCount.sequenceFin
+    have houter := ExactQueryCount.sequenceFin
       (fun leafIndex : LeafIndex => Generic.Concrete.sequenceFin fun chain =>
         (Generic.deriveKey parameter (.chain leafIndex chain) seed : OracleComp HashSpec Digest))
       (fun _ => numChains) (fun leafIndex => by simpa using hinner leafIndex)
@@ -42,34 +44,34 @@ theorem exactQueryCount_seededKeygenFromSeed (seed : MasterSeed) :
   unfold Generic.Seeded.keygenFromSeed seededKeygenQueryCount
   simpa only [Nat.add_assoc, Nat.add_zero] using
     (exactQueryCount_deriveKey 0 .parameter seed).bind _
-      (lifetime * numChains + Generic.treeHashQueryCount treeHeight) (fun parameter =>
-        (hchains parameter).bind _ (Generic.treeHashQueryCount treeHeight) (fun secret =>
-          (Generic.ExactQueryCount.withQueryLog (Generic.ExactQueryCount.rootTree parameter secret)).bind _ 0
-            (fun result => Generic.ExactQueryCount.pure _)))
+      (lifetime * numChains + treeHashQueryCount treeHeight) (fun parameter =>
+        (hchains parameter).bind _ (treeHashQueryCount treeHeight) (fun secret =>
+          (ExactQueryCount.withQueryLog (ExactQueryCount.rootTree parameter secret)).bind _ 0
+            (fun result => ExactQueryCount.pure _)))
 
 theorem exactPredicateQueryCount_xmss_keygen :
-    Generic.ExactPredicateQueryCount Generic.IsHashQuery Generic.xmss.keygen seededKeygenQueryCount := by
-  change Generic.ExactPredicateQueryCount Generic.IsHashQuery
+    ExactPredicateQueryCount IsHashQuery Generic.xmss.keygen seededKeygenQueryCount := by
+  change ExactPredicateQueryCount IsHashQuery
     ((liftM Generic.sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= fun seed =>
       liftM (Generic.Seeded.keygenFromSeed seed)) seededKeygenQueryCount
-  refine Generic.ExactQueryCount.ExactPredicateQueryCount.bind
-    (Generic.ExactQueryCount.ExactPredicateQueryCount.liftProbComp_hashCount_zero Generic.sampleMasterSeed) _
+  refine ExactQueryCount.ExactPredicateQueryCount.bind
+    (ExactQueryCount.ExactPredicateQueryCount.liftProbComp_hashCount_zero Generic.sampleMasterSeed) _
     seededKeygenQueryCount ?_
   intro seed
-  change Generic.ExactPredicateQueryCount Generic.IsHashQuery
+  change ExactPredicateQueryCount IsHashQuery
     (OracleComp.liftComp (Generic.Seeded.keygenFromSeed seed) OracleWorld) seededKeygenQueryCount
-  exact Generic.ExactQueryCount.liftComp_predicate (exactQueryCount_seededKeygenFromSeed seed)
-    Generic.IsHashQuery (fun input => by
-      change Generic.IsHashQuery (.inr input)
-      simp [Generic.IsHashQuery])
+  exact ExactQueryCount.liftComp_predicate (exactQueryCount_seededKeygenFromSeed seed)
+    IsHashQuery (fun input => by
+      change IsHashQuery (.inr input)
+      simp [IsHashQuery])
 
 namespace Modes
 open XmssSecurity.Modes
 
 theorem charge_hashCost_eq_countHashQueries (computation : OracleComp OracleWorld α) :
     SUFCMA.charge (RandomOracleModel.hashCost HashInput HashOutput) computation =
-      Generic.countHashQueries computation := by
-  unfold SUFCMA.charge addCostOracle Generic.countHashQueries
+      countHashQueries computation := by
+  unfold SUFCMA.charge addCostOracle countHashQueries
   have hcost : RandomOracleModel.hashCost HashInput HashOutput =
       fun input : OracleWorld.Domain => if input matches .inr _ then 1 else 0 := by
     funext input
@@ -85,7 +87,7 @@ theorem charge_xmss_keygen :
     SUFCMA.charge (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss.keygen =
       (fun keys => (keys, seededKeygenQueryCount)) <$> Generic.xmss.keygen := by
   rw [charge_hashCost_eq_countHashQueries]
-  exact Generic.countHashQueries_of_exact exactPredicateQueryCount_xmss_keygen
+  exact countHashQueries_of_exact exactPredicateQueryCount_xmss_keygen
 
 theorem gameCounted_keygen_eq
     {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
@@ -101,7 +103,7 @@ theorem gameCounted_keygen_eq
     bind_map_left, map_bind, map_pure, add_zero]
   rfl
 
-theorem notion_keygen_experiment_eq (adversary : Generic.Security.StatementAdversary) :
+theorem notion_keygen_experiment_eq (adversary : Security.StatementAdversary) :
     (SUFCMA.notion ⟨true, false, false, false⟩).experiment Generic.xmss adversary =
       (fun result => (result.1, seededKeygenQueryCount + result.2)) <$>
         SUFCMA.notionDirect.experiment Generic.xmss adversary := by
@@ -109,7 +111,7 @@ theorem notion_keygen_experiment_eq (adversary : Generic.Security.StatementAdver
   rw [gameCounted_keygen_eq _ _ _ _ charge_xmss_keygen, simulateQ_map, StateT.run'_map']
   rfl
 
-theorem direct_hasQueryBound_sub_keygen (adversary : Generic.Security.StatementAdversary) (q : ℕ)
+theorem direct_hasQueryBound_sub_keygen (adversary : Security.StatementAdversary) (q : ℕ)
     (hbound : (SUFCMA.notion ⟨true, false, false, false⟩).HasQueryBound Generic.xmss adversary q) :
     SUFCMA.notionDirect.HasQueryBound Generic.xmss adversary (q - seededKeygenQueryCount) := by
   intro result hresult
@@ -119,10 +121,10 @@ theorem direct_hasQueryBound_sub_keygen (adversary : Generic.Security.StatementA
   dsimp only at h
   omega
 
-theorem keygenQueryCount_le_queryBound (adversary : Generic.Security.StatementAdversary) (q : ℕ)
+theorem keygenQueryCount_le_queryBound (adversary : Security.StatementAdversary) (q : ℕ)
     (hbound : (SUFCMA.notion ⟨true, false, false, false⟩).HasQueryBound Generic.xmss adversary q) :
     seededKeygenQueryCount ≤ q := by
-  obtain ⟨result, hresult⟩ := Generic.probComp_support_nonempty (SUFCMA.notionDirect.experiment Generic.xmss adversary)
+  obtain ⟨result, hresult⟩ := probComp_support_nonempty (SUFCMA.notionDirect.experiment Generic.xmss adversary)
   have h := hbound (result.1, seededKeygenQueryCount + result.2) (by
     rw [notion_keygen_experiment_eq, support_map]
     exact ⟨result, hresult, rfl⟩)
@@ -130,7 +132,7 @@ theorem keygenQueryCount_le_queryBound (adversary : Generic.Security.StatementAd
   omega
 
 theorem twentyTwo_le_seededKeygenQueryCount : 22 ≤ seededKeygenQueryCount := by
-  have h := Generic.treeHashQueryCount_base_le treeHeight
+  have h := treeHashQueryCount_base_le treeHeight
   norm_num [numChains, chainLength, winternitzBits] at h
   unfold seededKeygenQueryCount
   omega
@@ -161,10 +163,10 @@ theorem sufCmaKeygen_127 :
   · have hkeygen := keygenQueryCount_le_queryBound adversary q hbound
     have hdirect := direct_hasQueryBound_sub_keygen adversary q hbound
     rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
-      notion_direct_advantage_eq, Generic.Security.notionDirect_advantage_eq,
-      Generic.Security.forgeAdvantage_prune_eq adversary (q - seededKeygenQueryCount) hdirect]
+      notion_direct_advantage_eq, Security.notionDirect_advantage_eq,
+      Security.forgeAdvantage_prune_eq adversary (q - seededKeygenQueryCount) hdirect]
     refine (Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
-      (Generic.Direct.pruneAdversary_isDirectQueryBound _ (Generic.Security.embed adversary))).trans
+      (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))).trans
         (sharedDecidingLoss_le_127_of_gap _ q ?_ (by omega))
     have := twentyTwo_le_seededKeygenQueryCount
     omega

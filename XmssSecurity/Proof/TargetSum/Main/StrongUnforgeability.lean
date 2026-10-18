@@ -111,6 +111,8 @@ stated in `Statement/StrongUnforgeabilityTheorems.lean`. The import list above a
 proof module of the development in the default build.
 -/
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Proof
 
 open SUFCMA
@@ -118,7 +120,7 @@ open SUFCMA
 theorem sufCma_exact (mode : CountingMode) :
     (SUFCMA.notion mode).HasExactClassicalSecurityBits Generic.xmss
       (if mode.keygen || mode.signer || mode.verifier then 127 else 122) :=
-  Generic.Modes.exactStatement_of_basis
+  Modes.exactStatement_of_basis
     ((Modes.notion_direct_hasClassicalSecurityBits_iff Generic.xmss 122).2 Direct.sufCmaDirect_122)
     Modes.sufCmaKeygen_127 Modes.sufCmaSigner_127 Modes.sufCmaVerifier_127
     Attack.chainMutation_requests_attack Attack.neighbor_everything_attack mode

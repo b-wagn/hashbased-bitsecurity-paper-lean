@@ -17,6 +17,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.NoSign
 
 /-! ## The signer queries only encoding inputs -/
@@ -25,7 +27,7 @@ section Signer
 
 variable (predicate : HashInput → Prop) [DecidablePred predicate] (secretKey : Generic.SecretKey)
   (hencoding : ∀ leafIndex payload,
-    ¬ predicate (Generic.Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload))
+    ¬ predicate (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload))
 
 include hencoding
 
@@ -36,23 +38,23 @@ theorem precomputedSignAttempt_zero (leafIndex : LeafIndex) (message : Message)
   rw [Generic.Concrete.precomputedSignAttempt]
   refine OracleComp.isQueryBoundP_bind (n := 0) (m := 0) ?_ ?_
   · have hnot := hencoding leafIndex (message, randomness)
-    simp only [Generic.Concrete.CacheView.encodingInput] at hnot
+    simp only [Concrete.CacheView.encodingInput] at hnot
     simp [Generic.Concrete.encodingHash, Generic.Concrete.tweakableHash, Generic.Concrete.oracleHash, hnot]
   · intro digest _
     split <;> simp
 
 theorem scheme_sign_zero (leafIndex : LeafIndex) (message : Message) :
-    (Generic.Concrete.scheme.sign secretKey leafIndex message).IsQueryBoundP
-      (Generic.Rom.IsRelevantHashQuery predicate) 0 := by
-  change (Generic.Concrete.precomputedCappedSign secretKey leafIndex message).IsQueryBoundP _ 0
-  rw [Generic.Concrete.precomputedCappedSign]
-  generalize Generic.Code.signingAttemptLimit = attempts
+    (Concrete.scheme.sign secretKey leafIndex message).IsQueryBoundP
+      (Rom.IsRelevantHashQuery predicate) 0 := by
+  change (Concrete.precomputedCappedSign secretKey leafIndex message).IsQueryBoundP _ 0
+  rw [Concrete.precomputedCappedSign]
+  generalize Code.signingAttemptLimit = attempts
   induction attempts with
   | zero =>
-      rw [Generic.Concrete.precomputedSignBoundedAttempts]
+      rw [Concrete.precomputedSignBoundedAttempts]
       exact OracleComp.isQueryBoundP_pure _ _ _
   | succ attempts ih =>
-      rw [Generic.Concrete.precomputedSignBoundedAttempts]
+      rw [Concrete.precomputedSignBoundedAttempts]
       refine OracleComp.isQueryBoundP_bind (n := 0) (m := 0)
         (OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ : unifSpec.Domain => False)
           (fun _ => Iff.rfl) (OracleComp.isQueryBoundP_false _ 0)) ?_
@@ -69,43 +71,43 @@ theorem scheme_sign_zero (leafIndex : LeafIndex) (message : Message) :
 
 theorem expectedQueries_sign_eq_zero (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount Generic.romImpl (Generic.Rom.IsRelevantHashQuery predicate)
-      (Generic.Concrete.scheme.sign secretKey leafIndex message) cache = 0 := by
-  have h := expectedSimulatedQueryCount_le_of_isQueryBoundP Generic.romImpl _ _ cache 0
+    expectedSimulatedQueryCount romImpl (Rom.IsRelevantHashQuery predicate)
+      (Concrete.scheme.sign secretKey leafIndex message) cache = 0 := by
+  have h := expectedSimulatedQueryCount_le_of_isQueryBoundP romImpl _ _ cache 0
     (scheme_sign_zero predicate secretKey hencoding leafIndex message)
   simpa using h
 
 /-- The adversary phase's expected queries at inputs the signer never queries. -/
-theorem expectedQueries_adversaryPhase_eq (adversary : Generic.Adversary) (publicKey : PublicKey)
+theorem expectedQueries_adversaryPhase_eq (adversary : Adversary) (publicKey : PublicKey)
     (cache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount Generic.romImpl (Generic.Rom.IsRelevantHashQuery predicate)
-        (Generic.Deciding.adversaryPhase adversary publicKey secretKey) cache =
-      expectedSimulatedQueryCount (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey)
-        (Generic.Direct.IsDirectWorldQuery (Generic.Rom.IsRelevantHashQuery predicate))
+    expectedSimulatedQueryCount romImpl (Rom.IsRelevantHashQuery predicate)
+        (Deciding.adversaryPhase adversary publicKey secretKey) cache =
+      expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
+        (Direct.IsDirectWorldQuery (Rom.IsRelevantHashQuery predicate))
         (adversary.main publicKey) cache := by
   have hproj := QueryImpl.fst_map_run_withTraceAppend
-    (Generic.cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey) Generic.signingLogFragment
+    (cappedSourceUnloggedMappedAdversaryImpl publicKey secretKey) signingLogFragment
     (adversary.main publicKey)
-  rw [Generic.cappedSourceUnloggedMappedAdversaryImpl_withTraceAppend_eq] at hproj
+  rw [cappedSourceUnloggedMappedAdversaryImpl_withTraceAppend_eq] at hproj
   have hcount := congrArg
-    (fun computation => expectedSimulatedQueryCount Generic.romImpl
-      (Generic.Rom.IsRelevantHashQuery predicate) computation cache) hproj
+    (fun computation => expectedSimulatedQueryCount romImpl
+      (Rom.IsRelevantHashQuery predicate) computation cache) hproj
   rw [expectedSimulatedQueryCount_map] at hcount
-  unfold Generic.Deciding.adversaryPhase
+  unfold Deciding.adversaryPhase
   rw [hcount]
-  exact Generic.Direct.expectedSimulatedQueryCount_mappedAdversary_eq publicKey secretKey _
+  exact Direct.expectedSimulatedQueryCount_mappedAdversary_eq publicKey secretKey _
     (fun request cache => expectedQueries_sign_eq_zero predicate secretKey hencoding
       request.epoch request.message cache) (adversary.main publicKey) cache
 
 end Signer
 
 theorem expectedDirectWorld_le_direct {α σ : Type}
-    (impl : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT σ ProbComp))
+    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT σ ProbComp))
     (predicate : HashInput → Prop) [DecidablePred predicate]
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : σ) :
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : σ) :
     expectedSimulatedQueryCount impl
-        (Generic.Direct.IsDirectWorldQuery (Generic.Rom.IsRelevantHashQuery predicate)) computation state ≤
-      expectedSimulatedQueryCount impl Generic.Direct.IsDirectHashQuery computation state := by
+        (Direct.IsDirectWorldQuery (Rom.IsRelevantHashQuery predicate)) computation state ≤
+      expectedSimulatedQueryCount impl Direct.IsDirectHashQuery computation state := by
   refine expectedSimulatedQueryCount_mono impl _ _ (fun input hinput => ?_) computation state
   rcases input with (uniformInput | hashInput) | request
   · exact hinput.elim
@@ -115,34 +117,34 @@ theorem expectedDirectWorld_le_direct {α σ : Type}
 /-! ## The probability of signing -/
 
 theorem forwardOracles_run_eq (input : OracleWorld.Domain) :
-    (Generic.forwardOracles input).run =
-      (fun answer => (answer, ([] : QueryLog Generic.SigningSpec))) <$>
+    (forwardOracles input).run =
+      (fun answer => (answer, ([] : QueryLog SigningSpec))) <$>
         (liftM (OracleWorld.query input) : OracleComp OracleWorld _) := rfl
 
 theorem romImpl_forwardOracles_run (input : OracleWorld.Domain) (cache : QueryCache HashSpec) :
-    (simulateQ Generic.romImpl (Generic.forwardOracles input).run).run cache =
-      (fun result => ((result.1, ([] : QueryLog Generic.SigningSpec)), result.2)) <$>
-        (Generic.romImpl input).run cache := by
+    (simulateQ romImpl (forwardOracles input).run).run cache =
+      (fun result => ((result.1, ([] : QueryLog SigningSpec)), result.2)) <$>
+        (romImpl input).run cache := by
   rw [forwardOracles_run_eq, simulateQ_map, simulateQ_spec_query, StateT.run_map]
 
 /-- The adversary signs with probability at most its expected number of requests. -/
 theorem probEvent_signingLog_ne_nil_le {α : Type} (publicKey : PublicKey)
-    (secretKey : Generic.SecretKey) (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (secretKey : Generic.SecretKey) (computation : OracleComp (OracleWorld + SigningSpec) α)
     (cache : QueryCache HashSpec) :
-    Pr[fun result : (α × QueryLog Generic.SigningSpec) × QueryCache HashSpec => result.1.2 ≠ [] |
-      (simulateQ Generic.romImpl (simulateQ (Generic.forwardOracles + Generic.signingOracle Generic.Concrete.scheme secretKey)
+    Pr[fun result : (α × QueryLog SigningSpec) × QueryCache HashSpec => result.1.2 ≠ [] |
+      (simulateQ romImpl (simulateQ (forwardOracles + signingOracle Concrete.scheme secretKey)
         computation).run).run cache] ≤
-      expectedSimulatedQueryCount (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey)
+      expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
         IsSignQuery computation cache := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
       simp
   | query_bind input next ih =>
-      rw [Generic.Direct.run_logged_query_bind, expectedSimulatedQueryCount_query_bind]
+      rw [Direct.run_logged_query_bind, expectedSimulatedQueryCount_query_bind]
       rcases input with world | request
       · simp only [IsSignQuery, if_false, zero_add]
-        rw [show (Generic.forwardOracles + Generic.signingOracle Generic.Concrete.scheme secretKey) (.inl world) =
-          Generic.forwardOracles world from rfl, romImpl_forwardOracles_run, probEvent_bind_eq_tsum,
+        rw [show (forwardOracles + signingOracle Concrete.scheme secretKey) (.inl world) =
+          forwardOracles world from rfl, romImpl_forwardOracles_run, probEvent_bind_eq_tsum,
           tsum_probOutput_map_mul]
         refine ENNReal.tsum_le_tsum fun result => mul_le_mul' le_rfl ?_
         rw [probEvent_map]
@@ -155,27 +157,27 @@ theorem probEvent_signingLog_ne_nil_le {α : Type} (publicKey : PublicKey)
 
 /-- The game's adversary phase from a cache. -/
 noncomputable abbrev realRun {α : Type} (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (cache : QueryCache HashSpec) :
-    ProbComp ((α × QueryLog Generic.SigningSpec) × QueryCache HashSpec) :=
-  (simulateQ Generic.romImpl (simulateQ (Generic.forwardOracles + Generic.signingOracle Generic.Concrete.scheme secretKey)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache HashSpec) :
+    ProbComp ((α × QueryLog SigningSpec) × QueryCache HashSpec) :=
+  (simulateQ romImpl (simulateQ (forwardOracles + signingOracle Concrete.scheme secretKey)
     computation).run).run cache
 
-theorem withLogging_run_eq (signer : Generic.SignRequest → OracleComp OracleWorld (Option Generic.Signature))
-    (request : Generic.SignRequest) :
+theorem withLogging_run_eq (signer : SignRequest → OracleComp OracleWorld (Option Generic.Signature))
+    (request : SignRequest) :
     (QueryImpl.withLogging signer request).run =
       (fun answer => (answer, [⟨request, answer⟩])) <$> signer request := by
   simp [QueryImpl.withLogging_apply, WriterT.run_bind, WriterT.run_tell]
 
-theorem signingOracle_run_log (secretKey : Generic.SecretKey) (request : Generic.SignRequest)
+theorem signingOracle_run_log (secretKey : Generic.SecretKey) (request : SignRequest)
     (cache : QueryCache HashSpec)
-    (step : (Option Generic.Signature × QueryLog Generic.SigningSpec) × QueryCache HashSpec)
-    (hstep : step ∈ support ((simulateQ Generic.romImpl
-      (Generic.signingOracle Generic.Concrete.scheme secretKey request).run).run cache)) :
+    (step : (Option Generic.Signature × QueryLog SigningSpec) × QueryCache HashSpec)
+    (hstep : step ∈ support ((simulateQ romImpl
+      (signingOracle Concrete.scheme secretKey request).run).run cache)) :
     step.1.2 ≠ [] := by
-  have hrun : (Generic.signingOracle Generic.Concrete.scheme secretKey request).run =
+  have hrun : (signingOracle Concrete.scheme secretKey request).run =
       (fun answer => (answer, [⟨request, answer⟩])) <$>
-        Generic.Concrete.scheme.sign secretKey request.epoch request.message :=
-    withLogging_run_eq (fun request => Generic.Concrete.scheme.sign secretKey request.epoch
+        Concrete.scheme.sign secretKey request.epoch request.message :=
+    withLogging_run_eq (fun request => Concrete.scheme.sign secretKey request.epoch
       request.message) request
   rw [hrun, simulateQ_map, StateT.run_map, support_map] at hstep
   obtain ⟨_, _, rfl⟩ := hstep
@@ -183,9 +185,9 @@ theorem signingOracle_run_log (secretKey : Generic.SecretKey) (request : Generic
 
 /-- Without a request on any branch, every execution has an empty signing log. -/
 theorem realRun_log_eq_nil {α : Type} (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (h : computation.IsQueryBoundP IsSignQuery 0) (cache : QueryCache HashSpec)
-    (result : (α × QueryLog Generic.SigningSpec) × QueryCache HashSpec)
+    (result : (α × QueryLog SigningSpec) × QueryCache HashSpec)
     (hresult : result ∈ support (realRun secretKey computation cache)) :
     result.1.2 = [] := by
   induction computation using OracleComp.inductionOn generalizing cache result with
@@ -197,11 +199,11 @@ theorem realRun_log_eq_nil {α : Type} (secretKey : Generic.SecretKey)
   | query_bind input next ih =>
       rw [isQueryBoundP_query_bind_iff] at h
       unfold realRun at hresult
-      rw [Generic.Direct.run_logged_query_bind, mem_support_bind_iff] at hresult
+      rw [Direct.run_logged_query_bind, mem_support_bind_iff] at hresult
       obtain ⟨step, hstep, hrest⟩ := hresult
       rcases input with world | request
-      · rw [show (Generic.forwardOracles + Generic.signingOracle Generic.Concrete.scheme secretKey) (.inl world) =
-          Generic.forwardOracles world from rfl, romImpl_forwardOracles_run, support_map] at hstep
+      · rw [show (forwardOracles + signingOracle Concrete.scheme secretKey) (.inl world) =
+          forwardOracles world from rfl, romImpl_forwardOracles_run, support_map] at hstep
         obtain ⟨first, _, rfl⟩ := hstep
         rw [support_map] at hrest
         obtain ⟨rest, hrestMem, rfl⟩ := hrest
@@ -210,11 +212,11 @@ theorem realRun_log_eq_nil {α : Type} (secretKey : Generic.SecretKey)
 
 /-- On the executions without a request, the adversary phase is the forwarded run. -/
 theorem probEvent_realRun_noSign_le {α : Type} (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (cache : QueryCache HashSpec)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache HashSpec)
     (event : α × QueryCache HashSpec → Prop) :
     Pr[fun result => event (result.1.1, result.2) ∧ result.1.2 = [] |
         realRun secretKey computation cache] ≤
-      Pr[event | (simulateQ Generic.romImpl (simulateQ forwardOnly computation)).run cache] := by
+      Pr[event | (simulateQ romImpl (simulateQ forwardOnly computation)).run cache] := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
       classical
@@ -222,18 +224,18 @@ theorem probEvent_realRun_noSign_le {α : Type} (secretKey : Generic.SecretKey)
       split_ifs <;> simp_all
   | query_bind input next ih =>
       unfold realRun
-      rw [Generic.Direct.run_logged_query_bind]
+      rw [Direct.run_logged_query_bind]
       rcases input with world | request
-      · have hforward : (simulateQ Generic.romImpl (simulateQ forwardOnly
-            (liftM ((OracleWorld + Generic.SigningSpec).query (.inl world)) >>= next))).run cache =
-            (Generic.romImpl world).run cache >>= fun result =>
-              (simulateQ Generic.romImpl (simulateQ forwardOnly (next result.1))).run result.2 := by
+      · have hforward : (simulateQ romImpl (simulateQ forwardOnly
+            (liftM ((OracleWorld + SigningSpec).query (.inl world)) >>= next))).run cache =
+            (romImpl world).run cache >>= fun result =>
+              (simulateQ romImpl (simulateQ forwardOnly (next result.1))).run result.2 := by
           rw [simulateQ_query_bind]
-          change (simulateQ Generic.romImpl (liftM (OracleWorld.query world) >>= fun answer =>
+          change (simulateQ romImpl (liftM (OracleWorld.query world) >>= fun answer =>
             simulateQ forwardOnly (next answer))).run cache = _
           rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-        rw [show (Generic.forwardOracles + Generic.signingOracle Generic.Concrete.scheme secretKey) (.inl world) =
-            Generic.forwardOracles world from rfl, romImpl_forwardOracles_run, probEvent_bind_eq_tsum,
+        rw [show (forwardOracles + signingOracle Concrete.scheme secretKey) (.inl world) =
+            forwardOracles world from rfl, romImpl_forwardOracles_run, probEvent_bind_eq_tsum,
           tsum_probOutput_map_mul, hforward, probEvent_bind_eq_tsum]
         refine ENNReal.tsum_le_tsum fun result => mul_le_mul' le_rfl ?_
         rw [probEvent_map]
@@ -252,45 +254,45 @@ theorem probEvent_realRun_noSign_le {α : Type} (secretKey : Generic.SecretKey)
 
 /-- A program without direct hash queries is unchanged by answering them without querying. -/
 theorem pruneDirect_zero_eq_self {α : Type}
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
-    (h : computation.IsQueryBoundP Generic.Direct.IsDirectHashQuery 0) :
-    Generic.Direct.pruneDirect 0 computation = computation := by
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (h : computation.IsQueryBoundP Direct.IsDirectHashQuery 0) :
+    Direct.pruneDirect 0 computation = computation := by
   induction computation using OracleComp.inductionOn with
   | pure value => rfl
   | query_bind input next ih =>
       rw [isQueryBoundP_query_bind_iff] at h
       rcases input with (uniformInput | hashInput) | request
-      · rw [Generic.Direct.pruneDirect_uniform_bind]
+      · rw [Direct.pruneDirect_uniform_bind]
         exact congrArg _ (funext fun answer => ih answer (by simpa using h.2 answer))
       · simp at h
-      · rw [Generic.Direct.pruneDirect_sign_bind]
+      · rw [Direct.pruneDirect_sign_bind]
         exact congrArg _ (funext fun answer => ih answer (by simpa using h.2 answer))
 
 /-- When a request can only come first, the executions with a request are those of the
 hash-free pruning. -/
 theorem probEvent_realRun_sign_eq {α : Type} (secretKey : Generic.SecretKey) (signCost budget : ℕ)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (h : IsWeightedBound signCost computation budget) (hbudget : budget ≤ signCost)
     (cache : QueryCache HashSpec)
-    (event : (α × QueryLog Generic.SigningSpec) × QueryCache HashSpec → Prop) :
+    (event : (α × QueryLog SigningSpec) × QueryCache HashSpec → Prop) :
     Pr[fun result => event result ∧ result.1.2 ≠ [] | realRun secretKey computation cache] =
       Pr[fun result => event result ∧ result.1.2 ≠ [] |
-        realRun secretKey (Generic.Direct.pruneDirect 0 computation) cache] := by
+        realRun secretKey (Direct.pruneDirect 0 computation) cache] := by
   induction computation using OracleComp.inductionOn generalizing budget cache event with
   | pure value => rfl
   | query_bind input next ih =>
       have hfull := h
       rw [isWeightedBound_query_bind_iff] at h
       rcases input with (uniformInput | hashInput) | request
-      · rw [Generic.Direct.pruneDirect_uniform_bind]
+      · rw [Direct.pruneDirect_uniform_bind]
         unfold realRun
-        rw [Generic.Direct.run_logged_query_bind, Generic.Direct.run_logged_query_bind, probEvent_bind_eq_tsum,
+        rw [Direct.run_logged_query_bind, Direct.run_logged_query_bind, probEvent_bind_eq_tsum,
           probEvent_bind_eq_tsum,
-          show (Generic.forwardOracles + Generic.signingOracle Generic.Concrete.scheme secretKey)
-            (.inl (.inl uniformInput)) = Generic.forwardOracles (.inl uniformInput) from rfl]
+          show (forwardOracles + signingOracle Concrete.scheme secretKey)
+            (.inl (.inl uniformInput)) = forwardOracles (.inl uniformInput) from rfl]
         refine tsum_congr fun step => ?_
-        by_cases hstep : step ∈ support ((simulateQ Generic.romImpl
-            (Generic.forwardOracles (.inl uniformInput)).run).run cache)
+        by_cases hstep : step ∈ support ((simulateQ romImpl
+            (forwardOracles (.inl uniformInput)).run).run cache)
         · have hlog : step.1.2 = [] := by
             rw [romImpl_forwardOracles_run, support_map] at hstep
             obtain ⟨_, _, rfl⟩ := hstep
@@ -305,12 +307,12 @@ theorem probEvent_realRun_sign_eq {α : Type} (secretKey : Generic.SecretKey) (s
           have := h.1
           simp [actionWeight] at this ⊢
           omega
-        have hnone : (liftM ((OracleWorld + Generic.SigningSpec).query (.inl (.inr hashInput))) >>=
+        have hnone : (liftM ((OracleWorld + SigningSpec).query (.inl (.inr hashInput))) >>=
             next).IsQueryBoundP IsSignQuery 0 := by
           rw [isQueryBoundP_query_bind_iff]
           exact ⟨Or.inl (by simp [IsSignQuery]), fun answer => by
             simpa [IsSignQuery] using (h.2 answer).noSign hlow⟩
-        rw [Generic.Direct.pruneDirect_hash_bind, if_pos rfl,
+        rw [Direct.pruneDirect_hash_bind, if_pos rfl,
           probEvent_eq_zero fun result hresult hevent =>
             hevent.2 (realRun_log_eq_nil secretKey _ hnone cache result hresult),
           probEvent_eq_zero fun result hresult hevent =>
@@ -318,12 +320,12 @@ theorem probEvent_realRun_sign_eq {α : Type} (secretKey : Generic.SecretKey) (s
               ((pruneDirect_zero_isWeightedBound signCost _ _ (h.2 default)).noSign hlow)
               cache result hresult)]
       · -- The request comes first; afterwards the program has no direct hash query.
-        rw [Generic.Direct.pruneDirect_sign_bind]
+        rw [Direct.pruneDirect_sign_bind]
         have hzero : budget - actionWeight signCost (.inr request) = 0 := by
           have := h.1
           simp [actionWeight] at this ⊢
           omega
-        have hrest : ∀ answer, Generic.Direct.pruneDirect 0 (next answer) = next answer := by
+        have hrest : ∀ answer, Direct.pruneDirect 0 (next answer) = next answer := by
           intro answer
           have hdirect := (h.2 answer).direct
           rw [hzero] at hdirect

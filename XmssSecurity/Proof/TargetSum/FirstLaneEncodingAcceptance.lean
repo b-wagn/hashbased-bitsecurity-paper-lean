@@ -11,11 +11,13 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.FirstLaneOracleSimulation
 
 variable {Index : Type} [Fintype Index] [DecidableEq Index]
 
-def IsEncodingSample : (Generic.FirstLaneOracleSimulation.World Index).Domain → Prop
+def IsEncodingSample : (FirstLaneOracleSimulation.World Index).Domain → Prop
   | .encodingQuery _ => True
   | .encodingSignAttempt _ => True
   | _ => False

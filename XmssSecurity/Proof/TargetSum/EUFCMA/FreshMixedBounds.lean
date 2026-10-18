@@ -12,14 +12,16 @@ open scoped Classical
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA
 open XmssSecurity.EUFCMA
 
 open Concrete CappedChain Deciding
 
-theorem freshMixedPrefixProbability_le_of_cached (adversary : Generic.Adversary) (D : ℕ)
-    (hD : Generic.Direct.IsDirectQueryBound adversary D) (base credit extra : ℝ≥0∞)
-    (hcached : Pr[fun result => FreshPrefixFirstLaneEvent result.1 result.2 | Generic.Deciding.sourcePrefixProgram adversary] ≤
+theorem freshMixedPrefixProbability_le_of_cached (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) (base credit extra : ℝ≥0∞)
+    (hcached : Pr[fun result => FreshPrefixFirstLaneEvent result.1 result.2 | Deciding.sourcePrefixProgram adversary] ≤
       base + credit)
     (hgeneral : ((D + 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤ base + extra) :
     freshMixedPrefixProbability adversary ≤ base + credit + TargetSum.acceptanceProbability * extra := by
@@ -27,19 +29,19 @@ theorem freshMixedPrefixProbability_le_of_cached (adversary : Generic.Adversary)
   rw [probEvent_bind_eq_tsum]
   calc
     _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-        (base + credit + if Generic.Code.ValidDigest (Generic.truncateHash output) then extra else 0) := by
+        (base + credit + if Code.ValidDigest (Generic.truncateHash output) then extra else 0) := by
       apply ENNReal.tsum_le_tsum
       intro output
       apply mul_le_mul' le_rfl
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-      by_cases hvalid : Generic.Code.ValidDigest (Generic.truncateHash output)
+      by_cases hvalid : Code.ValidDigest (Generic.truncateHash output)
       · rw [if_pos hvalid]
         apply le_trans (probEvent_mono'' (fun _ h => h.2))
         apply (mixedPrefix_probability_le_direct adversary D hD _).trans
         exact hgeneral.trans (by simp only [add_assoc]; exact add_le_add le_rfl (le_add_left le_rfl))
       · rw [if_neg hvalid, add_zero]
-        have hnone : Generic.Code.decodeDigest (Generic.truncateHash output) = none := by
-          cases hdecode : Generic.Code.decodeDigest (Generic.truncateHash output) with
+        have hnone : Code.decodeDigest (Generic.truncateHash output) = none := by
+          cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
           | none => rfl
           | some encoding => exact (hvalid ⟨encoding, hdecode⟩).elim
         simp only [hnone]
@@ -57,15 +59,15 @@ theorem freshMixedPrefixProbability_le_of_cached (adversary : Generic.Adversary)
       intro output
       split_ifs <;> simp only [mul_zero, zero_mul]
 
-theorem freshMixedPrefixProbability_le_expected (adversary : Generic.Adversary) (D : ℕ)
-    (hD : Generic.Direct.IsDirectQueryBound adversary D) :
+theorem freshMixedPrefixProbability_le_expected (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) :
     freshMixedPrefixProbability adversary ≤
       (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (TargetSum.acceptanceProbability * (Generic.Direct.expectedDirectEncodingQueries adversary + 1)) /
+        (TargetSum.acceptanceProbability * (Direct.expectedDirectEncodingQueries adversary + 1)) /
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   have h := freshMixedPrefixProbability_le_of_cached adversary D hD
     ((D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
-    ((TargetSum.acceptanceProbability * Generic.Direct.expectedDirectEncodingQueries adversary) /
+    ((TargetSum.acceptanceProbability * Direct.expectedDirectEncodingQueries adversary) /
       ((2 ^ digestBits : ℕ) : ℝ≥0∞))
     (1 / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
     (freshPrefixFirstLane_probability_le_expected adversary D hD)
@@ -74,15 +76,15 @@ theorem freshMixedPrefixProbability_le_expected (adversary : Generic.Adversary) 
   simp only [div_eq_mul_inv]
   ring
 
-theorem freshMixedPrefixProbability_le_terminal (adversary : Generic.Adversary) (q : ℕ)
+theorem freshMixedPrefixProbability_le_terminal (adversary : Adversary) (q : ℕ)
     (hpositive : 0 < q) (hbound : Requests.IsQueryBound adversary q) :
     freshMixedPrefixProbability adversary ≤
       ((q - 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (2 * Generic.Direct.expectedDirectEncodingQueries adversary + 2 * TargetSum.acceptanceProbability) /
+        (2 * Direct.expectedDirectEncodingQueries adversary + 2 * TargetSum.acceptanceProbability) /
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   have h := freshMixedPrefixProbability_le_of_cached adversary q hbound.direct
     (((q - 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
-    ((2 * Generic.Direct.expectedDirectEncodingQueries adversary) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
+    ((2 * Direct.expectedDirectEncodingQueries adversary) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
     (2 / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
     (Requests.freshPrefixFirstLane_probability_le_terminal adversary q hpositive hbound)
     (by

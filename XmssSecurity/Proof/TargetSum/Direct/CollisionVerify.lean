@@ -17,11 +17,13 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Direct.Collision
 
 /-- The input is an encoding input. -/
 def IsEncodingInput (parameter : PublicParameter) (hashInput : HashInput) : Prop :=
-  (Generic.encodingInputLeafIndex? parameter hashInput).isSome
+  (encodingInputLeafIndex? parameter hashInput).isSome
 
 noncomputable instance (parameter : PublicParameter) : DecidablePred (IsEncodingInput parameter) :=
   Classical.decPred _
@@ -32,9 +34,9 @@ theorem tweakableHashInput_not_encoding (parameter : PublicParameter) (domain : 
   intro h
   obtain ⟨leafIndex, hleafIndex⟩ := Option.isSome_iff_exists.mp h
   obtain ⟨entry, hentry⟩ :=
-    Generic.exists_encodingInput_of_encodingInputLeafIndex?_eq_some parameter _ leafIndex hleafIndex
+    exists_encodingInput_of_encodingInputLeafIndex?_eq_some parameter _ leafIndex hleafIndex
   exact hdomain leafIndex
-    (Generic.domain_eq_of_tweakableHashInput_eq parameter hentry).symm
+    (domain_eq_of_tweakableHashInput_eq parameter hentry).symm
 
 theorem tweakableHash_noEncoding (parameter : PublicParameter) (domain : Generic.HashDomain)
     (payload : HashInput) (hdomain : ∀ leafIndex, domain ≠ .encoding leafIndex) :
@@ -62,7 +64,7 @@ theorem recoverEndpoints_noEncoding (parameter : PublicParameter) (leafIndex : L
     (Generic.Concrete.recoverEndpoints parameter leafIndex encoding signature :
       OracleComp HashSpec (ChainIndex → Digest)).IsQueryBoundP (IsEncodingInput parameter) 0 := by
   unfold Generic.Concrete.recoverEndpoints
-  have h := Generic.Direct.sequenceFin_isQueryBoundP (fun chain => Generic.Concrete.recoverChain parameter leafIndex chain
+  have h := Direct.sequenceFin_isQueryBoundP (fun chain => Generic.Concrete.recoverChain parameter leafIndex chain
     (encoding chain) (signature.chainValue chain)) (fun _ => 0) (IsEncodingInput parameter)
     fun chain => by
       unfold Generic.Concrete.recoverChain
@@ -107,10 +109,10 @@ theorem verifyAfterLeaf_noEncoding (publicKey : PublicKey) (leafIndex : LeafInde
 
 theorem verifyAfterDigest_noEncoding (publicKey : PublicKey) (leafIndex : LeafIndex)
     (signature : Generic.Signature) (digest : Digest) :
-    (Generic.Direct.verifyAfterDigest publicKey leafIndex signature digest).IsQueryBoundP
+    (Direct.verifyAfterDigest publicKey leafIndex signature digest).IsQueryBoundP
       (IsEncodingInput publicKey.parameter) 0 := by
-  unfold Generic.Direct.verifyAfterDigest
-  cases Generic.Code.decodeDigest digest with
+  unfold Direct.verifyAfterDigest
+  cases Code.decodeDigest digest with
   | none => simp
   | some encoding =>
       simp only
@@ -156,7 +158,7 @@ theorem run_agree_of_noEncoding {β : Type} (parameter : PublicParameter)
               Set.mem_singleton_iff] at hmiddle
             rw [hmiddle]
         | none =>
-            rw [Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hmiddle
+            rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hmiddle
             obtain ⟨sampled, -, hsampled⟩ := hmiddle
             rw [← hsampled]
             exact QueryCache.cacheQuery_of_ne _ _ hne

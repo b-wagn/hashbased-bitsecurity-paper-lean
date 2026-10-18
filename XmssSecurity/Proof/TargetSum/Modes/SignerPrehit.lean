@@ -10,17 +10,19 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Modes
 open XmssSecurity.Modes
 
 open Seeded Direct
 
-theorem signer_prehit_le (adversary : Generic.Security.StatementAdversary) (q : Nat)
+theorem signer_prehit_le (adversary : Security.StatementAdversary) (q : Nat)
     (hq : q + 1 ≤ 2 ^ 127)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q) :
-    Pr[Generic.WinningEncodingPrehitOccurs |
-        Generic.cappedDetailedGameWithEncodingTrace (Generic.Seeded.memoAdversary (Generic.Security.embed adversary))] ≤
-      prehitRate * Generic.Direct.expectedDirectEncodingQueries (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) := by
+    Pr[WinningEncodingPrehitOccurs |
+        cappedDetailedGameWithEncodingTrace (Seeded.memoAdversary (Security.embed adversary))] ≤
+      prehitRate * Direct.expectedDirectEncodingQueries (Seeded.memoAdversary (Security.embed adversary)) := by
   have hsmall : q < 2 ^ 256 := by omega
   apply winningEncodingPrehit_probability_le_prehitRate_of_phaseBudget _ q hq
   intro keyResult hkey result hresult

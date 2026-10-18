@@ -10,34 +10,36 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum
 
 theorem countHashQueries_precomputedSignAttempt
     (secretKey : Generic.SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) :
-    Generic.countHashQueries (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+    countHashQueries (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
       OracleComp OracleWorld (Option Generic.Signature)) =
       (fun answer => (answer, 1)) <$>
         (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
           OracleComp OracleWorld (Option Generic.Signature)) := by
-  have hencoding : Generic.countHashQueries
+  have hencoding : countHashQueries
       (Generic.Concrete.encodingHash secretKey.parameter leafIndex message randomness :
         OracleComp OracleWorld Digest) =
       (fun digest => (digest, 1)) <$>
         (Generic.Concrete.encodingHash secretKey.parameter leafIndex message randomness :
           OracleComp OracleWorld Digest) := by
-    change Generic.countHashQueries (liftM (OracleWorld.query (.inr
-      (Generic.Concrete.CacheView.encodingInput secretKey.parameter leafIndex (message, randomness))))
+    change countHashQueries (liftM (OracleWorld.query (.inr
+      (Concrete.CacheView.encodingInput secretKey.parameter leafIndex (message, randomness))))
       >>= fun output => pure (Generic.truncateHash output)) = _
-    rw [Generic.countHashQueries_query_bind]
-    simp only [Generic.countHashQueries_pure, pure_bind]
+    rw [countHashQueries_query_bind]
+    simp only [countHashQueries_pure, pure_bind]
     rfl
-  rw [Generic.Concrete.precomputedSignAttempt, Generic.countHashQueries_bind, hencoding]
+  rw [Generic.Concrete.precomputedSignAttempt, countHashQueries_bind, hencoding]
   simp only [bind_map_left, map_bind]
   apply bind_congr
   intro digest
-  cases Generic.Code.decodeDigest digest <;>
-    simp only [Generic.countHashQueries_pure, pure_bind, map_pure, Nat.add_zero]
+  cases Code.decodeDigest digest <;>
+    simp only [countHashQueries_pure, pure_bind, map_pure, Nat.add_zero]
 
 namespace Seeded
 
@@ -46,16 +48,16 @@ theorem run_counted_deriveRandomizer_of_cached
     (message : Message) (trial : BitVec 32) (cache : QueryCache HashSpec)
     (output : HashOutput)
     (hcache : cache (Generic.randomizerHashInput parameter seed leafIndex message trial) = some output) :
-    (simulateQ Generic.romImpl (Generic.countHashQueries
+    (simulateQ romImpl (countHashQueries
       (Generic.deriveRandomizer parameter seed leafIndex message trial :
         OracleComp OracleWorld Randomness))).run cache =
       pure ((output.extractLsb' 0 randomnessBits, 1), cache) := by
   unfold Generic.deriveRandomizer Generic.Concrete.oracleHash
-  change (simulateQ Generic.romImpl (Generic.countHashQueries
+  change (simulateQ romImpl (countHashQueries
     (liftM (OracleWorld.query (.inr (Generic.randomizerHashInput parameter seed leafIndex message trial)))
       >>= fun value => pure (value.extractLsb' 0 randomnessBits)))).run cache = _
-  rw [Generic.countHashQueries_query_bind]
-  simp only [Generic.countHashQueries_pure, pure_bind, simulateQ_bind, simulateQ_spec_query,
+  rw [countHashQueries_query_bind]
+  simp only [countHashQueries_pure, pure_bind, simulateQ_bind, simulateQ_spec_query,
     simulateQ_pure, StateT.run_bind, StateT.run_pure]
   change (do
     let result ← (randomOracle (spec := HashSpec)
@@ -64,50 +66,50 @@ theorem run_counted_deriveRandomizer_of_cached
   rw [QueryImpl.withCaching_run_some _ hcache, pure_bind]
 
 theorem tableSignFrom_lift_hash_eq_world
-    (randomizers : Generic.Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
+    (randomizers : Seeded.RandomizerOutputs) (secretKey : Generic.SecretKey)
     (leafIndex : LeafIndex) (message : Message) (attempts trial : Nat) :
-    (liftM (Generic.Seeded.tableSignFrom randomizers secretKey leafIndex message attempts trial :
+    (liftM (Seeded.tableSignFrom randomizers secretKey leafIndex message attempts trial :
       OracleComp HashSpec (Option Generic.Signature)) : OracleComp OracleWorld (Option Generic.Signature)) =
-      Generic.Seeded.tableSignFrom randomizers secretKey leafIndex message attempts trial := by
+      Seeded.tableSignFrom randomizers secretKey leafIndex message attempts trial := by
   induction attempts generalizing trial with
-  | zero => simp [Generic.Seeded.tableSignFrom]
+  | zero => simp [Seeded.tableSignFrom]
   | succ attempts ih =>
-      simp only [Generic.Seeded.tableSignFrom, liftM_bind, Concrete.precomputedSignAttempt_lift_hash_eq_world]
+      simp only [Seeded.tableSignFrom, liftM_bind, Concrete.precomputedSignAttempt_lift_hash_eq_world]
       apply bind_congr
       intro answer
       cases answer <;> simp only [ih, liftM_pure]
 
 theorem evalDist_counted_signFrom_eq_twice_tableSignFrom
     (seed : MasterSeed) (secretKey : Generic.SecretKey)
-    (randomizers : Generic.Seeded.RandomizerOutputs) (leafIndex : LeafIndex) (message : Message)
+    (randomizers : Seeded.RandomizerOutputs) (leafIndex : LeafIndex) (message : Message)
     (attempts trial : Nat) (cache : QueryCache HashSpec)
-    (hcache : ∀ position, cache (Generic.Seeded.randomizerInputs secretKey.parameter seed position) =
+    (hcache : ∀ position, cache (Seeded.randomizerInputs secretKey.parameter seed position) =
       some (randomizers position)) :
-    𝒟[(simulateQ Generic.romImpl (Generic.countHashQueries
+    𝒟[(simulateQ romImpl (countHashQueries
       (Generic.Seeded.signFrom ⟨seed, secretKey⟩ leafIndex message attempts trial :
         OracleComp OracleWorld (Option Generic.Signature)))).run cache] =
       𝒟[(fun result => ((result.1.1, 2 * result.1.2), result.2)) <$>
-        (simulateQ Generic.romImpl (Generic.countHashQueries
-          (Generic.Seeded.tableSignFrom randomizers secretKey leafIndex message attempts trial :
+        (simulateQ romImpl (countHashQueries
+          (Seeded.tableSignFrom randomizers secretKey leafIndex message attempts trial :
             OracleComp OracleWorld (Option Generic.Signature)))).run cache] := by
   induction attempts generalizing trial cache with
-  | zero => simp [Generic.Seeded.signFrom, Generic.Seeded.tableSignFrom, Generic.countHashQueries_pure]
+  | zero => simp [Generic.Seeded.signFrom, Seeded.tableSignFrom, countHashQueries_pure]
   | succ attempts ih =>
-      rw [Generic.Seeded.signFrom, Generic.countHashQueries_bind]
+      rw [Generic.Seeded.signFrom, countHashQueries_bind]
       simp only [simulateQ_bind, StateT.run_bind]
       rw [run_counted_deriveRandomizer_of_cached _ _ _ _ _ _ _
         (hcache (⟨leafIndex, message⟩, BitVec.ofNat 32 trial)), pure_bind]
-      rw [Generic.Seeded.tableSignFrom, Generic.countHashQueries_bind]
-      simp only [Generic.countHashQueries_bind, countHashQueries_precomputedSignAttempt,
+      rw [Seeded.tableSignFrom, countHashQueries_bind]
+      simp only [countHashQueries_bind, countHashQueries_precomputedSignAttempt,
         simulateQ_bind, simulateQ_pure, StateT.run_bind,
         StateT.run_pure, bind_map_left, map_bind, pure_bind, map_pure, bind_assoc]
       apply evalDist_bind_congr
       intro result hresult
-      have hnext : ∀ position, result.2 (Generic.Seeded.randomizerInputs secretKey.parameter seed position) =
+      have hnext : ∀ position, result.2 (Seeded.randomizerInputs secretKey.parameter seed position) =
           some (randomizers position) := fun position =>
-        (Generic.xmssRom_cache_le _ cache result hresult) (hcache position)
+        (xmssRom_cache_le _ cache result hresult) (hcache position)
       cases result.1 with
-      | some signature => simp [Generic.countHashQueries_pure]
+      | some signature => simp [countHashQueries_pure]
       | none =>
           have h := ih (trial + 1) result.2 hnext
           have hm := congrArg (fun distribution =>
@@ -117,21 +119,21 @@ theorem evalDist_counted_signFrom_eq_twice_tableSignFrom
 
 theorem evalDist_counted_sign_eq_twice_tableSign
     (seed : MasterSeed) (secretKey : Generic.SecretKey)
-    (randomizers : Generic.Seeded.RandomizerOutputs) (leafIndex : LeafIndex) (message : Message)
+    (randomizers : Seeded.RandomizerOutputs) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec)
-    (hcache : ∀ position, cache (Generic.Seeded.randomizerInputs secretKey.parameter seed position) =
+    (hcache : ∀ position, cache (Seeded.randomizerInputs secretKey.parameter seed position) =
       some (randomizers position)) :
-    𝒟[(simulateQ Generic.romImpl (Generic.countHashQueries
-      (Generic.Seeded.scheme.sign ⟨seed, secretKey⟩ leafIndex message))).run cache] =
+    𝒟[(simulateQ romImpl (countHashQueries
+      (Seeded.scheme.sign ⟨seed, secretKey⟩ leafIndex message))).run cache] =
       𝒟[(fun result => ((result.1.1, 2 * result.1.2), result.2)) <$>
-        (simulateQ Generic.romImpl (Generic.countHashQueries
-          ((Generic.Seeded.tableScheme randomizers).sign secretKey leafIndex message))).run cache] := by
-  change 𝒟[(simulateQ Generic.romImpl (Generic.countHashQueries
+        (simulateQ romImpl (countHashQueries
+          ((Seeded.tableScheme randomizers).sign secretKey leafIndex message))).run cache] := by
+  change 𝒟[(simulateQ romImpl (countHashQueries
       (liftM (Generic.Seeded.signFrom ⟨seed, secretKey⟩ leafIndex message signingAttemptLimit 0 :
         OracleComp HashSpec (Option Generic.Signature))))).run cache] =
     𝒟[(fun result => ((result.1.1, 2 * result.1.2), result.2)) <$>
-      (simulateQ Generic.romImpl (Generic.countHashQueries
-        (liftM (Generic.Seeded.tableSignFrom randomizers secretKey leafIndex message signingAttemptLimit 0 :
+      (simulateQ romImpl (countHashQueries
+        (liftM (Seeded.tableSignFrom randomizers secretKey leafIndex message signingAttemptLimit 0 :
           OracleComp HashSpec (Option Generic.Signature))))).run cache]
   rw [signFrom_lift_hash_eq_world, tableSignFrom_lift_hash_eq_world]
   exact evalDist_counted_signFrom_eq_twice_tableSignFrom _ _ _ _ _ _ _ _ hcache

@@ -20,6 +20,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.NoSign
 
 attribute [local irreducible] Generic.sampleMasterSeed
@@ -27,9 +29,9 @@ attribute [local irreducible] Generic.sampleMasterSeed
 /-- The signer makes exactly two hash queries, the randomizer and the encoding. -/
 theorem countHashQueries_xmss_sign (secretKey : Generic.Seeded.SecretKey) (leafIndex : LeafIndex)
     (message : Message) :
-    Generic.countHashQueries (Generic.xmss.sign secretKey leafIndex message) =
+    countHashQueries (Generic.xmss.sign secretKey leafIndex message) =
       (fun answer => (answer, 2)) <$> Generic.xmss.sign secretKey leafIndex message := by
-  change Generic.countHashQueries (liftComp (Generic.Seeded.sign secretKey leafIndex message :
+  change countHashQueries (liftComp (Generic.Seeded.sign secretKey leafIndex message :
       OracleComp HashSpec (Option Generic.Signature)) OracleWorld) =
     (fun answer => (answer, 2)) <$> liftComp (Generic.Seeded.sign secretKey leafIndex message :
       OracleComp HashSpec (Option Generic.Signature)) OracleWorld
@@ -38,10 +40,10 @@ theorem countHashQueries_xmss_sign (secretKey : Generic.Seeded.SecretKey) (leafI
         OracleWorld : OracleComp OracleWorld HashOutput) = liftM (OracleWorld.query (.inr input)) :=
     fun _ => rfl
   have hsingle : ∀ input : HashInput,
-      Generic.countHashQueries (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld HashOutput) =
+      countHashQueries (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld HashOutput) =
         (fun output => (output, 1)) <$> liftM (OracleWorld.query (.inr input)) := by
     intro input
-    unfold Generic.countHashQueries
+    unfold countHashQueries
     rw [← bind_pure (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld HashOutput),
       QueryCounting.counted_query_bind]
     simp [QueryCounting.counted_pure]
@@ -53,17 +55,17 @@ theorem countHashQueries_xmss_sign (secretKey : Generic.Seeded.SecretKey) (leafI
           randomness
         return some (Generic.Concrete.precomputedSignWithEncoding secretKey.precomputed leafIndex
           randomness (Checksum.encode digest))) := by
-    rw [Generic.Seeded.sign_eq_signFrom, code_signingAttemptLimit]
+    rw [Seeded.sign_eq_signFrom, code_signingAttemptLimit]
     simp only [signingAttemptLimit, Generic.Seeded.signFrom, Generic.Concrete.precomputedSignAttempt,
       bind_assoc]
     refine bind_congr fun randomness => bind_congr fun digest => ?_
-    rw [show Generic.Code.decodeDigest digest = some (Checksum.encode digest) from rfl]
+    rw [show Code.decodeDigest digest = some (Checksum.encode digest) from rfl]
     simp only [pure_bind]
-  simp only [Generic.countHashQueries] at hsingle
+  simp only [countHashQueries] at hsingle
   simp only [hsign, Generic.deriveRandomizer, Generic.Concrete.encodingHash, Generic.Concrete.tweakableHash,
     Generic.Concrete.oracleHash, HasQuery.query, liftComp_bind, liftComp_map, liftComp_bind_pure,
     liftComp_pure, bind_pure_comp, hlift]
-  simp only [Generic.countHashQueries, QueryCounting.counted_bind, QueryCounting.counted_map, hsingle,
+  simp only [countHashQueries, QueryCounting.counted_bind, QueryCounting.counted_map, hsingle,
     map_bind, bind_map_left, Functor.map_map]
   simp only [bind_pure_comp]
   rfl
@@ -71,18 +73,18 @@ theorem countHashQueries_xmss_sign (secretKey : Generic.Seeded.SecretKey) (leafI
 /-- The statement's counted run of the adversary in a signer mode, from the logged run with the
 direct hash queries counted: each request costs `requestCost` and the signer's two hashes. -/
 theorem statementCountedRun_eq {α : Type} (secretKey : Generic.Seeded.SecretKey) (requestCost : ℕ)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) :
+    (computation : OracleComp (OracleWorld + SigningSpec) α) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld
-        (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
+        (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
           (RandomOracleModel.hashCost HashInput HashOutput) +
         SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput)
           requestCost Generic.xmss secretKey) computation).run.run =
-      (fun result : (α × ℕ) × QueryLog Generic.SigningSpec =>
+      (fun result : (α × ℕ) × QueryLog SigningSpec =>
         ((result.1.1, Multiplicative.ofAdd (result.1.2 + (requestCost + 2) * result.2.length)),
           result.2)) <$>
-        (simulateQ (Generic.Security.adversaryImpl secretKey)
-          (QueryCounting.counted Generic.Direct.IsDirectHashQuery computation)).run := by
+        (simulateQ (Security.adversaryImpl secretKey)
+          (QueryCounting.counted Direct.IsDirectHashQuery computation)).run := by
   induction computation using OracleComp.inductionOn with
   | pure value => simp [QueryCounting.counted_pure]
   | query_bind input next ih =>
@@ -92,61 +94,61 @@ theorem statementCountedRun_eq {α : Type} (secretKey : Generic.Seeded.SecretKey
           QueryImpl.withAddCost_apply, QueryImpl.ofLift_apply, WriterT.run_bind,
           WriterT.run_monadLift, WriterT.run_map', Modes.run_liftM_of_liftM',
           AddWriterT.run_addTell, pure_bind, bind_map_left, map_bind, Functor.map_map, ih,
-          mul_one, Generic.Security.adversaryImpl, simulateQ_map]
+          mul_one, Security.adversaryImpl, simulateQ_map]
         congr 1
         funext answer
         rw [map_eq_bind_pure_comp]
         congr 1
         funext result
         rcases world with uniformInput | hashInput
-        · simp [RandomOracleModel.hashCost, Generic.Direct.IsDirectHashQuery, Generic.Direct.isDirectHashQuery]
-        · simp only [RandomOracleModel.hashCost, Generic.Direct.IsDirectHashQuery, Generic.Direct.isDirectHashQuery]
+        · simp [RandomOracleModel.hashCost, Direct.IsDirectHashQuery, Direct.isDirectHashQuery]
+        · simp only [RandomOracleModel.hashCost, Direct.IsDirectHashQuery, Direct.isDirectHashQuery]
           simp
           rw [mul_assoc]
-      · change Option Generic.Signature → OracleComp (OracleWorld + Generic.SigningSpec) α at next
+      · change Option Generic.Signature → OracleComp (OracleWorld + SigningSpec) α at next
         change ∀ u : Option Generic.Signature, _ at ih
         simp only [simulateQ_bind, simulateQ_spec_query, QueryImpl.add_apply_inr,
           WriterT.run_bind]
         rw [Attack.signingOracleCounted_run Generic.xmss secretKey requestCost request,
           countHashQueries_xmss_sign]
         have hlift : ((liftM (Generic.xmss.sign secretKey request.epoch request.message) :
-            WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld) (Option Generic.Signature))).run =
+            WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) (Option Generic.Signature))).run =
             (fun answer => (answer, ∅)) <$> Generic.xmss.sign secretKey request.epoch request.message :=
           rfl
         have hlog : (do
             let answer ← (liftM (Generic.xmss.sign secretKey request.epoch request.message) :
-              WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld) (Option Generic.Signature))
+              WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) (Option Generic.Signature))
             tell [⟨request, answer⟩]
-            pure answer : WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld) _).run =
+            pure answer : WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) _).run =
             (fun answer => (answer, [⟨request, answer⟩])) <$>
               Generic.xmss.sign secretKey request.epoch request.message := by
           simp [WriterT.run_bind, hlift, WriterT.run_tell, WriterT.run_pure]
-        simp only [Generic.Security.adversaryImpl, SUFCMA.signingOracle, QueryImpl.withLogging_apply,
+        simp only [Security.adversaryImpl, SUFCMA.signingOracle, QueryImpl.withLogging_apply,
           QueryCounting.counted_query_bind]
         rw [hlog]
         have ih' : ∀ answer : Option Generic.Signature,
             (WriterT.run (simulateQ
               ((QueryImpl.ofLift OracleWorld
-                (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
+                (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
                   (RandomOracleModel.hashCost HashInput HashOutput) +
                 SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput)
                   requestCost Generic.xmss secretKey) (next answer))).run =
-            (fun result : (α × ℕ) × QueryLog Generic.SigningSpec =>
+            (fun result : (α × ℕ) × QueryLog SigningSpec =>
               ((result.1.1, Multiplicative.ofAdd (result.1.2 + (requestCost + 2) * result.2.length)),
                 result.2)) <$>
               (simulateQ (QueryImpl.ofLift OracleWorld
-                  (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld)) +
-                QueryImpl.withLogging fun request : Generic.SignRequest =>
+                  (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +
+                QueryImpl.withLogging fun request : SignRequest =>
                   Generic.xmss.sign secretKey request.epoch request.message)
-                (QueryCounting.counted Generic.Direct.IsDirectHashQuery (next answer))).run := ih
+                (QueryCounting.counted Direct.IsDirectHashQuery (next answer))).run := ih
         simp only [WriterT.run_map, WriterT.run_map', ih', map_bind, bind_map_left,
           Functor.map_map, simulateQ_pure, WriterT.run_pure, simulateQ_bind, WriterT.run_bind,
-          bind_pure_comp, Generic.Direct.not_isDirectHashQuery_sign, if_false, zero_add, map_pure]
+          bind_pure_comp, Direct.not_isDirectHashQuery_sign, if_false, zero_add, map_pure]
         congr 1
         funext answer
         congr 1
         funext result
-        have hempty : (∅ : QueryLog Generic.SigningSpec) = [] := rfl
+        have hempty : (∅ : QueryLog SigningSpec) = [] := rfl
         simp only [hempty, List.append_nil, List.singleton_append, List.length_cons,
           ← ofAdd_add]
         congr 3
@@ -154,29 +156,29 @@ theorem statementCountedRun_eq {α : Type} (secretKey : Generic.Seeded.SecretKey
 
 /-- Every execution of the adversary after any reachable key generation pays, in the statement's
 signer mode, its direct hash queries and `requestCost + 2` per request. -/
-theorem adversary_weighted_bound (adversary : Generic.Security.StatementAdversary) (requests : Bool)
+theorem adversary_weighted_bound (adversary : Security.StatementAdversary) (requests : Bool)
     (q : ℕ) (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound Generic.xmss adversary q)
     (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey) (cache : QueryCache HashSpec)
-    (hkeys : ((publicKey, secretKey), cache) ∈ support ((simulateQ Generic.romImpl Generic.xmss.keygen).run ∅))
-    (result : ((Generic.Forgery × ℕ) × QueryLog Generic.SigningSpec) × QueryCache HashSpec)
-    (hresult : result ∈ support ((simulateQ Generic.romImpl (simulateQ (Generic.Security.adversaryImpl secretKey)
-      (QueryCounting.counted Generic.Direct.IsDirectHashQuery (adversary.main publicKey))).run).run cache)) :
+    (hkeys : ((publicKey, secretKey), cache) ∈ support ((simulateQ romImpl Generic.xmss.keygen).run ∅))
+    (result : ((Forgery × ℕ) × QueryLog SigningSpec) × QueryCache HashSpec)
+    (hresult : result ∈ support ((simulateQ romImpl (simulateQ (Security.adversaryImpl secretKey)
+      (QueryCounting.counted Direct.IsDirectHashQuery (adversary.main publicKey))).run).run cache)) :
     result.1.1.2 + ((if requests then 1 else 0) + 2) * result.1.2.length ≤ q := by
   rcases result with ⟨⟨⟨forgery, direct⟩, log⟩, finalCache⟩
-  obtain ⟨verification, hverification⟩ := Generic.probComp_support_nonempty
-    ((simulateQ Generic.romImpl (Generic.xmss.verify publicKey forgery.epoch forgery.message
+  obtain ⟨verification, hverification⟩ := probComp_support_nonempty
+    ((simulateQ romImpl (Generic.xmss.verify publicKey forgery.epoch forgery.message
       forgery.signature)).run finalCache)
-  have h := hbound (decide (Generic.SigningTranscript.Valid log ∧
-      ¬Generic.SigningTranscript.Contains log forgery) && verification.1,
+  have h := hbound (decide (SigningTranscript.Valid log ∧
+      ¬SigningTranscript.Contains log forgery) && verification.1,
     direct + ((if requests then 1 else 0) + 2) * log.length)
   refine h ?_
   simp only [SUFCMA.notion, RandomOracleModel.run]
-  rw [← Generic.Security.romImpl_eq]
+  rw [← Security.romImpl_eq]
   unfold SUFCMA.gameCounted
   simp only [SUFCMA.costIf, Bool.false_eq_true, if_false, if_true, Modes.charge_zero,
     bind_map_left, statementCountedRun_eq]
   rw [StateT.run'_eq, support_map]
-  refine ⟨((decide (Generic.SigningTranscript.Valid log ∧ ¬Generic.SigningTranscript.Contains log forgery) &&
+  refine ⟨((decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) &&
     verification.1, direct + ((if requests then 1 else 0) + 2) * log.length),
     verification.2), ?_, rfl⟩
   simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff]
@@ -186,22 +188,22 @@ theorem adversary_weighted_bound (adversary : Generic.Security.StatementAdversar
 
 
 theorem logsRequests_adversaryImpl (secretKey : Generic.Seeded.SecretKey) :
-    LogsRequests (Generic.Security.adversaryImpl secretKey) := by
+    LogsRequests (Security.adversaryImpl secretKey) := by
   constructor
   · intro input cache step hstep
     have hlift : ((liftM (OracleWorld.query input) :
-        WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld) (OracleWorld.Range input))).run =
+        WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) (OracleWorld.Range input))).run =
         (fun answer => (answer, ∅)) <$> liftM (OracleWorld.query input) := rfl
-    simp only [Generic.Security.adversaryImpl, QueryImpl.add_apply_inl, QueryImpl.ofLift_apply] at hstep
+    simp only [Security.adversaryImpl, QueryImpl.add_apply_inl, QueryImpl.ofLift_apply] at hstep
     rw [hlift, simulateQ_map, StateT.run_map, support_map] at hstep
     obtain ⟨_, _, rfl⟩ := hstep
     rfl
   · intro request cache step hstep
-    simp only [Generic.Security.adversaryImpl, QueryImpl.add_apply_inr, SUFCMA.signingOracle,
+    simp only [Security.adversaryImpl, QueryImpl.add_apply_inr, SUFCMA.signingOracle,
       QueryImpl.withLogging_apply, WriterT.run_bind, WriterT.run_tell, WriterT.run_pure,
       simulateQ_bind, simulateQ_map, simulateQ_pure] at hstep
     have hlift : ((liftM (Generic.xmss.sign secretKey request.epoch request.message) :
-        WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld) (Option Generic.Signature))).run =
+        WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) (Option Generic.Signature))).run =
         (fun answer => (answer, ∅)) <$> Generic.xmss.sign secretKey request.epoch request.message :=
       rfl
     simp only [hlift, bind_map_left, pure_bind, map_bind, simulateQ_bind, simulateQ_map,
@@ -212,61 +214,61 @@ theorem logsRequests_adversaryImpl (secretKey : Generic.Seeded.SecretKey) :
     simp
 
 /-- Pruning at the weighted budget does not change the success probability. -/
-theorem forgeAdvantage_pruneWeighted_eq (adversary : Generic.Security.StatementAdversary)
+theorem forgeAdvantage_pruneWeighted_eq (adversary : Security.StatementAdversary)
     (requests : Bool) (q : ℕ)
     (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound Generic.xmss adversary q) :
-    Generic.forgeAdvantage Generic.Seeded.scheme (Generic.Security.embed adversary) =
-      Generic.forgeAdvantage Generic.Seeded.scheme
+    forgeAdvantage Seeded.scheme (Security.embed adversary) =
+      forgeAdvantage Seeded.scheme
         ⟨fun publicKey => pruneWeighted ((if requests then 1 else 0) + 2) q
           (adversary.main publicKey)⟩ := by
-  unfold Generic.forgeAdvantage
+  unfold forgeAdvantage
   refine congrArg (fun computation => Pr[= true | computation]) ?_
-  unfold Generic.gameCore
+  unfold gameCore
   simp only [simulateQ_bind, StateT.run'_bind']
   refine bind_congr_of_forall_mem_support _ fun keys hkeys => ?_
   rcases keys with ⟨⟨publicKey, secretKey⟩, cache⟩
   dsimp only
-  unfold Generic.Seeded.gameRest
+  unfold Seeded.gameRest
   simp only [simulateQ_bind, StateT.run'_bind']
-  have hprune := simulateQ_pruneWeighted_eq_logged (Generic.Security.adversaryImpl secretKey)
+  have hprune := simulateQ_pruneWeighted_eq_logged (Security.adversaryImpl secretKey)
     (logsRequests_adversaryImpl secretKey) ((if requests then 1 else 0) + 2)
     (adversary.main publicKey) q cache
     (fun result hresult => adversary_weighted_bound adversary requests q hbound publicKey
       secretKey cache hkeys result hresult)
   exact congrArg (fun computation => computation >>= _) hprune.symm
 
-theorem memoize_noSign {α : Type} (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
-    (cache : QueryCache Generic.SigningSpec) (h : computation.IsQueryBoundP IsSignQuery 0) :
-    (Generic.DeterministicSigning.memoize computation cache).IsQueryBoundP IsSignQuery 0 := by
+theorem memoize_noSign {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (cache : QueryCache SigningSpec) (h : computation.IsQueryBoundP IsSignQuery 0) :
+    (DeterministicSigning.memoize computation cache).IsQueryBoundP IsSignQuery 0 := by
   induction computation using OracleComp.inductionOn generalizing cache with
-  | pure value => simp [Generic.DeterministicSigning.memoize_pure]
+  | pure value => simp [DeterministicSigning.memoize_pure]
   | query_bind input next ih =>
       rw [isQueryBoundP_query_bind_iff] at h
       cases input with
       | inl input =>
-          rw [Generic.DeterministicSigning.memoize_base, isQueryBoundP_query_bind_iff]
+          rw [DeterministicSigning.memoize_base, isQueryBoundP_query_bind_iff]
           exact ⟨h.1, fun answer => ih answer cache (by simpa [IsSignQuery] using h.2 answer)⟩
       | inr request => simp [IsSignQuery] at h
 
 /-- Below the cost of one request in a signer mode, the advantage is at most
 `(2q + 2) / 2^128 + q / 2^256`. -/
-theorem signer_small_advantage_le (requests : Bool) (adversary : Generic.Security.StatementAdversary)
+theorem signer_small_advantage_le (requests : Bool) (adversary : Security.StatementAdversary)
     (q : ℕ) (hq : q < (if requests then 1 else 0) + 2)
     (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound Generic.xmss adversary q) :
     (SUFCMA.notion ⟨false, true, false, requests⟩).advantage Generic.xmss adversary ≤
       ((2 * q + 2 : ℕ) : ℝ≥0∞) * digestInverse + q / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
   rw [Modes.advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
-    Modes.notion_direct_advantage_eq, Generic.Security.notionDirect_advantage_eq,
+    Modes.notion_direct_advantage_eq, Security.notionDirect_advantage_eq,
     forgeAdvantage_pruneWeighted_eq adversary requests q hbound]
-  let pruned : Generic.Adversary := ⟨fun publicKey =>
+  let pruned : Adversary := ⟨fun publicKey =>
     pruneWeighted ((if requests then 1 else 0) + 2) q (adversary.main publicKey)⟩
-  have hdirect : Generic.Direct.IsDirectQueryBound pruned q := fun publicKey =>
+  have hdirect : Direct.IsDirectQueryBound pruned q := fun publicKey =>
     pruneWeighted_isQueryBoundP_direct _ q _
-  have hnoSign : NoSignQueries (Generic.Seeded.memoAdversary pruned) := fun publicKey =>
+  have hnoSign : NoSignQueries (Seeded.memoAdversary pruned) := fun publicKey =>
     memoize_noSign _ ∅ (pruneWeighted_isQueryBoundP_sign _ q hq _)
-  refine (Generic.Seeded.forgeAdvantage_deterministic_le_reference_direct pruned q hdirect).trans ?_
+  refine (Seeded.forgeAdvantage_deterministic_le_reference_direct pruned q hdirect).trans ?_
   exact add_le_add (forgeAdvantage_le_of_noSignQueries _ q
-    (Generic.Seeded.memoAdversary_isDirectQueryBound pruned q hdirect) hnoSign) le_rfl
+    (Seeded.memoAdversary_isDirectQueryBound pruned q hdirect) hnoSign) le_rfl
 
 /-- info: 'XmssSecurity.Checksum.NoSign.signer_small_advantage_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

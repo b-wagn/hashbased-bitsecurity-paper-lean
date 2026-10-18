@@ -5,8 +5,10 @@ import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! The statement's scheme `xmssTargetSum` is the copy `Generic.xmss` the proofs work with, for the
 target-sum code. -/
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum
 
-theorem xmssTargetSum_eq : xmssTargetSum = Generic.xmss := Generic.xmss_eq
+theorem xmssTargetSum_eq : xmssTargetSum = Generic.xmss := xmss_eq
 
 end XmssSecurity.TargetSum

@@ -9,10 +9,12 @@ open scoped BigOperators
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.Checksum
 
-theorem validDigests_card : Generic.Code.validDigests.card = 2 ^ digestBits := by
-  have huniv : Generic.Code.validDigests = Finset.univ :=
+theorem validDigests_card : Code.validDigests.card = 2 ^ digestBits := by
+  have huniv : Code.validDigests = Finset.univ :=
     Finset.filter_true_of_mem fun digest _ => ⟨encode digest, rfl⟩
   rw [huniv, Finset.card_univ]
   simp
@@ -54,12 +56,12 @@ end XmssSecurity.Checksum.Checksum
 
 namespace XmssSecurity.Checksum
 
-@[simp] theorem code_acceptanceProbability : Generic.Code.acceptanceProbability = 1 := by
-  unfold Generic.Code.acceptanceProbability
+@[simp] theorem code_acceptanceProbability : Code.acceptanceProbability = 1 := by
+  unfold Code.acceptanceProbability
   rw [Checksum.validDigests_card]
   exact ENNReal.div_self (by simp) (by simp)
 
-scoped instance signerBound : Generic.Code.SignerBound where
+scoped instance signerBound : Code.SignerBound where
   capped_rejection_bound_lt := by
     rw [code_acceptanceProbability]
     show (1 - 1) ^ signingAttemptLimit + (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *

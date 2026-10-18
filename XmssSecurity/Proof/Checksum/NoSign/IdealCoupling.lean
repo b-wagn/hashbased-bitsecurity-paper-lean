@@ -16,6 +16,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.NoSign
 
 /-- The entries of `hidden`, and those of `cache` at the other inputs. -/
@@ -55,9 +57,9 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
     (hdisjoint : ∀ input, hidden input ≠ none → cache input = none)
     (event : α → Prop) :
     Pr[fun result => event result.1 |
-        (simulateQ Generic.romImpl computation).run (unionCache hidden cache)] ≤
+        (simulateQ romImpl computation).run (unionCache hidden cache)] ≤
       Pr[fun result => event result.1 ∨ HitsCache hidden result.2 |
-        (simulateQ Generic.romImpl computation).run cache] := by
+        (simulateQ romImpl computation).run cache] := by
   classical
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
@@ -71,12 +73,12 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
       rcases query with uniformIndex | hashInput
       · change Fin (uniformIndex + 1) → OracleComp OracleWorld α at next
         have hrun : ∀ start : QueryCache HashSpec,
-            (simulateQ Generic.romImpl
+            (simulateQ romImpl
               (liftM (OracleWorld.query (.inl uniformIndex)) >>= next)).run start =
             ((unifSpec.query uniformIndex : ProbComp _) >>= fun sampled =>
-              (simulateQ Generic.romImpl (next sampled)).run start) := by
+              (simulateQ romImpl (next sampled)).run start) := by
           intro start
-          simp [StateT.run_bind, Generic.romImpl, unifFwdImpl,
+          simp [StateT.run_bind, romImpl, unifFwdImpl,
             QueryImpl.liftTarget_apply, HasQuery.toQueryImpl_apply]
         rw [hrun, hrun, probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
         exact ENNReal.tsum_le_tsum fun sampled =>
@@ -84,12 +86,12 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
       · change HashOutput → OracleComp OracleWorld α at next
         have hcachedRun : ∀ (start : QueryCache HashSpec) (output : HashOutput),
             start hashInput = some output →
-            (simulateQ Generic.romImpl
+            (simulateQ romImpl
               (liftM (OracleWorld.query (.inr hashInput)) >>= next)).run start =
-            (simulateQ Generic.romImpl (next output)).run start := by
+            (simulateQ romImpl (next output)).run start := by
           intro start output houtput
           have hquery :
-              (simulateQ Generic.romImpl
+              (simulateQ romImpl
                 (liftM (OracleWorld.query (.inr hashInput)))).run start =
               pure ((show OracleWorld.Range (.inr hashInput) from output), start) := by
             rw [simulateQ_spec_query]
@@ -97,13 +99,13 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
             rw [QueryImpl.withCaching_run_some _ houtput]
           rw [simulateQ_bind, StateT.run_bind, hquery, pure_bind]
         have hfreshRun : ∀ start : QueryCache HashSpec, start hashInput = none →
-            (simulateQ Generic.romImpl
+            (simulateQ romImpl
               (liftM (OracleWorld.query (.inr hashInput)) >>= next)).run start =
             (($ᵗ HashOutput) >>= fun output =>
-              (simulateQ Generic.romImpl (next output)).run (start.cacheQuery hashInput output)) := by
+              (simulateQ romImpl (next output)).run (start.cacheQuery hashInput output)) := by
           intro start hnone
           have hquery :
-              (simulateQ Generic.romImpl
+              (simulateQ romImpl
                 (liftM (OracleWorld.query (.inr hashInput)))).run start =
               (($ᵗ HashOutput) >>= fun output =>
                 pure (output, start.cacheQuery hashInput output) : ProbComp _) := by
@@ -123,7 +125,7 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
             refine ⟨by simp, fun result hresult => Or.inr ?_⟩
             rw [mem_support_bind_iff] at hresult
             obtain ⟨output, _, hresult⟩ := hresult
-            have hle := Generic.xmssRom_cache_le (next output) _ result hresult
+            have hle := xmssRom_cache_le (next output) _ result hresult
             refine ⟨hashInput, ?_, by simp [hhidden]⟩
             have hcached : (cache.cacheQuery hashInput output) hashInput = some output := by simp
             rw [hle hcached]
@@ -150,9 +152,9 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
 empty cache. -/
 theorem probEvent_run_le_empty {α : Type} (computation : OracleComp OracleWorld α)
     (hidden : QueryCache HashSpec) (event : α → Prop) :
-    Pr[fun result => event result.1 | (simulateQ Generic.romImpl computation).run hidden] ≤
+    Pr[fun result => event result.1 | (simulateQ romImpl computation).run hidden] ≤
       Pr[fun result => event result.1 ∨ HitsCache hidden result.2 |
-        (simulateQ Generic.romImpl computation).run ∅] := by
+        (simulateQ romImpl computation).run ∅] := by
   have h := probEvent_run_unionCache_le computation hidden ∅ (fun _ _ => rfl) event
   rwa [unionCache_empty] at h
 

@@ -11,17 +11,19 @@ requests share the query budget. -/
 
 open OracleComp OracleSpec ENNReal
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA.Requests
 open XmssSecurity.EUFCMA
 
 open Direct
 
-theorem reference_add_seed_le_127 (adversary : Generic.Adversary) (q : ℕ)
+theorem reference_add_seed_le_127 (adversary : Adversary) (q : ℕ)
     (hq : 1 ≤ q) (hsmall : q + 1 ≤ 2 ^ 127) (hbound : IsQueryBound adversary q) :
-    forgeAdvantage Generic.Concrete.scheme adversary + expectedDirectSeedQueries adversary / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤
+    forgeAdvantage Concrete.scheme adversary + expectedDirectSeedQueries adversary / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : ℕ) : ℝ≥0∞) := by
   have hbudget := expected_class_budget adversary q hbound
-  by_cases hlarge : (1 : ℝ≥0∞) / 128 ≤ Generic.Direct.expectedDirectEncodingQueries adversary
+  by_cases hlarge : (1 : ℝ≥0∞) / 128 ≤ Direct.expectedDirectEncodingQueries adversary
   · exact (reference_add_seed_le_expectedLoss adversary q hsmall hbound).trans
       (expectedLoss_le_127 q _ _ _ _ hbudget hlarge)
   · exact (reference_add_seed_le_terminalLoss adversary q (by omega) hsmall hbound).trans
@@ -37,7 +39,7 @@ theorem secure_127 : (EUFCMA.notion mode).HasClassicalSecurityBits Generic.xmss 
         (ENNReal.div_self (by norm_num) (ENNReal.natCast_ne_top _)).symm
       _ ≤ _ := ENNReal.div_le_div (by exact_mod_cast hlarge) le_rfl
   exact (forgeAdvantage_deterministic_le_reference_expectedDirectSeed adversary).trans
-    (reference_add_seed_le_127 (Generic.Seeded.memoAdversary adversary) q hq
+    (reference_add_seed_le_127 (Seeded.memoAdversary adversary) q hq
       (by omega) hbound.memo)
 
 /-- info: 'XmssSecurity.TargetSum.EUFCMA.Requests.secure_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/

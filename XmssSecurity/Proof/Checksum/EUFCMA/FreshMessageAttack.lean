@@ -18,6 +18,8 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.Attack
 
 open SUFCMA
@@ -34,13 +36,13 @@ theorem freshMessage_queryBound (signer requests : Bool) :
   apply (EUFCMA.hasQueryBound_iff_strong _ _ _ _).2
   intro result hresult
   exact oneRequest_counted_support_bound _ signer requests result
-    (support_simulateQ_run'_subset Generic.romImpl _ ∅ hresult)
+    (support_simulateQ_run'_subset romImpl _ ∅ hresult)
 
 theorem freshMessage_strong_advantage (mode : CountingMode) :
     (SUFCMA.notion mode).advantage Generic.xmss freshSufCmaAdversary =
-      Generic.forgeAdvantage Generic.Seeded.scheme freshAdversary := by
+      forgeAdvantage Seeded.scheme freshAdversary := by
   rw [Modes.advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
-    Modes.notion_direct_advantage_eq, Generic.Security.notionDirect_advantage_eq]
+    Modes.notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
   rfl
 
 /-- Every strong win of the fresh-message adversary is a standard win. -/
@@ -52,13 +54,13 @@ theorem freshMessage_strong_le_standard :
     EUFCMA.strong_experiment_eq_map_recordedExperiment, probEvent_map, probEvent_map]
   apply probEvent_mono
   intro outcome houtcome hwin
-  have hgame := support_simulateQ_run'_subset Generic.romImpl _ ∅ houtcome
+  have hgame := support_simulateQ_run'_subset romImpl _ ∅ houtcome
   unfold EUFCMA.recordedGame at hgame
   simp only [costIf, Bool.false_eq_true, if_false, if_true, Modes.charge_zero] at hgame
   have hmain := fun (secretKey : Generic.Seeded.SecretKey) =>
-    oneRequestMain_counted_zero Generic.xmss secretKey 1 freshMessageForgery Generic.Attack.mutationChoice
+    oneRequestMain_counted_zero Generic.xmss secretKey 1 freshMessageForgery Attack.mutationChoice
   simp only [show freshSufCmaAdversary.main =
-    fun _ => oneRequestMain freshMessageForgery Generic.Attack.mutationChoice from rfl, hmain] at hgame
+    fun _ => oneRequestMain freshMessageForgery Attack.mutationChoice from rfl, hmain] at hgame
   simp only [bind_map_left, mem_support_bind_iff, support_pure, Set.mem_singleton_iff,
     bind_assoc, pure_bind] at hgame
   obtain ⟨keyResult, _, answer, _, choice, _, verified, _, rfl⟩ := hgame
@@ -67,7 +69,7 @@ theorem freshMessage_strong_le_standard :
   exact ⟨⟨hwin.1.1, freshMessage_request_fresh answer choice⟩, hwin.2⟩
 
 theorem freshMessage_standard_advantage_lower (mode : CountingMode) :
-    Generic.forgeAdvantage Generic.Seeded.scheme freshAdversary ≤
+    forgeAdvantage Seeded.scheme freshAdversary ≤
       (EUFCMA.notion mode).advantage Generic.xmss freshSufCmaAdversary := by
   rw [EUFCMA.advantage_eq_of_mode _ ⟨false, false, false, true⟩,
     ← freshMessage_strong_advantage ⟨false, false, false, true⟩]

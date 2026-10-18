@@ -10,14 +10,16 @@ open OracleComp.ProgramLogic.Relational
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Deciding
 
 open CappedChain FirstLaneOracleSimulation
 
-noncomputable def publicTerminalPrefixExecution (limit : Nat) (adversary : Generic.Adversary)
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : Generic.CappedChain.GlobalChainEdgeIndex → Digest) :
-    OracleComp Generic.CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
+noncomputable def publicTerminalPrefixExecution (limit : Nat) (adversary : Adversary)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
+    OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
   terminalPrunedFirstLanePrefix limit key edgeHigh (adversary.main key.publicKey)
-    (Generic.CappedChain.GlobalHighDirectTracedState.initial (Generic.CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
+    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
 
 end XmssSecurity.TargetSum.Deciding

@@ -11,15 +11,17 @@ open scoped Classical
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.TargetSum
 
-abbrev AcceptedHashOutput := {output : HashOutput // Generic.Code.ValidDigest (Generic.truncateHash output)}
+abbrev AcceptedHashOutput := {output : HashOutput // Code.ValidDigest (Generic.truncateHash output)}
 
 noncomputable instance acceptedHashOutputFintype : Fintype AcceptedHashOutput := by
   infer_instance
 
 instance acceptedHashOutputNonempty : Nonempty AcceptedHashOutput := by
-  have hpositive : 0 < Pr[fun output : HashOutput => Generic.Code.ValidDigest (Generic.truncateHash output) | $ᵗ HashOutput] := by
+  have hpositive : 0 < Pr[fun output : HashOutput => Code.ValidDigest (Generic.truncateHash output) | $ᵗ HashOutput] := by
     rw [probEvent_validDigest_uniformHashOutput]
     exact acceptanceProbability_pos
   obtain ⟨output, _hsupport, hvalid⟩ := probEvent_pos_iff.mp hpositive
@@ -32,7 +34,7 @@ noncomputable def acceptedHashEncoding (output : AcceptedHashOutput) : Encoding 
   Classical.choose output.2
 
 theorem acceptedHashEncoding_decode (output : AcceptedHashOutput) :
-    Generic.Code.decodeDigest (Generic.truncateHash output.1) = some (acceptedHashEncoding output) :=
+    Code.decodeDigest (Generic.truncateHash output.1) = some (acceptedHashEncoding output) :=
   Classical.choose_spec output.2
 
 end XmssSecurity.TargetSum.TargetSum

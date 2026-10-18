@@ -11,6 +11,8 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.Attack
 
 open Concrete
@@ -30,22 +32,22 @@ def predecessorStep (encoding : Encoding) (lower : DecreasingChain encoding) : C
 theorem encodingInput_ne_chainInput (parameter : PublicParameter)
     (signingLeaf : LeafIndex) (message : Message) (randomness : Randomness)
     (leafIndex : LeafIndex) (chain : ChainIndex) (step : ChainStep) (value : Digest) :
-    Generic.Concrete.CacheView.encodingInput parameter signingLeaf (message, randomness) ≠
-      Generic.Concrete.CacheView.chainInput parameter leafIndex chain step value := by
+    Concrete.CacheView.encodingInput parameter signingLeaf (message, randomness) ≠
+      Concrete.CacheView.chainInput parameter leafIndex chain step value := by
   intro heq
-  have hdomain := Generic.domain_eq_of_tweakableHashInput_eq parameter heq
+  have hdomain := domain_eq_of_tweakableHashInput_eq parameter heq
   contradiction
 
 theorem precomputedCappedSign_preserves_chainInput
     (secretKey : Generic.SecretKey) (signingLeaf : LeafIndex) (message : Message)
     (initialCache finalCache : QueryCache HashSpec) (result : Option Generic.Signature)
-    (hmem : (result, finalCache) ∈ support ((simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign secretKey signingLeaf message)).run initialCache))
+    (hmem : (result, finalCache) ∈ support ((simulateQ romImpl
+      (Concrete.precomputedCappedSign secretKey signingLeaf message)).run initialCache))
     (leafIndex : LeafIndex) (chain : ChainIndex) (step : ChainStep) (value : Digest) :
-    finalCache (Generic.Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step value) =
-      initialCache (Generic.Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step value) := by
-  rw [Generic.Concrete.precomputedCappedSign] at hmem
-  exact Generic.Concrete.precomputedSignBoundedAttempts_preserves_unqueriedInput _ _ _ _ _
+    finalCache (Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step value) =
+      initialCache (Concrete.CacheView.chainInput secretKey.parameter leafIndex chain step value) := by
+  rw [Concrete.precomputedCappedSign] at hmem
+  exact Concrete.precomputedSignBoundedAttempts_preserves_unqueriedInput _ _ _ _ _
     (fun randomness => encodingInput_ne_chainInput _ _ _ randomness _ _ _ _)
     initialCache finalCache result hmem
 
@@ -55,48 +57,48 @@ theorem findEncodingNeighbor_preserves_chainInput
     (hmem : (result, finalCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor parameter searchLeaf message encoding)).run initialCache))
     (leafIndex : LeafIndex) (chain : ChainIndex) (step : ChainStep) (value : Digest) :
-    finalCache (Generic.Concrete.CacheView.chainInput parameter leafIndex chain step value) =
-      initialCache (Generic.Concrete.CacheView.chainInput parameter leafIndex chain step value) := by
-  apply Generic.Attack.findHash_preserves_unqueriedInput _ _ _ _ _ _ initialCache finalCache result hmem
+    finalCache (Concrete.CacheView.chainInput parameter leafIndex chain step value) =
+      initialCache (Concrete.CacheView.chainInput parameter leafIndex chain step value) := by
+  apply Attack.findHash_preserves_unqueriedInput _ _ _ _ _ _ initialCache finalCache result hmem
   intro i _ _
   exact encodingInput_ne_chainInput parameter searchLeaf message _ leafIndex chain step value
 
 theorem predecessorCache_after_neighborSearch
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
-    (request : Generic.SignRequest) (signature : Generic.Signature) (signCache : QueryCache HashSpec)
-    (hsign : (some signature, signCache) ∈ support ((simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (request : SignRequest) (signature : Generic.Signature) (signCache : QueryCache HashSpec)
+    (hsign : (some signature, signCache) ∈ support ((simulateQ romImpl
+      (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
     (encoding : Encoding)
-    (hreplay : signature = Generic.Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
+    (hreplay : signature = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch signature.randomness encoding)
     (message : Message) (answer : Option (ℕ × HashOutput)) (searchCache : QueryCache HashSpec)
     (hsearch : (answer, searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache))
     (lower : DecreasingChain encoding) :
     ∃ genuine,
-      (∃ output, searchCache (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
+      (∃ output, searchCache (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
           (predecessorStep encoding lower) genuine) = some output ∧
         Generic.truncateHash output = signature.chainValue lower.1) ∧
       ∀ value, value ≠ genuine →
-        searchCache (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
+        searchCache (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
           (predecessorStep encoding lower) value) = none := by
-  have hagree : ∀ value, searchCache (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch
+  have hagree : ∀ value, searchCache (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch
       lower.1 (predecessorStep encoding lower) value) =
-      keyResult.2 (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch
+      keyResult.2 (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch
         lower.1 (predecessorStep encoding lower) value) := by
     intro value
     rw [findEncodingNeighbor_preserves_chainInput _ _ _ _ _ _ _ hsearch,
       precomputedCappedSign_preserves_chainInput _ _ _ _ _ _ hsign]
   obtain ⟨previous, output, hprevious, hcached, htarget⟩ :=
-    Generic.Concrete.precomputedKeygen_cache_has_chainValue_preimage keyResult hkey request.epoch lower.1
+    Concrete.precomputedKeygen_cache_has_chainValue_preimage keyResult hkey request.epoch lower.1
       (encoding lower.1) lower.2
   have heq : previous = predecessorStep encoding lower := by
     apply Fin.ext
     have hstep := predecessorStep_add_one encoding lower
     omega
   subst previous
-  refine ⟨Generic.Wots.walk (Generic.Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter request.epoch lower.1)
+  refine ⟨Wots.walk (Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter request.epoch lower.1)
     0 (predecessorStep encoding lower).val (keyResult.1.2.chainStart request.epoch lower.1),
     ⟨output, ?_, ?_⟩, ?_⟩
   · rw [hagree]
@@ -105,28 +107,28 @@ theorem predecessorCache_after_neighborSearch
     exact htarget
   · intro value hne
     rw [hagree]
-    exact Generic.Concrete.precomputedKeygen_cache_chainInput_eq_none_of_ne keyResult hkey request.epoch lower.1
+    exact Concrete.precomputedKeygen_cache_chainInput_eq_none_of_ne keyResult hkey request.epoch lower.1
       (predecessorStep encoding lower) value hne
 
 theorem randomDigestPreimage_success_after_neighborSearch
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
-    (request : Generic.SignRequest) (signature : Generic.Signature) (signCache : QueryCache HashSpec)
-    (hsign : (some signature, signCache) ∈ support ((simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (request : SignRequest) (signature : Generic.Signature) (signCache : QueryCache HashSpec)
+    (hsign : (some signature, signCache) ∈ support ((simulateQ romImpl
+      (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
     (encoding : Encoding)
-    (hreplay : signature = Generic.Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
+    (hreplay : signature = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch signature.randomness encoding)
     (message : Message) (answer : Option (ℕ × HashOutput)) (searchCache : QueryCache HashSpec)
     (hsearch : (answer, searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache))
     (lower : DecreasingChain encoding) :
     2 / 5 ≤ Pr[fun result => result.2.1 ≠ none |
-      randomDigestPreimage (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
+      randomDigestPreimage (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
         (predecessorStep encoding lower)) (signature.chainValue lower.1) searchCache] := by
   obtain ⟨genuine, hhit, hfresh⟩ := predecessorCache_after_neighborSearch keyResult hkey request
     signature signCache hsign encoding hreplay message answer searchCache hsearch lower
-  exact randomDigestPreimage_success _ (Generic.Concrete.CacheView.chainInput_injective _ _ _ _) _ genuine _ hhit hfresh
+  exact randomDigestPreimage_success _ (Concrete.CacheView.chainInput_injective _ _ _ _) _ genuine _ hhit hfresh
 
 /-- info: 'XmssSecurity.Checksum.Attack.randomDigestPreimage_success_after_neighborSearch' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

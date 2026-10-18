@@ -23,13 +23,15 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.Modes
 open XmssSecurity.Modes
 
 open SUFCMA
 
 /-- Charging the signer charges at least the adversary's own hash queries. -/
-theorem signer_direct_hasQueryBound (requests : Bool) (adversary : Generic.Security.StatementAdversary)
+theorem signer_direct_hasQueryBound (requests : Bool) (adversary : Security.StatementAdversary)
     (q : ℕ) (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound Generic.xmss adversary q) :
     SUFCMA.notionDirect.HasQueryBound Generic.xmss adversary q :=
   (notion_direct_hasQueryBound_iff Generic.xmss adversary q).1
@@ -62,7 +64,7 @@ theorem sharedDecidingLoss_le_124 (q : ℕ) (hlarge : 4 ≤ q) (hq : q ≤ 2 ^ 1
   linarith
 
 theorem signer_advantage_le_of_loss (requests : Bool) (bits : ℕ) (hbits : bits ≤ 128)
-    (adversary : Generic.Security.StatementAdversary) (q : ℕ)
+    (adversary : Security.StatementAdversary) (q : ℕ)
     (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound Generic.xmss adversary q)
     (hloss : q ≤ 2 ^ 128 → Direct.sharedDecidingLoss q ≤ (q : ℝ≥0∞) / ((2 ^ bits : ℕ) : ℝ≥0∞)) :
     (SUFCMA.notion ⟨false, true, false, requests⟩).advantage Generic.xmss adversary ≤
@@ -77,10 +79,10 @@ theorem signer_advantage_le_of_loss (requests : Bool) (bits : ℕ) (hbits : bits
     (Nat.lt_of_not_ge hhuge).le.trans (Nat.pow_le_pow_right (by norm_num) hbits)
   have hdirect := signer_direct_hasQueryBound requests adversary q hbound
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
-    notion_direct_advantage_eq, Generic.Security.notionDirect_advantage_eq,
-    Generic.Security.forgeAdvantage_prune_eq adversary q hdirect]
+    notion_direct_advantage_eq, Security.notionDirect_advantage_eq,
+    Security.forgeAdvantage_prune_eq adversary q hdirect]
   exact (Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
-    (Generic.Direct.pruneAdversary_isDirectQueryBound _ (Generic.Security.embed adversary))).trans (hloss hq)
+    (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))).trans (hloss hq)
 
 /-- The no-signature loss `(2q + 2) / 2^128 + q / 2^256` is below `q / 2^bits` when
 `2q + 3 ≤ 2^(128 - bits) q`; stated for the two levels used. -/

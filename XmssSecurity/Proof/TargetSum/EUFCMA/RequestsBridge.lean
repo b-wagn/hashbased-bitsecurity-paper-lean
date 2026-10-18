@@ -11,6 +11,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.EUFCMA.Requests
 open XmssSecurity.EUFCMA
 
@@ -19,7 +21,7 @@ abbrev mode : SUFCMA.CountingMode := ⟨false, false, false, true⟩
 attribute [local irreducible] Generic.sampleMasterSeed
 
 theorem signingOracleCounted_request
-    (secretKey : Generic.Seeded.SecretKey) (request : Generic.SignRequest) :
+    (secretKey : Generic.Seeded.SecretKey) (request : SignRequest) :
     SUFCMA.signingOracleCounted (fun _ => 0) 1 Generic.xmss secretKey request =
       ((SUFCMA.signingOracle Generic.xmss secretKey).withAddCost (fun _ => 1)) request := by
   refine WriterT.ext _ _ ?_
@@ -33,21 +35,21 @@ theorem signingOracleCounted_request
 
 theorem impl_requests_eq (secretKey : Generic.Seeded.SecretKey) :
     (QueryImpl.ofLift OracleWorld
-        (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
+        (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
         (RandomOracleModel.hashCost HashInput HashOutput) +
       SUFCMA.signingOracleCounted (fun _ => 0) 1 Generic.xmss secretKey =
-    (Generic.Security.adversaryImpl secretKey).withAddCost (fun input => if IsCharged input then 1 else 0) := by
+    (Security.adversaryImpl secretKey).withAddCost (fun input => if IsCharged input then 1 else 0) := by
   funext input
   rcases input with (sample | hashInput) | request
   · rfl
   · rfl
   · simpa only [QueryImpl.add_apply_inr, QueryImpl.withAddCost_apply,
-      Generic.Security.adversaryImpl, charged_sign, if_true] using signingOracleCounted_request secretKey request
+      Security.adversaryImpl, charged_sign, if_true] using signingOracleCounted_request secretKey request
 
-theorem gameCounted_eq (adversary : Generic.Security.StatementAdversary) :
+theorem gameCounted_eq (adversary : Security.StatementAdversary) :
     gameCounted mode (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss adversary = (do
       let (publicKey, secretKey) ← Generic.xmss.keygen
-      let ((forgery, charged), log) ← (simulateQ (Generic.Security.adversaryImpl secretKey)
+      let ((forgery, charged), log) ← (simulateQ (Security.adversaryImpl secretKey)
         (QueryCounting.counted IsCharged (adversary.main publicKey))).run
       let verified ← Generic.xmss.verify publicKey forgery.epoch forgery.message forgery.signature
       pure (decide (SUFCMA.SigningTranscript.Valid log ∧
@@ -63,21 +65,21 @@ theorem gameCounted_eq (adversary : Generic.Security.StatementAdversary) :
   simp only [zero_add, add_zero]
   rfl
 
-theorem adversary_counted_bound (adversary : Generic.Security.StatementAdversary) (q : ℕ)
+theorem adversary_counted_bound (adversary : Security.StatementAdversary) (q : ℕ)
     (hbound : (notion mode).HasQueryBound Generic.xmss adversary q)
     (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey) (cache : QueryCache HashSpec)
-    (hkey : ((publicKey, secretKey), cache) ∈ support ((simulateQ Generic.romImpl Generic.xmss.keygen).run ∅))
-    (forgery : Generic.Forgery) (charged : ℕ) (log : QueryLog Generic.SigningSpec) (cache' : QueryCache HashSpec)
-    (hresult : (((forgery, charged), log), cache') ∈ support ((simulateQ Generic.romImpl
-      (simulateQ (Generic.Security.adversaryImpl secretKey)
+    (hkey : ((publicKey, secretKey), cache) ∈ support ((simulateQ romImpl Generic.xmss.keygen).run ∅))
+    (forgery : Forgery) (charged : ℕ) (log : QueryLog SigningSpec) (cache' : QueryCache HashSpec)
+    (hresult : (((forgery, charged), log), cache') ∈ support ((simulateQ romImpl
+      (simulateQ (Security.adversaryImpl secretKey)
         (QueryCounting.counted IsCharged (adversary.main publicKey))).run).run cache)) :
     charged ≤ q := by
-  obtain ⟨verification, hverification⟩ := Generic.probComp_support_nonempty
-    ((simulateQ Generic.romImpl (Generic.xmss.verify publicKey forgery.epoch forgery.message forgery.signature)).run cache')
+  obtain ⟨verification, hverification⟩ := probComp_support_nonempty
+    ((simulateQ romImpl (Generic.xmss.verify publicKey forgery.epoch forgery.message forgery.signature)).run cache')
   refine hbound (decide (SUFCMA.SigningTranscript.Valid log ∧
     ¬SigningTranscript.ContainsRequest log forgery) && verification.1, charged) ?_
   simp only [notion, RandomOracleModel.run]
-  rw [gameCounted_eq, ← Generic.Security.romImpl_eq, StateT.run'_eq, support_map]
+  rw [gameCounted_eq, ← Security.romImpl_eq, StateT.run'_eq, support_map]
   refine ⟨((decide (SUFCMA.SigningTranscript.Valid log ∧
     ¬SigningTranscript.ContainsRequest log forgery) && verification.1, charged), verification.2), ?_, rfl⟩
   simp only [simulateQ_bind, StateT.run_bind]
@@ -88,10 +90,10 @@ theorem adversary_counted_bound (adversary : Generic.Security.StatementAdversary
   rw [mem_support_bind_iff]
   exact ⟨verification, hverification, by simp⟩
 
-theorem forgeAdvantage_prune_eq (adversary : Generic.Security.StatementAdversary) (q : ℕ)
+theorem forgeAdvantage_prune_eq (adversary : Security.StatementAdversary) (q : ℕ)
     (hbound : (notion mode).HasQueryBound Generic.xmss adversary q) :
-    forgeAdvantage Generic.Seeded.scheme (Generic.Security.embed adversary) =
-      forgeAdvantage Generic.Seeded.scheme (pruneAdversary q (Generic.Security.embed adversary)) := by
+    forgeAdvantage Seeded.scheme (Security.embed adversary) =
+      forgeAdvantage Seeded.scheme (pruneAdversary q (Security.embed adversary)) := by
   unfold forgeAdvantage
   refine congrArg (fun computation => Pr[= true | computation]) ?_
   unfold gameCore
@@ -101,7 +103,7 @@ theorem forgeAdvantage_prune_eq (adversary : Generic.Security.StatementAdversary
   dsimp only
   unfold gameRest
   simp only [simulateQ_bind, StateT.run'_bind']
-  have hprune := simulate_prune_eq_logged (Generic.Security.adversaryImpl secretKey)
+  have hprune := simulate_prune_eq_logged (Security.adversaryImpl secretKey)
     (adversary.main publicKey) q cache
     (fun result hresult => by
       rcases result with ⟨⟨⟨forgery, charged⟩, log⟩, cache'⟩
@@ -110,12 +112,12 @@ theorem forgeAdvantage_prune_eq (adversary : Generic.Security.StatementAdversary
   exact congrArg (fun computation => computation >>= _) hprune.symm
 
 theorem security_of_isQueryBound (bits : ℕ)
-    (h : ∀ (adversary : Generic.Adversary) (q : ℕ), 1 ≤ q → IsQueryBound adversary q →
-      forgeAdvantage Generic.Seeded.scheme adversary ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞)) :
+    (h : ∀ (adversary : Adversary) (q : ℕ), 1 ≤ q → IsQueryBound adversary q →
+      forgeAdvantage Seeded.scheme adversary ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞)) :
     (notion mode).HasClassicalSecurityBits Generic.xmss bits := by
   intro q hq adversary hbound
   rw [notion_advantage_eq, forgeAdvantage_prune_eq adversary q hbound]
-  exact h _ q hq (pruneAdversary_isQueryBound q (Generic.Security.embed adversary))
+  exact h _ q hq (pruneAdversary_isQueryBound q (Security.embed adversary))
 
 /-- info: 'XmssSecurity.TargetSum.EUFCMA.Requests.security_of_isQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

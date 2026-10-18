@@ -11,54 +11,56 @@ open OracleComp.ProgramLogic.Relational
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Deciding
 
-open Generic.CappedChain FirstLaneOracleSimulation
+open CappedChain FirstLaneOracleSimulation
 
 noncomputable def expectedCoupledHazards (fuel : ℕ)
-    (body : Generic.CappedChain.ProgrammedGlobalChainKeygenView → (Generic.CappedChain.GlobalChainEdgeIndex → Digest) →
-      OracleComp Generic.CappedChain.GlobalFirstLaneWorld α) : ℝ≥0∞ :=
-  ∑' result, Pr[= result | Generic.Deciding.coupledFirstLaneProgram body] *
-    ((min fuel (Generic.FirstLaneOracleSimulation.hazardCount result.2.2) : ℕ) : ℝ≥0∞)
+    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+      OracleComp CappedChain.GlobalFirstLaneWorld α) : ℝ≥0∞ :=
+  ∑' result, Pr[= result | Deciding.coupledFirstLaneProgram body] *
+    ((min fuel (FirstLaneOracleSimulation.hazardCount result.2.2) : ℕ) : ℝ≥0∞)
 
 theorem eager_enforcedHit_probability_le_expected (fuel : ℕ)
-    (computation : OracleComp Generic.CappedChain.GlobalFirstLaneWorld α) :
-    Pr[fun result => Generic.FirstLaneOracleSimulation.CombinedHit result.1 (Generic.FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
-      Generic.FirstLaneOracleSimulation.eagerExperiment computation] ≤
+    (computation : OracleComp CappedChain.GlobalFirstLaneWorld α) :
+    Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1 (FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
+      FirstLaneOracleSimulation.eagerExperiment computation] ≤
       ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ *
-        expectedEagerQueryCount Generic.FirstLaneOracleSimulation.IsHazardQuery (Generic.FirstLaneOracleSimulation.enforceHazardBound fuel computation) := by
+        expectedEagerQueryCount FirstLaneOracleSimulation.IsHazardQuery (FirstLaneOracleSimulation.enforceHazardBound fuel computation) := by
   calc
-    _ = Pr[Generic.FirstLaneOracleSimulation.ExperimentHit | Generic.FirstLaneOracleSimulation.enforceEagerResult fuel <$> Generic.FirstLaneOracleSimulation.eagerExperiment computation] := by
+    _ = Pr[FirstLaneOracleSimulation.ExperimentHit | FirstLaneOracleSimulation.enforceEagerResult fuel <$> FirstLaneOracleSimulation.eagerExperiment computation] := by
       rw [probEvent_map]
       rfl
-    _ = Pr[Generic.FirstLaneOracleSimulation.ExperimentHit | Generic.FirstLaneOracleSimulation.eagerExperiment (Generic.FirstLaneOracleSimulation.enforceHazardBound fuel computation)] := by
-      rw [Generic.FirstLaneOracleSimulation.eagerExperiment_enforceHazardBound_eq_map]
+    _ = Pr[FirstLaneOracleSimulation.ExperimentHit | FirstLaneOracleSimulation.eagerExperiment (FirstLaneOracleSimulation.enforceHazardBound fuel computation)] := by
+      rw [FirstLaneOracleSimulation.eagerExperiment_enforceHazardBound_eq_map]
     _ ≤ _ := combinedHit_eager_probability_le_expected fuel
-      (Generic.FirstLaneOracleSimulation.enforceHazardBound fuel computation) (Generic.FirstLaneOracleSimulation.enforceHazardBound_isHazardQueryBoundP fuel computation)
+      (FirstLaneOracleSimulation.enforceHazardBound fuel computation) (FirstLaneOracleSimulation.enforceHazardBound_isHazardQueryBoundP fuel computation)
 
 theorem expectedCoupledHazards_eq_public (fuel : ℕ)
-    (body : Generic.CappedChain.ProgrammedGlobalChainKeygenView → (Generic.CappedChain.GlobalChainEdgeIndex → Digest) →
-      OracleComp Generic.CappedChain.GlobalFirstLaneWorld α) :
+    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+      OracleComp CappedChain.GlobalFirstLaneWorld α) :
     expectedCoupledHazards fuel body =
-      expectedEagerQueryCount Generic.FirstLaneOracleSimulation.IsHazardQuery (Generic.FirstLaneOracleSimulation.enforceHazardBound fuel (Generic.Deciding.publicFirstLaneProgram body)) := by
+      expectedEagerQueryCount FirstLaneOracleSimulation.IsHazardQuery (FirstLaneOracleSimulation.enforceHazardBound fuel (Deciding.publicFirstLaneProgram body)) := by
   rw [expectedEagerHazardQueries_enforce_eq]
   calc
     _ = ∑' result, Pr[= result |
-          Generic.Deciding.coupledFirstLaneProjection <$> Generic.Deciding.coupledFirstLaneProgram body] *
-        ((min fuel (Generic.FirstLaneOracleSimulation.hazardCount result.2.2) : ℕ) : ℝ≥0∞) := by
+          Deciding.coupledFirstLaneProjection <$> Deciding.coupledFirstLaneProgram body] *
+        ((min fuel (FirstLaneOracleSimulation.hazardCount result.2.2) : ℕ) : ℝ≥0∞) := by
       rw [tsum_probOutput_map_mul]
       rfl
     _ = _ := by
       apply tsum_congr
       intro result
-      rw [probOutput_congr rfl (Generic.Deciding.evalDist_coupledFirstLaneProgram_projection body)]
+      rw [probOutput_congr rfl (Deciding.evalDist_coupledFirstLaneProgram_projection body)]
 
 theorem expectedCoupledHazards_le (fuel : ℕ)
-    (body : Generic.CappedChain.ProgrammedGlobalChainKeygenView → (Generic.CappedChain.GlobalChainEdgeIndex → Digest) →
-      OracleComp Generic.CappedChain.GlobalFirstLaneWorld α) : expectedCoupledHazards fuel body ≤ fuel := by
+    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+      OracleComp CappedChain.GlobalFirstLaneWorld α) : expectedCoupledHazards fuel body ≤ fuel := by
   unfold expectedCoupledHazards
   calc
-    _ ≤ ∑' result, Pr[= result | Generic.Deciding.coupledFirstLaneProgram body] * (fuel : ℝ≥0∞) := by
+    _ ≤ ∑' result, Pr[= result | Deciding.coupledFirstLaneProgram body] * (fuel : ℝ≥0∞) := by
       apply ENNReal.tsum_le_tsum
       intro result
       gcongr
@@ -68,20 +70,20 @@ theorem expectedCoupledHazards_le (fuel : ℕ)
       exact (mul_le_mul' tsum_probOutput_le_one le_rfl).trans_eq (one_mul _)
 
 theorem coupled_enforcedHit_probability_le_expected (fuel : ℕ)
-    (body : Generic.CappedChain.ProgrammedGlobalChainKeygenView → (Generic.CappedChain.GlobalChainEdgeIndex → Digest) →
-      OracleComp Generic.CappedChain.GlobalFirstLaneWorld α) :
-    Pr[fun result => Generic.FirstLaneOracleSimulation.CombinedHit result.1.1.2 (Generic.FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
-      Generic.Deciding.coupledFirstLaneProgram body] ≤
+    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+      OracleComp CappedChain.GlobalFirstLaneWorld α) :
+    Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.1.2 (FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
+      Deciding.coupledFirstLaneProgram body] ≤
       ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ * expectedCoupledHazards fuel body := by
   rw [expectedCoupledHazards_eq_public]
   calc
-    _ = Pr[fun result => Generic.FirstLaneOracleSimulation.CombinedHit result.1 (Generic.FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
-        Generic.Deciding.coupledFirstLaneProjection <$> Generic.Deciding.coupledFirstLaneProgram body] := by
+    _ = Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1 (FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
+        Deciding.coupledFirstLaneProjection <$> Deciding.coupledFirstLaneProgram body] := by
       rw [probEvent_map]
       rfl
-    _ = Pr[fun result => Generic.FirstLaneOracleSimulation.CombinedHit result.1 (Generic.FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
-        Generic.FirstLaneOracleSimulation.eagerExperiment (Generic.Deciding.publicFirstLaneProgram body)] :=
-      Generic.CappedChain.probEvent_eq_of_evalDist_eq _ (Generic.Deciding.evalDist_coupledFirstLaneProgram_projection body)
-    _ ≤ _ := eager_enforcedHit_probability_le_expected fuel (Generic.Deciding.publicFirstLaneProgram body)
+    _ = Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1 (FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
+        FirstLaneOracleSimulation.eagerExperiment (Deciding.publicFirstLaneProgram body)] :=
+      CappedChain.probEvent_eq_of_evalDist_eq _ (Deciding.evalDist_coupledFirstLaneProgram_projection body)
+    _ ≤ _ := eager_enforcedHit_probability_le_expected fuel (Deciding.publicFirstLaneProgram body)
 
 end XmssSecurity.TargetSum.Deciding

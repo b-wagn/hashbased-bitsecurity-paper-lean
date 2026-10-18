@@ -11,15 +11,17 @@ open scoped Classical
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum
 
 namespace Deciding
 
-open Direct Generic.CappedChain
+open Direct CappedChain
 
 def SourcePrefixForgedEncodingFresh
-    (result : Generic.CappedChain.ProgrammedGlobalChainKeygenView × (Generic.Forgery × Generic.CappedChain.SourceExactTracedState)) : Prop :=
-  result.2.2.1.1.1 (Generic.Direct.forgeryEncodingInput result.1.publicKey result.2.1) = none
+    (result : CappedChain.ProgrammedGlobalChainKeygenView × (Forgery × CappedChain.SourceExactTracedState)) : Prop :=
+  result.2.2.1.1.1 (Direct.forgeryEncodingInput result.1.publicKey result.2.1) = none
 
 end Deciding
 end XmssSecurity.TargetSum

@@ -16,10 +16,12 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.NoSign
 
 /-- The signing requests among the adversary's actions. -/
-def IsSignQuery : (OracleWorld + Generic.SigningSpec).Domain → Prop
+def IsSignQuery : (OracleWorld + SigningSpec).Domain → Prop
   | .inr _ => True
   | .inl _ => False
 
@@ -27,7 +29,7 @@ instance : DecidablePred IsSignQuery := fun input => by
   rcases input with _ | _ <;> unfold IsSignQuery <;> infer_instance
 
 /-- No signing request on any branch of the adversary's program. -/
-def NoSignQueries (adversary : Generic.Adversary) : Prop :=
+def NoSignQueries (adversary : Adversary) : Prop :=
   ∀ publicKey, (adversary.main publicKey).IsQueryBoundP IsSignQuery 0
 
 /-- Forward private sampling and hash queries. -/
@@ -35,24 +37,24 @@ def forwardWorld : QueryImpl OracleWorld (OracleComp OracleWorld) :=
   fun input => liftM (OracleWorld.query input)
 
 /-- Answer every signing request by `none`. -/
-def refuseSigning : QueryImpl Generic.SigningSpec (OracleComp OracleWorld) :=
+def refuseSigning : QueryImpl SigningSpec (OracleComp OracleWorld) :=
   fun _ => pure none
 
 /-- Forward private sampling and hash queries; answer a signing request, which a program without
 signing requests never makes, by `none`. -/
-def forwardOnly : QueryImpl (OracleWorld + Generic.SigningSpec) (OracleComp OracleWorld) :=
+def forwardOnly : QueryImpl (OracleWorld + SigningSpec) (OracleComp OracleWorld) :=
   forwardWorld + refuseSigning
 
 /-- The adversary with every oracle forwarded. -/
-noncomputable def forwardPhase (adversary : Generic.Adversary) (publicKey : PublicKey) :
-    OracleComp OracleWorld Generic.Forgery :=
+noncomputable def forwardPhase (adversary : Adversary) (publicKey : PublicKey) :
+    OracleComp OracleWorld Forgery :=
   simulateQ forwardOnly (adversary.main publicKey)
 
-theorem simulateQ_run_eq_forwardOnly {Key α : Type} (scheme : Generic.Scheme Key) (secretKey : Key)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+theorem simulateQ_run_eq_forwardOnly {Key α : Type} (scheme : Scheme Key) (secretKey : Key)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (hcomputation : computation.IsQueryBoundP IsSignQuery 0) :
-    (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey) computation).run =
-      (fun value => (value, ([] : QueryLog Generic.SigningSpec))) <$>
+    (simulateQ (forwardOracles + signingOracle scheme secretKey) computation).run =
+      (fun value => (value, ([] : QueryLog SigningSpec))) <$>
         simulateQ forwardOnly computation := by
   induction computation using OracleComp.inductionOn with
   | pure value => simp
@@ -62,18 +64,18 @@ theorem simulateQ_run_eq_forwardOnly {Key α : Type} (scheme : Generic.Scheme Ke
       · have hnext : ∀ answer, (next answer).IsQueryBoundP IsSignQuery 0 := fun answer => by
           simpa [IsSignQuery] using hcomputation.2 answer
         simp only [simulateQ_bind, simulateQ_spec_query, QueryImpl.add_apply_inl,
-          WriterT.run_bind, Generic.forwardOracles, forwardOnly, forwardWorld, map_bind]
+          WriterT.run_bind, forwardOracles, forwardOnly, forwardWorld, map_bind]
         simp only [ih _ (hnext _), Functor.map_map]
         rfl
       · simp [IsSignQuery] at hcomputation
 
 /-- The adversary phase of the game for an adversary without signing requests. -/
-theorem adversaryPhase_eq_of_noSign (adversary : Generic.Adversary) (hno : NoSignQueries adversary)
+theorem adversaryPhase_eq_of_noSign (adversary : Adversary) (hno : NoSignQueries adversary)
     (publicKey : PublicKey) (secretKey : Generic.SecretKey) :
-    Generic.Deciding.adversaryPhase adversary publicKey secretKey =
-      (fun forgery => (forgery, ([] : QueryLog Generic.SigningSpec))) <$>
+    Deciding.adversaryPhase adversary publicKey secretKey =
+      (fun forgery => (forgery, ([] : QueryLog SigningSpec))) <$>
         forwardPhase adversary publicKey :=
-  simulateQ_run_eq_forwardOnly Generic.Concrete.scheme secretKey _ (hno publicKey)
+  simulateQ_run_eq_forwardOnly Concrete.scheme secretKey _ (hno publicKey)
 
 /-- The hash queries of a world program. -/
 def IsWorldHashQuery : OracleWorld.Domain → Prop
@@ -84,8 +86,8 @@ instance : DecidablePred IsWorldHashQuery := fun input => by
   rcases input with _ | _ <;> unfold IsWorldHashQuery <;> infer_instance
 
 theorem forwardOnly_isQueryBoundP {α : Type}
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (budget : ℕ)
-    (hcomputation : computation.IsQueryBoundP Generic.Direct.IsDirectHashQuery budget) :
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (budget : ℕ)
+    (hcomputation : computation.IsQueryBoundP Direct.IsDirectHashQuery budget) :
     (simulateQ forwardOnly computation).IsQueryBoundP IsWorldHashQuery budget := by
   induction computation using OracleComp.inductionOn generalizing budget with
   | pure value => simp
@@ -106,8 +108,8 @@ theorem forwardOnly_isQueryBoundP {α : Type}
         rw [pure_bind]
         exact ih none budget (by simpa using hcomputation.2 none)
 
-theorem forwardPhase_isQueryBoundP (adversary : Generic.Adversary) (D : ℕ)
-    (hD : Generic.Direct.IsDirectQueryBound adversary D) (publicKey : PublicKey) :
+theorem forwardPhase_isQueryBoundP (adversary : Adversary) (D : ℕ)
+    (hD : Direct.IsDirectQueryBound adversary D) (publicKey : PublicKey) :
     (forwardPhase adversary publicKey).IsQueryBoundP IsWorldHashQuery D :=
   forwardOnly_isQueryBoundP _ D (hD publicKey)
 
@@ -115,7 +117,7 @@ theorem forwardPhase_isQueryBoundP (adversary : Generic.Adversary) (D : ℕ)
 theorem exists_list_of_isQueryBoundP {α : Type} (computation : OracleComp OracleWorld α)
     (budget : ℕ) (hcomputation : computation.IsQueryBoundP IsWorldHashQuery budget)
     (cache : QueryCache HashSpec) (result : α × QueryCache HashSpec)
-    (hresult : result ∈ support ((simulateQ Generic.romImpl computation).run cache)) :
+    (hresult : result ∈ support ((simulateQ romImpl computation).run cache)) :
     ∃ inputs : List HashInput, inputs.length ≤ budget ∧
       ∀ input, result.2 input ≠ none → cache input ≠ none ∨ input ∈ inputs := by
   induction computation using OracleComp.inductionOn generalizing budget cache with
@@ -129,9 +131,9 @@ theorem exists_list_of_isQueryBoundP {α : Type} (computation : OracleComp Oracl
       obtain ⟨first, hfirst, hrest⟩ := hresult
       rcases query with uniformIndex | hashInput
       · have hcache : first.2 = cache := by
-          change first ∈ support ((simulateQ Generic.romImpl
+          change first ∈ support ((simulateQ romImpl
             (liftM (OracleWorld.query (.inl uniformIndex)))).run cache) at hfirst
-          simp [Generic.romImpl, unifFwdImpl, QueryImpl.liftTarget_apply,
+          simp [romImpl, unifFwdImpl, QueryImpl.liftTarget_apply,
             HasQuery.toQueryImpl_apply] at hfirst
           obtain ⟨_, rfl⟩ := hfirst
           rfl
@@ -147,7 +149,7 @@ theorem exists_list_of_isQueryBoundP {α : Type} (computation : OracleComp Oracl
           · exact Or.inr (by simp [heq])
           · left
             have hquery : first ∈ support ((randomOracle (spec := HashSpec) hashInput).run cache) := by
-              simpa [Generic.romImpl] using hfirst
+              simpa [romImpl] using hfirst
             cases hnone : cache hashInput with
             | some output =>
                 rw [QueryImpl.withCaching_run_some _ hnone] at hquery

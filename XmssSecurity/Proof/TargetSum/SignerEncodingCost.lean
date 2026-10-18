@@ -10,6 +10,8 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum
 
 theorem deriveRandomizer_lift_hash_eq_world
@@ -33,7 +35,7 @@ theorem Concrete.precomputedSignAttempt_lift_hash_eq_world
   rw [Generic.Concrete.precomputedSignAttempt, liftM_bind, hencoding, Generic.Concrete.precomputedSignAttempt]
   apply bind_congr
   intro digest
-  cases Generic.Code.decodeDigest digest <;> simp only [liftM_pure]
+  cases Code.decodeDigest digest <;> simp only [liftM_pure]
 
 theorem Seeded.signFrom_lift_hash_eq_world
     (secretKey : Generic.Seeded.SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : ℕ) :

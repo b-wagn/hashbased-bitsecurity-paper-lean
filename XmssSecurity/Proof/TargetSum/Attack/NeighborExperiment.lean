@@ -10,6 +10,8 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Attack
 
 open Concrete
@@ -17,15 +19,15 @@ open Concrete
 theorem encodingDecode_of_cache_le (initialCache finalCache : QueryCache HashSpec)
     (hle : initialCache ≤ finalCache) (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) (encoding : Encoding)
-    (hdecode : Generic.Code.decodeDigest
-      (Generic.Concrete.CacheView.encodingHash initialCache parameter leafIndex (message, randomness)) = some encoding) :
-    Generic.Code.decodeDigest
-      (Generic.Concrete.CacheView.encodingHash finalCache parameter leafIndex (message, randomness)) = some encoding := by
+    (hdecode : Code.decodeDigest
+      (Concrete.CacheView.encodingHash initialCache parameter leafIndex (message, randomness)) = some encoding) :
+    Code.decodeDigest
+      (Concrete.CacheView.encodingHash finalCache parameter leafIndex (message, randomness)) = some encoding := by
   obtain ⟨output, hcached⟩ := TargetSum.encodingInput_cached_of_decode_some initialCache
     parameter leafIndex message randomness encoding hdecode
-  unfold Generic.Concrete.CacheView.encodingHash at hdecode ⊢
-  rw [Generic.Concrete.CacheView.digestAt_eq_of_cache_eq_some hcached] at hdecode
-  rw [Generic.Concrete.CacheView.digestAt_eq_of_cache_eq_some (hle hcached)]
+  unfold Concrete.CacheView.encodingHash at hdecode ⊢
+  rw [Concrete.CacheView.digestAt_eq_of_cache_eq_some hcached] at hdecode
+  rw [Concrete.CacheView.digestAt_eq_of_cache_eq_some (hle hcached)]
   exact hdecode
 
 def checkNeighborPreimage (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message)
@@ -40,18 +42,18 @@ def checkNeighborPreimage (publicKey : PublicKey) (leafIndex : LeafIndex) (messa
 
 theorem checkNeighborPreimage_run
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (original : Generic.Signature) (encoding : Encoding)
-    (hreplay : original = Generic.Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
+    (hreplay : original = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       leafIndex original.randomness encoding)
     (message : Message) (randomness : Randomness) (transfer : DigitTransfer encoding)
     (initialCache : QueryCache HashSpec) (hle : keyResult.2 ≤ initialCache)
-    (hdecode : Generic.Code.decodeDigest
-      (Generic.Concrete.CacheView.encodingHash initialCache keyResult.1.2.parameter leafIndex (message, randomness)) =
+    (hdecode : Code.decodeDigest
+      (Concrete.CacheView.encodingHash initialCache keyResult.1.2.parameter leafIndex (message, randomness)) =
         some (transferEncoding encoding transfer))
     (block : PreimagePrefix) (answer : Option (ℕ × HashOutput)) (finalCache : QueryCache HashSpec)
     (hsearch : (answer, finalCache) ∈ support ((simulateQ randomOracle
-      (findDigestPreimage (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
+      (findDigestPreimage (Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
         (predecessorStep encoding transfer.1)) (original.chainValue transfer.1.1) block)).run initialCache)) :
     (simulateQ randomOracle (checkNeighborPreimage keyResult.1.1 leafIndex message original encoding
       randomness transfer block answer)).run finalCache = pure (decide (answer ≠ none), finalCache) := by
@@ -60,11 +62,11 @@ theorem checkNeighborPreimage_run
   | some answer =>
       rcases answer with ⟨position, output⟩
       obtain ⟨_, htarget, hcached⟩ := findDigestPreimage_success_cached _ _ _ _ _ _ _ hsearch
-      have hcache := Generic.Concrete.CacheReplay.randomOracle_cache_le _ initialCache (some (position, output), finalCache) hsearch
+      have hcache := Concrete.CacheReplay.randomOracle_cache_le _ initialCache (some (position, output), finalCache) hsearch
       have hfinal := hle.trans hcache
       have hdecodeFinal := encodingDecode_of_cache_le initialCache finalCache hcache _ _ _ _ _ hdecode
       rw [checkNeighborPreimage, simulateQ_bind, StateT.run_bind]
-      have hparameter := Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkey
+      have hparameter := Deciding.keygen_publicKey_parameter_eq keyResult hkey
       rw [hparameter, advanceSignatureChain_run keyResult hkey leafIndex original encoding hreplay
         randomness transfer finalCache hfinal, pure_bind]
       rw [verifyTransferredSignature_run keyResult hkey leafIndex original encoding hreplay
@@ -89,7 +91,7 @@ theorem randomDigestPreimage_support (input : Digest → HashInput) (target : Di
 noncomputable def predecessorVerificationExperiment (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (original : Generic.Signature) (encoding : Encoding) (randomness : Randomness)
     (transfer : DigitTransfer encoding) (cache : QueryCache HashSpec) : ProbComp Bool := do
-  let result ← randomDigestPreimage (Generic.Concrete.CacheView.chainInput publicKey.parameter leafIndex transfer.1.1
+  let result ← randomDigestPreimage (Concrete.CacheView.chainInput publicKey.parameter leafIndex transfer.1.1
     (predecessorStep encoding transfer.1)) (original.chainValue transfer.1.1) cache
   let verified ← (simulateQ randomOracle (checkNeighborPreimage publicKey leafIndex message original
     encoding randomness transfer result.1 result.2.1)).run result.2.2
@@ -97,26 +99,26 @@ noncomputable def predecessorVerificationExperiment (publicKey : PublicKey) (lea
 
 theorem predecessorVerificationExperiment_probability
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (original : Generic.Signature) (encoding : Encoding)
-    (hreplay : original = Generic.Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
+    (hreplay : original = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       leafIndex original.randomness encoding)
     (message : Message) (randomness : Randomness) (transfer : DigitTransfer encoding)
     (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
-    (hdecode : Generic.Code.decodeDigest
-      (Generic.Concrete.CacheView.encodingHash cache keyResult.1.2.parameter leafIndex (message, randomness)) =
+    (hdecode : Code.decodeDigest
+      (Concrete.CacheView.encodingHash cache keyResult.1.2.parameter leafIndex (message, randomness)) =
         some (transferEncoding encoding transfer)) :
     Pr[= true | predecessorVerificationExperiment keyResult.1.1 leafIndex message original encoding
       randomness transfer cache] =
       Pr[fun result => result.2.1 ≠ none |
-        randomDigestPreimage (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
+        randomDigestPreimage (Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
           (predecessorStep encoding transfer.1)) (original.chainValue transfer.1.1) cache] := by
   unfold predecessorVerificationExperiment
-  rw [Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkey, probOutput_bind_eq_tsum, probEvent_eq_tsum_ite]
+  rw [Deciding.keygen_publicKey_parameter_eq keyResult hkey, probOutput_bind_eq_tsum, probEvent_eq_tsum_ite]
   apply tsum_congr
   rintro ⟨block, answer, finalCache⟩
   by_cases hmem : (block, (answer, finalCache)) ∈ support
-      (randomDigestPreimage (Generic.Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
+      (randomDigestPreimage (Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
         (predecessorStep encoding transfer.1)) (original.chainValue transfer.1.1) cache)
   · rw [checkNeighborPreimage_run keyResult hkey leafIndex original encoding hreplay message randomness
       transfer cache hle hdecode block answer finalCache (randomDigestPreimage_support _ _ _ _ _ _ hmem)]
@@ -128,9 +130,9 @@ noncomputable def selectedNeighborTransfer (encoding : Encoding) (digest : Diges
     (hmem : digest ∈ neighborDigests encoding) : DigitTransfer encoding :=
   Classical.choose (Finset.mem_image.mp hmem)
 
-theorem selectedNeighborTransfer_decode (encoding : Encoding) (hvalid : Generic.Code.Valid encoding)
+theorem selectedNeighborTransfer_decode (encoding : Encoding) (hvalid : Code.Valid encoding)
     (digest : Digest) (hmem : digest ∈ neighborDigests encoding) :
-    Generic.Code.decodeDigest digest = some (transferEncoding encoding (selectedNeighborTransfer encoding digest hmem)) := by
+    Code.decodeDigest digest = some (transferEncoding encoding (selectedNeighborTransfer encoding digest hmem)) := by
   have heq := (Classical.choose_spec (Finset.mem_image.mp hmem)).2
   change digestOfEncoding (transferEncoding encoding (selectedNeighborTransfer encoding digest hmem)) = digest at heq
   conv_lhs => rw [← heq]
@@ -150,12 +152,12 @@ noncomputable def neighborVerificationContinuation (publicKey : PublicKey) (leaf
 
 theorem neighborVerificationContinuation_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
-    (request : Generic.SignRequest) (original : Generic.Signature) (signCache : QueryCache HashSpec)
-    (hsign : (some original, signCache) ∈ support ((simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
-    (encoding : Encoding) (hvalid : Generic.Code.Valid encoding)
-    (hreplay : original = Generic.Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (request : SignRequest) (original : Generic.Signature) (signCache : QueryCache HashSpec)
+    (hsign : (some original, signCache) ∈ support ((simulateQ romImpl
+      (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
+    (encoding : Encoding) (hvalid : Code.Valid encoding)
+    (hreplay : original = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch original.randomness encoding)
     (message : Message) (position : ℕ) (output : HashOutput) (searchCache : QueryCache HashSpec)
     (hsearch : (some (position, output), searchCache) ∈ support ((simulateQ randomOracle
@@ -163,18 +165,18 @@ theorem neighborVerificationContinuation_lower
     2 / 17 ≤ Pr[= true | neighborVerificationContinuation keyResult.1.1 request.epoch message
       original encoding (some (position, output)) searchCache] := by
   classical
-  obtain ⟨_, _, hneighbor, hcached⟩ := Generic.Attack.findHash_success_cached _ _ _ _ _ _ _ _ hsearch
+  obtain ⟨_, _, hneighbor, hcached⟩ := Attack.findHash_success_cached _ _ _ _ _ _ _ _ hsearch
   change Generic.truncateHash output ∈ neighborDigests encoding at hneighbor
   unfold neighborSearchInput at hcached
   simp only [neighborVerificationContinuation, dif_pos hneighbor]
-  have hdecode : Generic.Code.decodeDigest (Generic.Concrete.CacheView.encodingHash searchCache keyResult.1.2.parameter
+  have hdecode : Code.decodeDigest (Concrete.CacheView.encodingHash searchCache keyResult.1.2.parameter
       request.epoch (message, BitVec.ofNat randomnessBits position)) =
         some (transferEncoding encoding (selectedNeighborTransfer encoding (Generic.truncateHash output) hneighbor)) := by
-    unfold Generic.Concrete.CacheView.encodingHash
-    rw [Generic.Concrete.CacheView.digestAt_eq_of_cache_eq_some hcached]
+    unfold Concrete.CacheView.encodingHash
+    rw [Concrete.CacheView.digestAt_eq_of_cache_eq_some hcached]
     exact selectedNeighborTransfer_decode encoding hvalid _ hneighbor
-  have hsignLe := Generic.xmssRom_cache_le _ keyResult.2 (some original, signCache) hsign
-  have hsearchLe := Generic.Concrete.CacheReplay.randomOracle_cache_le _ signCache (some (position, output), searchCache) hsearch
+  have hsignLe := xmssRom_cache_le _ keyResult.2 (some original, signCache) hsign
+  have hsearchLe := Concrete.CacheReplay.randomOracle_cache_le _ signCache (some (position, output), searchCache) hsearch
   rw [predecessorVerificationExperiment_probability keyResult hkey request.epoch original encoding
     hreplay message _ _ searchCache (hsignLe.trans hsearchLe) hdecode]
   exact randomDigestPreimage_success_after_neighborSearch keyResult hkey request original signCache hsign
@@ -187,12 +189,12 @@ noncomputable def neighborVerificationExperiment (publicKey : PublicKey) (leafIn
 
 theorem neighborVerificationExperiment_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
-    (request : Generic.SignRequest) (original : Generic.Signature) (signCache : QueryCache HashSpec)
-    (hsign : (some original, signCache) ∈ support ((simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
-    (encoding : Encoding) (hvalid : Generic.Code.Valid encoding)
-    (hreplay : original = Generic.Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (request : SignRequest) (original : Generic.Signature) (signCache : QueryCache HashSpec)
+    (hsign : (some original, signCache) ∈ support ((simulateQ romImpl
+      (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
+    (encoding : Encoding) (hvalid : Code.Valid encoding)
+    (hreplay : original = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch original.randomness encoding)
     (message : Message) (hne : message ≠ request.message) :
     (3 / 4 : ℝ≥0∞) * (2 / 17) ≤ Pr[= true | neighborVerificationExperiment keyResult.1.1 request.epoch message
@@ -207,7 +209,7 @@ theorem neighborVerificationExperiment_lower
     _ ≤ _ := by
       rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
       unfold neighborVerificationExperiment
-      rw [Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkey, probOutput_bind_eq_tsum]
+      rw [Deciding.keygen_publicKey_parameter_eq keyResult hkey, probOutput_bind_eq_tsum]
       apply ENNReal.tsum_le_tsum
       rintro ⟨answer, searchCache⟩
       by_cases hmem : (answer, searchCache) ∈ support search
@@ -224,31 +226,31 @@ theorem neighborVerificationExperiment_lower
         simp
 
 noncomputable def signedNeighborExperiment
-    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec) (request : Generic.SignRequest)
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec) (request : SignRequest)
     (message : Message) : ProbComp Bool := do
-  let result ← (simulateQ Generic.romImpl
-    (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
+  let result ← (simulateQ romImpl
+    (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   match result.1 with
   | none => pure false
   | some original =>
-      match Generic.Code.decodeDigest (Generic.Concrete.CacheView.encodingHash result.2 keyResult.1.2.parameter
+      match Code.decodeDigest (Concrete.CacheView.encodingHash result.2 keyResult.1.2.parameter
         request.epoch (request.message, original.randomness)) with
       | none => pure false
       | some encoding => neighborVerificationExperiment keyResult.1.1 request.epoch message original encoding result.2
 
 theorem signedNeighborExperiment_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
-    (request : Generic.SignRequest) (message : Message) (hne : message ≠ request.message) :
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (request : SignRequest) (message : Message) (hne : message ≠ request.message) :
     (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
       Pr[= true | signedNeighborExperiment keyResult request message] := by
   classical
   let lower : ℝ≥0∞ := (3 / 4) * (2 / 17)
-  let signing := (simulateQ Generic.romImpl
-    (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
+  let signing := (simulateQ romImpl
+    (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc
     _ ≤ Pr[fun result => result.1 ≠ none | signing] * lower :=
-      mul_le_mul_left (le_of_lt (Generic.Concrete.precomputedCappedSign_success_after_keygen keyResult hkey
+      mul_le_mul_left (le_of_lt (Concrete.precomputedCappedSign_success_after_keygen keyResult hkey
         request.epoch request.message)) _
     _ ≤ _ := by
       rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
@@ -260,9 +262,9 @@ theorem signedNeighborExperiment_lower
       · cases answer with
         | none => simp
         | some original =>
-            obtain ⟨encoding, hdecoded, hreplay⟩ := Generic.Attack.signing_success_replay_at_keygen keyResult hkey
+            obtain ⟨encoding, hdecoded, hreplay⟩ := Attack.signing_success_replay_at_keygen keyResult hkey
               request original signCache hmem
-            have hdecode := Generic.Concrete.CacheView.decodeDigest_of_decodedEncoding hdecoded
+            have hdecode := Concrete.CacheView.decodeDigest_of_decodedEncoding hdecoded
             simp only [ne_eq, Option.some_ne_none, not_false_eq_true, if_true, hdecode]
             exact mul_le_mul_right (neighborVerificationExperiment_lower keyResult hkey request original
               signCache hmem encoding (TargetSum.decodeDigest_eq_some_iff.mp hdecode).2 hreplay message hne) _

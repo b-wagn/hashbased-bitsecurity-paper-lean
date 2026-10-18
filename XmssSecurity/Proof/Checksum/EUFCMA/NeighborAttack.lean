@@ -11,6 +11,8 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum.Attack
 
 open SUFCMA
@@ -21,7 +23,7 @@ theorem neighbor_request_fresh (answer : Option Generic.Signature) (signature : 
   simp only [EUFCMA.SigningTranscript.ContainsRequest, List.mem_singleton, exists_eq_left]
   intro heq
   exact neighborMessage_ne_request
-    (congrArg (fun request : Generic.SignRequest => request.message) heq).symm
+    (congrArg (fun request : SignRequest => request.message) heq).symm
 
 theorem neighbor_euf_gameCounted_eq_strong :
     EUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput HashOutput)
@@ -40,7 +42,7 @@ theorem neighbor_euf_gameCounted_eq_strong :
 
 theorem neighbor_euf_everything_advantage :
     (EUFCMA.notion CountingMode.everything).advantage Generic.xmss neighborSufCmaAdversary =
-      Generic.forgeAdvantage Generic.Seeded.scheme neighborAdversary := by
+      forgeAdvantage Seeded.scheme neighborAdversary := by
   rw [← neighbor_everything_advantage]
   simp only [SecurityNotion.advantage, EUFCMA.notion, SUFCMA.notion]
   rw [neighbor_euf_gameCounted_eq_strong]

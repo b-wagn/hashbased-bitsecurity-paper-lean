@@ -10,23 +10,25 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum
 
 theorem romImpl_noAcceptedEncoding_of_nonencoding
     (parameter : PublicParameter) (input : OracleWorld.Domain) (cache : QueryCache HashSpec)
     (hcache : ¬HasAcceptedEncoding parameter cache)
-    (hinput : ¬Generic.CappedEncodingMonitor.IsEncodingHashQuery parameter input)
+    (hinput : ¬CappedEncodingMonitor.IsEncodingHashQuery parameter input)
     (result : OracleWorld.Range input × QueryCache HashSpec)
-    (hresult : result ∈ support ((Generic.romImpl input).run cache)) :
+    (hresult : result ∈ support ((romImpl input).run cache)) :
     ¬HasAcceptedEncoding parameter result.2 := by
-  have hzero : Pr[fun result => HasAcceptedEncoding parameter result.2 | (Generic.romImpl input).run cache] = 0 := by
+  have hzero : Pr[fun result => HasAcceptedEncoding parameter result.2 | (romImpl input).run cache] = 0 := by
     apply le_antisymm _ zero_le
     simpa only [if_neg hinput] using hasAcceptedEncoding_romImpl_step_le parameter input cache hcache
   exact probEvent_eq_zero_iff.mp hzero result hresult
 
 theorem romImpl_uniform_cache (input : unifSpec.Domain) (cache : QueryCache HashSpec)
     (result : unifSpec.Range input × QueryCache HashSpec)
-    (hresult : result ∈ support ((Generic.romImpl (.inl input)).run cache)) : result.2 = cache := by
+    (hresult : result ∈ support ((romImpl (.inl input)).run cache)) : result.2 = cache := by
   change result ∈ support ((fun value => (value, cache)) <$>
     (liftM (unifSpec.query input) : ProbComp _)) at hresult
   rw [support_map] at hresult
@@ -35,16 +37,16 @@ theorem romImpl_uniform_cache (input : unifSpec.Domain) (cache : QueryCache Hash
 
 theorem countHashQueries_zero_cache {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (result : (α × Nat) × QueryCache HashSpec)
-    (hresult : result ∈ support ((simulateQ Generic.romImpl (Generic.countHashQueries computation)).run cache))
+    (hresult : result ∈ support ((simulateQ romImpl (countHashQueries computation)).run cache))
     (hzero : result.1.2 = 0) : result.2 = cache := by
   induction computation using OracleComp.inductionOn generalizing cache result with
   | pure value =>
-      simp only [Generic.countHashQueries_pure, simulateQ_pure, StateT.run_pure,
+      simp only [countHashQueries_pure, simulateQ_pure, StateT.run_pure,
         support_pure, Set.mem_singleton_iff] at hresult
       subst result
       rfl
   | query_bind input next ih =>
-      simp only [Generic.countHashQueries_query_bind, simulateQ_bind, simulateQ_spec_query,
+      simp only [countHashQueries_query_bind, simulateQ_bind, simulateQ_spec_query,
         StateT.run_bind, bind_pure_comp, simulateQ_map, StateT.run_map,
         mem_support_bind_iff, support_map] at hresult
       obtain ⟨head, hhead, tail, htail, rfl⟩ := hresult
@@ -61,9 +63,9 @@ namespace CappedChain
 open Seeded
 
 theorem phaseCountsImpl_cache_eq_of_counts_eq
-    (signing : Generic.SignRequest → OracleComp OracleWorld (Option Generic.Signature))
-    (input : (OracleWorld + Generic.SigningSpec).Domain) (state : PhaseCounts)
-    (result : (OracleWorld + Generic.SigningSpec).Range input × PhaseCounts)
+    (signing : SignRequest → OracleComp OracleWorld (Option Generic.Signature))
+    (input : (OracleWorld + SigningSpec).Domain) (state : PhaseCounts)
+    (result : (OracleWorld + SigningSpec).Range input × PhaseCounts)
     (hresult : result ∈ support ((phaseCountsImpl signing input).run state))
     (hdirect : result.2.direct = state.direct) (hsigning : result.2.signing = state.signing) :
     result.2.cache = state.cache := by
@@ -83,14 +85,14 @@ theorem phaseCountsImpl_cache_eq_of_counts_eq
       exact countHashQueries_zero_cache (signing request) state.cache sample hsample (by omega)
 
 theorem countedSourceImpl_cache_eq_of_counts_eq (secretKey : Generic.SecretKey)
-    (input : (OracleWorld + Generic.SigningSpec).Domain) (state : CountedSourceState)
-    (result : (OracleWorld + Generic.SigningSpec).Range input × CountedSourceState)
+    (input : (OracleWorld + SigningSpec).Domain) (state : CountedSourceState)
+    (result : (OracleWorld + SigningSpec).Range input × CountedSourceState)
     (hresult : result ∈ support ((countedSourceImpl secretKey input).run state))
     (hdirect : result.2.counts.direct = state.counts.direct)
     (hsigning : result.2.counts.signing = state.counts.signing) :
     result.2.counts.cache = state.counts.cache := by
   apply phaseCountsImpl_cache_eq_of_counts_eq
-    (fun request => Generic.Concrete.precomputedCappedSign secretKey request.epoch request.message)
+    (fun request => Concrete.precomputedCappedSign secretKey request.epoch request.message)
     input state.counts (result.1, result.2.counts) _ hdirect hsigning
   change (result.1, result.2.counts) ∈ support ((referencePhaseCountsImpl secretKey input).run state.counts)
   rw [← countedSourceImpl_counts_projection secretKey input state, support_map]
@@ -99,7 +101,7 @@ theorem countedSourceImpl_cache_eq_of_counts_eq (secretKey : Generic.SecretKey)
 theorem countedSourceImpl_world_noAcceptedEncoding_of_nonencoding (secretKey : Generic.SecretKey)
     (input : OracleWorld.Domain) (state : CountedSourceState)
     (hcache : ¬HasAcceptedEncoding secretKey.parameter state.counts.cache)
-    (hinput : ¬Generic.CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter input)
+    (hinput : ¬CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter input)
     (result : OracleWorld.Range input × CountedSourceState)
     (hresult : result ∈ support ((countedSourceImpl secretKey (.inl input)).run state)) :
     ¬HasAcceptedEncoding secretKey.parameter result.2.counts.cache := by
@@ -111,7 +113,7 @@ theorem countedSourceImpl_world_noAcceptedEncoding_of_nonencoding (secretKey : G
     hcache hinput sample hsample
 
 theorem countedSource_cache_eq_of_charge_le {α : Type} (secretKey : Generic.SecretKey)
-    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : CountedSourceState)
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState)
     (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl secretKey) computation).run state))
     (hcharge : result.2.charge ≤ state.charge) : result.2.counts.cache = state.counts.cache := by
@@ -121,7 +123,7 @@ theorem countedSource_cache_eq_of_charge_le {α : Type} (secretKey : Generic.Sec
       subst result
       rfl
   | query_bind input next ih =>
-      rw [Generic.Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
+      rw [Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
       obtain ⟨head, hhead, htail⟩ := hresult
       have hstep := countedSourceImpl_counts_mono secretKey input state head hhead
       have hrest := countedSource_counts_mono secretKey (next head.1) head.2 result htail
@@ -133,7 +135,7 @@ theorem countedSource_cache_eq_of_charge_le {α : Type} (secretKey : Generic.Sec
         omega)).trans (countedSourceImpl_cache_eq_of_counts_eq secretKey input state head hhead hdirect hsigning)
 
 theorem CountedSourceBudget.cache_eq_of_exhausted {α : Type}
-    {secretKey : Generic.SecretKey} {limit : Nat} {computation : OracleComp (OracleWorld + Generic.SigningSpec) α}
+    {secretKey : Generic.SecretKey} {limit : Nat} {computation : OracleComp (OracleWorld + SigningSpec) α}
     {state : CountedSourceState} (hbudget : CountedSourceBudget secretKey limit computation state)
     (hexhausted : limit ≤ state.charge) (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl secretKey) computation).run state)) :
@@ -142,7 +144,7 @@ theorem CountedSourceBudget.cache_eq_of_exhausted {α : Type}
     ((hbudget result hresult).trans hexhausted)
 
 theorem CountedSourceBudget.noAcceptedEncoding_of_exhausted {α : Type}
-    {secretKey : Generic.SecretKey} {limit : Nat} {computation : OracleComp (OracleWorld + Generic.SigningSpec) α}
+    {secretKey : Generic.SecretKey} {limit : Nat} {computation : OracleComp (OracleWorld + SigningSpec) α}
     {state : CountedSourceState} (hbudget : CountedSourceBudget secretKey limit computation state)
     (hexhausted : limit ≤ state.charge) (hcache : ¬HasAcceptedEncoding secretKey.parameter state.counts.cache)
     (result : α × CountedSourceState)
@@ -153,17 +155,17 @@ theorem CountedSourceBudget.noAcceptedEncoding_of_exhausted {α : Type}
 
 theorem CountedSourceBudget.noAcceptedEncoding_after_last_nonencoding {α : Type}
     {secretKey : Generic.SecretKey} {limit : Nat} {input : HashInput}
-    {next : HashOutput → OracleComp (OracleWorld + Generic.SigningSpec) α} {state : CountedSourceState}
+    {next : HashOutput → OracleComp (OracleWorld + SigningSpec) α} {state : CountedSourceState}
     (hbudget : CountedSourceBudget secretKey limit
-      (liftM ((OracleWorld + Generic.SigningSpec).query (.inl (.inr input))) >>= next) state)
+      (liftM ((OracleWorld + SigningSpec).query (.inl (.inr input))) >>= next) state)
     (hlast : limit ≤ state.charge + 1)
     (hcache : ¬HasAcceptedEncoding secretKey.parameter state.counts.cache)
-    (hinput : ¬Generic.CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter (.inr input))
+    (hinput : ¬CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter (.inr input))
     (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl secretKey)
-      (liftM ((OracleWorld + Generic.SigningSpec).query (.inl (.inr input))) >>= next)).run state)) :
+      (liftM ((OracleWorld + SigningSpec).query (.inl (.inr input))) >>= next)).run state)) :
     ¬HasAcceptedEncoding secretKey.parameter result.2.counts.cache := by
-  rw [Generic.Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
+  rw [Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
   obtain ⟨head, hhead, htail⟩ := hresult
   have hnext := (hbudget.query_step head hhead).2
   have hdirect := countedSourceImpl_direct_eq secretKey (.inl (.inr input)) state head hhead

@@ -9,11 +9,13 @@ open OracleComp OracleSpec ENNReal
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.Checksum
 
 theorem Checksum.capped_rejection_bound_lt :
-    (1 - Generic.Code.acceptanceProbability) ^ Generic.Code.signingAttemptLimit +
-      (Generic.Code.signingAttemptLimit : ℝ≥0∞) * Generic.Code.signingAttemptLimit *
+    (1 - Code.acceptanceProbability) ^ Code.signingAttemptLimit +
+      (Code.signingAttemptLimit : ℝ≥0∞) * Code.signingAttemptLimit *
         ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 128 := by
   rw [code_acceptanceProbability, code_signingAttemptLimit]
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
@@ -26,14 +28,14 @@ theorem Checksum.capped_rejection_bound_lt :
 theorem Concrete.precomputedCappedSign_failure_lt
     (secretKey : Generic.SecretKey) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec)
-    (hcache : Generic.cachedEncodingInputCount cache secretKey.parameter = 0) :
+    (hcache : cachedEncodingInputCount cache secretKey.parameter = 0) :
     Pr[fun result : Option Generic.Signature × QueryCache HashSpec => result.1 = none |
-      (simulateQ Generic.romImpl
-        (Generic.Concrete.precomputedCappedSign secretKey leafIndex message)).run cache] <
+      (simulateQ romImpl
+        (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache] <
       1 / 128 := by
-  rw [Generic.Concrete.precomputedCappedSign]
-  have hbound := Generic.Concrete.precomputedSignBoundedAttempts_failure_le
-    Generic.Code.signingAttemptLimit secretKey leafIndex message cache 0
+  rw [Concrete.precomputedCappedSign]
+  have hbound := Concrete.precomputedSignBoundedAttempts_failure_le
+    Code.signingAttemptLimit secretKey leafIndex message cache 0
     (by simpa using hcache.le)
   simp only [Nat.cast_zero, zero_add] at hbound
   exact hbound.trans_lt Checksum.capped_rejection_bound_lt
@@ -41,14 +43,14 @@ theorem Concrete.precomputedCappedSign_failure_lt
 theorem Concrete.precomputedCappedSign_success_gt
     (secretKey : Generic.SecretKey) (leafIndex : LeafIndex) (message : Message)
     (cache : QueryCache HashSpec)
-    (hcache : Generic.cachedEncodingInputCount cache secretKey.parameter = 0) :
+    (hcache : cachedEncodingInputCount cache secretKey.parameter = 0) :
     127 / 128 < Pr[fun result : Option Generic.Signature × QueryCache HashSpec =>
       result.1 ≠ none |
-      (simulateQ Generic.romImpl
-        (Generic.Concrete.precomputedCappedSign secretKey leafIndex message)).run cache] := by
+      (simulateQ romImpl
+        (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache] := by
   let computation :=
-    (simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign secretKey leafIndex message)).run cache
+    (simulateQ romImpl
+      (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache
   have hfailure := precomputedCappedSign_failure_lt secretKey leafIndex message cache hcache
   have hsum : Pr[fun result => result.1 = none | computation] +
       Pr[fun result => result.1 ≠ none | computation] = 1 := by
@@ -66,15 +68,15 @@ theorem Concrete.precomputedCappedSign_success_gt
 /-- The reference key-generation cache meets the fresh-encoding condition. -/
 theorem Concrete.precomputedCappedSign_success_after_keygen
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (message : Message) :
     127 / 128 < Pr[fun result : Option Generic.Signature × QueryCache HashSpec =>
       result.1 ≠ none |
-      (simulateQ Generic.romImpl
-        (Generic.Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run
+      (simulateQ romImpl
+        (Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run
           keyResult.2] :=
   precomputedCappedSign_success_gt _ _ _ _
-    (Generic.Concrete.keygen_cachedEncodingInputCount_eq_zero keyResult hkey)
+    (Concrete.keygen_cachedEncodingInputCount_eq_zero keyResult hkey)
 
 /-- info: 'XmssSecurity.Checksum.Concrete.precomputedCappedSign_success_after_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

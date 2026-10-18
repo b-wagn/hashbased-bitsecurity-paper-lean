@@ -21,41 +21,43 @@ open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
+open XmssSecurity.Generic
+
 namespace XmssSecurity.TargetSum.Direct.Collision
 
 variable (q : ℕ) (secretKey : Generic.SecretKey)
 
 /-- The entry's signer accepted a cached randomizer that has a partner in `cache`. -/
-def EntryBad (cache : QueryCache HashSpec) (entry : Generic.SigningCacheEntry) : Prop :=
+def EntryBad (cache : QueryCache HashSpec) (entry : SigningCacheEntry) : Prop :=
   entry.EncodingInputPrehit secretKey ∧ ∃ signature, entry.signature = some signature ∧
     IsPartnered secretKey.parameter cache entry.request.epoch
       (entry.request.message, signature.randomness)
 
 /-- The entry's signer accepted a cached randomizer that has no partner in `cache`. -/
-def EntryOpen (cache : QueryCache HashSpec) (entry : Generic.SigningCacheEntry) : Prop :=
+def EntryOpen (cache : QueryCache HashSpec) (entry : SigningCacheEntry) : Prop :=
   entry.EncodingInputPrehit secretKey ∧ ∀ signature, entry.signature = some signature →
     ¬ IsPartnered secretKey.parameter cache entry.request.epoch
       (entry.request.message, signature.randomness)
 
-def StateBad (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) : Prop :=
+def StateBad (cache : QueryCache HashSpec) (trace : SigningCacheTrace) : Prop :=
   ∃ entry ∈ trace, EntryBad secretKey cache entry
 
-noncomputable def openCount (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) : ℕ := by
+noncomputable def openCount (cache : QueryCache HashSpec) (trace : SigningCacheTrace) : ℕ := by
   classical
   exact trace.countP fun entry => decide (EntryOpen secretKey cache entry)
 
 /-- The potentials of the epochs not yet signed. -/
-noncomputable def unsignedSum (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) : ℝ :=
+noncomputable def unsignedSum (cache : QueryCache HashSpec) (trace : SigningCacheTrace) : ℝ :=
   ∑ leafIndex : LeafIndex,
     if leafIndex ∈ trace.leafIndices then 0 else leafPotential q secretKey.parameter cache leafIndex
 
 /-- The cached encoding inputs of the epochs not yet signed. -/
-noncomputable def unsignedCount (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) : ℕ :=
+noncomputable def unsignedCount (cache : QueryCache HashSpec) (trace : SigningCacheTrace) : ℕ :=
   ∑ leafIndex : LeafIndex,
     if leafIndex ∈ trace.leafIndices then 0 else (entries secretKey.parameter cache leafIndex).ncard
 
 /-- The potential of a state with `remaining` direct encoding queries left. -/
-noncomputable def potential (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace)
+noncomputable def potential (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
     (remaining : ℕ) : ℝ≥0∞ := by
   classical
   exact if trace.leafIndices.Nodup then
@@ -67,7 +69,7 @@ noncomputable def potential (cache : QueryCache HashSpec) (trace : Generic.Signi
 /-- The invariant of the run: the cached encoding inputs of the epochs not yet signed and the
 remaining queries number at most `q`, and every returned signature's input is cached with a
 decodable digest. -/
-structure Inv (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) (remaining : ℕ) :
+structure Inv (cache : QueryCache HashSpec) (trace : SigningCacheTrace) (remaining : ℕ) :
     Prop where
   count : unsignedCount secretKey cache trace + remaining ≤ q
   valid : ∀ entry ∈ trace, ∀ signature, entry.signature = some signature →
@@ -92,7 +94,7 @@ theorem IsPartnered.mono {parameter : PublicParameter} {cache cache' : QueryCach
   exact ⟨output, hle hcache, hvalid, other, hother, otherOutput, hle hotherCache, hsame⟩
 
 theorem StateBad.mono {cache cache' : QueryCache HashSpec} (hle : cache ≤ cache')
-    {trace trace' : Generic.SigningCacheTrace} (htrace : ∀ entry ∈ trace, entry ∈ trace')
+    {trace trace' : SigningCacheTrace} (htrace : ∀ entry ∈ trace, entry ∈ trace')
     (h : StateBad secretKey cache trace) : StateBad secretKey cache' trace' := by
   obtain ⟨entry, hentry, hprehit, signature, hsignature, hpartnered⟩ := h
   exact ⟨entry, htrace entry hentry, hprehit, signature, hsignature, hpartnered.mono hle⟩
@@ -118,7 +120,7 @@ theorem entries_ncard_congr {parameter : PublicParameter} {cache cache' : QueryC
   rw [(stats_congr h).1]
 
 /-- The cached inputs of one unsigned epoch and the remaining queries number at most `q`. -/
-theorem Inv.entries_add_le {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem Inv.entries_add_le {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hinv : Inv q secretKey cache trace remaining) {leafIndex : LeafIndex}
     (hleaf : leafIndex ∉ trace.leafIndices) :
     (entries secretKey.parameter cache leafIndex).ncard + remaining ≤ q := by
@@ -132,14 +134,14 @@ theorem Inv.entries_add_le {cache : QueryCache HashSpec} {trace : Generic.Signin
   have := hinv.count
   omega
 
-theorem potential_of_bad {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem potential_of_bad {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hnodup : trace.leafIndices.Nodup) (hbad : StateBad secretKey cache trace) :
     potential q secretKey cache trace remaining = 1 := by
   classical
   unfold potential
   rw [if_pos hnodup, if_pos hbad]
 
-theorem potential_of_not_bad {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem potential_of_not_bad {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hnodup : trace.leafIndices.Nodup) (hbad : ¬ StateBad secretKey cache trace) :
     potential q secretKey cache trace remaining =
       ENNReal.ofReal (unsignedSum q secretKey cache trace) +
@@ -149,7 +151,7 @@ theorem potential_of_not_bad {cache : QueryCache HashSpec} {trace : Generic.Sign
   unfold potential
   rw [if_pos hnodup, if_neg hbad]
 
-theorem potential_remaining_mono {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem potential_remaining_mono {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining remaining' : ℕ} (h : remaining ≤ remaining') :
     potential q secretKey cache trace remaining ≤ potential q secretKey cache trace remaining' := by
   classical
@@ -182,13 +184,13 @@ def AgreeOnEncoding (parameter : PublicParameter) (cache cache' : QueryCache Has
   ∀ leafIndex entry, cache' (input parameter leafIndex entry) = cache (input parameter leafIndex entry)
 
 theorem stateBad_congr {cache cache' : QueryCache HashSpec}
-    (h : AgreeOnEncoding secretKey.parameter cache cache') (trace : Generic.SigningCacheTrace) :
+    (h : AgreeOnEncoding secretKey.parameter cache cache') (trace : SigningCacheTrace) :
     StateBad secretKey cache' trace ↔ StateBad secretKey cache trace := by
   unfold StateBad EntryBad
   simp only [isPartnered_congr (h _)]
 
 theorem openCount_congr {cache cache' : QueryCache HashSpec}
-    (h : AgreeOnEncoding secretKey.parameter cache cache') (trace : Generic.SigningCacheTrace) :
+    (h : AgreeOnEncoding secretKey.parameter cache cache') (trace : SigningCacheTrace) :
     openCount secretKey cache' trace = openCount secretKey cache trace := by
   classical
   unfold openCount
@@ -197,7 +199,7 @@ theorem openCount_congr {cache cache' : QueryCache HashSpec}
   simp only [decide_eq_true_eq, EntryOpen, isPartnered_congr (h _)]
 
 theorem potential_congr {cache cache' : QueryCache HashSpec}
-    (h : AgreeOnEncoding secretKey.parameter cache cache') (trace : Generic.SigningCacheTrace)
+    (h : AgreeOnEncoding secretKey.parameter cache cache') (trace : SigningCacheTrace)
     (remaining : ℕ) :
     potential q secretKey cache' trace remaining = potential q secretKey cache trace remaining := by
   classical
@@ -208,7 +210,7 @@ theorem potential_congr {cache cache' : QueryCache HashSpec}
   rw [stateBad_congr h, openCount_congr h, hsum]
 
 theorem Inv.congr {cache cache' : QueryCache HashSpec}
-    (h : AgreeOnEncoding secretKey.parameter cache cache') {trace : Generic.SigningCacheTrace}
+    (h : AgreeOnEncoding secretKey.parameter cache cache') {trace : SigningCacheTrace}
     {remaining : ℕ} (hinv : Inv q secretKey cache trace remaining) :
     Inv q secretKey cache' trace remaining := by
   refine ⟨?_, ?_⟩
@@ -220,7 +222,7 @@ theorem Inv.congr {cache cache' : QueryCache HashSpec}
   · intro entry hentry signature hsignature
     exact (isValid_congr (h _) _).mpr (hinv.valid entry hentry signature hsignature)
 
-theorem Inv.mono_remaining {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem Inv.mono_remaining {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining remaining' : ℕ} (h : remaining' ≤ remaining)
     (hinv : Inv q secretKey cache trace remaining) : Inv q secretKey cache trace remaining' :=
   ⟨le_trans (Nat.add_le_add_left h _) hinv.count, hinv.valid⟩
@@ -228,62 +230,62 @@ theorem Inv.mono_remaining {cache : QueryCache HashSpec} {trace : Generic.Signin
 /-! ### The traced implementation, query by query -/
 
 theorem traced_hash_run (publicKey : PublicKey) (hashInput : HashInput)
-    (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) :
-    (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey (.inl (.inr hashInput))).run
+    (cache : QueryCache HashSpec) (trace : SigningCacheTrace) :
+    (cappedCacheTracedMappedAdversaryImpl publicKey secretKey (.inl (.inr hashInput))).run
         (cache, trace) =
       (fun result : HashOutput × QueryCache HashSpec => (result.1, (result.2, trace))) <$>
         (randomOracle (spec := HashSpec) hashInput).run cache := by
-  rw [Generic.cappedCacheTracedMappedAdversaryImpl, QueryImpl.extendState_apply,
+  rw [cappedCacheTracedMappedAdversaryImpl, QueryImpl.extendState_apply,
     map_eq_bind_pure_comp]
   rfl
 
 theorem traced_uniform_support (publicKey : PublicKey) (uniformInput : unifSpec.Domain)
-    (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace)
-    (result : (OracleWorld + Generic.SigningSpec).Range (.inl (.inl uniformInput)) ×
-      (QueryCache HashSpec × Generic.SigningCacheTrace))
+    (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
+    (result : (OracleWorld + SigningSpec).Range (.inl (.inl uniformInput)) ×
+      (QueryCache HashSpec × SigningCacheTrace))
     (hresult : result ∈ support
-      ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey (.inl (.inl uniformInput))).run
+      ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey (.inl (.inl uniformInput))).run
         (cache, trace))) :
     result.2 = (cache, trace) := by
-  have htrace := Generic.cappedCacheTracedMappedAdversaryImpl_query_trace_update publicKey secretKey _
+  have htrace := cappedCacheTracedMappedAdversaryImpl_query_trace_update publicKey secretKey _
     cache trace result hresult
-  have hcache := Generic.Direct.uniform_query_cache_eq publicKey secretKey uniformInput cache _
-    (Generic.Direct.cappedCacheTracedMappedAdversaryImpl_query_base publicKey secretKey _ cache trace result
+  have hcache := Direct.uniform_query_cache_eq publicKey secretKey uniformInput cache _
+    (Direct.cappedCacheTracedMappedAdversaryImpl_query_base publicKey secretKey _ cache trace result
       hresult)
   rw [Prod.ext_iff]
-  exact ⟨hcache, by simpa [Generic.signingCacheTraceUpdate] using htrace⟩
+  exact ⟨hcache, by simpa [signingCacheTraceUpdate] using htrace⟩
 
-theorem traced_sign_run (publicKey : PublicKey) (request : Generic.SignRequest)
-    (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) :
-    (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey (.inr request)).run (cache, trace) =
+theorem traced_sign_run (publicKey : PublicKey) (request : SignRequest)
+    (cache : QueryCache HashSpec) (trace : SigningCacheTrace) :
+    (cappedCacheTracedMappedAdversaryImpl publicKey secretKey (.inr request)).run (cache, trace) =
       (fun result : Option Generic.Signature × QueryCache HashSpec =>
-        (result.1, (result.2, trace ++ [Generic.SigningCacheEntry.mk request result.1 cache result.2]))) <$>
-        (simulateQ Generic.romImpl (Generic.Concrete.precomputedSignBoundedAttempts signingAttemptLimit secretKey
+        (result.1, (result.2, trace ++ [SigningCacheEntry.mk request result.1 cache result.2]))) <$>
+        (simulateQ romImpl (Concrete.precomputedSignBoundedAttempts signingAttemptLimit secretKey
           request.epoch request.message)).run cache := by
-  rw [Generic.cappedCacheTracedMappedAdversaryImpl, QueryImpl.extendState_apply,
+  rw [cappedCacheTracedMappedAdversaryImpl, QueryImpl.extendState_apply,
     map_eq_bind_pure_comp]
-  change (simulateQ Generic.romImpl (Generic.Concrete.precomputedCappedSign secretKey request.epoch
+  change (simulateQ romImpl (Concrete.precomputedCappedSign secretKey request.epoch
     request.message)).run cache >>= _ = _
-  rw [Generic.Concrete.precomputedCappedSign]
+  rw [Concrete.precomputedCappedSign]
   rfl
 
 theorem ne_input_of_not_encoding {parameter : PublicParameter} {hashInput : HashInput}
-    (h : Generic.encodingInputLeafIndex? parameter hashInput = none) (leafIndex : LeafIndex)
+    (h : encodingInputLeafIndex? parameter hashInput = none) (leafIndex : LeafIndex)
     (entry : Message × Randomness) : input parameter leafIndex entry ≠ hashInput := by
   intro heq
-  rw [← heq, Generic.encodingInputLeafIndex?_encodingInput] at h
+  rw [← heq, encodingInputLeafIndex?_encodingInput] at h
   simp at h
 
 /-! ### Steps that do not touch an encoding input -/
 
 theorem step_uniform (publicKey : PublicKey) (uniformInput : unifSpec.Domain)
-    (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) (remaining : ℕ)
+    (cache : QueryCache HashSpec) (trace : SigningCacheTrace) (remaining : ℕ)
     (hinv : Inv q secretKey cache trace remaining) :
-    ∑' mid, Pr[= mid | (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∑' mid, Pr[= mid | (cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inl (.inl uniformInput))).run (cache, trace)] *
         potential q secretKey mid.2.1 mid.2.2 remaining ≤
       potential q secretKey cache trace remaining ∧
-    ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inl (.inl uniformInput))).run (cache, trace)),
       Inv q secretKey mid.2.1 mid.2.2 remaining := by
   refine ⟨expect_le_of_support _ _ _ fun mid hmid => ?_, fun mid hmid => ?_⟩
@@ -292,9 +294,9 @@ theorem step_uniform (publicKey : PublicKey) (uniformInput : unifSpec.Domain)
     exact hinv
 
 theorem hash_support_cases (publicKey : PublicKey) (hashInput : HashInput)
-    (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace)
-    (mid : HashOutput × (QueryCache HashSpec × Generic.SigningCacheTrace))
-    (hmid : mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
+    (mid : HashOutput × (QueryCache HashSpec × SigningCacheTrace))
+    (hmid : mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
       (.inl (.inr hashInput))).run (cache, trace))) :
     mid.2.2 = trace ∧ (mid.2.1 = cache ∨ (cache hashInput = none ∧
       mid.2.1 = cache.cacheQuery hashInput mid.1)) := by
@@ -307,23 +309,23 @@ theorem hash_support_cases (publicKey : PublicKey) (hashInput : HashInput)
         Set.mem_singleton_iff] at hbase
       exact Or.inl (congrArg Prod.snd hbase)
   | none =>
-      rw [Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hbase
+      rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hbase
       obtain ⟨sampled, -, hsampled⟩ := hbase
       rw [← hsampled]
       exact Or.inr ⟨rfl, rfl⟩
 
 theorem step_hash_other (publicKey : PublicKey) (hashInput : HashInput)
-    (hother : Generic.encodingInputLeafIndex? secretKey.parameter hashInput = none)
-    (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) (remaining : ℕ)
+    (hother : encodingInputLeafIndex? secretKey.parameter hashInput = none)
+    (cache : QueryCache HashSpec) (trace : SigningCacheTrace) (remaining : ℕ)
     (hinv : Inv q secretKey cache trace remaining) :
-    ∑' mid, Pr[= mid | (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∑' mid, Pr[= mid | (cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inl (.inr hashInput))).run (cache, trace)] *
         potential q secretKey mid.2.1 mid.2.2 remaining ≤
       potential q secretKey cache trace remaining ∧
-    ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inl (.inr hashInput))).run (cache, trace)),
       Inv q secretKey mid.2.1 mid.2.2 remaining := by
-  have hagree : ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+  have hagree : ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
       (.inl (.inr hashInput))).run (cache, trace)),
       mid.2.2 = trace ∧ AgreeOnEncoding secretKey.parameter cache mid.2.1 := by
     intro mid hmid
@@ -342,9 +344,9 @@ theorem step_hash_other (publicKey : PublicKey) (hashInput : HashInput)
 
 /-! ### A direct encoding query -/
 
-theorem mem_leafIndices_of_mem {trace : Generic.SigningCacheTrace} {entry : Generic.SigningCacheEntry}
+theorem mem_leafIndices_of_mem {trace : SigningCacheTrace} {entry : SigningCacheEntry}
     (h : entry ∈ trace) : entry.request.epoch ∈ trace.leafIndices := by
-  rw [Generic.SigningCacheTrace.leafIndices, List.mem_map]
+  rw [SigningCacheTrace.leafIndices, List.mem_map]
   exact ⟨entry, h, rfl⟩
 
 theorem agree_cacheQuery_other_leaf {parameter : PublicParameter} (cache : QueryCache HashSpec)
@@ -364,7 +366,7 @@ theorem isPartnered_cacheQuery_iff {parameter : PublicParameter} {cache : QueryC
     IsPartnered parameter (cache.cacheQuery (input parameter leafIndex fresh) output) leafIndex
         entry ↔
       IsPartnered parameter cache leafIndex entry ∨
-        (Generic.Code.ValidDigest (Generic.truncateHash found) ∧ Generic.truncateHash output = Generic.truncateHash found) := by
+        (Code.ValidDigest (Generic.truncateHash found) ∧ Generic.truncateHash output = Generic.truncateHash found) := by
   have hne : entry ≠ fresh := by
     rintro rfl
     rw [hfresh] at hfound
@@ -389,7 +391,7 @@ theorem isPartnered_cacheQuery_iff {parameter : PublicParameter} {cache : QueryC
         cacheQuery_input_self (parameter := parameter) (leafIndex := leafIndex) fresh output cache,
         hsame⟩
 
-theorem unsignedSum_update {cache cache' : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem unsignedSum_update {cache cache' : QueryCache HashSpec} {trace : SigningCacheTrace}
     {leafIndex : LeafIndex} (hleaf : leafIndex ∉ trace.leafIndices)
     (hother : ∀ leafIndex' ≠ leafIndex, ∀ entry,
       cache' (input secretKey.parameter leafIndex' entry) =
@@ -411,7 +413,7 @@ theorem unsignedSum_update {cache cache' : QueryCache HashSpec} {trace : Generic
   ring
 
 theorem leafPotential_le_unsignedSum (hq : q + 1 ≤ 2 ^ 127) {cache : QueryCache HashSpec}
-    {trace : Generic.SigningCacheTrace} {remaining : ℕ} (hinv : Inv q secretKey cache trace remaining)
+    {trace : SigningCacheTrace} {remaining : ℕ} (hinv : Inv q secretKey cache trace remaining)
     {leafIndex : LeafIndex} (hleaf : leafIndex ∉ trace.leafIndices) :
     leafPotential q secretKey.parameter cache leafIndex ≤ unsignedSum q secretKey cache trace := by
   unfold unsignedSum
@@ -425,7 +427,7 @@ theorem leafPotential_le_unsignedSum (hq : q + 1 ≤ 2 ^ 127) {cache : QueryCach
         omega) (Finset.mem_univ leafIndex)
   simpa [hleaf] using this
 
-theorem unsignedCount_update {cache cache' : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem unsignedCount_update {cache cache' : QueryCache HashSpec} {trace : SigningCacheTrace}
     {leafIndex : LeafIndex} (hleaf : leafIndex ∉ trace.leafIndices)
     (hother : ∀ leafIndex' ≠ leafIndex, ∀ entry,
       cache' (input secretKey.parameter leafIndex' entry) =
@@ -446,7 +448,7 @@ theorem unsignedCount_update {cache cache' : QueryCache HashSpec} {trace : Gener
   rw [hrest]
   ring
 
-theorem unsignedCount_signed {cache cache' : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem unsignedCount_signed {cache cache' : QueryCache HashSpec} {trace : SigningCacheTrace}
     {leafIndex : LeafIndex} (hleaf : leafIndex ∈ trace.leafIndices)
     (hother : ∀ leafIndex' ≠ leafIndex, ∀ entry,
       cache' (input secretKey.parameter leafIndex' entry) =
@@ -465,7 +467,7 @@ theorem unsignedCount_signed {cache cache' : QueryCache HashSpec} {trace : Gener
     · subst hx; simp [hleaf]
     · rw [leafPotential_congr (hother x hx)]
 
-theorem stateBad_congr_trace {cache cache' : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem stateBad_congr_trace {cache cache' : QueryCache HashSpec} {trace : SigningCacheTrace}
     (h : ∀ entry ∈ trace, ∀ x, cache' (input secretKey.parameter entry.request.epoch x) =
       cache (input secretKey.parameter entry.request.epoch x)) :
     StateBad secretKey cache' trace ↔ StateBad secretKey cache trace := by
@@ -478,7 +480,7 @@ theorem stateBad_congr_trace {cache cache' : QueryCache HashSpec} {trace : Gener
     exact ⟨entry, hentry, hprehit, signature, hsignature,
       (isPartnered_congr (h entry hentry) _).mpr hpartnered⟩
 
-theorem openCount_congr_trace {cache cache' : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+theorem openCount_congr_trace {cache cache' : QueryCache HashSpec} {trace : SigningCacheTrace}
     (h : ∀ entry ∈ trace, ∀ x, cache' (input secretKey.parameter entry.request.epoch x) =
       cache (input secretKey.parameter entry.request.epoch x)) :
     openCount secretKey cache' trace = openCount secretKey cache trace := by
@@ -500,7 +502,7 @@ theorem ofReal_succ_weight (remaining : ℕ) :
 /-- A fresh query at a signed epoch: unless its digest hits the digest of an open prehit, the
 potential is unchanged; the hit has probability at most `open/N`. -/
 theorem fresh_signed_le (publicKey : PublicKey) {leafIndex : LeafIndex}
-    {fresh : Message × Randomness} {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+    {fresh : Message × Randomness} {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hinv : Inv q secretKey cache trace (remaining + 1))
     (hcached : cache (input secretKey.parameter leafIndex fresh) = none)
     (hleaf : leafIndex ∈ trace.leafIndices) (hnodup : trace.leafIndices.Nodup)
@@ -593,7 +595,7 @@ theorem fresh_signed_le (publicKey : PublicKey) {leafIndex : LeafIndex}
       rw [Set.ncard_le_one]
       rintro a ⟨e1, he1, hep1, _, s1, f1, hs1, hf1, rfl⟩ b ⟨e2, he2, hep2, _, s2, f2, hs2, hf2, rfl⟩
       have heq : e1 = e2 := List.inj_on_of_nodup_map
-        (by simpa [Generic.SigningCacheTrace.leafIndices] using hnodup) he1 he2 (hep1.trans hep2.symm)
+        (by simpa [SigningCacheTrace.leafIndices] using hnodup) he1 he2 (hep1.trans hep2.symm)
       subst heq
       rw [hs1, Option.some.injEq] at hs2
       subst hs2
@@ -631,7 +633,7 @@ theorem fresh_signed_le (publicKey : PublicKey) {leafIndex : LeafIndex}
 /-- A fresh query at an epoch not yet signed raises the expected potential by at most the
 rate. -/
 theorem fresh_unsigned_le (hq : q + 1 ≤ 2 ^ 127) {leafIndex : LeafIndex}
-    {fresh : Message × Randomness} {cache : QueryCache HashSpec} {trace : Generic.SigningCacheTrace}
+    {fresh : Message × Randomness} {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hinv : Inv q secretKey cache trace (remaining + 1))
     (hcached : cache (input secretKey.parameter leafIndex fresh) = none)
     (hleaf : leafIndex ∉ trace.leafIndices) (hnodup : trace.leafIndices.Nodup)
@@ -700,13 +702,13 @@ theorem fresh_unsigned_le (hq : q + 1 ≤ 2 ^ 127) {leafIndex : LeafIndex}
 /-- A direct encoding query: the potential, with one query fewer left, rises by at most the
 rate in expectation. -/
 theorem step_hash_encoding (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (leafIndex : LeafIndex)
-    (fresh : Message × Randomness) (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace)
+    (fresh : Message × Randomness) (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
     (remaining : ℕ) (hinv : Inv q secretKey cache trace (remaining + 1)) :
-    ∑' mid, Pr[= mid | (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∑' mid, Pr[= mid | (cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inl (.inr (input secretKey.parameter leafIndex fresh)))).run (cache, trace)] *
         potential q secretKey mid.2.1 mid.2.2 remaining ≤
       potential q secretKey cache trace (remaining + 1) + collisionRate q ∧
-    ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inl (.inr (input secretKey.parameter leafIndex fresh)))).run (cache, trace)),
       Inv q secretKey mid.2.1 mid.2.2 remaining := by
   classical
@@ -714,7 +716,7 @@ theorem step_hash_encoding (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (lea
   set hashInput := input parameter leafIndex fresh
   cases hcached : cache hashInput with
   | some found =>
-      have hrun : (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+      have hrun : (cappedCacheTracedMappedAdversaryImpl publicKey secretKey
           (.inl (.inr hashInput))).run (cache, trace) = pure (found, (cache, trace)) := by
         rw [traced_hash_run, randomOracle, QueryImpl.withCaching_run_some _ hcached]
         simp
@@ -725,12 +727,12 @@ theorem step_hash_encoding (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (lea
       subst hmid
       exact hinv.mono_remaining (Nat.le_succ _)
   | none =>
-      have hrun : (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+      have hrun : (cappedCacheTracedMappedAdversaryImpl publicKey secretKey
           (.inl (.inr hashInput))).run (cache, trace) =
           (fun output : HashOutput => (output, (cache.cacheQuery hashInput output, trace))) <$>
             ($ᵗ HashOutput) := by
-        rw [traced_hash_run, Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached]
-        simp [Generic.uniformHashOutput, Functor.map_map]
+        rw [traced_hash_run, randomOracle_run_none_eq_uniformHashOutput _ _ hcached]
+        simp [uniformHashOutput, Functor.map_map]
       have hle : ∀ output : HashOutput, cache ≤ cache.cacheQuery hashInput output :=
         fun output => QueryCache.le_cacheQuery _ hcached
       have hother : ∀ output : HashOutput, ∀ leafIndex' ≠ leafIndex, ∀ entry,
@@ -780,9 +782,9 @@ theorem step_hash_encoding (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (lea
 /-! ### A signing request -/
 
 /-- The facts about one signing request used below. -/
-theorem sign_facts (request : Generic.SignRequest) (cache : QueryCache HashSpec)
+theorem sign_facts (request : SignRequest) (cache : QueryCache HashSpec)
     (result : Option Generic.Signature × QueryCache HashSpec)
-    (hresult : result ∈ support ((simulateQ Generic.romImpl (Generic.Concrete.precomputedSignBoundedAttempts
+    (hresult : result ∈ support ((simulateQ romImpl (Concrete.precomputedSignBoundedAttempts
       signingAttemptLimit secretKey request.epoch request.message)).run cache)) :
     cache ≤ result.2 ∧
     (∀ leafIndex ≠ request.epoch, ∀ entry,
@@ -799,38 +801,38 @@ theorem sign_facts (request : Generic.SignRequest) (cache : QueryCache HashSpec)
     request.message signingAttemptLimit cache result hresult
   refine ⟨hle, ?_, hvalid, hnew⟩
   intro leafIndex hne entry
-  have hcapped : (result.1, result.2) ∈ support ((simulateQ Generic.romImpl
-      (Generic.Concrete.precomputedCappedSign secretKey request.epoch request.message)).run cache) := by
-    rw [Generic.Concrete.precomputedCappedSign]
+  have hcapped : (result.1, result.2) ∈ support ((simulateQ romImpl
+      (Concrete.precomputedCappedSign secretKey request.epoch request.message)).run cache) := by
+    rw [Concrete.precomputedCappedSign]
     exact hresult
   cases hcache : cache (input secretKey.parameter leafIndex entry) with
   | none =>
-      exact Generic.Concrete.precomputedCappedSign_preserves_other_leafIndex_encodingInput secretKey
+      exact Concrete.precomputedCappedSign_preserves_other_leafIndex_encodingInput secretKey
         request.epoch leafIndex request.message entry cache result.2 result.1 hcapped
         (fun h => hne h.symm) hcache
   | some found => exact hle hcache
 
-theorem step_sign (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (request : Generic.SignRequest)
-    (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) (remaining : ℕ)
+theorem step_sign (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (request : SignRequest)
+    (cache : QueryCache HashSpec) (trace : SigningCacheTrace) (remaining : ℕ)
     (hinv : Inv q secretKey cache trace remaining) :
-    ∑' mid, Pr[= mid | (Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∑' mid, Pr[= mid | (cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inr request)).run (cache, trace)] *
         potential q secretKey mid.2.1 mid.2.2 remaining ≤
       potential q secretKey cache trace remaining ∧
-    ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+    ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
         (.inr request)).run (cache, trace)),
       Inv q secretKey mid.2.1 mid.2.2 remaining := by
   classical
   set leafIndex := request.epoch
   set message := request.message
-  set base := (simulateQ Generic.romImpl (Generic.Concrete.precomputedSignBoundedAttempts signingAttemptLimit
+  set base := (simulateQ romImpl (Concrete.precomputedSignBoundedAttempts signingAttemptLimit
     secretKey leafIndex message)).run cache
   set newTrace := fun result : Option Generic.Signature × QueryCache HashSpec =>
-    trace ++ [Generic.SigningCacheEntry.mk request result.1 cache result.2]
+    trace ++ [SigningCacheEntry.mk request result.1 cache result.2]
   have hleafIndices : ∀ result : Option Generic.Signature × QueryCache HashSpec,
       (newTrace result).leafIndices = trace.leafIndices ++ [leafIndex] := by
     intro result
-    simp [newTrace, Generic.SigningCacheTrace.leafIndices, leafIndex]
+    simp [newTrace, SigningCacheTrace.leafIndices, leafIndex]
   rw [traced_sign_run, tsum_probOutput_map_mul]
   constructor
   swap
@@ -922,7 +924,7 @@ theorem step_sign (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (request : Ge
         result.2 (input secretKey.parameter entry.request.epoch x) =
           cache (input secretKey.parameter entry.request.epoch x) :=
       fun entry hentry x => hother _ (holdLeaf entry hentry) x
-    set newEntry := Generic.SigningCacheEntry.mk request result.1 cache result.2
+    set newEntry := SigningCacheEntry.mk request result.1 cache result.2
     have hsum : unsignedSum q secretKey result.2 (newTrace result) = U - φ := by
       have hsplit : U = φ + ∑ x ∈ Finset.univ.erase leafIndex,
           (if x ∈ trace.leafIndices then 0 else leafPotential q secretKey.parameter cache x) := by
