@@ -51,7 +51,7 @@ and the adversary's randomness.
   calls (the randomizer and the encoding): the attack's work is `2` when the signer is charged and
   `3` when the requests are charged too, which refutes `124` and `125` bits.
 * 127 bits as soon as the hash calls of key generation or of the final verification are counted.
-  Key generation makes about `2^41` hash calls and a verification at least `55`, so the attack
+  Key generation makes about `2^40.5` hash calls and a verification at least `55`, so the attack
   above is counted more work than its chances are worth. The matching attack (Remark 5.3 of the
   leanVM XMSS document,
   https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf) finds a second

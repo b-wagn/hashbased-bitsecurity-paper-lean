@@ -142,9 +142,12 @@ end Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
+/-- `Th(P, enc, S)`: the public parameter (`P = 0`, `enc(5, 0, 0)`) and the chain starts
+(`enc(0, i, idx)`). -/
 def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
   return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
 
+/-- `ρ_a = Truncate_ℓrnd(H(tweak_rnd(idx, a) ∥ P ∥ S ∥ m))`. -/
 def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
     (message : Message) (trial : BitVec 32) : m Randomness := do
   return (← Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message trial)).extractLsb' 0 randomnessBits

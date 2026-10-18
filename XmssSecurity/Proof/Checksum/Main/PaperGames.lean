@@ -169,7 +169,7 @@ theorem sufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈
       else if QueryKind.signer ∈ Z ∧ QueryKind.sign ∈ Z then 124
       else if QueryKind.signer ∈ Z then 123
       else 122) := by
-  refine ⟨SUFCMA.hasClassicalSecurityBits_of_lossy xmss Z _ (lossySufCma_exact_of_hash_mem Z hZ).1,
+  refine ⟨SUFCMA.hasClassicalSecurityBits_of_lossy _ xmss Z _ (lossySufCma_exact_of_hash_mem Z hZ).1,
     fun hsecure => ?_⟩
   split_ifs at hsecure with h1 h2 h3
   · exact paper_neighbor_everything_attack
@@ -192,7 +192,7 @@ theorem eufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈
       else if QueryKind.signer ∈ Z ∧ QueryKind.sign ∈ Z then 124
       else if QueryKind.signer ∈ Z then 123
       else 122) := by
-  refine ⟨EUFCMA.hasClassicalSecurityBits_of_lossy xmss Z _ (lossyEufCma_exact_of_hash_mem Z hZ).1,
+  refine ⟨SUFCMA.hasClassicalSecurityBits_of_lossy _ xmss Z _ (lossyEufCma_exact_of_hash_mem Z hZ).1,
     fun hsecure => ?_⟩
   split_ifs at hsecure with h1 h2 h3
   · exact paper_neighbor_euf_everything_attack

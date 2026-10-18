@@ -527,13 +527,14 @@ theorem jointRun_valid (cost : spec.Domain → ℕ) (scheme : EpochBasedSignatur
   obtain ⟨keys, -, z, hz, verification, -, rfl⟩ := hresult
   exact lossyRun_filtered_valid _ z hz
 
-variable [DecidableEq Msg] [DecidableEq Sig]
+variable (Fresh : QueryLog (SigningSpec Msg Sig L) → Forgery Msg Sig L → Prop)
+  [∀ log forgery, Decidable (Fresh log forgery)]
 
 theorem experiment_eq_jointRun (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    experiment cost scheme adversary =
-      (fun result => (decide (¬SigningTranscript.Contains result.log result.forgery) &&
-        result.2.2.1, result.paperCounts)) <$> jointRun cost scheme adversary := by
+    experiment Fresh cost scheme adversary =
+      (fun result => (decide (Fresh result.log result.forgery) && result.2.2.1,
+        result.paperCounts)) <$> jointRun cost scheme adversary := by
   unfold experiment jointRun
   simp only [paperRun_eq_filtered (cost := cost) (scheme := scheme), map_bind, bind_map_left,
     map_pure]
@@ -541,11 +542,11 @@ theorem experiment_eq_jointRun (cost : spec.Domain → ℕ)
 
 theorem lossyExperiment_filtered_eq_jointRun (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    lossyExperiment cost scheme (filtered adversary) =
+    lossyExperimentWith Fresh cost scheme (filtered adversary) =
       (fun result => (decide (SigningTranscript.Valid result.log ∧
-        ¬SigningTranscript.Contains result.log result.forgery) && result.2.2.1,
+        Fresh result.log result.forgery) && result.2.2.1,
         result.lossyCounts)) <$> jointRun cost scheme adversary := by
-  unfold lossyExperiment jointRun filtered
+  unfold lossyExperimentWith jointRun filtered
   simp only [simulateQ_map, writerRun_map, logRun_map, map_bind, bind_map_left, map_pure,
     Functor.map_map]
   rfl
@@ -554,8 +555,8 @@ theorem lossyExperiment_filtered_eq_jointRun (cost : spec.Domain → ℕ)
 theorem experiment_eq_lossy_of_oneRequest (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L)
     (hone : OneRequest adversary) :
-    experiment cost scheme adversary = lossyExperiment cost scheme adversary := by
-  unfold experiment lossyExperiment
+    experiment Fresh cost scheme adversary = lossyExperimentWith Fresh cost scheme adversary := by
+  unfold experiment lossyExperimentWith
   refine bind_congr fun keys => ?_
   obtain ⟨⟨pk, sk⟩, keygenCounts⟩ := keys
   simp only
@@ -572,8 +573,9 @@ end Experiments
 
 section RandomOracle
 
-variable {Input Output : Type} [DecidableEq Input] [SampleableType Output] [DecidableEq Msg]
-  [DecidableEq Sig]
+variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
+  (Fresh : QueryLog (SigningSpec Msg Sig L) → Forgery Msg Sig L → Prop)
+  [∀ log forgery, Decidable (Fresh log forgery)]
 
 theorem randomOracle_run_map {α β : Type} (f : α → β)
     (computation : OracleComp (RandomOracleModel.World Input Output) α) :
@@ -581,34 +583,35 @@ theorem randomOracle_run_map {α β : Type} (f : α → β)
   simp [RandomOracleModel.run, simulateQ_map]
 
 /-- Bit security in the lossy game gives bit security in the statement's game, in every
-counting mode. -/
+counting mode and for every freshness condition. -/
 theorem hasClassicalSecurityBits_of_lossy
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (Z : Finset QueryKind) (bits : ℕ)
-    (h : (lossyGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits) :
-    (securityGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits := by
+    (h : (lossyGameWith (PK := PK) (SK := SK) Fresh).HasClassicalSecurityBits scheme Z bits) :
+    (gameWith (PK := PK) (SK := SK) Fresh).HasClassicalSecurityBits scheme Z bits := by
   intro q hq adversary hbound
   let joint := RandomOracleModel.run
     (jointRun (RandomOracleModel.hashCost Input Output) scheme adversary)
   have hvalid : ∀ result ∈ support joint, SigningTranscript.Valid result.log := fun result hr =>
     jointRun_valid _ scheme adversary result (support_simulateQ_run'_subset _ _ _ hr)
-  have hpaper : (securityGame (PK := PK) (SK := SK)).experiment scheme adversary =
-      (fun result => (decide (¬SigningTranscript.Contains result.log result.forgery) &&
+  have hpaper : (gameWith (PK := PK) (SK := SK) Fresh).experiment scheme adversary =
+      (fun result => (decide (Fresh result.log result.forgery) &&
         result.2.2.1, result.paperCounts)) <$> joint := by
-    show RandomOracleModel.run (experiment _ scheme adversary) = _
+    show RandomOracleModel.run (experiment Fresh _ scheme adversary) = _
     rw [experiment_eq_jointRun, randomOracle_run_map]
-  have hlossy : (lossyGame (PK := PK) (SK := SK)).experiment scheme (filtered adversary) =
+  have hlossy : (lossyGameWith (PK := PK) (SK := SK) Fresh).experiment scheme
+      (filtered adversary) =
       (fun result => (decide (SigningTranscript.Valid result.log ∧
-        ¬SigningTranscript.Contains result.log result.forgery) && result.2.2.1,
+        Fresh result.log result.forgery) && result.2.2.1,
         result.lossyCounts)) <$> joint := by
-    show RandomOracleModel.run (lossyExperiment _ scheme (filtered adversary)) = _
+    show RandomOracleModel.run (lossyExperimentWith Fresh _ scheme (filtered adversary)) = _
     rw [lossyExperiment_filtered_eq_jointRun, randomOracle_run_map]
-  have hadv : (securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
-      (lossyGame (PK := PK) (SK := SK)).advantage scheme (filtered adversary) := by
+  have hadv : (gameWith (PK := PK) (SK := SK) Fresh).advantage scheme adversary =
+      (lossyGameWith (PK := PK) (SK := SK) Fresh).advantage scheme (filtered adversary) := by
     simp only [SecurityGame.advantage, hpaper, hlossy, probEvent_map]
     refine probEvent_ext fun result hr => ?_
     simp [Function.comp, hvalid result hr]
-  have hboundLossy : (lossyGame (PK := PK) (SK := SK)).HasQueryBound scheme Z
+  have hboundLossy : (lossyGameWith (PK := PK) (SK := SK) Fresh).HasQueryBound scheme Z
       (filtered adversary) q := by
     unfold SecurityGame.HasQueryBound at hbound ⊢
     rw [hpaper, probEvent_map] at hbound
@@ -624,125 +627,15 @@ theorem securityGame_experiment_eq_lossy_of_oneRequest
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L)
     (hone : OneRequest adversary) :
-    (securityGame (PK := PK) (SK := SK)).experiment scheme adversary =
-      (lossyGame (PK := PK) (SK := SK)).experiment scheme adversary := by
-  show RandomOracleModel.run (experiment _ scheme adversary) =
-    RandomOracleModel.run (lossyExperiment _ scheme adversary)
-  rw [experiment_eq_lossy_of_oneRequest _ scheme adversary hone]
+    (gameWith (PK := PK) (SK := SK) Fresh).experiment scheme adversary =
+      (lossyGameWith (PK := PK) (SK := SK) Fresh).experiment scheme adversary := by
+  show RandomOracleModel.run (experiment Fresh _ scheme adversary) =
+    RandomOracleModel.run (lossyExperimentWith Fresh _ scheme adversary)
+  rw [experiment_eq_lossy_of_oneRequest Fresh _ scheme adversary hone]
 
 end RandomOracle
-
 
 end XmssSecurity.SUFCMA
-
-namespace XmssSecurity.EUFCMA
-
-open SUFCMA
-
-variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
-
-section Experiments
-
-variable [DecidableEq Msg]
-
-theorem experiment_eq_jointRun (cost : spec.Domain → ℕ)
-    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    EUFCMA.experiment cost scheme adversary =
-      (fun result => (decide (¬SigningTranscript.ContainsRequest result.log result.forgery) &&
-        result.2.2.1, result.paperCounts)) <$> jointRun cost scheme adversary := by
-  unfold EUFCMA.experiment jointRun
-  simp only [paperRun_eq_filtered (cost := cost) (scheme := scheme), map_bind, bind_map_left,
-    map_pure]
-  rfl
-
-theorem lossyExperiment_filtered_eq_jointRun (cost : spec.Domain → ℕ)
-    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    EUFCMA.lossyExperiment cost scheme (filtered adversary) =
-      (fun result => (decide (SigningTranscript.Valid result.log ∧
-        ¬SigningTranscript.ContainsRequest result.log result.forgery) && result.2.2.1,
-        result.lossyCounts)) <$> jointRun cost scheme adversary := by
-  unfold EUFCMA.lossyExperiment jointRun filtered
-  simp only [simulateQ_map, writerRun_map, logRun_map, map_bind, bind_map_left, map_pure,
-    Functor.map_map]
-  rfl
-
-/-- An adversary with at most one signing request has the same experiment in both games. -/
-theorem experiment_eq_lossy_of_oneRequest (cost : spec.Domain → ℕ)
-    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L)
-    (hone : OneRequest adversary) :
-    EUFCMA.experiment cost scheme adversary = EUFCMA.lossyExperiment cost scheme adversary := by
-  unfold EUFCMA.experiment EUFCMA.lossyExperiment
-  refine bind_congr fun keys => ?_
-  obtain ⟨⟨pk, sk⟩, keygenCounts⟩ := keys
-  simp only
-  rw [paperRun_eq_lossyRun_of_oneRequest _ (hone pk)]
-  refine bind_congr_of_forall_mem_support _ fun z hz => ?_
-  have hnodup := paperRun_nodup (cost := cost) (scheme := scheme) (sk := sk) (adversary.main pk) []
-    (by simp) z (by rwa [paperRun_eq_lossyRun_of_oneRequest _ (hone pk)])
-  have hvalid : SigningTranscript.Valid z.2 := hnodup
-  obtain ⟨⟨forgery, counts⟩, log⟩ := z
-  simp only at hvalid ⊢
-  simp [hvalid]
-
-end Experiments
-
-section RandomOracle
-
-variable {Input Output : Type} [DecidableEq Input] [SampleableType Output] [DecidableEq Msg]
-
-/-- Bit security in the lossy game gives bit security in the statement's game, in every
-counting mode. -/
-theorem hasClassicalSecurityBits_of_lossy
-    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
-    (Z : Finset QueryKind) (bits : ℕ)
-    (h : (EUFCMA.lossyGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits) :
-    (EUFCMA.securityGame (PK := PK) (SK := SK)).HasClassicalSecurityBits scheme Z bits := by
-  intro q hq adversary hbound
-  let joint := RandomOracleModel.run
-    (jointRun (RandomOracleModel.hashCost Input Output) scheme adversary)
-  have hvalid : ∀ result ∈ support joint, SigningTranscript.Valid result.log := fun result hr =>
-    jointRun_valid _ scheme adversary result (support_simulateQ_run'_subset _ _ _ hr)
-  have hpaper : (EUFCMA.securityGame (PK := PK) (SK := SK)).experiment scheme adversary =
-      (fun result => (decide (¬SigningTranscript.ContainsRequest result.log result.forgery) &&
-        result.2.2.1, result.paperCounts)) <$> joint := by
-    show RandomOracleModel.run (EUFCMA.experiment _ scheme adversary) = _
-    rw [experiment_eq_jointRun, SUFCMA.randomOracle_run_map]
-  have hlossy : (EUFCMA.lossyGame (PK := PK) (SK := SK)).experiment scheme (filtered adversary) =
-      (fun result => (decide (SigningTranscript.Valid result.log ∧
-        ¬SigningTranscript.ContainsRequest result.log result.forgery) && result.2.2.1,
-        result.lossyCounts)) <$> joint := by
-    show RandomOracleModel.run (EUFCMA.lossyExperiment _ scheme (filtered adversary)) = _
-    rw [lossyExperiment_filtered_eq_jointRun, SUFCMA.randomOracle_run_map]
-  have hadv : (EUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
-      (EUFCMA.lossyGame (PK := PK) (SK := SK)).advantage scheme (filtered adversary) := by
-    simp only [SecurityGame.advantage, hpaper, hlossy, probEvent_map]
-    refine probEvent_ext fun result hr => ?_
-    simp [Function.comp, hvalid result hr]
-  have hboundLossy : (EUFCMA.lossyGame (PK := PK) (SK := SK)).HasQueryBound scheme Z
-      (filtered adversary) q := by
-    unfold SecurityGame.HasQueryBound at hbound ⊢
-    rw [hpaper, probEvent_map] at hbound
-    rw [hlossy, probEvent_map]
-    refine le_antisymm probEvent_le_one (hbound ▸ probEvent_mono fun result _ hr => ?_)
-    exact le_trans (Finset.sum_le_sum fun kind _ => result.lossyCounts_le kind) hr
-  rw [hadv]
-  exact h q hq _ hboundLossy
-
-/-- An adversary with at most one signing request has the same experiment in the statement's
-game as in the lossy game. -/
-theorem securityGame_experiment_eq_lossy_of_oneRequest
-    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
-    (adversary : Adversary (RandomOracleModel.World Input Output) PK Msg Sig L)
-    (hone : OneRequest adversary) :
-    (EUFCMA.securityGame (PK := PK) (SK := SK)).experiment scheme adversary =
-      (EUFCMA.lossyGame (PK := PK) (SK := SK)).experiment scheme adversary := by
-  show RandomOracleModel.run (EUFCMA.experiment _ scheme adversary) =
-    RandomOracleModel.run (EUFCMA.lossyExperiment _ scheme adversary)
-  rw [experiment_eq_lossy_of_oneRequest _ scheme adversary hone]
-
-end RandomOracle
-
-end XmssSecurity.EUFCMA
 
 namespace XmssSecurity.Modes
 
@@ -762,7 +655,7 @@ theorem notion_oneRequest_bound [DecidableEq Sig] (Z : Finset QueryKind)
       (notion (modeOf Z)).HasQueryBound scheme adversary q →
       (notion (modeOf Z)).advantage scheme adversary ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞) := by
   intro q hq adversary hone hbound
-  have hexp := securityGame_experiment_eq_lossy_of_oneRequest scheme adversary hone
+  have hexp := securityGame_experiment_eq_lossy_of_oneRequest _ scheme adversary hone
   have hadv : (SUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
       (notion (modeOf Z)).advantage scheme adversary := by
     simp only [SecurityGame.advantage, SecurityNotion.advantage, hexp]
@@ -785,7 +678,7 @@ theorem eufNotion_oneRequest_bound (Z : Finset QueryKind) (hZ : QueryKind.hash �
       (EUFCMA.notion (modeOf Z)).HasQueryBound scheme adversary q →
       (EUFCMA.notion (modeOf Z)).advantage scheme adversary ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞) := by
   intro q hq adversary hone hbound
-  have hexp := EUFCMA.securityGame_experiment_eq_lossy_of_oneRequest scheme adversary hone
+  have hexp := securityGame_experiment_eq_lossy_of_oneRequest _ scheme adversary hone
   have hadv : (EUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
       (EUFCMA.notion (modeOf Z)).advantage scheme adversary := by
     simp only [SecurityGame.advantage, SecurityNotion.advantage, hexp]

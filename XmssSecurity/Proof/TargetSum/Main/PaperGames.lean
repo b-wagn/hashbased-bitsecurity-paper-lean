@@ -120,7 +120,7 @@ theorem sufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈
     (SUFCMA.securityGame (PK := PublicKey) (SK := Seeded.SecretKey)).HasExactClassicalSecurityBits
       xmss Z
       (if QueryKind.keygen ∈ Z ∨ QueryKind.signer ∈ Z ∨ QueryKind.verifier ∈ Z then 127 else 122) := by
-  refine ⟨SUFCMA.hasClassicalSecurityBits_of_lossy xmss Z _ (lossySufCma_exact_of_hash_mem Z hZ).1,
+  refine ⟨SUFCMA.hasClassicalSecurityBits_of_lossy _ xmss Z _ (lossySufCma_exact_of_hash_mem Z hZ).1,
     fun hsecure => ?_⟩
   split_ifs at hsecure with h1
   · exact paper_neighbor_everything_attack
@@ -135,7 +135,7 @@ theorem eufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈
       xmss Z
       (if QueryKind.keygen ∈ Z ∨ QueryKind.signer ∈ Z ∨ QueryKind.verifier ∈ Z ∨
         QueryKind.sign ∈ Z then 127 else 126) := by
-  refine ⟨EUFCMA.hasClassicalSecurityBits_of_lossy xmss Z _ (lossyEufCma_exact_of_hash_mem Z hZ).1,
+  refine ⟨SUFCMA.hasClassicalSecurityBits_of_lossy _ xmss Z _ (lossyEufCma_exact_of_hash_mem Z hZ).1,
     fun hsecure => ?_⟩
   split_ifs at hsecure with h1
   · exact paper_neighbor_euf_everything_attack

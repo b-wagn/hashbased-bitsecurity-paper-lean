@@ -39,11 +39,8 @@ def checksumDigits : Nat := 3
 chains carry the message digits and the last `len_2` the checksum digits. -/
 def numChains : Nat := 46
 
-theorem numChains_eq : numChains = messageDigits + checksumDigits := rfl
-
 abbrev ChainIndex := Fin numChains
 abbrev Encoding := ChainIndex → Digit
-
 
 /-- Message digit `i`: the three digest bits at offset `3i` (bits beyond the digest are zero). -/
 def messageDigit (digest : Digest) (i : Fin messageDigits) : Digit :=
@@ -64,7 +61,6 @@ def encode (digest : Digest) : Encoding := fun i =>
   if h : i.val < messageDigits then messageDigit digest ⟨i.val, h⟩
   else checksumDigit (checksum (messageDigit digest))
     ⟨i.val - messageDigits, by have := i.isLt; simp only [numChains, messageDigits, checksumDigits] at *; omega⟩
-
 
 /-- The checksummed encoding: `v = 46` chains, every digest decodes, and a single randomizer
 trial. -/

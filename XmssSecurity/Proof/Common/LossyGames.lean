@@ -49,11 +49,11 @@ def lossySigningOracle (cost : spec.Domain → ℕ)
     liftM (tell [⟨request, answer⟩] : WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec) Unit)
     return answer
 
-/-- The experiment `SUFCMA_SIG(A)`: key generation, the adversary with the ambient oracles and the
-signing oracle, and verification of the forgery. It returns the winning bit `v` and the count of
-each kind of query, where every query of the ambient oracles counts `cost` (in the random-oracle
-model: one per hash call, none per uniform sample). -/
-def lossyExperiment [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
+/-- The lossy experiment for the freshness condition `Fresh`: key generation, the adversary with
+the ambient oracles and the signing oracle, and verification of the forgery. The adversary wins
+if the forgery verifies, the transcript is valid, and the forgery is fresh. -/
+def lossyExperimentWith (Fresh : QueryLog (SigningSpec Msg Sig L) → Forgery Msg Sig L → Prop)
+    [∀ log forgery, Decidable (Fresh log forgery)] (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × QueryCounts) := do
   let ((pk, sk), keygenCounts) ←
@@ -68,20 +68,33 @@ def lossyExperiment [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → 
       (adversary.main pk)).run.run
   let (verified, verifierCounts) ← countQueries (fun t => QueryCounts.single .verifier (cost t))
     (scheme.verify pk forgery.epoch forgery.message forgery.signature)
-  return (decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified,
+  return (decide (SigningTranscript.Valid log ∧ Fresh log forgery) && verified,
     keygenCounts + Multiplicative.toAdd adversaryCounts + verifierCounts)
+
+/-- The lossy SUF-CMA experiment. -/
+abbrev lossyExperiment [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
+    (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × QueryCounts) :=
+  lossyExperimentWith (fun log forgery => ¬SigningTranscript.Contains log forgery) cost scheme
+    adversary
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 
-/-- SUF-CMA in the random-oracle model: the experiment with the lazily sampled random oracle,
-counting one unit per hash call (also for a repeated input) and nothing per uniform sample. -/
-noncomputable def lossyGame [DecidableEq Msg] [DecidableEq Sig] :
+/-- The lossy experiment in the random-oracle model, counting as `SUFCMA.gameWith`. -/
+noncomputable def lossyGameWith (Fresh : QueryLog (SigningSpec Msg Sig L) → Forgery Msg Sig L → Prop)
+    [∀ log forgery, Decidable (Fresh log forgery)] :
     SecurityGame (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
       QueryKind where
   Adversary := Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
   experiment := fun scheme adversary =>
     RandomOracleModel.run
-      (SUFCMA.lossyExperiment (RandomOracleModel.hashCost Input Output) scheme adversary)
+      (lossyExperimentWith Fresh (RandomOracleModel.hashCost Input Output) scheme adversary)
+
+/-- The lossy SUF-CMA game. -/
+noncomputable abbrev lossyGame [DecidableEq Msg] [DecidableEq Sig] :
+    SecurityGame (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+      QueryKind :=
+  lossyGameWith fun log forgery => ¬SigningTranscript.Contains log forgery
 
 end XmssSecurity.SUFCMA
 
@@ -91,36 +104,19 @@ open SUFCMA
 
 variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
 
-/-- The experiment `EUFCMA_SIG(A)`: as `SUFCMA.lossyExperiment`, with the winning condition requiring
-an epoch/message pair never submitted to the signing oracle. -/
-def lossyExperiment [DecidableEq Msg] (cost : spec.Domain → ℕ)
+/-- The lossy EUF-CMA experiment. -/
+abbrev lossyExperiment [DecidableEq Msg] (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L)
-    (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × QueryCounts) := do
-  let ((pk, sk), keygenCounts) ←
-    countQueries (fun t => QueryCounts.single .keygen (cost t)) scheme.keygen
-  let (((forgery, adversaryCounts), log) :
-      (Forgery Msg Sig L × Multiplicative QueryCounts) × QueryLog (SigningSpec Msg Sig L)) ←
-    (simulateQ
-      ((QueryImpl.ofLift spec
-          (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))).withAddCost
-            (fun t => QueryCounts.single .hash (cost t)) +
-        SUFCMA.lossySigningOracle cost scheme sk)
-      (adversary.main pk)).run.run
-  let (verified, verifierCounts) ← countQueries (fun t => QueryCounts.single .verifier (cost t))
-    (scheme.verify pk forgery.epoch forgery.message forgery.signature)
-  return (decide (SUFCMA.SigningTranscript.Valid log ∧
-      ¬SigningTranscript.ContainsRequest log forgery) && verified,
-    keygenCounts + Multiplicative.toAdd adversaryCounts + verifierCounts)
+    (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × QueryCounts) :=
+  lossyExperimentWith (fun log forgery => ¬SigningTranscript.ContainsRequest log forgery) cost
+    scheme adversary
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 
-/-- EUF-CMA in the random-oracle model, counting as `SUFCMA.lossyGame`. -/
-noncomputable def lossyGame [DecidableEq Msg] :
+/-- The lossy EUF-CMA game. -/
+noncomputable abbrev lossyGame [DecidableEq Msg] :
     SecurityGame (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
-      QueryKind where
-  Adversary := SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
-  experiment := fun scheme adversary =>
-    RandomOracleModel.run
-      (EUFCMA.lossyExperiment (RandomOracleModel.hashCost Input Output) scheme adversary)
+      QueryKind :=
+  lossyGameWith fun log forgery => ¬SigningTranscript.ContainsRequest log forgery
 
 end XmssSecurity.EUFCMA

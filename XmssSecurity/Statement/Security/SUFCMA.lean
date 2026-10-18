@@ -16,8 +16,8 @@ epoch-based signature scheme `SIG = (Gen, Sig, Ver)` in the random-oracle model 
    `σ ← Sig(sk, ep, m)` (a signature, or `⊥` if the signer fails), sets `Signed[ep] := (m, σ)`,
    and returns `σ`;
 3. obtain from `A` a forgery `(ep*, m*, σ*)`;
-4. determine winning: `v = 1` if `Ver(pk, ep*, m*, σ*) = 1` and `(m*, σ*) ≠ Signed[ep*]`;
-   otherwise `v = 0`;
+4. determine winning: `v = 1` if `Ver(pk, ep*, m*, σ*) = 1` and the forgery is fresh, i.e.
+   `(m*, σ*) ≠ Signed[ep*]`; otherwise `v = 0`;
 5. count queries, one count per `QueryKind`: the signing queries of `A` (`q_S`), the hash queries
    `A` made directly (`q_H`), and the hash queries of key generation (`q_Gen`), of the signer
    summed over all signing queries (`q_Sig`), and of the verification in step 4 (`q_Ver`);
@@ -29,8 +29,10 @@ query for it. The table `Signed` is the list of the answered requests, in order.
 no verification oracle; the only verification is the experiment's final check. Every hash call
 counts one unit, also for a repeated input; uniform sampling is free.
 
-`securityGame` is this experiment in the random-oracle model, as a `SecurityGame`
-(`BitSecurity.lean`); a counting mode then selects which of the counts form the adversary's work.
+`experiment` takes the freshness condition as a parameter, so that standard unforgeability
+(`EUFCMA.lean`) is the same experiment with a stronger condition. `securityGame` is this
+experiment in the random-oracle model, as a `SecurityGame` (`BitSecurity.lean`); a counting mode
+then selects which of the counts form the adversary's work.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -61,6 +63,10 @@ abbrev SigningSpec (Msg Sig : Type) (L : ℕ) : OracleSpec (SignRequest Msg L) :
   SignRequest Msg L →ₒ Option Sig
 
 namespace SigningTranscript
+
+/-- Whether the table `Signed` has an entry at epoch `ep`, i.e. `Signed[ep] ≠ ⊥`. -/
+def Signed (signed : QueryLog (SigningSpec Msg Sig L)) (epoch : Fin L) : Bool :=
+  signed.any fun entry => decide (entry.1.epoch = epoch)
 
 /-- The signer answered the forgery's request with the forgery's signature:
 `(m*, σ*) = Signed[ep*]`. A different signature for a requested epoch and message is therefore a
@@ -118,10 +124,6 @@ requests, and the ambient oracles. -/
 abbrev CountedRun (spec : OracleSpec ι) (Msg Sig : Type) (L : ℕ) : Type → Type :=
   AddWriterT QueryCounts (StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec))
 
-/-- Whether the table `Signed` has an entry at epoch `ep`, i.e. `Signed[ep] ≠ ⊥`. -/
-def SigningTranscript.Signed (signed : QueryLog (SigningSpec Msg Sig L)) (epoch : Fin L) : Bool :=
-  signed.any fun entry => decide (entry.1.epoch = epoch)
-
 /-- The signing oracle `Sig(ep, m)` of the experiment. It counts one signing query. If
 `Signed[ep] ≠ ⊥`, it returns `⊥`. Otherwise it answers by `Sig(sk, ep, m)`, counts the signer's
 hash queries (each at `cost`), and records the request and the answer as `Signed[ep]`. -/
@@ -143,11 +145,13 @@ def countedSigningOracle (cost : spec.Domain → ℕ)
         StateT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec) Unit)
       return answer
 
-/-- The experiment `SUFCMA_SIG(A)`: key generation, the adversary with the ambient oracles and the
-signing oracle, starting from the empty table `Signed`, and verification of the forgery. It
-returns the winning bit `v` and the count of each kind of query, where every query of the ambient
-oracles counts `cost` (in the random-oracle model: one per hash call, none per uniform sample). -/
-def experiment [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
+/-- The experiment: key generation, the adversary with the ambient oracles and the signing oracle,
+starting from the empty table `Signed`, and verification of the forgery. The adversary wins if
+the forgery verifies and `Fresh Signed forgery` holds. It returns the winning bit `v` and the
+count of each kind of query, where every query of the ambient oracles counts `cost` (in the
+random-oracle model: one per hash call, none per uniform sample). -/
+def experiment (Fresh : QueryLog (SigningSpec Msg Sig L) → Forgery Msg Sig L → Prop)
+    [∀ signed forgery, Decidable (Fresh signed forgery)] (cost : spec.Domain → ℕ)
     (scheme : EpochBasedSignature spec PK SK Msg Sig L)
     (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × QueryCounts) := do
   let ((pk, sk), keygenCounts) ←
@@ -162,19 +166,26 @@ def experiment [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
       (adversary.main pk)).run.run [])
   let (verified, verifierCounts) ← countQueries (fun t => QueryCounts.single .verifier (cost t))
     (scheme.verify pk forgery.epoch forgery.message forgery.signature)
-  return (decide (¬SigningTranscript.Contains signed forgery) && verified,
+  return (decide (Fresh signed forgery) && verified,
     keygenCounts + Multiplicative.toAdd adversaryCounts + verifierCounts)
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 
-/-- SUF-CMA in the random-oracle model: the experiment with the lazily sampled random oracle,
-counting one unit per hash call (also for a repeated input) and nothing per uniform sample. -/
-noncomputable def securityGame [DecidableEq Msg] [DecidableEq Sig] :
+/-- The experiment in the random-oracle model, with the lazily sampled random oracle, counting one
+unit per hash call (also for a repeated input) and nothing per uniform sample. -/
+noncomputable def gameWith (Fresh : QueryLog (SigningSpec Msg Sig L) → Forgery Msg Sig L → Prop)
+    [∀ signed forgery, Decidable (Fresh signed forgery)] :
     SecurityGame (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
       QueryKind where
   Adversary := Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
   experiment := fun scheme adversary =>
     RandomOracleModel.run
-      (SUFCMA.experiment (RandomOracleModel.hashCost Input Output) scheme adversary)
+      (experiment Fresh (RandomOracleModel.hashCost Input Output) scheme adversary)
+
+/-- SUF-CMA in the random-oracle model: a forgery is fresh if `(m*, σ*) ≠ Signed[ep*]`. -/
+noncomputable abbrev securityGame [DecidableEq Msg] [DecidableEq Sig] :
+    SecurityGame (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+      QueryKind :=
+  gameWith fun signed forgery => ¬SigningTranscript.Contains signed forgery
 
 end XmssSecurity.SUFCMA

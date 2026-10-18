@@ -22,6 +22,9 @@ checksum digits, `v = 46` chains, a single randomizer).
 
 The master seed has 256 bits and the tweak has 128 bits (16 bytes); both are fixed by the byte
 layout in `Types.lean` and `Hashing.lean`.
+
+The specification draft has `ℓ_rnd = 192` and encodes `m ∥ ρ ∥ 0^64`. This development uses
+`ℓ_rnd = 128` and pads with `0^128`, so the encoding payload keeps its 64 bytes.
 -/
 
 namespace XmssSecurity

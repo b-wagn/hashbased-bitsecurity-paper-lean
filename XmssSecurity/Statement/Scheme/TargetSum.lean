@@ -35,8 +35,8 @@ abbrev Encoding := ChainIndex → Digit
 
 /-! ### The target-sum code
 
-`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the code is the words of digit sum `T = 195`. -/
-
+`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the
+code is the words of digit sum `T = 195`. -/
 
 /-- The digit sum of a word. -/
 def sum (x : Encoding) : Nat := ∑ i, (x i).val
@@ -62,7 +62,6 @@ def digestEncoding (digest : Digest) : Encoding :=
 def decodeDigest (digest : Digest) : Option Encoding :=
   if digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false ∧ Valid (digestEncoding digest)
   then some (digestEncoding digest) else none
-
 
 /-- The target-sum encoding: `v = 42` chains, the target-sum decoder, and `A_max = 2^32`
 randomizer trials. -/
