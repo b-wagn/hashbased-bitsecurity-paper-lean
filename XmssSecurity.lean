@@ -1,16 +1,11 @@
 import XmssSecurity.Statement.StrongUnforgeabilityTheorems
 import XmssSecurity.Statement.UnforgeabilityTheorems
+import XmssSecurity.Statement.CorrectnessTheorems
 
 /-!
 # Security of XMSS in the random-oracle model
 
-The public entry point for the `XmssSecurity` library. Importing this module checks the exact
-classifications of strong (SUF-CMA) and standard (EUF-CMA) unforgeability under all sixteen
-counting modes:
-
-* `xmss_sufCma_exact` (`Statement/StrongUnforgeabilityTheorems.lean`): exactly 122 bits when no
-  honest-party hashes are charged, and exactly 127 bits when key generation, signer, or
-  verification hashes are charged.
-* `xmss_eufCma_exact` (`Statement/UnforgeabilityTheorems.lean`): exactly 126 bits for direct
-  queries alone, and exactly 127 bits when any additional query class is charged.
+Importing this module checks the four exact SUF-CMA/EUF-CMA classifications and the two
+correctness bounds for target-sum and checksum XMSS. See `Statement/*Theorems.lean` for the
+claims and the README for the results table and build instructions.
 -/

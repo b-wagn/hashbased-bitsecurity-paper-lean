@@ -1,20 +1,29 @@
-import XmssSecurity.Statement.Scheme.Types
+import XmssSecurity.Statement.Scheme.Xmss
 
 /-!
-# The target-sum encoding
+# XMSS with the target-sum encoding
 
-The code of the XMSS instance: a 128-bit digest is read as `v = 42` digits of `w = 3` bits, and
-it decodes to an encoding exactly when its two padding bits are clear and the digits sum to the
-target sum `T = 195`.
+A digest decodes when padding bits 63 and 127 are zero and its 42 three-bit digits sum to 195.
+The signer tries at most `2^32` randomizers. `xmssTargetSum` is the resulting scheme.
 -/
 
 namespace XmssSecurity
 
-/-! ### The target-sum code
-
-`v = 42` chunks of `w = 3` bits, 21 in each half of the digest, one pinned bit per half, and the code is the words of digit sum `T = 195`. -/
-
 namespace TargetSum
+
+/-- `v`: the code length, i.e. the number of chains. -/
+def numChains : Nat := 42
+
+/-- `T`: the target sum. -/
+def targetSum : Nat := 195
+
+/-- `A_max`: the maximum number of randomizer trials per signature. -/
+def signingAttemptLimit : Nat := 2 ^ 32
+
+abbrev ChainIndex := Fin numChains
+abbrev Encoding := ChainIndex → Digit
+
+/-! ### The target-sum code -/
 
 /-- The digit sum of a word. -/
 def sum (x : Encoding) : Nat := ∑ i, (x i).val
@@ -36,11 +45,21 @@ def digitOffset (i : ChainIndex) : Nat :=
 def digestEncoding (digest : Digest) : Encoding :=
   fun i => (digest.extractLsb' (digitOffset i) winternitzBits).toFin
 
-/-- Decode the concrete little-endian layout used by `IncEnc`: 21 three-bit digits, padding bit 63, 21 digits, and padding bit 127. A digest decodes exactly when both padding bits are clear and the digits reach the target sum. -/
+/-- Decode exactly when the padding bits are zero and the digit sum is `targetSum`. -/
 def decodeDigest (digest : Digest) : Option Encoding :=
   if digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false ∧ Valid (digestEncoding digest)
   then some (digestEncoding digest) else none
 
+/-- The target-sum encoding and signing-attempt limit. -/
+def wotsEncoding : WotsEncoding where
+  numChains := numChains
+  decode := decodeDigest
+  signingAttempts := signingAttemptLimit
+
 end TargetSum
+
+/-- XMSS with the target-sum encoding. -/
+noncomputable def xmssTargetSum :=
+  xmss TargetSum.wotsEncoding
 
 end XmssSecurity

@@ -1,46 +1,27 @@
 import XmssSecurity.Statement.Scheme.Construction
-import XmssSecurity.Statement.Security.SUFCMA
+import XmssSecurity.Statement.EpochBasedSignature
 
 /-!
 # XMSS as an epoch-based signature scheme
 
-The instance `xmss` of `EpochBasedSignature` in the random-oracle world of the construction:
-key generation samples the 256-bit master seed and derives everything else through the hash
-oracle; signing and verification are the deterministic algorithms of `Construction.lean`.
-
-The abbreviations at the end fix the SUF-CMA request, forgery, and signing-oracle types of this
-instance.
+`xmss E` packages the construction for encoding `E`. Key generation samples a 256-bit seed;
+signing and verification are deterministic given the hash oracle.
 -/
 
 open OracleComp OracleSpec
 
 namespace XmssSecurity
 
-/-- `SIG = (Gen, Sig, Ver)` of the specification: sample the master seed and derive the keys,
-sign with at most `A_max` randomizer trials, and verify. -/
-noncomputable def xmss :
-    EpochBasedSignature OracleWorld PublicKey Seeded.SecretKey Message Signature lifetime where
+/-- The epoch-based signature scheme for encoding `E`. -/
+noncomputable def xmss (E : WotsEncoding) :
+    EpochBasedSignature OracleWorld PublicKey (Seeded.SecretKey E.numChains) Message
+      (Signature E.numChains) lifetime where
   keygen := do
     let seed ← liftM sampleMasterSeed
-    liftM (Seeded.keygenFromSeed seed)
+    liftM (Seeded.keygenFromSeed E.numChains seed)
   sign := fun sk leafIndex message =>
-    liftM (Seeded.sign sk leafIndex message : OracleComp HashSpec (Option Signature))
+    liftM (Seeded.sign E sk leafIndex message : OracleComp HashSpec (Option (Signature E.numChains)))
   verify := fun pk leafIndex message signature =>
-    liftM (Concrete.verify pk leafIndex message signature : OracleComp HashSpec Bool)
-
-/-- A signing request of the instance: a 32-bit leaf index and a 32-byte message. -/
-abbrev SignRequest := SUFCMA.SignRequest Message lifetime
-
-/-- A claimed forgery of the instance. -/
-abbrev Forgery := SUFCMA.Forgery Message Signature lifetime
-
-/-- The signing oracle of the instance. -/
-abbrev SigningSpec := SUFCMA.SigningSpec Message Signature lifetime
-
-namespace SigningTranscript
-
-export SUFCMA.SigningTranscript (Valid Contains)
-
-end SigningTranscript
+    liftM (Concrete.verify E pk leafIndex message signature : OracleComp HashSpec Bool)
 
 end XmssSecurity

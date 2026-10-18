@@ -4,11 +4,8 @@ import VCVio.OracleComp.QueryTracking.WriterCost
 /-!
 # The classical random-oracle model
 
-The oracle world shared by all parties of a security experiment, and its semantics: private
-uniform sampling, and a hash oracle `Input →ₒ Output` implemented as a lazily sampled, consistent
-random oracle. `run` runs a computation of this world from an empty oracle cache. `hashCost` is
-the cost of a query of the world: one unit per hash call (also for a repeated input), nothing per
-uniform sample; it is the unit in which security notions count hash calls.
+All parties share one lazily sampled hash oracle. Each hash call costs one unit, including
+repeated inputs; private uniform sampling is free. Each experiment starts with an empty cache.
 -/
 
 open OracleComp OracleSpec
