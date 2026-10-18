@@ -50,7 +50,7 @@ def digestPadding (digest : Digest) : Fin 4 :=
     (if digest.getLsbD 127 then 2 else 0), by
       cases digest.getLsbD 63 <;> cases digest.getLsbD 127 <;> simp⟩
 
-/-- The concrete little-endian layout used by `IncEnc`: 21 digits, one padding bit, 21 digits, and one padding bit. -/
+/-- The little-endian digest layout: 21 digits, one padding bit, 21 digits, and one padding bit. -/
 def digestView (digest : Digest) : EncodingView :=
   (digestEncoding digest, digestPadding digest)
 

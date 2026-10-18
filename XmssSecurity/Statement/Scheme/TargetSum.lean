@@ -3,10 +3,9 @@ import XmssSecurity.Statement.Scheme.Xmss
 /-!
 # XMSS with the target-sum encoding
 
-The XMSS instance of `doc/xmss/main.tex` of the leanVM repository: its code is the target-sum
-code. A 128-bit digest is read as `v = 42` digits of `w = 3` bits, and it decodes to an encoding
-exactly when its two padding bits are clear and the digits sum to the target sum `T = 195`. The
-signer tries at most `A_max = 2^32` randomizers.
+XMSS with the target-sum code. A 128-bit digest is read as `v = 42` digits of `w = 3` bits, and it
+decodes to an encoding exactly when its two padding bits are clear and the digits sum to the target
+sum `T = 195`. The signer tries at most `A_max = 2^32` randomizers.
 
 | Symbol  | Lean                  | Value   | Meaning                                 |
 |---------|-----------------------|---------|-----------------------------------------|
@@ -58,7 +57,9 @@ def digitOffset (i : ChainIndex) : Nat :=
 def digestEncoding (digest : Digest) : Encoding :=
   fun i => (digest.extractLsb' (digitOffset i) winternitzBits).toFin
 
-/-- Decode the concrete little-endian layout used by `IncEnc`: 21 three-bit digits, padding bit 63, 21 digits, and padding bit 127. A digest decodes exactly when both padding bits are clear and the digits reach the target sum. -/
+/-- Decode the little-endian digest layout: 21 three-bit digits, padding bit 63, 21 digits, and
+padding bit 127. A digest decodes exactly when both padding bits are clear and the digits reach the
+target sum. -/
 def decodeDigest (digest : Digest) : Option Encoding :=
   if digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false ∧ Valid (digestEncoding digest)
   then some (digestEncoding digest) else none

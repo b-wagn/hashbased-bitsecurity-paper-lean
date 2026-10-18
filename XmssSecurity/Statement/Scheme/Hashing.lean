@@ -4,7 +4,7 @@ import XmssSecurity.Statement.Scheme.Types
 # XMSS hashing
 
 How XMSS calls the hash function: the serialization of hash inputs (little-endian byte strings
-and the 16-byte tweaks of the specification), the hash domains, and the hash routines built on a
+and the 16-byte tweaks `enc(t, p, j)`), the hash domains, and the hash routines built on a
 single oracle query `oracleHash`: the tweakable hash `Th` and its uses for the message encoding,
 chain steps, leaves, and Merkle nodes, and the derivation of keys and randomizers from the master
 seed. The hash routines work in any monad with access to `HashSpec`.
@@ -25,7 +25,7 @@ def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
     UInt8.ofBitVec (value.extractLsb' (8 * index.val) 8)
 
-/-- The three fields of the specification's `enc(t, p, j)`. -/
+/-- The fields of a tweak `enc(t, p, j)`: a one-byte type `t` and two 32-bit integers `p`, `j`. -/
 structure TweakFields where
   tag : BitVec 8
   position : BitVec 32
@@ -35,12 +35,13 @@ deriving DecidableEq
 /-- The protocol domain separator. -/
 def protocolDomainSep : UInt8 := 0
 
-/-- The specification's 16 tweak bytes `protocol_domain_sep || tag || 0 || 0 || position || 0^4 || leafIndex`, each field serialized least significant byte first. -/
+/-- The 16 tweak bytes `enc(t, p, j) = protocol_domain_sep || t || 0^16 || p || 0^32 || j`, each
+field serialized least significant byte first. -/
 def fieldBytes (fields : TweakFields) : List UInt8 :=
   [protocolDomainSep] ++ bytesLE 1 fields.tag ++ [0, 0] ++ bytesLE 4 fields.position ++
     List.replicate 4 0 ++ bytesLE 4 fields.leafIndex
 
-/-- Convert the specification's three integer fields to their fixed widths. -/
+/-- Convert the three integer fields to their fixed widths. -/
 def tweakFields (tag position leafIndex : Nat) : TweakFields :=
   ⟨BitVec.ofNat 8 tag, BitVec.ofNat 32 position, BitVec.ofNat 32 leafIndex⟩
 
@@ -60,7 +61,7 @@ def hashDomainFields : HashDomain → TweakFields
   | .merkle level node => tweakFields 3 (level.val + 1) node
   | .encoding leafIndex => tweakFields 4 0 leafIndex
 
-/-- The exact 16 bytes supplied by the specification as a hash tweak. -/
+/-- The 16 tweak bytes of a hash domain. -/
 def tweakBytes (domain : HashDomain) : List UInt8 :=
   fieldBytes (hashDomainFields domain)
 
@@ -118,12 +119,13 @@ def tweakableHash
   let output ← oracleHash (tweakableHashInput parameter domain payload)
   return truncateHash output
 
-/-- The message digest `D = Th(P, tweak_enc(idx), m || rho)`, which the WOTS encoding decodes. -/
+/-- The message digest `D = Th(P, enc(4, 0, idx), m || rho || 0^128)`, which the WOTS encoding
+decodes. -/
 def encodingHash (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) : m Digest :=
   tweakableHash parameter (.encoding leafIndex) (encodingPayload message randomness)
 
-/-- One chain step, under `tweak_chain(idx, i, step + 1)`. -/
+/-- One chain step, from position `step` to `step + 1`, under `enc(1, 2^w i + step, idx)`. -/
 def chainHash {v : Nat} (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : Fin v)
     (step : ChainStep) (value : Digest) : m Digest :=
   tweakableHash parameter (.chain leafIndex chain.val step) (bytesLE 16 value)
@@ -147,7 +149,7 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
   return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
 
-/-- `ρ_a = Truncate_ℓrnd(H(tweak_rnd(idx, a) ∥ P ∥ S ∥ m))`. -/
+/-- Randomizer trial `a`: `ρ_a = Truncate_ℓrnd(H(enc(7, a, idx) ∥ P ∥ S ∥ m))`. -/
 def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
     (message : Message) (trial : BitVec 32) : m Randomness := do
   return (← Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message trial)).extractLsb' 0 randomnessBits

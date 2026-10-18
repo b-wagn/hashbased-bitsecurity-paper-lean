@@ -21,7 +21,7 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity.Checksum
 
-/-- `SIG = (Gen, Sig, Ver)` of the specification: sample the master seed and derive the keys,
+/-- `SIG = (Gen, Sig, Ver)`: sample the master seed and derive the keys,
 sign with a single randomizer, and verify. -/
 noncomputable def xmss :
     EpochBasedSignature OracleWorld PublicKey Seeded.SecretKey Message Signature lifetime where

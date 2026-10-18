@@ -1,13 +1,12 @@
 /-!
 # XMSS instance parameters
 
-The parameter table of the XMSS instance for Ethereum's post-quantum consensus (`doc/xmss/main.tex`
-of the leanVM repository, Section 1) that does not depend on the WOTS encoding. Everything else
-in `Scheme/` is defined in terms of these constants. The two encodings fix the remaining
-parameters: the target-sum encoding of the leanVM instance in `TargetSum.lean` (`v = 42` chains,
-target sum `T = 195`, at most `A_max = 2^32` randomizer trials), and the WOTS encoding with a
-checksum of SLH-DSA (FIPS 205) in `Checksum.lean` (`len_1 = 43` message digits and `len_2 = 3`
-checksum digits, `v = 46` chains, a single randomizer).
+The parameters of the XMSS instance for Ethereum's post-quantum consensus that do not depend on
+the WOTS encoding. Everything else in `Scheme/` is defined in terms of these constants. The two
+encodings fix the remaining parameters: the target-sum encoding in `TargetSum.lean` (`v = 42`
+chains, target sum `T = 195`, at most `A_max = 2^32` randomizer trials), and the WOTS encoding
+with a checksum of SLH-DSA (FIPS 205) in `Checksum.lean` (`len_1 = 43` message digits and
+`len_2 = 3` checksum digits, `v = 46` chains, a single randomizer).
 
 | Symbol  | Lean                  | Value   | Meaning                                 |
 |---------|-----------------------|---------|-----------------------------------------|
@@ -22,9 +21,6 @@ checksum digits, `v = 46` chains, a single randomizer).
 
 The master seed has 256 bits and the tweak has 128 bits (16 bytes); both are fixed by the byte
 layout in `Types.lean` and `Hashing.lean`.
-
-The specification draft has `ℓ_rnd = 192` and encodes `m ∥ ρ ∥ 0^64`. This development uses
-`ℓ_rnd = 128` and pads with `0^128`, so the encoding payload keeps its 64 bytes.
 -/
 
 namespace XmssSecurity

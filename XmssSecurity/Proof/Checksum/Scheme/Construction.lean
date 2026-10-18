@@ -11,9 +11,8 @@ to the encoding with a checksum (`numChains` chains): it is the construction as 
 statement made it generic in the encoding. `Bridge.lean` proves that the copy computes the
 statement's algorithms, so that `xmssChecksum = xmss`.
 
-The algorithms of the XMSS instance specified in `doc/xmss/main.tex` of the leanVM repository,
-with its target-sum encoding replaced by the checksummed WOTS encoding of SLH-DSA (FIPS 205):
-verification, key generation, and signing. The types are in `Types.lean`, the hash routines in
+The algorithms of XMSS with the checksummed WOTS encoding of SLH-DSA (FIPS 205): verification,
+key generation, and signing. The types are in `Types.lean`, the hash routines in
 `Hashing.lean`, and the checksummed WOTS encoding in `Checksum.lean`.
 
 `Concrete` contains verification and the chain and tree computations; `Seeded` contains key

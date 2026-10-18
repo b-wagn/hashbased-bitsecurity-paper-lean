@@ -11,9 +11,8 @@ to the target-sum encoding (`numChains` chains): it is the construction as it re
 statement made it generic in the encoding. `Bridge.lean` proves that the copy computes the
 statement's algorithms, so that `xmssTargetSum = xmss`.
 
-The algorithms of the XMSS instance specified in `doc/xmss/main.tex` of the leanVM repository:
-verification, key generation, and signing. The types are in `Types.lean`, the hash routines in
-`Hashing.lean`, and the target-sum encoding in `TargetSum.lean`.
+The algorithms of XMSS: verification, key generation, and signing. The types are in `Types.lean`,
+the hash routines in `Hashing.lean`, and the target-sum encoding in `TargetSum.lean`.
 
 `Concrete` contains verification and the chain and tree computations; `Seeded` contains key
 generation and signing from a 256-bit master seed. Key generation derives the public parameter

@@ -45,16 +45,14 @@ and the adversary's randomness.
   chains), so the attack succeeds with probability at least about `36 / 2^128 > 1 / 2^123`. With
   the checksum, the digits of a codeword sum to at most `301`, and a uniformly chosen chain gives
   success probability above `32.4 / 2^128`.
-* The signer's hash calls. The target-sum signer retries randomizers until a digest decodes,
-  up to `2^32` trials of two hash calls each (about `2^15` on average), so charging the signer
-  makes the attack above far too expensive, and the level is 127 as below. The checksum signer makes exactly two hash
-  calls (the randomizer and the encoding): the attack's work is `2` when the signer is charged and
-  `3` when the requests are charged too, which refutes `124` and `125` bits.
+* The signer's hash calls. The target-sum signer retries randomizers until a digest decodes, up to
+  `2^32` trials of two hash calls each (about `2^15` on average), so charging the signer makes the
+  attack above far too expensive, and the level is 127 as below. The checksum signer makes exactly
+  two hash calls (the randomizer and the encoding): the attack's work is `2` when the signer is
+  charged and `3` when the requests are charged too, which refutes `124` and `125` bits.
 * 127 bits as soon as the hash calls of key generation or of the final verification are counted.
   Key generation makes about `2^40.5` hash calls and a verification at least `55`, so the attack
-  above is counted more work than its chances are worth. The matching attack (Remark 5.3 of the
-  leanVM XMSS document,
-  https://github.com/leanEthereum/leanVM/releases/download/doc-latest/XMSS.pdf) finds a second
+  above is counted more work than its chances are worth. The matching attack finds a second
   codeword that moves one unit between two chains of a signed codeword, and then a preimage of one
   chain value; its work-to-success ratio is below `2^128` for both encodings, even with every kind
   of query counted.

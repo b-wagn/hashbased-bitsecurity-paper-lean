@@ -4,7 +4,7 @@ import XmssSecurity.Statement.RandomOracleModel
 /-!
 # XMSS types
 
-The data types of the XMSS instance (`doc/xmss/main.tex` of the leanVM repository), in terms of
+The data types of XMSS, in terms of
 the constants of `Parameters.lean`: seeds, digests, messages, indices, encodings, keys, and
 signatures. Encodings, secret keys, and signatures depend on the number `v` of WOTS chains, which
 the encoding fixes (`WotsEncoding`). It also fixes the random-oracle world of XMSS: the hash

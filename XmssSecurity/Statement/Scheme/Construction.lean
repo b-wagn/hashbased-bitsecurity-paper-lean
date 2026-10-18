@@ -5,11 +5,10 @@ import VCVio.OracleComp.QueryTracking.LoggingOracle
 /-!
 # XMSS construction
 
-The algorithms of the XMSS instance specified in `doc/xmss/main.tex` of the leanVM repository,
-for an arbitrary WOTS encoding `E` (`WotsEncoding`): verification, key generation, and signing.
-The types are in `Types.lean` and the hash routines in `Hashing.lean`. The two encodings of this
-development are in `TargetSum.lean` (the target sum of the leanVM instance) and `Checksum.lean`
-(the checksum of SLH-DSA, FIPS 205).
+The algorithms of XMSS for an arbitrary WOTS encoding `E` (`WotsEncoding`): verification, key
+generation, and signing. The types are in `Types.lean` and the hash routines in `Hashing.lean`. The
+two encodings of this development are in `TargetSum.lean` (the target sum) and `Checksum.lean` (the
+checksum of SLH-DSA, FIPS 205).
 
 `Concrete` contains verification and the chain and tree computations; `Seeded` contains key
 generation and signing from a 256-bit master seed. Key generation derives the public parameter

@@ -15,7 +15,7 @@ open OracleComp OracleSpec
 
 namespace XmssSecurity
 
-/-- `SIG = (Gen, Sig, Ver)` of the specification for the encoding `E`: sample the master seed and
+/-- `SIG = (Gen, Sig, Ver)` for the encoding `E`: sample the master seed and
 derive the keys, sign with at most `A_max` randomizer trials, and verify. -/
 noncomputable def xmss (E : WotsEncoding) :
     EpochBasedSignature OracleWorld PublicKey (Seeded.SecretKey E.numChains) Message

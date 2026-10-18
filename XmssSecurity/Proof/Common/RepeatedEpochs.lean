@@ -655,7 +655,8 @@ theorem notion_oneRequest_bound [DecidableEq Sig] (Z : Finset QueryKind)
       (notion (modeOf Z)).HasQueryBound scheme adversary q →
       (notion (modeOf Z)).advantage scheme adversary ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞) := by
   intro q hq adversary hone hbound
-  have hexp := securityGame_experiment_eq_lossy_of_oneRequest _ scheme adversary hone
+  have hexp := securityGame_experiment_eq_lossy_of_oneRequest
+    (fun log forgery => ¬SigningTranscript.Contains log forgery) scheme adversary hone
   have hadv : (SUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
       (notion (modeOf Z)).advantage scheme adversary := by
     simp only [SecurityGame.advantage, SecurityNotion.advantage, hexp]
@@ -678,7 +679,8 @@ theorem eufNotion_oneRequest_bound (Z : Finset QueryKind) (hZ : QueryKind.hash �
       (EUFCMA.notion (modeOf Z)).HasQueryBound scheme adversary q →
       (EUFCMA.notion (modeOf Z)).advantage scheme adversary ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞) := by
   intro q hq adversary hone hbound
-  have hexp := securityGame_experiment_eq_lossy_of_oneRequest _ scheme adversary hone
+  have hexp := securityGame_experiment_eq_lossy_of_oneRequest
+    (fun log forgery => ¬EUFCMA.SigningTranscript.ContainsRequest log forgery) scheme adversary hone
   have hadv : (EUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
       (EUFCMA.notion (modeOf Z)).advantage scheme adversary := by
     simp only [SecurityGame.advantage, SecurityNotion.advantage, hexp]
