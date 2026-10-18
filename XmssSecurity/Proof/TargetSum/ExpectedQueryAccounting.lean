@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.ExpectedQueryProjection
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Expected query costs can be split between a selected outer query and an auxiliary counter. -/
 

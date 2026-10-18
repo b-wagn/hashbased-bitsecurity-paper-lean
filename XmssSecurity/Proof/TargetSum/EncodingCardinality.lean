@@ -1,5 +1,5 @@
-import XmssSecurity.Proof.TargetSum.CappedEncodingRejection
-
+import XmssSecurity.Proof.Generic.CappedEncodingRejection
+import XmssSecurity.Proof.TargetSum.Code
 /-! Counting admissible target-sum encodings. -/
 
 open scoped BigOperators
@@ -84,14 +84,14 @@ theorem countRow_getD_eq_wordCount (radix cap length total : ℕ) (htotal : tota
       · rw [ih _ (by omega)]
       · rfl
 
-theorem validDigest_encoding_valid (digest : Digest) (hdigest : ValidDigest digest) :
+theorem validDigest_encoding_valid (digest : Digest) (hdigest : Generic.Code.ValidDigest digest) :
     Valid (digestEncoding digest) := by
   obtain ⟨encoding, hencoding⟩ := hdigest
   have hview := decodeDigest_eq_some_iff.mp hencoding
   have hdigits : digestEncoding digest = encoding := congrArg Prod.fst hview.1
   exact hdigits ▸ hview.2
 
-noncomputable def validDigestEquivEncoding : {digest : Digest // ValidDigest digest} ≃
+noncomputable def validDigestEquivEncoding : {digest : Digest // Generic.Code.ValidDigest digest} ≃
     {encoding : Encoding // Valid encoding} :=
   Equiv.ofBijective (fun digest => ⟨digestEncoding digest.1,
     validDigest_encoding_valid digest.1 digest.2⟩) (by
@@ -107,14 +107,14 @@ noncomputable def validDigestEquivEncoding : {digest : Digest // ValidDigest dig
           have hrightPadding := congrArg Prod.snd (decodeDigest_eq_some_iff.mp hright).1
           exact hleftPadding.trans hrightPadding.symm
       · intro encoding
-        obtain ⟨digest, hdigest⟩ := digestView_surjective (encoding.1, 0)
+        obtain ⟨digest, hdigest⟩ := TargetSum.digestView_surjective (encoding.1, 0)
         refine ⟨⟨digest, encoding.1, decodeDigest_eq_some_iff.mpr ⟨hdigest, encoding.2⟩⟩, ?_⟩
         apply Subtype.ext
         exact congrArg Prod.fst hdigest)
 
 theorem validDigests_card_eq_wordCount :
-    validDigests.card = wordCount chainLength numChains targetSum := by
-  rw [validDigests, ← Fintype.card_subtype, Fintype.card_congr validDigestEquivEncoding]
+    Generic.Code.validDigests.card = wordCount chainLength numChains targetSum := by
+  rw [Generic.Code.validDigests, ← Fintype.card_subtype, Fintype.card_congr validDigestEquivEncoding]
   rfl
 
 end XmssSecurity.TargetSum.TargetSum

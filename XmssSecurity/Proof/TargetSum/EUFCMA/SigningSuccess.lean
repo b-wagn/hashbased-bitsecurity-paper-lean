@@ -1,5 +1,6 @@
-import XmssSecurity.Proof.TargetSum.EncodingRejectionProbability
-
+import XmssSecurity.Proof.Generic.EncodingRejectionProbability
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! A sharper signing-success estimate for the one-query standard-forgery
 analysis. This includes collisions among the signer's randomizers. -/
 
@@ -15,7 +16,7 @@ theorem capped_rejection_bound_lt_one_over_131072 :
   have hpow : (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit ≤
       1 / (1 + (signingAttemptLimit : ℝ≥0∞) * (1 / ((2 ^ 15 : ℕ) : ℝ≥0∞))) :=
     (pow_le_pow_left' (tsub_le_tsub_left TargetSum.acceptanceProbability_lower.le 1) signingAttemptLimit).trans
-      (TargetSum.rejection_power_le _ (by norm_num) _)
+      (Generic.Code.rejection_power_le _ (by norm_num) _)
   apply lt_of_le_of_lt (add_le_add hpow le_rfl)
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
@@ -24,29 +25,31 @@ theorem capped_rejection_bound_lt_one_over_131072 :
   norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul]
 
 theorem signing_failure_lt_one_over_131072
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (message : Message) :
-    Pr[fun result : Option Signature × QueryCache HashSpec => result.1 = none |
-      (simulateQ romImpl (Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run
+    Pr[fun result : Option Generic.Signature × QueryCache HashSpec => result.1 = none |
+      (simulateQ Generic.romImpl (Generic.Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run
         keyResult.2] < 1 / 131072 := by
-  rw [Concrete.precomputedCappedSign]
-  have hbound := Concrete.precomputedSignBoundedAttempts_failure_le signingAttemptLimit keyResult.1.2
+  rw [Generic.Concrete.precomputedCappedSign]
+  have hbound := Generic.Concrete.precomputedSignBoundedAttempts_failure_le
+    Generic.Code.signingAttemptLimit keyResult.1.2
     leafIndex message keyResult.2 0 (by
-      rw [Concrete.keygen_cachedEncodingInputCount_eq_zero keyResult hkey]
+      rw [Generic.Concrete.keygen_cachedEncodingInputCount_eq_zero keyResult hkey]
       simp)
   simp only [Nat.cast_zero, zero_add] at hbound
+  rw [code_acceptanceProbability] at hbound
   exact hbound.trans_lt capped_rejection_bound_lt_one_over_131072
 
 theorem signing_success_gt_131071_over_131072
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (message : Message) :
-    131071 / 131072 < Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
-      (simulateQ romImpl (Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run
+    131071 / 131072 < Pr[fun result : Option Generic.Signature × QueryCache HashSpec => result.1 ≠ none |
+      (simulateQ Generic.romImpl (Generic.Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run
         keyResult.2] := by
-  let computation := (simulateQ romImpl
-    (Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run keyResult.2
+  let computation := (simulateQ Generic.romImpl
+    (Generic.Concrete.precomputedCappedSign keyResult.1.2 leafIndex message)).run keyResult.2
   have hfailure := signing_failure_lt_one_over_131072 keyResult hkey leafIndex message
   have hsum : Pr[fun result => result.1 = none | computation] +
       Pr[fun result => result.1 ≠ none | computation] = 1 := by

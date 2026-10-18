@@ -1,5 +1,6 @@
-import XmssSecurity.Proof.Checksum.CappedEncodingRejection
-
+import XmssSecurity.Proof.Generic.CappedEncodingRejection
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Generic.EncodingRejectionProbability
 /-! The acceptance probability of the checksummed encoding: every digest decodes. -/
 
 open OracleComp ENNReal
@@ -10,13 +11,19 @@ set_option maxRecDepth 1000
 
 namespace XmssSecurity.Checksum.Checksum
 
+theorem validDigests_card : Generic.Code.validDigests.card = 2 ^ digestBits := by
+  have huniv : Generic.Code.validDigests = Finset.univ :=
+    Finset.filter_true_of_mem fun digest _ => ⟨encode digest, rfl⟩
+  rw [huniv, Finset.card_univ]
+  simp
+
 /-- Every digest encodes, so a uniform digest is accepted with probability one. -/
 noncomputable def acceptanceProbability : ℝ≥0∞ := 1
 
 theorem probEvent_validDigest_uniform :
-    Pr[ValidDigest | $ᵗ Digest] = acceptanceProbability := by
+    Pr[Generic.Code.ValidDigest | $ᵗ Digest] = acceptanceProbability := by
   rw [probEvent_uniformSample]
-  change (validDigests.card : ℝ≥0∞) / Fintype.card Digest = _
+  change (Generic.Code.validDigests.card : ℝ≥0∞) / Fintype.card Digest = _
   rw [validDigests_card]
   simp [acceptanceProbability, ENNReal.div_self]
 
@@ -62,3 +69,22 @@ theorem sum_digits_le (encoding : Encoding) (hvalid : Valid encoding) :
   omega
 
 end XmssSecurity.Checksum.Checksum
+
+namespace XmssSecurity.Checksum
+
+@[simp] theorem code_acceptanceProbability : Generic.Code.acceptanceProbability = 1 := by
+  unfold Generic.Code.acceptanceProbability
+  rw [Checksum.validDigests_card]
+  exact ENNReal.div_self (by simp) (by simp)
+
+scoped instance signerBound : Generic.Code.SignerBound where
+  capped_rejection_bound_lt := by
+    rw [code_acceptanceProbability]
+    show (1 - 1) ^ signingAttemptLimit + (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
+        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
+    apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
+    rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
+    norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul,
+      ENNReal.toReal_inv]
+
+end XmssSecurity.Checksum

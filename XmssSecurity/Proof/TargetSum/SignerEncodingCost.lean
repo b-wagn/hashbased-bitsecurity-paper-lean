@@ -1,7 +1,8 @@
 import XmssSecurity.Proof.TargetSum.ExpectedCountedQueries
 import XmssSecurity.Proof.TargetSum.EncodingAcceptanceBudget
-import XmssSecurity.Proof.TargetSum.Direct.SeedGuessing
-
+import XmssSecurity.Proof.Generic.Direct.SeedGuessing
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Every seeded signing attempt pairs one derivation hash with one encoding hash. -/
 
 open OracleComp OracleSpec ENNReal
@@ -14,35 +15,35 @@ namespace XmssSecurity.TargetSum
 theorem deriveRandomizer_lift_hash_eq_world
     (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
     (message : Message) (trial : BitVec 32) :
-    (liftM (deriveRandomizer parameter seed leafIndex message trial : OracleComp HashSpec Randomness) :
-      OracleComp OracleWorld Randomness) = deriveRandomizer parameter seed leafIndex message trial := by
-  simp only [deriveRandomizer, Concrete.oracleHash, liftM_bind, liftM_pure]
+    (liftM (Generic.deriveRandomizer parameter seed leafIndex message trial : OracleComp HashSpec Randomness) :
+      OracleComp OracleWorld Randomness) = Generic.deriveRandomizer parameter seed leafIndex message trial := by
+  simp only [Generic.deriveRandomizer, Generic.Concrete.oracleHash, liftM_bind, liftM_pure]
   rfl
 
 theorem Concrete.precomputedSignAttempt_lift_hash_eq_world
-    (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) (randomness : Randomness) :
-    (liftM (precomputedSignAttempt secretKey leafIndex message randomness :
-      OracleComp HashSpec (Option Signature)) : OracleComp OracleWorld (Option Signature)) =
-      precomputedSignAttempt secretKey leafIndex message randomness := by
-  have hencoding : (liftM (encodingHash secretKey.parameter leafIndex message randomness :
+    (secretKey : Generic.SecretKey) (leafIndex : LeafIndex) (message : Message) (randomness : Randomness) :
+    (liftM (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+      OracleComp HashSpec (Option Generic.Signature)) : OracleComp OracleWorld (Option Generic.Signature)) =
+      Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness := by
+  have hencoding : (liftM (Generic.Concrete.encodingHash secretKey.parameter leafIndex message randomness :
       OracleComp HashSpec Digest) : OracleComp OracleWorld Digest) =
-      encodingHash secretKey.parameter leafIndex message randomness := by
-    simp only [encodingHash, tweakableHash, oracleHash, liftM_bind, liftM_pure]
+      Generic.Concrete.encodingHash secretKey.parameter leafIndex message randomness := by
+    simp only [Generic.Concrete.encodingHash, Generic.Concrete.tweakableHash, Generic.Concrete.oracleHash, liftM_bind, liftM_pure]
     rfl
-  rw [precomputedSignAttempt, liftM_bind, hencoding, precomputedSignAttempt]
+  rw [Generic.Concrete.precomputedSignAttempt, liftM_bind, hencoding, Generic.Concrete.precomputedSignAttempt]
   apply bind_congr
   intro digest
-  cases TargetSum.decodeDigest digest <;> simp only [liftM_pure]
+  cases Generic.Code.decodeDigest digest <;> simp only [liftM_pure]
 
 theorem Seeded.signFrom_lift_hash_eq_world
-    (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : ℕ) :
-    (liftM (signFrom secretKey leafIndex message attempts trial :
-      OracleComp HashSpec (Option Signature)) : OracleComp OracleWorld (Option Signature)) =
-      signFrom secretKey leafIndex message attempts trial := by
+    (secretKey : Generic.Seeded.SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : ℕ) :
+    (liftM (Generic.Seeded.signFrom secretKey leafIndex message attempts trial :
+      OracleComp HashSpec (Option Generic.Signature)) : OracleComp OracleWorld (Option Generic.Signature)) =
+      Generic.Seeded.signFrom secretKey leafIndex message attempts trial := by
   induction attempts generalizing trial with
-  | zero => simp [signFrom]
+  | zero => simp [Generic.Seeded.signFrom]
   | succ attempts ih =>
-      simp only [signFrom, liftM_bind, deriveRandomizer_lift_hash_eq_world,
+      simp only [Generic.Seeded.signFrom, liftM_bind, deriveRandomizer_lift_hash_eq_world,
         Concrete.precomputedSignAttempt_lift_hash_eq_world]
       apply bind_congr
       intro randomness

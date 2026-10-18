@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.Checksum.IdealStatement
+import XmssSecurity.Proof.Checksum.SchemeCompat
 import Mathlib.Data.BitVec
 
 namespace XmssSecurity.Checksum

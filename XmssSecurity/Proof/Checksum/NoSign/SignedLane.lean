@@ -1,5 +1,6 @@
-import XmssSecurity.Proof.Checksum.Direct.DecidingSecondLaneExpected
-
+import XmssSecurity.Proof.Generic.Direct.DecidingSecondLaneExpected
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 /-! The deciding-path collision on the executions with a signing request: the forty
 verification queries along the deciding path are charged with the probability that the
 adversary signs. -/
@@ -13,64 +14,64 @@ namespace XmssSecurity.Checksum.Deciding
 
 open Concrete
 
-theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary)
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
+theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Generic.Adversary)
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
     (hcached : ∀ prefixResult ∈ support
-        ((simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+        ((simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
           keyResult.2),
-        prefixResult.2 (Concrete.CacheView.encodingInput keyResult.1.2.parameter
+        prefixResult.2 (Generic.Concrete.CacheView.encodingInput keyResult.1.2.parameter
           prefixResult.1.1.epoch
           (prefixResult.1.1.message, prefixResult.1.1.signature.randomness)) ≠ none)
     (horient : ∀ prefixResult ∈ support
-        ((simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+        ((simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
           keyResult.2),
-        prefixResult.2 (Concrete.CacheView.encodingInput keyResult.1.2.parameter
+        prefixResult.2 (Generic.Concrete.CacheView.encodingInput keyResult.1.2.parameter
           prefixResult.1.1.epoch
           (prefixResult.1.1.message, prefixResult.1.1.signature.randomness)) ≠ none →
-        ∀ execution ∈ support ((simulateQ romImpl
-          (verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2),
+        ∀ execution ∈ support ((simulateQ Generic.romImpl
+          (Generic.Deciding.verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2),
           execution.1.won = true →
-          ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding →
-          ¬ DecidingChainValueRevealed execution.2 execution.1 →
-          ¬ Rom.AdaptiveFreshDigestCollisionWith keyResult.2 prefixResult.2
-            (keygenStructuralTargetInput keyResult.1.2 keyResult.2) →
-          Rom.AdaptiveFreshDigestCollisionWith prefixResult.2 execution.2
-            (decidingTargetInput keyResult.1.2 keyResult.2 prefixResult.1.1.epoch
-              (outcomeDecidingChain prefixResult.2
+          ¬ Generic.OutcomeBadEventOccurs execution.2 execution.1 .encoding →
+          ¬ Generic.Deciding.DecidingChainValueRevealed execution.2 execution.1 →
+          ¬ Generic.Rom.AdaptiveFreshDigestCollisionWith keyResult.2 prefixResult.2
+            (Generic.keygenStructuralTargetInput keyResult.1.2 keyResult.2) →
+          Generic.Rom.AdaptiveFreshDigestCollisionWith prefixResult.2 execution.2
+            (Generic.Deciding.decidingTargetInput keyResult.1.2 keyResult.2 prefixResult.1.1.epoch
+              (Generic.Deciding.outcomeDecidingChain prefixResult.2
                 ⟨keyResult.1.1, keyResult.1.2, prefixResult.1.1, prefixResult.1.2, false⟩)))
-    (hcount : ∀ (leafIndex : LeafIndex) (message : Message) (signature : Signature)
+    (hcount : ∀ (leafIndex : LeafIndex) (message : Message) (signature : Generic.Signature)
         (chain : ChainIndex) (initialCache : QueryCache HashSpec),
-        expectedSimulatedQueryCount romImpl
-          (Rom.IsRelevantHashQuery fun input =>
-            decidingTargetInput keyResult.1.2 keyResult.2 leafIndex chain input ≠ input)
-          (Concrete.scheme.verify keyResult.1.1 leafIndex message signature) initialCache ≤ 40) :
-    Pr[fun execution : GameOutcome × QueryCache HashSpec =>
-        execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
-          ¬ DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ [] |
-      (simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2 >>=
-        verificationPhase keyResult.1.1 keyResult.1.2)).run keyResult.2] ≤
-      expectedSimulatedQueryCount romImpl
-        (Rom.IsRelevantHashQuery fun input =>
-          keygenStructuralTargetInput keyResult.1.2 keyResult.2 input ≠ input)
-        (adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2 /
+        expectedSimulatedQueryCount Generic.romImpl
+          (Generic.Rom.IsRelevantHashQuery fun input =>
+            Generic.Deciding.decidingTargetInput keyResult.1.2 keyResult.2 leafIndex chain input ≠ input)
+          (Generic.Concrete.scheme.verify keyResult.1.1 leafIndex message signature) initialCache ≤ 40) :
+    Pr[fun execution : Generic.GameOutcome × QueryCache HashSpec =>
+        execution.1.won = true ∧ ¬ Generic.OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
+          ¬ Generic.Deciding.DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ [] |
+      (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2 >>=
+        Generic.Deciding.verificationPhase keyResult.1.1 keyResult.1.2)).run keyResult.2] ≤
+      expectedSimulatedQueryCount Generic.romImpl
+        (Generic.Rom.IsRelevantHashQuery fun input =>
+          Generic.keygenStructuralTargetInput keyResult.1.2 keyResult.2 input ≠ input)
+        (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2 /
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
-          Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
+          Pr[fun prefixResult : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec =>
               prefixResult.1.2 ≠ [] |
-            (simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+            (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
               keyResult.2] := by
   classical
-  let event : GameOutcome × QueryCache HashSpec → Prop := fun execution =>
-    execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
-      ¬ DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ []
-  let collision : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec → Prop :=
-    fun prefixResult => Rom.AdaptiveFreshDigestCollisionWith keyResult.2 prefixResult.2
-      (keygenStructuralTargetInput keyResult.1.2 keyResult.2)
-  let adversaryRun := (simulateQ romImpl
-    (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2
+  let event : Generic.GameOutcome × QueryCache HashSpec → Prop := fun execution =>
+    execution.1.won = true ∧ ¬ Generic.OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
+      ¬ Generic.Deciding.DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ []
+  let collision : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec → Prop :=
+    fun prefixResult => Generic.Rom.AdaptiveFreshDigestCollisionWith keyResult.2 prefixResult.2
+      (Generic.keygenStructuralTargetInput keyResult.1.2 keyResult.2)
+  let adversaryRun := (simulateQ Generic.romImpl
+    (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2
   have hpointwise : ∀ prefixResult ∈ support adversaryRun,
-      Pr[event | (simulateQ romImpl
-          (verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
+      Pr[event | (simulateQ Generic.romImpl
+          (Generic.Deciding.verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
         (if collision prefixResult then 1 else 0) +
           (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
             (if prefixResult.1.2 ≠ [] then 1 else 0) := by
@@ -78,7 +79,7 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
     by_cases hsigned : prefixResult.1.2 ≠ []
     swap
     · rw [probEvent_eq_zero fun execution hexecution hevent => hsigned (by
-        rw [← (verificationPhase_support _ _ _ _ _ hexecution).2.2.2.1]
+        rw [← (Generic.Deciding.verificationPhase_support _ _ _ _ _ hexecution).2.2.2.1]
         exact hevent.2.2.2)]
       exact zero_le
     rw [if_pos hsigned, mul_one]
@@ -87,26 +88,26 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
       exact le_add_right probEvent_le_one
     · rw [if_neg hcollision, zero_add]
       calc
-        _ ≤ expectedSimulatedQueryCount romImpl
-              (Rom.IsRelevantHashQuery fun input =>
-                decidingTargetInput keyResult.1.2 keyResult.2 prefixResult.1.1.epoch
-                  (outcomeDecidingChain prefixResult.2
+        _ ≤ expectedSimulatedQueryCount Generic.romImpl
+              (Generic.Rom.IsRelevantHashQuery fun input =>
+                Generic.Deciding.decidingTargetInput keyResult.1.2 keyResult.2 prefixResult.1.1.epoch
+                  (Generic.Deciding.outcomeDecidingChain prefixResult.2
                     ⟨keyResult.1.1, keyResult.1.2, prefixResult.1.1, prefixResult.1.2, false⟩)
                   input ≠ input)
-              (verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1) prefixResult.2 /
+              (Generic.Deciding.verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1) prefixResult.2 /
               ((2 ^ digestBits : ℕ) : ℝ≥0∞) :=
-          Rom.mixed_adaptiveFreshDigestCollisionWith_le_expected_moved _ _ _ event
+          Generic.Rom.mixed_adaptiveFreshDigestCollisionWith_le_expected_moved _ _ _ event
             (fun execution hexecution hwin =>
               horient prefixResult hprefix (hcached prefixResult hprefix) execution hexecution
                 hwin.1 hwin.2.1 hwin.2.2.1 hcollision)
         _ ≤ _ := by
           gcongr
-          rw [expectedQueries_verificationPhase_eq]
+          rw [Generic.Deciding.expectedQueries_verificationPhase_eq]
           exact hcount _ _ _ _ _
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
   have hsigned : ∑' prefixResult, Pr[= prefixResult | adversaryRun] *
       (if prefixResult.1.2 ≠ [] then 1 else 0) =
-      Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
+      Pr[fun prefixResult : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec =>
         prefixResult.1.2 ≠ [] | adversaryRun] := by
     rw [probEvent_eq_tsum_ite]
     apply tsum_congr
@@ -114,8 +115,8 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
     split_ifs <;> simp
   calc
     ∑' prefixResult, Pr[= prefixResult | adversaryRun] *
-        Pr[event | (simulateQ romImpl
-          (verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
+        Pr[event | (simulateQ Generic.romImpl
+          (Generic.Deciding.verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
       ∑' prefixResult, Pr[= prefixResult | adversaryRun] *
         ((if collision prefixResult then 1 else 0) +
           (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
@@ -145,71 +146,71 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
         intro prefixResult
         split_ifs <;> simp
       rw [hind]
-      exact Rom.mixed_adaptiveFreshDigestCollisionWith_le_expected_moved _ _ _ collision
+      exact Generic.Rom.mixed_adaptiveFreshDigestCollisionWith_le_expected_moved _ _ _ collision
         (fun _ _ h => h)
 
 /-- The probability that the adversary signs, averaged over key generation. -/
-noncomputable def signedProbability (adversary : Adversary) : ℝ≥0∞ :=
-  ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
-    Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
+noncomputable def signedProbability (adversary : Generic.Adversary) : ℝ≥0∞ :=
+  ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] *
+    Pr[fun prefixResult : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec =>
         prefixResult.1.2 ≠ [] |
-      (simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+      (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
         keyResult.2]
 
 /-- The second lane on the executions with a request: the forty queries along the deciding path
 are charged only with the probability of signing. -/
-theorem decidingSecondLane_signed_probability_le_expected (adversary : Adversary)
-    (hcached : ∀ keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅),
+theorem decidingSecondLane_signed_probability_le_expected (adversary : Generic.Adversary)
+    (hcached : ∀ keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅),
       ∀ prefixResult ∈ support
-        ((simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+        ((simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
           keyResult.2),
-        prefixResult.2 (Concrete.CacheView.encodingInput keyResult.1.2.parameter
+        prefixResult.2 (Generic.Concrete.CacheView.encodingInput keyResult.1.2.parameter
           prefixResult.1.1.epoch
           (prefixResult.1.1.message, prefixResult.1.1.signature.randomness)) ≠ none) :
-    Pr[fun execution : GameOutcome × QueryCache HashSpec =>
-        execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
-          ¬ DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ [] |
-      detailedGameWithCache Concrete.scheme adversary] ≤
-      Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
+    Pr[fun execution : Generic.GameOutcome × QueryCache HashSpec =>
+        execution.1.won = true ∧ ¬ Generic.OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
+          ¬ Generic.Deciding.DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ [] |
+      Generic.detailedGameWithCache Generic.Concrete.scheme adversary] ≤
+      Generic.Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signedProbability adversary := by
-  unfold detailedGameWithCache detailedGameCore
-  simp only [detailedGameAfterKeygen_eq_phases]
+  unfold Generic.detailedGameWithCache Generic.detailedGameCore
+  simp only [Generic.Deciding.detailedGameAfterKeygen_eq_phases]
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
-  let count := fun keyResult : (PublicKey × SecretKey) × QueryCache HashSpec =>
+  let count := fun keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec =>
     expectedSimulatedQueryCount
-      (cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
-      (Direct.IsDirectStructuralQuery keyResult.1.2 keyResult.2)
+      (Generic.cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
+      (Generic.Direct.IsDirectStructuralQuery keyResult.1.2 keyResult.2)
       (adversary.main keyResult.1.1) keyResult.2
-  let signed := fun keyResult : (PublicKey × SecretKey) × QueryCache HashSpec =>
-    Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
+  let signed := fun keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec =>
+    Pr[fun prefixResult : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec =>
         prefixResult.1.2 ≠ [] |
-      (simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
+      (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
         keyResult.2]
   calc
-    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+    _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅] *
         (count keyResult / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
           (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signed keyResult) := by
       apply ENNReal.tsum_le_tsum
       intro keyResult
       by_cases hkeygen : keyResult ∈ support
-          ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
+          ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅)
       · apply mul_le_mul' le_rfl
         have hbound := decidingSecondLane_signed_afterKeygen_le_expected adversary keyResult
           (hcached keyResult hkeygen)
           (by
             intro prefixResult hprefix hcache execution hafter hwin hencoding hrevealed hcollision
-            exact deciding_afterKeygen_orientation adversary keyResult hkeygen prefixResult hprefix
+            exact Generic.Deciding.deciding_afterKeygen_orientation adversary keyResult hkeygen prefixResult hprefix
               hcache execution hafter hwin hencoding hrevealed hcollision)
           (by
             intro leafIndex message signature chain initialCache
-            simpa only [decidingQueryBound_eq, Nat.cast_ofNat] using
-              expectedSimulatedQueryCount_verify_deciding_le keyResult.1.2 keyResult.2
-                keyResult.1.1 (keygen_publicKey_parameter_eq keyResult hkeygen)
+            simpa only [Generic.Deciding.decidingQueryBound_eq, Nat.cast_ofNat] using
+              Generic.Deciding.expectedSimulatedQueryCount_verify_deciding_le keyResult.1.2 keyResult.2
+                keyResult.1.1 (Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkeygen)
                 leafIndex message signature chain initialCache)
-        rw [Direct.expectedStructuralQueries_adversaryPhase_eq] at hbound
+        rw [Generic.Direct.expectedStructuralQueries_adversaryPhase_eq] at hbound
         exact hbound
       · simp [probOutput_eq_zero_of_not_mem_support hkeygen]
-    _ = Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
+    _ = Generic.Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signedProbability adversary := by
       simp_rw [mul_add]
       rw [ENNReal.tsum_add]

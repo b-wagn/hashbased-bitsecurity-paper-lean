@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.TargetSum.FirstLaneEncodingAcceptance
 import XmssSecurity.Proof.TargetSum.Direct.DecidingAcceptedProbe
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Every accepted encoding in the first-lane cache has an accepted sampling observation. -/
 
@@ -13,7 +15,7 @@ namespace XmssSecurity.TargetSum.CappedChain
 open FirstLaneOracleSimulation
 
 def AcceptedEncodingGrowth (parameter : PublicParameter) (initial final : QueryCache HashSpec)
-    (trace : ActionTrace GlobalChainValueIndex) : Prop :=
+    (trace : Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex) : Prop :=
   HasAcceptedEncoding parameter final →
     HasAcceptedEncoding parameter initial ∨ TraceHasAcceptedEncoding trace
 
@@ -21,7 +23,7 @@ theorem AcceptedEncodingGrowth.refl (parameter : PublicParameter) (cache : Query
     AcceptedEncodingGrowth parameter cache cache [] := fun h => Or.inl h
 
 theorem AcceptedEncodingGrowth.trans {parameter : PublicParameter}
-    {initial middle final : QueryCache HashSpec} {head tail : ActionTrace GlobalChainValueIndex}
+    {initial middle final : QueryCache HashSpec} {head tail : Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex}
     (hhead : AcceptedEncodingGrowth parameter initial middle head)
     (htail : AcceptedEncodingGrowth parameter middle final tail) :
     AcceptedEncodingGrowth parameter initial final (head ++ tail) := by
@@ -33,8 +35,8 @@ theorem AcceptedEncodingGrowth.trans {parameter : PublicParameter}
   · exact Or.inr ((traceHasAcceptedEncoding_append _ _).2 (Or.inr htail))
 
 theorem AcceptedEncodingGrowth.cacheQuery (parameter : PublicParameter) (cache : QueryCache HashSpec)
-    (input : HashInput) (output : HashOutput) (trace : ActionTrace GlobalChainValueIndex)
-    (htrace : TargetSum.ValidDigest (truncateHash output) → TraceHasAcceptedEncoding trace) :
+    (input : HashInput) (output : HashOutput) (trace : Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
+    (htrace : Generic.Code.ValidDigest (Generic.truncateHash output) → TraceHasAcceptedEncoding trace) :
     AcceptedEncodingGrowth parameter cache (cache.cacheQuery input output) trace := by
   intro haccepted
   by_cases hinitial : HasAcceptedEncoding parameter cache
@@ -52,44 +54,44 @@ theorem randomOracle_support_cache_shape (input : HashInput) (cache : QueryCache
       subst result
       exact Or.inl rfl
   | none =>
-      rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hresult
+      rw [Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hresult
       obtain ⟨output, _, rfl⟩ := hresult
       exact Or.inr ⟨output, rfl⟩
 
 theorem globalCausalAttackerHashQueryFromHigh_cache_shape
-    (table high : GlobalChainValueIndex → Digest) (secretKey : SecretKey) (input : HashInput)
-    (state : GlobalCausalHashState)
-    (result : (HashOutput × GlobalCausalHashState) × RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex)
-    (hresult : result ∈ support ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table)
-      ((globalCausalAttackerHashQueryFromHigh high secretKey input).run state)).run)) :
+    (table high : Generic.CappedChain.GlobalChainValueIndex → Digest) (secretKey : Generic.SecretKey) (input : HashInput)
+    (state : Generic.CappedChain.GlobalCausalHashState)
+    (result : (HashOutput × Generic.CappedChain.GlobalCausalHashState) × Generic.RevealProbeOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
+    (hresult : result ∈ support ((simulateQ (Generic.RevealProbeOracleSimulation.eagerTraceImpl table)
+      ((Generic.CappedChain.globalCausalAttackerHashQueryFromHigh high secretKey input).run state)).run)) :
     result.1.2.cache = state.cache ∨ ∃ output, result.1.2.cache = state.cache.cacheQuery input output := by
-  generalize hplan : globalFilteredCausalAttackerHashPlan secretKey input state = plan
+  generalize hplan : Generic.CappedChain.globalFilteredCausalAttackerHashPlan secretKey input state = plan
   cases plan with
   | cached output =>
-      rw [globalCausalAttackerHashQueryFromHigh_run, hplan] at hresult
+      rw [Generic.CappedChain.globalCausalAttackerHashQueryFromHigh_run, hplan] at hresult
       simp only [simulateQ_pure, WriterT.run_pure', support_pure, Set.mem_singleton_iff] at hresult
       subst result
-      exact Or.inl (globalCausalRecordedState_cache secretKey input state)
+      exact Or.inl (Generic.CappedChain.globalCausalRecordedState_cache secretKey input state)
   | redirect output =>
-      rw [globalCausalAttackerHashQueryFromHigh_run, hplan] at hresult
+      rw [Generic.CappedChain.globalCausalAttackerHashQueryFromHigh_run, hplan] at hresult
       simp only [simulateQ_pure, WriterT.run_pure', support_pure, Set.mem_singleton_iff] at hresult
       subst result
       exact Or.inr ⟨output, by
-        simp only [globalFilteredCausalRedirectResultState, globalCausalRecordedState_cache]⟩
+        simp only [Generic.CappedChain.globalFilteredCausalRedirectResultState, Generic.CappedChain.globalCausalRecordedState_cache]⟩
   | fresh =>
-      rw [globalCausalAttackerHashQueryFromHigh_run, hplan,
-        simulate_eagerTrace_globalCausalHashQuery, support_map] at hresult
+      rw [Generic.CappedChain.globalCausalAttackerHashQueryFromHigh_run, hplan,
+        Generic.CappedChain.simulate_eagerTrace_globalCausalHashQuery, support_map] at hresult
       obtain ⟨sample, hsample, rfl⟩ := hresult
-      simp only [globalCausalRecordedState_cache] at hsample
+      simp only [Generic.CappedChain.globalCausalRecordedState_cache] at hsample
       exact randomOracle_support_cache_shape input state.cache sample hsample
   | reveal index =>
-      rw [globalCausalAttackerHashQueryFromHigh_run, hplan,
-        simulate_eagerTrace_globalCausalRevealHashQueryFromHigh] at hresult
+      rw [Generic.CappedChain.globalCausalAttackerHashQueryFromHigh_run, hplan,
+        Generic.CappedChain.simulate_eagerTrace_globalCausalRevealHashQueryFromHigh] at hresult
       simp only [support_pure, Set.mem_singleton_iff] at hresult
       subst result
       exact Or.inr ⟨_, rfl⟩
   | probeThenFresh index target =>
-      rw [simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
+      rw [Generic.CappedChain.simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
         table high secretKey input state index target hplan, support_map] at hresult
       obtain ⟨sample, hsample, rfl⟩ := hresult
       exact randomOracle_support_cache_shape input state.cache sample hsample

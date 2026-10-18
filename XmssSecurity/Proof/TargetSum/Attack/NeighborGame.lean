@@ -1,4 +1,7 @@
 import XmssSecurity.Proof.TargetSum.Attack.NeighborAdversary
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.CacheDecode
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The neighboring-signature experiment is a lower bound for the concrete adversary's game. -/
 
@@ -11,54 +14,54 @@ namespace XmssSecurity.TargetSum.Attack
 
 open Concrete
 
-theorem liftWorldToAdversary_logged {Key α : Type} (scheme : Scheme Key) (secretKey : Key)
+theorem liftWorldToAdversary_logged {Key α : Type} (scheme : Generic.Scheme Key) (secretKey : Key)
     (computation : OracleComp OracleWorld α) :
-    (simulateQ (forwardOracles + signingOracle scheme secretKey)
+    (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey)
       (liftWorldToAdversary computation)).run = (fun value => (value, [])) <$> computation := by
   induction computation using OracleComp.inductionOn with
   | pure value => simp [liftWorldToAdversary]
   | query_bind input next ih =>
       simp only [liftWorldToAdversary, simulateQ_bind, simulateQ_spec_query] at ih ⊢
-      simp only [QueryImpl.add_apply_inl, forwardOracles, WriterT.run_bind]
+      simp only [QueryImpl.add_apply_inl, Generic.forwardOracles, WriterT.run_bind]
       have hquery : (liftM (OracleWorld.query input) :
-          WriterT (QueryLog SigningSpec) (OracleComp OracleWorld) (OracleWorld.Range input)).run =
+          WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld) (OracleWorld.Range input)).run =
           (fun value => (value, [])) <$> (liftM (OracleWorld.query input) : OracleComp OracleWorld _) := rfl
       rw [hquery]
       simp only [bind_map_left, ih, map_bind, Functor.map_map, List.nil_append]
 
-theorem neighborMain_logged {Key : Type} (scheme : Scheme Key) (secretKey : Key) (publicKey : PublicKey) :
-    (simulateQ (forwardOracles + signingOracle scheme secretKey) (neighborMain publicKey)).run = (do
+theorem neighborMain_logged {Key : Type} (scheme : Generic.Scheme Key) (secretKey : Key) (publicKey : PublicKey) :
+    (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey) (neighborMain publicKey)).run = (do
       let answer ← scheme.sign secretKey neighborRequest.epoch neighborRequest.message
       let signature ← neighborAfterSigning publicKey answer
       return (neighborForgery signature, [⟨neighborRequest, answer⟩])) := by
   unfold neighborMain
   rw [simulateQ_bind, WriterT.run_bind, simulateQ_spec_query]
-  have hsign : (signingOracle scheme secretKey neighborRequest).run =
+  have hsign : (Generic.signingOracle scheme secretKey neighborRequest).run =
       (scheme.sign secretKey neighborRequest.epoch neighborRequest.message >>= fun answer =>
         pure (answer, [⟨neighborRequest, answer⟩])) := QueryImpl.run_withLogging_apply _ _
   simp only [QueryImpl.add_apply_inr, hsign, bind_map_left, simulateQ_map,
     WriterT.run_map', liftWorldToAdversary_logged, bind_pure_comp, Functor.map_map,
     Prod.map_apply, id_eq, List.append_nil]
 
-theorem neighbor_transcript_fresh (answer : Option Signature) (signature : Signature) :
-    ¬SigningTranscript.Contains [⟨neighborRequest, answer⟩] (neighborForgery signature) := by
+theorem neighbor_transcript_fresh (answer : Option Generic.Signature) (signature : Generic.Signature) :
+    ¬Generic.SigningTranscript.Contains [⟨neighborRequest, answer⟩] (neighborForgery signature) := by
   simp only [SUFCMA.SigningTranscript.Contains, List.mem_singleton, exists_eq_left, not_and]
   intro heq _
-  exact neighborMessage_ne_request (congrArg (fun request : SignRequest => request.message) heq).symm
+  exact neighborMessage_ne_request (congrArg (fun request : Generic.SignRequest => request.message) heq).symm
 
-theorem neighbor_gameRest {Key : Type} (scheme : Scheme Key) (publicKey : PublicKey) (secretKey : Key) :
-    Seeded.gameRest scheme neighborAdversary publicKey secretKey = (do
+theorem neighbor_gameRest {Key : Type} (scheme : Generic.Scheme Key) (publicKey : PublicKey) (secretKey : Key) :
+    Generic.Seeded.gameRest scheme neighborAdversary publicKey secretKey = (do
       let answer ← scheme.sign secretKey neighborRequest.epoch neighborRequest.message
       let signature ← neighborAfterSigning publicKey answer
       scheme.verify publicKey neighborRequest.epoch neighborMessage signature) := by
-  unfold Seeded.gameRest
+  unfold Generic.Seeded.gameRest
   change (do
-    let result ← (simulateQ (forwardOracles + signingOracle scheme secretKey) (neighborMain publicKey)).run
+    let result ← (simulateQ (Generic.forwardOracles + Generic.signingOracle scheme secretKey) (neighborMain publicKey)).run
     let verified ← scheme.verify publicKey result.1.epoch result.1.message result.1.signature
-    return decide (SigningTranscript.Valid result.2 ∧ ¬SigningTranscript.Contains result.2 result.1) && verified) = _
+    return decide (Generic.SigningTranscript.Valid result.2 ∧ ¬Generic.SigningTranscript.Contains result.2 result.1) && verified) = _
   rw [neighborMain_logged]
   simp only [bind_assoc, pure_bind, neighbor_transcript_fresh, not_false_eq_true, and_true,
-    show ∀ answer : Option Signature, SigningTranscript.Valid [⟨neighborRequest, answer⟩] from
+    show ∀ answer : Option Generic.Signature, Generic.SigningTranscript.Valid [⟨neighborRequest, answer⟩] from
       fun _ => by simp [SUFCMA.SigningTranscript.Valid], decide_true, Bool.true_and, bind_pure]
   rfl
 
@@ -71,17 +74,17 @@ theorem hash_run'_bind {α β : Type} (computation : OracleComp HashSpec α)
 
 theorem world_run'_bind {α β : Type} (computation : OracleComp OracleWorld α)
     (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) :
-    (simulateQ romImpl (computation >>= next)).run' cache =
-      ((simulateQ romImpl computation).run cache >>= fun result =>
-        (simulateQ romImpl (next result.1)).run' result.2) := by
+    (simulateQ Generic.romImpl (computation >>= next)).run' cache =
+      ((simulateQ Generic.romImpl computation).run cache >>= fun result =>
+        (simulateQ Generic.romImpl (next result.1)).run' result.2) := by
   simp only [simulateQ_bind, StateT.run'_eq, StateT.run_bind, map_bind]
 
 theorem simulateQ_rom_liftHash {α : Type} (computation : OracleComp HashSpec α) :
-    simulateQ romImpl (liftM computation : OracleComp OracleWorld α) = simulateQ randomOracle computation :=
+    simulateQ Generic.romImpl (liftM computation : OracleComp OracleWorld α) = simulateQ randomOracle computation :=
   QueryImpl.simulateQ_add_liftM_right (unifFwdImpl HashSpec)
     (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) _
 
-theorem neighborFinish_probability_ge_predecessor (publicKey : PublicKey) (original : Signature)
+theorem neighborFinish_probability_ge_predecessor (publicKey : PublicKey) (original : Generic.Signature)
     (encoding : Encoding) (randomness : Randomness) (transfer : DigitTransfer encoding) (cache : QueryCache HashSpec) :
     Pr[= true | predecessorVerificationExperiment publicKey neighborRequest.epoch neighborMessage original encoding
       randomness transfer cache] ≤
@@ -89,7 +92,7 @@ theorem neighborFinish_probability_ge_predecessor (publicKey : PublicKey) (origi
         let block ← $ᵗ PreimagePrefix
         (simulateQ randomOracle (do
           let signature ← neighborFinish publicKey original encoding randomness transfer block
-          verify publicKey neighborRequest.epoch neighborMessage signature)).run' cache)] := by
+          Generic.Concrete.verify publicKey neighborRequest.epoch neighborMessage signature)).run' cache)] := by
   unfold predecessorVerificationExperiment randomDigestPreimage
   simp only [bind_assoc, pure_bind]
   apply probOutput_bind_mono
@@ -104,12 +107,12 @@ theorem neighborFinish_probability_ge_predecessor (publicKey : PublicKey) (origi
       simp only [checkNeighborPreimage, bind_pure_comp, bind_map_left, StateT.run'_eq]
       exact le_rfl
 
-theorem neighborAfterEncoding_probability_ge_experiment (publicKey : PublicKey) (original : Signature)
+theorem neighborAfterEncoding_probability_ge_experiment (publicKey : PublicKey) (original : Generic.Signature)
     (encoding : Encoding) (cache : QueryCache HashSpec) :
     Pr[= true | neighborVerificationExperiment publicKey neighborRequest.epoch neighborMessage original encoding cache] ≤
-      Pr[= true | (simulateQ romImpl (do
+      Pr[= true | (simulateQ Generic.romImpl (do
         let signature ← neighborAfterEncoding publicKey original encoding
-        liftM (verify publicKey neighborRequest.epoch neighborMessage signature : OracleComp HashSpec Bool))).run' cache] := by
+        liftM (Generic.Concrete.verify publicKey neighborRequest.epoch neighborMessage signature : OracleComp HashSpec Bool))).run' cache] := by
   classical
   unfold neighborVerificationExperiment neighborAfterEncoding
   rw [bind_assoc, world_run'_bind, simulateQ_rom_liftHash]
@@ -119,21 +122,21 @@ theorem neighborAfterEncoding_probability_ge_experiment (publicKey : PublicKey) 
   | none => simp [neighborVerificationContinuation]
   | some answer =>
       rcases answer with ⟨position, output⟩
-      by_cases hmem : truncateHash output ∈ neighborDigests encoding
+      by_cases hmem : Generic.truncateHash output ∈ neighborDigests encoding
       · simp only [neighborVerificationContinuation, dif_pos hmem, bind_assoc]
         rw [world_run'_bind, worldPrivateSamples_run, bind_map_left]
         have heq : (do
             let block ← $ᵗ PreimagePrefix
-            (simulateQ romImpl (do
+            (simulateQ Generic.romImpl (do
               let signature ← liftM (neighborFinish publicKey original encoding (BitVec.ofNat randomnessBits position)
-                (selectedNeighborTransfer encoding (truncateHash output) hmem) block)
-              liftM (verify publicKey neighborRequest.epoch neighborMessage signature : OracleComp HashSpec Bool))).run' searchCache) =
+                (selectedNeighborTransfer encoding (Generic.truncateHash output) hmem) block)
+              liftM (Generic.Concrete.verify publicKey neighborRequest.epoch neighborMessage signature : OracleComp HashSpec Bool))).run' searchCache) =
             (do
               let block ← $ᵗ PreimagePrefix
               (simulateQ randomOracle (do
                 let signature ← neighborFinish publicKey original encoding (BitVec.ofNat randomnessBits position)
-                  (selectedNeighborTransfer encoding (truncateHash output) hmem) block
-                verify publicKey neighborRequest.epoch neighborMessage signature)).run' searchCache) := by
+                  (selectedNeighborTransfer encoding (Generic.truncateHash output) hmem) block
+                Generic.Concrete.verify publicKey neighborRequest.epoch neighborMessage signature)).run' searchCache) := by
           apply bind_congr
           intro block
           rw [world_run'_bind, simulateQ_rom_liftHash, hash_run'_bind]
@@ -144,24 +147,25 @@ theorem neighborAfterEncoding_probability_ge_experiment (publicKey : PublicKey) 
         exact neighborFinish_probability_ge_predecessor _ _ _ _ _ _
       · simp [neighborVerificationContinuation, hmem]
 
-theorem neighborAfterSigning_probability_ge_experiment (publicKey : PublicKey) (original : Signature)
+theorem neighborAfterSigning_probability_ge_experiment (publicKey : PublicKey) (original : Generic.Signature)
     (encoding : Encoding) (cache : QueryCache HashSpec)
-    (hdecode : TargetSum.decodeDigest (CacheView.encodingHash cache publicKey.parameter
+    (hdecode : Generic.Code.decodeDigest (Generic.Concrete.CacheView.encodingHash cache publicKey.parameter
       neighborRequest.epoch (neighborRequest.message, original.randomness)) = some encoding) :
     Pr[= true | neighborVerificationExperiment publicKey neighborRequest.epoch neighborMessage original encoding cache] ≤
-      Pr[= true | (simulateQ romImpl (do
+      Pr[= true | (simulateQ Generic.romImpl (do
         let signature ← neighborAfterSigning publicKey (some original)
-        liftM (verify publicKey neighborRequest.epoch neighborMessage signature : OracleComp HashSpec Bool))).run' cache] := by
+        liftM (Generic.Concrete.verify publicKey neighborRequest.epoch neighborMessage signature : OracleComp HashSpec Bool))).run' cache] := by
   rw [neighborAfterSigning, bind_assoc, world_run'_bind, simulateQ_rom_liftHash,
-    encodingHash_run_cached _ _ _ _ _ _ hdecode, pure_bind, hdecode]
+    Generic.Attack.encodingHash_run_cached _ _ _ _ _ _
+      (TargetSum.decodedEncoding_of_decodeDigest hdecode), pure_bind, hdecode]
   exact neighborAfterEncoding_probability_ge_experiment _ _ _ _
 
 theorem signedNeighborExperiment_le_referenceRest
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅)) :
     Pr[= true | signedNeighborExperiment keyResult neighborRequest neighborMessage] ≤
-      Pr[= true | (simulateQ romImpl
-        (Seeded.gameRest Concrete.scheme neighborAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] := by
+      Pr[= true | (simulateQ Generic.romImpl
+        (Generic.Seeded.gameRest Generic.Concrete.scheme neighborAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] := by
   unfold signedNeighborExperiment
   rw [neighbor_gameRest, world_run'_bind]
   apply probOutput_bind_mono
@@ -169,26 +173,27 @@ theorem signedNeighborExperiment_le_referenceRest
   cases answer with
   | none => simp
   | some original =>
-      obtain ⟨encoding, hdecode, _⟩ := signing_success_replay_at_keygen keyResult hkey neighborRequest original signCache hsign
+      obtain ⟨encoding, hdecoded, _⟩ := Generic.Attack.signing_success_replay_at_keygen keyResult hkey neighborRequest original signCache hsign
+      have hdecode := Generic.Concrete.CacheView.decodeDigest_of_decodedEncoding hdecoded
       simp only [hdecode]
       exact neighborAfterSigning_probability_ge_experiment keyResult.1.1 original encoding signCache
-        (by rw [Deciding.keygen_publicKey_parameter_eq keyResult hkey]; exact hdecode)
+        (by rw [Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkey]; exact hdecode)
 
 theorem neighbor_referenceRest_lower
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅)) :
     (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
-      Pr[= true | (simulateQ romImpl
-        (Seeded.gameRest Concrete.scheme neighborAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] :=
+      Pr[= true | (simulateQ Generic.romImpl
+        (Generic.Seeded.gameRest Generic.Concrete.scheme neighborAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] :=
   (signedNeighborExperiment_lower keyResult hkey neighborRequest neighborMessage neighborMessage_ne_request).trans
     (signedNeighborExperiment_le_referenceRest keyResult hkey)
 
 theorem neighbor_reference_advantage_lower :
-    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤ forgeAdvantage Concrete.scheme neighborAdversary := by
+    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤ Generic.forgeAdvantage Generic.Concrete.scheme neighborAdversary := by
   let lower : ℝ≥0∞ := (31 / 32) * ((3 / 4) * (2 / 17))
-  let keys := (simulateQ romImpl Concrete.scheme.keygen).run ∅
+  let keys := (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅
   have hmass : ∑' keyResult, Pr[= keyResult | keys] = 1 := tsum_probOutput_eq_one' (by simp)
-  unfold forgeAdvantage gameCore
+  unfold Generic.forgeAdvantage Generic.gameCore
   rw [world_run'_bind, probOutput_bind_eq_tsum]
   calc
     _ = ∑' keyResult, Pr[= keyResult | keys] * lower := by
@@ -204,7 +209,7 @@ theorem neighbor_reference_advantage_lower :
         simp
 
 theorem neighbor_reference_advantage_exceeds_five_sixtyfourths :
-    5 / 64 < forgeAdvantage Concrete.scheme neighborAdversary := by
+    5 / 64 < Generic.forgeAdvantage Generic.Concrete.scheme neighborAdversary := by
   apply lt_of_lt_of_le _ neighbor_reference_advantage_lower
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_div]

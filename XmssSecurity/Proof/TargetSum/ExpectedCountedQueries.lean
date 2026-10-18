@@ -1,7 +1,8 @@
 import XmssSecurity.Proof.Common.ExpectedQueryCount
-import XmssSecurity.Proof.TargetSum.ConsistentQueryBound
-import XmssSecurity.Proof.TargetSum.ExactKeygenQueryCount
-
+import XmssSecurity.Proof.Generic.ConsistentQueryBound
+import XmssSecurity.Proof.Generic.ExactKeygenQueryCount
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Relate the recursive expected-query count to the experiment's actual charged executions. -/
 
 open OracleComp OracleSpec ENNReal

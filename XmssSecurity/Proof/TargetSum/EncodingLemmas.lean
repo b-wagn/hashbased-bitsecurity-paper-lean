@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.TargetSum.IdealStatement
+import XmssSecurity.Statement.Scheme.TargetSum
 import Mathlib.Data.BitVec
 
 namespace XmssSecurity.TargetSum
@@ -232,6 +232,30 @@ theorem exists_forged_lt_signed {signedEncoding forgedEncoding : Encoding}
     ∃ i, forgedEncoding i < signedEncoding i := by
   have hnot := (incomparable_of_valid_of_ne hsigned hforged hne).1
   simpa only [PointwiseLE, not_forall, not_le] using hnot
+
+def exampleValidEncoding : Encoding := fun chain =>
+  if chain.val < 27 then ⟨7, by decide⟩
+  else if chain.val = 27 then ⟨6, by decide⟩
+  else ⟨0, by decide⟩
+
+theorem exampleValidEncoding_valid : Valid exampleValidEncoding := by
+  unfold Valid sum
+  rw [Finset.sum_fin_eq_sum_range]
+  norm_num [exampleValidEncoding, targetSum, numChains, chainLength,
+    Finset.sum_range_succ]
+
+theorem card_digest_eq_card_encodingView :
+    Fintype.card Digest = Fintype.card EncodingView := by
+  simp [digestBits, EncodingView, numChains, chainLength, winternitzBits]
+
+theorem digestView_surjective : Function.Surjective digestView :=
+  ((Fintype.bijective_iff_injective_and_card digestView).2
+    ⟨digestView_injective, card_digest_eq_card_encodingView⟩).2
+
+theorem exists_decodes : ∃ digest x, decodeDigest digest = some x := by
+  obtain ⟨digest, hdigest⟩ := digestView_surjective (exampleValidEncoding, 0)
+  exact ⟨digest, exampleValidEncoding, decodeDigest_eq_some_iff.mpr
+    ⟨hdigest, exampleValidEncoding_valid⟩⟩
 
 end TargetSum
 

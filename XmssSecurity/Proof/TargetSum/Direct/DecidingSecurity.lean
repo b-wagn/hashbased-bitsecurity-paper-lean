@@ -1,8 +1,10 @@
-import XmssSecurity.Proof.TargetSum.Direct.DecidingFirstLaneBridge
-import XmssSecurity.Proof.TargetSum.Direct.DecidingFirstLane
-import XmssSecurity.Proof.TargetSum.Direct.Bridge
-import XmssSecurity.Proof.TargetSum.Direct.SeedGuessing
+import XmssSecurity.Proof.Generic.Direct.DecidingFirstLaneBridge
+import XmssSecurity.Proof.Generic.Direct.DecidingFirstLane
+import XmssSecurity.Proof.Generic.Direct.Bridge
+import XmssSecurity.Proof.Generic.Direct.SeedGuessing
 import XmssSecurity.Proof.TargetSum.Direct.CollisionLoss
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The completed 122-bit direct-query security proof. -/
 
@@ -16,24 +18,24 @@ noncomputable def decidingPrefixLoss (D : ℕ) : ℝ≥0∞ :=
       ((D + 42 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) +
     D / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
-theorem seeded_forgeAdvantage_le_decidingPrefixLoss (adversary : Adversary) (D : ℕ)
-    (hD : IsDirectQueryBound adversary D) (hsmall : D + 2 ≤ 2 ^ 127) :
-    forgeAdvantage Seeded.scheme adversary ≤ decidingPrefixLoss D := by
-  let memo := Seeded.memoAdversary adversary
-  let queried := withForgedEncodingQuery memo
-  have hmemo := Seeded.memoAdversary_isDirectQueryBound adversary D hD
-  have hqueried := withForgedEncodingQuery_isDirectQueryBound memo D hmemo
-  apply (Seeded.forgeAdvantage_deterministic_le_reference_direct adversary D hD).trans
-  rw [← forgeAdvantage_withForgedEncodingQuery memo]
+theorem seeded_forgeAdvantage_le_decidingPrefixLoss (adversary : Generic.Adversary) (D : ℕ)
+    (hD : Generic.Direct.IsDirectQueryBound adversary D) (hsmall : D + 2 ≤ 2 ^ 127) :
+    Generic.forgeAdvantage Generic.Seeded.scheme adversary ≤ decidingPrefixLoss D := by
+  let memo := Generic.Seeded.memoAdversary adversary
+  let queried := Generic.Direct.withForgedEncodingQuery memo
+  have hmemo := Generic.Seeded.memoAdversary_isDirectQueryBound adversary D hD
+  have hqueried := Generic.Direct.withForgedEncodingQuery_isDirectQueryBound memo D hmemo
+  apply (Generic.Seeded.forgeAdvantage_deterministic_le_reference_direct adversary D hD).trans
+  rw [← Generic.Direct.forgeAdvantage_withForgedEncodingQuery memo]
   unfold decidingPrefixLoss
   apply add_le_add _ le_rfl
-  apply (Deciding.forgeAdvantage_le_deciding_lanes queried).trans
+  apply (Generic.Deciding.forgeAdvantage_le_deciding_lanes queried).trans
   apply add_le_add
-    (Deciding.decidingFirstLane_withForgedEncodingQuery_probability_le memo D hmemo)
+    (Generic.Deciding.decidingFirstLane_withForgedEncodingQuery_probability_le memo D hmemo)
   apply add_le_add
   · exact winningEncodingPrehit_probability_le_direct_collision queried (D + 1) hqueried
       (by omega)
-  · exact Deciding.decidingSecondLane_probability_le_direct queried (D + 1) hqueried
+  · exact Generic.Deciding.decidingSecondLane_probability_le_direct queried (D + 1) hqueried
 
 theorem decidingPrefixLoss_le_122 (D : ℕ) (hD : 1 ≤ D) (hsmall : D + 2 ≤ 2 ^ 127) :
     decidingPrefixLoss D ≤ (D : ℝ≥0∞) / ((2 ^ 122 : ℕ) : ℝ≥0∞) := by
@@ -50,8 +52,8 @@ theorem decidingPrefixLoss_le_122 (D : ℕ) (hD : 1 ≤ D) (hsmall : D + 2 ≤ 2
   nlinarith
 
 /-- XMSS has 122 bits of classical security when only direct hash queries are charged. -/
-theorem sufCmaDirect_122 : SUFCMA.notionDirect.HasClassicalSecurityBits xmss 122 := by
-  apply Security.sufCmaDirect_of_isDirectQueryBound
+theorem sufCmaDirect_122 : SUFCMA.notionDirect.HasClassicalSecurityBits Generic.xmss 122 := by
+  apply Generic.Security.sufCmaDirect_of_isDirectQueryBound
   intro adversary D hD hbound
   by_cases hlarge : 2 ^ 127 ≤ D + 2
   · calc

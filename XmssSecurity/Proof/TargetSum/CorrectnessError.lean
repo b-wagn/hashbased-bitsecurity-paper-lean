@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.TargetSum.SigningFailure
 import XmssSecurity.Proof.Common.CorrectnessRequests
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-!
 # The correctness error of the target-sum scheme
@@ -28,15 +30,15 @@ most `2^-64864`: the flag shows all trials of some request failing, and a union 
 `2^672` public parameters, master seeds, epochs and messages loses `672` of the `2^16` bits of
 `probEvent_signingFails_le`. -/
 theorem advantage_le
-    (adversary : Correctness.Adversary OracleWorld PublicKey Message Signature lifetime) :
-    Correctness.advantage xmss adversary ≤ 1 / 2 ^ 64864 := by
+    (adversary : Correctness.Adversary OracleWorld PublicKey Message Generic.Signature lifetime) :
+    Correctness.advantage Generic.xmss adversary ≤ 1 / 2 ^ 64864 := by
   unfold Correctness.advantage Correctness.game RandomOracleModel.run
-  rw [← Security.romImpl_eq, StateT.run'_eq, probEvent_map]
+  rw [← Generic.Security.romImpl_eq, StateT.run'_eq, probEvent_map]
   calc
     _ ≤ _ := probEvent_flag_le_exists_signingFails adversary
     _ ≤ ∑ request : PublicParameter × MasterSeed × LeafIndex × Message,
         Pr[fun result => SigningFails request.1 request.2.1 request.2.2.1 request.2.2.2 result.2 |
-          (simulateQ romImpl (Correctness.experiment xmss adversary)).run ∅] :=
+          (simulateQ Generic.romImpl (Correctness.experiment Generic.xmss adversary)).run ∅] :=
       (probEvent_mono'' fun _ ⟨parameter, seed, leafIndex, message, hfails⟩ =>
         ⟨(parameter, seed, leafIndex, message), hfails⟩).trans (probEvent_exists_le_sum _ _)
     _ ≤ ∑ _request : PublicParameter × MasterSeed × LeafIndex × Message,
@@ -48,10 +50,10 @@ theorem advantage_le
 
 /-- The target-sum scheme has correctness error at most `2^-64864`. An adversary without signing
 queries never sets the flag. -/
-theorem correctnessError_le : Correctness.HasCorrectnessError xmss (1 / 2 ^ 64864) := by
+theorem correctnessError_le : Correctness.HasCorrectnessError Generic.xmss (1 / 2 ^ 64864) := by
   intro q adversary hbound
   rcases Nat.eq_zero_or_pos q with rfl | hq
-  · rw [Correctness.advantage_eq_zero_of_noRequests xmss adversary hbound]
+  · rw [Correctness.advantage_eq_zero_of_noRequests Generic.xmss adversary hbound]
     exact zero_le
   · calc
       _ ≤ 1 / 2 ^ 64864 := advantage_le adversary

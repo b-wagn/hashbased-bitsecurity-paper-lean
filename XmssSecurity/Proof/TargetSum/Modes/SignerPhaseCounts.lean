@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.TargetSum.Modes.SignerReferenceBudget
 import XmssSecurity.Proof.TargetSum.Deterministic.PhaseCounts
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The reference phase shares one budget between direct hashes and signing attempts. -/
 
@@ -10,22 +12,22 @@ set_option backward.isDefEq.respectTransparency false
 namespace XmssSecurity.TargetSum.Modes
 open XmssSecurity.Modes
 
-open Seeded DeterministicSigning
+open Seeded Generic.DeterministicSigning
 
 theorem signer_referencePhaseCounts_bound
-    (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
-    (keyResult : (PublicKey × XmssSecurity.TargetSum.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (result : (Forgery × QueryLog SigningSpec) × PhaseCounts)
+    (adversary : Generic.Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q)
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (result : (Generic.Forgery × QueryLog Generic.SigningSpec) × PhaseCounts)
     (hresult : result ∈ support ((simulateQ (referencePhaseCountsImpl keyResult.1.2)
-      (withRequestLog (memoize (adversary.main keyResult.1.1) ∅))).run
+      (Generic.DeterministicSigning.withRequestLog (Generic.DeterministicSigning.memoize (adversary.main keyResult.1.1) ∅))).run
         ⟨keyResult.2, 0, 0⟩)) :
     result.2.direct + 2 * result.2.signing ≤ q := by
   apply signer_referencePhaseCost_le_after_keygen adversary q hsmall hbound keyResult hkey
     (result.1, result.2.weighted 2)
   have hproject := referencePhaseCounts_cost_projection keyResult.1.2
-    (withRequestLog (memoize (adversary.main keyResult.1.1) ∅)) ⟨keyResult.2, 0, 0⟩
+    (Generic.DeterministicSigning.withRequestLog (Generic.DeterministicSigning.memoize (adversary.main keyResult.1.1) ∅)) ⟨keyResult.2, 0, 0⟩
   simp only [PhaseCounts.weighted, Nat.mul_zero, Nat.zero_add] at hproject
   rw [← hproject, support_map]
   exact ⟨result, hresult, rfl⟩

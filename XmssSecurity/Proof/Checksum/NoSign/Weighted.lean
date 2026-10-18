@@ -1,8 +1,9 @@
 import XmssSecurity.Proof.Checksum.NoSign.WeightedPrune
 import XmssSecurity.Proof.Common.ExpectedQueryCount
-import XmssSecurity.Proof.Checksum.Deterministic.Memoize
-import XmssSecurity.Proof.Checksum.Direct.Structural
-
+import XmssSecurity.Proof.Generic.Deterministic.Memoize
+import XmssSecurity.Proof.Generic.Direct.Structural
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 /-!
 # Weighted budgets
 
@@ -23,28 +24,28 @@ set_option backward.isDefEq.respectTransparency false
 namespace XmssSecurity.Checksum.NoSign
 
 /-- The weight of an action: one per direct hash query, `signCost` per signing request. -/
-def actionWeight (signCost : ℕ) : (OracleWorld + SigningSpec).Domain → ℕ
+def actionWeight (signCost : ℕ) : (OracleWorld + Generic.SigningSpec).Domain → ℕ
   | .inl (.inr _) => 1
   | .inl (.inl _) => 0
   | .inr _ => signCost
 
 /-- On every branch, the direct hash queries and `signCost` per request fit in `budget`. -/
 def IsWeightedBound {α : Type} (signCost : ℕ)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (budget : ℕ) : Prop :=
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (budget : ℕ) : Prop :=
   computation.IsQueryBound budget (fun input remaining => actionWeight signCost input ≤ remaining)
     (fun input remaining => remaining - actionWeight signCost input)
 
 theorem isWeightedBound_query_bind_iff {α : Type} (signCost budget : ℕ)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α) :
-    IsWeightedBound signCost (liftM ((OracleWorld + SigningSpec).query input) >>= next) budget ↔
+    (input : (OracleWorld + Generic.SigningSpec).Domain)
+    (next : (OracleWorld + Generic.SigningSpec).Range input → OracleComp (OracleWorld + Generic.SigningSpec) α) :
+    IsWeightedBound signCost (liftM ((OracleWorld + Generic.SigningSpec).query input) >>= next) budget ↔
       actionWeight signCost input ≤ budget ∧
         ∀ answer, IsWeightedBound signCost (next answer)
           (budget - actionWeight signCost input) :=
   Iff.rfl
 
 theorem IsWeightedBound.mono {α : Type} {signCost budget budget' : ℕ}
-    {computation : OracleComp (OracleWorld + SigningSpec) α}
+    {computation : OracleComp (OracleWorld + Generic.SigningSpec) α}
     (h : IsWeightedBound signCost computation budget) (hle : budget ≤ budget') :
     IsWeightedBound signCost computation budget' := by
   induction computation using OracleComp.inductionOn generalizing budget budget' with
@@ -55,7 +56,7 @@ theorem IsWeightedBound.mono {α : Type} {signCost budget budget' : ℕ}
 
 /-- A program with weighted budget below `signCost` makes no signing request. -/
 theorem IsWeightedBound.noSign {α : Type} {signCost budget : ℕ}
-    {computation : OracleComp (OracleWorld + SigningSpec) α}
+    {computation : OracleComp (OracleWorld + Generic.SigningSpec) α}
     (h : IsWeightedBound signCost computation budget) (hlow : budget < signCost) :
     computation.IsQueryBoundP IsSignQuery 0 := by
   induction computation using OracleComp.inductionOn generalizing budget with
@@ -69,9 +70,9 @@ theorem IsWeightedBound.noSign {α : Type} {signCost budget : ℕ}
       · exact absurd h.1 (by simp [actionWeight]; omega)
 
 theorem IsWeightedBound.direct {α : Type} {signCost budget : ℕ}
-    {computation : OracleComp (OracleWorld + SigningSpec) α}
+    {computation : OracleComp (OracleWorld + Generic.SigningSpec) α}
     (h : IsWeightedBound signCost computation budget) :
-    computation.IsQueryBoundP Direct.IsDirectHashQuery budget := by
+    computation.IsQueryBoundP Generic.Direct.IsDirectHashQuery budget := by
   induction computation using OracleComp.inductionOn generalizing budget with
   | pure value => trivial
   | query_bind input next ih =>
@@ -94,7 +95,7 @@ theorem IsWeightedBound.direct {α : Type} {signCost budget : ℕ}
 /-! ## The bound is preserved -/
 
 theorem pruneWeighted_isWeightedBound {α : Type} (signCost budget : ℕ)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) :
     IsWeightedBound signCost (pruneWeighted signCost budget computation) budget := by
   induction computation using OracleComp.inductionOn generalizing budget with
   | pure value => trivial
@@ -117,19 +118,19 @@ theorem pruneWeighted_isWeightedBound {α : Type} (signCost budget : ℕ)
             simpa [actionWeight] using ih answer (budget - signCost)⟩
 
 theorem memoize_isWeightedBound {α : Type} (signCost budget : ℕ)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache SigningSpec)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (cache : QueryCache Generic.SigningSpec)
     (h : IsWeightedBound signCost computation budget) :
-    IsWeightedBound signCost (DeterministicSigning.memoize computation cache) budget := by
+    IsWeightedBound signCost (Generic.DeterministicSigning.memoize computation cache) budget := by
   induction computation using OracleComp.inductionOn generalizing cache budget with
   | pure value => trivial
   | query_bind input next ih =>
       rw [isWeightedBound_query_bind_iff] at h
       cases input with
       | inl input =>
-          rw [DeterministicSigning.memoize_base, isWeightedBound_query_bind_iff]
+          rw [Generic.DeterministicSigning.memoize_base, isWeightedBound_query_bind_iff]
           exact ⟨h.1, fun answer => ih answer _ cache (h.2 answer)⟩
       | inr request =>
-          rw [DeterministicSigning.memoize_request]
+          rw [Generic.DeterministicSigning.memoize_request]
           cases hcached : cache request with
           | some answer => exact ih answer budget cache ((h.2 answer).mono (Nat.sub_le _ _))
           | none =>
@@ -138,57 +139,57 @@ theorem memoize_isWeightedBound {α : Type} (signCost budget : ℕ)
 
 /-- Answering every direct hash query by `default` without querying. -/
 theorem pruneDirect_zero_isWeightedBound {α : Type} (signCost budget : ℕ)
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
     (h : IsWeightedBound signCost computation budget) :
-    IsWeightedBound signCost (Direct.pruneDirect 0 computation) budget := by
+    IsWeightedBound signCost (Generic.Direct.pruneDirect 0 computation) budget := by
   induction computation using OracleComp.inductionOn generalizing budget with
   | pure value => trivial
   | query_bind input next ih =>
       rw [isWeightedBound_query_bind_iff] at h
       rcases input with (uniformInput | hashInput) | request
-      · rw [Direct.pruneDirect_uniform_bind, isWeightedBound_query_bind_iff]
+      · rw [Generic.Direct.pruneDirect_uniform_bind, isWeightedBound_query_bind_iff]
         exact ⟨h.1, fun answer => ih answer _ (h.2 answer)⟩
-      · rw [Direct.pruneDirect_hash_bind, if_pos rfl]
+      · rw [Generic.Direct.pruneDirect_hash_bind, if_pos rfl]
         exact ih default budget ((h.2 default).mono (Nat.sub_le _ _))
-      · rw [Direct.pruneDirect_sign_bind, isWeightedBound_query_bind_iff]
+      · rw [Generic.Direct.pruneDirect_sign_bind, isWeightedBound_query_bind_iff]
         exact ⟨h.1, fun answer => ih answer _ (h.2 answer)⟩
 
 /-! ## The expected weighted count -/
 
 theorem expected_direct_add_sign_le {α σ : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT σ ProbComp)) (signCost budget : ℕ)
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (impl : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT σ ProbComp)) (signCost budget : ℕ)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
     (h : IsWeightedBound signCost computation budget) (state : σ) :
-    expectedSimulatedQueryCount impl Direct.IsDirectHashQuery computation state +
+    expectedSimulatedQueryCount impl Generic.Direct.IsDirectHashQuery computation state +
         signCost * expectedSimulatedQueryCount impl IsSignQuery computation state ≤ budget := by
   induction computation using OracleComp.inductionOn generalizing budget state with
   | pure value => simp
   | query_bind input next ih =>
       rw [isWeightedBound_query_bind_iff] at h
       rw [expectedSimulatedQueryCount_query_bind, expectedSimulatedQueryCount_query_bind]
-      have hweight : ((if Direct.IsDirectHashQuery input then 1 else 0 : ℝ≥0∞) +
+      have hweight : ((if Generic.Direct.IsDirectHashQuery input then 1 else 0 : ℝ≥0∞) +
           signCost * (if IsSignQuery input then 1 else 0 : ℝ≥0∞)) =
           (actionWeight signCost input : ℝ≥0∞) := by
         rcases input with (uniformInput | hashInput) | request <;>
           simp [actionWeight, IsSignQuery]
       have hrest : ∑' result, Pr[= result | (impl input).run state] *
-            expectedSimulatedQueryCount impl Direct.IsDirectHashQuery (next result.1) result.2 +
+            expectedSimulatedQueryCount impl Generic.Direct.IsDirectHashQuery (next result.1) result.2 +
           signCost * ∑' result, Pr[= result | (impl input).run state] *
             expectedSimulatedQueryCount impl IsSignQuery (next result.1) result.2 ≤
           ((budget - actionWeight signCost input : ℕ) : ℝ≥0∞) := by
         rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
         refine le_of_eq_of_le (b := ∑' result, Pr[= result | (impl input).run state] *
-          (expectedSimulatedQueryCount impl Direct.IsDirectHashQuery (next result.1) result.2 +
+          (expectedSimulatedQueryCount impl Generic.Direct.IsDirectHashQuery (next result.1) result.2 +
             signCost * expectedSimulatedQueryCount impl IsSignQuery (next result.1) result.2))
           (tsum_congr fun result => by ring) ?_
-        exact Direct.tsum_probOutput_mul_le _ _ _
-          fun result : (OracleWorld + SigningSpec).Range input × σ =>
+        exact Generic.Direct.tsum_probOutput_mul_le _ _ _
+          fun result : (OracleWorld + Generic.SigningSpec).Range input × σ =>
             ih result.1 _ (h.2 result.1) result.2
       calc
-        _ = ((if Direct.IsDirectHashQuery input then 1 else 0 : ℝ≥0∞) +
+        _ = ((if Generic.Direct.IsDirectHashQuery input then 1 else 0 : ℝ≥0∞) +
               signCost * (if IsSignQuery input then 1 else 0 : ℝ≥0∞)) +
             (∑' result, Pr[= result | (impl input).run state] *
-                expectedSimulatedQueryCount impl Direct.IsDirectHashQuery (next result.1)
+                expectedSimulatedQueryCount impl Generic.Direct.IsDirectHashQuery (next result.1)
                   result.2 +
               signCost * ∑' result, Pr[= result | (impl input).run state] *
                 expectedSimulatedQueryCount impl IsSignQuery (next result.1) result.2) := by
@@ -204,13 +205,13 @@ theorem expected_direct_add_sign_le {α σ : Type}
 
 /-- Private sampling is answered uniformly, leaving the state unchanged. -/
 def UniformFaithful {σ : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT σ ProbComp)) : Prop :=
+    (impl : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT σ ProbComp)) : Prop :=
   ∀ (n : ℕ) (state : σ), (impl (.inl (.inl n))).run state =
     (fun sample => (sample, state)) <$> (unifSpec.query n : ProbComp (Fin (n + 1)))
 
 theorem expectedSign_eq_zero {α σ : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT σ ProbComp))
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (impl : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT σ ProbComp))
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
     (h : computation.IsQueryBoundP IsSignQuery 0) (state : σ) :
     expectedSimulatedQueryCount impl IsSignQuery computation state = 0 :=
   le_antisymm (by exact_mod_cast expectedSimulatedQueryCount_le_of_isQueryBoundP impl _ _ _ 0 h)
@@ -219,10 +220,10 @@ theorem expectedSign_eq_zero {α σ : Type}
 /-- With a budget of at most one request, the expected number of requests is the probability of
 reaching a request through private sampling alone, whatever the hash oracle. -/
 theorem expectedSign_eq_of_uniformFaithful {α σ τ : Type}
-    (left : QueryImpl (OracleWorld + SigningSpec) (StateT σ ProbComp))
-    (right : QueryImpl (OracleWorld + SigningSpec) (StateT τ ProbComp))
+    (left : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT σ ProbComp))
+    (right : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT τ ProbComp))
     (hleft : UniformFaithful left) (hright : UniformFaithful right) (signCost budget : ℕ)
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
     (h : IsWeightedBound signCost computation budget) (hbudget : budget ≤ signCost)
     (hpositive : 0 < signCost) (leftState : σ) (rightState : τ) :
     expectedSimulatedQueryCount left IsSignQuery computation leftState =
@@ -238,7 +239,7 @@ theorem expectedSign_eq_of_uniformFaithful {α σ τ : Type}
         simp only [IsSignQuery, if_false, zero_add]
         refine tsum_congr fun sample => congrArg _ ?_
         exact ih sample _ (h.2 sample) (by simpa [actionWeight] using hbudget) _ _
-      · have hnone : (liftM ((OracleWorld + SigningSpec).query (.inl (.inr hashInput))) >>=
+      · have hnone : (liftM ((OracleWorld + Generic.SigningSpec).query (.inl (.inr hashInput))) >>=
             next).IsQueryBoundP IsSignQuery 0 := by
           rw [isQueryBoundP_query_bind_iff]
           exact ⟨Or.inl (by simp [IsSignQuery]), fun answer => by
@@ -261,33 +262,33 @@ theorem expectedSign_eq_of_uniformFaithful {α σ τ : Type}
 /-- Answering the hash queries without querying leaves the expected number of requests unchanged
 when a request can only come before every hash query. -/
 theorem expectedSign_pruneDirect_zero_eq {α σ : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT σ ProbComp)) (signCost budget : ℕ)
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (impl : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT σ ProbComp)) (signCost budget : ℕ)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
     (h : IsWeightedBound signCost computation budget) (hbudget : budget ≤ signCost)
     (hpositive : 0 < signCost) (state : σ) :
-    expectedSimulatedQueryCount impl IsSignQuery (Direct.pruneDirect 0 computation) state =
+    expectedSimulatedQueryCount impl IsSignQuery (Generic.Direct.pruneDirect 0 computation) state =
       expectedSimulatedQueryCount impl IsSignQuery computation state := by
   induction computation using OracleComp.inductionOn generalizing budget state with
   | pure value => rfl
   | query_bind input next ih =>
       rw [isWeightedBound_query_bind_iff] at h
       rcases input with (uniformInput | hashInput) | request
-      · rw [Direct.pruneDirect_uniform_bind, expectedSimulatedQueryCount_query_bind,
+      · rw [Generic.Direct.pruneDirect_uniform_bind, expectedSimulatedQueryCount_query_bind,
           expectedSimulatedQueryCount_query_bind]
         refine congrArg _ (tsum_congr fun result => congrArg _ ?_)
         exact ih result.1 _ (h.2 result.1) (by simpa [actionWeight] using hbudget) result.2
       · have hlow : budget - actionWeight signCost (.inl (.inr hashInput)) < signCost := by
           simp [actionWeight] at h ⊢
           omega
-        have hnone : (liftM ((OracleWorld + SigningSpec).query (.inl (.inr hashInput))) >>=
+        have hnone : (liftM ((OracleWorld + Generic.SigningSpec).query (.inl (.inr hashInput))) >>=
             next).IsQueryBoundP IsSignQuery 0 := by
           rw [isQueryBoundP_query_bind_iff]
           exact ⟨Or.inl (by simp [IsSignQuery]), fun answer => by
             simpa [IsSignQuery] using (h.2 answer).noSign hlow⟩
-        rw [Direct.pruneDirect_hash_bind, if_pos rfl, expectedSign_eq_zero _ _ hnone,
+        rw [Generic.Direct.pruneDirect_hash_bind, if_pos rfl, expectedSign_eq_zero _ _ hnone,
           expectedSign_eq_zero _ _
             ((pruneDirect_zero_isWeightedBound signCost _ _ (h.2 default)).noSign hlow)]
-      · rw [Direct.pruneDirect_sign_bind, expectedSimulatedQueryCount_query_bind,
+      · rw [Generic.Direct.pruneDirect_sign_bind, expectedSimulatedQueryCount_query_bind,
           expectedSimulatedQueryCount_query_bind]
         refine congrArg _ (tsum_congr fun result => congrArg _ ?_)
         exact ih result.1 _ (h.2 result.1) (by omega) result.2

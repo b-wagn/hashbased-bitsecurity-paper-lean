@@ -11,6 +11,8 @@ import XmssSecurity.Proof.TargetSum.Direct.SourceLossBudgetFresh
 import XmssSecurity.Proof.TargetSum.Direct.FreshFirstLaneSplit
 import XmssSecurity.Proof.TargetSum.Modes.SignerCachedSecurity
 import XmssSecurity.Proof.TargetSum.Direct.MixedFirstLane
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The signer-mode assembly with one shared first-lane prefix budget. Its remaining
 fresh-verification allowance fits the encoding reserve once that expected credit is at least 1/128. -/
@@ -22,22 +24,22 @@ open XmssSecurity.Modes
 
 open Seeded Direct Deciding
 
-theorem signer_seeded_loss_le_shared_prefix (adversary : Security.StatementAdversary)
+theorem signer_seeded_loss_le_shared_prefix (adversary : Generic.Security.StatementAdversary)
     (q : Nat) (hsmall : q < 2 ^ 256) (hq : q + 1 ≤ 2 ^ 127)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
-    forgeAdvantage Seeded.scheme (Security.embed adversary) ≤
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q) :
+    Generic.forgeAdvantage Generic.Seeded.scheme (Generic.Security.embed adversary) ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
+        sourceSecondaryLoss (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
         (TargetSum.acceptanceProbability *
-          (2 * (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
-              expectedSourceSignerHashes (memoAdversary (Security.embed adversary))) + 1 +
-            40 * forgedEncodingFreshProbability (memoAdversary (Security.embed adversary)))) /
+          (2 * (Generic.Direct.expectedDirectEncodingQueries (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
+              expectedSourceSignerHashes (Generic.Seeded.memoAdversary (Generic.Security.embed adversary))) + 1 +
+            40 * forgedEncodingFreshProbability (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   have hfirst := decidingFirstLane_probability_le_shared_prefix
-    (memoAdversary (Security.embed adversary)) q
+    (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) q
     (signer_countedSourceBudget_after_trajectory adversary q hsmall hbound)
-  apply (forgeAdvantage_deterministic_le_reference_expectedDirectSeed (Security.embed adversary)).trans
-  apply (add_le_add (forgeAdvantage_le_deciding_lanes _) le_rfl).trans
+  apply (forgeAdvantage_deterministic_le_reference_expectedDirectSeed (Generic.Security.embed adversary)).trans
+  apply (add_le_add (Generic.Deciding.forgeAdvantage_le_deciding_lanes _) le_rfl).trans
   rw [add_assoc]
   apply (add_le_add hfirst
     (prehit_add_secondLane_add_seed_le_sourceSecondaryLoss_add_fresh _
@@ -45,28 +47,28 @@ theorem signer_seeded_loss_le_shared_prefix (adversary : Security.StatementAdver
   simp only [div_eq_mul_inv]
   ring
 
-theorem signer_advantage_le_shared_prefix (adversary : Security.StatementAdversary)
+theorem signer_advantage_le_shared_prefix (adversary : Generic.Security.StatementAdversary)
     (q : Nat) (hsmall : q < 2 ^ 256) (hq : q + 1 ≤ 2 ^ 127)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q) :
-    (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q) :
+    (SUFCMA.notion ⟨false, true, false, false⟩).advantage Generic.xmss adversary ≤
       (q : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        sourceSecondaryLoss (memoAdversary (Security.embed adversary)) +
+        sourceSecondaryLoss (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
         (TargetSum.acceptanceProbability *
-          (2 * (expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
-              expectedSourceSignerHashes (memoAdversary (Security.embed adversary))) + 1 +
-            40 * forgedEncodingFreshProbability (memoAdversary (Security.embed adversary)))) /
+          (2 * (Generic.Direct.expectedDirectEncodingQueries (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
+              expectedSourceSignerHashes (Generic.Seeded.memoAdversary (Generic.Security.embed adversary))) + 1 +
+            40 * forgedEncodingFreshProbability (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
-    notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
+    notion_direct_advantage_eq, Generic.Security.notionDirect_advantage_eq]
   exact signer_seeded_loss_le_shared_prefix adversary q hsmall hq hbound
 
-theorem mixed_probe_allowance_le_encodingReserve (adversary : Adversary)
+theorem mixed_probe_allowance_le_encodingReserve (adversary : Generic.Adversary)
     (hcredit : (1 / 128 : ℝ≥0∞) ≤
-      expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) :
+      Generic.Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) :
     TargetSum.acceptanceProbability *
-      (2 * (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) + 1 +
+      (2 * (Generic.Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) + 1 +
         40 * forgedEncodingFreshProbability adversary) ≤ sourceEncodingReserve adversary := by
-  let credit := expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary
+  let credit := Generic.Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary
   have hunit : (1 : ℝ≥0∞) ≤ 128 * credit := by
     calc
       _ = (128 : ℝ≥0∞) * (1 / 128) := by
@@ -90,12 +92,12 @@ theorem mixed_probe_allowance_le_encodingReserve (adversary : Adversary)
     _ = (TargetSum.acceptanceProbability * 5250) * credit := (mul_assoc _ _ _).symm
     _ ≤ (3 / 8 : ℝ≥0∞) * credit := mul_le_mul' hrate le_rfl
 
-theorem signer_advantage_127_of_encoding_credit (adversary : Security.StatementAdversary) (q : Nat)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
+theorem signer_advantage_127_of_encoding_credit (adversary : Generic.Security.StatementAdversary) (q : Nat)
+    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q)
     (hcredit : (1 / 128 : ℝ≥0∞) ≤
-      expectedDirectEncodingQueries (memoAdversary (Security.embed adversary)) +
-        expectedSourceSignerHashes (memoAdversary (Security.embed adversary))) :
-    (SUFCMA.notion ⟨false, true, false, false⟩).advantage xmss adversary ≤
+      Generic.Direct.expectedDirectEncodingQueries (Generic.Seeded.memoAdversary (Generic.Security.embed adversary)) +
+        expectedSourceSignerHashes (Generic.Seeded.memoAdversary (Generic.Security.embed adversary))) :
+    (SUFCMA.notion ⟨false, true, false, false⟩).advantage Generic.xmss adversary ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
   by_cases hlarge : 2 ^ 127 ≤ q
   · calc

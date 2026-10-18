@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.Checksum.Attack.NeighborSeeded
-import XmssSecurity.Proof.Checksum.ExactKeygenQueryCount
-
+import XmssSecurity.Proof.Generic.ExactKeygenQueryCount
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 /-! Worst-case hash budgets for the honest stages surrounding the neighboring-signature attack. -/
 
 open OracleComp OracleSpec ENNReal
@@ -12,10 +13,10 @@ namespace XmssSecurity.Checksum.Attack
 
 open Concrete
 
-attribute [local irreducible] sampleMasterSeed
+attribute [local irreducible] Generic.sampleMasterSeed
 
 theorem exactQueryCount_isQueryBoundP {ι α : Type} {spec : OracleSpec ι}
-    {computation : OracleComp spec α} {count : ℕ} (hexact : ExactQueryCount computation count) :
+    {computation : OracleComp spec α} {count : ℕ} (hexact : Generic.ExactQueryCount computation count) :
     computation.IsQueryBoundP (fun _ => True) count := by
   induction hexact with
   | pure value => simp
@@ -23,68 +24,68 @@ theorem exactQueryCount_isQueryBoundP {ι α : Type} {spec : OracleSpec ι}
       rw [OracleComp.isQueryBoundP_query_bind_iff]
       exact ⟨Or.inr (by omega), fun output => by simpa using ih output⟩
 
-theorem deriveKey_queryBound (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
-    (deriveKey parameter domain seed : OracleComp HashSpec Digest).IsQueryBoundP (fun _ => True) 1 := by
-  unfold deriveKey oracleHash
+theorem deriveKey_queryBound (parameter : PublicParameter) (domain : Generic.KeygenDomain) (seed : MasterSeed) :
+    (Generic.deriveKey parameter domain seed : OracleComp HashSpec Digest).IsQueryBoundP (fun _ => True) 1 := by
+  unfold Generic.deriveKey Generic.Concrete.oracleHash
   simp
 
 theorem deriveRandomizer_queryBound (parameter : PublicParameter) (seed : MasterSeed)
     (leafIndex : LeafIndex) (message : Message) (trial : BitVec 32) :
-    (deriveRandomizer parameter seed leafIndex message trial : OracleComp HashSpec Randomness).IsQueryBoundP
+    (Generic.deriveRandomizer parameter seed leafIndex message trial : OracleComp HashSpec Randomness).IsQueryBoundP
       (fun _ => True) 1 := by
-  unfold deriveRandomizer oracleHash
+  unfold Generic.deriveRandomizer Generic.Concrete.oracleHash
   simp
 
-def seededKeygenQueryBudget : ℕ := 1 + (lifetime * numChains + treeHashQueryCount treeHeight)
+def seededKeygenQueryBudget : ℕ := 1 + (lifetime * numChains + Generic.treeHashQueryCount treeHeight)
 
 theorem seededKeygenFromSeed_queryBound (seed : MasterSeed) :
-    (Seeded.keygenFromSeed seed).IsQueryBoundP (fun _ => True) seededKeygenQueryBudget := by
-  unfold Seeded.keygenFromSeed seededKeygenQueryBudget
+    (Generic.Seeded.keygenFromSeed seed).IsQueryBoundP (fun _ => True) seededKeygenQueryBudget := by
+  unfold Generic.Seeded.keygenFromSeed seededKeygenQueryBudget
   refine OracleComp.isQueryBoundP_bind (deriveKey_queryBound _ _ _) ?_
   intro parameter _
-  refine OracleComp.isQueryBoundP_bind (n := lifetime * numChains) (m := treeHashQueryCount treeHeight) ?_ ?_
-  · have hbound := Direct.sequenceFin_isQueryBoundP
-      (fun leafIndex : LeafIndex => sequenceFin fun chain : ChainIndex =>
-        (deriveKey parameter (.chain leafIndex chain) seed : OracleComp HashSpec Digest))
+  refine OracleComp.isQueryBoundP_bind (n := lifetime * numChains) (m := Generic.treeHashQueryCount treeHeight) ?_ ?_
+  · have hbound := Generic.Direct.sequenceFin_isQueryBoundP
+      (fun leafIndex : LeafIndex => Generic.Concrete.sequenceFin fun chain : ChainIndex =>
+        (Generic.deriveKey parameter (.chain leafIndex chain) seed : OracleComp HashSpec Digest))
       (fun _ => numChains) (fun _ => True) (fun leafIndex => by
-        simpa using Direct.sequenceFin_isQueryBoundP
-          (fun chain : ChainIndex => (deriveKey parameter (.chain leafIndex chain) seed : OracleComp HashSpec Digest))
+        simpa using Generic.Direct.sequenceFin_isQueryBoundP
+          (fun chain : ChainIndex => (Generic.deriveKey parameter (.chain leafIndex chain) seed : OracleComp HashSpec Digest))
           (fun _ => 1) (fun _ => True) (fun chain => deriveKey_queryBound _ _ _))
     simpa using hbound
   · intro secret _
     simp only [bind_pure_comp, OracleComp.isQueryBoundP_map_iff]
-    exact exactQueryCount_isQueryBoundP ((ExactQueryCount.rootTree parameter secret).withQueryLog)
+    exact exactQueryCount_isQueryBoundP ((Generic.ExactQueryCount.rootTree parameter secret).withQueryLog)
 
-theorem xmss_keygen_queryBound : xmss.keygen.IsQueryBoundP IsHashQuery seededKeygenQueryBudget := by
-  change ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= fun seed =>
-    liftM (Seeded.keygenFromSeed seed)).IsQueryBoundP _ _
+theorem xmss_keygen_queryBound : Generic.xmss.keygen.IsQueryBoundP Generic.IsHashQuery seededKeygenQueryBudget := by
+  change ((liftM Generic.sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= fun seed =>
+    liftM (Generic.Seeded.keygenFromSeed seed)).IsQueryBoundP _ _
   rw [← Nat.zero_add seededKeygenQueryBudget]
   refine OracleComp.isQueryBoundP_bind ?_ ?_
-  · exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ : unifSpec.Domain => False) (q := IsHashQuery)
-      (fun _ => by simp [IsHashQuery]) (OracleComp.isQueryBoundP_false sampleMasterSeed 0)
+  · exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ : unifSpec.Domain => False) (q := Generic.IsHashQuery)
+      (fun _ => by simp [Generic.IsHashQuery]) (OracleComp.isQueryBoundP_false Generic.sampleMasterSeed 0)
   · intro seed _
-    exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ => True) (q := IsHashQuery)
-      (fun input => by change True ↔ IsHashQuery (.inr input); simp [IsHashQuery])
+    exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ => True) (q := Generic.IsHashQuery)
+      (fun input => by change True ↔ Generic.IsHashQuery (.inr input); simp [Generic.IsHashQuery])
       (seededKeygenFromSeed_queryBound seed)
 
-theorem precomputedSignAttempt_queryBound (secretKey : SecretKey) (leafIndex : LeafIndex)
+theorem precomputedSignAttempt_queryBound (secretKey : Generic.SecretKey) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) :
-    (precomputedSignAttempt secretKey leafIndex message randomness : OracleComp HashSpec (Option Signature)).IsQueryBoundP
+    (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness : OracleComp HashSpec (Option Generic.Signature)).IsQueryBoundP
       (fun _ => True) 1 := by
-  unfold precomputedSignAttempt
+  unfold Generic.Concrete.precomputedSignAttempt
   rw [← Nat.add_zero 1]
-  refine OracleComp.isQueryBoundP_bind (Direct.tweakableHash_isQueryBoundP _ _ _) ?_
+  refine OracleComp.isQueryBoundP_bind (Generic.Direct.tweakableHash_isQueryBoundP _ _ _) ?_
   intro digest _
   split <;> exact OracleComp.isQueryBoundP_pure _ _ _
 
-theorem seededSignFrom_queryBound (secretKey : Seeded.SecretKey) (leafIndex : LeafIndex)
+theorem seededSignFrom_queryBound (secretKey : Generic.Seeded.SecretKey) (leafIndex : LeafIndex)
     (message : Message) (attempts trial : ℕ) :
-    (Seeded.signFrom secretKey leafIndex message attempts trial : OracleComp HashSpec (Option Signature)).IsQueryBoundP
+    (Generic.Seeded.signFrom secretKey leafIndex message attempts trial : OracleComp HashSpec (Option Generic.Signature)).IsQueryBoundP
       (fun _ => True) (attempts * 2) := by
   induction attempts generalizing trial with
-  | zero => simp [Seeded.signFrom]
+  | zero => simp [Generic.Seeded.signFrom]
   | succ attempts ih =>
-      rw [show (attempts + 1) * 2 = 1 + (1 + attempts * 2) by omega, Seeded.signFrom]
+      rw [show (attempts + 1) * 2 = 1 + (1 + attempts * 2) by omega, Generic.Seeded.signFrom]
       refine OracleComp.isQueryBoundP_bind (deriveRandomizer_queryBound _ _ _ _ _) ?_
       intro randomness _
       refine OracleComp.isQueryBoundP_bind (precomputedSignAttempt_queryBound _ _ _ _) ?_
@@ -93,27 +94,28 @@ theorem seededSignFrom_queryBound (secretKey : Seeded.SecretKey) (leafIndex : Le
       | none => exact ih _
       | some signature => exact OracleComp.isQueryBoundP_pure _ _ _
 
-theorem xmss_sign_queryBound (secretKey : Seeded.SecretKey) (leafIndex : LeafIndex) (message : Message) :
-    (xmss.sign secretKey leafIndex message).IsQueryBoundP IsHashQuery (signingAttemptLimit * 2) := by
-  change (liftComp (Seeded.sign secretKey leafIndex message : OracleComp HashSpec (Option Signature))
+theorem xmss_sign_queryBound (secretKey : Generic.Seeded.SecretKey) (leafIndex : LeafIndex) (message : Message) :
+    (Generic.xmss.sign secretKey leafIndex message).IsQueryBoundP Generic.IsHashQuery (signingAttemptLimit * 2) := by
+  change (liftComp (Generic.Seeded.sign secretKey leafIndex message : OracleComp HashSpec (Option Generic.Signature))
     OracleWorld).IsQueryBoundP _ _
-  rw [Seeded.sign_eq_signFrom]
-  exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ => True) (q := IsHashQuery)
-    (fun input => by change True ↔ IsHashQuery (.inr input); simp [IsHashQuery])
+  rw [Generic.Seeded.sign_eq_signFrom]
+  exact OracleComp.IsQueryBoundP.liftComp_subSpec (p := fun _ => True) (q := Generic.IsHashQuery)
+    (fun input => by change True ↔ Generic.IsHashQuery (.inr input); simp [Generic.IsHashQuery])
     (seededSignFrom_queryBound secretKey leafIndex message signingAttemptLimit 0)
 
 theorem seededKeygenQueryBudget_le : seededKeygenQueryBudget ≤ 2 ^ 42 := by
-  norm_num [seededKeygenQueryBudget, treeHashQueryCount, treeHeight, lifetime, numChains, chainLength, winternitzBits]
+  norm_num [seededKeygenQueryBudget, Generic.treeHashQueryCount, treeHeight, lifetime, numChains, chainLength, winternitzBits]
 
 def neighborEverythingBudget : ℕ := 2 ^ 126 + 2 ^ 124 + 2 ^ 120
 
 theorem neighbor_total_budget_le :
-    seededKeygenQueryBudget + (signingAttemptLimit * 2 + neighborDirectBudget) + Direct.verifierQueryBound + 1 ≤
+    seededKeygenQueryBudget + (signingAttemptLimit * 2 + neighborDirectBudget) + Generic.Direct.verifierQueryBound + 1 ≤
       neighborEverythingBudget := by
   apply le_trans (Nat.add_le_add_right (Nat.add_le_add_right
     (Nat.add_le_add_right seededKeygenQueryBudget_le _) _) _) ?_
   norm_num [neighborEverythingBudget, neighborDirectBudget, neighborSearchSteps, preimageSearchSteps,
-    signingAttemptLimit, Direct.verifierQueryBound, verificationChainHashes, treeHeight,
+    signingAttemptLimit, Generic.Direct.verifierQueryBound,
+    show Generic.Code.verificationChainHashes = verificationChainHashes from rfl, verificationChainHashes, treeHeight,
     numChains, chainLength, winternitzBits]
 
 theorem neighborEverythingBudget_ratio :

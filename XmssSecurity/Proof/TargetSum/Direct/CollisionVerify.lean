@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.TargetSum.Direct.CollisionPrehit
-import XmssSecurity.Proof.TargetSum.Direct.VerifierBound
+import XmssSecurity.Proof.Generic.Direct.VerifierBound
 import XmssSecurity.Proof.TargetSum.Direct.VerificationAcceptance
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-!
 # Verification touches one encoding input
@@ -19,36 +21,36 @@ namespace XmssSecurity.TargetSum.Direct.Collision
 
 /-- The input is an encoding input. -/
 def IsEncodingInput (parameter : PublicParameter) (hashInput : HashInput) : Prop :=
-  (encodingInputLeafIndex? parameter hashInput).isSome
+  (Generic.encodingInputLeafIndex? parameter hashInput).isSome
 
 noncomputable instance (parameter : PublicParameter) : DecidablePred (IsEncodingInput parameter) :=
   Classical.decPred _
 
-theorem tweakableHashInput_not_encoding (parameter : PublicParameter) (domain : HashDomain)
+theorem tweakableHashInput_not_encoding (parameter : PublicParameter) (domain : Generic.HashDomain)
     (payload : HashInput) (hdomain : ∀ leafIndex, domain ≠ .encoding leafIndex) :
-    ¬ IsEncodingInput parameter (tweakableHashInput parameter domain payload) := by
+    ¬ IsEncodingInput parameter (Generic.tweakableHashInput parameter domain payload) := by
   intro h
   obtain ⟨leafIndex, hleafIndex⟩ := Option.isSome_iff_exists.mp h
   obtain ⟨entry, hentry⟩ :=
-    exists_encodingInput_of_encodingInputLeafIndex?_eq_some parameter _ leafIndex hleafIndex
+    Generic.exists_encodingInput_of_encodingInputLeafIndex?_eq_some parameter _ leafIndex hleafIndex
   exact hdomain leafIndex
-    (domain_eq_of_tweakableHashInput_eq parameter hentry).symm
+    (Generic.domain_eq_of_tweakableHashInput_eq parameter hentry).symm
 
-theorem tweakableHash_noEncoding (parameter : PublicParameter) (domain : HashDomain)
+theorem tweakableHash_noEncoding (parameter : PublicParameter) (domain : Generic.HashDomain)
     (payload : HashInput) (hdomain : ∀ leafIndex, domain ≠ .encoding leafIndex) :
-    (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest).IsQueryBoundP
+    (Generic.Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest).IsQueryBoundP
       (IsEncodingInput parameter) 0 := by
   have hnot := tweakableHashInput_not_encoding parameter domain payload hdomain
-  simp [Concrete.tweakableHash, Concrete.oracleHash, hnot]
+  simp [Generic.Concrete.tweakableHash, Generic.Concrete.oracleHash, hnot]
 
 theorem chainWalk_noEncoding (parameter : PublicParameter) (leafIndex : LeafIndex)
     (chain : ChainIndex) (position steps : Nat) (value : Digest) :
-    (Concrete.chainWalk parameter leafIndex chain position steps value :
+    (Generic.Concrete.chainWalk parameter leafIndex chain position steps value :
       OracleComp HashSpec Digest).IsQueryBoundP (IsEncodingInput parameter) 0 := by
   induction steps with
-  | zero => simp [Concrete.chainWalk]
+  | zero => simp [Generic.Concrete.chainWalk]
   | succ steps ih =>
-      rw [Concrete.chainWalk]
+      rw [Generic.Concrete.chainWalk]
       refine OracleComp.isQueryBoundP_bind (m := 0) ih ?_
       intro previous _
       split
@@ -56,23 +58,23 @@ theorem chainWalk_noEncoding (parameter : PublicParameter) (leafIndex : LeafInde
       · simp
 
 theorem recoverEndpoints_noEncoding (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (encoding : Encoding) (signature : Signature) :
-    (Concrete.recoverEndpoints parameter leafIndex encoding signature :
+    (encoding : Encoding) (signature : Generic.Signature) :
+    (Generic.Concrete.recoverEndpoints parameter leafIndex encoding signature :
       OracleComp HashSpec (ChainIndex → Digest)).IsQueryBoundP (IsEncodingInput parameter) 0 := by
-  unfold Concrete.recoverEndpoints
-  have h := sequenceFin_isQueryBoundP (fun chain => Concrete.recoverChain parameter leafIndex chain
+  unfold Generic.Concrete.recoverEndpoints
+  have h := Generic.Direct.sequenceFin_isQueryBoundP (fun chain => Generic.Concrete.recoverChain parameter leafIndex chain
     (encoding chain) (signature.chainValue chain)) (fun _ => 0) (IsEncodingInput parameter)
     fun chain => by
-      unfold Concrete.recoverChain
+      unfold Generic.Concrete.recoverChain
       exact chainWalk_noEncoding _ _ _ _ _ _
   rw [Finset.sum_const_zero] at h
   exact h
 
 theorem authenticationNodeHash_noEncoding (parameter : PublicParameter)
     (leafIndex : LeafIndex) (level : Nat) (current sibling : Digest) :
-    (Concrete.authenticationNodeHash parameter leafIndex level current sibling :
+    (Generic.Concrete.authenticationNodeHash parameter leafIndex level current sibling :
       OracleComp HashSpec Digest).IsQueryBoundP (IsEncodingInput parameter) 0 := by
-  unfold Concrete.authenticationNodeHash
+  unfold Generic.Concrete.authenticationNodeHash
   split
   · split
     · exact tweakableHash_noEncoding _ _ _ fun _ => by simp
@@ -80,21 +82,21 @@ theorem authenticationNodeHash_noEncoding (parameter : PublicParameter)
   · simp
 
 theorem authenticationRoot_noEncoding (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (signature : Signature) (levels : Nat) (leaf : Digest) :
-    (Concrete.authenticationRoot parameter leafIndex signature levels leaf :
+    (signature : Generic.Signature) (levels : Nat) (leaf : Digest) :
+    (Generic.Concrete.authenticationRoot parameter leafIndex signature levels leaf :
       OracleComp HashSpec Digest).IsQueryBoundP (IsEncodingInput parameter) 0 := by
   induction levels with
-  | zero => simp [Concrete.authenticationRoot]
+  | zero => simp [Generic.Concrete.authenticationRoot]
   | succ levels ih =>
-      rw [Concrete.authenticationRoot]
+      rw [Generic.Concrete.authenticationRoot]
       exact OracleComp.isQueryBoundP_bind (m := 0) ih fun _ _ =>
         authenticationNodeHash_noEncoding _ _ _ _ _
 
 theorem verifyAfterLeaf_noEncoding (publicKey : PublicKey) (leafIndex : LeafIndex)
-    (signature : Signature) (leaf : Digest) :
-    (Concrete.verifyAfterLeaf publicKey leafIndex signature leaf :
+    (signature : Generic.Signature) (leaf : Digest) :
+    (Generic.Concrete.verifyAfterLeaf publicKey leafIndex signature leaf :
       OracleComp HashSpec Bool).IsQueryBoundP (IsEncodingInput publicKey.parameter) 0 := by
-  unfold Concrete.verifyAfterLeaf
+  unfold Generic.Concrete.verifyAfterLeaf
   generalize treeHeight = levels
   have hbind := OracleComp.isQueryBoundP_bind (m := 0)
     (authenticationRoot_noEncoding publicKey.parameter leafIndex signature levels leaf)
@@ -104,11 +106,11 @@ theorem verifyAfterLeaf_noEncoding (publicKey : PublicKey) (leafIndex : LeafInde
   exact hbind
 
 theorem verifyAfterDigest_noEncoding (publicKey : PublicKey) (leafIndex : LeafIndex)
-    (signature : Signature) (digest : Digest) :
-    (verifyAfterDigest publicKey leafIndex signature digest).IsQueryBoundP
+    (signature : Generic.Signature) (digest : Digest) :
+    (Generic.Direct.verifyAfterDigest publicKey leafIndex signature digest).IsQueryBoundP
       (IsEncodingInput publicKey.parameter) 0 := by
-  unfold verifyAfterDigest
-  cases TargetSum.decodeDigest digest with
+  unfold Generic.Direct.verifyAfterDigest
+  cases Generic.Code.decodeDigest digest with
   | none => simp
   | some encoding =>
       simp only
@@ -154,7 +156,7 @@ theorem run_agree_of_noEncoding {β : Type} (parameter : PublicParameter)
               Set.mem_singleton_iff] at hmiddle
             rw [hmiddle]
         | none =>
-            rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hmiddle
+            rw [Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached, support_map] at hmiddle
             obtain ⟨sampled, -, hsampled⟩ := hmiddle
             rw [← hsampled]
             exact QueryCache.cacheQuery_of_ne _ _ hne

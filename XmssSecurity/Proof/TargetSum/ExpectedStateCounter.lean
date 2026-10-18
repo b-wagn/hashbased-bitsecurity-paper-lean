@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.ExpectedCountedQueries
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! A state counter incremented on exactly the selected queries has the same expected
 increase as the recursive query count. Only supported handler outcomes are required. -/

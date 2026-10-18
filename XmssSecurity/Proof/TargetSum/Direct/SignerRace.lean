@@ -1,5 +1,6 @@
-import XmssSecurity.Proof.TargetSum.EncodingRejectionProbability
-
+import XmssSecurity.Proof.Generic.EncodingRejectionProbability
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-!
 # The signer's race between cached and fresh randomizers
 
@@ -21,22 +22,22 @@ noncomputable local instance : SampleableType Randomness :=
   SampleableType.ofFintype Randomness
 
 theorem Concrete.precomputedSignAttempt_run_cached
-    (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
+    (secretKey : Generic.SecretKey) (leafIndex : LeafIndex) (message : Message)
     (randomness : Randomness) (cache : QueryCache HashSpec) (output : HashOutput)
-    (hcached : cache (CacheView.encodingInput secretKey.parameter leafIndex
+    (hcached : cache (Generic.Concrete.CacheView.encodingInput secretKey.parameter leafIndex
       (message, randomness)) = some output) :
     (simulateQ randomOracle
-      (precomputedSignAttempt secretKey leafIndex message randomness :
-        OracleComp HashSpec (Option Signature))).run cache =
-      pure ((TargetSum.decodeDigest (truncateHash output)).map
-        (precomputedSignWithEncoding secretKey leafIndex randomness), cache) := by
-  unfold precomputedSignAttempt encodingHash tweakableHash oracleHash
+      (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+        OracleComp HashSpec (Option Generic.Signature))).run cache =
+      pure ((Generic.Code.decodeDigest (Generic.truncateHash output)).map
+        (Generic.Concrete.precomputedSignWithEncoding secretKey leafIndex randomness), cache) := by
+  unfold Generic.Concrete.precomputedSignAttempt Generic.Concrete.encodingHash Generic.Concrete.tweakableHash Generic.Concrete.oracleHash
   simp only [bind_assoc, pure_bind, simulateQ_bind, HasQuery.instOfMonadLift_query,
     simulateQ_spec_query, StateT.run_bind]
-  change (randomOracle (CacheView.encodingInput secretKey.parameter leafIndex
+  change (randomOracle (Generic.Concrete.CacheView.encodingInput secretKey.parameter leafIndex
     (message, randomness))).run cache >>= _ = _
   rw [randomOracle, QueryImpl.withCaching_run_some _ hcached, pure_bind]
-  cases TargetSum.decodeDigest (truncateHash output) <;> simp
+  cases Generic.Code.decodeDigest (Generic.truncateHash output) <;> simp
 
 namespace Direct
 
@@ -46,17 +47,17 @@ variable (parameter : PublicParameter) (leafIndex : LeafIndex) (message : Messag
 noncomputable def cachedRandomizersAt (cache : QueryCache HashSpec) : Finset Randomness := by
   classical
   exact Finset.univ.filter fun randomness =>
-    cache (Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) ≠ none
+    cache (Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) ≠ none
 
 /-- The encoding input of `randomness` is cached with a decodable digest. -/
 def DecodableAt (cache : QueryCache HashSpec) (randomness : Randomness) : Prop :=
-  ∃ output, cache (Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) =
-    some output ∧ TargetSum.ValidDigest (truncateHash output)
+  ∃ output, cache (Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) =
+    some output ∧ Generic.Code.ValidDigest (Generic.truncateHash output)
 
 /-- The cost of a signing outcome: `1` for a randomizer in `S`, `weight` for one in `W \ S`, and
 `0` otherwise. -/
 noncomputable def raceCost (S W : Finset Randomness) (weight : ℝ≥0∞) :
-    Option Signature → ℝ≥0∞
+    Option Generic.Signature → ℝ≥0∞
   | none => 0
   | some signature =>
       if signature.randomness ∈ S then 1 else if signature.randomness ∈ W then weight else 0
@@ -83,7 +84,7 @@ theorem raceBound_succ_cached (S W : Finset Randomness) (weight : ℝ≥0∞) (c
 theorem cachedRandomizersAt_cacheQuery (cache : QueryCache HashSpec) (randomness : Randomness)
     (output : HashOutput) :
     cachedRandomizersAt parameter leafIndex message
-        (cache.cacheQuery (Concrete.CacheView.encodingInput parameter leafIndex
+        (cache.cacheQuery (Generic.Concrete.CacheView.encodingInput parameter leafIndex
           (message, randomness)) output) =
       insert randomness (cachedRandomizersAt parameter leafIndex message cache) := by
   classical
@@ -92,10 +93,10 @@ theorem cachedRandomizersAt_cacheQuery (cache : QueryCache HashSpec) (randomness
   by_cases hother : other = randomness
   · subst hother
     simp
-  · have hne : Concrete.CacheView.encodingInput parameter leafIndex (message, other) ≠
-        Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) := by
+  · have hne : Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, other) ≠
+        Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) := by
       intro h
-      exact hother (congrArg Prod.snd (Concrete.CacheView.encodingInput_injective parameter
+      exact hother (congrArg Prod.snd (Generic.Concrete.CacheView.encodingInput_injective parameter
         leafIndex h))
     rw [QueryCache.cacheQuery_of_ne _ _ hne]
     simp [hother]
@@ -174,13 +175,13 @@ theorem sum_indicator_const (T : Finset Randomness) (value : ℝ≥0∞) :
   rw [Finset.sum_ite_mem, Finset.univ_inter, Finset.sum_const, nsmul_eq_mul]
 
 /-- With `attempts` attempts left, the expected race cost is at most the race bound. -/
-theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : SecretKey)
+theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : Generic.SecretKey)
     (leafIndex : LeafIndex) (message : Message) (S W : Finset Randomness) (weight : ℝ≥0∞)
     (hSW : S ⊆ W) :
     ∀ (attempts : ℕ) (cache : QueryCache HashSpec),
       (∀ randomness ∈ W, DecodableAt secretKey.parameter leafIndex message cache randomness) →
-      ∑' result, Pr[= result | (simulateQ romImpl
-          (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
+      ∑' result, Pr[= result | (simulateQ Generic.romImpl
+          (Generic.Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
             cache] * raceCost S W weight result.1 ≤
         raceBound S W weight
           (cachedRandomizersAt secretKey.parameter leafIndex message cache).card attempts := by
@@ -188,7 +189,7 @@ theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : SecretKey)
   induction attempts with
   | zero =>
       intro cache _
-      simp [Concrete.precomputedSignBoundedAttempts, raceCost]
+      simp [Generic.Concrete.precomputedSignBoundedAttempts, raceCost]
   | succ attempts ih =>
       intro cache hW
       classical
@@ -202,14 +203,14 @@ theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : SecretKey)
             (1 - TargetSum.acceptanceProbability) * bound else 0)
       have hstep : ∀ randomness,
           ∑' result, Pr[= result | (simulateQ randomOracle
-              (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
-                OracleComp HashSpec (Option Signature))).run cache >>=
-              Concrete.precomputedSignBoundedAttemptsContinuation attempts secretKey leafIndex
+              (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+                OracleComp HashSpec (Option Generic.Signature))).run cache >>=
+              Generic.Concrete.precomputedSignBoundedAttemptsContinuation attempts secretKey leafIndex
                 message] * raceCost S W weight result.1 ≤ f randomness := by
         intro randomness
         rw [tsum_probOutput_bind_mul]
         by_cases hcachedR : randomness ∈ cached
-        · obtain ⟨output, houtput⟩ : ∃ output, cache (Concrete.CacheView.encodingInput
+        · obtain ⟨output, houtput⟩ : ∃ output, cache (Generic.Concrete.CacheView.encodingInput
               secretKey.parameter leafIndex (message, randomness)) = some output := by
             have := hcachedR
             simp only [cached, cachedRandomizersAt, Finset.mem_filter, Finset.mem_univ,
@@ -217,10 +218,10 @@ theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : SecretKey)
             exact Option.ne_none_iff_exists'.mp this
           rw [Concrete.precomputedSignAttempt_run_cached secretKey leafIndex message randomness
             cache output houtput, tsum_probOutput_pure_mul]
-          cases hdecode : TargetSum.decodeDigest (truncateHash output) with
+          cases hdecode : Generic.Code.decodeDigest (Generic.truncateHash output) with
           | some encoding =>
-              simp only [Option.map_some, Concrete.precomputedSignBoundedAttemptsContinuation,
-                tsum_probOutput_pure_mul, raceCost, Concrete.precomputedSignWithEncoding]
+              simp only [Option.map_some, Generic.Concrete.precomputedSignBoundedAttemptsContinuation,
+                tsum_probOutput_pure_mul, raceCost, Generic.Concrete.precomputedSignWithEncoding]
               by_cases hS : randomness ∈ S
               · simp [f, hS]
                 exact le_add_right (le_add_right le_rfl)
@@ -237,50 +238,50 @@ theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : SecretKey)
                 rw [hencoding] at hdecode
                 simp at hdecode
               have hnotS : randomness ∉ S := fun hmem => hnotW (hSW hmem)
-              simp only [Option.map_none, Concrete.precomputedSignBoundedAttemptsContinuation]
+              simp only [Option.map_none, Generic.Concrete.precomputedSignBoundedAttemptsContinuation]
               refine (ih cache hW).trans ?_
               have hf : f randomness = bound := by
-                simp [f, hnotS, hnotW, hcachedR]
+                simp [f, hnotS, hnotW, hcachedR, code_acceptanceProbability]
               rw [hf]
               exact raceBound_mono_attempts S W weight _ (Nat.le_succ attempts)
-        · have hfresh : cache (Concrete.CacheView.encodingInput secretKey.parameter leafIndex
+        · have hfresh : cache (Generic.Concrete.CacheView.encodingInput secretKey.parameter leafIndex
               (message, randomness)) = none := by
             simpa [cached, cachedRandomizersAt] using hcachedR
           have hnotW : randomness ∉ W := fun hmem => hcachedR (hWcached hmem)
           have hnotS : randomness ∉ S := fun hmem => hnotW (hSW hmem)
-          rw [Concrete.precomputedSignAttempt_run_fresh secretKey leafIndex message randomness
+          rw [Generic.Concrete.precomputedSignAttempt_run_fresh secretKey leafIndex message randomness
             cache hfresh, tsum_probOutput_map_mul]
           calc
             _ ≤ ∑' output : HashOutput, Pr[= output | ($ᵗ HashOutput)] *
-                (if TargetSum.ValidDigest (truncateHash output) then 0 else bound) := by
+                (if Generic.Code.ValidDigest (Generic.truncateHash output) then 0 else bound) := by
               refine ENNReal.tsum_le_tsum fun output => mul_le_mul' le_rfl ?_
-              cases hdecode : TargetSum.decodeDigest (truncateHash output) with
+              cases hdecode : Generic.Code.decodeDigest (Generic.truncateHash output) with
               | some encoding =>
-                  have hvalid : TargetSum.ValidDigest (truncateHash output) := ⟨encoding, hdecode⟩
-                  simp [Concrete.precomputedSignBoundedAttemptsContinuation, raceCost,
-                    Concrete.precomputedSignWithEncoding, hnotS, hnotW, hvalid]
+                  have hvalid : Generic.Code.ValidDigest (Generic.truncateHash output) := ⟨encoding, hdecode⟩
+                  simp [Generic.Concrete.precomputedSignBoundedAttemptsContinuation, raceCost,
+                    Generic.Concrete.precomputedSignWithEncoding, hnotS, hnotW, hvalid]
               | none =>
-                  have hinvalid : ¬ TargetSum.ValidDigest (truncateHash output) := by
+                  have hinvalid : ¬ Generic.Code.ValidDigest (Generic.truncateHash output) := by
                     rintro ⟨encoding, hencoding⟩
                     rw [hencoding] at hdecode
                     simp at hdecode
-                  simp only [Option.map_none, Concrete.precomputedSignBoundedAttemptsContinuation,
+                  simp only [Option.map_none, Generic.Concrete.precomputedSignBoundedAttemptsContinuation,
                     if_neg hinvalid]
                   refine (ih _ fun other hother =>
                     (hW other hother).mono _ _ _ (QueryCache.le_cacheQuery _ hfresh)).trans (le_of_eq ?_)
                   rw [cachedRandomizersAt_cacheQuery, Finset.card_insert_of_notMem hcachedR,
                     raceBound_succ_cached]
-            _ = Pr[fun output : HashOutput => ¬ TargetSum.ValidDigest (truncateHash output) |
+            _ = Pr[fun output : HashOutput => ¬ Generic.Code.ValidDigest (Generic.truncateHash output) |
                   $ᵗ HashOutput] * bound := by
               rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
               refine tsum_congr fun output => ?_
-              by_cases hvalid : TargetSum.ValidDigest (truncateHash output) <;> simp [hvalid]
+              by_cases hvalid : Generic.Code.ValidDigest (Generic.truncateHash output) <;> simp [hvalid]
             _ = f randomness := by
-              rw [TargetSum.probEvent_invalidDigest_uniformHashOutput]
-              simp [f, hnotS, hnotW, hcachedR]
-      rw [Concrete.precomputedSignBoundedAttempts_run_succ_eq, tsum_probOutput_bind_mul]
+              rw [Generic.Code.probEvent_invalidDigest_uniformHashOutput]
+              simp [f, hnotS, hnotW, hcachedR, code_acceptanceProbability]
+      rw [Generic.Concrete.precomputedSignBoundedAttempts_run_succ_eq, tsum_probOutput_bind_mul]
       have hcard : (Fintype.card Randomness : ℝ≥0∞) = ((2 ^ randomnessBits : ℕ) : ℝ≥0∞) := by
-        rw [card_randomness]
+        rw [Generic.card_randomness]
       calc
         _ ≤ ∑' randomness : Randomness, (Fintype.card Randomness : ℝ≥0∞)⁻¹ * f randomness := by
           refine ENNReal.tsum_le_tsum fun randomness => ?_
@@ -298,7 +299,7 @@ theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : SecretKey)
                   ((1 - TargetSum.acceptanceProbability) * bound) := by
             simp only [f, Finset.sum_add_distrib, sum_indicator_const]
             rw [Finset.card_sdiff_of_subset hWcached, Finset.card_sdiff_of_subset
-              (Finset.subset_univ cached), Finset.card_univ, card_randomness]
+              (Finset.subset_univ cached), Finset.card_univ, Generic.card_randomness]
             ring
           rw [tsum_fintype, ← Finset.mul_sum, hsum]
         _ ≤ (Fintype.card Randomness : ℝ≥0∞)⁻¹ *
@@ -311,7 +312,7 @@ theorem precomputedSignBoundedAttempts_expectedCost_le (secretKey : SecretKey)
             have := Finset.card_le_card hSW
             omega
           · have := Finset.card_le_univ cached
-            rw [card_randomness] at this
+            rw [Generic.card_randomness] at this
             exact this
           · exact_mod_cast Nat.sub_le _ _
         _ = bound := by

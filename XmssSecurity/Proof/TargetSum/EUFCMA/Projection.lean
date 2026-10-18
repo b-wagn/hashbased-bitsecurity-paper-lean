@@ -1,7 +1,8 @@
 import XmssSecurity.Proof.Common.EUFCMA.Modes
 import XmssSecurity.Proof.Common.Modes.Direct
-import XmssSecurity.Proof.TargetSum.Direct.Bridge
-
+import XmssSecurity.Proof.Generic.Direct.Bridge
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Forgetting charges recovers the uncounted standard-forgery game. -/
 
 open OracleComp OracleSpec ENNReal
@@ -24,7 +25,7 @@ theorem map_fst_gameCounted_direct [DecidableEq Msg] (cost : spec.Domain → ℕ
     Modes.impl_direct_eq, bind_map_left, map_bind, map_pure, zero_add, add_zero]
   apply bind_congr
   rintro ⟨pk, sk⟩
-  exact Security.bind_map_fst_eq _ _ _ (fun result => do
+  exact Generic.Security.bind_map_fst_eq _ _ _ (fun result => do
     let verified ← scheme.verify pk result.1.epoch result.1.message result.1.signature
     pure (decide (SUFCMA.SigningTranscript.Valid result.2 ∧
       ¬SigningTranscript.ContainsRequest result.2 result.1) && verified))

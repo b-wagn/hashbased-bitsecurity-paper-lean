@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.TargetSum.Direct.CollisionStatistics
 import XmssSecurity.Proof.TargetSum.Direct.CollisionMath
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-!
 # The collision potential of an epoch
@@ -114,19 +116,19 @@ theorem leafMain_C_mono {K V C C' : ℝ} (hC : C ≤ C') :
 /-! ### One fresh query at an epoch -/
 
 theorem probEvent_validDigest_uniformHashOutput' :
-    Pr[fun output : HashOutput => TargetSum.ValidDigest (truncateHash output) | $ᵗ HashOutput] =
+    Pr[fun output : HashOutput => Generic.Code.ValidDigest (Generic.truncateHash output) | $ᵗ HashOutput] =
       TargetSum.acceptanceProbability := by
-  change Pr[TargetSum.ValidDigest ∘ truncateHash | $ᵗ HashOutput] = _
-  rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput,
+  change Pr[Generic.Code.ValidDigest ∘ Generic.truncateHash | $ᵗ HashOutput] = _
+  rw [← probEvent_map, probEvent_def, Generic.Rom.evalDist_truncate_uniformHashOutput,
     ← probEvent_def]
   exact TargetSum.probEvent_validDigest_uniform
 
 theorem probEvent_truncate_mem (T : Set Digest) :
-    Pr[fun output : HashOutput => truncateHash output ∈ T | $ᵗ HashOutput] =
+    Pr[fun output : HashOutput => Generic.truncateHash output ∈ T | $ᵗ HashOutput] =
       (T.ncard : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   classical
-  change Pr[(· ∈ T) ∘ truncateHash | $ᵗ HashOutput] = _
-  rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput,
+  change Pr[(· ∈ T) ∘ Generic.truncateHash | $ᵗ HashOutput] = _
+  rw [← probEvent_map, probEvent_def, Generic.Rom.evalDist_truncate_uniformHashOutput,
     ← probEvent_def, probEvent_uniformSample]
   have hset : ((Finset.univ.filter fun digest : Digest => digest ∈ T : Finset Digest) :
       Set Digest) = T := by
@@ -157,14 +159,14 @@ theorem tsum_uniform_const (value : ℝ≥0∞) :
   rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' (probFailure_uniformSample _), one_mul]
 
 theorem probEvent_invalid_eq :
-    Pr[fun output : HashOutput => ¬ TargetSum.ValidDigest (truncateHash output) | $ᵗ HashOutput] =
+    Pr[fun output : HashOutput => ¬ Generic.Code.ValidDigest (Generic.truncateHash output) | $ᵗ HashOutput] =
       ENNReal.ofReal (1 - realP) := by
-  rw [TargetSum.probEvent_invalidDigest_uniformHashOutput, ENNReal.ofReal_sub _ realP_pos.le,
-    ENNReal.ofReal_one, ofReal_realP]
+  rw [Generic.Code.probEvent_invalidDigest_uniformHashOutput, code_acceptanceProbability,
+    ENNReal.ofReal_sub _ realP_pos.le, ENNReal.ofReal_one, ofReal_realP]
 
 theorem validDigest_of_mem_validDigests {cache : QueryCache HashSpec} {leafIndex : LeafIndex}
     {digest : Digest} (h : digest ∈ validDigests parameter cache leafIndex) :
-    TargetSum.ValidDigest digest := by
+    Generic.Code.ValidDigest digest := by
   obtain ⟨entry, hentry, hdigest⟩ := h
   obtain ⟨output, hcache, hvalid⟩ := mem_validEntries.mp hentry
   simp only [hcache, Option.getD_some] at hdigest
@@ -217,8 +219,8 @@ theorem expected_leafPotential_cacheQuery_le (hq : q + 1 ≤ 2 ^ 127)
   -- the potential after one output
   have hafter : ∀ output, leafPotential q parameter
       (cache.cacheQuery (input parameter leafIndex fresh) output) leafIndex ≤
-        (if TargetSum.ValidDigest (truncateHash output) then A1 else A0) +
-          (if truncateHash output ∈ validDigests parameter cache leafIndex then
+        (if Generic.Code.ValidDigest (Generic.truncateHash output) then A1 else A0) +
+          (if Generic.truncateHash output ∈ validDigests parameter cache leafIndex then
             2 / (realP * realD) else 0) + R := by
     intro output
     set cache' := cache.cacheQuery (input parameter leafIndex fresh) output
@@ -243,11 +245,11 @@ theorem expected_leafPotential_cacheQuery_le (hq : q + 1 ≤ 2 ^ 127)
     rw [hsum cache', hrest, hKa, hVa]
     simp only [term]
     rw [hna, hva]
-    have hhitValid : truncateHash output ∈ validDigests parameter cache leafIndex →
-        TargetSum.ValidDigest (truncateHash output) := validDigest_of_mem_validDigests
-    by_cases hvalid : TargetSum.ValidDigest (truncateHash output)
+    have hhitValid : Generic.truncateHash output ∈ validDigests parameter cache leafIndex →
+        Generic.Code.ValidDigest (Generic.truncateHash output) := validDigest_of_mem_validDigests
+    by_cases hvalid : Generic.Code.ValidDigest (Generic.truncateHash output)
     · simp only [hvalid, if_true]
-      by_cases hhit : truncateHash output ∈ validDigests parameter cache leafIndex
+      by_cases hhit : Generic.truncateHash output ∈ validDigests parameter cache leafIndex
       · simp only [hhit, if_true] at hCa ⊢
         have := leafMain_C_mono (q := q) (K := K + 1) (V := V + 1) hCa
         rw [leafMain_C_add] at this
@@ -255,14 +257,14 @@ theorem expected_leafPotential_cacheQuery_le (hq : q + 1 ≤ 2 ^ 127)
       · simp only [hhit, if_false, add_zero] at hCa ⊢
         have := leafMain_C_mono (q := q) (K := K + 1) (V := V + 1) hCa
         linarith
-    · have hhit : truncateHash output ∉ validDigests parameter cache leafIndex :=
+    · have hhit : Generic.truncateHash output ∉ validDigests parameter cache leafIndex :=
         fun hmem => hvalid (hhitValid hmem)
       simp only [hvalid, hhit, if_false, add_zero] at hCa ⊢
       have := leafMain_C_mono (q := q) (K := K + 1) (V := V) hCa
       linarith
   -- the expectation of the bound
   set hitProb : ℝ≥0∞ := Pr[fun output : HashOutput =>
-    truncateHash output ∈ validDigests parameter cache leafIndex | $ᵗ HashOutput]
+    Generic.truncateHash output ∈ validDigests parameter cache leafIndex | $ᵗ HashOutput]
   have hhitProb : hitProb = ENNReal.ofReal
       ((validDigests parameter cache leafIndex).ncard / realN) := by
     simp only [hitProb]
@@ -277,9 +279,9 @@ theorem expected_leafPotential_cacheQuery_le (hq : q + 1 ≤ 2 ^ 127)
       (leafIndex := leafIndex)
   calc
     _ ≤ ∑' output, Pr[= output | $ᵗ HashOutput] *
-          ((if TargetSum.ValidDigest (truncateHash output) then ENNReal.ofReal A1
+          ((if Generic.Code.ValidDigest (Generic.truncateHash output) then ENNReal.ofReal A1
               else ENNReal.ofReal A0) +
-            (if truncateHash output ∈ validDigests parameter cache leafIndex then
+            (if Generic.truncateHash output ∈ validDigests parameter cache leafIndex then
               ENNReal.ofReal (2 / (realP * realD)) else 0) + ENNReal.ofReal R) := by
       refine ENNReal.tsum_le_tsum fun output => mul_le_mul' le_rfl ?_
       refine (ENNReal.ofReal_le_ofReal (hafter output)).trans ?_
@@ -294,7 +296,7 @@ theorem expected_leafPotential_cacheQuery_le (hq : q + 1 ≤ 2 ^ 127)
       rw [ENNReal.tsum_add, ENNReal.tsum_add, tsum_uniform_ite, tsum_uniform_ite,
         tsum_uniform_const, probEvent_validDigest_uniformHashOutput', probEvent_invalid_eq]
       have hzero : Pr[fun output : HashOutput =>
-          ¬ truncateHash output ∈ validDigests parameter cache leafIndex | $ᵗ HashOutput] * 0 = 0 :=
+          ¬ Generic.truncateHash output ∈ validDigests parameter cache leafIndex | $ᵗ HashOutput] * 0 = 0 :=
         mul_zero _
       rw [hzero, add_zero]
     _ = ENNReal.ofReal (realP * A1 + (1 - realP) * A0 +

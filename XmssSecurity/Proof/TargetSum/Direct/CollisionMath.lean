@@ -1,4 +1,6 @@
 import Mathlib
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-!
 # The arithmetic of the collision potential

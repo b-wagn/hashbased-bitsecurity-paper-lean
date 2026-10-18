@@ -3,6 +3,8 @@ import XmssSecurity.Proof.TargetSum.EUFCMA.QueriedStructural
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReferenceHop
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReplayAccounting
 import XmssSecurity.Proof.TargetSum.Direct.CollisionLoss
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Exact 126-bit standard unforgeability when only direct queries are counted.
 The fresh-encoding gate pays for the terminal probe, including the one-query case. -/
@@ -20,15 +22,15 @@ noncomputable def directFreshLoss (D : ℕ) : ℝ≥0∞ :=
     ((D + 1 + 2 ^ 86 : ℕ) : ℝ≥0∞) * ((D + 1 : ℕ) : ℝ≥0∞) / ((2 ^ 256 : ℕ) : ℝ≥0∞) +
     D / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
-theorem reference_advantage_add_seed_loss_le_fresh (adversary : XmssSecurity.TargetSum.Adversary) (D : ℕ)
-    (hD : IsDirectQueryBound adversary D) (hsmall : D + 2 ≤ 2 ^ 127) :
-    forgeAdvantage Concrete.scheme adversary + D / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤ directFreshLoss D := by
-  have hqueried := withForgedEncodingQuery_isDirectQueryBound adversary D hD
+theorem reference_advantage_add_seed_loss_le_fresh (adversary : Generic.Adversary) (D : ℕ)
+    (hD : Generic.Direct.IsDirectQueryBound adversary D) (hsmall : D + 2 ≤ 2 ^ 127) :
+    forgeAdvantage Generic.Concrete.scheme adversary + D / ((2 ^ 256 : ℕ) : ℝ≥0∞) ≤ directFreshLoss D := by
+  have hqueried := Generic.Direct.withForgedEncodingQuery_isDirectQueryBound adversary D hD
   rw [← forgeAdvantage_withForgedEncodingQuery adversary]
-  have hbound := (forgeAdvantage_le_fresh_deciding_lanes (withForgedEncodingQuery adversary)).trans
+  have hbound := (forgeAdvantage_le_fresh_deciding_lanes (Generic.Direct.withForgedEncodingQuery adversary)).trans
     (add_le_add (freshFirstLane_withForgedEncodingQuery_probability_le adversary D hD)
       (add_le_add (winningEncodingPrehit_probability_le_direct_collision
-          (withForgedEncodingQuery adversary) (D + 1) hqueried (by omega))
+          (Generic.Direct.withForgedEncodingQuery adversary) (D + 1) hqueried (by omega))
         (secondLane_withForgedEncodingQuery_le adversary D hD)))
   apply (add_le_add hbound le_rfl).trans_eq
   simp only [directFreshLoss, Nat.cast_add, Nat.cast_mul, Nat.cast_one, div_eq_mul_inv]
@@ -54,7 +56,7 @@ theorem directFreshLoss_le_126 (D : ℕ) (hD : 1 ≤ D) (hsmall : D + 2 ≤ 2 ^ 
   push_cast
   nlinarith
 
-theorem direct_126 : (EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss 126 := by
+theorem direct_126 : (EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits Generic.xmss 126 := by
   apply direct_security_of_reference_bound
   intro adversary D hD hbound
   by_cases hlarge : 2 ^ 127 ≤ D + 2

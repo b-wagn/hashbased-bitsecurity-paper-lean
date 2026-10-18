@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.TargetSum.Direct.DecidingSecondLaneAccepted
-import XmssSecurity.Proof.TargetSum.Direct.ForgedEncodingQuery
-
+import XmssSecurity.Proof.Generic.Direct.ForgedEncodingQuery
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Moving the verifier's encoding query into the prefix preserves structural cost.
 Only a fresh query can create an accepted encoding in a rejecting prefix cache. -/
 
@@ -29,46 +30,46 @@ theorem hasAcceptedEncoding_randomOracle_probability_le (parameter : PublicParam
       rw [if_neg (by simp), QueryImpl.withCaching_run_some _ hcache]
       simp [haccepted]
 
-theorem adversaryPhase_withForgedEncodingQuery_eq (adversary : Adversary)
-    (publicKey : PublicKey) (secretKey : SecretKey) :
-    Deciding.adversaryPhase (withForgedEncodingQuery adversary) publicKey secretKey =
+theorem adversaryPhase_withForgedEncodingQuery_eq (adversary : Generic.Adversary)
+    (publicKey : PublicKey) (secretKey : Generic.SecretKey) :
+    Generic.Deciding.adversaryPhase (Generic.Direct.withForgedEncodingQuery adversary) publicKey secretKey =
       (do
-        let result ← Deciding.adversaryPhase adversary publicKey secretKey
-        let _ ← liftM (OracleWorld.query (.inr (forgeryEncodingInput publicKey result.1)))
+        let result ← Generic.Deciding.adversaryPhase adversary publicKey secretKey
+        let _ ← liftM (OracleWorld.query (.inr (Generic.Direct.forgeryEncodingInput publicKey result.1)))
         pure result) :=
-  run_simulateQ_withForgedEncodingQuery adversary secretKey publicKey
+  Generic.Direct.run_simulateQ_withForgedEncodingQuery adversary secretKey publicKey
 
-theorem expectedStructuralQueries_withForgedEncodingQuery_eq (adversary : Adversary)
-    (publicKey : PublicKey) (secretKey : SecretKey) (hparameter : publicKey.parameter = secretKey.parameter)
+theorem expectedStructuralQueries_withForgedEncodingQuery_eq (adversary : Generic.Adversary)
+    (publicKey : PublicKey) (secretKey : Generic.SecretKey) (hparameter : publicKey.parameter = secretKey.parameter)
     (targetCache initialCache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount romImpl
-      (Rom.IsRelevantHashQuery fun input => keygenStructuralTargetInput secretKey targetCache input ≠ input)
-      (Deciding.adversaryPhase (withForgedEncodingQuery adversary) publicKey secretKey) initialCache =
-    expectedSimulatedQueryCount romImpl
-      (Rom.IsRelevantHashQuery fun input => keygenStructuralTargetInput secretKey targetCache input ≠ input)
-      (Deciding.adversaryPhase adversary publicKey secretKey) initialCache := by
+    expectedSimulatedQueryCount Generic.romImpl
+      (Generic.Rom.IsRelevantHashQuery fun input => Generic.keygenStructuralTargetInput secretKey targetCache input ≠ input)
+      (Generic.Deciding.adversaryPhase (Generic.Direct.withForgedEncodingQuery adversary) publicKey secretKey) initialCache =
+    expectedSimulatedQueryCount Generic.romImpl
+      (Generic.Rom.IsRelevantHashQuery fun input => Generic.keygenStructuralTargetInput secretKey targetCache input ≠ input)
+      (Generic.Deciding.adversaryPhase adversary publicKey secretKey) initialCache := by
   rw [adversaryPhase_withForgedEncodingQuery_eq, expectedSimulatedQueryCount_bind]
-  have htail (result : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec) :
-      expectedSimulatedQueryCount romImpl
-        (Rom.IsRelevantHashQuery fun input => keygenStructuralTargetInput secretKey targetCache input ≠ input)
-        (liftM (OracleWorld.query (.inr (forgeryEncodingInput publicKey result.1.1))) >>=
+  have htail (result : (Generic.Forgery × QueryLog Generic.SigningSpec) × QueryCache HashSpec) :
+      expectedSimulatedQueryCount Generic.romImpl
+        (Generic.Rom.IsRelevantHashQuery fun input => Generic.keygenStructuralTargetInput secretKey targetCache input ≠ input)
+        (liftM (OracleWorld.query (.inr (Generic.Direct.forgeryEncodingInput publicKey result.1.1))) >>=
           fun _ => pure result.1) result.2 = 0 := by
     rw [expectedSimulatedQueryCount_query_bind]
-    simp [forgeryEncodingInput, hparameter, Rom.IsRelevantHashQuery,
-      keygenStructuralTargetInput_encodingInput]
+    simp [Generic.Direct.forgeryEncodingInput, hparameter, Generic.Rom.IsRelevantHashQuery,
+      Generic.keygenStructuralTargetInput_encodingInput]
   simp_rw [htail, mul_zero]
   rw [tsum_zero, add_zero]
 
-theorem acceptedPrefix_withForgedEncodingQuery_probability_le (adversary : Adversary)
-    (publicKey : PublicKey) (secretKey : SecretKey) (initialCache : QueryCache HashSpec) :
+theorem acceptedPrefix_withForgedEncodingQuery_probability_le (adversary : Generic.Adversary)
+    (publicKey : PublicKey) (secretKey : Generic.SecretKey) (initialCache : QueryCache HashSpec) :
     Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2 |
-      (simulateQ romImpl (Deciding.adversaryPhase (withForgedEncodingQuery adversary) publicKey secretKey)).run
+      (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase (Generic.Direct.withForgedEncodingQuery adversary) publicKey secretKey)).run
         initialCache] ≤
       Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2 |
-        (simulateQ romImpl (Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache] +
+        (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache] +
       TargetSum.acceptanceProbability * Pr[fun result =>
-        result.2 (forgeryEncodingInput publicKey result.1.1) = none |
-        (simulateQ romImpl (Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache] := by
+        result.2 (Generic.Direct.forgeryEncodingInput publicKey result.1.1) = none |
+        (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache] := by
   rw [adversaryPhase_withForgedEncodingQuery_eq, simulateQ_bind, StateT.run_bind,
     probEvent_bind_eq_tsum, probEvent_eq_tsum_ite, probEvent_eq_tsum_ite,
     ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
@@ -77,26 +78,26 @@ theorem acceptedPrefix_withForgedEncodingQuery_probability_le (adversary : Adver
   rw [simulateQ_bind, StateT.run_bind, simulateQ_spec_query]
   simp only [simulateQ_pure, StateT.run_pure, bind_pure_comp, probEvent_map]
   have h := mul_le_mul' (le_refl (Pr[= result |
-      (simulateQ romImpl (Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache]))
+      (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache]))
     (hasAcceptedEncoding_randomOracle_probability_le secretKey.parameter
-      (forgeryEncodingInput publicKey result.1.1) result.2)
+      (Generic.Direct.forgeryEncodingInput publicKey result.1.1) result.2)
   apply h.trans_eq
   rw [mul_add]
   congr 1
   · split_ifs <;> simp only [mul_one, mul_zero]
   · split_ifs <;> simp only [mul_zero, zero_mul, mul_comm]
 
-theorem acceptedPrefix_withForgedEncodingQuery_probability_le_expected (adversary : Adversary)
-    (publicKey : PublicKey) (secretKey : SecretKey) (initialCache : QueryCache HashSpec)
+theorem acceptedPrefix_withForgedEncodingQuery_probability_le_expected (adversary : Generic.Adversary)
+    (publicKey : PublicKey) (secretKey : Generic.SecretKey) (initialCache : QueryCache HashSpec)
     (hcache : ¬HasAcceptedEncoding secretKey.parameter initialCache) :
     Pr[fun result => HasAcceptedEncoding secretKey.parameter result.2 |
-      (simulateQ romImpl (Deciding.adversaryPhase (withForgedEncodingQuery adversary) publicKey secretKey)).run
+      (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase (Generic.Direct.withForgedEncodingQuery adversary) publicKey secretKey)).run
         initialCache] ≤
       TargetSum.acceptanceProbability *
-        (expectedSimulatedQueryCount romImpl (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
-          (Deciding.adversaryPhase adversary publicKey secretKey) initialCache +
-        Pr[fun result => result.2 (forgeryEncodingInput publicKey result.1.1) = none |
-          (simulateQ romImpl (Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache]) := by
+        (expectedSimulatedQueryCount Generic.romImpl (Generic.CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
+          (Generic.Deciding.adversaryPhase adversary publicKey secretKey) initialCache +
+        Pr[fun result => result.2 (Generic.Direct.forgeryEncodingInput publicKey result.1.1) = none |
+          (simulateQ Generic.romImpl (Generic.Deciding.adversaryPhase adversary publicKey secretKey)).run initialCache]) := by
   rw [mul_add]
   exact (acceptedPrefix_withForgedEncodingQuery_probability_le adversary publicKey secretKey initialCache).trans
     (add_le_add (probEvent_hasAcceptedEncoding_le_expectedQueries _ _ _ hcache) le_rfl)

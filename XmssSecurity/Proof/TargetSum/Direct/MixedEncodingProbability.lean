@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.Direct.MixedEncodingProbeBound
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Average the joint prefix bound over a fresh hash output. Cached and fresh
 encodings share one prefix budget, and the fallback probe pays only its acceptance rate. -/
@@ -13,43 +15,43 @@ namespace XmssSecurity.TargetSum.Deciding
 open CappedChain FirstLaneOracleSimulation
 
 abbrev MixedEncodingPrefixResult :=
-  (ProgrammedGlobalChainKeygenView × (Forgery × SourceExactTracedState)) × HashOutput
+  (Generic.CappedChain.ProgrammedGlobalChainKeygenView × (Generic.Forgery × Generic.CappedChain.SourceExactTracedState)) × HashOutput
 
-noncomputable def mixedEncodingPrefixProgram (adversary : Adversary) : ProbComp MixedEncodingPrefixResult := do
+noncomputable def mixedEncodingPrefixProgram (adversary : Generic.Adversary) : ProbComp MixedEncodingPrefixResult := do
   let output ← ($ᵗ HashOutput)
-  let prefixPair ← sourcePrefixProgram adversary
+  let prefixPair ← Generic.Deciding.sourcePrefixProgram adversary
   pure (prefixPair, output)
 
-noncomputable def mixedEncodingPrefixProbability (adversary : Adversary) : ℝ≥0∞ :=
+noncomputable def mixedEncodingPrefixProbability (adversary : Generic.Adversary) : ℝ≥0∞ :=
   Pr[fun pair => MixedEncodingPrefixEvent pair.1.1 pair.1.2
-    (TargetSum.decodeDigest (truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
+    (Generic.Code.decodeDigest (Generic.truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
 
-theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
-    (hbudget : ∀ key ∈ support trajectoryProgrammedGlobalChainKeygen,
-      CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey)
+theorem mixedEncodingPrefixProbability_le (adversary : Generic.Adversary) (limit : Nat)
+    (hbudget : ∀ key ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen,
+      CountedSourceBudget (Generic.Concrete.materializePrecomputation key.cache key.secretKey)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     mixedEncodingPrefixProbability adversary ≤
       (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ * (TargetSum.acceptanceProbability *
-          (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
+          (Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary) +
             TargetSum.acceptanceProbability) := by
   let base := (limit : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)
   let rate := ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹
   let credit := TargetSum.acceptanceProbability *
-    (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)
+    (Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)
   unfold mixedEncodingPrefixProbability mixedEncodingPrefixProgram
   rw [probEvent_bind_eq_tsum]
   calc
     _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-        (base + rate * (credit + if TargetSum.ValidDigest (truncateHash output) then 1 else 0)) := by
+        (base + rate * (credit + if Generic.Code.ValidDigest (Generic.truncateHash output) then 1 else 0)) := by
       apply ENNReal.tsum_le_tsum
       intro output
       apply mul_le_mul' le_rfl
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
       have h := mixedEncodingPrefixEvent_probability_le_source_credit adversary limit hbudget
-        (TargetSum.decodeDigest (truncateHash output))
-      have hvalid : (TargetSum.decodeDigest (truncateHash output)).isSome ↔
-          TargetSum.ValidDigest (truncateHash output) := Option.isSome_iff_exists
+        (Generic.Code.decodeDigest (Generic.truncateHash output))
+      have hvalid : (Generic.Code.decodeDigest (Generic.truncateHash output)).isSome ↔
+          Generic.Code.ValidDigest (Generic.truncateHash output) := Option.isSome_iff_exists
       simp only [hvalid] at h
       exact h
     _ = base + rate * (credit + TargetSum.acceptanceProbability) := by

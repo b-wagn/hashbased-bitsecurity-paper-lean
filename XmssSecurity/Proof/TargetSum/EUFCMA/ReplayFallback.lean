@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReplayCollision
 import XmssSecurity.Proof.TargetSum.EUFCMA.SigningSuccess
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! A single encoding probe selects a valid candidate, or falls back to a second
 fresh message. Verification supplies the fallback encoding query. -/
@@ -14,11 +16,11 @@ open XmssSecurity.EUFCMA
 open Concrete Attack
 
 noncomputable def replayFallbackExperiment (publicKey : PublicKey) (leafIndex : LeafIndex)
-    (candidate fallback : Message) (signature : Signature) (cache : QueryCache HashSpec) : ProbComp Bool := do
-  let probe ← (randomOracle (CacheView.encodingInput publicKey.parameter leafIndex
+    (candidate fallback : Message) (signature : Generic.Signature) (cache : QueryCache HashSpec) : ProbComp Bool := do
+  let probe ← (randomOracle (Generic.Concrete.CacheView.encodingInput publicKey.parameter leafIndex
     (candidate, signature.randomness))).run cache
-  let message := if TargetSum.ValidDigest (truncateHash probe.1) then candidate else fallback
-  let result ← (simulateQ randomOracle (verify publicKey leafIndex message signature :
+  let message := if Generic.Code.ValidDigest (Generic.truncateHash probe.1) then candidate else fallback
+  let result ← (simulateQ randomOracle (Generic.Concrete.verify publicKey leafIndex message signature :
     OracleComp HashSpec Bool)).run probe.2
   return result.1
 
@@ -28,51 +30,52 @@ noncomputable def replayFallbackRate : ℝ≥0∞ :=
 theorem replayFallbackScore_average (target : Digest) :
     (∑' output, Pr[= output | $ᵗ HashOutput] *
       (replayScore target output +
-        if ¬ TargetSum.ValidDigest (truncateHash output) then replayCollisionRate else 0)) =
+        if ¬ Generic.Code.ValidDigest (Generic.truncateHash output) then replayCollisionRate else 0)) =
       replayFallbackRate := by
   classical
   simp_rw [mul_add]
   rw [ENNReal.tsum_add, replayScore_average]
   unfold replayFallbackRate
   congr 1
-  rw [← TargetSum.probEvent_invalidDigest_uniformHashOutput, probEvent_eq_tsum_ite,
+  rw [← code_acceptanceProbability, ← Generic.Code.probEvent_invalidDigest_uniformHashOutput,
+    probEvent_eq_tsum_ite,
     ← ENNReal.tsum_mul_right]
   apply tsum_congr
   intro output
-  by_cases hvalid : TargetSum.ValidDigest (truncateHash output) <;> simp [hvalid]
+  by_cases hvalid : Generic.Code.ValidDigest (Generic.truncateHash output) <;> simp [hvalid]
 
 theorem replayFallbackExperiment_lower
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (candidate fallback : Message) (hne : fallback ≠ candidate)
-    (encoding : Encoding) (hvalid : TargetSum.Valid encoding) (randomness : Randomness)
+    (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) (randomness : Randomness)
     (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
     (hroot : RootCache keyResult.1.2.parameter leafIndex keyResult.1.1.root cache)
-    (hcandidate : cache (CacheView.encodingInput keyResult.1.2.parameter leafIndex
+    (hcandidate : cache (Generic.Concrete.CacheView.encodingInput keyResult.1.2.parameter leafIndex
       (candidate, randomness)) = none)
-    (hfallback : cache (CacheView.encodingInput keyResult.1.2.parameter leafIndex
+    (hfallback : cache (Generic.Concrete.CacheView.encodingInput keyResult.1.2.parameter leafIndex
       (fallback, randomness)) = none) :
     replayFallbackRate ≤ Pr[= true | replayFallbackExperiment keyResult.1.1 leafIndex candidate fallback
-      (CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness encoding) cache] := by
+      (Generic.Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness encoding) cache] := by
   classical
-  have hparameter := Deciding.keygen_publicKey_parameter_eq keyResult hkey
-  have htarget : TargetSum.ValidDigest (digestOfEncoding encoding) :=
+  have hparameter := Generic.Deciding.keygen_publicKey_parameter_eq keyResult hkey
+  have htarget : Generic.Code.ValidDigest (digestOfEncoding encoding) :=
     ⟨encoding, digestOfEncoding_decode encoding hvalid⟩
   unfold replayFallbackExperiment
-  change replayFallbackRate ≤ Pr[= true | (randomOracle (CacheView.encodingInput keyResult.1.1.parameter
+  change replayFallbackRate ≤ Pr[= true | (randomOracle (Generic.Concrete.CacheView.encodingInput keyResult.1.1.parameter
     leafIndex (candidate, randomness))).run cache >>= _]
-  rw [hparameter, randomOracle_run_none_eq_uniformHashOutput _ _ hcandidate,
-    uniformHashOutput, bind_map_left, ← probEvent_eq_eq_probOutput, probEvent_bind_eq_tsum,
+  rw [hparameter, Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcandidate,
+    Generic.uniformHashOutput, bind_map_left, ← probEvent_eq_eq_probOutput, probEvent_bind_eq_tsum,
     ← replayFallbackScore_average (digestOfEncoding encoding)]
   apply ENNReal.tsum_le_tsum
   intro output
   apply mul_le_mul' le_rfl
   simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-  by_cases haccepted : TargetSum.ValidDigest (truncateHash output)
+  by_cases haccepted : Generic.Code.ValidDigest (Generic.truncateHash output)
   · simp only [haccepted, if_true, not_true_eq_false, if_false, add_zero]
     exact replayScore_le_cached_verification keyResult hkey leafIndex candidate encoding hvalid randomness
       cache hle hroot hcandidate output
-  · have hmiss : truncateHash output ≠ digestOfEncoding encoding := fun heq => haccepted (heq ▸ htarget)
+  · have hmiss : Generic.truncateHash output ≠ digestOfEncoding encoding := fun heq => haccepted (heq ▸ htarget)
     simp only [replayScore, haccepted, hmiss, if_false, not_false_eq_true, if_true, zero_add]
     apply verify_fresh_replay_probability_ge keyResult hkey leafIndex fallback encoding hvalid randomness
     · exact hle.trans (QueryCache.le_cacheQuery cache hcandidate)
@@ -80,47 +83,47 @@ theorem replayFallbackExperiment_lower
     · rw [QueryCache.cacheQuery_of_ne]
       · exact hfallback
       · intro heq
-        exact hne (congrArg Prod.fst (CacheView.encodingInput_eq_iff _ _ _ _ _ |>.mp heq).2)
+        exact hne (congrArg Prod.fst (Generic.Concrete.CacheView.encodingInput_eq_iff _ _ _ _ _ |>.mp heq).2)
 
 theorem encodingInput_fresh_after_signing
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (answer : Option Signature) (signCache : QueryCache HashSpec)
-    (hsign : (answer, signCache) ∈ support ((simulateQ romImpl
-      (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (request : Generic.SignRequest) (answer : Option Generic.Signature) (signCache : QueryCache HashSpec)
+    (hsign : (answer, signCache) ∈ support ((simulateQ Generic.romImpl
+      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
     (message : Message) (hne : message ≠ request.message) (randomness : Randomness) :
-    signCache (CacheView.encodingInput keyResult.1.2.parameter request.epoch (message, randomness)) = none := by
-  rw [precomputedCappedSign] at hsign
-  have hagree := precomputedSignBoundedAttempts_preserves_unqueriedInput signingAttemptLimit
+    signCache (Generic.Concrete.CacheView.encodingInput keyResult.1.2.parameter request.epoch (message, randomness)) = none := by
+  rw [Generic.Concrete.precomputedCappedSign] at hsign
+  have hagree := Generic.Concrete.precomputedSignBoundedAttempts_preserves_unqueriedInput signingAttemptLimit
     keyResult.1.2 request.epoch request.message
-    (CacheView.encodingInput keyResult.1.2.parameter request.epoch (message, randomness)) (by
+    (Generic.Concrete.CacheView.encodingInput keyResult.1.2.parameter request.epoch (message, randomness)) (by
       intro signingRandomness heq
-      have hpair := CacheView.encodingInput_injective keyResult.1.2.parameter request.epoch heq
+      have hpair := Generic.Concrete.CacheView.encodingInput_injective keyResult.1.2.parameter request.epoch heq
       exact hne (congrArg Prod.fst hpair).symm)
     keyResult.2 signCache answer hsign
   rw [hagree]
-  exact precomputedKeygen_cache_none_encodingInput keyResult hkey request.epoch _
+  exact Generic.Concrete.precomputedKeygen_cache_none_encodingInput keyResult hkey request.epoch _
 
 noncomputable def signedReplayFallbackExperiment
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (request : SignRequest) (candidate fallback : Message) : ProbComp Bool := do
-  let result ← (simulateQ romImpl
-    (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (request : Generic.SignRequest) (candidate fallback : Message) : ProbComp Bool := do
+  let result ← (simulateQ Generic.romImpl
+    (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   match result.1 with
   | none => pure false
   | some original => replayFallbackExperiment keyResult.1.1 request.epoch candidate fallback original result.2
 
 theorem signedReplayFallbackExperiment_lower
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (candidate fallback : Message)
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (request : Generic.SignRequest) (candidate fallback : Message)
     (hcandidate : candidate ≠ request.message) (hfallback : fallback ≠ request.message)
     (hne : fallback ≠ candidate) :
     (131071 / 131072 : ℝ≥0∞) * replayFallbackRate ≤
       Pr[= true | signedReplayFallbackExperiment keyResult request candidate fallback] := by
   classical
-  let signing := (simulateQ romImpl
-    (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
+  let signing := (simulateQ Generic.romImpl
+    (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc
     _ ≤ Pr[fun result => result.1 ≠ none | signing] * replayFallbackRate :=
       mul_le_mul' (signing_success_gt_131071_over_131072 keyResult hkey request.epoch request.message).le le_rfl
@@ -134,14 +137,15 @@ theorem signedReplayFallbackExperiment_lower
       · cases answer with
         | none => simp
         | some original =>
-            obtain ⟨encoding, hdecode, hreplay⟩ := signing_success_replay_at_keygen keyResult hkey
+            obtain ⟨encoding, hdecoded, hreplay⟩ := Generic.Attack.signing_success_replay_at_keygen keyResult hkey
               request original signCache hmem
+            have hdecode := Generic.Concrete.CacheView.decodeDigest_of_decodedEncoding hdecoded
             simp only [ne_eq, Option.some_ne_none, not_false_eq_true, if_true]
             apply mul_le_mul' le_rfl
             rw [hreplay]
             apply replayFallbackExperiment_lower keyResult hkey request.epoch candidate fallback hne
               encoding (TargetSum.decodeDigest_eq_some_iff.mp hdecode).2 original.randomness signCache
-            · exact xmssRom_cache_le _ keyResult.2 (some original, signCache) hmem
+            · exact Generic.xmssRom_cache_le _ keyResult.2 (some original, signCache) hmem
             · exact rootCache_after_signing keyResult.1.2 request.epoch keyResult.1.1.root request
                 (some original) keyResult.2 signCache (rootCache_after_keygen keyResult hkey request.epoch) hmem
             · exact encodingInput_fresh_after_signing keyResult hkey request

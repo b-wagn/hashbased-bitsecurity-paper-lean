@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.EUFCMA.RequestsActivity
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! A nonempty signing transcript is paid for by the expected request count,
 including requests that return no signature. -/
@@ -12,35 +14,35 @@ open XmssSecurity.EUFCMA
 
 open Concrete CappedChain Deciding
 
-theorem signingCount_append_fragment (trace : CappedChain.AttackerActionTrace)
-    (input : (OracleWorld + SigningSpec).Domain) (answer : (OracleWorld + SigningSpec).Range input) :
-    (trace ++ attackerActionFragment input answer).toSigningLog.length =
+theorem signingCount_append_fragment (trace : Generic.CappedChain.AttackerActionTrace)
+    (input : (OracleWorld + Generic.SigningSpec).Domain) (answer : (OracleWorld + Generic.SigningSpec).Range input) :
+    (trace ++ Generic.CappedChain.attackerActionFragment input answer).toSigningLog.length =
       trace.toSigningLog.length + if IsSigningRequest input then 1 else 0 := by
-  simp only [AttackerActionTrace.toSigningLog_append, attackerActionFragment_toSigningLog,
+  simp only [Generic.CappedChain.AttackerActionTrace.toSigningLog_append, Generic.CappedChain.attackerActionFragment_toSigningLog,
     List.length_append]
-  rcases input with (sample | hashInput) | request <;> simp [IsSigningRequest, signingLogFragment]
+  rcases input with (sample | hashInput) | request <;> simp [IsSigningRequest, Generic.signingLogFragment]
 
-theorem source_signingCount_step (publicKey : PublicKey) (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain) (state : SourceTracedState)
-    (result : (OracleWorld + SigningSpec).Range input × SourceTracedState)
-    (hresult : result ∈ support ((sourceDirectTracedMappedAdversaryImpl publicKey secretKey input).run state)) :
+theorem source_signingCount_step (publicKey : PublicKey) (secretKey : Generic.SecretKey)
+    (input : (OracleWorld + Generic.SigningSpec).Domain) (state : Generic.CappedChain.SourceTracedState)
+    (result : (OracleWorld + Generic.SigningSpec).Range input × Generic.CappedChain.SourceTracedState)
+    (hresult : result ∈ support ((Generic.CappedChain.sourceDirectTracedMappedAdversaryImpl publicKey secretKey input).run state)) :
     result.2.2.toSigningLog.length = state.2.toSigningLog.length +
       if IsSigningRequest input then 1 else 0 := by
-  simp only [sourceDirectTracedMappedAdversaryImpl, actionTracedStateImpl, StateT.run_mk,
+  simp only [Generic.CappedChain.sourceDirectTracedMappedAdversaryImpl, Generic.CappedChain.actionTracedStateImpl, StateT.run_mk,
     mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult
   obtain ⟨handled, _, rfl⟩ := hresult
   exact signingCount_append_fragment _ _ _
 
-theorem source_signingActivity_probability_le (publicKey : PublicKey) (secretKey : SecretKey)
-    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) (cache : QueryCache HashSpec) :
+theorem source_signingActivity_probability_le (publicKey : PublicKey) (secretKey : Generic.SecretKey)
+    {α : Type} (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (cache : QueryCache HashSpec) :
     Pr[fun result => 0 < result.2.2.toSigningLog.length |
-      (simulateQ (sourceDirectTracedMappedAdversaryImpl publicKey secretKey) computation).run (cache, [])] ≤
-      expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
+      (simulateQ (Generic.CappedChain.sourceDirectTracedMappedAdversaryImpl publicKey secretKey) computation).run (cache, [])] ≤
+      expectedSimulatedQueryCount (Generic.cappedUnloggedMappedAdversaryImpl publicKey secretKey)
         IsSigningRequest computation cache := by
-  have hcount := expectedStateCounter_eq_initial_add_queries (sourceDirectTracedMappedAdversaryImpl publicKey secretKey)
+  have hcount := expectedStateCounter_eq_initial_add_queries (Generic.CappedChain.sourceDirectTracedMappedAdversaryImpl publicKey secretKey)
     IsSigningRequest (fun state => state.2.toSigningLog.length)
     (source_signingCount_step publicKey secretKey) computation (cache, [])
-  simp only [show CappedChain.AttackerActionTrace.toSigningLog [] = [] from rfl,
+  simp only [show Generic.CappedChain.AttackerActionTrace.toSigningLog [] = [] from rfl,
     List.length_nil, Nat.cast_zero, zero_add] at hcount
   rw [expectedQueries_forget_trace] at hcount
   rw [← hcount, probEvent_eq_tsum_ite]
@@ -51,44 +53,44 @@ theorem source_signingActivity_probability_le (publicKey : PublicKey) (secretKey
     exact_mod_cast hactive
   · exact zero_le
 
-theorem sourcePrefix_signingActivity_probability_le (adversary : XmssSecurity.TargetSum.Adversary)
-    (key : ProgrammedGlobalChainKeygenView) :
-    Pr[fun result => 0 < result.2.2.toSigningLog.length | sourcePrefixExecution adversary key] ≤
+theorem sourcePrefix_signingActivity_probability_le (adversary : Generic.Adversary)
+    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) :
+    Pr[fun result => 0 < result.2.2.toSigningLog.length | Generic.Deciding.sourcePrefixExecution adversary key] ≤
       expectedSimulatedQueryCount
-        (cappedUnloggedMappedAdversaryImpl key.publicKey (materializePrecomputation key.cache key.secretKey))
+        (Generic.cappedUnloggedMappedAdversaryImpl key.publicKey (Generic.Concrete.materializePrecomputation key.cache key.secretKey))
         IsSigningRequest (adversary.main key.publicKey) key.cache := by
   have h := source_signingActivity_probability_le key.publicKey
-    (materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
-  rw [← cappedBothTracedMappedAdversaryImpl_actionProjection key.publicKey
-    (materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey)
+    (Generic.Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
+  rw [← Generic.CappedChain.cappedBothTracedMappedAdversaryImpl_actionProjection key.publicKey
+    (Generic.Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey)
     ((key.cache, []), []) [], probEvent_map] at h
   exact h
 
-theorem sourcePrefixProgram_signingActivity_probability_le (adversary : XmssSecurity.TargetSum.Adversary) :
-    Pr[fun result => 0 < result.2.2.2.toSigningLog.length | sourcePrefixProgram adversary] ≤
+theorem sourcePrefixProgram_signingActivity_probability_le (adversary : Generic.Adversary) :
+    Pr[fun result => 0 < result.2.2.2.toSigningLog.length | Generic.Deciding.sourcePrefixProgram adversary] ≤
       expectedSigningRequests adversary := by
-  let credit := fun keyResult : (PublicKey × SecretKey) × QueryCache HashSpec =>
-    expectedSimulatedQueryCount (cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
+  let credit := fun keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec =>
+    expectedSimulatedQueryCount (Generic.cappedUnloggedMappedAdversaryImpl keyResult.1.1 keyResult.1.2)
       IsSigningRequest (adversary.main keyResult.1.1) keyResult.2
-  have hmean : (∑' key, Pr[= key | trajectoryProgrammedGlobalChainKeygen] *
-      credit (materializeCachedKeyResult key.keyResult)) = expectedSigningRequests adversary := by
+  have hmean : (∑' key, Pr[= key | Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen] *
+      credit (Generic.Concrete.materializeCachedKeyResult key.keyResult)) = expectedSigningRequests adversary := by
     calc
-      _ = ∑' keyResult, Pr[= keyResult | (fun key : ProgrammedGlobalChainKeygenView =>
-          materializeCachedKeyResult key.keyResult) <$> trajectoryProgrammedGlobalChainKeygen] * credit keyResult := by
+      _ = ∑' keyResult, Pr[= keyResult | (fun key : Generic.CappedChain.ProgrammedGlobalChainKeygenView =>
+          Generic.Concrete.materializeCachedKeyResult key.keyResult) <$> Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen] * credit keyResult := by
         rw [tsum_probOutput_map_mul]
       _ = _ := by
         unfold expectedSigningRequests
         apply tsum_congr
         intro keyResult
-        rw [probOutput_congr rfl evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen]
-  unfold sourcePrefixProgram
+        rw [probOutput_congr rfl Generic.CappedChain.evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen]
+  unfold Generic.Deciding.sourcePrefixProgram
   rw [probEvent_bind_eq_tsum, ← hmean]
   apply ENNReal.tsum_le_tsum
   intro key
   apply mul_le_mul' le_rfl
   simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-  simpa only [credit, materializeCachedKeyResult, ProgrammedGlobalChainKeygenView.keyResult,
-    materializePrecomputation, precomputedSecretKey] using sourcePrefix_signingActivity_probability_le adversary key
+  simpa only [credit, Generic.Concrete.materializeCachedKeyResult, Generic.CappedChain.ProgrammedGlobalChainKeygenView.keyResult,
+    Generic.Concrete.materializePrecomputation, Generic.Concrete.precomputedSecretKey] using sourcePrefix_signingActivity_probability_le adversary key
 
 /-- info: 'XmssSecurity.TargetSum.EUFCMA.Requests.sourcePrefixProgram_signingActivity_probability_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

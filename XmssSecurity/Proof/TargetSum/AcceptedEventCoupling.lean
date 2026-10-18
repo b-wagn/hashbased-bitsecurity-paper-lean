@@ -1,5 +1,6 @@
-import XmssSecurity.Proof.TargetSum.CacheAgreement
-
+import XmssSecurity.Proof.Generic.CacheAgreement
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! A collision created only by divergent executions can pay for its own
 acceptance charge. Keep both event transfers in the same coupling to cancel it. -/
 

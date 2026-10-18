@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReplayAdversary
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The logged standard game realizes the replay/fallback reference experiment. -/
 
@@ -11,27 +13,27 @@ open XmssSecurity.EUFCMA
 
 open Concrete Attack
 
-theorem replayAfterSigning_verification_eq (publicKey : PublicKey) (original : Signature)
+theorem replayAfterSigning_verification_eq (publicKey : PublicKey) (original : Generic.Signature)
     (cache : QueryCache HashSpec) :
-    (simulateQ romImpl (do
+    (simulateQ Generic.romImpl (do
       let forgery ← replayAfterSigning publicKey (some original)
-      Concrete.scheme.verify publicKey forgery.epoch forgery.message forgery.signature)).run' cache =
+      Generic.Concrete.scheme.verify publicKey forgery.epoch forgery.message forgery.signature)).run' cache =
       replayFallbackExperiment publicKey replayRequest.epoch replayCandidate replayFallbackMessage original cache := by
   unfold replayAfterSigning replayFallbackExperiment
   simp only [Option.getD_some, bind_assoc, pure_bind, simulateQ_bind, simulateQ_spec_query,
     StateT.run'_bind']
   apply bind_congr
   rintro ⟨output, finalCache⟩
-  rw [show Concrete.scheme.verify publicKey replayRequest.epoch (replaySelectedMessage output) original =
-    liftM (verify publicKey replayRequest.epoch (replaySelectedMessage output) original :
+  rw [show Generic.Concrete.scheme.verify publicKey replayRequest.epoch (replaySelectedMessage output) original =
+    liftM (Generic.Concrete.verify publicKey replayRequest.epoch (replaySelectedMessage output) original :
       OracleComp HashSpec Bool) from rfl, simulateQ_rom_liftHash]
   rfl
 
 theorem signedReplayFallbackExperiment_le_gameRest
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec) :
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec) :
     Pr[= true | signedReplayFallbackExperiment keyResult replayRequest replayCandidate replayFallbackMessage] ≤
-      Pr[= true | (simulateQ romImpl
-        (gameRest Concrete.scheme replayAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] := by
+      Pr[= true | (simulateQ Generic.romImpl
+        (gameRest Generic.Concrete.scheme replayAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] := by
   unfold signedReplayFallbackExperiment
   rw [replay_gameRest, world_run'_bind]
   apply probOutput_bind_mono
@@ -41,9 +43,9 @@ theorem signedReplayFallbackExperiment_le_gameRest
   | some original => rw [replayAfterSigning_verification_eq]
 
 theorem replay_reference_advantage_lower :
-    (131071 / 131072 : ℝ≥0∞) * replayFallbackRate ≤ forgeAdvantage Concrete.scheme replayAdversary := by
+    (131071 / 131072 : ℝ≥0∞) * replayFallbackRate ≤ forgeAdvantage Generic.Concrete.scheme replayAdversary := by
   let lower : ℝ≥0∞ := (131071 / 131072) * replayFallbackRate
-  let keys := (simulateQ romImpl Concrete.scheme.keygen).run ∅
+  let keys := (simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅
   have hmass : ∑' keyResult, Pr[= keyResult | keys] = 1 := tsum_probOutput_eq_one' (by simp)
   unfold forgeAdvantage gameCore
   rw [world_run'_bind, probOutput_bind_eq_tsum]
@@ -63,12 +65,12 @@ theorem replay_reference_advantage_lower :
         simp
 
 theorem replay_reference_advantage_exceeds_127 :
-    ((2 ^ 127 : ℕ) : ℝ≥0∞)⁻¹ < forgeAdvantage Concrete.scheme replayAdversary :=
+    ((2 ^ 127 : ℕ) : ℝ≥0∞)⁻¹ < forgeAdvantage Generic.Concrete.scheme replayAdversary :=
   signedReplayFallbackRate_gt_127.trans_le replay_reference_advantage_lower
 
-theorem replay_advantage_eq_strong {Key : Type} (scheme : Scheme Key) :
-    forgeAdvantage scheme replayAdversary = XmssSecurity.TargetSum.forgeAdvantage scheme replayAdversary := by
-  unfold forgeAdvantage XmssSecurity.TargetSum.forgeAdvantage gameCore XmssSecurity.TargetSum.gameCore
+theorem replay_advantage_eq_strong {Key : Type} (scheme : Generic.Scheme Key) :
+    forgeAdvantage scheme replayAdversary = Generic.forgeAdvantage scheme replayAdversary := by
+  unfold forgeAdvantage Generic.forgeAdvantage gameCore Generic.gameCore
   congr 3
   apply bind_congr
   rintro ⟨publicKey, secretKey⟩

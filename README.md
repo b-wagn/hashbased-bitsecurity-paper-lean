@@ -99,9 +99,14 @@ tuples gives the bound (`Proof/TargetSum/CorrectnessError.lean`).
   (`LossyGames.lean`); `RepeatedEpochs.lean` transfers them to the statement's games: an
   adversary that answers its own repeated requests by `⊥` wins the variant with the same
   probability and is charged no more, and every attack makes a single signing request.
-* `Proof/TargetSum/` and `Proof/Checksum/`: the proofs for each scheme. Each works with a copy of
-  the construction specialized to its encoding (`Scheme/`), and `Scheme/Bridge.lean` proves that
-  the copy is the statement's scheme.
+* `Proof/Generic/`: the proofs that hold for any WOTS code with the properties of the class
+  `Code` (`Proof/Generic/Code.lean`): a decoder that is injective where it decodes, codewords that
+  do not dominate one another, and bounds on the chain counts and signer trials. They work with a
+  copy of the construction for the code (`Scheme/`), and `Scheme/Bridge.lean` proves that the copy
+  is the statement's construction for the encoding of the code.
+* `Proof/TargetSum/` and `Proof/Checksum/`: the instance of `Code` for each encoding (`Code.lean`),
+  and what depends on the encoding: the encoding's counting and probability facts, the attacks,
+  the numerical bounds, and the assembly of the classifications (`Main/`).
 
 *Disclaimer.* The Lean code proves statements about the scheme as defined in `Statement/Scheme/`,
 with the hash function modelled as a random oracle. It does not prove security of any

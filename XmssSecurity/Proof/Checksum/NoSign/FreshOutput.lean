@@ -1,11 +1,12 @@
-import XmssSecurity.Proof.Checksum.CacheQuerySupport
-import XmssSecurity.Proof.Checksum.AdaptiveFreshTarget
-import XmssSecurity.Proof.Checksum.MerkleQueryBound
-import XmssSecurity.Proof.Checksum.ConcreteQueryBound
-import XmssSecurity.Proof.Checksum.CausalTreeCoupling
-import XmssSecurity.Proof.Checksum.CacheReplayEval
-import XmssSecurity.Proof.Checksum.Direct.Structural
-
+import XmssSecurity.Proof.Generic.CacheQuerySupport
+import XmssSecurity.Proof.Generic.AdaptiveFreshTarget
+import XmssSecurity.Proof.Generic.MerkleQueryBound
+import XmssSecurity.Proof.Generic.ConcreteQueryBound
+import XmssSecurity.Proof.Generic.CausalTreeCoupling
+import XmssSecurity.Proof.Generic.CacheReplayEval
+import XmssSecurity.Proof.Generic.Direct.Structural
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 /-!
 # Key-generation values are unpredictable
 
@@ -69,50 +70,50 @@ theorem tsum_probOutput_mul_le_of_mem_support {β : Type} (computation : ProbCom
 
 /-! ## A fresh final query -/
 
-theorem probEvent_tweakableHash_fresh (parameter : PublicParameter) (domain : HashDomain)
+theorem probEvent_tweakableHash_fresh (parameter : PublicParameter) (domain : Generic.HashDomain)
     (payload : HashInput) (cache : QueryCache HashSpec)
-    (hnone : cache (tweakableHashInput parameter domain payload) = none) (target : Digest) :
+    (hnone : cache (Generic.tweakableHashInput parameter domain payload) = none) (target : Digest) :
     Pr[fun result => result.1 = target |
       (simulateQ randomOracle
-        (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest)).run
+        (Generic.Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest)).run
           cache] = digestInverse := by
   have hrun :
       (simulateQ randomOracle
-        (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest)).run
+        (Generic.Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest)).run
           cache =
       (fun output : HashOutput =>
-        (truncateHash output,
-          cache.cacheQuery (tweakableHashInput parameter domain payload) output)) <$>
+        (Generic.truncateHash output,
+          cache.cacheQuery (Generic.tweakableHashInput parameter domain payload) output)) <$>
         ($ᵗ HashOutput) := by
-    simp only [Concrete.tweakableHash, Concrete.oracleHash, simulateQ_bind, simulateQ_pure,
+    simp only [Generic.Concrete.tweakableHash, Generic.Concrete.oracleHash, simulateQ_bind, simulateQ_pure,
       StateT.run_bind]
     rw [show (simulateQ randomOracle
         (HasQuery.query (spec := HashSpec) (m := OracleComp HashSpec)
-          (tweakableHashInput parameter domain payload))).run cache =
-        (randomOracle (spec := HashSpec) (tweakableHashInput parameter domain payload)).run cache
+          (Generic.tweakableHashInput parameter domain payload))).run cache =
+        (randomOracle (spec := HashSpec) (Generic.tweakableHashInput parameter domain payload)).run cache
       from by simp [HasQuery.query]]
     rw [QueryImpl.withCaching_run_none _ hnone]
     simp [uniformSampleImpl, map_eq_bind_pure_comp]
   rw [hrun, probEvent_map]
-  exact Rom.uniform_truncate_probability target
+  exact Generic.Rom.uniform_truncate_probability target
 
 theorem probEvent_bind_tweakableHash_le {β : Type} (head : OracleComp HashSpec β)
-    (parameter : PublicParameter) (domain : HashDomain) (payload : β → HashInput)
+    (parameter : PublicParameter) (domain : Generic.HashDomain) (payload : β → HashInput)
     (cache : QueryCache HashSpec)
-    (hhead : head.IsQueryBoundP (AtHashAddress parameter domain) 0)
-    (hcache : ∀ input, AtHashAddress parameter domain input → cache input = none)
+    (hhead : head.IsQueryBoundP (Generic.AtHashAddress parameter domain) 0)
+    (hcache : ∀ input, Generic.AtHashAddress parameter domain input → cache input = none)
     (target : Digest) :
     Pr[fun result => result.1 = target |
       (simulateQ randomOracle (head >>= fun value =>
-        (Concrete.tweakableHash parameter domain (payload value) :
+        (Generic.Concrete.tweakableHash parameter domain (payload value) :
           OracleComp HashSpec Digest))).run cache] ≤ digestInverse := by
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
   refine tsum_probOutput_mul_le_of_mem_support _ _ _ fun headResult hheadResult => ?_
-  have hinput := atHashAddress_tweakableHashInput_iff parameter domain domain
+  have hinput := Generic.atHashAddress_tweakableHashInput_iff parameter domain domain
     (payload headResult.1)
-  have hnone : headResult.2 (tweakableHashInput parameter domain (payload headResult.1)) =
+  have hnone : headResult.2 (Generic.tweakableHashInput parameter domain (payload headResult.1)) =
       none := by
-    refine Concrete.CacheReplay.cache_none_of_zero_query_bound head _ cache headResult.2
+    refine Generic.Concrete.CacheReplay.cache_none_of_zero_query_bound head _ cache headResult.2
       headResult.1 (OracleComp.IsQueryBoundP.of_imp (fun input hinput' => ?_) hhead) (hcache _ (hinput.2 rfl)) hheadResult
     rw [hinput']
     exact hinput.2 rfl
@@ -125,65 +126,65 @@ theorem probEvent_chainWalk_le (parameter : PublicParameter) (leafIndex : LeafIn
     (value : Digest) (target : Digest) :
     Pr[fun result => result.1 = target |
       (simulateQ randomOracle
-        (Concrete.chainWalk parameter leafIndex chain 0 steps value :
+        (Generic.Concrete.chainWalk parameter leafIndex chain 0 steps value :
           OracleComp HashSpec Digest)).run ∅] ≤ digestInverse := by
   obtain ⟨previous, rfl⟩ : ∃ previous, steps = previous + 1 := ⟨steps - 1, by omega⟩
   have hprevious : 0 + previous < chainLength - 1 := by omega
-  have hwalk : (Concrete.chainWalk parameter leafIndex chain 0 (previous + 1) value :
+  have hwalk : (Generic.Concrete.chainWalk parameter leafIndex chain 0 (previous + 1) value :
       OracleComp HashSpec Digest) =
-      (Concrete.chainWalk parameter leafIndex chain 0 previous value :
+      (Generic.Concrete.chainWalk parameter leafIndex chain 0 previous value :
         OracleComp HashSpec Digest) >>= fun current =>
-        (Concrete.tweakableHash parameter
-          (.chain leafIndex chain ⟨0 + previous, hprevious⟩) (bytesLE 16 current) :
+        (Generic.Concrete.tweakableHash parameter
+          (.chain leafIndex chain ⟨0 + previous, hprevious⟩) (Generic.bytesLE 16 current) :
           OracleComp HashSpec Digest) := by
-    rw [Concrete.chainWalk]
-    simp only [hprevious, ↓reduceDIte, Concrete.chainHash]
+    rw [Generic.Concrete.chainWalk]
+    simp only [hprevious, ↓reduceDIte, Generic.Concrete.chainHash]
   rw [hwalk]
   refine probEvent_bind_tweakableHash_le _ parameter _ _ ∅ ?_ (fun _ _ => rfl) target
-  apply Concrete.chainWalk_queryBound_zero_of_avoids
+  apply Generic.Concrete.chainWalk_queryBound_zero_of_avoids
   intro offset hoffset _ hdomain
-  simp only [HashDomain.chain.injEq, Fin.mk.injEq] at hdomain
+  simp only [Generic.HashDomain.chain.injEq, Fin.mk.injEq] at hdomain
   omega
 
 theorem probEvent_treeNode_le (parameter : PublicParameter)
     (secret : LeafIndex → ChainIndex → Digest) (levels : ℕ) (node : MerkleNode)
-    (hlevels : levels ≤ treeHeight) (hvalid : TreeSubtreeValid levels node) (target : Digest) :
+    (hlevels : levels ≤ treeHeight) (hvalid : Generic.TreeSubtreeValid levels node) (target : Digest) :
     Pr[fun result => result.1 = target |
       (simulateQ randomOracle
-        (Concrete.treeNode parameter secret levels node : OracleComp HashSpec Digest)).run ∅] ≤
+        (Generic.Concrete.treeNode parameter secret levels node : OracleComp HashSpec Digest)).run ∅] ≤
       digestInverse := by
   cases levels with
   | zero =>
-      rw [Concrete.treeNode_zero_eq]
-      unfold Concrete.leafAt
+      rw [Generic.Concrete.treeNode_zero_eq]
+      unfold Generic.Concrete.leafAt
       exact probEvent_bind_tweakableHash_le _ parameter _ _ ∅
-        (Concrete.oneTimePublicKey_queryBound_zero_leafAddress parameter secret node node)
+        (Generic.Concrete.oneTimePublicKey_queryBound_zero_leafAddress parameter secret node node)
         (fun _ _ => rfl) target
   | succ levels =>
       have hlevel : levels < treeHeight := Nat.lt_of_succ_le hlevels
-      have hleftValid := childNode_subtreeValid levels node false hvalid
-      have hrightValid := childNode_subtreeValid levels node true hvalid
+      have hleftValid := Generic.childNode_subtreeValid levels node false hvalid
+      have hrightValid := Generic.childNode_subtreeValid levels node true hvalid
       have hchild : ∀ right : Bool,
-          (Concrete.treeNode parameter secret levels (Concrete.childNode node right) :
+          (Generic.Concrete.treeNode parameter secret levels (Generic.Concrete.childNode node right) :
             OracleComp HashSpec Digest).IsQueryBoundP
-            (AtHashAddress parameter (.merkle ⟨levels, hlevel⟩ node)) 0 := by
+            (Generic.AtHashAddress parameter (.merkle ⟨levels, hlevel⟩ node)) 0 := by
         intro right
-        have h := Concrete.treeNode_queryBound_merkleAddress parameter secret ⟨levels, hlevel⟩
-          node levels (Concrete.childNode node right) (Nat.le_of_succ_le hlevels)
-          (childNode_subtreeValid levels node right hvalid)
-        simpa [MerkleAddressInSubtree] using h
-      have htree : (Concrete.treeNode parameter secret (levels + 1) node :
+        have h := Generic.Concrete.treeNode_queryBound_merkleAddress parameter secret ⟨levels, hlevel⟩
+          node levels (Generic.Concrete.childNode node right) (Nat.le_of_succ_le hlevels)
+          (Generic.childNode_subtreeValid levels node right hvalid)
+        simpa [Generic.MerkleAddressInSubtree] using h
+      have htree : (Generic.Concrete.treeNode parameter secret (levels + 1) node :
           OracleComp HashSpec Digest) =
           (do
-            let left ← (Concrete.treeNode parameter secret levels (Concrete.childNode node false) :
+            let left ← (Generic.Concrete.treeNode parameter secret levels (Generic.Concrete.childNode node false) :
               OracleComp HashSpec Digest)
-            let right ← (Concrete.treeNode parameter secret levels
-              (Concrete.childNode node true) : OracleComp HashSpec Digest)
+            let right ← (Generic.Concrete.treeNode parameter secret levels
+              (Generic.Concrete.childNode node true) : OracleComp HashSpec Digest)
             pure (left, right)) >>= fun children =>
-            (Concrete.tweakableHash parameter (.merkle ⟨levels, hlevel⟩ node)
-              (Concrete.nodePayload children.1 children.2) : OracleComp HashSpec Digest) := by
-        rw [Concrete.treeNode_succ_eq]
-        simp only [hlevel, ↓reduceDIte, Concrete.nodeHash, bind_assoc, pure_bind]
+            (Generic.Concrete.tweakableHash parameter (.merkle ⟨levels, hlevel⟩ node)
+              (Generic.Concrete.nodePayload children.1 children.2) : OracleComp HashSpec Digest) := by
+        rw [Generic.Concrete.treeNode_succ_eq]
+        simp only [hlevel, ↓reduceDIte, Generic.Concrete.nodeHash, bind_assoc, pure_bind]
       rw [htree]
       refine probEvent_bind_tweakableHash_le _ parameter _ _ ∅ ?_ (fun _ _ => rfl) target
       refine OracleComp.isQueryBoundP_bind (m := 0) (hchild false) fun _ _ => ?_
@@ -194,45 +195,45 @@ theorem probEvent_treeNode_le (parameter : PublicParameter)
 
 theorem probEvent_rootTree_treeNode_le (parameter : PublicParameter)
     (secret : LeafIndex → ChainIndex → Digest) (levels : ℕ) (node : MerkleNode)
-    (hlevels : levels ≤ treeHeight) (hvalid : TreeSubtreeValid levels node) (target : Digest) :
-    Pr[fun result => Concrete.CacheReplay.treeNode result.2 parameter secret levels node = target |
+    (hlevels : levels ≤ treeHeight) (hvalid : Generic.TreeSubtreeValid levels node) (target : Digest) :
+    Pr[fun result => Generic.Concrete.CacheReplay.treeNode result.2 parameter secret levels node = target |
       (simulateQ randomOracle
-        (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
+        (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
           OracleComp HashSpec Digest)).run ∅] ≤ digestInverse := by
   rw [probEvent_congr' (fun _ _ => Iff.rfl)
-    (evalDist_rootTree_run_eq_treeNode_then_rootTree parameter secret levels node hlevels
+    (Generic.evalDist_rootTree_run_eq_treeNode_then_rootTree parameter secret levels node hlevels
       hvalid ∅)]
   refine (probEvent_bind_le_of_imp _ _ _ (fun warm => warm.1 = target) ?_).trans
     (probEvent_treeNode_le parameter secret levels node hlevels hvalid target)
   intro warm hwarm result hresult hevent
-  have hle := Concrete.CacheReplay.randomOracle_cache_le _ warm.2 result hresult
-  have heval := Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
-    (Concrete.treeNode parameter secret levels node : OracleComp HashSpec Digest)
+  have hle := Generic.Concrete.CacheReplay.randomOracle_cache_le _ warm.2 result hresult
+  have heval := Generic.Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
+    (Generic.Concrete.treeNode parameter secret levels node : OracleComp HashSpec Digest)
     ∅ warm.2 result.2 warm.1 hwarm hle
-  rw [Concrete.CacheReplay.eval_treeNode] at heval
+  rw [Generic.Concrete.CacheReplay.eval_treeNode] at heval
   rw [← heval]
   exact hevent
 
 theorem probEvent_rootTree_chainValue_le (parameter : PublicParameter)
     (secret : LeafIndex → ChainIndex → Digest) (leafIndex : LeafIndex) (chain : ChainIndex)
     (steps : ℕ) (hpositive : 0 < steps) (hsteps : steps ≤ chainLength - 1) (target : Digest) :
-    Pr[fun result => Wots.walk
-        (Concrete.CacheView.chainStep result.2 parameter leafIndex chain) 0 steps
+    Pr[fun result => Generic.Wots.walk
+        (Generic.Concrete.CacheView.chainStep result.2 parameter leafIndex chain) 0 steps
         (secret leafIndex chain) = target |
       (simulateQ randomOracle
-        (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
+        (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
           OracleComp HashSpec Digest)).run ∅] ≤ digestInverse := by
   rw [probEvent_congr' (fun _ _ => Iff.rfl)
-    (evalDist_rootTree_run_eq_chainWalk_then_rootTree parameter secret leafIndex chain steps
+    (Generic.evalDist_rootTree_run_eq_chainWalk_then_rootTree parameter secret leafIndex chain steps
       hsteps ∅)]
   refine (probEvent_bind_le_of_imp _ _ _ (fun warm => warm.1 = target) ?_).trans
     (probEvent_chainWalk_le parameter leafIndex chain steps hpositive hsteps _ target)
   intro warm hwarm result hresult hevent
-  have hle := Concrete.CacheReplay.randomOracle_cache_le _ warm.2 result hresult
-  have heval := Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
-    (Concrete.chainWalk parameter leafIndex chain 0 steps (secret leafIndex chain) :
+  have hle := Generic.Concrete.CacheReplay.randomOracle_cache_le _ warm.2 result hresult
+  have heval := Generic.Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
+    (Generic.Concrete.chainWalk parameter leafIndex chain 0 steps (secret leafIndex chain) :
       OracleComp HashSpec Digest) ∅ warm.2 result.2 warm.1 hwarm hle
-  rw [Concrete.CacheReplay.eval_chainWalk] at heval
+  rw [Generic.Concrete.CacheReplay.eval_chainWalk] at heval
   rw [← heval]
   exact hevent
 

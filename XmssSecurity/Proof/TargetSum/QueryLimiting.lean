@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.Common.QueryCounting
-import XmssSecurity.Proof.TargetSum.ConsistentQueryBound
-
+import XmssSecurity.Proof.Generic.ConsistentQueryBound
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Stop before an unaffordable query, retaining both the observed prefix and unused fuel.
 The transparency theorem uses a bound on supported executions, so deterministic oracle
 answers need not satisfy a stronger syntactic bound. -/
@@ -117,8 +118,8 @@ theorem simulate_limit_eq (fuel : Nat) (computation : OracleComp spec α)
           exact ⟨head, hhead, by rw [support_map]; exact ⟨tail, htail, rfl⟩⟩)
         rwa [measure_append, measure_query input head hhead] at h
       have haffordable : ¬(selected input ∧ fuel = 0) := by
-        obtain ⟨head, hhead⟩ := probComp_support_nonempty (impl input).run
-        obtain ⟨tail, htail⟩ := probComp_support_nonempty (simulateQ impl (next head.1)).run
+        obtain ⟨head, hhead⟩ := Generic.probComp_support_nonempty (impl input).run
+        obtain ⟨tail, htail⟩ := Generic.probComp_support_nonempty (simulateQ impl (next head.1)).run
         have h := hcont head hhead tail htail
         rintro ⟨hselected, rfl⟩
         simp only [if_pos hselected] at h

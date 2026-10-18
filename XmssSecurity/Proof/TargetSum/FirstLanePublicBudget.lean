@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.FirstLaneSampleLimit
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Public counters enforce the joint direct-query and fresh-encoding budget, even after
 the source and ideal executions have diverged. An action is credited before its samples
@@ -52,8 +54,8 @@ end EncodingBudgetCounters
 variable {Index : Type} {α : Type}
 
 noncomputable def limitEncodingAction (limit direct encoding : Nat)
-    (counters : EncodingBudgetCounters) (computation : OracleComp (World Index) α) :
-    OracleComp (World Index) (Option α × EncodingBudgetCounters) :=
+    (counters : EncodingBudgetCounters) (computation : OracleComp (Generic.FirstLaneOracleSimulation.World Index) α) :
+    OracleComp (Generic.FirstLaneOracleSimulation.World Index) (Option α × EncodingBudgetCounters) :=
   let credited := counters.credit direct encoding
   if credited.charge ≤ limit then
     (fun result => (result.1, credited.addSamples (credited.sampleFuel limit - result.2))) <$>
@@ -61,18 +63,18 @@ noncomputable def limitEncodingAction (limit direct encoding : Nat)
   else pure (none, counters)
 
 theorem simulate_limitEncodingAction_eq (table : Index → Digest) (limit direct encoding : Nat)
-    (counters : EncodingBudgetCounters) (computation : OracleComp (World Index) α)
-    (hbound : ∀ result ∈ support (simulateQ (eagerTraceImpl table) computation).run,
+    (counters : EncodingBudgetCounters) (computation : OracleComp (Generic.FirstLaneOracleSimulation.World Index) α)
+    (hbound : ∀ result ∈ support (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table) computation).run,
       ((counters.credit direct encoding).addSamples result.2.encodingActions.length).charge ≤ limit) :
-    (simulateQ (eagerTraceImpl table) (limitEncodingAction limit direct encoding counters computation)).run =
+    (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table) (limitEncodingAction limit direct encoding counters computation)).run =
       (fun result => ((some result.1,
         (counters.credit direct encoding).addSamples result.2.encodingActions.length), result.2)) <$>
-          (simulateQ (eagerTraceImpl table) computation).run := by
+          (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table) computation).run := by
   let credited := counters.credit direct encoding
   have hbudget : credited.charge ≤ limit := by
-    obtain ⟨result, hresult⟩ := probComp_support_nonempty (simulateQ (eagerTraceImpl table) computation).run
+    obtain ⟨result, hresult⟩ := Generic.probComp_support_nonempty (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table) computation).run
     exact (credited.addSamples_charge_mono result.2.encodingActions.length).trans (hbound result hresult)
-  have hfuel (result) (hresult : result ∈ support (simulateQ (eagerTraceImpl table) computation).run) :
+  have hfuel (result) (hresult : result ∈ support (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table) computation).run) :
       result.2.encodingActions.length ≤ credited.sampleFuel limit :=
     (credited.addSamples_charge_le_iff limit result.2.encodingActions.length hbudget).1 (hbound result hresult)
   rw [limitEncodingAction, if_pos hbudget, simulateQ_map, WriterT.run_map,
@@ -87,10 +89,10 @@ theorem simulate_limitEncodingAction_eq (table : Index → Digest) (limit direct
   rfl
 
 theorem limitEncodingAction_trace_budget (table : Index → Digest) (limit direct encoding : Nat)
-    (counters : EncodingBudgetCounters) (computation : OracleComp (World Index) α)
+    (counters : EncodingBudgetCounters) (computation : OracleComp (Generic.FirstLaneOracleSimulation.World Index) α)
     (hbudget : counters.charge ≤ limit)
-    (result : (Option α × EncodingBudgetCounters) × ActionTrace Index)
-    (hresult : result ∈ support (simulateQ (eagerTraceImpl table)
+    (result : (Option α × EncodingBudgetCounters) × Generic.FirstLaneOracleSimulation.ActionTrace Index)
+    (hresult : result ∈ support (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table)
       (limitEncodingAction limit direct encoding counters computation)).run) :
     result.1.2.charge ≤ limit ∧
       result.1.2.samples = counters.samples + result.2.encodingActions.length := by
@@ -110,42 +112,42 @@ theorem limitEncodingAction_trace_budget (table : Index → Digest) (limit direc
   · rw [limitEncodingAction, if_neg hcredit] at hresult
     simp only [simulateQ_pure, WriterT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
     subst result
-    exact ⟨hbudget, by simp [ActionTrace.encodingActions]⟩
+    exact ⟨hbudget, by simp [Generic.FirstLaneOracleSimulation.ActionTrace.encodingActions]⟩
 
 theorem limitEncodingAction_trace_direct (table : Index → Digest) (limit direct encoding : Nat)
-    (counters : EncodingBudgetCounters) (computation : OracleComp (World Index) α)
-    (hbound : computation.IsQueryBoundP IsHazardQuery direct)
-    (result : (Option α × EncodingBudgetCounters) × ActionTrace Index)
-    (hresult : result ∈ support (simulateQ (eagerTraceImpl table)
+    (counters : EncodingBudgetCounters) (computation : OracleComp (Generic.FirstLaneOracleSimulation.World Index) α)
+    (hbound : computation.IsQueryBoundP Generic.FirstLaneOracleSimulation.IsHazardQuery direct)
+    (result : (Option α × EncodingBudgetCounters) × Generic.FirstLaneOracleSimulation.ActionTrace Index)
+    (hresult : result ∈ support (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table)
       (limitEncodingAction limit direct encoding counters computation)).run) :
-    counters.direct + hazardCount result.2 ≤ result.1.2.direct := by
+    counters.direct + Generic.FirstLaneOracleSimulation.hazardCount result.2 ≤ result.1.2.direct := by
   let credited := counters.credit direct encoding
   by_cases hcredit : credited.charge ≤ limit
   · rw [limitEncodingAction, if_pos hcredit, simulateQ_map, WriterT.run_map, support_map] at hresult
     obtain ⟨limited, hlimited, rfl⟩ := hresult
-    have hqueryBound := QueryLimiting.limit_preserves_queryBound IsEncodingSample IsHazardQuery
+    have hqueryBound := QueryLimiting.limit_preserves_queryBound IsEncodingSample Generic.FirstLaneOracleSimulation.IsHazardQuery
       (credited.sampleFuel limit) direct computation hbound
-    have hcount := simulate_eagerTrace_support_hazardCount_le table
+    have hcount := Generic.FirstLaneOracleSimulation.simulate_eagerTrace_support_hazardCount_le table
       (limitEncodingSamples (credited.sampleFuel limit) computation) direct hqueryBound limited hlimited
-    change counters.direct + hazardCount limited.2 ≤ counters.direct + direct
+    change counters.direct + Generic.FirstLaneOracleSimulation.hazardCount limited.2 ≤ counters.direct + direct
     omega
   · rw [limitEncodingAction, if_neg hcredit] at hresult
     simp only [simulateQ_pure, WriterT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
     subst result
-    simp [hazardCount]
+    simp [Generic.FirstLaneOracleSimulation.hazardCount]
 
 theorem limitEncodingAction_success_support (table : Index → Digest) (limit direct encoding : Nat)
-    (counters : EncodingBudgetCounters) (computation : OracleComp (World Index) α)
-    (result : (Option α × EncodingBudgetCounters) × ActionTrace Index) (value : α)
-    (hresult : result ∈ support (simulateQ (eagerTraceImpl table)
+    (counters : EncodingBudgetCounters) (computation : OracleComp (Generic.FirstLaneOracleSimulation.World Index) α)
+    (result : (Option α × EncodingBudgetCounters) × Generic.FirstLaneOracleSimulation.ActionTrace Index) (value : α)
+    (hresult : result ∈ support (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table)
       (limitEncodingAction limit direct encoding counters computation)).run)
     (hvalue : result.1.1 = some value) :
-    (value, result.2) ∈ support (simulateQ (eagerTraceImpl table) computation).run := by
+    (value, result.2) ∈ support (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl table) computation).run := by
   let credited := counters.credit direct encoding
   by_cases hcredit : credited.charge ≤ limit
   · rw [limitEncodingAction, if_pos hcredit, simulateQ_map, WriterT.run_map, support_map] at hresult
     obtain ⟨limited, hlimited, rfl⟩ := hresult
-    exact QueryLimiting.limit_success_support IsEncodingSample (eagerTraceImpl table)
+    exact QueryLimiting.limit_success_support IsEncodingSample (Generic.FirstLaneOracleSimulation.eagerTraceImpl table)
       (credited.sampleFuel limit) computation limited value hlimited hvalue
   · rw [limitEncodingAction, if_neg hcredit] at hresult
     simp only [simulateQ_pure, WriterT.run_pure, support_pure, Set.mem_singleton_iff] at hresult

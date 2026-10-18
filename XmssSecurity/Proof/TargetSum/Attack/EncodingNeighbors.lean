@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.EncodingCardinality
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Distinct target-sum encodings obtained by moving one unit between two digits. -/
 
@@ -20,7 +22,7 @@ abbrev DigitTransfer (encoding : Encoding) :=
   Σ lower : DecreasingChain encoding,
     {upper : ChainIndex // (encoding upper).val + 1 < chainLength ∧ upper ≠ lower.1}
 
-theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
     28 ≤ Fintype.card (DecreasingChain encoding) := by
   let indices := Finset.univ.filter fun chain => 0 < (encoding chain).val
   have hsum : ∑ chain ∈ indices, (encoding chain).val = targetSum := by
@@ -43,7 +45,7 @@ theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Val
   norm_num [targetSum] at hle
   omega
 
-theorem increasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem increasingChain_card_lower (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
     15 ≤ Fintype.card (IncreasingChain encoding) := by
   let indices := Finset.univ.filter fun chain => (encoding chain).val + 1 < chainLength
   have hsum : ∑ chain ∈ indices, (7 - (encoding chain).val) = 99 := by
@@ -66,7 +68,7 @@ theorem increasingChain_card_lower (encoding : Encoding) (hvalid : TargetSum.Val
     rw [Fintype.card_subtype]
   omega
 
-theorem digitTransfer_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem digitTransfer_card_lower (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
     392 ≤ Fintype.card (DigitTransfer encoding) := by
   have hdecrease := decreasingChain_card_lower encoding hvalid
   have hincrease := increasingChain_card_lower encoding hvalid
@@ -113,8 +115,8 @@ theorem transferEncoding_other (encoding : Encoding) (transfer : DigitTransfer e
     transferEncoding encoding transfer chain = encoding chain := by
   simp [transferEncoding, hlower, hupper]
 
-theorem transferEncoding_valid (encoding : Encoding) (hvalid : TargetSum.Valid encoding)
-    (transfer : DigitTransfer encoding) : TargetSum.Valid (transferEncoding encoding transfer) := by
+theorem transferEncoding_valid (encoding : Encoding) (hvalid : Generic.Code.Valid encoding)
+    (transfer : DigitTransfer encoding) : Generic.Code.Valid (transferEncoding encoding transfer) := by
   have hpoint : ∀ chain, (transferEncoding encoding transfer chain).val +
       (if chain = transfer.1.1 then 1 else 0) =
       (encoding chain).val + (if chain = transfer.2.1 then 1 else 0) := by
@@ -193,8 +195,8 @@ theorem digestOfEncoding_injective : Function.Injective digestOfEncoding := by
   rw [digestOfEncoding_view, digestOfEncoding_view] at hview
   exact congrArg Prod.fst hview
 
-theorem digestOfEncoding_decode (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
-    TargetSum.decodeDigest (digestOfEncoding encoding) = some encoding :=
+theorem digestOfEncoding_decode (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
+    Generic.Code.decodeDigest (digestOfEncoding encoding) = some encoding :=
   TargetSum.decodeDigest_eq_some_iff.mpr ⟨digestOfEncoding_view encoding, hvalid⟩
 
 noncomputable def neighborDigests (encoding : Encoding) : Finset Digest :=
@@ -209,7 +211,7 @@ theorem neighborDigests_card (encoding : Encoding) :
   rw [Finset.card_image_of_injective _ hinj]
   exact Finset.card_univ
 
-theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
     392 ≤ (neighborDigests encoding).card := by
   rw [neighborDigests_card]
   exact digitTransfer_card_lower encoding hvalid

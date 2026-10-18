@@ -1,8 +1,9 @@
 import XmssSecurity.Proof.TargetSum.Correctness
-import XmssSecurity.Proof.TargetSum.Seeded.Presampling
-import XmssSecurity.Proof.TargetSum.Deterministic.Inputs
-import XmssSecurity.Proof.TargetSum.EncodingRejectionProbability
-
+import XmssSecurity.Proof.Generic.Seeded.Presampling
+import XmssSecurity.Proof.Generic.Deterministic.Inputs
+import XmssSecurity.Proof.Generic.EncodingRejectionProbability
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-!
 # The probability that all trials of a signing request fail
 
@@ -31,11 +32,11 @@ variable (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafInde
 
 /-- The randomizer input of trial `trial`. -/
 abbrev randomizerInput (trial : ℕ) : HashInput :=
-  randomizerHashInput parameter seed leafIndex message (BitVec.ofNat 32 trial)
+  Generic.randomizerHashInput parameter seed leafIndex message (BitVec.ofNat 32 trial)
 
 /-- The digest input of the message under the randomizer read from `output`. -/
 abbrev digestInput (output : HashOutput) : HashInput :=
-  Concrete.CacheView.encodingInput parameter leafIndex
+  Generic.Concrete.CacheView.encodingInput parameter leafIndex
     (message, output.extractLsb' 0 randomnessBits)
 
 /-! ### Distinct inputs -/
@@ -44,21 +45,21 @@ theorem randomizerInput_injective {trial other : ℕ} (htrial : trial < 2 ^ 32)
     (hother : other < 2 ^ 32)
     (h : randomizerInput parameter seed leafIndex message trial =
       randomizerInput parameter seed leafIndex message other) : trial = other := by
-  have hbits := (randomizerHashInput_injective h).2.2.2.2
+  have hbits := (Generic.randomizerHashInput_injective h).2.2.2.2
   have := congrArg BitVec.toNat hbits
   simp only [BitVec.toNat_ofNat] at this
   rwa [Nat.mod_eq_of_lt htrial, Nat.mod_eq_of_lt hother] at this
 
 theorem randomizerInput_ne_encodingInput (trial : ℕ) (randomness : Randomness) :
     randomizerInput parameter seed leafIndex message trial ≠
-      Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) := by
+      Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) := by
   intro h
-  unfold randomizerInput randomizerHashInput Concrete.CacheView.encodingInput
-    tweakableHashInput tweakBytes at h
+  unfold randomizerInput Generic.randomizerHashInput Generic.Concrete.CacheView.encodingInput
+    Generic.tweakableHashInput Generic.tweakBytes at h
   simp only [List.append_assoc] at h
-  have hfields := fieldBytes_injective (List.append_inj h (by simp [length_fieldBytes])).1
-  have htag := congrArg TweakFields.tag hfields
-  simp [hashDomainFields, tweakFields] at htag
+  have hfields := Generic.fieldBytes_injective (List.append_inj h (by simp [Generic.length_fieldBytes])).1
+  have htag := congrArg Generic.TweakFields.tag hfields
+  simp [Generic.hashDomainFields, Generic.tweakFields] at htag
 
 theorem randomizerInput_ne_digestInput (trial : ℕ) (output : HashOutput) :
     randomizerInput parameter seed leafIndex message trial ≠
@@ -114,7 +115,7 @@ theorem probEvent_randomness_mem (T : Finset Randomness) :
         exact hpair
     rw [hmap, Finset.card_product, Finset.card_univ]
     simp
-  rw [hcard, Rom.card_hashOutput, hashOutputBits_eq_randomness, pow_add, Nat.cast_mul,
+  rw [hcard, Generic.Rom.card_hashOutput, hashOutputBits_eq_randomness, pow_add, Nat.cast_mul,
     Nat.cast_mul, ENNReal.mul_div_mul_left _ _ (by simp) (by simp)]
 
 /-! ### Checking the trials -/
@@ -130,14 +131,14 @@ noncomputable def checkTrials : ℕ → ℕ → OracleComp OracleWorld Bool
       let digestOutput ← (liftM (OracleWorld.query
         (.inr (digestInput parameter leafIndex message randomizerOutput))) :
           OracleComp OracleWorld HashOutput)
-      if (TargetSum.decodeDigest (truncateHash digestOutput)).isNone then
+      if (Generic.Code.decodeDigest (Generic.truncateHash digestOutput)).isNone then
         checkTrials count (trial + 1)
       else
         pure false
 
 theorem romImpl_run_cached {input : HashInput} {cache : QueryCache HashSpec}
     {output : HashOutput} (hcached : cache input = some output) :
-    (simulateQ romImpl (liftM (OracleWorld.query (.inr input)) :
+    (simulateQ Generic.romImpl (liftM (OracleWorld.query (.inr input)) :
       OracleComp OracleWorld HashOutput)).run cache = pure (output, cache) := by
   rw [simulateQ_spec_query]
   change (randomOracle (spec := HashSpec) input).run cache = pure (output, cache)
@@ -148,7 +149,7 @@ is. -/
 theorem checkTrials_run_of_fails :
     ∀ (count trial : ℕ) (cache : QueryCache HashSpec),
       (∀ index < count, TrialFails parameter seed leafIndex message cache (trial + index)) →
-      (simulateQ romImpl (checkTrials parameter seed leafIndex message count trial)).run cache =
+      (simulateQ Generic.romImpl (checkTrials parameter seed leafIndex message count trial)).run cache =
         pure (true, cache) := by
   intro count
   induction count with
@@ -169,8 +170,8 @@ theorem checkTrials_run_of_fails :
 theorem probEvent_signingFails_le_check {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) :
     Pr[fun result => SigningFails parameter seed leafIndex message result.2 |
-        (simulateQ romImpl computation).run cache] ≤
-      Pr[fun result => result = true | (simulateQ romImpl
+        (simulateQ Generic.romImpl computation).run cache] ≤
+      Pr[fun result => result = true | (simulateQ Generic.romImpl
         (computation >>= fun _ =>
           checkTrials parameter seed leafIndex message signingAttemptLimit 0)).run' cache] := by
   classical
@@ -222,12 +223,12 @@ theorem evalDist_run'_eq_presampleChain {β : Type} (computation : OracleComp Or
     ∀ (count trial : ℕ) (cache : QueryCache HashSpec), trial + count ≤ 2 ^ 32 →
       (∀ index < count,
         cache (randomizerInput parameter seed leafIndex message (trial + index)) = none) →
-      𝒟[(simulateQ romImpl computation).run' cache] =
+      𝒟[(simulateQ Generic.romImpl computation).run' cache] =
         𝒟[presampleChain parameter seed leafIndex message count trial cache >>= fun presampled =>
-          (simulateQ romImpl computation).run' presampled]
+          (simulateQ Generic.romImpl computation).run' presampled]
   | 0, trial, cache, _, _ => by simp [presampleChain]
   | count + 1, trial, cache, hbound, hfresh => by
-      rw [Seeded.evalDist_presample_fresh computation cache _ (by simpa using hfresh 0 (by omega))]
+      rw [Generic.Seeded.evalDist_presample_fresh computation cache _ (by simpa using hfresh 0 (by omega))]
       simp only [presampleChain, bind_assoc]
       apply OracleComp.DeferredSampling.evalDist_bind_congr_left
       intro randomizerOutput
@@ -237,7 +238,7 @@ theorem evalDist_run'_eq_presampleChain {β : Type} (computation : OracleComp Or
       · exact evalDist_run'_eq_presampleChain computation count (trial + 1) _ (by omega)
           hfreshAfter
       · rename_i hnone
-        rw [Seeded.evalDist_presample_fresh computation _ _ hnone]
+        rw [Generic.Seeded.evalDist_presample_fresh computation _ _ hnone]
         simp only [bind_assoc]
         apply OracleComp.DeferredSampling.evalDist_bind_congr_left
         intro digestOutput
@@ -319,7 +320,7 @@ trials all failed. -/
 theorem checkTrials_true_of_cached :
     ∀ (count trial : ℕ) (presampled cache : QueryCache HashSpec), presampled ≤ cache →
       ChainCached parameter seed leafIndex message count trial presampled →
-      ∀ result ∈ support ((simulateQ romImpl
+      ∀ result ∈ support ((simulateQ Generic.romImpl
           (checkTrials parameter seed leafIndex message count trial)).run cache),
         result.1 = true →
           ∀ index < count, TrialFails parameter seed leafIndex message presampled (trial + index) := by
@@ -333,7 +334,7 @@ theorem checkTrials_true_of_cached :
       simp only [checkTrials, simulateQ_bind, StateT.run_bind] at hresult
       rw [romImpl_run_cached (hle hrandomizer), pure_bind, romImpl_run_cached (hle hdigest),
         pure_bind] at hresult
-      cases hdecode : TargetSum.decodeDigest (truncateHash digestOutput) with
+      cases hdecode : Generic.Code.decodeDigest (Generic.truncateHash digestOutput) with
       | some encoding =>
           simp only [hdecode, Option.isNone_some, Bool.false_eq_true, if_false, simulateQ_pure,
             StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
@@ -355,7 +356,7 @@ theorem checkTrials_true_of_cached :
 as likely as the presampled trials all failing. -/
 theorem probEvent_signingFails_le_presampled {α : Type} (computation : OracleComp OracleWorld α) :
     Pr[fun result => SigningFails parameter seed leafIndex message result.2 |
-        (simulateQ romImpl computation).run ∅] ≤
+        (simulateQ Generic.romImpl computation).run ∅] ≤
       Pr[fun presampled => ∀ index < signingAttemptLimit,
           TrialFails parameter seed leafIndex message presampled index |
         presampleChain parameter seed leafIndex message signingAttemptLimit 0 ∅] := by
@@ -379,7 +380,7 @@ theorem probEvent_signingFails_le_presampled {α : Type} (computation : OracleCo
       rw [mem_support_bind_iff] at hchecked
       obtain ⟨⟨_, middleCache⟩, hmiddle, hchecked⟩ := hchecked
       simpa using checkTrials_true_of_cached parameter seed leafIndex message signingAttemptLimit
-        0 presampled middleCache (xmssRom_cache_le computation presampled _ hmiddle) hchain _
+        0 presampled middleCache (Generic.xmssRom_cache_le computation presampled _ hmiddle) hchain _
         hchecked htrue index hindex
   · rw [probOutput_eq_zero_of_not_mem_support hsupport, zero_mul]
     exact zero_le
@@ -389,7 +390,7 @@ theorem probEvent_signingFails_le_presampled {α : Type} (computation : OracleCo
 /-- The randomizers whose digest input is cached. -/
 noncomputable def cachedRandomizers (cache : QueryCache HashSpec) : Finset Randomness :=
   Finset.univ.filter fun randomness =>
-    cache (Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) ≠ none
+    cache (Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) ≠ none
 
 theorem cachedRandomizers_cacheQuery_randomizer (cache : QueryCache HashSpec) (trial : ℕ)
     (output : HashOutput) :
@@ -403,7 +404,7 @@ theorem cachedRandomizers_cacheQuery_randomizer (cache : QueryCache HashSpec) (t
 
 theorem card_cachedRandomizers_cacheQuery_le (cache : QueryCache HashSpec) (input : HashInput)
     (output : HashOutput) (randomness : Randomness)
-    (hinput : input = Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) :
+    (hinput : input = Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) :
     (cachedRandomizers parameter leafIndex message (cache.cacheQuery input output)).card ≤
       (cachedRandomizers parameter leafIndex message cache).card + 1 := by
   classical
@@ -414,20 +415,20 @@ theorem card_cachedRandomizers_cacheQuery_le (cache : QueryCache HashSpec) (inpu
   · exact Or.inl heq
   · refine Or.inr ?_
     simp only [cachedRandomizers, Finset.mem_filter, Finset.mem_univ, true_and]
-    have hne : Concrete.CacheView.encodingInput parameter leafIndex (message, other) ≠ input := by
+    have hne : Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, other) ≠ input := by
       rw [hinput]
       intro h
-      exact heq (Concrete.CacheView.encodingInput_injective parameter leafIndex h |>
+      exact heq (Generic.Concrete.CacheView.encodingInput_injective parameter leafIndex h |>
         congrArg Prod.snd)
     rwa [QueryCache.cacheQuery_of_ne _ _ hne] at hother
 
 theorem probEvent_invalid_uniform :
-    Pr[fun output : HashOutput => TargetSum.decodeDigest (truncateHash output) = none |
+    Pr[fun output : HashOutput => Generic.Code.decodeDigest (Generic.truncateHash output) = none |
       $ᵗ HashOutput] = 1 - TargetSum.acceptanceProbability := by
-  rw [← TargetSum.probEvent_invalidDigest_uniformHashOutput]
+  rw [← code_acceptanceProbability, ← Generic.Code.probEvent_invalidDigest_uniformHashOutput]
   congr 1
   funext output
-  simp [TargetSum.ValidDigest, Option.eq_none_iff_forall_ne_some]
+  simp [Generic.Code.ValidDigest, Option.eq_none_iff_forall_ne_some]
 
 /-- Each presampled trial fails with probability at most `1 - p` plus the chance that its
 randomizer hits a cached digest input. -/
@@ -517,7 +518,7 @@ theorem probEvent_presampleChain_fails_le :
                     randomizerOutput).cacheQuery
                       (digestInput parameter leafIndex message randomizerOutput) digestOutput)] ≤
               ∑' digestOutput, Pr[= digestOutput | $ᵗ HashOutput] *
-                (if TargetSum.decodeDigest (truncateHash digestOutput) = none then rest
+                (if Generic.Code.decodeDigest (Generic.truncateHash digestOutput) = none then rest
                   else 0) := by
               refine ENNReal.tsum_le_tsum fun digestOutput => mul_le_mul_right ?_ _
               have hfresh₂ : ∀ index < count,
@@ -565,7 +566,7 @@ theorem probEvent_presampleChain_fails_le :
                 rw [Option.some.inj h₂] at hdecode'
                 exact hdecode hdecode'
             _ = Pr[fun output : HashOutput =>
-                  TargetSum.decodeDigest (truncateHash output) = none | $ᵗ HashOutput] * rest := by
+                  Generic.Code.decodeDigest (Generic.truncateHash output) = none | $ᵗ HashOutput] * rest := by
               rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
               congr 1
               funext digestOutput
@@ -634,14 +635,14 @@ theorem trialFailure_pow_le :
     (1 - 1 / ((2 ^ 16 : ℕ) : ℝ≥0∞)) ^ signingAttemptLimit ≤ (1 / 2) ^ (2 ^ 16) := by
   rw [show signingAttemptLimit = 2 ^ 16 * 2 ^ 16 by norm_num [signingAttemptLimit], pow_mul]
   gcongr
-  refine (TargetSum.rejection_power_le _ (one_div_two_pow_le_one 16) _).trans (le_of_eq ?_)
+  refine (Generic.Code.rejection_power_le _ (one_div_two_pow_le_one 16) _).trans (le_of_eq ?_)
   rw [mul_one_div, ENNReal.div_self (by simp) (by simp), one_add_one_eq_two]
 
 /-- Whatever computation runs, the probability that its final cache shows all trials of a
 signing request failing is at most `2^-(2^16)`. -/
 theorem probEvent_signingFails_le {α : Type} (computation : OracleComp OracleWorld α) :
     Pr[fun result => SigningFails parameter seed leafIndex message result.2 |
-      (simulateQ romImpl computation).run ∅] ≤ (1 / 2) ^ (2 ^ 16) := by
+      (simulateQ Generic.romImpl computation).run ∅] ≤ (1 / 2) ^ (2 ^ 16) := by
   have hchain := probEvent_presampleChain_fails_le parameter seed leafIndex message
     signingAttemptLimit 0 ∅ 0 (by simp [signingAttemptLimit]) (fun _ _ => by simp)
     (by simp [cachedRandomizers])

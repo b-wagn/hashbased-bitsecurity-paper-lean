@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.EncodingCardinalityCertificate
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.Generic.EncodingRejectionProbability
 
 /-! Exact acceptance probability of the target-sum encoding. -/
 
@@ -11,7 +13,7 @@ set_option maxRecDepth 1000
 namespace XmssSecurity.TargetSum.TargetSum
 
 theorem validDigests_card_exact :
-    validDigests.card = 11539185377238682781344003244544752 := by
+    Generic.Code.validDigests.card = 11539185377238682781344003244544752 := by
   rw [validDigests_card_eq_wordCount]
   exact wordCount_eight_fortyTwo_195
 
@@ -19,9 +21,9 @@ noncomputable def acceptanceProbability : ℝ≥0∞ :=
   11539185377238682781344003244544752 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
 
 theorem probEvent_validDigest_uniform :
-    Pr[ValidDigest | $ᵗ Digest] = acceptanceProbability := by
+    Pr[Generic.Code.ValidDigest | $ᵗ Digest] = acceptanceProbability := by
   rw [probEvent_uniformSample]
-  change (validDigests.card : ℝ≥0∞) / Fintype.card Digest = _
+  change (Generic.Code.validDigests.card : ℝ≥0∞) / Fintype.card Digest = _
   rw [validDigests_card_exact]
   simp [acceptanceProbability]
 
@@ -55,3 +57,30 @@ theorem acceptanceProbability_upper :
 #print axioms acceptanceProbability_upper
 
 end XmssSecurity.TargetSum.TargetSum
+
+namespace XmssSecurity.TargetSum
+
+@[simp] theorem code_acceptanceProbability :
+    Generic.Code.acceptanceProbability = TargetSum.acceptanceProbability := by
+  unfold Generic.Code.acceptanceProbability TargetSum.acceptanceProbability
+  rw [TargetSum.validDigests_card_exact]
+  rfl
+
+scoped instance signerBound : Generic.Code.SignerBound where
+  capped_rejection_bound_lt := by
+    rw [code_acceptanceProbability]
+    show (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit +
+      (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
+        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
+    have hpow : (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit ≤
+        1 / (1 + (signingAttemptLimit : ℝ≥0∞) * (1 / ((2 ^ 15 : ℕ) : ℝ≥0∞))) :=
+      (pow_le_pow_left' (tsub_le_tsub_left TargetSum.acceptanceProbability_lower.le 1)
+        signingAttemptLimit).trans (Generic.Code.rejection_power_le _ (by norm_num) _)
+    apply lt_of_le_of_lt (add_le_add hpow le_rfl)
+    apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
+    rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
+    simp only [ENNReal.toReal_div, ENNReal.toReal_mul, ENNReal.toReal_inv]
+    rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
+    norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul]
+
+end XmssSecurity.TargetSum

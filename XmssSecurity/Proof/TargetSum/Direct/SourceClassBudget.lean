@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.TargetSum.Direct.SeedQueryPartition
 import XmssSecurity.Proof.TargetSum.Direct.CountedSourceCoupling
 import XmssSecurity.Proof.TargetSum.ExpectedStateCounter
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Encoding, structural, and seed-guessing queries share the actual source direct
 count. Together with twice the reference signer cost they obey the same semantic budget. -/
@@ -11,32 +13,32 @@ set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity.TargetSum.CappedChain
 
-theorem countedSource_expectedDirect_eq {α : Type} (secretKey : SecretKey)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState)
+theorem countedSource_expectedDirect_eq {α : Type} (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : CountedSourceState)
     (hzero : state.counts.direct = 0) :
-    expectedSimulatedQueryCount (countedSourceImpl secretKey) Direct.IsDirectHashQuery computation state =
+    expectedSimulatedQueryCount (countedSourceImpl secretKey) Generic.Direct.IsDirectHashQuery computation state =
       ∑' result, Pr[= result | (simulateQ (countedSourceImpl secretKey) computation).run state] *
         (result.2.counts.direct : ℝ≥0∞) := by
   have h := expectedStateCounter_eq_initial_add_queries (countedSourceImpl secretKey)
-    Direct.IsDirectHashQuery (fun state => state.counts.direct)
+    Generic.Direct.IsDirectHashQuery (fun state => state.counts.direct)
     (fun input state result hresult => by
-      rw [countedSourceImpl_direct_eq secretKey input state result hresult, Direct.directHashActionCost_eq_if])
+      rw [countedSourceImpl_direct_eq secretKey input state result hresult, Generic.Direct.directHashActionCost_eq_if])
     computation state
   simpa only [hzero, Nat.cast_zero, zero_add] using h.symm
 
-theorem countedSource_expectedClassBudget {α : Type} (secretKey : SecretKey)
+theorem countedSource_expectedClassBudget {α : Type} (secretKey : Generic.SecretKey)
     (targetCache : QueryCache HashSpec) (limit : Nat)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : CountedSourceState)
     (hzero : state.counts.direct = 0) (hbudget : CountedSourceBudget secretKey limit computation state) :
     expectedSimulatedQueryCount (countedSourceImpl secretKey)
-        (Direct.IsDirectEncodingQuery secretKey.parameter) computation state +
+        (Generic.Direct.IsDirectEncodingQuery secretKey.parameter) computation state +
       expectedSimulatedQueryCount (countedSourceImpl secretKey)
-        (Direct.IsDirectStructuralQuery secretKey targetCache) computation state +
+        (Generic.Direct.IsDirectStructuralQuery secretKey targetCache) computation state +
       expectedSimulatedQueryCount (countedSourceImpl secretKey) Direct.IsDirectSeedQuery computation state +
       2 * (∑' result, Pr[= result | (simulateQ (countedSourceImpl secretKey) computation).run state] *
         (result.2.counts.signing : ℝ≥0∞)) ≤ limit := by
   calc
-    _ ≤ expectedSimulatedQueryCount (countedSourceImpl secretKey) Direct.IsDirectHashQuery computation state +
+    _ ≤ expectedSimulatedQueryCount (countedSourceImpl secretKey) Generic.Direct.IsDirectHashQuery computation state +
         2 * (∑' result, Pr[= result | (simulateQ (countedSourceImpl secretKey) computation).run state] *
           (result.2.counts.signing : ℝ≥0∞)) :=
       add_le_add (Direct.expectedDirect_classes_le (countedSourceImpl secretKey) secretKey targetCache computation state) le_rfl

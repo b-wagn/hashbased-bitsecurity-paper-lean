@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.Direct.SourceLossBudget
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! A larger reserve in the source budget pays for acceptance transfer in the cached case. -/
 
@@ -6,8 +8,8 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.TargetSum.Direct
 
-noncomputable def sourceEncodingReserve (adversary : Adversary) : ℝ≥0∞ :=
-  (3 / 8 : ℝ≥0∞) * (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary)
+noncomputable def sourceEncodingReserve (adversary : Generic.Adversary) : ℝ≥0∞ :=
+  (3 / 8 : ℝ≥0∞) * (Generic.Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary)
 
 theorem source_encoding_rate_add_reserve_le :
     prehitRate + TargetSum.acceptanceProbability *
@@ -33,26 +35,26 @@ theorem source_seed_rate_le :
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_inv, digestBits]
 
-theorem sourceSecondaryLoss_add_encodingReserve_le (adversary : Adversary) :
+theorem sourceSecondaryLoss_add_encodingReserve_le (adversary : Generic.Adversary) :
     sourceSecondaryLoss adversary + sourceEncodingReserve adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) ≤
-      (expectedDirectEncodingQueries adversary + expectedDirectStructuralQueries adversary +
+      (Generic.Direct.expectedDirectEncodingQueries adversary + Generic.Direct.expectedDirectStructuralQueries adversary +
         expectedDirectSeedQueries adversary + 2 * expectedSourceSignerHashes adversary) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   unfold sourceSecondaryLoss sourceEncodingReserve
   calc
-    _ = expectedDirectEncodingQueries adversary *
+    _ = Generic.Direct.expectedDirectEncodingQueries adversary *
           (prehitRate + TargetSum.acceptanceProbability *
             ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
             (3 / 8 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
-        expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
+        Generic.Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞) +
         expectedSourceSignerHashes adversary *
           (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
             (3 / 8 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) := by
       simp only [div_eq_mul_inv]
       ring
-    _ ≤ expectedDirectEncodingQueries adversary * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ +
-        expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
+    _ ≤ Generic.Direct.expectedDirectEncodingQueries adversary * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ +
+        Generic.Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         expectedDirectSeedQueries adversary * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ +
         expectedSourceSignerHashes adversary * ((2 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) := by
       exact add_le_add (add_le_add

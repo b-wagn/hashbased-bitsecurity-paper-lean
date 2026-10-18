@@ -1,11 +1,12 @@
-import XmssSecurity.Proof.Checksum.PrecomputedBoundedSign
-import XmssSecurity.Proof.Checksum.OutcomeClassification
-import XmssSecurity.Proof.Checksum.Direct.SeedGuessing
-import XmssSecurity.Proof.Checksum.Seeded.CacheCoupling
+import XmssSecurity.Proof.Generic.PrecomputedBoundedSign
+import XmssSecurity.Proof.Generic.OutcomeClassification
+import XmssSecurity.Proof.Generic.Direct.SeedGuessing
+import XmssSecurity.Proof.Generic.Seeded.CacheCoupling
 import XmssSecurity.Statement.Security.Correctness
 import XmssSecurity.Proof.Common.RepeatedEpochs
-import XmssSecurity.Proof.Checksum.Direct.Bridge
-
+import XmssSecurity.Proof.Generic.Direct.Bridge
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 /-!
 # Correctness of the checksummed scheme
 
@@ -25,12 +26,12 @@ open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity.Checksum.Correct
 
-open Seeded
+open Generic.Seeded
 
 noncomputable local instance : IsUniformSpec HashSpec := IsUniformSpec.ofFintypeInhabited _
 
 -- Unfolding the master-seed sampler enumerates `2^256` seeds; keep it opaque.
-attribute [local irreducible] sampleMasterSeed
+attribute [local irreducible] Generic.sampleMasterSeed
 
 /-! ### Caches that agree outside a set of inputs -/
 
@@ -38,7 +39,7 @@ attribute [local irreducible] sampleMasterSeed
 it outside `bad` and has no `bad` entry. -/
 theorem run_support_agreeOutside {β : Type} (computation : OracleComp HashSpec β)
     (bad : HashInput → Prop) [DecidablePred bad] (hbound : computation.IsQueryBoundP bad 0)
-    (cache other : QueryCache HashSpec) (hagree : AgreeOutside bad cache other)
+    (cache other : QueryCache HashSpec) (hagree : Generic.Seeded.AgreeOutside bad cache other)
     (hle : other ≤ cache) (hclean : ∀ input, bad input → other input = none) :
     ∀ result ∈ support ((simulateQ randomOracle computation).run cache),
       ∃ otherCache, (result.1, otherCache) ∈ support ((simulateQ randomOracle computation).run other) ∧
@@ -143,29 +144,29 @@ theorem run_support_onlyBad {β : Type} (computation : OracleComp HashSpec β)
 theorem sequenceFin_isQueryBoundP {α : Type} {p : HashInput → Prop} [DecidablePred p] :
     ∀ {n : Nat} (computation : Fin n → OracleComp HashSpec α),
       (∀ index, (computation index).IsQueryBoundP p 0) →
-        (Concrete.sequenceFin computation).IsQueryBoundP p 0
-  | 0, _, _ => by simp [Concrete.sequenceFin]
+        (Generic.Concrete.sequenceFin computation).IsQueryBoundP p 0
+  | 0, _, _ => by simp [Generic.Concrete.sequenceFin]
   | n + 1, computation, h => by
-      simp only [Concrete.sequenceFin]
+      simp only [Generic.Concrete.sequenceFin]
       have hhead := h 0
       have htail := sequenceFin_isQueryBoundP (fun index : Fin n => computation index.succ)
         (fun index => h index.succ)
       have hbind : IsQueryBoundP (computation 0 >>= fun head =>
-          Concrete.sequenceFin (fun index : Fin n => computation index.succ) >>= fun tail =>
+          Generic.Concrete.sequenceFin (fun index : Fin n => computation index.succ) >>= fun tail =>
             (pure (Fin.cases head tail) : OracleComp HashSpec (Fin (n + 1) → α))) p (0 + (0 + 0)) :=
         isQueryBoundP_bind hhead fun head _ => isQueryBoundP_bind htail fun tail _ =>
           isQueryBoundP_pure p _ 0
       simpa using hbind
 
-theorem deriveKey_onlySeed (parameter : PublicParameter) (domain : KeygenDomain)
+theorem deriveKey_onlySeed (parameter : PublicParameter) (domain : Generic.KeygenDomain)
     (seed : MasterSeed) :
-    (deriveKey parameter domain seed : OracleComp HashSpec Digest).IsQueryBoundP
-      (fun input => ¬MaySeedHit input) 0 := by
-  simp [deriveKey, Concrete.oracleHash, maySeedHit_keygenHashInput]
+    (Generic.deriveKey parameter domain seed : OracleComp HashSpec Digest).IsQueryBoundP
+      (fun input => ¬Generic.MaySeedHit input) 0 := by
+  simp [Generic.deriveKey, Generic.Concrete.oracleHash, Generic.maySeedHit_keygenHashInput]
 
 theorem romImpl_liftM_support {α : Type} (computation : ProbComp α)
     (cache : QueryCache HashSpec) :
-    support ((simulateQ romImpl (liftM computation : OracleComp OracleWorld α)).run cache) =
+    support ((simulateQ Generic.romImpl (liftM computation : OracleComp OracleWorld α)).run cache) =
       (fun x => (x, cache)) '' support computation :=
   roSim.run_liftM_support (hashSpec := HashSpec)
     (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) computation cache
@@ -173,14 +174,14 @@ theorem romImpl_liftM_support {α : Type} (computation : ProbComp α)
 /-- Every seeded key is a key of the precomputed key generation, whose cache is contained in the
 seeded key generation's cache. -/
 theorem seededKeygen_support_precomputed (seed : MasterSeed)
-    (keyResult : (PublicKey × Seeded.SecretKey) × QueryCache HashSpec)
-    (hmem : keyResult ∈ support ((simulateQ randomOracle (Seeded.keygenFromSeed seed)).run ∅)) :
+    (keyResult : (PublicKey × Generic.Seeded.SecretKey) × QueryCache HashSpec)
+    (hmem : keyResult ∈ support ((simulateQ randomOracle (Generic.Seeded.keygenFromSeed seed)).run ∅)) :
     ∃ cache, ((keyResult.1.1, keyResult.1.2.precomputed), cache) ∈
-        support ((simulateQ romImpl Concrete.precomputedKeygen).run ∅) ∧
+        support ((simulateQ Generic.romImpl Generic.Concrete.precomputedKeygen).run ∅) ∧
       cache ≤ keyResult.2 ∧
       ∀ largerCache, cache ≤ largerCache → keyResult.1.1 =
-        Concrete.CacheReplay.publicKeyFromCache largerCache keyResult.1.2.precomputed := by
-  unfold Seeded.keygenFromSeed at hmem
+        Generic.Concrete.CacheReplay.publicKeyFromCache largerCache keyResult.1.2.precomputed := by
+  unfold Generic.Seeded.keygenFromSeed at hmem
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
   obtain ⟨⟨parameter, parameterCache⟩, hparameter, hmem⟩ := hmem
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
@@ -189,35 +190,35 @@ theorem seededKeygen_support_precomputed (seed : MasterSeed)
   obtain ⟨⟨tree, treeCache⟩, htree, hmem⟩ := hmem
   simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
   subst hmem
-  have hparameterOnly := run_support_onlyBad _ MaySeedHit
+  have hparameterOnly := run_support_onlyBad _ Generic.MaySeedHit
     (deriveKey_onlySeed 0 .parameter seed) ∅ (fun _ _ => rfl) _ hparameter
-  have hsecretOnly := run_support_onlyBad _ MaySeedHit
+  have hsecretOnly := run_support_onlyBad _ Generic.MaySeedHit
     (sequenceFin_isQueryBoundP _ fun leafIndex => sequenceFin_isQueryBoundP _ fun chain =>
       deriveKey_onlySeed parameter (.chain leafIndex chain) seed) parameterCache hparameterOnly _
     hsecret
-  have hnoSeed : ((Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-      OracleComp HashSpec Digest).withQueryLog).IsQueryBoundP MaySeedHit 0 :=
+  have hnoSeed : ((Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
+      OracleComp HashSpec Digest).withQueryLog).IsQueryBoundP Generic.MaySeedHit 0 :=
     (isQueryBoundP_run_simulateQ_loggingOracle_iff _ _ _).2
-      (Concrete.treeNode_noSeed _ _ _ _)
-  obtain ⟨cache, hcacheRun, hcacheLe, -⟩ := run_support_agreeOutside _ MaySeedHit hnoSeed
+      (Generic.Concrete.treeNode_noSeed _ _ _ _)
+  obtain ⟨cache, hcacheRun, hcacheLe, -⟩ := run_support_agreeOutside _ Generic.MaySeedHit hnoSeed
     secretCache ∅ (fun input hinput => hsecretOnly input hinput) (fun _ _ h => by simp at h)
     (fun _ _ => rfl) _ htree
-  have hlog : hashCacheOfLog tree.2 = cache :=
-    hashCacheOfLog_eq_finalCache_of_empty _ (tree, cache) hcacheRun
+  have hlog : Generic.hashCacheOfLog tree.2 = cache :=
+    Generic.hashCacheOfLog_eq_finalCache_of_empty _ (tree, cache) hcacheRun
   have htreeRun : (tree.1, cache) ∈ support ((simulateQ randomOracle
-      (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
+      (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
         OracleComp HashSpec Digest)).run ∅) := by
-    rw [← withQueryLog_cache_projection, support_map]
+    rw [← Generic.withQueryLog_cache_projection, support_map]
     exact ⟨(tree, cache), hcacheRun, rfl⟩
   refine ⟨cache, ?_, hcacheLe, fun largerCache hle => ?_⟩
   swap
-  · have heval := Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
-      (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
+  · have heval := Generic.Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
+      (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
         OracleComp HashSpec Digest) ∅ cache largerCache tree.1 htreeRun hle
-    rw [Concrete.CacheReplay.eval_treeNode] at heval
-    exact Concrete.CacheReplay.publicKey_eq_publicKeyFromCache largerCache
-      (Concrete.precomputedSecretKey parameter secret (hashCacheOfLog tree.2)) tree.1 heval.symm
-  unfold Concrete.precomputedKeygen Concrete.samplePublicParameter Concrete.sampleSecret
+    rw [Generic.Concrete.CacheReplay.eval_treeNode] at heval
+    exact Generic.Concrete.CacheReplay.publicKey_eq_publicKeyFromCache largerCache
+      (Generic.Concrete.precomputedSecretKey parameter secret (Generic.hashCacheOfLog tree.2)) tree.1 heval.symm
+  unfold Generic.Concrete.precomputedKeygen Generic.Concrete.samplePublicParameter Generic.Concrete.sampleSecret
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff]
   refine ⟨(parameter, ∅), ?_, ?_⟩
   · rw [romImpl_liftM_support]
@@ -232,10 +233,10 @@ theorem seededKeygen_support_precomputed (seed : MasterSeed)
     trivial
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff]
   refine ⟨(tree, cache), ?_, ?_⟩
-  · rw [show simulateQ romImpl (liftM ((Concrete.treeNode parameter secret treeHeight
-        Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog) :
-        OracleComp OracleWorld _) = simulateQ randomOracle ((Concrete.treeNode parameter secret
-        treeHeight Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog) from
+  · rw [show simulateQ Generic.romImpl (liftM ((Generic.Concrete.treeNode parameter secret treeHeight
+        Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog) :
+        OracleComp OracleWorld _) = simulateQ randomOracle ((Generic.Concrete.treeNode parameter secret
+        treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog) from
       QueryImpl.simulateQ_add_liftM_right (unifFwdImpl HashSpec)
         (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) _]
     exact hcacheRun
@@ -246,53 +247,53 @@ theorem seededKeygen_support_precomputed (seed : MasterSeed)
 /-- A signing attempt of the checksummed scheme always returns a signature: every digest decodes.
 From any cache above the key's cache, the signature is the cache-level signature of the decoded
 encoding. -/
-theorem precomputedSignAttempt_replay (secretKey : SecretKey) (leafIndex : LeafIndex)
+theorem precomputedSignAttempt_replay (secretKey : Generic.SecretKey) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) (keyCache initialCache : QueryCache HashSpec)
-    (hconsistent : PrecomputedKeyConsistent keyCache secretKey)
-    (step : Option Signature × QueryCache HashSpec)
+    (hconsistent : Generic.PrecomputedKeyConsistent keyCache secretKey)
+    (step : Option Generic.Signature × QueryCache HashSpec)
     (hstep : step ∈ support ((simulateQ randomOracle
-      (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
-        OracleComp HashSpec (Option Signature))).run initialCache)) :
+      (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+        OracleComp HashSpec (Option Generic.Signature))).run initialCache)) :
     ∃ signature, step.1 = some signature ∧ signature.randomness = randomness ∧
       ∀ largerCache, keyCache ≤ largerCache → step.2 ≤ largerCache →
         ∃ encoding,
-          Concrete.CacheView.decodedEncoding largerCache secretKey.parameter leafIndex
+          Generic.Concrete.CacheView.decodedEncoding largerCache secretKey.parameter leafIndex
               (message, randomness) = some encoding ∧
-          signature = Concrete.CacheReplay.signWithEncoding largerCache secretKey leafIndex
+          signature = Generic.Concrete.CacheReplay.signWithEncoding largerCache secretKey leafIndex
             randomness encoding := by
   have hsome : ∃ signature, step.1 = some signature := by
-    unfold Concrete.precomputedSignAttempt at hstep
+    unfold Generic.Concrete.precomputedSignAttempt at hstep
     rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hstep
     obtain ⟨⟨digest, digestCache⟩, -, hrest⟩ := hstep
-    simp only [Checksum.decodeDigest, simulateQ_pure, StateT.run_pure, support_pure,
+    simp only [Generic.Code.decodeDigest, simulateQ_pure, StateT.run_pure, support_pure,
       Set.mem_singleton_iff] at hrest
     exact ⟨_, by rw [hrest]⟩
   obtain ⟨signature, hsignature⟩ := hsome
-  obtain ⟨output, hcached⟩ := Concrete.CacheReplay.precomputedSignAttempt_run_encodingInput_cached
+  obtain ⟨output, hcached⟩ := Generic.Concrete.CacheReplay.precomputedSignAttempt_run_encodingInput_cached
     secretKey leafIndex message randomness initialCache step.2 signature
     (by rw [← hsignature]; exact hstep)
   have hrandomness : signature.randomness = randomness := by
-    unfold Concrete.precomputedSignAttempt at hstep
+    unfold Generic.Concrete.precomputedSignAttempt at hstep
     rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hstep
     obtain ⟨⟨digest, digestCache⟩, -, hrest⟩ := hstep
-    simp only [Checksum.decodeDigest, simulateQ_pure, StateT.run_pure, support_pure,
+    simp only [Generic.Code.decodeDigest, simulateQ_pure, StateT.run_pure, support_pure,
       Set.mem_singleton_iff] at hrest
     rw [hrest] at hsignature
     simp only [Option.some.injEq] at hsignature
     rw [← hsignature]
     rfl
   refine ⟨signature, hsignature, hrandomness, fun largerCache hkeyLe hle => ?_⟩
-  have heval := Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
-    (Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
-      OracleComp HashSpec (Option Signature)) initialCache step.2 largerCache step.1
+  have heval := Generic.Concrete.CacheReplay.eval_answerFn_largerCache_eq_of_mem_support
+    (Generic.Concrete.precomputedSignAttempt secretKey leafIndex message randomness :
+      OracleComp HashSpec (Option Generic.Signature)) initialCache step.2 largerCache step.1
     hstep hle
-  unfold Concrete.precomputedSignAttempt at heval
-  simp only [evalWithAnswerFn_bind, Concrete.CacheReplay.eval_encodingHash] at heval
+  unfold Generic.Concrete.precomputedSignAttempt at heval
+  simp only [evalWithAnswerFn_bind, Generic.Concrete.CacheReplay.eval_encodingHash] at heval
   split at heval
   · rename_i _ encoding hdecode
     simp only [evalWithAnswerFn_pure] at heval
     refine ⟨encoding, ?_, ?_⟩
-    · rw [Concrete.CacheView.decodedEncoding_eq_of_cache_eq_some (hle hcached)]
+    · rw [Generic.Concrete.CacheView.decodedEncoding_eq_of_cache_eq_some (hle hcached)]
       exact hdecode
     · rw [hsignature, Option.some.injEq] at heval
       rw [← heval]
@@ -301,26 +302,26 @@ theorem precomputedSignAttempt_replay (secretKey : SecretKey) (leafIndex : LeafI
 
 /-- The seeded signer answers a signature, and its verification from the cache after signing,
 and every larger cache, accepts. -/
-theorem sign_verify (secretKey : Seeded.SecretKey) (publicKey : PublicKey)
+theorem sign_verify (secretKey : Generic.Seeded.SecretKey) (publicKey : PublicKey)
     (keyCache : QueryCache HashSpec)
-    (hconsistent : PrecomputedKeyConsistent keyCache secretKey.precomputed)
+    (hconsistent : Generic.PrecomputedKeyConsistent keyCache secretKey.precomputed)
     (hkey : ∀ largerCache, keyCache ≤ largerCache →
-      publicKey = Concrete.CacheReplay.publicKeyFromCache largerCache secretKey.precomputed)
+      publicKey = Generic.Concrete.CacheReplay.publicKeyFromCache largerCache secretKey.precomputed)
     (leafIndex : LeafIndex) (message : Message) (cache : QueryCache HashSpec)
     (hle : keyCache ≤ cache) :
     ∀ step ∈ support ((simulateQ randomOracle
-        (Seeded.sign secretKey leafIndex message : OracleComp HashSpec (Option Signature))).run
+        (Generic.Seeded.sign secretKey leafIndex message : OracleComp HashSpec (Option Generic.Signature))).run
           cache),
       cache ≤ step.2 ∧ ∃ signature, step.1 = some signature ∧
         ∀ check ∈ support ((simulateQ randomOracle
-            (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)).run
+            (Generic.Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)).run
               step.2),
           check.1 = true ∧ step.2 ≤ check.2 := by
   intro step hstep
-  have hcacheLe : cache ≤ step.2 := Concrete.CacheReplay.randomOracle_cache_le _ cache step hstep
+  have hcacheLe : cache ≤ step.2 := Generic.Concrete.CacheReplay.randomOracle_cache_le _ cache step hstep
   refine ⟨hcacheLe, ?_⟩
-  rw [Seeded.sign_eq_signFrom] at hstep
-  simp only [signingAttemptLimit, Seeded.signFrom] at hstep
+  rw [Generic.Seeded.sign_eq_signFrom] at hstep
+  simp only [code_signingAttemptLimit, signingAttemptLimit, Generic.Seeded.signFrom] at hstep
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hstep
   obtain ⟨⟨randomness, randomnessCache⟩, -, hstep⟩ := hstep
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hstep
@@ -334,57 +335,57 @@ theorem sign_verify (secretKey : Seeded.SecretKey) (publicKey : PublicKey)
   subst hrest
   refine ⟨signature, rfl, fun check hcheck => ?_⟩
   have hfinalLe : attemptCache ≤ check.2 :=
-    Concrete.CacheReplay.randomOracle_cache_le _ attemptCache check hcheck
+    Generic.Concrete.CacheReplay.randomOracle_cache_le _ attemptCache check hcheck
   refine ⟨?_, hfinalLe⟩
-  have hverify := Concrete.CacheReplay.verifyFromCache_eq_of_mem_support publicKey leafIndex
+  have hverify := Generic.Concrete.CacheReplay.verifyFromCache_eq_of_mem_support publicKey leafIndex
     message signature attemptCache check.2 check.1 hcheck
   have hkeyLe : keyCache ≤ check.2 := hle.trans (hcacheLe.trans hfinalLe)
   obtain ⟨encoding, hdecode, hsignature⟩ := hreplay check.2 hkeyLe hfinalLe
   rw [← hverify, hkey check.2 hkeyLe, hsignature]
-  exact Concrete.CacheReplay.verifyFromCache_signWithEncoding check.2 secretKey.precomputed
+  exact Generic.Concrete.CacheReplay.verifyFromCache_signWithEncoding check.2 secretKey.precomputed
     leafIndex message randomness encoding hdecode
 
 /-! ### The correctness experiment -/
 
 /-- The adversary's run in the correctness experiment. -/
-abbrev CorrectRun := Correctness.Run OracleWorld Message Signature lifetime
+abbrev CorrectRun := Correctness.Run OracleWorld Message Generic.Signature lifetime
 
 /-- The oracles of the correctness experiment of `xmss`. -/
-noncomputable abbrev correctImpl (publicKey : PublicKey) (secretKey : Seeded.SecretKey) :
-    QueryImpl (OracleWorld + SigningSpec) CorrectRun :=
-  QueryImpl.ofLift OracleWorld CorrectRun + Correctness.signingOracle xmss publicKey secretKey
+noncomputable abbrev correctImpl (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey) :
+    QueryImpl (OracleWorld + Generic.SigningSpec) CorrectRun :=
+  QueryImpl.ofLift OracleWorld CorrectRun + Correctness.signingOracle Generic.xmss publicKey secretKey
 
-theorem correctRun_query_bind {α : Type} (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
-    (state : QueryLog SigningSpec × Bool) :
+theorem correctRun_query_bind {α : Type} (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey)
+    (input : (OracleWorld + Generic.SigningSpec).Domain)
+    (next : (OracleWorld + Generic.SigningSpec).Range input → OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (state : QueryLog Generic.SigningSpec × Bool) :
     (simulateQ (correctImpl publicKey secretKey)
-        (liftM ((OracleWorld + SigningSpec).query input) >>= next)).run.run state =
+        (liftM ((OracleWorld + Generic.SigningSpec).query input) >>= next)).run.run state =
       (correctImpl publicKey secretKey input).run.run state >>= fun p =>
         (fun q => ((q.1.1, p.1.2 * q.1.2), q.2)) <$>
           (simulateQ (correctImpl publicKey secretKey) (next p.1.1)).run.run p.2 := by
   simp [simulateQ_bind, WriterT.run_bind, StateT.run_bind]
 
 theorem romImpl_liftHash {α : Type} (computation : OracleComp HashSpec α) :
-    simulateQ romImpl (liftM computation : OracleComp OracleWorld α) =
+    simulateQ Generic.romImpl (liftM computation : OracleComp OracleWorld α) =
       simulateQ randomOracle computation :=
   QueryImpl.simulateQ_add_liftM_right (unifFwdImpl HashSpec)
     (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) computation
 
 /-- One signing query of the correctness experiment keeps the flag `v` at `0`. -/
-theorem signingStep_noFailure (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
+theorem signingStep_noFailure (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey)
     (keyCache : QueryCache HashSpec)
-    (hconsistent : PrecomputedKeyConsistent keyCache secretKey.precomputed)
+    (hconsistent : Generic.PrecomputedKeyConsistent keyCache secretKey.precomputed)
     (hkey : ∀ largerCache, keyCache ≤ largerCache →
-      publicKey = Concrete.CacheReplay.publicKeyFromCache largerCache secretKey.precomputed)
-    (request : SignRequest) (signed : QueryLog SigningSpec) (cache : QueryCache HashSpec)
+      publicKey = Generic.Concrete.CacheReplay.publicKeyFromCache largerCache secretKey.precomputed)
+    (request : Generic.SignRequest) (signed : QueryLog Generic.SigningSpec) (cache : QueryCache HashSpec)
     (hle : keyCache ≤ cache) :
-    ∀ step ∈ support ((simulateQ romImpl
+    ∀ step ∈ support ((simulateQ Generic.romImpl
         ((correctImpl publicKey secretKey (.inr request)).run.run (signed, false))).run cache),
       step.1.2.2 = false ∧ cache ≤ step.2 := by
   intro step hstep
-  change step ∈ support ((simulateQ romImpl
-    ((Correctness.signingOracle xmss publicKey secretKey request).run.run (signed, false))).run
+  change step ∈ support ((simulateQ Generic.romImpl
+    ((Correctness.signingOracle Generic.xmss publicKey secretKey request).run.run (signed, false))).run
       cache) at hstep
   unfold Correctness.signingOracle at hstep
   simp only [WriterT.run_bind, StateT.run_bind, StateT.run_map, AddWriterT.run_addTell,
@@ -403,42 +404,42 @@ theorem signingStep_noFailure (publicKey : PublicKey) (secretKey : Seeded.Secret
     have hstep' := (mem_support_pure_iff _ _).1 hstep
     subst hstep'
     have hsign : signStep ∈ support ((simulateQ randomOracle
-        (Seeded.sign secretKey request.epoch request.message :
-          OracleComp HashSpec (Option Signature))).run cache) := by
-      simpa [xmss, romImpl_liftHash] using hsignStep
+        (Generic.Seeded.sign secretKey request.epoch request.message :
+          OracleComp HashSpec (Option Generic.Signature))).run cache) := by
+      simpa [Generic.xmss, romImpl_liftHash] using hsignStep
     obtain ⟨hcacheLe, signature, hsome, hverifyAll⟩ :=
       sign_verify secretKey publicKey keyCache hconsistent hkey request.epoch request.message
         cache hle signStep hsign
     rw [hsome] at hverifyStep
     have hverify : verifyStep ∈ support ((simulateQ randomOracle
-        (Concrete.verify publicKey request.epoch request.message signature :
+        (Generic.Concrete.verify publicKey request.epoch request.message signature :
           OracleComp HashSpec Bool)).run signStep.2) := by
-      simpa [xmss, romImpl_liftHash] using hverifyStep
+      simpa [Generic.xmss, romImpl_liftHash] using hverifyStep
     obtain ⟨htrue, hfinalLe⟩ := hverifyAll verifyStep hverify
     exact ⟨by simp [htrue], hcacheLe.trans hfinalLe⟩
 
-theorem hashStep_state (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
-    (input : OracleWorld.Domain) (state : QueryLog SigningSpec × Bool) (cache : QueryCache HashSpec) :
-    ∀ step ∈ support ((simulateQ romImpl
+theorem hashStep_state (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey)
+    (input : OracleWorld.Domain) (state : QueryLog Generic.SigningSpec × Bool) (cache : QueryCache HashSpec) :
+    ∀ step ∈ support ((simulateQ Generic.romImpl
         ((correctImpl publicKey secretKey (.inl input)).run.run state)).run cache),
       step.1.2 = state ∧ cache ≤ step.2 := by
   intro step hstep
-  change step ∈ support ((simulateQ romImpl
+  change step ∈ support ((simulateQ Generic.romImpl
     ((liftM (OracleWorld.query input) : CorrectRun _).run.run state)).run cache) at hstep
   rw [SUFCMA.writerState_run_lift, simulateQ_map, StateT.run_map, support_map] at hstep
   obtain ⟨answer, hanswer, rfl⟩ := hstep
-  refine ⟨rfl, romImpl_query_cache_le input cache answer ?_⟩
+  refine ⟨rfl, Generic.romImpl_query_cache_le input cache answer ?_⟩
   simpa [simulateQ_spec_query] using hanswer
 
 /-- No signing query of the correctness experiment sets the flag `v`. -/
-theorem run_noFailure (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
+theorem run_noFailure (publicKey : PublicKey) (secretKey : Generic.Seeded.SecretKey)
     (keyCache : QueryCache HashSpec)
-    (hconsistent : PrecomputedKeyConsistent keyCache secretKey.precomputed)
+    (hconsistent : Generic.PrecomputedKeyConsistent keyCache secretKey.precomputed)
     (hkey : ∀ largerCache, keyCache ≤ largerCache →
-      publicKey = Concrete.CacheReplay.publicKeyFromCache largerCache secretKey.precomputed)
-    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (signed : QueryLog SigningSpec) (cache : QueryCache HashSpec) (hle : keyCache ≤ cache) :
-    ∀ result ∈ support ((simulateQ romImpl
+      publicKey = Generic.Concrete.CacheReplay.publicKeyFromCache largerCache secretKey.precomputed)
+    {α : Type} (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)
+    (signed : QueryLog Generic.SigningSpec) (cache : QueryCache HashSpec) (hle : keyCache ≤ cache) :
+    ∀ result ∈ support ((simulateQ Generic.romImpl
         ((simulateQ (correctImpl publicKey secretKey) computation).run.run (signed, false))).run
           cache),
       result.1.2.2 = false := by
@@ -467,13 +468,13 @@ theorem run_noFailure (publicKey : PublicKey) (secretKey : Seeded.SecretKey)
 
 /-- The checksummed scheme has correctness error `0`: whatever the adversary queries, every
 signing request is answered by a signature that verifies. -/
-theorem correctnessError_zero : Correctness.HasCorrectnessError xmss 0 := by
+theorem correctnessError_zero : Correctness.HasCorrectnessError Generic.xmss 0 := by
   intro q adversary _
   rw [zero_mul, nonpos_iff_eq_zero]
   unfold Correctness.advantage Correctness.game RandomOracleModel.run
   rw [probEvent_eq_zero_iff]
   intro result hresult
-  rw [← Security.romImpl_eq, StateT.run'_eq, support_map] at hresult
+  rw [← Generic.Security.romImpl_eq, StateT.run'_eq, support_map] at hresult
   obtain ⟨⟨output, finalCache⟩, hrun, rfl⟩ := hresult
   unfold Correctness.experiment at hrun
   rw [simulateQ_bind, StateT.run_bind] at hrun
@@ -481,8 +482,8 @@ theorem correctnessError_zero : Correctness.HasCorrectnessError xmss 0 := by
   obtain ⟨⟨publicKey, secretKey⟩, keysCache⟩ := keys
   -- key generation
   have hkeygen : ((publicKey, secretKey), keysCache) ∈
-      support ((simulateQ romImpl xmss.keygen).run ∅) := hkeys
-  simp only [xmss, simulateQ_bind, StateT.run_bind] at hkeygen
+      support ((simulateQ Generic.romImpl Generic.xmss.keygen).run ∅) := hkeys
+  simp only [Generic.xmss, simulateQ_bind, StateT.run_bind] at hkeygen
   obtain ⟨seedStep, hseedStep, hkeyStep⟩ := (mem_support_bind_iff _ _ _).1 hkeygen
   have hseedCache : seedStep.2 = ∅ := by
     rw [romImpl_liftM_support] at hseedStep
@@ -491,7 +492,7 @@ theorem correctnessError_zero : Correctness.HasCorrectnessError xmss 0 := by
   rw [hseedCache, romImpl_liftHash] at hkeyStep
   obtain ⟨keyCache, hprecomputed, hkeyCacheLe, hkey⟩ :=
     seededKeygen_support_precomputed seedStep.1 _ hkeyStep
-  have hconsistent := Concrete.precomputedKeygen_support_consistent _ hprecomputed
+  have hconsistent := Generic.Concrete.precomputedKeygen_support_consistent _ hprecomputed
   -- the adversary's run
   simp only [simulateQ_bind, StateT.run_bind] at hrest
   obtain ⟨⟨⟨⟨unit, requests⟩, ⟨signed, failed⟩⟩, adversaryCache⟩, hadversary, hout⟩ :=

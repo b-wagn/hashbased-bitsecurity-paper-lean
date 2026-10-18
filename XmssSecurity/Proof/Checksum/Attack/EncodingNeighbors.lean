@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.Checksum.EncodingProbability
+import XmssSecurity.Proof.Checksum.Code
 
 /-! Codewords obtained from a codeword by moving one unit from one chain to another.
 

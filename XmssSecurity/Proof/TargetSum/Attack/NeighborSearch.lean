@@ -1,7 +1,8 @@
-import XmssSecurity.Proof.TargetSum.Attack.HashSearch
+import XmssSecurity.Proof.Generic.Attack.HashSearch
 import XmssSecurity.Proof.TargetSum.Attack.EncodingNeighbors
-import XmssSecurity.Proof.TargetSum.Attack.MutationSigningCache
-
+import XmssSecurity.Proof.Generic.Attack.MutationSigningCache
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Searching fresh encoding inputs for one of the valid neighboring encodings. -/
 
 open OracleComp OracleSpec ENNReal
@@ -17,20 +18,20 @@ def neighborSearchSteps : ℕ := 2 ^ 121
 
 def neighborSearchInput (parameter : PublicParameter) (leafIndex : LeafIndex) (message : Message)
     (position : ℕ) : HashInput :=
-  CacheView.encodingInput parameter leafIndex (message, BitVec.ofNat randomnessBits position)
+  Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, BitVec.ofNat randomnessBits position)
 
 noncomputable def findEncodingNeighbor (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (encoding : Encoding) : OracleComp HashSpec (Option (ℕ × HashOutput)) := by
   classical
-  exact findHash (neighborSearchInput parameter leafIndex message)
-    (fun output => truncateHash output ∈ neighborDigests encoding) 0 neighborSearchSteps
+  exact Generic.Attack.findHash (neighborSearchInput parameter leafIndex message)
+    (fun output => Generic.truncateHash output ∈ neighborDigests encoding) 0 neighborSearchSteps
 
 theorem neighborSearchInput_separate (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (i j : ℕ) (hi : i < neighborSearchSteps) (hj : j < neighborSearchSteps)
     (hne : i ≠ j) : neighborSearchInput parameter leafIndex message i ≠
       neighborSearchInput parameter leafIndex message j := by
   intro heq
-  have hrandomness := congrArg Prod.snd (CacheView.encodingInput_injective parameter leafIndex heq)
+  have hrandomness := congrArg Prod.snd (Generic.Concrete.CacheView.encodingInput_injective parameter leafIndex heq)
   have hnat := congrArg BitVec.toNat hrandomness
   have hbound : neighborSearchSteps ≤ 2 ^ randomnessBits := by norm_num [neighborSearchSteps, randomnessBits]
   simp only [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (hi.trans_le hbound),
@@ -38,18 +39,18 @@ theorem neighborSearchInput_separate (parameter : PublicParameter) (leafIndex : 
   exact hne hnat
 
 theorem uniform_truncate_mem_probability (targets : Finset Digest) :
-    Pr[fun output : HashOutput => truncateHash output ∈ targets | $ᵗ HashOutput] =
+    Pr[fun output : HashOutput => Generic.truncateHash output ∈ targets | $ᵗ HashOutput] =
       targets.card / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   classical
-  change Pr[(fun value : Digest => value ∈ targets) ∘ truncateHash | $ᵗ HashOutput] = _
-  rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput, ← probEvent_def,
+  change Pr[(fun value : Digest => value ∈ targets) ∘ Generic.truncateHash | $ᵗ HashOutput] = _
+  rw [← probEvent_map, probEvent_def, Generic.Rom.evalDist_truncate_uniformHashOutput, ← probEvent_def,
     probEvent_uniformSample]
   simp
 
 noncomputable def neighborAcceptanceProbability (encoding : Encoding) : ℝ≥0∞ :=
   (neighborDigests encoding).card / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
 
-theorem neighborAcceptanceProbability_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem neighborAcceptanceProbability_lower (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
     392 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤ neighborAcceptanceProbability encoding := by
   apply ENNReal.div_le_div_right
   exact_mod_cast neighborDigests_card_lower encoding hvalid
@@ -58,12 +59,12 @@ theorem neighborAcceptanceProbability_le_one (encoding : Encoding) : neighborAcc
   rw [neighborAcceptanceProbability, ← uniform_truncate_mem_probability]
   exact probEvent_le_one
 
-theorem neighbor_rejection_power_lt_quarter (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+theorem neighbor_rejection_power_lt_quarter (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
     (1 - neighborAcceptanceProbability encoding) ^ neighborSearchSteps < 1 / 4 := by
   have hp := neighborAcceptanceProbability_lower encoding hvalid
   calc
     _ ≤ 1 / (1 + neighborSearchSteps * neighborAcceptanceProbability encoding) :=
-      TargetSum.rejection_power_le _ (neighborAcceptanceProbability_le_one encoding) _
+      Generic.Code.rejection_power_le _ (neighborAcceptanceProbability_le_one encoding) _
     _ ≤ 1 / (1 + neighborSearchSteps * (392 / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by gcongr
     _ < 1 / 4 := by
       apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
@@ -71,13 +72,13 @@ theorem neighbor_rejection_power_lt_quarter (encoding : Encoding) (hvalid : Targ
       norm_num [neighborSearchSteps, digestBits, ENNReal.toReal_div, ENNReal.toReal_mul]
 
 theorem uniform_truncate_reject_neighbors (encoding : Encoding) :
-    Pr[fun output : HashOutput => truncateHash output ∉ neighborDigests encoding | $ᵗ HashOutput] =
+    Pr[fun output : HashOutput => Generic.truncateHash output ∉ neighborDigests encoding | $ᵗ HashOutput] =
       1 - neighborAcceptanceProbability encoding := by
   classical
   apply ENNReal.eq_sub_of_add_eq (by unfold neighborAcceptanceProbability; finiteness)
   simpa only [uniform_truncate_mem_probability, probFailure_uniformSample, tsub_zero,
     neighborAcceptanceProbability, add_comm] using
-      probEvent_compl ($ᵗ HashOutput) (fun output => truncateHash output ∈ neighborDigests encoding)
+      probEvent_compl ($ᵗ HashOutput) (fun output => Generic.truncateHash output ∈ neighborDigests encoding)
 
 theorem findEncodingNeighbor_failure_fresh (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (encoding : Encoding) (cache : QueryCache HashSpec)
@@ -87,7 +88,7 @@ theorem findEncodingNeighbor_failure_fresh (parameter : PublicParameter) (leafIn
       (1 - neighborAcceptanceProbability encoding) ^ neighborSearchSteps := by
   classical
   unfold findEncodingNeighbor
-  rw [findHash_failure_fresh]
+  rw [Generic.Attack.findHash_failure_fresh]
   · rw [uniform_truncate_reject_neighbors]
   · intro i _ hi j _ hj hne
     exact neighborSearchInput_separate parameter leafIndex message i j (by omega) (by omega) hne
@@ -95,33 +96,33 @@ theorem findEncodingNeighbor_failure_fresh (parameter : PublicParameter) (leafIn
     exact hfresh i (by omega)
 
 theorem neighborSearchInput_fresh_after_signing
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (answer : Option Signature) (signCache : QueryCache HashSpec)
-    (hsign : (answer, signCache) ∈ support ((simulateQ romImpl
-      (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (request : Generic.SignRequest) (answer : Option Generic.Signature) (signCache : QueryCache HashSpec)
+    (hsign : (answer, signCache) ∈ support ((simulateQ Generic.romImpl
+      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
     (message : Message) (hne : message ≠ request.message) (position : ℕ) :
     signCache (neighborSearchInput keyResult.1.2.parameter request.epoch message position) = none := by
-  rw [precomputedCappedSign] at hsign
-  have hagree := precomputedSignBoundedAttempts_preserves_unqueriedInput signingAttemptLimit
+  rw [Generic.Concrete.precomputedCappedSign] at hsign
+  have hagree := Generic.Concrete.precomputedSignBoundedAttempts_preserves_unqueriedInput signingAttemptLimit
     keyResult.1.2 request.epoch request.message
     (neighborSearchInput keyResult.1.2.parameter request.epoch message position) (by
       intro randomness heq
-      have hpair := CacheView.encodingInput_injective keyResult.1.2.parameter request.epoch heq
+      have hpair := Generic.Concrete.CacheView.encodingInput_injective keyResult.1.2.parameter request.epoch heq
       exact hne (congrArg Prod.fst hpair).symm)
     keyResult.2 signCache answer hsign
   rw [hagree]
-  exact keygen_cache_none_encodingInput _ (precomputedKeygen_support_oldKeygen keyResult hkey)
+  exact Generic.Concrete.keygen_cache_none_encodingInput _ (Generic.Concrete.precomputedKeygen_support_oldKeygen keyResult hkey)
     request.epoch _
 
 theorem findEncodingNeighbor_success_after_signing
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (answer : Option Signature) (signCache : QueryCache HashSpec)
-    (hsign : (answer, signCache) ∈ support ((simulateQ romImpl
-      (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (request : Generic.SignRequest) (answer : Option Generic.Signature) (signCache : QueryCache HashSpec)
+    (hsign : (answer, signCache) ∈ support ((simulateQ Generic.romImpl
+      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
     (message : Message) (hne : message ≠ request.message)
-    (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+    (encoding : Encoding) (hvalid : Generic.Code.Valid encoding) :
     3 / 4 < Pr[fun result => result.1 ≠ none |
       (simulateQ randomOracle (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache] := by
   let computation := (simulateQ randomOracle
@@ -146,7 +147,7 @@ theorem findEncodingNeighbor_queryBound (parameter : PublicParameter) (leafIndex
     (message : Message) (encoding : Encoding) :
     (findEncodingNeighbor parameter leafIndex message encoding).IsQueryBoundP (fun _ => True) neighborSearchSteps := by
   unfold findEncodingNeighbor
-  exact findHash_queryBound _ _ _ _
+  exact Generic.Attack.findHash_queryBound _ _ _ _
 
 /-- info: 'XmssSecurity.TargetSum.Attack.findEncodingNeighbor_success_after_signing' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

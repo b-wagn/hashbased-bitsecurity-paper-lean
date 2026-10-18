@@ -1,5 +1,7 @@
-import XmssSecurity.Proof.TargetSum.Seeded.HashTrace
+import XmssSecurity.Proof.Generic.Seeded.HashTrace
 import XmssSecurity.Proof.TargetSum.ExpectedCountedQueries
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Filtered hash traces record exactly the selected-query instrumentation, including
 repeated queries. This identity keeps expected seed-guessing costs on their own tags. -/
@@ -13,11 +15,11 @@ namespace XmssSecurity.TargetSum.Seeded
 theorem traceHashes_filter_length {α : Type} (selected : HashInput → Prop) [DecidablePred selected]
     (computation : OracleComp OracleWorld α) :
     (fun result => (result.1, (result.2.filter (fun input => decide (selected input))).length)) <$>
-      traceHashes computation = QueryCounting.counted (hashBad selected) computation := by
+      Generic.Seeded.traceHashes computation = QueryCounting.counted (Generic.Seeded.hashBad selected) computation := by
   induction computation using OracleComp.inductionOn with
   | pure value => rfl
   | query_bind input next ih =>
-      simp only [traceHashes_query_bind, QueryCounting.counted_query_bind, map_bind, map_pure]
+      simp only [Generic.Seeded.traceHashes_query_bind, QueryCounting.counted_query_bind, map_bind, map_pure]
       congr 1
       funext answer
       rw [← ih answer]
@@ -25,15 +27,15 @@ theorem traceHashes_filter_length {α : Type} (selected : HashInput → Prop) [D
       congr 1
       funext result
       cases input with
-      | inl n => simp [prependHash, hashBad]
+      | inl n => simp [Generic.Seeded.prependHash, Generic.Seeded.hashBad]
       | inr input =>
-          by_cases h : selected input <;> simp [prependHash, hashBad, h, Nat.add_comm]
+          by_cases h : selected input <;> simp [Generic.Seeded.prependHash, Generic.Seeded.hashBad, h, Nat.add_comm]
 
 theorem expectedHashQueries_eq_filtered_trace {α : Type}
     (selected : HashInput → Prop) [DecidablePred selected]
     (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    expectedSimulatedQueryCount romImpl (hashBad selected) computation cache =
-      ∑' result, Pr[= result | (simulateQ romImpl (traceHashes computation)).run' cache] *
+    expectedSimulatedQueryCount Generic.romImpl (Generic.Seeded.hashBad selected) computation cache =
+      ∑' result, Pr[= result | (simulateQ Generic.romImpl (Generic.Seeded.traceHashes computation)).run' cache] *
         ((result.2.filter (fun input => decide (selected input))).length : ℝ≥0∞) := by
   rw [expectedSimulatedQueryCount_eq_counted, ← traceHashes_filter_length selected computation]
   simp only [simulateQ_map, StateT.run_map, tsum_probOutput_map_mul,

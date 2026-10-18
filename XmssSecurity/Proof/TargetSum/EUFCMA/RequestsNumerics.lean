@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.EUFCMA.RequestsLoss
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The shared expected-query budget absorbs every loss. Use the ordinary
 prefix estimate for E ≥ 1/128 and the one-query terminal saving below it. -/

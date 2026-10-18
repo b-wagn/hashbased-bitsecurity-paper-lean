@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.EUFCMA.RequestsTerminalPrune
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The stopped program saves one charged opportunity on every inactive branch.
 The bound applies to any counter increasing by at most one per charged query. -/
@@ -12,13 +14,13 @@ namespace XmssSecurity.TargetSum.EUFCMA.Requests
 open XmssSecurity.EUFCMA
 
 theorem stopInactive_support_budget {α State : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT State ProbComp))
-    (activity : (OracleWorld + SigningSpec).Domain → Bool) (active : State → Bool) (counter : State → ℕ)
+    (impl : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT State ProbComp))
+    (activity : (OracleWorld + Generic.SigningSpec).Domain → Bool) (active : State → Bool) (counter : State → ℕ)
     (hactivity : ∀ input state result, result ∈ support ((impl input).run state) →
       active result.2 = (active state || activity input))
     (hcounter : ∀ input state result, result ∈ support ((impl input).run state) →
       counter result.2 ≤ counter state + if IsCharged input then 1 else 0)
-    (fallback : α) (computation : OracleComp (OracleWorld + SigningSpec) α) (budget : ℕ) (state : State)
+    (fallback : α) (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (budget : ℕ) (state : State)
     (hbound : computation.IsQueryBoundP IsCharged budget)
     (result : α × State)
     (hresult : result ∈ support ((simulateQ impl
@@ -42,7 +44,7 @@ theorem stopInactive_support_budget {α State : Type}
         subst result
         dsimp only
         exact ⟨by omega, by omega, id⟩
-      · rw [if_neg hcut, Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
+      · rw [if_neg hcut, Generic.Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
         obtain ⟨head, hhead, htail⟩ := hresult
         rw [← hactivity input state head hhead] at htail
         have hrest := ih head.1 _ head.2 (hbound.2 head.1) result htail
@@ -78,13 +80,13 @@ theorem stopInactive_support_budget {α State : Type}
           simp only [hflag, hactive, Bool.true_or]
 
 theorem stopInactive_counter_le_terminal {α State : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT State ProbComp))
-    (activity : (OracleWorld + SigningSpec).Domain → Bool) (active : State → Bool) (counter : State → ℕ)
+    (impl : QueryImpl (OracleWorld + Generic.SigningSpec) (StateT State ProbComp))
+    (activity : (OracleWorld + Generic.SigningSpec).Domain → Bool) (active : State → Bool) (counter : State → ℕ)
     (hactivity : ∀ input state result, result ∈ support ((impl input).run state) →
       active result.2 = (active state || activity input))
     (hcounter : ∀ input state result, result ∈ support ((impl input).run state) →
       counter result.2 ≤ counter state + if IsCharged input then 1 else 0)
-    (fallback : α) (computation : OracleComp (OracleWorld + SigningSpec) α) (budget : ℕ) (state : State)
+    (fallback : α) (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (budget : ℕ) (state : State)
     (hpositive : 0 < budget) (hbound : computation.IsQueryBoundP IsCharged budget)
     (result : α × State)
     (hresult : result ∈ support ((simulateQ impl

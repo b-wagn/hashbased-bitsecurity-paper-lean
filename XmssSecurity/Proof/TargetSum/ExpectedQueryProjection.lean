@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.TargetSum.ExpectedCountedQueries
 import VCVio.OracleComp.SimSemantics.StateT.StateProjection
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Forgetting auxiliary state preserves the expected count of every source-query predicate. -/
 

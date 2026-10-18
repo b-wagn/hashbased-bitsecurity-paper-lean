@@ -1,7 +1,8 @@
 import XmssSecurity.Proof.TargetSum.Direct.CollisionPrehitBound
 import XmssSecurity.Proof.TargetSum.Direct.CountedSourceBudget
-import XmssSecurity.Proof.TargetSum.Direct.StructuralQueries
-
+import XmssSecurity.Proof.Generic.Direct.StructuralQueries
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-!
 # The prehit loss in closed form
 
@@ -52,24 +53,24 @@ theorem prehitRate_le_digest_inverse : prehitRate ≤ ((2 ^ digestBits : ℕ) : 
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_div, ENNReal.toReal_inv, digestBits]
 
-theorem winningEncodingPrehit_probability_le_prehitRate (adversary : Adversary) (q : ℕ)
-    (hq : q + 1 ≤ 2 ^ 127) (hbound : IsEncodingQueryBound adversary q) :
-    Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
-      prehitRate * expectedDirectEncodingQueries adversary :=
+theorem winningEncodingPrehit_probability_le_prehitRate (adversary : Generic.Adversary) (q : ℕ)
+    (hq : q + 1 ≤ 2 ^ 127) (hbound : Generic.Direct.IsEncodingQueryBound adversary q) :
+    Pr[Generic.WinningEncodingPrehitOccurs | Generic.cappedDetailedGameWithEncodingTrace adversary] ≤
+      prehitRate * Generic.Direct.expectedDirectEncodingQueries adversary :=
   (winningEncodingPrehit_probability_le_collision adversary q hq hbound).trans
     (mul_le_mul' (collisionRate_le_prehitRate q hq) le_rfl)
 
-theorem isEncodingQueryBound_of_direct {adversary : Adversary} {D : ℕ}
-    (hD : IsDirectQueryBound adversary D) : IsEncodingQueryBound adversary D :=
-  fun publicKey => (hD publicKey).of_imp (isDirectHashQuery_of_encoding publicKey.parameter)
+theorem isEncodingQueryBound_of_direct {adversary : Generic.Adversary} {D : ℕ}
+    (hD : Generic.Direct.IsDirectQueryBound adversary D) : Generic.Direct.IsEncodingQueryBound adversary D :=
+  fun publicKey => (hD publicKey).of_imp (Generic.Direct.isDirectHashQuery_of_encoding publicKey.parameter)
 
 /-- The prehit loss of an adversary with at most `D < 2^127` direct hash queries. -/
-theorem winningEncodingPrehit_probability_le_direct_collision (adversary : Adversary) (D : ℕ)
-    (hD : IsDirectQueryBound adversary D) (hsmall : D + 1 ≤ 2 ^ 127) :
-    Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
+theorem winningEncodingPrehit_probability_le_direct_collision (adversary : Generic.Adversary) (D : ℕ)
+    (hD : Generic.Direct.IsDirectQueryBound adversary D) (hsmall : D + 1 ≤ 2 ^ 127) :
+    Pr[Generic.WinningEncodingPrehitOccurs | Generic.cappedDetailedGameWithEncodingTrace adversary] ≤
       ((D + 2 ^ 86 : ℕ) : ℝ≥0∞) * D / ((2 ^ 256 : ℕ) : ℝ≥0∞) := by
-  have hexpected : expectedDirectEncodingQueries adversary ≤ D :=
-    le_trans le_self_add (expectedDirectEncodingQueries_add_structural_le adversary D hD)
+  have hexpected : Generic.Direct.expectedDirectEncodingQueries adversary ≤ D :=
+    le_trans le_self_add (Generic.Direct.expectedDirectEncodingQueries_add_structural_le adversary D hD)
   refine (winningEncodingPrehit_probability_le_collision adversary D hsmall
     (isEncodingQueryBound_of_direct hD)).trans ?_
   calc
@@ -79,8 +80,8 @@ theorem winningEncodingPrehit_probability_le_direct_collision (adversary : Adver
 
 /-! ### A budget on every branch of the reference execution -/
 
-theorem referencePhaseCounts_direct_mono {α : Type} (secretKey : SecretKey)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : Seeded.PhaseCounts)
+theorem referencePhaseCounts_direct_mono {α : Type} (secretKey : Generic.SecretKey)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) α) (state : Seeded.PhaseCounts)
     (result : α × Seeded.PhaseCounts)
     (hresult : result ∈ support
       ((simulateQ (Seeded.referencePhaseCountsImpl secretKey) computation).run state)) :
@@ -91,54 +92,54 @@ theorem referencePhaseCounts_direct_mono {α : Type} (secretKey : SecretKey)
       subst result
       exact le_rfl
   | query_bind input next ih =>
-      rw [run_simulateQ_query_bind, mem_support_bind_iff] at hresult
+      rw [Generic.Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
       obtain ⟨head, hhead, htail⟩ := hresult
       exact (CappedChain.phaseCountsImpl_counts_mono _ input state head hhead).1.trans
         (ih head.1 head.2 result htail)
 
 /-- At most `remaining` further direct hash queries on every branch of the reference execution
 from `cache`, counting from some starting count. -/
-def PhaseBudget (secretKey : SecretKey) (computation : OracleComp (OracleWorld + SigningSpec) Forgery)
+def PhaseBudget (secretKey : Generic.SecretKey) (computation : OracleComp (OracleWorld + Generic.SigningSpec) Generic.Forgery)
     (remaining : ℕ) (cache : QueryCache HashSpec) : Prop :=
   ∃ direct signing, ∀ result ∈ support ((simulateQ (Seeded.referencePhaseCountsImpl secretKey)
     computation).run ⟨cache, direct, signing⟩), result.2.direct ≤ direct + remaining
 
-theorem referencePhaseCounts_step (publicKey : PublicKey) (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain) (state : QueryCache HashSpec × SigningCacheTrace)
+theorem referencePhaseCounts_step (publicKey : PublicKey) (secretKey : Generic.SecretKey)
+    (input : (OracleWorld + Generic.SigningSpec).Domain) (state : QueryCache HashSpec × Generic.SigningCacheTrace)
     (direct signing : ℕ)
-    (mid : (OracleWorld + SigningSpec).Range input × (QueryCache HashSpec × SigningCacheTrace))
+    (mid : (OracleWorld + Generic.SigningSpec).Range input × (QueryCache HashSpec × Generic.SigningCacheTrace))
     (hmid : mid ∈ support
-      ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state)) :
+      ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state)) :
     ∃ counts : Seeded.PhaseCounts, (mid.1, counts) ∈ support
         ((Seeded.referencePhaseCountsImpl secretKey input).run ⟨state.1, direct, signing⟩) ∧
       counts.cache = mid.2.1 ∧
-      direct + (if IsDirectEncodingQuery secretKey.parameter input then 1 else 0) ≤
+      direct + (if Generic.Direct.IsDirectEncodingQuery secretKey.parameter input then 1 else 0) ≤
         counts.direct := by
-  have hbase := cappedCacheTracedMappedAdversaryImpl_query_base_support publicKey secretKey input
+  have hbase := Generic.cappedCacheTracedMappedAdversaryImpl_query_base_support publicKey secretKey input
     state mid hmid
   rcases input with (uniformInput | hashInput) | request
-  · refine ⟨⟨mid.2.1, direct + Seeded.queryCost (.inl uniformInput), signing⟩, ?_, rfl, ?_⟩
+  · refine ⟨⟨mid.2.1, direct + Generic.Seeded.queryCost (.inl uniformInput), signing⟩, ?_, rfl, ?_⟩
     · change _ ∈ support ((fun result => (result.1, (⟨result.2, direct +
-        Seeded.queryCost (.inl uniformInput), signing⟩ : Seeded.PhaseCounts))) <$>
-          (romImpl (.inl uniformInput)).run state.1)
+        Generic.Seeded.queryCost (.inl uniformInput), signing⟩ : Seeded.PhaseCounts))) <$>
+          (Generic.romImpl (.inl uniformInput)).run state.1)
       rw [support_map]
       exact ⟨(mid.1, mid.2.1), hbase, rfl⟩
-    · simp [IsDirectEncodingQuery]
-  · refine ⟨⟨mid.2.1, direct + Seeded.queryCost (.inr hashInput), signing⟩, ?_, rfl, ?_⟩
+    · simp [Generic.Direct.IsDirectEncodingQuery]
+  · refine ⟨⟨mid.2.1, direct + Generic.Seeded.queryCost (.inr hashInput), signing⟩, ?_, rfl, ?_⟩
     · change _ ∈ support ((fun result => (result.1, (⟨result.2, direct +
-        Seeded.queryCost (.inr hashInput), signing⟩ : Seeded.PhaseCounts))) <$>
-          (romImpl (.inr hashInput)).run state.1)
+        Generic.Seeded.queryCost (.inr hashInput), signing⟩ : Seeded.PhaseCounts))) <$>
+          (Generic.romImpl (.inr hashInput)).run state.1)
       rw [support_map]
       exact ⟨(mid.1, mid.2.1), hbase, rfl⟩
-    · split_ifs <;> simp [Seeded.queryCost]
-  · change (mid.1, mid.2.1) ∈ support ((simulateQ romImpl (Concrete.precomputedCappedSign secretKey
+    · split_ifs <;> simp [Generic.Seeded.queryCost]
+  · change (mid.1, mid.2.1) ∈ support ((simulateQ Generic.romImpl (Generic.Concrete.precomputedCappedSign secretKey
       request.epoch request.message)).run state.1) at hbase
-    rw [← countHashQueries_run_forget, support_map] at hbase
+    rw [← Generic.countHashQueries_run_forget, support_map] at hbase
     obtain ⟨counted, hcounted, heq⟩ := hbase
     refine ⟨⟨counted.2, direct, signing + counted.1.2⟩, ?_, ?_, ?_⟩
     · change _ ∈ support ((fun result => (result.1.1, (⟨result.2, direct,
         signing + result.1.2⟩ : Seeded.PhaseCounts))) <$>
-          (simulateQ romImpl (countHashQueries (Concrete.precomputedCappedSign secretKey
+          (simulateQ Generic.romImpl (Generic.countHashQueries (Generic.Concrete.precomputedCappedSign secretKey
             request.epoch request.message))).run state.1)
       rw [support_map]
       refine ⟨counted, hcounted, ?_⟩
@@ -146,24 +147,24 @@ theorem referencePhaseCounts_step (publicKey : PublicKey) (secretKey : SecretKey
       exact Prod.ext heq.1 rfl
     · simp only [Prod.mk.injEq] at heq
       exact heq.2
-    · simp [IsDirectEncodingQuery]
+    · simp [Generic.Direct.IsDirectEncodingQuery]
 
-theorem phaseBudget_step (publicKey : PublicKey) (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) Forgery)
-    (remaining : ℕ) (state : QueryCache HashSpec × SigningCacheTrace)
+theorem phaseBudget_step (publicKey : PublicKey) (secretKey : Generic.SecretKey)
+    (input : (OracleWorld + Generic.SigningSpec).Domain)
+    (next : (OracleWorld + Generic.SigningSpec).Range input → OracleComp (OracleWorld + Generic.SigningSpec) Generic.Forgery)
+    (remaining : ℕ) (state : QueryCache HashSpec × Generic.SigningCacheTrace)
     (hbudget : PhaseBudget secretKey (query input >>= next) remaining state.1) :
-    (IsDirectEncodingQuery secretKey.parameter input → 0 < remaining) ∧
-      ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state),
-        ∃ remaining' ≤ (if IsDirectEncodingQuery secretKey.parameter input then remaining - 1
+    (Generic.Direct.IsDirectEncodingQuery secretKey.parameter input → 0 < remaining) ∧
+      ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state),
+        ∃ remaining' ≤ (if Generic.Direct.IsDirectEncodingQuery secretKey.parameter input then remaining - 1
           else remaining), PhaseBudget secretKey (next mid.1) remaining' mid.2.1 := by
   obtain ⟨direct, signing, hbound⟩ := hbudget
-  have hrun := run_simulateQ_query_bind (Seeded.referencePhaseCountsImpl secretKey) input next
+  have hrun := Generic.Direct.run_simulateQ_query_bind (Seeded.referencePhaseCountsImpl secretKey) input next
     ⟨state.1, direct, signing⟩
   -- every supported step leaves the remaining budget for the continuation
-  have hafter : ∀ mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
+  have hafter : ∀ mid ∈ support ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey
       input).run state), ∃ counts : Seeded.PhaseCounts, counts.cache = mid.2.1 ∧
-        direct + (if IsDirectEncodingQuery secretKey.parameter input then 1 else 0) ≤
+        direct + (if Generic.Direct.IsDirectEncodingQuery secretKey.parameter input then 1 else 0) ≤
           counts.direct ∧ counts.direct ≤ direct + remaining ∧
         ∀ result ∈ support ((simulateQ (Seeded.referencePhaseCountsImpl secretKey)
           (next mid.1)).run counts), result.2.direct ≤ direct + remaining := by
@@ -175,17 +176,17 @@ theorem phaseBudget_step (publicKey : PublicKey) (secretKey : SecretKey)
       intro result hresult
       apply hbound
       change result ∈ support ((simulateQ (Seeded.referencePhaseCountsImpl secretKey)
-        (liftM ((OracleWorld + SigningSpec).query input) >>= next)).run _)
+        (liftM ((OracleWorld + Generic.SigningSpec).query input) >>= next)).run _)
       rw [hrun, mem_support_bind_iff]
       exact ⟨(mid.1, counts), hcounts, hresult⟩
-    obtain ⟨result, hresult⟩ := probComp_support_nonempty
+    obtain ⟨result, hresult⟩ := Generic.probComp_support_nonempty
       ((simulateQ (Seeded.referencePhaseCountsImpl secretKey) (next mid.1)).run counts)
     exact ⟨counts, hcache, hdirect,
       (referencePhaseCounts_direct_mono secretKey _ counts result hresult).trans
         (hcont result hresult), hcont⟩
   refine ⟨fun hP => ?_, fun mid hmid => ?_⟩
-  · obtain ⟨mid, hmid⟩ := probComp_support_nonempty
-      ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state)
+  · obtain ⟨mid, hmid⟩ := Generic.probComp_support_nonempty
+      ((Generic.cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run state)
     obtain ⟨counts, -, hdirect, hle, -⟩ := hafter mid hmid
     rw [if_pos hP] at hdirect
     omega
@@ -201,13 +202,13 @@ theorem phaseBudget_step (publicKey : PublicKey) (secretKey : SecretKey)
 
 /-- The prehit loss when every branch of the reference execution makes at most `q < 2^127`
 direct hash queries. -/
-theorem winningEncodingPrehit_probability_le_prehitRate_of_phaseBudget (adversary : Adversary)
+theorem winningEncodingPrehit_probability_le_prehitRate_of_phaseBudget (adversary : Generic.Adversary)
     (q : ℕ) (hq : q + 1 ≤ 2 ^ 127)
-    (hbound : ∀ keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅),
+    (hbound : ∀ keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅),
       ∀ result ∈ support ((simulateQ (Seeded.referencePhaseCountsImpl keyResult.1.2)
         (adversary.main keyResult.1.1)).run ⟨keyResult.2, 0, 0⟩), result.2.direct ≤ q) :
-    Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
-      prehitRate * expectedDirectEncodingQueries adversary :=
+    Pr[Generic.WinningEncodingPrehitOccurs | Generic.cappedDetailedGameWithEncodingTrace adversary] ≤
+      prehitRate * Generic.Direct.expectedDirectEncodingQueries adversary :=
   (winningEncodingPrehit_probability_le_collision_of_budget adversary q hq
     (fun _ secretKey computation remaining state =>
       PhaseBudget secretKey computation remaining state.1)

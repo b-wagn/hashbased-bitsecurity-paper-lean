@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.Checksum.Attack.NeighborGame
-import XmssSecurity.Proof.Checksum.Direct.SeedGuessingZero
-
+import XmssSecurity.Proof.Generic.Direct.SeedGuessingZero
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 /-! Exact transfer of the neighboring-signature attack to deterministic seeded signing. -/
 
 open OracleComp OracleSpec ENNReal
@@ -10,65 +11,65 @@ set_option maxRecDepth 1000
 
 namespace XmssSecurity.Checksum.Attack
 
-open DeterministicSigning
+open Generic.DeterministicSigning
 
 theorem memoize_liftWorldToAdversary {α : Type} (computation : OracleComp OracleWorld α)
-    (cache : QueryCache SigningSpec) :
-    memoize (liftWorldToAdversary computation) cache = liftWorldToAdversary computation := by
+    (cache : QueryCache Generic.SigningSpec) :
+    Generic.DeterministicSigning.memoize (liftWorldToAdversary computation) cache = liftWorldToAdversary computation := by
   induction computation using OracleComp.inductionOn with
-  | pure value => simp [liftWorldToAdversary, memoize_pure]
+  | pure value => simp [liftWorldToAdversary, Generic.DeterministicSigning.memoize_pure]
   | query_bind input next ih =>
       simp only [liftWorldToAdversary, simulateQ_bind, simulateQ_spec_query] at ih ⊢
-      rw [memoize_base]
+      rw [Generic.DeterministicSigning.memoize_base]
       exact bind_congr ih
 
 theorem memoize_neighborMain (publicKey : PublicKey) :
-    memoize (neighborMain publicKey) ∅ = neighborMain publicKey := by
+    Generic.DeterministicSigning.memoize (neighborMain publicKey) ∅ = neighborMain publicKey := by
   unfold neighborMain
-  rw [memoize_request]
-  simp only [QueryCache.empty_apply, bind_pure_comp, memoize_map, memoize_liftWorldToAdversary]
+  rw [Generic.DeterministicSigning.memoize_request]
+  simp only [QueryCache.empty_apply, bind_pure_comp, Generic.DeterministicSigning.memoize_map, memoize_liftWorldToAdversary]
 
-theorem memoAdversary_neighbor : Seeded.memoAdversary neighborAdversary = neighborAdversary := by
-  unfold Seeded.memoAdversary neighborAdversary
+theorem memoAdversary_neighbor : Generic.Seeded.memoAdversary neighborAdversary = neighborAdversary := by
+  unfold Generic.Seeded.memoAdversary neighborAdversary
   congr 1
   funext publicKey
   exact memoize_neighborMain publicKey
 
-theorem tableGameRest_neighbor_noSeed (randomizers : Seeded.RandomizerOutputs)
-    (publicKey : PublicKey) (secretKey : SecretKey) :
-    (Seeded.gameRest (Seeded.tableScheme randomizers) neighborAdversary publicKey secretKey).IsQueryBoundP
-      (Seeded.hashBad MaySeedHit) 0 := by
+theorem tableGameRest_neighbor_noSeed (randomizers : Generic.Seeded.RandomizerOutputs)
+    (publicKey : PublicKey) (secretKey : Generic.SecretKey) :
+    (Generic.Seeded.gameRest (Generic.Seeded.tableScheme randomizers) neighborAdversary publicKey secretKey).IsQueryBoundP
+      (Generic.Seeded.hashBad Generic.MaySeedHit) 0 := by
   rw [neighbor_gameRest]
   refine OracleComp.isQueryBoundP_bind (m := 0)
-    (Seeded.liftM_hash_noSeed _ (Seeded.tableSign_noSeed _ _ _ _)) ?_
+    (Generic.Seeded.liftM_hash_noSeed _ (Generic.Seeded.tableSign_noSeed _ _ _ _)) ?_
   intro answer _
   refine OracleComp.isQueryBoundP_bind (m := 0) (neighborAfterSigning_noSeed publicKey answer) ?_
   intro signature _
-  exact Seeded.liftM_hash_noSeed _ (Concrete.verify_noSeed _ _ _ _)
+  exact Generic.Seeded.liftM_hash_noSeed _ (Generic.Concrete.verify_noSeed _ _ _ _)
 
 theorem tableGameAfterSecrets_neighbor_noSeed (parameter : PublicParameter)
-    (secret : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs) :
-    (Seeded.tableGameAfterSecrets neighborAdversary parameter secret randomizers).IsQueryBoundP
-      (Seeded.hashBad MaySeedHit) 0 := by
-  unfold Seeded.tableGameAfterSecrets
-  refine OracleComp.isQueryBoundP_bind (m := 0) (Seeded.liftM_hash_noSeed _ ?_)
+    (secret : Generic.Seeded.ChainSecrets) (randomizers : Generic.Seeded.RandomizerOutputs) :
+    (Generic.Seeded.tableGameAfterSecrets neighborAdversary parameter secret randomizers).IsQueryBoundP
+      (Generic.Seeded.hashBad Generic.MaySeedHit) 0 := by
+  unfold Generic.Seeded.tableGameAfterSecrets
+  refine OracleComp.isQueryBoundP_bind (m := 0) (Generic.Seeded.liftM_hash_noSeed _ ?_)
     (fun result _ => tableGameRest_neighbor_noSeed randomizers _ _)
   rw [withQueryLog, OracleComp.isQueryBoundP_iff_of_map_eq (QueryImpl.fst_map_run_withLogging _ _),
     simulateQ_ofLift_eq_self]
-  exact Concrete.treeNode_noSeed _ _ _ _
+  exact Generic.Concrete.treeNode_noSeed _ _ _ _
 
 theorem neighbor_seeded_advantage_eq_reference :
-    forgeAdvantage Seeded.scheme neighborAdversary = forgeAdvantage Concrete.scheme neighborAdversary := by
-  unfold forgeAdvantage
+    Generic.forgeAdvantage Generic.Seeded.scheme neighborAdversary = Generic.forgeAdvantage Generic.Concrete.scheme neighborAdversary := by
+  unfold Generic.forgeAdvantage
   apply probOutput_congr rfl
   calc
-    _ = evalDist (Seeded.independentTableGame neighborAdversary) :=
-      Seeded.evalDist_deterministic_eq_table_of_noSeed neighborAdversary tableGameAfterSecrets_neighbor_noSeed
+    _ = evalDist (Generic.Seeded.independentTableGame neighborAdversary) :=
+      Generic.Seeded.evalDist_deterministic_eq_table_of_noSeed neighborAdversary tableGameAfterSecrets_neighbor_noSeed
     _ = _ := by
-      simpa only [memoAdversary_neighbor] using Seeded.evalDist_independentTableGame_memo neighborAdversary
+      simpa only [memoAdversary_neighbor] using Generic.Seeded.evalDist_independentTableGame_memo neighborAdversary
 
 theorem neighbor_seeded_advantage_exceeds_eightyone_256ths :
-    81 / 256 < forgeAdvantage Seeded.scheme neighborAdversary := by
+    81 / 256 < Generic.forgeAdvantage Generic.Seeded.scheme neighborAdversary := by
   rw [neighbor_seeded_advantage_eq_reference]
   exact neighbor_reference_advantage_exceeds_eightyone_256ths
 

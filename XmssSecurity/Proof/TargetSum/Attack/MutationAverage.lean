@@ -1,6 +1,7 @@
-import XmssSecurity.Proof.TargetSum.Attack.MutationVerification
-import XmssSecurity.Proof.TargetSum.Attack.ChainMutation
-
+import XmssSecurity.Proof.Generic.Attack.MutationVerification
+import XmssSecurity.Proof.Generic.Attack.ChainMutation
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! Averaging over chains and signing outcomes in the reference mutation experiment. -/
 
 open OracleComp OracleSpec ENNReal
@@ -11,42 +12,72 @@ set_option maxRecDepth 1000
 
 namespace XmssSecurity.TargetSum.Attack
 
+
+theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+    (∑ chain, (40 - (encoding chain).val - 1)) = 1443 := by
+  have heq : ∀ chain, 40 - (encoding chain).val - 1 = 39 - (encoding chain).val := by
+    intro chain
+    omega
+  simp_rw [heq]
+  rw [Finset.sum_tsub_distrib Finset.univ]
+  · have hsum : ∑ chain, (encoding chain).val = targetSum := hvalid
+    rw [hsum]
+    norm_num [numChains, targetSum]
+  · intro chain _
+    have hbound := (encoding chain).isLt
+    norm_num [chainLength, winternitzBits] at hbound
+    omega
+
+/-- The chain is chosen uniformly, without a hash query to learn the encoding. -/
+theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : TargetSum.Valid encoding) :
+    1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
+      ∑ chain, Generic.Attack.pathMutationProbability (40 - (encoding chain).val) := by
+  calc
+    _ = (∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞)) /
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+      rw [← Nat.cast_sum, sum_mutatedChainWork_sub_one encoding hvalid]
+      norm_num
+    _ = ∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞) /
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by simp only [div_eq_mul_inv, Finset.sum_mul]
+    _ ≤ _ := Finset.sum_le_sum fun chain _ => Generic.Attack.pathMutationProbability_lower _ (Nat.sub_le _ _)
+
 open Concrete
 
 local instance : Nonempty ChainIndex := ⟨⟨0, by decide⟩⟩
 noncomputable local instance : SampleableType ChainIndex := SampleableType.ofFintype ChainIndex
 
-noncomputable def uniformChainVerification (publicKey : PublicKey) (request : SignRequest)
-    (signature : Signature) (cache : QueryCache HashSpec) : ProbComp Bool := do
+noncomputable def uniformChainVerification (publicKey : PublicKey) (request : Generic.SignRequest)
+    (signature : Generic.Signature) (cache : QueryCache HashSpec) : ProbComp Bool := do
   let chain ← $ᵗ ChainIndex
-  let result ← randomMutationVerification publicKey request.epoch request.message signature chain cache
+  let result ← Generic.Attack.randomMutationVerification publicKey request.epoch request.message signature chain cache
   return decide (result.1 ≠ signature.chainValue chain ∧ result.2.1 = true)
 
 theorem uniformChainVerification_probability
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (signature : Signature) (finalCache : QueryCache HashSpec)
-    (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
-      (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
-    ∃ encoding, TargetSum.Valid encoding ∧
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (request : Generic.SignRequest) (signature : Generic.Signature) (finalCache : QueryCache HashSpec)
+    (hsign : (some signature, finalCache) ∈ support ((simulateQ Generic.romImpl
+      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
+    ∃ encoding, Generic.Code.Valid encoding ∧
       Pr[= true | uniformChainVerification keyResult.1.1 request signature finalCache] =
-        (∑ chain, pathMutationProbability (40 - (encoding chain).val)) / numChains := by
-  obtain ⟨encoding, hdecode, hprob⟩ := mutationVerification_probability_after_successful_signing
+        (∑ chain, Generic.Attack.pathMutationProbability (40 - (encoding chain).val)) / numChains := by
+  obtain ⟨encoding, hdecode, hprob⟩ := Generic.Attack.mutationVerification_probability_after_successful_signing
     keyResult hkey request signature finalCache hsign
-  refine ⟨encoding, (TargetSum.decodeDigest_eq_some_iff.mp hdecode).2, ?_⟩
+  refine ⟨encoding, Generic.Code.decodeDigest_valid
+    (Generic.Concrete.CacheView.decodeDigest_of_decodedEncoding hdecode), ?_⟩
   unfold uniformChainVerification
   rw [← probEvent_eq_eq_probOutput, probEvent_bind_eq_tsum]
   simp only [bind_pure_comp, probEvent_map, Function.comp_def, decide_eq_true_eq,
     hprob, probOutput_uniformSample, Fintype.card_fin]
   rw [tsum_fintype, ← Finset.mul_sum]
-  simp only [div_eq_mul_inv, mul_comm]
+  simp only [div_eq_mul_inv, mul_comm, code_numChains]
 
 theorem uniformChainVerification_lower
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (signature : Signature) (finalCache : QueryCache HashSpec)
-    (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
-      (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (request : Generic.SignRequest) (signature : Generic.Signature) (finalCache : QueryCache HashSpec)
+    (hsign : (some signature, finalCache) ∈ support ((simulateQ Generic.romImpl
+      (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
     (1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains ≤
       Pr[= true | uniformChainVerification keyResult.1.1 request signature finalCache] := by
   obtain ⟨encoding, hvalid, heq⟩ := uniformChainVerification_probability keyResult hkey
@@ -56,26 +87,26 @@ theorem uniformChainVerification_lower
 
 /-- Reject a failed signing attempt; on success choose and replace a chain uniformly. -/
 noncomputable def signedMutationExperiment
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec) (request : SignRequest) : ProbComp Bool := do
-  let result ← (simulateQ romImpl
-    (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec) (request : Generic.SignRequest) : ProbComp Bool := do
+  let result ← (simulateQ Generic.romImpl
+    (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   match result.1 with
   | none => pure false
   | some signature => uniformChainVerification keyResult.1.1 request signature result.2
 
 theorem signedMutationExperiment_probability_lower
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) :
+    (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
+    (hkey : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅))
+    (request : Generic.SignRequest) :
     (31 / 32 : ℝ≥0∞) * ((1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
       Pr[= true | signedMutationExperiment keyResult request] := by
   classical
   let lower : ℝ≥0∞ := (1443 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains
-  let signing := (simulateQ romImpl
-    (precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
+  let signing := (simulateQ Generic.romImpl
+    (Generic.Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc
     _ ≤ Pr[fun result => result.1 ≠ none | signing] * lower := by
-      exact mul_le_mul_left (le_of_lt (precomputedCappedSign_success_after_keygen keyResult hkey
+      exact mul_le_mul_left (le_of_lt (Generic.Concrete.precomputedCappedSign_success_after_keygen keyResult hkey
         request.epoch request.message)) lower
     _ ≤ _ := by
       rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]

@@ -7,6 +7,8 @@ import XmssSecurity.Proof.Checksum.Signer.Security
 import XmssSecurity.Proof.Checksum.Direct.DecidingSecurity
 import XmssSecurity.Proof.Checksum.Attack.ChainMutationSigner
 import XmssSecurity.Proof.Checksum.Attack.NeighborAccounting
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 
 /-!
 # Assembly of the strong-unforgeability classification
@@ -20,9 +22,9 @@ namespace XmssSecurity.Checksum.Proof
 open SUFCMA
 
 theorem sufCma_exact (mode : CountingMode) :
-    (SUFCMA.notion mode).HasExactClassicalSecurityBits xmss (Modes.exactLevel mode) :=
+    (SUFCMA.notion mode).HasExactClassicalSecurityBits Generic.xmss (Modes.exactLevel mode) :=
   Modes.exactStatement_of_checksumBasis
-    ((Modes.notion_direct_hasClassicalSecurityBits_iff xmss 122).2 Direct.sufCmaDirect_122)
+    ((Modes.notion_direct_hasClassicalSecurityBits_iff Generic.xmss 122).2 Direct.sufCmaDirect_122)
     Modes.sufCmaKeygen_127 Modes.sufCmaVerifier_127 Modes.sufCmaSigner_123
     Modes.sufCmaSignerRequests_124 Attack.chainMutation_requests_attack
     Attack.chainMutation_signer_attack Attack.chainMutation_signerRequests_attack
@@ -39,7 +41,7 @@ theorem exactLevel_modeOf (Z : Finset QueryKind) :
 /-- The classification for counting modes given as sets of query kinds containing the adversary's
 own hash queries. -/
 theorem lossySufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
-    (SUFCMA.lossyGame).HasExactClassicalSecurityBits xmss Z
+    (SUFCMA.lossyGame).HasExactClassicalSecurityBits Generic.xmss Z
       (if QueryKind.keygen ∈ Z ∨ QueryKind.verifier ∈ Z then 127
       else if QueryKind.signer ∈ Z ∧ QueryKind.sign ∈ Z then 124
       else if QueryKind.signer ∈ Z then 123

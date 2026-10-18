@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.Checksum.Modes.Keygen
-import XmssSecurity.Proof.Checksum.Modes.Projection
+import XmssSecurity.Proof.Generic.Modes.Projection
 import XmssSecurity.Proof.Checksum.NoSign.ThreeBudget
+import XmssSecurity.Proof.Checksum.Code
+import XmssSecurity.Proof.Checksum.EncodingProbability
 
 /-!
 # Security when the signer's hash calls are charged
@@ -27,11 +29,11 @@ open XmssSecurity.Modes
 open SUFCMA
 
 /-- Charging the signer charges at least the adversary's own hash queries. -/
-theorem signer_direct_hasQueryBound (requests : Bool) (adversary : Security.StatementAdversary)
-    (q : ℕ) (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound xmss adversary q) :
-    SUFCMA.notionDirect.HasQueryBound xmss adversary q :=
-  (notion_direct_hasQueryBound_iff xmss adversary q).1
-    (hasQueryBound_of_le (by simp [CountingMode.Le, CountingMode.direct]) xmss adversary q hbound)
+theorem signer_direct_hasQueryBound (requests : Bool) (adversary : Generic.Security.StatementAdversary)
+    (q : ℕ) (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound Generic.xmss adversary q) :
+    SUFCMA.notionDirect.HasQueryBound Generic.xmss adversary q :=
+  (notion_direct_hasQueryBound_iff Generic.xmss adversary q).1
+    (hasQueryBound_of_le (by simp [CountingMode.Le, CountingMode.direct]) Generic.xmss adversary q hbound)
 
 /-- The direct-query loss with `q` direct queries, `(2q + 43) / 2^128 + q / 2^256`, is below
 `q / 2^bits` when `2q + 44 ≤ 2^(128 - bits) q` and `q ≤ 2^128`; stated for the two levels used. -/
@@ -60,10 +62,10 @@ theorem sharedDecidingLoss_le_124 (q : ℕ) (hlarge : 4 ≤ q) (hq : q ≤ 2 ^ 1
   linarith
 
 theorem signer_advantage_le_of_loss (requests : Bool) (bits : ℕ) (hbits : bits ≤ 128)
-    (adversary : Security.StatementAdversary) (q : ℕ)
-    (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound xmss adversary q)
+    (adversary : Generic.Security.StatementAdversary) (q : ℕ)
+    (hbound : (SUFCMA.notion ⟨false, true, false, requests⟩).HasQueryBound Generic.xmss adversary q)
     (hloss : q ≤ 2 ^ 128 → Direct.sharedDecidingLoss q ≤ (q : ℝ≥0∞) / ((2 ^ bits : ℕ) : ℝ≥0∞)) :
-    (SUFCMA.notion ⟨false, true, false, requests⟩).advantage xmss adversary ≤
+    (SUFCMA.notion ⟨false, true, false, requests⟩).advantage Generic.xmss adversary ≤
       (q : ℝ≥0∞) / ((2 ^ bits : ℕ) : ℝ≥0∞) := by
   by_cases hhuge : 2 ^ bits ≤ q
   · calc
@@ -75,10 +77,10 @@ theorem signer_advantage_le_of_loss (requests : Bool) (bits : ℕ) (hbits : bits
     (Nat.lt_of_not_ge hhuge).le.trans (Nat.pow_le_pow_right (by norm_num) hbits)
   have hdirect := signer_direct_hasQueryBound requests adversary q hbound
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
-    notion_direct_advantage_eq, Security.notionDirect_advantage_eq,
-    Security.forgeAdvantage_prune_eq adversary q hdirect]
+    notion_direct_advantage_eq, Generic.Security.notionDirect_advantage_eq,
+    Generic.Security.forgeAdvantage_prune_eq adversary q hdirect]
   exact (Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
-    (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))).trans (hloss hq)
+    (Generic.Direct.pruneAdversary_isDirectQueryBound _ (Generic.Security.embed adversary))).trans (hloss hq)
 
 /-- The no-signature loss `(2q + 2) / 2^128 + q / 2^256` is below `q / 2^bits` when
 `2q + 3 ≤ 2^(128 - bits) q`; stated for the two levels used. -/
@@ -106,7 +108,7 @@ theorem noSignLoss_le (q bits : ℕ) (hq : 1 ≤ q) (hbits : bits ≤ 124) :
   linarith
 
 theorem sufCmaSigner_123 :
-    (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 123 := by
+    (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits Generic.xmss 123 := by
   intro q hq adversary hbound
   by_cases hsmall : q = 1
   · exact (NoSign.signer_small_advantage_le false adversary q (by simp [hsmall]) hbound).trans
@@ -115,7 +117,7 @@ theorem sufCmaSigner_123 :
       (sharedDecidingLoss_le_123 q (by omega))
 
 theorem sufCmaSignerRequests_124 :
-    (SUFCMA.notion ⟨false, true, false, true⟩).HasClassicalSecurityBits xmss 124 := by
+    (SUFCMA.notion ⟨false, true, false, true⟩).HasClassicalSecurityBits Generic.xmss 124 := by
   intro q hq adversary hbound
   by_cases hsmall : q ≤ 2
   · exact (NoSign.signer_small_advantage_le true adversary q (by simp; omega) hbound).trans

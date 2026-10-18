@@ -1,6 +1,7 @@
-import XmssSecurity.Proof.TargetSum.Attack.HashSearch
-import XmssSecurity.Proof.TargetSum.EncodingRejectionProbability
-
+import XmssSecurity.Proof.Generic.Attack.HashSearch
+import XmssSecurity.Proof.Generic.EncodingRejectionProbability
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-! A bounded predecessor search that includes the genuine cached predecessor with
 probability `1/16`, and otherwise searches distinct fresh inputs. -/
 
@@ -55,28 +56,28 @@ theorem preimageCandidate_ne_of_prefix_ne (block : PreimagePrefix) (value : Dige
 noncomputable def findDigestPreimage (input : Digest → HashInput) (target : Digest)
     (block : PreimagePrefix) : OracleComp HashSpec (Option (ℕ × HashOutput)) := by
   classical
-  exact findHash (fun position => input (preimageCandidate block position))
-    (fun output => truncateHash output = target) 0 preimageSearchSteps
+  exact Generic.Attack.findHash (fun position => input (preimageCandidate block position))
+    (fun output => Generic.truncateHash output = target) 0 preimageSearchSteps
 
 theorem findDigestPreimage_queryBound (input : Digest → HashInput) (target : Digest)
     (block : PreimagePrefix) :
     (findDigestPreimage input target block).IsQueryBoundP (fun _ => True) preimageSearchSteps := by
   unfold findDigestPreimage
-  exact findHash_queryBound _ _ _ _
+  exact Generic.Attack.findHash_queryBound _ _ _ _
 
 theorem findDigestPreimage_success_cached (input : Digest → HashInput) (target : Digest)
     (block : PreimagePrefix) (initialCache finalCache : QueryCache HashSpec)
     (position : ℕ) (output : HashOutput)
     (hmem : (some (position, output), finalCache) ∈ support
       ((simulateQ randomOracle (findDigestPreimage input target block)).run initialCache)) :
-    position < preimageSearchSteps ∧ truncateHash output = target ∧
+    position < preimageSearchSteps ∧ Generic.truncateHash output = target ∧
       finalCache (input (preimageCandidate block position)) = some output := by
-  obtain ⟨_, hposition, htarget, hcached⟩ := findHash_success_cached _ _ _ _ _ _ _ _ hmem
+  obtain ⟨_, hposition, htarget, hcached⟩ := Generic.Attack.findHash_success_cached _ _ _ _ _ _ _ _ hmem
   exact ⟨hposition, htarget, hcached⟩
 
 theorem findDigestPreimage_failure (input : Digest → HashInput) (hinj : Function.Injective input)
     (target genuine : Digest) (cache : QueryCache HashSpec)
-    (hhit : ∃ output, cache (input genuine) = some output ∧ truncateHash output = target)
+    (hhit : ∃ output, cache (input genuine) = some output ∧ Generic.truncateHash output = target)
     (hfresh : ∀ value, value ≠ genuine → cache (input value) = none)
     (block : PreimagePrefix) :
     Pr[fun result => result.1 = none |
@@ -88,12 +89,12 @@ theorem findDigestPreimage_failure (input : Digest → HashInput) (hinj : Functi
   by_cases hprefix : block = preimagePrefix genuine
   · rw [if_pos hprefix]
     obtain ⟨output, hcached, htarget⟩ := hhit
-    apply findHash_failure_zero_of_cached_hit _ _ _ _ _ (preimagePosition genuine)
+    apply Generic.Attack.findHash_failure_zero_of_cached_hit _ _ _ _ _ (preimagePosition genuine)
       (Nat.zero_le _) (preimagePosition_lt genuine) output _ htarget
     rw [hprefix, preimageCandidate_reconstruct]
     exact hcached
-  · rw [if_neg hprefix, findHash_failure_fresh]
-    · rw [Rom.uniform_truncate_miss_probability]
+  · rw [if_neg hprefix, Generic.Attack.findHash_failure_fresh]
+    · rw [Generic.Rom.uniform_truncate_miss_probability]
     · intro i _ hi j _ hj hne heq
       exact preimageCandidate_separate block i j (by omega) (by omega) hne (hinj heq)
     · intro i _ _
@@ -117,7 +118,7 @@ theorem uniform_preimagePrefix_ne_probability (block : PreimagePrefix) :
 
 theorem randomDigestPreimage_failure (input : Digest → HashInput) (hinj : Function.Injective input)
     (target genuine : Digest) (cache : QueryCache HashSpec)
-    (hhit : ∃ output, cache (input genuine) = some output ∧ truncateHash output = target)
+    (hhit : ∃ output, cache (input genuine) = some output ∧ Generic.truncateHash output = target)
     (hfresh : ∀ value, value ≠ genuine → cache (input value) = none) :
     Pr[fun result => result.2.1 = none | randomDigestPreimage input target cache] =
       (15 / 16) * (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ preimageSearchSteps := by
@@ -139,7 +140,7 @@ theorem preimage_rejection_power_le :
     (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ preimageSearchSteps ≤ 16 / 17 := by
   calc
     _ ≤ 1 / (1 + preimageSearchSteps * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) :=
-      TargetSum.rejection_power_le _ (by norm_num [digestBits]) _
+      Generic.Code.rejection_power_le _ (by norm_num [digestBits]) _
     _ = 16 / 17 := by
       apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
       rw [ENNReal.toReal_div, ENNReal.toReal_add (by finiteness) (by finiteness)]
@@ -147,7 +148,7 @@ theorem preimage_rejection_power_le :
 
 theorem randomDigestPreimage_success (input : Digest → HashInput) (hinj : Function.Injective input)
     (target genuine : Digest) (cache : QueryCache HashSpec)
-    (hhit : ∃ output, cache (input genuine) = some output ∧ truncateHash output = target)
+    (hhit : ∃ output, cache (input genuine) = some output ∧ Generic.truncateHash output = target)
     (hfresh : ∀ value, value ≠ genuine → cache (input value) = none) :
     2 / 17 ≤ Pr[fun result => result.2.1 ≠ none | randomDigestPreimage input target cache] := by
   have hfailure : Pr[fun result => result.2.1 = none | randomDigestPreimage input target cache] ≤ 15 / 17 := by

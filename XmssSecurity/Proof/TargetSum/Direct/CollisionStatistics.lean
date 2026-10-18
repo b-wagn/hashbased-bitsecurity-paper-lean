@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.Direct.SignerRace
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-!
 # Counting cached encoding inputs at an epoch
@@ -21,7 +23,7 @@ variable (parameter : PublicParameter) (cache : QueryCache HashSpec) (leafIndex 
 
 /-- The encoding input of a message–randomizer pair at the epoch. -/
 abbrev input (entry : Message × Randomness) : HashInput :=
-  Concrete.CacheView.encodingInput parameter leafIndex entry
+  Generic.Concrete.CacheView.encodingInput parameter leafIndex entry
 
 /-- The cached encoding inputs at the epoch. -/
 def entries : Set (Message × Randomness) :=
@@ -30,15 +32,15 @@ def entries : Set (Message × Randomness) :=
 /-- A cached encoding input whose digest decodes. -/
 def IsValid (entry : Message × Randomness) : Prop :=
   ∃ output, cache (input parameter leafIndex entry) = some output ∧
-    TargetSum.ValidDigest (truncateHash output)
+    Generic.Code.ValidDigest (Generic.truncateHash output)
 
 /-- A cached decodable encoding input whose digest another cached encoding input of the epoch
 shares. -/
 def IsPartnered (entry : Message × Randomness) : Prop :=
   ∃ output, cache (input parameter leafIndex entry) = some output ∧
-    TargetSum.ValidDigest (truncateHash output) ∧
+    Generic.Code.ValidDigest (Generic.truncateHash output) ∧
     ∃ other ≠ entry, ∃ otherOutput, cache (input parameter leafIndex other) = some otherOutput ∧
-      truncateHash otherOutput = truncateHash output
+      Generic.truncateHash otherOutput = Generic.truncateHash output
 
 def validEntries : Set (Message × Randomness) := {entry | IsValid parameter cache leafIndex entry}
 
@@ -52,7 +54,7 @@ noncomputable def validRandomizers (message : Message) : Finset Randomness := by
 
 /-- The decodable digests cached at the epoch. -/
 noncomputable def validDigests : Set Digest :=
-  (fun entry => truncateHash ((cache (input parameter leafIndex entry)).getD 0)) ''
+  (fun entry => Generic.truncateHash ((cache (input parameter leafIndex entry)).getD 0)) ''
     validEntries parameter cache leafIndex
 
 variable {parameter cache leafIndex}
@@ -133,7 +135,7 @@ theorem ncard_validDigests_le :
 theorem input_ne_of_leafIndex_ne {leafIndex' : LeafIndex} (hne : leafIndex' ≠ leafIndex)
     (entry entry' : Message × Randomness) :
     input parameter leafIndex' entry' ≠ input parameter leafIndex entry := fun heq =>
-  hne (Concrete.CacheView.leafIndex_eq_of_encodingInput_eq parameter heq)
+  hne (Generic.Concrete.CacheView.leafIndex_eq_of_encodingInput_eq parameter heq)
 
 /-- Counts at an epoch depend only on the cache at that epoch's encoding inputs. -/
 theorem stats_congr {cache' : QueryCache HashSpec}
@@ -155,7 +157,7 @@ theorem stats_congr {cache' : QueryCache HashSpec}
     exact Iff.of_eq (congrArg (· ≠ none) (h (message, randomness)))
   · intro message; ext randomness
     simp only [validRandomizers, Finset.mem_filter, Finset.mem_univ, true_and, DecodableAt]
-    rw [show Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) =
+    rw [show Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) =
       input parameter leafIndex (message, randomness) from rfl, h]
 
 /-! ### A fresh query at the epoch -/
@@ -176,7 +178,7 @@ theorem cacheQuery_input_other (cache : QueryCache HashSpec) {entry : Message ×
     (cache.cacheQuery (input parameter leafIndex fresh) output) (input parameter leafIndex entry) =
       cache (input parameter leafIndex entry) := by
   refine QueryCache.cacheQuery_of_ne _ _ fun heq => hne ?_
-  exact Concrete.CacheView.encodingInput_injective parameter leafIndex heq
+  exact Generic.Concrete.CacheView.encodingInput_injective parameter leafIndex heq
 
 variable (hfresh : cache (input parameter leafIndex fresh) = none)
 include hfresh
@@ -205,7 +207,7 @@ theorem ncard_entries_cacheQuery :
 theorem validEntries_cacheQuery :
     validEntries parameter (cache.cacheQuery (input parameter leafIndex fresh) output)
         leafIndex =
-      if TargetSum.ValidDigest (truncateHash output) then
+      if Generic.Code.ValidDigest (Generic.truncateHash output) then
         insert fresh (validEntries parameter cache leafIndex)
       else validEntries parameter cache leafIndex := by
   ext entry
@@ -213,7 +215,7 @@ theorem validEntries_cacheQuery :
   · subst hentry
     have hnot : entry ∉ validEntries parameter cache leafIndex := fun hmem =>
       fresh_not_mem_entries entry hfresh (validEntries_subset_entries hmem)
-    by_cases hvalid : TargetSum.ValidDigest (truncateHash output)
+    by_cases hvalid : Generic.Code.ValidDigest (Generic.truncateHash output)
     · simp only [hvalid, if_true, Set.mem_insert_iff, true_or, iff_true]
       exact mem_validEntries.mpr ⟨output, cacheQuery_input_self (parameter := parameter) (leafIndex := leafIndex) entry output cache, hvalid⟩
     · simp only [hvalid, if_false, hnot, iff_false]
@@ -231,7 +233,7 @@ theorem validEntries_cacheQuery :
 theorem ncard_validEntries_cacheQuery :
     ((validEntries parameter (cache.cacheQuery (input parameter leafIndex fresh) output)
       leafIndex).ncard : ℝ) = (validEntries parameter cache leafIndex).ncard +
-        if TargetSum.ValidDigest (truncateHash output) then 1 else 0 := by
+        if Generic.Code.ValidDigest (Generic.truncateHash output) then 1 else 0 := by
   rw [validEntries_cacheQuery fresh output hfresh]
   split_ifs
   · rw [Set.ncard_insert_of_notMem (fun hmem =>
@@ -243,10 +245,10 @@ theorem ncard_validEntries_cacheQuery :
 theorem card_validRandomizers_cacheQuery_self :
     ((validRandomizers parameter (cache.cacheQuery (input parameter leafIndex fresh) output)
       leafIndex fresh.1).card : ℝ) = (validRandomizers parameter cache leafIndex fresh.1).card +
-        if TargetSum.ValidDigest (truncateHash output) then 1 else 0 := by
+        if Generic.Code.ValidDigest (Generic.truncateHash output) then 1 else 0 := by
   classical
   have hset : validRandomizers parameter (cache.cacheQuery (input parameter leafIndex fresh) output)
-      leafIndex fresh.1 = if TargetSum.ValidDigest (truncateHash output) then
+      leafIndex fresh.1 = if Generic.Code.ValidDigest (Generic.truncateHash output) then
         insert fresh.2 (validRandomizers parameter cache leafIndex fresh.1)
       else validRandomizers parameter cache leafIndex fresh.1 := by
     have hvalidSet := validEntries_cacheQuery fresh output hfresh
@@ -291,7 +293,7 @@ theorem validRandomizers_cacheQuery_other {message : Message} (hne : message ≠
   ext randomness
   have hentry : (message, randomness) ≠ fresh := fun heq => hne (congrArg Prod.fst heq)
   simp only [validRandomizers, Finset.mem_filter, Finset.mem_univ, true_and, DecodableAt]
-  rw [show Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) =
+  rw [show Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) =
     input parameter leafIndex (message, randomness) from rfl,
     cacheQuery_input_other (parameter := parameter) (leafIndex := leafIndex) fresh output cache hentry]
 
@@ -303,7 +305,7 @@ theorem cachedRandomizersAt_cacheQuery_other {message : Message} (hne : message 
   ext randomness
   have hentry : (message, randomness) ≠ fresh := fun heq => hne (congrArg Prod.fst heq)
   simp only [cachedRandomizersAt, Finset.mem_filter, Finset.mem_univ, true_and]
-  rw [show Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) =
+  rw [show Generic.Concrete.CacheView.encodingInput parameter leafIndex (message, randomness) =
     input parameter leafIndex (message, randomness) from rfl,
     cacheQuery_input_other (parameter := parameter) (leafIndex := leafIndex) fresh output cache hentry]
 
@@ -314,11 +316,11 @@ a cached decodable digest. -/
 theorem ncard_partneredEntries_cacheQuery_le :
     ((partneredEntries parameter (cache.cacheQuery (input parameter leafIndex fresh) output)
       leafIndex).ncard : ℝ) ≤ (partneredEntries parameter cache leafIndex).ncard +
-        if truncateHash output ∈ validDigests parameter cache leafIndex then 2 else 0 := by
+        if Generic.truncateHash output ∈ validDigests parameter cache leafIndex then 2 else 0 := by
   set cache' := cache.cacheQuery (input parameter leafIndex fresh) output with hcache'
   set old := partneredEntries parameter cache leafIndex
   set shared : Set (Message × Randomness) := {entry | entry ∈ validEntries parameter cache leafIndex ∧
-    truncateHash ((cache (input parameter leafIndex entry)).getD 0) = truncateHash output ∧
+    Generic.truncateHash ((cache (input parameter leafIndex entry)).getD 0) = Generic.truncateHash output ∧
       entry ∉ old}
   have hsub : partneredEntries parameter cache' leafIndex ⊆ old ∪ insert fresh shared := by
     intro entry hentry
@@ -355,13 +357,13 @@ theorem ncard_partneredEntries_cacheQuery_le :
     rw [hleftCache, Option.getD_some] at hl
     rw [hrightCache, Option.getD_some] at hr
     rw [hl, hr]
-  have hempty : truncateHash output ∉ validDigests parameter cache leafIndex → shared = ∅ := by
+  have hempty : Generic.truncateHash output ∉ validDigests parameter cache leafIndex → shared = ∅ := by
     intro hnot
     rw [Set.eq_empty_iff_forall_notMem]
     intro entry hentry
     apply hnot
     exact ⟨entry, hentry.1, hentry.2.1⟩
-  have hfreshPartnered : truncateHash output ∉ validDigests parameter cache leafIndex →
+  have hfreshPartnered : Generic.truncateHash output ∉ validDigests parameter cache leafIndex →
       fresh ∉ partneredEntries parameter cache' leafIndex := by
     intro hnot hmem
     rw [mem_partneredEntries] at hmem
@@ -373,7 +375,7 @@ theorem ncard_partneredEntries_cacheQuery_le :
     apply hnot
     refine ⟨other, mem_validEntries.mpr ⟨otherOutput, hotherCache, ?_⟩, ?_⟩
     · rw [hsame]; exact hvalid
-    · show truncateHash ((cache (input parameter leafIndex other)).getD 0) = truncateHash output
+    · show Generic.truncateHash ((cache (input parameter leafIndex other)).getD 0) = Generic.truncateHash output
       rw [hotherCache, Option.getD_some, hsame, ← hfound]
   split_ifs with hhit
   · have h1 := Set.ncard_le_ncard hsub

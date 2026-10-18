@@ -1,4 +1,6 @@
 import XmssSecurity.Proof.TargetSum.Direct.TerminalActivityCancellation
+import XmssSecurity.Proof.TargetSum.Code
+import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! Charge the final prefix query and the deciding probe together to source encoding
 activity, retaining the one-query saving on paths with no such activity. -/
@@ -12,30 +14,30 @@ namespace XmssSecurity.TargetSum.Deciding
 
 open CappedChain FirstLaneOracleSimulation
 
-noncomputable def terminalAcceptedPrefixProbeExecution (limit : Nat) (key : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) Forgery) :
-    OracleComp GlobalFirstLaneWorld LimitedPrefixResult := do
+noncomputable def terminalAcceptedPrefixProbeExecution (limit : Nat) (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
+    (edgeHigh : Generic.CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + Generic.SigningSpec) Generic.Forgery) :
+    OracleComp Generic.CappedChain.GlobalFirstLaneWorld LimitedPrefixResult := do
   let result ← terminalPrunedFirstLanePrefix limit key edgeHigh computation
-    (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
+    (Generic.CappedChain.GlobalHighDirectTracedState.initial (Generic.CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
   match result.1 with
   | none => pure result
   | some completed =>
-      if (forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome then
-        let _ ← publicDecidingProbe completed.1.epoch
-          (signedEncoding completed.2.causalState.cache key.secretKey.parameter
+      if (Generic.Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome then
+        let _ ← Generic.Deciding.publicDecidingProbe completed.1.epoch
+          (Generic.Deciding.signedEncoding completed.2.causalState.cache key.secretKey.parameter
             completed.2.attackerTrace.toSigningLog completed.1.epoch)
-          (prefixProbeEncoding completed.2.causalState.cache key.secretKey.parameter completed.1)
+          (Generic.Deciding.prefixProbeEncoding completed.2.causalState.cache key.secretKey.parameter completed.1)
           completed.1.signature.chainValue
         pure result
       else pure result
 
-theorem terminalAcceptedPrefixProbeExecution_eager (limit : Nat) (key : ProgrammedGlobalChainKeygenView)
-    (base : GlobalChainValueIndex → Digest) (edgeHigh : GlobalChainEdgeIndex → Digest)
-    (computation : OracleComp (OracleWorld + SigningSpec) Forgery) :
-    (simulateQ (eagerTraceImpl base) (terminalAcceptedPrefixProbeExecution limit key edgeHigh computation)).run =
+theorem terminalAcceptedPrefixProbeExecution_eager (limit : Nat) (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
+    (base : Generic.CappedChain.GlobalChainValueIndex → Digest) (edgeHigh : Generic.CappedChain.GlobalChainEdgeIndex → Digest)
+    (computation : OracleComp (OracleWorld + Generic.SigningSpec) Generic.Forgery) :
+    (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl base) (terminalAcceptedPrefixProbeExecution limit key edgeHigh computation)).run =
       appendLimitedAcceptedPrefixProbe base key <$>
-        (simulateQ (eagerTraceImpl base) (terminalPrunedFirstLanePrefix limit key edgeHigh computation
-          (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run := by
+        (simulateQ (Generic.FirstLaneOracleSimulation.eagerTraceImpl base) (terminalPrunedFirstLanePrefix limit key edgeHigh computation
+          (Generic.CappedChain.GlobalHighDirectTracedState.initial (Generic.CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run := by
   unfold terminalAcceptedPrefixProbeExecution
   simp only [simulateQ_bind, WriterT.run_bind', map_eq_bind_pure_comp]
   apply bind_congr
@@ -43,45 +45,45 @@ theorem terminalAcceptedPrefixProbeExecution_eager (limit : Nat) (key : Programm
   cases completed with
   | none => simp [appendLimitedAcceptedPrefixProbe, Prod.map]
   | some completed =>
-      by_cases haccepted : (forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome
-      · simp only [haccepted, if_true, simulateQ_bind, WriterT.run_bind', publicDecidingProbe_eager,
+      by_cases haccepted : (Generic.Deciding.forgedEncoding completed.2.causalState.cache key.secretKey.parameter completed.1).isSome
+      · simp only [haccepted, if_true, simulateQ_bind, WriterT.run_bind', Generic.Deciding.publicDecidingProbe_eager,
           pure_bind, simulateQ_pure, WriterT.run_pure, map_pure]
-        simp [appendLimitedAcceptedPrefixProbe, haccepted, prefixProbeResult, Prod.map]
+        simp [appendLimitedAcceptedPrefixProbe, haccepted, Generic.Deciding.prefixProbeResult, Prod.map]
       · simp [haccepted, appendLimitedAcceptedPrefixProbe, Prod.map]
 
-noncomputable def publicTerminalAcceptedPrefixProbeExecution (limit : Nat) (adversary : Adversary)
-    (key : ProgrammedGlobalChainKeygenView) (edgeHigh : GlobalChainEdgeIndex → Digest) :
-    OracleComp GlobalFirstLaneWorld LimitedPrefixResult :=
+noncomputable def publicTerminalAcceptedPrefixProbeExecution (limit : Nat) (adversary : Generic.Adversary)
+    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : Generic.CappedChain.GlobalChainEdgeIndex → Digest) :
+    OracleComp Generic.CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
   terminalAcceptedPrefixProbeExecution limit key edgeHigh (adversary.main key.publicKey)
 
-theorem coupledTerminalAcceptedProbe_eq_map (limit : Nat) (adversary : Adversary) :
-    coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary) =
+theorem coupledTerminalAcceptedProbe_eq_map (limit : Nat) (adversary : Generic.Adversary) :
+    Generic.Deciding.coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary) =
       (fun result : CoupledLimitedPrefixResult =>
         (result.1, appendLimitedAcceptedPrefixProbe result.1.1.2 result.1.1.1 result.2)) <$>
-          coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary) := by
-  unfold coupledFirstLaneProgram publicTerminalAcceptedPrefixProbeExecution publicTerminalPrefixExecution
+          Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary) := by
+  unfold Generic.Deciding.coupledFirstLaneProgram publicTerminalAcceptedPrefixProbeExecution publicTerminalPrefixExecution
   simp only [map_bind, map_pure, terminalAcceptedPrefixProbeExecution_eager, bind_map_left]
 
-theorem coupledTerminalPrefix_trace_bound (limit : Nat) (adversary : Adversary)
+theorem coupledTerminalPrefix_trace_bound (limit : Nat) (adversary : Generic.Adversary)
     (result : CoupledLimitedPrefixResult)
-    (hresult : result ∈ support (coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary))) :
-    hazardCount result.2.2 ≤ limit := by
-  unfold coupledFirstLaneProgram at hresult
+    (hresult : result ∈ support (Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary))) :
+    Generic.FirstLaneOracleSimulation.hazardCount result.2.2 ≤ limit := by
+  unfold Generic.Deciding.coupledFirstLaneProgram at hresult
   simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult
   obtain ⟨key, _, outcome, houtcome, rfl⟩ := hresult
   have hbudget := terminalPrunedFirstLanePrefix_trace_budget key.1.2 limit key.1.1 key.2
     (adversary.main key.1.1.publicKey)
-    (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key.1.1)) ⟨0, 0, 0⟩
+    (Generic.CappedChain.GlobalHighDirectTracedState.initial (Generic.CappedChain.globalFilteredCausalKeygenState key.1.1)) ⟨0, 0, 0⟩
     (by simp [EncodingBudgetCounters.charge]) outcome houtcome
   dsimp only at hbudget
   unfold EncodingBudgetCounters.charge at hbudget
-  change hazardCount outcome.2 ≤ limit
+  change Generic.FirstLaneOracleSimulation.hazardCount outcome.2 ≤ limit
   omega
 
-theorem coupledTerminalAcceptedProbe_trace_bound (limit : Nat) (adversary : Adversary)
+theorem coupledTerminalAcceptedProbe_trace_bound (limit : Nat) (adversary : Generic.Adversary)
     (result : CoupledLimitedPrefixResult)
-    (hresult : result ∈ support (coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary))) :
-    hazardCount result.2.2 ≤ limit + 1 := by
+    (hresult : result ∈ support (Generic.Deciding.coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary))) :
+    Generic.FirstLaneOracleSimulation.hazardCount result.2.2 ≤ limit + 1 := by
   rw [coupledTerminalAcceptedProbe_eq_map, support_map] at hresult
   obtain ⟨prefixResult, hprefix, rfl⟩ := hresult
   have hcount := coupledTerminalPrefix_trace_bound limit adversary prefixResult hprefix
@@ -89,39 +91,39 @@ theorem coupledTerminalAcceptedProbe_trace_bound (limit : Nat) (adversary : Adve
   split_ifs <;> omega
 
 theorem terminalPrefix_probe_hazardCount_le (limit : Nat) (hpositive : 0 < limit)
-    (table : GlobalChainValueIndex → Digest) (key : ProgrammedGlobalChainKeygenView)
-    (result : LimitedPrefixResult × ActionTrace GlobalChainValueIndex)
-    (hcount : hazardCount result.2 ≤ limit) :
-    hazardCount (appendLimitedAcceptedPrefixProbe table key result).2 ≤
+    (table : Generic.CappedChain.GlobalChainValueIndex → Digest) (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
+    (result : LimitedPrefixResult × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
+    (hcount : Generic.FirstLaneOracleSimulation.hazardCount result.2 ≤ limit) :
+    Generic.FirstLaneOracleSimulation.hazardCount (appendLimitedAcceptedPrefixProbe table key result).2 ≤
       (limit - 1) + if TerminalPrefixExtraCharge limit key result then 2 else 0 := by
   rw [hazardCount_appendLimitedAcceptedPrefixProbe]
   by_cases hextra : TerminalPrefixExtraCharge limit key result
   · rw [if_pos hextra]
     split_ifs <;> omega
-  · have hshort : hazardCount result.2 < limit := by
+  · have hshort : Generic.FirstLaneOracleSimulation.hazardCount result.2 < limit := by
       exact Nat.lt_of_not_ge (fun h => hextra (Or.inl h))
     have hrejected : ¬LimitedPrefixForgedEncodingAccepted key result := fun h => hextra (Or.inr h)
     rw [if_neg hextra, if_neg hrejected]
     omega
 
 theorem expectedCoupledTerminalProbe_hazards_le (limit : Nat) (hpositive : 0 < limit)
-    (adversary : Adversary) :
+    (adversary : Generic.Adversary) :
     expectedCoupledHazards (limit + 1) (publicTerminalAcceptedPrefixProbeExecution limit adversary) ≤
       ((limit - 1 : Nat) : ℝ≥0∞) + 2 *
-        Pr[CoupledTerminalExtraCharge limit | coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] := by
+        Pr[CoupledTerminalExtraCharge limit | Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] := by
   unfold expectedCoupledHazards
   rw [coupledTerminalAcceptedProbe_eq_map, tsum_probOutput_map_mul, probEvent_eq_tsum_ite]
   calc
-    _ ≤ ∑' result, Pr[= result | coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] *
+    _ ≤ ∑' result, Pr[= result | Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] *
         (((limit - 1 : Nat) : ℝ≥0∞) + if CoupledTerminalExtraCharge limit result then 2 else 0) := by
       apply ENNReal.tsum_le_tsum
       intro result
-      by_cases hresult : result ∈ support (coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary))
+      by_cases hresult : result ∈ support (Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary))
       · apply mul_le_mul' le_rfl
         have hcount := terminalPrefix_probe_hazardCount_le limit hpositive result.1.1.2 result.1.1.1 result.2
           (coupledTerminalPrefix_trace_bound limit adversary result hresult)
         have hmin := (Nat.min_le_right (limit + 1)
-          (hazardCount (appendLimitedAcceptedPrefixProbe result.1.1.2 result.1.1.1 result.2).2)).trans hcount
+          (Generic.FirstLaneOracleSimulation.hazardCount (appendLimitedAcceptedPrefixProbe result.1.1.2 result.1.1.1 result.2).2)).trans hcount
         exact_mod_cast hmin
       · rw [probOutput_eq_zero_of_not_mem_support hresult, zero_mul, zero_mul]
     _ = _ := by
@@ -133,23 +135,23 @@ theorem expectedCoupledTerminalProbe_hazards_le (limit : Nat) (hpositive : 0 < l
       intro result
       split_ifs <;> simp [mul_comm]
 
-theorem coupledTerminalProbedHit_probability_le (adversary : Adversary) (limit : Nat) (hpositive : 0 < limit) :
-    Pr[CoupledLimitedProbedHit | coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] ≤
+theorem coupledTerminalProbedHit_probability_le (adversary : Generic.Adversary) (limit : Nat) (hpositive : 0 < limit) :
+    Pr[CoupledLimitedProbedHit | Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] ≤
       ((limit - 1 : Nat) : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         (2 * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹) *
-          Pr[CoupledTerminalExtraCharge limit | coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] := by
+          Pr[CoupledTerminalExtraCharge limit | Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] := by
   have hevent : Pr[CoupledLimitedProbedHit |
-      coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] =
-      Pr[fun result => CombinedHit result.1.1.2 (enforceHazardTrace (limit + 1) result.2.2) |
-        coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary)] := by
+      Generic.Deciding.coupledFirstLaneProgram (publicTerminalPrefixExecution limit adversary)] =
+      Pr[fun result => Generic.FirstLaneOracleSimulation.CombinedHit result.1.1.2 (Generic.FirstLaneOracleSimulation.enforceHazardTrace (limit + 1) result.2.2) |
+        Generic.Deciding.coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary)] := by
     calc
-      _ = Pr[fun result => CombinedHit result.1.1.2 result.2.2 |
-          coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary)] := by
+      _ = Pr[fun result => Generic.FirstLaneOracleSimulation.CombinedHit result.1.1.2 result.2.2 |
+          Generic.Deciding.coupledFirstLaneProgram (publicTerminalAcceptedPrefixProbeExecution limit adversary)] := by
         rw [coupledTerminalAcceptedProbe_eq_map, probEvent_map]
         rfl
       _ = _ := by
         apply probEvent_congr' (fun result hresult => ?_) rfl
-        rw [enforceHazardTrace_eq_self_of_count_le _ _
+        rw [Generic.FirstLaneOracleSimulation.enforceHazardTrace_eq_self_of_count_le _ _
           (coupledTerminalAcceptedProbe_trace_bound limit adversary result hresult)]
   rw [hevent]
   apply (coupled_enforcedHit_probability_le_expected (limit + 1) _).trans
@@ -158,13 +160,13 @@ theorem coupledTerminalProbedHit_probability_le (adversary : Adversary) (limit :
       (expectedCoupledTerminalProbe_hazards_le limit hpositive adversary)
 
 theorem sourceCountedPrefixFirstLane_probability_le_terminal_credit
-    (adversary : Adversary) (limit : Nat) (hpositive : 0 < limit)
-    (hbudget : ∀ key ∈ support trajectoryProgrammedGlobalChainKeygen,
-      CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey)
+    (adversary : Generic.Adversary) (limit : Nat) (hpositive : 0 < limit)
+    (hbudget : ∀ key ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen,
+      CountedSourceBudget (Generic.Concrete.materializePrecomputation key.cache key.secretKey)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
     Pr[SourceCountedPrefixFirstLane | sourceCountedPrefixProgram adversary] ≤
       ((limit - 1 : Nat) : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (2 * (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)) /
+        (2 * (Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   apply (accepted_event_probability_le_of_relTriple SourceCountedPrefixFirstLane SourceCountedPrefixEncodingActivity
     (CoupledTerminalExtraCharge limit) CoupledLimitedProbedHit _ _ (by
@@ -178,13 +180,13 @@ theorem sourceCountedPrefixFirstLane_probability_le_terminal_credit
       (sourceCountedPrefix_encodingActivity_probability_le adversary))
 
 theorem acceptedPrefixFirstLane_probability_le_terminal_credit
-    (adversary : Adversary) (limit : Nat) (hpositive : 0 < limit)
-    (hbudget : ∀ key ∈ support trajectoryProgrammedGlobalChainKeygen,
-      CountedSourceBudget (Concrete.materializePrecomputation key.cache key.secretKey)
+    (adversary : Generic.Adversary) (limit : Nat) (hpositive : 0 < limit)
+    (hbudget : ∀ key ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen,
+      CountedSourceBudget (Generic.Concrete.materializePrecomputation key.cache key.secretKey)
         limit (adversary.main key.publicKey) (CountedSourceState.initial key.cache)) :
-    Pr[fun result => AcceptedPrefixFirstLaneEvent result.1 result.2 | sourcePrefixProgram adversary] ≤
+    Pr[fun result => AcceptedPrefixFirstLaneEvent result.1 result.2 | Generic.Deciding.sourcePrefixProgram adversary] ≤
       ((limit - 1 : Nat) : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
-        (2 * (Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)) /
+        (2 * (Generic.Direct.expectedDirectEncodingQueries adversary + Direct.expectedSourceSignerHashes adversary)) /
           ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [← sourceCountedPrefixProgram_source_projection, probEvent_map]
   exact sourceCountedPrefixFirstLane_probability_le_terminal_credit adversary limit hpositive hbudget
