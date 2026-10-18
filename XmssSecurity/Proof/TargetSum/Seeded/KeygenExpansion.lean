@@ -34,18 +34,6 @@ def derivationCache (seed : MasterSeed) (parameterOutput : HashOutput) (outputs 
     QueryCache HashSpec :=
   cacheRows (parameterCache seed parameterOutput) (chainInputs (truncateHash parameterOutput) seed) outputs
 
-/-- The initial cache can differ from an empty oracle only at inputs naming this seed. -/
-theorem derivationCache_of_not_seedHit (seed : MasterSeed) (parameterOutput : HashOutput)
-    (outputs : ChainOutputs) (input : HashInput) (hinput : ¬ SeedHit input seed) :
-    derivationCache seed parameterOutput outputs input = none := by
-  unfold derivationCache
-  rw [cacheRows_apply_of_not_mem]
-  · apply QueryCache.cacheQuery_of_ne
-    intro h
-    exact hinput (h.symm ▸ derivationSeedHit_keygen 0 .parameter seed)
-  · intro leafIndex chain h
-    exact hinput (h.symm ▸ derivationSeedHit_keygen (truncateHash parameterOutput) (.chain leafIndex chain) seed)
-
 def deriveChainSecrets (parameter : PublicParameter) (seed : MasterSeed) :
     OracleComp HashSpec (LeafIndex → ChainIndex → Digest) :=
   Concrete.sequenceFin fun leafIndex => Concrete.sequenceFin fun chain =>

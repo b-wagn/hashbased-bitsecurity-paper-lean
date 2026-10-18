@@ -20,30 +20,6 @@ def WinningDecidingFirstLaneBadEventOccurs (execution : CappedEncodingTraceExecu
       ¬ WinningEncodingPrehitOccurs execution) ∨
     (execution.1.won = true ∧ DecidingChainValueRevealed execution.2.1.1 execution.1)
 
-theorem decidingFirstLane_implies_exactFirstLane (adversary : Adversary)
-    (execution : CappedEncodingTraceExecution)
-    (hmem : execution ∈ support (cappedDetailedGameWithEncodingTrace adversary))
-    (hevent : WinningDecidingFirstLaneBadEventOccurs execution) :
-    WinningExactFirstLaneBadEventOccurs execution := by
-  rcases hevent with hencoding | ⟨hwin, hrevealed⟩
-  · exact Or.inl hencoding
-  · have hgame : (execution.1, execution.2.1.1) ∈ support
-        (detailedGameWithCache Concrete.scheme adversary) := by
-      rw [← cappedDetailedGameWithEncodingTrace_cache_projection, support_map]
-      exact ⟨execution, hmem, rfl⟩
-    exact Or.inr (deciding_revealed_implies_global _ _
-      (capped_detailed_execution_consistent adversary _ hgame) hwin hrevealed)
-
-/-- The older estimate, retained for the intermediate 120-bit theorem. -/
-theorem decidingFirstLane_probability_le_existing (adversary : Adversary) (D : ℕ)
-    (hD : Direct.IsDirectQueryBound adversary D) :
-    Pr[WinningDecidingFirstLaneBadEventOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
-      ((D + Direct.verifierQueryBound + numChains : ℕ) : ℝ≥0∞) /
-        ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
-  apply le_trans (probEvent_mono (decidingFirstLane_implies_exactFirstLane adversary))
-  exact CappedChain.hasExactFirstLaneBound_direct adversary D hD
-    Direct.scheme_verify_hashQueryBound
-
 theorem forgeAdvantage_le_deciding_lanes (adversary : Adversary) :
     forgeAdvantage Concrete.scheme adversary ≤
       Pr[WinningDecidingFirstLaneBadEventOccurs | cappedDetailedGameWithEncodingTrace adversary] +
@@ -78,22 +54,5 @@ theorem forgeAdvantage_le_deciding_lanes (adversary : Adversary) :
             cappedDetailedGameWithEncodingTrace adversary]) := by
       apply (probEvent_or_le _ WinningDecidingFirstLaneBadEventOccurs _).trans
       exact add_le_add le_rfl (probEvent_or_le _ WinningEncodingPrehitOccurs _)
-
-/-- An optional direct bound on the original trace event. The completed proof instead bounds the
-adversary with its forged encoding query; see `DecidingFirstLaneBridge`. -/
-def HasDecidingFirstLaneBound (adversary : Adversary) (D : ℕ) : Prop :=
-  Pr[WinningDecidingFirstLaneBadEventOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
-    ((D + 3 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
-
-theorem concrete_forgeAdvantage_le_of_decidingFirstLane (adversary : Adversary) (D : ℕ)
-    (hD : Direct.IsDirectQueryBound adversary D) (hfirst : HasDecidingFirstLaneBound adversary D) :
-    forgeAdvantage Concrete.scheme adversary ≤
-      ((D + 3 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        ((signingAttemptLimit : ℝ≥0∞) * D * ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ +
-          ((D + 41 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) :=
-  (forgeAdvantage_le_deciding_lanes adversary).trans
-    (add_le_add hfirst (add_le_add
-      (winningEncodingPrehit_probability_le_direct adversary D hD)
-      (decidingSecondLane_probability_le_direct adversary D hD)))
 
 end XmssSecurity.TargetSum.Deciding

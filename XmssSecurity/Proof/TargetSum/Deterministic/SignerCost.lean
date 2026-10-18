@@ -134,30 +134,9 @@ theorem evalDist_counted_sign_eq_twice_tableSign
   rw [signFrom_lift_hash_eq_world, tableSignFrom_lift_hash_eq_world]
   exact evalDist_counted_signFrom_eq_twice_tableSignFrom _ _ _ _ _ _ _ _ hcache
 
-/-- The reference attempt count consumes two units of the original signer budget. -/
-theorem twice_tableSign_count_le_of_sign_hashQueryBound
-    (seed : MasterSeed) (secretKey : XmssSecurity.TargetSum.SecretKey)
-    (randomizers : RandomizerOutputs) (leafIndex : LeafIndex) (message : Message)
-    (cache : QueryCache HashSpec)
-    (hcache : ∀ position, cache (randomizerInputs secretKey.parameter seed position) =
-      some (randomizers position)) (q : Nat)
-    (hbound : HashQueryBound (scheme.sign ⟨seed, secretKey⟩ leafIndex message) cache q)
-    (result : (Option Signature × Nat) × QueryCache HashSpec)
-    (hresult : result ∈ support ((simulateQ romImpl (countHashQueries
-      ((tableScheme randomizers).sign secretKey leafIndex message))).run cache)) :
-    2 * result.1.2 ≤ q := by
-  apply (hashQueryBound_iff_run _ _ _).1 hbound ((result.1.1, 2 * result.1.2), result.2)
-  rw [mem_support_iff_of_evalDist_eq
-    (evalDist_counted_sign_eq_twice_tableSign _ _ _ _ _ _ hcache), support_map]
-  exact ⟨result, hresult, rfl⟩
-
 /-- info: 'XmssSecurity.TargetSum.Seeded.evalDist_counted_sign_eq_twice_tableSign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms evalDist_counted_sign_eq_twice_tableSign
-
-/-- info: 'XmssSecurity.TargetSum.Seeded.twice_tableSign_count_le_of_sign_hashQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms twice_tableSign_count_le_of_sign_hashQueryBound
 
 end Seeded
 end XmssSecurity.TargetSum

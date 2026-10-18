@@ -113,54 +113,6 @@ theorem liftProbComp_hashCount_zero (computation : ProbComp α) :
     (fun input => by simp [IsHashQuery])
     (OracleComp.isQueryBoundP_false computation 0)
 
-theorem rootTreeWithLog_hashCount
-    (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest) :
-    ExactPredicateQueryCount IsHashQuery
-      (liftM
-        (Concrete.treeNode (m := OracleComp HashSpec) parameter secret treeHeight
-          Concrete.rootNode).withQueryLog :
-        OracleComp OracleWorld (Digest × QueryLog HashSpec))
-      (treeHashQueryCount treeHeight) := by
-  exact ExactQueryCount.liftComp_predicate
-    (ExactQueryCount.withQueryLog (ExactQueryCount.rootTree parameter secret))
-    IsHashQuery (fun input => by
-      change IsHashQuery (Sum.inr input)
-      simp [IsHashQuery])
-
-theorem precomputedKeygen_hashCount :
-    ExactPredicateQueryCount IsHashQuery Concrete.precomputedKeygen
-      (treeHashQueryCount treeHeight) := by
-  unfold Concrete.precomputedKeygen
-  exact ExactQueryCount.ExactPredicateQueryCount.bind
-    (liftProbComp_hashCount_zero Concrete.samplePublicParameter)
-    (fun parameter => do
-      let secret ← liftM Concrete.sampleSecret
-      let result ← liftM
-        (Concrete.treeNode (m := OracleComp HashSpec) parameter secret treeHeight
-          Concrete.rootNode).withQueryLog
-      let cache := hashCacheOfLog result.2
-      return (PublicKey.mk result.1 parameter,
-        Concrete.precomputedSecretKey parameter secret cache))
-    (treeHashQueryCount treeHeight) (fun parameter =>
-      ExactQueryCount.ExactPredicateQueryCount.bind
-        (liftProbComp_hashCount_zero Concrete.sampleSecret)
-        (fun secret => do
-          let result ← liftM
-            (Concrete.treeNode (m := OracleComp HashSpec) parameter secret treeHeight
-              Concrete.rootNode).withQueryLog
-          let cache := hashCacheOfLog result.2
-          return (PublicKey.mk result.1 parameter,
-            Concrete.precomputedSecretKey parameter secret cache))
-        (treeHashQueryCount treeHeight) (fun secret =>
-          ExactQueryCount.ExactPredicateQueryCount.bind
-            (rootTreeWithLog_hashCount parameter secret)
-            (fun result =>
-              let cache := hashCacheOfLog result.2
-              (Pure.pure (PublicKey.mk result.1 parameter,
-                Concrete.precomputedSecretKey parameter secret cache) :
-                OracleComp OracleWorld (PublicKey × SecretKey)))
-            0 (fun result => ExactPredicateQueryCount.pure _)))
-
 end ExactQueryCount.ExactPredicateQueryCount
 
 theorem countHashQueries_of_exact {α : Type} {computation : OracleComp OracleWorld α} {count : Nat}
@@ -172,39 +124,7 @@ theorem countHashQueries_of_exact {α : Type} {computation : OracleComp OracleWo
       simp only [countHashQueries_query_bind, ih, map_bind, bind_pure_comp, Functor.map_map]
       cases input <;> simp [IsHashQuery, Nat.add_comm]
 
-theorem keygen_hashQueryBound_split (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBound Concrete.scheme adversary q)
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkeyResult : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    treeHashQueryCount treeHeight ≤ q ∧
-      HashQueryBound (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1 keyResult.1.2)
-        keyResult.2 (q - treeHashQueryCount treeHeight) := by
-  have hdetailed := (hasHashQueryBound_iff_detailedGameCore Concrete.scheme adversary q).mp hbound
-  apply hashQueryBound_bind Concrete.scheme.keygen
-    (fun key => detailedGameAfterKeygen Concrete.scheme adversary key.1 key.2) ∅ q hdetailed
-    ((keyResult.1, treeHashQueryCount treeHeight), keyResult.2)
-  have hcount : countHashQueries Concrete.scheme.keygen =
-      (fun key => (key, treeHashQueryCount treeHeight)) <$> Concrete.scheme.keygen :=
-    countHashQueries_of_exact ExactQueryCount.ExactPredicateQueryCount.precomputedKeygen_hashCount
-  rw [hcount, simulateQ_map, StateT.run_map, support_map]
-  exact ⟨keyResult, hkeyResult, rfl⟩
-
-theorem keygen_hashQueryCount_le (adversary : Adversary) (q : Nat)
-    (hbound : HasHashQueryBound Concrete.scheme adversary q) : treeHashQueryCount treeHeight ≤ q := by
-  obtain ⟨keyResult, hkeyResult⟩ := probComp_support_nonempty ((simulateQ romImpl Concrete.scheme.keygen).run ∅)
-  exact (keygen_hashQueryBound_split adversary q hbound keyResult hkeyResult).1
-
 namespace CappedChain
-
-theorem sourceUnloggedDetailedGameAfterKeygen_hashQueryBound_sub_keygen
-    (q : Nat) (adversary : Adversary) (hbound : HasHashQueryBound Concrete.scheme adversary q)
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkeyResult : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    HashQueryBound (sourceUnloggedDetailedGameAfterKeygen adversary keyResult.1.1 keyResult.1.2)
-      keyResult.2 (q - treeHashQueryCount treeHeight) :=
-  (hashQueryBound_iff_of_map_eq
-    (detailedGameAfterKeygen_unlogged_projection adversary keyResult.1.1 keyResult.1.2) _ _).mp
-      (keygen_hashQueryBound_split adversary q hbound keyResult hkeyResult).2
 
 end CappedChain
 

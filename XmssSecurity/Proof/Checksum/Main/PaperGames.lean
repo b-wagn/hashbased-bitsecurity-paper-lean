@@ -157,10 +157,6 @@ namespace XmssSecurity.Checksum.Proof
 
 open SUFCMA Attack
 
-/-- `Z` charges none of `keygen` and `verifier`, so it lies below the largest such mode. -/
-theorem subset_of_not_mem {Z : Finset QueryKind} {allowed : Finset QueryKind}
-    (h : ∀ kind ∈ Z, kind ∈ allowed) : Z ⊆ allowed := h
-
 /-- The exact strong-unforgeability classification in the statement's game. -/
 theorem sufCma_exact_of_hash_mem (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z) :
     (SUFCMA.securityGame (PK := PublicKey) (SK := Seeded.SecretKey)).HasExactClassicalSecurityBits

@@ -70,11 +70,4 @@ theorem direct_126 : (EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecu
   · exact (reference_advantage_add_seed_loss_le_fresh adversary D hbound (by omega)).trans
       (directFreshLoss_le_126 D hD (by omega))
 
-theorem direct_exact_126 : (notion SUFCMA.CountingMode.direct).HasExactClassicalSecurityBits xmss 126 :=
-  ⟨direct_126, replay_direct_attack_126⟩
-
-/-- info: 'XmssSecurity.TargetSum.EUFCMA.direct_exact_126' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms direct_exact_126
-
 end XmssSecurity.TargetSum.EUFCMA

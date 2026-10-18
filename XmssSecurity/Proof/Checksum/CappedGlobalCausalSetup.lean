@@ -36,19 +36,6 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_table
   exact (mem_support_iff_of_evalDist_eq
     evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed result).mpr hresult
 
-abbrev GlobalChainActionTracedResult :=
-  ((ProgrammedGlobalChainKeygenView × (GameOutcome × QueryCache HashSpec)) ×
-    AttackerActionTrace)
-
-def eraseGlobalChainKeygenView
-    (result : GlobalChainActionTracedResult) :
-    ((((PublicKey × SecretKey) × QueryCache HashSpec) ×
-      (GameOutcome × QueryCache HashSpec)) × AttackerActionTrace) :=
-  ((((result.1.1.publicKey, Concrete.materializePrecomputation
-      result.1.1.cache result.1.1.secretKey), result.1.1.cache),
-    result.1.2), result.2)
-
-
 structure GlobalCausalHashState where
   cache : QueryCache HashSpec
   keygenCache : QueryCache HashSpec
@@ -303,7 +290,6 @@ theorem revealGlobalSignatureChains_run_isProbeQueryBoundP
       intro value _hvalue
       exact ih (replaceSignatureChainValue signature chain value)
         (state.recordReveal index value)
-
 
 theorem Signature.eq_of_fields
     (left right : Signature)
@@ -568,8 +554,6 @@ theorem GlobalSigningRevealsAgree.globalSignatureRevealResult
       apply ih
       exact hagrees.recordReveal (chain, request.epoch, encoding chain)
 
-
-
 def CoupledGlobalChainKeygenFullCacheRelation
     (parameter : PublicParameter)
     (left : CoupledGlobalChainKeygenView)
@@ -595,7 +579,6 @@ def ProgrammedGlobalChainKeygenFullCacheRelation
         leftEndpoints left.cache ∧
       ReplayEndpointsMatch right.1.secretKey.parameter
         right.1.secretKey.chainStart rightEndpoints right.1.cache
-
 
 theorem Concrete.CacheView.encodingInput_ne_leafInput
     (parameter : PublicParameter) (encodingLeafIndex leafIndex : LeafIndex)

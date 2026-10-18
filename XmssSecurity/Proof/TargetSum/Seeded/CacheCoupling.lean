@@ -76,11 +76,4 @@ theorem probEvent_cache_change_le {α : Type} (bad : HashInput → Prop) [Decida
   exact hbound.trans (add_le_add
     (probEvent_stopBefore_le (hashBad bad) computation right event) le_rfl)
 
-theorem programmedCache_agreeOutside (seed : MasterSeed) (parameter : PublicParameter)
-    (secret : ChainSecrets) (parameterHigh : Digest) (secretHigh : ChainSecrets) :
-    AgreeOutside (fun input => SeedHit input seed)
-      (programmedCache seed parameter secret parameterHigh secretHigh) ∅ := by
-  intro input hinput
-  exact derivationCache_of_not_seedHit seed _ _ input hinput
-
 end XmssSecurity.TargetSum.Seeded

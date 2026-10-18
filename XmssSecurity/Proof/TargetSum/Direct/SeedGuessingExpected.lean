@@ -106,28 +106,4 @@ theorem forgeAdvantage_deterministic_le_table_expectedSeed (adversary : Adversar
       rw [ENNReal.tsum_add, ENNReal.tsum_mul_right]
       rfl
 
-theorem forgeAdvantage_deterministic_le_reference_expectedSeed (adversary : Adversary) :
-    forgeAdvantage scheme adversary ≤ forgeAdvantage Concrete.scheme (memoAdversary adversary) +
-      expectedTableSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
-  have hmemo := prob_independentTableGame_le_memo adversary
-  rw [probOutput_congr rfl (evalDist_independentTableGame_memo adversary)] at hmemo
-  exact (forgeAdvantage_deterministic_le_table_expectedSeed adversary).trans (add_le_add hmemo le_rfl)
-
-theorem expectedTableSeedQueries_le (adversary : Adversary) (D : Nat)
-    (hD : Direct.IsDirectQueryBound adversary D) : expectedTableSeedQueries adversary ≤ D := by
-  unfold expectedTableSeedQueries
-  calc
-    _ ≤ ∑' material, Pr[= material | drawSigningMaterial] * (D : ℝ≥0∞) := by
-      apply ENNReal.tsum_le_tsum
-      intro material
-      exact mul_le_mul' le_rfl (expectedSimulatedQueryCount_le_of_isQueryBoundP romImpl _ _ ∅ D
-        (tableGameAfterSecrets_bound adversary D hD _ _ _))
-    _ ≤ _ := by
-      rw [ENNReal.tsum_mul_right]
-      exact (mul_le_mul' tsum_probOutput_le_one le_rfl).trans_eq (one_mul _)
-
-/-- info: 'XmssSecurity.TargetSum.Seeded.forgeAdvantage_deterministic_le_reference_expectedSeed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms forgeAdvantage_deterministic_le_reference_expectedSeed
-
 end XmssSecurity.TargetSum.Seeded

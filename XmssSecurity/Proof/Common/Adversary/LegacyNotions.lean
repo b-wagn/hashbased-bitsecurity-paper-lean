@@ -58,13 +58,6 @@ def gameCountedDirect [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain â†
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
 
-/-- SUF-CMA in the random-oracle model, charging every hash call of the experiment. -/
-noncomputable def notionTotal [DecidableEq Msg] [DecidableEq Sig] :
-    SecurityNotion
-      (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) where
-  Adversary := Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
-  experiment := fun scheme adversary => RandomOracleModel.experiment (game scheme adversary)
-
 /-- SUF-CMA in the random-oracle model, charging only the adversary's own hash calls. -/
 noncomputable def notionDirect [DecidableEq Msg] [DecidableEq Sig] :
     SecurityNotion

@@ -50,29 +50,6 @@ theorem evalDist_chainOutputs_from_halves :
       simp only [map_bind, map_pure]
       exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
 
-def programmedCache (seed : MasterSeed) (parameter : PublicParameter) (secret : ChainSecrets)
-    (parameterHigh : Digest) (secretHigh : ChainSecrets) : QueryCache HashSpec :=
-  derivationCache seed (Rom.hashOutputEquivDigestPair.symm (parameterHigh, parameter))
-    (chainOutputHalves.symm (secretHigh, secret))
-
-theorem evalDist_parameterOutput_from_halves :
-    𝒟[$ᵗ HashOutput] = 𝒟[do
-      let low ← $ᵗ Digest
-      let high ← $ᵗ Digest
-      pure (Rom.hashOutputEquivDigestPair.symm (high, low))] := by
-  calc
-    _ = 𝒟[Rom.hashOutputEquivDigestPair.symm <$> ($ᵗ (Digest × Digest))] :=
-      (evalDist_map_bijective_uniform_cross (α := Digest × Digest) (β := HashOutput)
-        Rom.hashOutputEquivDigestPair.symm Rom.hashOutputEquivDigestPair.symm.bijective).symm
-    _ = 𝒟[Rom.hashOutputEquivDigestPair.symm <$> (do
-        let high ← $ᵗ Digest
-        let low ← $ᵗ Digest
-        pure (high, low))] := by
-      rw [evalDist_map, evalDist_map, evalDist_independent_uniform_pair]
-    _ = _ := by
-      simp only [map_bind, map_pure]
-      exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
-
 theorem evalDist_samplePublicParameter : 𝒟[Concrete.samplePublicParameter] = 𝒟[$ᵗ Digest] := by
   unfold Concrete.samplePublicParameter
   rw [evalDist_uniformSample, evalDist_uniformSample]
@@ -83,45 +60,5 @@ theorem evalDist_sampleSecret : 𝒟[Concrete.sampleSecret] = 𝒟[$ᵗ ChainSec
   intro secret
   unfold Concrete.sampleSecret
   simp only [probOutput_uniformSample]
-
-/-- The same independent parameter and secret sampler as the existing proof, with full derivation answers retained. -/
-theorem evalDist_deriveParametersAndSecrets_eq_independent (seed : MasterSeed) :
-    𝒟[(simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅] =
-      𝒟[do
-        let parameter ← Concrete.samplePublicParameter
-        let secret ← Concrete.sampleSecret
-        let parameterHigh ← $ᵗ Digest
-        let secretHigh ← Concrete.sampleSecret
-        pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh)] := by
-  rw [evalDist_deriveParametersAndSecrets]
-  trans 𝒟[do
-    let parameter ← $ᵗ Digest
-    let secret ← $ᵗ ChainSecrets
-    let parameterHigh ← $ᵗ Digest
-    let secretHigh ← $ᵗ ChainSecrets
-    pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh)]
-  · rw [evalDist_bind, evalDist_parameterOutput_from_halves, ← evalDist_bind]
-    simp only [bind_assoc, pure_bind, truncate_from_halves]
-    apply OracleComp.DeferredSampling.evalDist_bind_congr_left
-    intro parameter
-    trans 𝒟[do
-      let parameterHigh ← $ᵗ Digest
-      let secret ← $ᵗ ChainSecrets
-      let secretHigh ← $ᵗ ChainSecrets
-      pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh)]
-    · apply OracleComp.DeferredSampling.evalDist_bind_congr_left
-      intro parameterHigh
-      rw [evalDist_bind, evalDist_chainOutputs_from_halves, ← evalDist_bind]
-      simp only [bind_assoc, pure_bind, outputSecrets_from_halves, programmedCache]
-    · exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
-  · rw [evalDist_bind, evalDist_bind, evalDist_samplePublicParameter]
-    apply bind_congr
-    intro parameter
-    rw [evalDist_bind, evalDist_bind, evalDist_sampleSecret]
-    apply bind_congr
-    intro secret
-    apply OracleComp.DeferredSampling.evalDist_bind_congr_left
-    intro parameterHigh
-    rw [evalDist_bind, evalDist_bind, evalDist_sampleSecret]
 
 end XmssSecurity.TargetSum.Seeded

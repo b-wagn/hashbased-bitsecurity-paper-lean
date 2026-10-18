@@ -52,25 +52,6 @@ theorem cappedCacheTracedMappedAdversaryImpl_trace_eq_append
           simpa [signingCacheTraceUpdate, hsuffix, List.append_assoc] using hupdate)
     computation (initialCache, initialTrace) ⟨[], by simp⟩ result hresult
 
-theorem cappedCacheTracedMappedAdversaryImpl_cache_le
-    (publicKey : PublicKey) (secretKey : SecretKey)
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)
-    (result : α × (QueryCache HashSpec × SigningCacheTrace))
-    (hresult : result ∈ support
-      ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run (initialCache, initialTrace))) :
-    initialCache ≤ result.2.1 := by
-  exact OracleComp.simulateQ_run_preservesInv
-    (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-    (fun state => initialCache ≤ state.1)
-    (by
-      intro input state hstate queryResult hquery
-      exact hstate.trans
-        (cappedCacheTracedMappedAdversaryImpl_query_cache_le
-          publicKey secretKey input state queryResult hquery))
-    computation (initialCache, initialTrace) le_rfl result hresult
-
 noncomputable def cappedCacheTracedSigningQuery
     (publicKey : PublicKey) (secretKey : SecretKey)
     (request : SignRequest) (initialCache : QueryCache HashSpec)

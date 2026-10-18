@@ -95,21 +95,4 @@ theorem signedMutationExperiment_probability_lower
         rw [hzero]
         simp
 
-theorem signedMutationExperiment_exceeds_123
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) :
-    (1 : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) <
-      Pr[= true | signedMutationExperiment keyResult request] := by
-  apply lt_of_lt_of_le _ (signedMutationExperiment_probability_lower keyResult hkey request)
-  apply (ENNReal.toReal_lt_toReal (by finiteness) (by
-    apply ENNReal.mul_ne_top
-    · finiteness
-    · exact ENNReal.div_ne_top (by finiteness) (by norm_num [numChains]))).mp
-  norm_num [digestBits, numChains, ENNReal.toReal_mul, ENNReal.toReal_div]
-
-/-- info: 'XmssSecurity.Checksum.Attack.signedMutationExperiment_exceeds_123' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms signedMutationExperiment_exceeds_123
-
 end XmssSecurity.Checksum.Attack

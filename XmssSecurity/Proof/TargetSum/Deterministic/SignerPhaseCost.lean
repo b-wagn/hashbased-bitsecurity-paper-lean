@@ -29,13 +29,6 @@ theorem chargedSigning_cache_le (weight : Nat)
   obtain ⟨record, hrecord, rfl⟩ := hresult
   exact xmssRom_cache_le _ _ _ hrecord
 
-theorem chargedSigning_one
-    (computation : OracleComp OracleWorld (Option Signature)) (state : CostState) :
-    (chargedSigning 1 computation).run state =
-      (simulateQ (worldHandler costHash) computation).run state := by
-  rw [run_costWorld]
-  simp only [chargedSigning, StateT.run, one_mul]
-
 noncomputable def tablePhaseCostImpl (randomizers : RandomizerOutputs)
     (secretKey : XmssSecurity.TargetSum.SecretKey) :
     QueryImpl (OracleWorld + SigningSpec) (StateT CostState ProbComp) :=

@@ -27,30 +27,4 @@ theorem game_embed (adversary : StatementAdversary) :
   unfold XmssSecurity.TargetSum.gameCore Seeded.gameRest SUFCMA.game
   rfl
 
-/-- The proof's counted random oracle is the statement's. -/
-theorem countedRomImpl_eq :
-    countedRomImpl = RandomOracleModel.countedImpl HashInput HashOutput := by
-  funext input
-  cases input <;> rfl
-
-theorem experiment_embed (adversary : StatementAdversary) :
-    (simulateQ countedRomImpl (XmssSecurity.TargetSum.gameCore Seeded.scheme (embed adversary))).run.run' ∅ =
-      SUFCMA.notionTotal.experiment xmss adversary := by
-  rw [game_embed, countedRomImpl_eq]
-  rfl
-
-theorem advantage_embed (adversary : StatementAdversary) :
-    XmssSecurity.TargetSum.forgeAdvantage Seeded.scheme (embed adversary) =
-      SUFCMA.notionTotal.advantage xmss adversary := by
-  unfold SecurityNotion.advantage XmssSecurity.TargetSum.forgeAdvantage
-  rw [← experiment_embed, ← simulateQ_countHashQueries]
-  have h := congrArg (fun computation : OracleComp OracleWorld Bool =>
-    (simulateQ romImpl computation).run' ∅)
-    (countHashQueries_forget (XmssSecurity.TargetSum.gameCore Seeded.scheme (embed adversary)))
-  simp only [simulateQ_map, StateT.run'_map'] at h
-  rw [← h]
-  simpa only [probEvent_eq_eq_probOutput, Function.comp_def] using probEvent_map (mx := (simulateQ romImpl
-    (countHashQueries (XmssSecurity.TargetSum.gameCore Seeded.scheme (embed adversary)))).run' ∅)
-    (f := Prod.fst) (q := fun result => result = true)
-
 end XmssSecurity.TargetSum.Security

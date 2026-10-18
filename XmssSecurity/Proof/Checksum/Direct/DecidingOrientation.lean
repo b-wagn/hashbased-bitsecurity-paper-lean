@@ -88,11 +88,6 @@ def DecidingCollisionWitness (secretKey : SecretKey) (keygenCache finalCache : Q
       Concrete.CacheView.digestAt finalCache
         (keygenStructuralTargetInput secretKey keygenCache input)
 
-theorem cache_eq_some_of_le {initialCache finalCache : QueryCache HashSpec}
-    (hle : initialCache ≤ finalCache) {input : HashInput} {output : HashOutput}
-    (hcache : initialCache input = some output) : finalCache input = some output :=
-  hle hcache
-
 /-- A fresh collision across two cache extensions must occur in one of the extensions. -/
 theorem adaptiveFreshCollision_split (initialCache prefixCache finalCache : QueryCache HashSpec)
     (target : HashInput → HashInput) (hfirst : initialCache ≤ prefixCache)

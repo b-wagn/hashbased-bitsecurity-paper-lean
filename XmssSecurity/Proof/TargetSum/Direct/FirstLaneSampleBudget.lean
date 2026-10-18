@@ -67,35 +67,4 @@ noncomputable def observableFirstLaneCharge (parameter : PublicParameter) (state
     (trace : ActionTrace GlobalChainValueIndex) : Nat :=
   hazardCount trace + 2 * (trace.encodingActions.length - state.attackerTrace.encodingInputCount parameter)
 
-theorem countedSource_firstLane_observableCharge_le {α : Type}
-    (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
-    (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (leftResult : α × CountedSourceState)
-    (rightResult : (α × GlobalHighDirectTracedState) × ActionTrace GlobalChainValueIndex)
-    (hleft : leftResult ∈ support ((simulateQ
-      (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
-      computation).run (CountedSourceState.initial left.cache)))
-    (hright : rightResult ∈ support ((simulateQ (eagerTraceImpl right.1.2)
-      ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
-        computation).run
-          (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState right.1.1)))).run))
-    (hstate : SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2.toSource
-      rightResult.1.2 rightResult.2)
-    (hhazards : hazardCount rightResult.2 ≤ leftResult.2.counts.direct) :
-    observableFirstLaneCharge right.1.1.secretKey.parameter rightResult.1.2 rightResult.2 ≤
-      leftResult.2.charge := by
-  have hsamples := countedSource_firstLane_encodingSamples_le left right hrel hleftSupport hrightSupport
-    computation leftResult rightResult hleft hright hstate
-  unfold observableFirstLaneCharge CountedSourceState.charge
-  omega
-
-/-- info: 'XmssSecurity.TargetSum.CappedChain.countedSource_firstLane_observableCharge_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms countedSource_firstLane_observableCharge_le
-
 end XmssSecurity.TargetSum.CappedChain

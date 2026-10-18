@@ -56,15 +56,8 @@ theorem chainMutation_seeded_advantage_exceeds_123 :
 theorem chainMutation_requests_attack : ¬(SUFCMA.notion ⟨false, false, false, true⟩).HasClassicalSecurityBits xmss (122 + 1) :=
   requests_attack_of_chainMutation_advantage chainMutation_seeded_advantage_exceeds_123
 
-theorem chainMutation_direct_attack : ¬(SUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss (122 + 1) :=
-  Modes.not_hasClassicalSecurityBits_of_le (Modes.direct_le _) xmss 123 chainMutation_requests_attack
-
 /-- info: 'XmssSecurity.Checksum.Attack.chainMutation_requests_attack' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms chainMutation_requests_attack
-
-/-- info: 'XmssSecurity.Checksum.Attack.chainMutation_direct_attack' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms chainMutation_direct_attack
 
 end XmssSecurity.Checksum.Attack

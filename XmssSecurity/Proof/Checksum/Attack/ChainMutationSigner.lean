@@ -50,8 +50,6 @@ noncomputable def chainMutationMainOf (choices : ProbComp (ChainIndex × Digest)
   let choice ← liftPrivateSamples choices
   return chainMutationForgery answer choice
 
-theorem chainMutationMain_eq_of : chainMutationMain = chainMutationMainOf mutationChoice := rfl
-
 theorem chainMutationMainOf_counted {Key : Type}
     (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Signature lifetime)
     (secretKey : Key) (requestCost : ℕ) (choices : ProbComp (ChainIndex × Digest)) :

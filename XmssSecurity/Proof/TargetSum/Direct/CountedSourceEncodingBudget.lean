@@ -129,21 +129,5 @@ theorem countedSource_encodingBudget {α : Type} (secretKey : SecretKey)
       exact ih head.1 head.2 (countedSourceImpl_encodingBudget secretKey input state hbudget head hhead)
         result htail
 
-theorem countedSource_encodingBudget_after_keygen {α : Type}
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (result : α × CountedSourceState)
-    (hresult : result ∈ support ((simulateQ (countedSourceImpl keyResult.1.2) computation).run
-      (CountedSourceState.initial keyResult.2))) :
-    CountedSourceEncodingBudget keyResult.1.2.parameter result.2 := by
-  apply countedSource_encodingBudget keyResult.1.2 computation _ _ result hresult
-  change cachedEncodingInputCount keyResult.2 keyResult.1.2.parameter ≤ _
-  rw [Concrete.keygen_cachedEncodingInputCount_eq_zero keyResult hkey]
-  exact zero_le
-
-/-- info: 'XmssSecurity.TargetSum.CappedChain.countedSource_encodingBudget_after_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms countedSource_encodingBudget_after_keygen
-
 end CappedChain
 end XmssSecurity.TargetSum

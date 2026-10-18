@@ -51,21 +51,6 @@ theorem replayAfterSigning_fresh (publicKey : PublicKey) (answer : Option Signat
   obtain ⟨output, _, rfl⟩ := hmem
   exact replaySelectedMessage_fresh output
 
-theorem replayAfterSigning_queryBound (publicKey : PublicKey) (answer : Option Signature) :
-    (replayAfterSigning publicKey answer).IsQueryBoundP (XmssSecurity.TargetSum.Seeded.hashBad (fun _ => True)) 1 := by
-  simp [replayAfterSigning, XmssSecurity.TargetSum.Seeded.hashBad]
-
-theorem replay_direct_queryBound : Direct.IsDirectQueryBound replayAdversary 1 := by
-  intro publicKey
-  change (replayMain publicKey).IsQueryBoundP _ _
-  unfold replayMain
-  rw [OracleComp.isQueryBoundP_query_bind_iff]
-  refine ⟨Or.inl (Direct.not_isDirectHashQuery_sign _), fun answer => ?_⟩
-  simp only [Direct.not_isDirectHashQuery_sign, if_false]
-  apply liftWorldToAdversary_queryBound _ _ _ _ _ (replayAfterSigning_queryBound publicKey answer)
-  intro input
-  cases input <;> simp [XmssSecurity.TargetSum.Seeded.hashBad, Direct.IsDirectHashQuery, Direct.isDirectHashQuery]
-
 theorem replayAfterSigning_noSeed (publicKey : PublicKey) (answer : Option Signature) :
     (replayAfterSigning publicKey answer).IsQueryBoundP (XmssSecurity.TargetSum.Seeded.hashBad MaySeedHit) 0 := by
   simp [replayAfterSigning, XmssSecurity.TargetSum.Seeded.hashBad, CacheView.encodingInput,
@@ -143,9 +128,5 @@ theorem replayMain_counted (publicKey : PublicKey) :
     Direct.isDirectHashQuery_hash, if_false, if_true, Nat.add_zero, Nat.zero_add,
     Prod.mk.eta, bind_pure]
   rfl
-
-/-- info: 'XmssSecurity.TargetSum.EUFCMA.replay_direct_queryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms replay_direct_queryBound
 
 end XmssSecurity.TargetSum.EUFCMA

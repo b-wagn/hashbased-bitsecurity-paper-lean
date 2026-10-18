@@ -12,13 +12,6 @@ structure StateLens (State BaseState : Type) where
   get_set : ∀ state baseState, get (set state baseState) = baseState
   set_set : ∀ state left right, set (set state left) right = set state right
 
-def StateLens.fst : StateLens (BaseState × AuxState) BaseState where
-  get := Prod.fst
-  set state nextBase := (nextBase, state.2)
-  set_get := by simp
-  get_set := by simp
-  set_set := by simp
-
 /-- If every decorated query runs a base query and only overwrites the viewed state component, the same description holds for every oracle computation. -/
 theorem StateLens.simulateQ_run_eq
     {spec : OracleSpec ι} {m : Type → Type*} [Monad m] [LawfulMonad m]

@@ -54,17 +54,4 @@ theorem acceptanceProbability_upper :
 #guard_msgs (whitespace := lax) in
 #print axioms acceptanceProbability_upper
 
-/-- The collision opportunities from mutating a uniformly chosen chain average to 1485 / 42.
-The choice needs no query to discover the signed encoding. -/
-theorem sum_mutatedChainWork (encoding : Encoding) (hvalid : Valid encoding) :
-    (∑ chain, (40 - (encoding chain).val)) = 1485 := by
-  rw [Finset.sum_tsub_distrib Finset.univ]
-  · have hsum : ∑ chain, (encoding chain).val = targetSum := hvalid
-    rw [hsum]
-    norm_num [numChains, targetSum]
-  · intro chain _
-    have hbound := (encoding chain).isLt
-    norm_num [chainLength, winternitzBits] at hbound
-    omega
-
 end XmssSecurity.TargetSum.TargetSum

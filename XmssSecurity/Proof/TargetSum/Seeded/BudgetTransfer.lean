@@ -153,18 +153,4 @@ theorem hashQueryBound_of_seed_caches {α : Type} (computation : OracleComp Orac
         exact (hashQueryBound_query_bind input next (caches seed) q
           (hbound seed (havoid seed hseed).2) _ (htransfer seed hseed).1).2
 
-theorem hashQueryBound_of_programmed (adversary : Adversary) (parameter : PublicParameter)
-    (secret : ChainSecrets) (parameterHigh : Digest) (secretHigh : ChainSecrets)
-    (q : Nat) (hsmall : q < 2 ^ 256)
-    (hbound : ∀ seed, HashQueryBound (gameAfterSecrets adversary parameter secret)
-      (programmedCache seed parameter secret parameterHigh secretHigh) q) :
-    HashQueryBound (gameAfterSecrets adversary parameter secret) ∅ q := by
-  apply hashQueryBound_of_seed_caches _ q []
-    (fun seed => programmedCache seed parameter secret parameterHigh secretHigh) ∅
-  · simpa using hsmall
-  · intro seed _
-    exact programmedCache_agreeOutside seed parameter secret parameterHigh secretHigh
-  · intro seed _
-    exact hbound seed
-
 end XmssSecurity.TargetSum.Seeded

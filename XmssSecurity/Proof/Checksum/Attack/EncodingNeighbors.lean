@@ -482,27 +482,6 @@ theorem raisable_nonempty (encoding : Encoding) (hvalid : Valid encoding)
   simp only [chainLength, winternitzBits] at hlast
   omega
 
-theorem lowerTransfer_lower (encoding : Encoding) (j : Fin messageDigits) (hj) (hc) :
-    (lowerTransfer encoding j hj hc).1.1 = messageChain j := rfl
-
-theorem lowerTransfer_upper (encoding : Encoding) (j : Fin messageDigits) (hj) (hc) :
-    (lowerTransfer encoding j hj hc).2.1 = lastChecksumChain := rfl
-
-theorem raiseTransfer_lower (encoding : Encoding) (i : Fin messageDigits) (hi) (hc) :
-    (raiseTransfer encoding i hi hc).1.1 = lastChecksumChain := rfl
-
-theorem raiseTransfer_upper (encoding : Encoding) (i : Fin messageDigits) (hi) (hc) :
-    (raiseTransfer encoding i hi hc).2.1 = messageChain i := rfl
-
-theorem digitTransfer_ext {encoding : Encoding} {left right : DigitTransfer encoding}
-    (hlower : left.1.1 = right.1.1) (hupper : left.2.1 = right.2.1) : left = right := by
-  rcases left with ⟨⟨leftLower, hleftLower⟩, ⟨leftUpper, hleftUpper⟩⟩
-  rcases right with ⟨⟨rightLower, hrightLower⟩, ⟨rightUpper, hrightUpper⟩⟩
-  dsimp only at hlower hupper
-  subst rightLower
-  subst rightUpper
-  rfl
-
 /-- Every codeword has at least `42` neighbors in the code. -/
 theorem validTransfer_card_lower (encoding : Encoding) (hvalid : Valid encoding) :
     42 ≤ Fintype.card (ValidTransfer encoding) := by
@@ -656,20 +635,9 @@ theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : Valid encodin
   rw [neighborDigests_card, neighborTransfers_card]
   exact validTransfer_card_lower encoding hvalid
 
-theorem neighborDigests_decode (encoding : Encoding) (digest : Digest)
-    (hmem : digest ∈ neighborDigests encoding) :
-    ∃ transfer : DigitTransfer encoding,
-      decodeDigest digest = some (transferEncoding encoding transfer) := by
-  obtain ⟨transfer, htransfer, rfl⟩ := Finset.mem_image.mp hmem
-  exact ⟨transfer, digestOfEncoding_decode _ (mem_neighborTransfers.mp htransfer)⟩
-
 /-- info: 'XmssSecurity.Checksum.Attack.neighborDigests_card_lower' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms neighborDigests_card_lower
-
-/-- info: 'XmssSecurity.Checksum.Attack.neighborDigests_decode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms neighborDigests_decode
 
 end Attack
 

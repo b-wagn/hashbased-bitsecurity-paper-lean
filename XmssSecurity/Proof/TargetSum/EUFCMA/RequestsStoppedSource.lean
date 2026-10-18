@@ -53,22 +53,6 @@ theorem sourcePrefix_stopped_event_eq (adversary : XmssSecurity.TargetSum.Advers
   simpa only [sourcePrefixExecution, stoppedAdversary, hparameter,
     show traceActive key.secretKey.parameter [] = false from rfl] using h
 
-def SourcePrefixActive (result : ProgrammedGlobalChainKeygenView × (Forgery × SourceExactTracedState)) : Prop :=
-  traceActive result.1.secretKey.parameter result.2.2.2 = true
-
-theorem sourcePrefixProgram_stopped_activity_eq (adversary : XmssSecurity.TargetSum.Adversary) (q : ℕ)
-    (hbound : IsQueryBound adversary q) :
-    Pr[SourcePrefixActive | sourcePrefixProgram (stoppedAdversary q adversary)] =
-      Pr[SourcePrefixActive | sourcePrefixProgram adversary] := by
-  unfold sourcePrefixProgram
-  rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
-  apply tsum_congr
-  intro key
-  by_cases hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen
-  · simp only [bind_pure_comp, probEvent_map, Function.comp_def, SourcePrefixActive]
-    rw [sourcePrefix_stopped_event_eq adversary q hbound key hkey _ (fun _ h => h)]
-  · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul, zero_mul]
-
 theorem sourcePrefix_stopped_freshFirstLane_eq (adversary : XmssSecurity.TargetSum.Adversary) (q : ℕ)
     (hbound : IsQueryBound adversary q) (key : ProgrammedGlobalChainKeygenView)
     (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen) :

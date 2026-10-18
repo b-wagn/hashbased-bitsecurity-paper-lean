@@ -34,10 +34,6 @@ def IsWeightedBound {α : Type} (signCost : ℕ)
   computation.IsQueryBound budget (fun input remaining => actionWeight signCost input ≤ remaining)
     (fun input remaining => remaining - actionWeight signCost input)
 
-theorem isWeightedBound_pure {α : Type} (signCost budget : ℕ) (value : α) :
-    IsWeightedBound signCost (pure value : OracleComp (OracleWorld + SigningSpec) α) budget :=
-  trivial
-
 theorem isWeightedBound_query_bind_iff {α : Type} (signCost budget : ℕ)
     (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α) :

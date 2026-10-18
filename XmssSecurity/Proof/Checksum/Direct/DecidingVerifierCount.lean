@@ -217,17 +217,6 @@ end Deciding
 /-! ## The verifier -/
 
 open Classical in
-/-- One verification makes at most `decidingQueryBound = 40` hash queries whose input is a
-deciding input for its leaf index and the chain `chain`, on every branch. -/
-theorem verify_isQueryBoundP_deciding (parameter : PublicParameter) (publicKey : PublicKey)
-    (hparam : publicKey.parameter = parameter) (leafIndex : LeafIndex) (message : Message)
-    (signature : Signature) (chain : ChainIndex) :
-    (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool).IsQueryBoundP
-      (IsDecidingInput parameter leafIndex chain) decidingQueryBound :=
-  verify_isQueryBoundP_of_imp_isDecidingInput parameter leafIndex chain
-    (IsDecidingInput parameter leafIndex chain) (fun _ h => h) publicKey hparam message signature
-
-open Classical in
 /-- One verification makes at most `decidingQueryBound = 40` hash queries whose input is moved by
 `decidingTargetInput secretKey cache leafIndex chain`, on every branch. -/
 theorem verify_isQueryBoundP_decidingTargetInput (secretKey : SecretKey)

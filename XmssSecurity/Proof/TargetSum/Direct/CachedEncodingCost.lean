@@ -29,45 +29,5 @@ theorem one_le_cachedEncodingInputCount_of_cached (parameter : PublicParameter)
 
 namespace Direct
 
-theorem one_le_expectedEncodingQueries_of_cached (adversary : Adversary)
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (hcached : ∀ result ∈ support ((simulateQ romImpl
-      (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2),
-      result.2 (Concrete.CacheView.encodingInput keyResult.1.2.parameter result.1.1.epoch
-        (result.1.1.message, result.1.1.signature.randomness)) ≠ none) :
-    1 ≤ expectedSimulatedQueryCount romImpl
-      (CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter)
-      (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2 := by
-  have hupper := expectedResource_le_initial_add_expectedSimulatedQueryCount romImpl
-    (CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter)
-    (fun cache => cachedEncodingInputCount cache keyResult.1.2.parameter)
-    (cachedEncodingInputCount_romImpl_step_le keyResult.1.2.parameter)
-    (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2
-  rw [Concrete.keygen_cachedEncodingInputCount_eq_zero keyResult hkey, zero_add] at hupper
-  apply le_trans _ hupper
-  apply le_expected_of_support
-  · exact tsum_probOutput_eq_one' (probFailure_of_liftM_PMF _)
-  · intro result hresult
-    exact one_le_cachedEncodingInputCount_of_cached _ _ _ _ (hcached result hresult)
-
-theorem one_le_expectedDirectEncoding_add_signer_of_cached (adversary : Adversary)
-    (hcached : ∀ keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅),
-      ∀ result ∈ support ((simulateQ romImpl
-        (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2),
-        result.2 (Concrete.CacheView.encodingInput keyResult.1.2.parameter result.1.1.epoch
-          (result.1.1.message, result.1.1.signature.randomness)) ≠ none) :
-    1 ≤ expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary := by
-  apply le_trans _ (expectedPrefixEncodingQueries_le adversary)
-  unfold Deciding.expectedPrefixEncodingQueries
-  apply le_expected_of_support
-  · exact tsum_probOutput_eq_one' (probFailure_of_liftM_PMF _)
-  · intro keyResult hkey
-    exact one_le_expectedEncodingQueries_of_cached adversary keyResult hkey (hcached keyResult hkey)
-
-/-- info: 'XmssSecurity.TargetSum.Direct.one_le_expectedDirectEncoding_add_signer_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms one_le_expectedDirectEncoding_add_signer_of_cached
-
 end Direct
 end XmssSecurity.TargetSum

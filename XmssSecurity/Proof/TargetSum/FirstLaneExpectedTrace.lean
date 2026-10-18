@@ -76,16 +76,6 @@ theorem expectedEagerHazardQueries_enforce_eq (fuel : ℕ)
     tsum_probOutput_map_mul]
   simp only [enforceEagerResult, hazardCount_enforceHazardTrace]
 
-theorem expectedEagerHazardQueries_enforce_le (fuel : ℕ)
-    (computation : OracleComp (World Index) α) :
-    expectedEagerQueryCount IsHazardQuery (enforceHazardBound fuel computation) ≤
-      expectedEagerQueryCount IsHazardQuery computation := by
-  rw [expectedEagerHazardQueries_enforce_eq, expectedEagerHazardQueries_eq_trace]
-  apply ENNReal.tsum_le_tsum
-  intro result
-  gcongr
-  exact min_le_right _ _
-
 /-- info: 'XmssSecurity.TargetSum.FirstLaneOracleSimulation.expectedEagerHazardQueries_eq_trace' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms expectedEagerHazardQueries_eq_trace

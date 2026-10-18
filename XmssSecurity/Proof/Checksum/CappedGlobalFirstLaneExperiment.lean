@@ -163,24 +163,6 @@ def globalFirstLaneUniformImpl :
   let output ← FirstLaneOracleSimulation.uniformQuery n
   pure (output, state)
 
-noncomputable abbrev globalFirstLaneHashFromHighImpl
-    (high : GlobalChainValueIndex → Digest)
-    (secretKey : SecretKey) :
-    QueryImpl HashSpec
-      (StateT GlobalCausalHashState
-        (OracleComp GlobalFirstLaneWorld)) :=
-  fun input state =>
-    globalFirstLaneAttackerHashQueryFromHighRun high secretKey input state
-
-noncomputable abbrev globalFirstLaneHashImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
-    QueryImpl HashSpec
-      (StateT GlobalCausalHashState
-        (OracleComp GlobalFirstLaneWorld)) :=
-  globalFirstLaneHashFromHighImpl
-    (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey
-
 noncomputable def globalFirstLaneOracleExecution
     (keyView : ProgrammedGlobalChainKeygenView)
     (edgeHigh : GlobalChainEdgeIndex → Digest)
@@ -194,29 +176,12 @@ noncomputable def globalFirstLaneOracleExecution
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey hashInput
           state
 
-noncomputable def globalFirstLaneOracleImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
-    QueryImpl OracleWorld
-      (StateT GlobalCausalHashState
-        (OracleComp GlobalFirstLaneWorld)) :=
-  fun input state => globalFirstLaneOracleExecution keyView edgeHigh input state
-
 noncomputable def globalFirstLaneSigningImpl
     (keyView : ProgrammedGlobalChainKeygenView) :
     QueryImpl SigningSpec
       (StateT GlobalCausalHashState
         (OracleComp GlobalFirstLaneWorld)) :=
   globalFirstLaneSigningQuery keyView
-
-noncomputable def globalFirstLaneVerifierImpl
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
-    QueryImpl OracleWorld
-      (StateT GlobalCausalHashState
-        (OracleComp GlobalFirstLaneWorld)) :=
-  globalFirstLaneOracleImpl keyView edgeHigh
-
 
 set_option maxRecDepth 1000000
 
@@ -453,22 +418,12 @@ theorem globalFirstLaneOracleExecution_hazardBound
       exact globalFirstLaneAttackerHashQueryFromHigh_hazardBound
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey input state
 
-theorem globalFirstLaneOracleImpl_hazardBound
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest)
-    (input : OracleWorld.Domain) (state : GlobalCausalHashState) :
-    ((globalFirstLaneOracleImpl keyView edgeHigh input).run state)
-      |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery
-        (if input matches .inr _ then 1 else 0) := by
-  exact globalFirstLaneOracleExecution_hazardBound keyView edgeHigh input state
-
 theorem globalFirstLaneSigningImpl_hazardBound
     (keyView : ProgrammedGlobalChainKeygenView)
     (request : SigningSpec.Domain) (state : GlobalCausalHashState) :
     ((globalFirstLaneSigningImpl keyView request).run state)
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 0 := by
   exact globalFirstLaneSigningQuery_hazardBound keyView request state
-
 
 noncomputable def globalFirstLaneEraseImpl :
     QueryImpl GlobalFirstLaneWorld
@@ -1097,17 +1052,6 @@ theorem globalFirstLaneOracleErasure
         (globalChainValueHighTableOfEdges edgeHigh) keyView.secretKey hashInput
           state
 
-theorem globalFirstLaneVerifierImpl_hash
-    (keyView : ProgrammedGlobalChainKeygenView)
-    (edgeHigh : GlobalChainEdgeIndex → Digest)
-    (input : HashInput) :
-    globalFirstLaneVerifierImpl keyView edgeHigh (.inr input) =
-      globalFirstLaneHashImpl keyView edgeHigh input := by
-  unfold globalFirstLaneVerifierImpl globalFirstLaneOracleImpl
-    globalFirstLaneOracleExecution
-  rfl
-
-
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 2000000
 
@@ -1319,51 +1263,6 @@ noncomputable def cappedDetailedGameAfterKeygenWithBothTraces
       verified.1⟩,
     (((verified.2, state.1.1.2), finalEncodingTrace), state.2))
 
-theorem cappedDetailedGameAfterKeygenWithBothTraces_logs_eq
-    (adversary : Adversary)
-    (publicKey : PublicKey) (secretKey : SecretKey)
-    (initialCache : QueryCache HashSpec)
-    (result : CappedBothTraceExecution)
-    (hresult : result ∈ support
-      (cappedDetailedGameAfterKeygenWithBothTraces adversary publicKey
-        secretKey initialCache)) :
-    result.1.signingLog = result.2.2.toSigningLog := by
-  unfold cappedDetailedGameAfterKeygenWithBothTraces at hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨⟨forgery, adversaryState⟩, hadversary, hverifyRest⟩ := hresult
-  rw [mem_support_bind_iff] at hverifyRest
-  obtain ⟨⟨verified, finalCache⟩, _hverify, hfinal⟩ := hverifyRest
-  simp only [support_pure, Set.mem_singleton_iff] at hfinal
-  subst result
-  exact cappedBothTracedMappedAdversaryImpl_logs_eq publicKey secretKey
-    (adversary.main publicKey) ((((initialCache, []), []), []))
-      (forgery, adversaryState) rfl hadversary
-
-theorem cappedDetailedGameAfterKeygenWithBothTraces_outcome_eq_actionTraceOutcome
-    (adversary : Adversary)
-    (publicKey : PublicKey) (secretKey : SecretKey)
-    (initialCache : QueryCache HashSpec)
-    (result : CappedBothTraceExecution)
-    (hresult : result ∈ support
-      (cappedDetailedGameAfterKeygenWithBothTraces adversary publicKey
-        secretKey initialCache)) :
-    result.1 = actionTraceOutcome publicKey secretKey
-      ((result.1.forgery, result.1.verified), result.2.2) := by
-  have hlogs := cappedDetailedGameAfterKeygenWithBothTraces_logs_eq
-    adversary publicKey secretKey initialCache result hresult
-  unfold cappedDetailedGameAfterKeygenWithBothTraces at hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨⟨forgery, adversaryState⟩, hadversary, hverifyRest⟩ := hresult
-  rw [mem_support_bind_iff] at hverifyRest
-  obtain ⟨⟨verified, finalCache⟩, hverify, hfinal⟩ := hverifyRest
-  simp only [support_pure, Set.mem_singleton_iff] at hfinal
-  subst result
-  simp only [actionTraceOutcome]
-  have hlogs' : adversaryState.1.1.2.toSigningLog =
-      adversaryState.2.toSigningLog := by
-    simpa using hlogs
-  rw [hlogs']
-
 theorem cappedDetailedGameAfterKeygenWithBothTraces_encodingProjection
     (adversary : Adversary)
     (publicKey : PublicKey) (secretKey : SecretKey)
@@ -1394,20 +1293,9 @@ abbrev CappedBothTraceGameResult :=
   ((PublicKey × SecretKey) × QueryCache HashSpec) ×
     CappedBothTraceExecution
 
-abbrev CappedActionTraceGameResult :=
-  ((((PublicKey × SecretKey) × QueryCache HashSpec) ×
-    (GameOutcome × QueryCache HashSpec)) × AttackerActionTrace)
-
 def cappedBothEncodingProjection
     (result : CappedBothTraceGameResult) : CappedEncodingTraceExecution :=
   (result.2.1, result.2.2.1)
-
-def cappedBothActionProjection
-    (result : CappedBothTraceGameResult) : CappedActionTraceGameResult :=
-  ((result.1,
-    (actionTraceOutcome result.1.1.1 result.1.1.2
-      ((result.2.1.forgery, result.2.1.verified), result.2.2.2),
-      result.2.2.1.1.1)), result.2.2.2)
 
 noncomputable def cappedDetailedGameWithKeygenCacheAndBothTraces
     (adversary : Adversary) :
@@ -1416,34 +1304,6 @@ noncomputable def cappedDetailedGameWithKeygenCacheAndBothTraces
   let execution ← cappedDetailedGameAfterKeygenWithBothTraces adversary
     keyResult.1.1 keyResult.1.2 keyResult.2
   pure (keyResult, execution)
-
-theorem cappedDetailedGameWithKeygenCacheAndBothTraces_support_execution
-    (adversary : Adversary)
-    (result : CappedBothTraceGameResult)
-    (hresult : result ∈ support
-      (cappedDetailedGameWithKeygenCacheAndBothTraces adversary)) :
-    result.2 ∈ support
-      (cappedDetailedGameAfterKeygenWithBothTraces adversary result.1.1.1
-        result.1.1.2 result.1.2) := by
-  unfold cappedDetailedGameWithKeygenCacheAndBothTraces at hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨keyResult, _hkeyResult, hrest⟩ := hresult
-  rw [mem_support_bind_iff] at hrest
-  obtain ⟨execution, hexecution, hfinal⟩ := hrest
-  simp only [support_pure, Set.mem_singleton_iff] at hfinal
-  subst result
-  exact hexecution
-
-theorem cappedDetailedGameWithKeygenCacheAndBothTraces_outcome_eq
-    (adversary : Adversary)
-    (result : CappedBothTraceGameResult)
-    (hresult : result ∈ support
-      (cappedDetailedGameWithKeygenCacheAndBothTraces adversary)) :
-    result.2.1 = (cappedBothActionProjection result).1.2.1 := by
-  exact cappedDetailedGameAfterKeygenWithBothTraces_outcome_eq_actionTraceOutcome
-    adversary result.1.1.1 result.1.1.2 result.1.2 result.2
-      (cappedDetailedGameWithKeygenCacheAndBothTraces_support_execution
-        adversary result hresult)
 
 theorem cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection
     (adversary : Adversary) :
@@ -1466,7 +1326,6 @@ theorem cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
         cappedDetailedGameWithKeygenCacheAndBothTraces adversary =
       cappedDetailedGameWithEncodingTrace adversary :=
   cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection adversary
-
 
 theorem simulate_globalFirstLaneEagerTrace_chainProjection
     (table : GlobalChainValueIndex → Digest)

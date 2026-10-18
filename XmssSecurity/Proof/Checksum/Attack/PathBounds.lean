@@ -102,23 +102,4 @@ theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : Checks
         ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by simp only [div_eq_mul_inv, Finset.sum_mul]
     _ ≤ _ := Finset.sum_le_sum fun chain _ => pathMutationProbability_lower _ (Nat.sub_le _ _)
 
-/-- Even after allowing signing failure and a full lost collision opportunity per chain,
-the uniform-chain strategy has a strict margin above the 123-bit threshold: the digits of a
-codeword sum to at most `301`, so the chain-mutation work sums to at least `46 · 39 - 301 = 1493`. -/
-theorem randomChain_mutation_margin (encoding : Encoding) (hvalid : Checksum.Valid encoding) :
-    (1 : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) <
-      (127 / 128) * ((∑ chain, pathMutationProbability (40 - (encoding chain).val)) / numChains) := by
-  have hsum := sum_pathMutationProbability_lower encoding hvalid
-  have hnumChains : (numChains : ℝ≥0∞) ≠ 0 := by norm_num [numChains]
-  calc
-    _ < (127 / 128 : ℝ≥0∞) * ((1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) := by
-      apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
-      norm_num [digestBits, numChains, ENNReal.toReal_mul, ENNReal.toReal_div]
-    _ ≤ _ := by
-      gcongr
-
-/-- info: 'XmssSecurity.Checksum.Attack.randomChain_mutation_margin' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms randomChain_mutation_margin
-
 end XmssSecurity.Checksum.Attack

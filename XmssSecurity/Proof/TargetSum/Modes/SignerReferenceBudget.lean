@@ -127,30 +127,6 @@ theorem signer_referencePhaseCost_le_after_keygen
   exact signer_referencePhaseCost_le_after_tree adversary q hsmall hbound parameter secret
     (treeResult, rootCache) htree result hresult
 
-theorem signer_expected_referencePhaseCost_le_after_keygen
-    (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
-    (keyResult : (PublicKey × XmssSecurity.TargetSum.SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    (∑' result, Pr[= result | (simulateQ (referencePhaseCostImpl keyResult.1.2)
-      (withRequestLog (memoize (adversary.main keyResult.1.1) ∅))).run (keyResult.2, 0)] *
-        (result.2.2 : ℝ≥0∞)) ≤ q := by
-  let phase := (simulateQ (referencePhaseCostImpl keyResult.1.2)
-    (withRequestLog (memoize (adversary.main keyResult.1.1) ∅))).run (keyResult.2, 0)
-  calc
-    _ ≤ ∑' result, Pr[= result | phase] * (q : ℝ≥0∞) := by
-      apply ENNReal.tsum_le_tsum
-      intro result
-      change Pr[= result | phase] * (result.2.2 : ℝ≥0∞) ≤ Pr[= result | phase] * (q : ℝ≥0∞)
-      by_cases hzero : Pr[= result | phase] = 0
-      · simp only [hzero, zero_mul, le_refl]
-      · apply mul_le_mul' le_rfl
-        exact_mod_cast signer_referencePhaseCost_le_after_keygen adversary q hsmall hbound
-          keyResult hkey result (by rwa [mem_support_iff])
-    _ = q := by
-      rw [ENNReal.tsum_mul_right,
-        tsum_probOutput_eq_one' (probFailure_of_liftM_PMF _), one_mul]
-
 /-- info: 'XmssSecurity.TargetSum.Modes.signer_referencePhaseCost_le_after_independent_tree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms signer_referencePhaseCost_le_after_independent_tree
@@ -158,9 +134,5 @@ theorem signer_expected_referencePhaseCost_le_after_keygen
 /-- info: 'XmssSecurity.TargetSum.Modes.signer_referencePhaseCost_le_after_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms signer_referencePhaseCost_le_after_keygen
-
-/-- info: 'XmssSecurity.TargetSum.Modes.signer_expected_referencePhaseCost_le_after_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms signer_expected_referencePhaseCost_le_after_keygen
 
 end XmssSecurity.TargetSum.Modes

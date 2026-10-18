@@ -164,19 +164,4 @@ theorem signedReplayFallbackRate_gt_127 :
   rw [ENNReal.toReal_sub_of_le hp ENNReal.one_ne_top]
   norm_num [digestBits, ENNReal.toReal_sub_of_le, ENNReal.toReal_inv, ENNReal.toReal_div]
 
-theorem signedReplayFallbackExperiment_exceeds_127
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (candidate fallback : Message)
-    (hcandidate : candidate ≠ request.message) (hfallback : fallback ≠ request.message)
-    (hne : fallback ≠ candidate) :
-    ((2 ^ 127 : ℕ) : ℝ≥0∞)⁻¹ <
-      Pr[= true | signedReplayFallbackExperiment keyResult request candidate fallback] :=
-  signedReplayFallbackRate_gt_127.trans_le
-    (signedReplayFallbackExperiment_lower keyResult hkey request candidate fallback hcandidate hfallback hne)
-
-/-- info: 'XmssSecurity.TargetSum.EUFCMA.signedReplayFallbackExperiment_exceeds_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms signedReplayFallbackExperiment_exceeds_127
-
 end XmssSecurity.TargetSum.EUFCMA

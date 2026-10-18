@@ -29,16 +29,6 @@ theorem randomizerHashInput_ne_keygenHashInput (p₁ p₂ : PublicParameter)
   have := congrArg List.length h
   simp [randomizerHashInput, keygenHashInput, fieldBytes, length_bytesLE] at this
 
-theorem randomizerHashInput_ne_tweakableHashInput (p₁ p₂ : PublicParameter)
-    (seed : MasterSeed) (leafIndex : LeafIndex) (message : Message) (trial : BitVec 32)
-    (domain : HashDomain) (payload : HashInput) :
-    randomizerHashInput p₁ seed leafIndex message trial ≠ tweakableHashInput p₂ domain payload := by
-  intro h
-  simp only [randomizerHashInput, tweakableHashInput, tweakBytes, List.append_assoc] at h
-  obtain ⟨htweak, _⟩ := List.append_inj h (by simp [fieldBytes, length_bytesLE])
-  have htag := congrArg TweakFields.tag (fieldBytes_injective htweak)
-  cases domain <;> simp [hashDomainFields, tweakFields] at htag
-
 /-- Every seed-derived input puts the complete seed in bytes 32 through 63. -/
 def DerivationSeedHit (input : HashInput) (seed : MasterSeed) : Prop :=
   (input.drop 32).take 32 = bytesLE 32 seed

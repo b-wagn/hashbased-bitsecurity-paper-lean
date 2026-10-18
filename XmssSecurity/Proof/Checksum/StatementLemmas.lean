@@ -108,22 +108,6 @@ theorem decodedEncoding_valid {cache : QueryCache HashSpec}
     Checksum.Valid encoding :=
   Checksum.decodeDigest_valid (decodeDigest_of_decodedEncoding hdecode)
 
-theorem decodedEncoding_eq_some_iff {cache : QueryCache HashSpec}
-    {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
-    {encoding : Encoding} :
-    decodedEncoding cache parameter leafIndex input = some encoding ↔
-      (∃ output, cache (encodingInput parameter leafIndex input) = some output) ∧
-        Checksum.decodeDigest (encodingHash cache parameter leafIndex input) = some encoding := by
-  constructor
-  · intro h
-    rcases input with ⟨message, randomness⟩
-    exact ⟨encodingInput_cached_of_decode_some cache parameter leafIndex message randomness
-      encoding h, decodeDigest_of_decodedEncoding h⟩
-  · rintro ⟨hcached, h⟩
-    rw [decodedEncoding_eq_of_cached hcached]
-    exact h
-
-
 def chainStep (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (leafIndex : LeafIndex) (chain : ChainIndex) (position : Nat) (value : Digest) : Digest :=
   if hposition : position < chainLength - 1 then

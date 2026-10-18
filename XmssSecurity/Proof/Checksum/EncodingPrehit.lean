@@ -2,12 +2,6 @@ import XmssSecurity.Proof.Checksum.SigningCacheTrace
 
 namespace XmssSecurity.Checksum
 
-def SigningCacheTrace.HasEncodingInputPrehitAt
-    (trace : SigningCacheTrace) (secretKey : SecretKey)
-    (targetLeafIndex : LeafIndex) : Prop :=
-  ∃ entry ∈ trace,
-    entry.request.epoch = targetLeafIndex ∧ entry.EncodingInputPrehit secretKey
-
 def SigningCacheTrace.HasEncodingInputPrehit
     (trace : SigningCacheTrace) (secretKey : SecretKey) : Prop :=
   ∃ entry ∈ trace, entry.EncodingInputPrehit secretKey

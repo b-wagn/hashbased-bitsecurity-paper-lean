@@ -67,12 +67,4 @@ theorem evalDist_independentTableGame_memo (adversary : Adversary) :
   have heq := congrArg (fun distribution => Prod.fst <$> distribution) h
   simpa only [StateT.run'_eq, evalDist_map, evalDist_bind, map_bind] using heq
 
-theorem forgeAdvantage_deterministic_le_reference (adversary : Adversary) (q : Nat)
-    (hbound : HasTableBudget adversary q) :
-    forgeAdvantage scheme adversary ≤ forgeAdvantage Concrete.scheme (memoAdversary adversary) +
-      q / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
-  have hmemo := prob_independentTableGame_le_memo adversary
-  rw [probOutput_congr rfl (evalDist_independentTableGame_memo adversary)] at hmemo
-  exact (forgeAdvantage_deterministic_le_table adversary q hbound).trans (add_le_add hmemo le_rfl)
-
 end XmssSecurity.TargetSum.Seeded

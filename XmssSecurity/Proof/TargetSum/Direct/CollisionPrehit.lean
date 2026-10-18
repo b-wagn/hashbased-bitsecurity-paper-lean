@@ -140,37 +140,6 @@ theorem Inv.entries_add_le {cache : QueryCache HashSpec} {trace : SigningCacheTr
   have := hinv.count
   omega
 
-theorem unsignedSum_nonneg (hq : q + 1 ≤ 2 ^ 127) {cache : QueryCache HashSpec}
-    {trace : SigningCacheTrace} {remaining : ℕ} (hinv : Inv q secretKey cache trace remaining) :
-    0 ≤ unsignedSum q secretKey cache trace := by
-  unfold unsignedSum
-  refine Finset.sum_nonneg fun leafIndex _ => ?_
-  split_ifs with hleaf
-  · exact le_rfl
-  · apply leafPotential_nonneg hq
-    have := hinv.entries_add_le hleaf
-    omega
-
-theorem payoff_le_potential {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
-    {remaining : ℕ} :
-    payoff secretKey cache trace ≤ potential q secretKey cache trace remaining := by
-  classical
-  unfold payoff potential
-  split_ifs
-  · exact le_rfl
-  · refine le_add_left (mul_le_mul' le_rfl (ENNReal.ofReal_le_ofReal ?_))
-    apply div_le_div_of_nonneg_right _ (by unfold realN; positivity)
-    have : (0 : ℝ) ≤ remaining := Nat.cast_nonneg _
-    linarith
-  · exact le_rfl
-
-theorem potential_of_not_nodup {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
-    {remaining : ℕ} (h : ¬ trace.leafIndices.Nodup) :
-    potential q secretKey cache trace remaining = 0 := by
-  classical
-  unfold potential
-  rw [if_neg h]
-
 theorem potential_of_bad {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hnodup : trace.leafIndices.Nodup) (hbad : StateBad secretKey cache trace) :
     potential q secretKey cache trace remaining = 1 := by

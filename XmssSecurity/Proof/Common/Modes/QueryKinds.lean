@@ -43,11 +43,6 @@ section strong
 variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Input]
   [SampleableType Output] [DecidableEq Msg] [DecidableEq Sig]
 
-/-- The statement's experiment is the per-kind experiment of the proofs. -/
-lemma experiment_eq_gameDetailed {ι : Type} {spec : OracleSpec ι} (cost : spec.Domain → ℕ)
-    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    SUFCMA.lossyExperiment cost scheme adversary = gameDetailed cost scheme adversary := rfl
-
 /-- The per-mode experiment of `modeOf Z` is the statement's experiment with the counts of the
 kinds in `Z` summed. -/
 lemma notion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
@@ -105,11 +100,6 @@ section standard
 
 variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Input]
   [SampleableType Output] [DecidableEq Msg]
-
-/-- The statement's EUF-CMA experiment is the per-kind experiment of the proofs. -/
-lemma eufExperiment_eq_gameDetailed {ι : Type} {spec : OracleSpec ι} (cost : spec.Domain → ℕ)
-    (scheme : EpochBasedSignature spec PK SK Msg Sig L) (adversary : Adversary spec PK Msg Sig L) :
-    EUFCMA.lossyExperiment cost scheme adversary = EUFCMA.gameDetailed cost scheme adversary := rfl
 
 /-- The per-mode EUF-CMA experiment of `modeOf Z` is the statement's experiment with the counts
 of the kinds in `Z` summed. -/

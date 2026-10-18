@@ -38,13 +38,4 @@ theorem prob_sourceGame_le_memo (sign : SignRequest → OracleComp HashSpec (Opt
   intro result hresult hwin
   exact transcriptReduction_win publicKey adversary result (evaluateSource_support sign _ cache hresult) hwin
 
-theorem hashQueryBound_sourceGame_memo (sign : SignRequest → OracleComp HashSpec (Option Signature))
-    (publicKey : PublicKey) (adversary : Adversary) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (runSigning sign (sourceGame publicKey adversary)) cache q) :
-    HashQueryBound (runSigning sign (sourceGame publicKey (memoAdversary adversary))) cache q := by
-  have h := hashQueryBound_runSigning_memoize sign (sourceGame publicKey adversary) cache q hbound
-  rw [← fst_transcriptReduction, runSigning, simulateQ_map, hashQueryBound_map_iff] at h
-  rw [← snd_transcriptReduction, runSigning, simulateQ_map, hashQueryBound_map_iff]
-  exact h
-
 end XmssSecurity.Checksum.Seeded

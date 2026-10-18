@@ -59,11 +59,4 @@ theorem deciding_revealed_chain_event (cache : QueryCache HashSpec) (outcome : G
     rw [hsignedValue]
     exact Wots.walk_signChain_to_later _ _ _ _ hlt.le
 
-theorem deciding_revealed_implies_global (cache : QueryCache HashSpec) (outcome : GameOutcome)
-    (hconsistent : ConcreteOutcomeConsistent cache outcome) (hwin : outcome.won = true)
-    (hrevealed : DecidingChainValueRevealed cache outcome) :
-    GlobalWinningChainValueRevealed cache outcome :=
-  ⟨outcomeDecidingChain cache outcome,
-    deciding_revealed_chain_event cache outcome hconsistent hwin hrevealed⟩
-
 end XmssSecurity.Checksum.Deciding

@@ -52,20 +52,6 @@ theorem sourceSigningTracedMappedAdversaryImpl_query_eq_map
   intro result
   rfl
 
-theorem sourceSigningTracedMappedAdversaryImpl_query_projection
-    (publicKey : PublicKey) (secretKey : SecretKey)
-    (input : (OracleWorld + SigningSpec).Domain)
-    (initialState : SourceSigningTracedState) :
-    (fun result => (result.1,
-        sourceSigningTracedStateProjection result.2)) <$>
-        (sourceSigningTracedMappedAdversaryImpl publicKey secretKey input).run
-          initialState =
-      (sourceDirectTracedMappedAdversaryImpl publicKey secretKey input).run
-        (sourceSigningTracedStateProjection initialState) := by
-  rw [sourceSigningTracedMappedAdversaryImpl_query_eq_map]
-  simp [Functor.map_map, sourceSigningTracedQueryResult,
-    sourceSigningTracedStateProjection]
-
 def GlobalSigningMonitoredTracedStateRelation
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
@@ -156,54 +142,6 @@ theorem sourceSigningTracedVerifierImpl_run_eq
   exact lens.simulateQ_run_eq sourceSigningTracedVerifierImpl romImpl
     sourceSigningTracedVerifierImpl_query_run_eq computation initialState
 
-theorem relTriple_programmed_globalHighMonitored_signingVerifierQuery
-    (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
-    (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
-      trajectoryProgrammedGlobalChainKeygen)
-    (leftState : SourceSigningTracedState)
-    (rightState : GlobalMonitoredTracedState)
-    (hstate : GlobalSigningMonitoredTracedStateRelation left right.1
-      leftState rightState)
-    (input : OracleWorld.Domain) :
-    RelTriple
-      ((sourceSigningTracedVerifierImpl input).run leftState)
-      ((globalHighMonitoredVerifierImpl right input).run rightState)
-      (fun leftResult rightResult =>
-        (leftResult.1 = rightResult.1 ∧
-          GlobalSigningMonitoredTracedStateRelation left right.1
-            leftResult.2 rightResult.2) ∨
-          rightResult.2.1.bad right.1.2) := by
-  let project := sourceSigningTracedStateProjection leftState
-  let enrich := fun result : OracleWorld.Range input × SourceTracedState =>
-    (result.1, ((result.2.1, leftState.1.2), result.2.2))
-  have hbase := relTriple_programmed_globalHighMonitored_verifier_query left
-    right hrel hleftSupport hrightSupport project rightState hstate input
-  have hlifted : RelTriple
-      (enrich <$> (sourceDirectTracedVerifierImpl input).run project)
-      (id <$> (globalHighMonitoredVerifierImpl right input).run rightState)
-      (fun leftResult rightResult =>
-        (leftResult.1 = rightResult.1 ∧
-          GlobalSigningMonitoredTracedStateRelation left right.1
-            leftResult.2 rightResult.2) ∨
-          rightResult.2.1.bad right.1.2) := by
-    apply relTriple_map
-    apply relTriple_post_mono hbase
-    intro leftResult rightResult hresult
-    rcases hresult with hgood | hbad
-    · exact Or.inl ⟨hgood.1, hgood.2⟩
-    · exact Or.inr hbad
-  rw [id_map] at hlifted
-  have hleft : (sourceSigningTracedVerifierImpl input).run leftState =
-      enrich <$> (sourceDirectTracedVerifierImpl input).run project := by
-    rfl
-  rw [hleft]
-  exact hlifted
-
 theorem globalSigningMonitoredTracedStateRelation_initial
     (left : ProgrammedGlobalChainKeygenView)
     (right : (ProgrammedGlobalChainKeygenView ×
@@ -250,7 +188,6 @@ theorem probEvent_eq_of_evalDist_eq
     Pr[event | computation₁] = Pr[event | computation₂] := by
   simp only [probEvent_eq_tsum_indicator, probOutput_def]
   rw [heval]
-
 
 theorem encodingObservation?_eq_of_globalSigningCachesAgree
     (secretKey : SecretKey)
@@ -458,47 +395,6 @@ theorem relTriple_programmed_globalHighMonitored_sourceExact_action
   rw [cappedBothTracedMappedAdversaryImpl_query_eq_sourceExactMap]
   simpa using hlifted
 
-
-theorem appendVerificationEncodingObservation_eq_of_globalSigningCachesAgree
-    (leftSecret rightSecret : SecretKey)
-    (hparameter : leftSecret.parameter = rightSecret.parameter)
-    (forgery : Forgery)
-    (initialLeft initialRight finalLeft finalRight : QueryCache HashSpec)
-    (hinitial : HashCachesAgreeOn
-      (GlobalSigningComparableHashInput leftSecret.parameter)
-      initialLeft initialRight)
-    (hfinal : HashCachesAgreeOn
-      (GlobalSigningComparableHashInput leftSecret.parameter)
-      finalLeft finalRight)
-    (trace : EncodingActionTrace) :
-    appendVerificationEncodingObservation leftSecret forgery
-        initialLeft finalLeft trace =
-      appendVerificationEncodingObservation rightSecret forgery
-        initialRight finalRight trace := by
-  let input := Concrete.CacheView.encodingInput leftSecret.parameter
-    forgery.epoch (forgery.message, forgery.signature.randomness)
-  let rightInput := Concrete.CacheView.encodingInput rightSecret.parameter
-    forgery.epoch (forgery.message, forgery.signature.randomness)
-  have hinput : input = rightInput := by simp [input, rightInput, hparameter]
-  have hinitialCache : initialLeft input = initialRight input :=
-    hinitial input ⟨forgery.epoch, forgery.message,
-      forgery.signature.randomness, rfl⟩
-  have hfinalCache : finalLeft input = finalRight input :=
-    hfinal input ⟨forgery.epoch, forgery.message,
-      forgery.signature.randomness, rfl⟩
-  unfold appendVerificationEncodingObservation
-  change (if initialLeft input = none then
-      match finalLeft input with
-      | none => trace
-      | some output => trace ++ [.query forgery.epoch output]
-    else trace) =
-    (if initialRight rightInput = none then
-      match finalRight rightInput with
-      | none => trace
-      | some output => trace ++ [.query forgery.epoch output]
-    else trace)
-  rw [← hinput, hinitialCache, hfinalCache]
-
 noncomputable def sourceGlobalExactTracedDetailedExecution
     (adversary : Adversary)
     (keyView : ProgrammedGlobalChainKeygenView) :
@@ -517,11 +413,6 @@ noncomputable def sourceGlobalExactTracedDetailedExecution
   pure ((handled.1, verified.1),
     ((verified.2.1, finalEncodingTrace), verified.2.2))
 
-def sourceGlobalExactErasedExecution
-    (result : (Forgery × Bool) × SourceExactTracedState) :
-    (Forgery × Bool) × SourceTracedState :=
-  (result.1, (result.2.1.1.1, result.2.2))
-
 abbrev SourceGlobalExactTracedProgramResult :=
   ProgrammedGlobalChainKeygenView ×
     ((Forgery × Bool) × SourceExactTracedState)
@@ -532,59 +423,6 @@ noncomputable def sourceGlobalExactTracedProgram
   let keyView ← trajectoryProgrammedGlobalChainKeygen
   let execution ← sourceGlobalExactTracedDetailedExecution adversary keyView
   pure (keyView, execution)
-
-def sourceGlobalExactErasedResult
-    (result : SourceGlobalExactTracedProgramResult) :
-    SourceGlobalTracedProgramResult :=
-  (result.1, sourceGlobalExactErasedExecution result.2)
-
-theorem sourceGlobalExactTracedDetailedExecution_projection
-    (adversary : Adversary)
-    (keyView : ProgrammedGlobalChainKeygenView) :
-    sourceGlobalExactErasedExecution <$>
-        sourceGlobalExactTracedDetailedExecution adversary keyView =
-      sourceGlobalTracedDetailedExecution adversary keyView := by
-  unfold sourceGlobalExactTracedDetailedExecution
-    sourceGlobalTracedDetailedExecution
-  let secretKey :=
-    Concrete.materializePrecomputation keyView.cache keyView.secretKey
-  let finish : Forgery × SourceTracedState →
-      ProbComp ((Forgery × Bool) × SourceTracedState) := fun handled => do
-    let verified ← (simulateQ sourceDirectTracedVerifierImpl
-      (Concrete.scheme.verify keyView.publicKey handled.1.epoch
-        handled.1.message handled.1.signature)).run handled.2
-    pure ((handled.1, verified.1), verified.2)
-  have hprojection := cappedBothTracedMappedAdversaryImpl_actionProjection
-    keyView.publicKey secretKey (adversary.main keyView.publicKey)
-      (((keyView.cache, []), [])) []
-  have hbound := congrArg (fun computation => computation >>= finish)
-    hprojection
-  simpa [secretKey, finish, sourceGlobalExactErasedExecution, map_bind,
-    bind_map_left, bind_assoc, sourceSigningTracedVerifierImpl_run_eq,
-    sourceDirectTracedVerifierImpl_run_eq, sourceExactSigningProjection,
-    Prod.map]
-    using hbound
-
-theorem sourceGlobalExactTracedProgram_projection
-    (adversary : Adversary) :
-    sourceGlobalExactErasedResult <$>
-        sourceGlobalExactTracedProgram adversary =
-      sourceGlobalTracedProgram adversary := by
-  unfold sourceGlobalExactTracedProgram sourceGlobalTracedProgram
-  simp only [map_eq_bind_pure_comp, bind_assoc]
-  apply bind_congr
-  intro keyView
-  rw [← sourceGlobalExactTracedDetailedExecution_projection]
-  simp [sourceGlobalExactErasedResult, map_eq_bind_pure_comp]
-
-theorem sourceGlobalExactErasedResult_mem_support
-    (adversary : Adversary)
-    {left : SourceGlobalExactTracedProgramResult}
-    (hleft : left ∈ support (sourceGlobalExactTracedProgram adversary)) :
-    sourceGlobalExactErasedResult left ∈
-      support (sourceGlobalTracedProgram adversary) := by
-  rw [← sourceGlobalExactTracedProgram_projection, support_map]
-  exact ⟨left, hleft, rfl⟩
 
 def sourceGlobalExactExecutionResult
     (keyView : ProgrammedGlobalChainKeygenView)
@@ -663,34 +501,6 @@ theorem evalDist_sourceGlobalExact_eq_cappedBothTraces
       rw [evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen]
     _ = _ := rfl
 
-def SourceWinningExactFirstLaneEvent
-    (result : SourceGlobalExactTracedProgramResult) : Prop :=
-  WinningExactFirstLaneBadEventOccurs
-    (cappedBothEncodingProjection (sourceGlobalExactProgramResult result))
-
-theorem cappedExactFirstLane_probability_eq_sourceGlobalExact
-    (adversary : Adversary) :
-    Pr[WinningExactFirstLaneBadEventOccurs |
-        cappedDetailedGameWithEncodingTrace adversary] =
-      Pr[SourceWinningExactFirstLaneEvent |
-        sourceGlobalExactTracedProgram adversary] := by
-  calc
-    _ = Pr[WinningExactFirstLaneBadEventOccurs ∘ cappedBothEncodingProjection |
-        cappedDetailedGameWithKeygenCacheAndBothTraces adversary] := by
-      rw [← probEvent_map]
-      exact probEvent_congr' (fun _ _ => Iff.rfl)
-        (congrArg evalDist
-          (cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
-            adversary)).symm
-    _ = Pr[WinningExactFirstLaneBadEventOccurs ∘ cappedBothEncodingProjection |
-        sourceGlobalExactProgramResult <$>
-          sourceGlobalExactTracedProgram adversary] :=
-      probEvent_eq_of_evalDist_eq _
-        (evalDist_sourceGlobalExact_eq_cappedBothTraces adversary).symm
-    _ = _ := by
-      rw [probEvent_map]
-      rfl
-
 theorem cappedExactEncodingBranch_implies_monitorHit
     (adversary : Adversary)
     (execution : CappedEncodingTraceExecution)
@@ -715,49 +525,5 @@ theorem cappedExactEncodingBranch_implies_monitorHit
       cappedDetailedGameWithEncodingTrace_postSigningFreshForgedCollision_monitorHit
         adversary execution hmem hbranch.1 encoding hdecode
           ⟨entry, hentry, hpostSigning⟩
-
-theorem cappedBothTraceGameResult_keyResult_mem_support
-    (adversary : Adversary)
-    (result : CappedBothTraceGameResult)
-    (hresult : result ∈ support
-      (cappedDetailedGameWithKeygenCacheAndBothTraces adversary)) :
-    result.1 ∈ support
-      ((simulateQ romImpl Concrete.scheme.keygen).run ∅) := by
-  unfold cappedDetailedGameWithKeygenCacheAndBothTraces at hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨keyResult, hkeyResult, hrest⟩ := hresult
-  rw [mem_support_bind_iff] at hrest
-  obtain ⟨execution, _hexecution, hpure⟩ := hrest
-  simp only [support_pure, Set.mem_singleton_iff] at hpure
-  subst result
-  exact hkeyResult
-
-theorem cappedBothTraceGameResult_cacheExecution_mem_support
-    (adversary : Adversary)
-    (result : CappedBothTraceGameResult)
-    (hresult : result ∈ support
-      (cappedDetailedGameWithKeygenCacheAndBothTraces adversary)) :
-    (result.2.1, result.2.2.1.1.1) ∈ support
-      ((simulateQ romImpl
-        (detailedGameAfterKeygen Concrete.scheme adversary result.1.1.1
-          result.1.1.2)).run result.1.2) := by
-  have hboth :=
-    cappedDetailedGameWithKeygenCacheAndBothTraces_support_execution
-      adversary result hresult
-  have hencoding : (result.2.1, result.2.2.1) ∈ support
-      (cappedDetailedGameAfterKeygenWithEncodingTrace adversary
-        result.1.1.1 result.1.1.2 result.1.2) := by
-    rw [← cappedDetailedGameAfterKeygenWithBothTraces_encodingProjection,
-      support_map]
-    exact ⟨result.2, hboth, rfl⟩
-  have hsigning : (result.2.1, result.2.2.1.1) ∈ support
-      (cappedDetailedGameAfterKeygenWithSigningTrace adversary
-        result.1.1.1 result.1.1.2 result.1.2) := by
-    rw [← cappedDetailedGameAfterKeygenWithEncodingTrace_projection,
-      support_map]
-    exact ⟨(result.2.1, result.2.2.1), hencoding, rfl⟩
-  rw [← cappedDetailedGameAfterKeygenWithSigningTrace_cache_projection,
-    support_map]
-  exact ⟨(result.2.1, result.2.2.1.1), hsigning, rfl⟩
 
 end XmssSecurity.Checksum.CappedChain

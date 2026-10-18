@@ -13,15 +13,6 @@ noncomputable def gameAfterSecrets (adversary : Adversary) (parameter : PublicPa
   let sk := Concrete.precomputedSecretKey parameter secret (hashCacheOfLog result.2)
   gameRest Concrete.scheme adversary ⟨result.1, parameter⟩ sk
 
-theorem gameCore_seeded_eq (adversary : Adversary) :
-    gameCore randomizedScheme adversary = (do
-      let seed ← liftM sampleMasterSeed
-      let (parameter, secret) ← liftM (deriveParametersAndSecrets seed)
-      gameAfterSecrets adversary parameter secret) := by
-  simp only [gameCore, randomizedScheme, keygen, keygenFromSeed, gameAfterSecrets, gameRest, Concrete.scheme,
-    deriveParametersAndSecrets, deriveChainSecrets, liftM_bind, liftM_pure,
-    bind_assoc, pure_bind, signingOracle]
-
 theorem gameCore_independent_eq (adversary : Adversary) :
     gameCore Concrete.scheme adversary = (do
       let parameter ← liftM Concrete.samplePublicParameter
@@ -53,26 +44,5 @@ theorem run'_lift_sample_bind {A B : Type} (computation : ProbComp A)
   rw [h, unifFwdImpl.simulateQ_run]
   simp only [bind_map_left, map_bind]
   rfl
-
-noncomputable def programmedGame (adversary : Adversary) : ProbComp Bool := do
-  let seed ← sampleMasterSeed
-  let parameter ← Concrete.samplePublicParameter
-  let secret ← Concrete.sampleSecret
-  let parameterHigh ← $ᵗ Digest
-  let secretHigh ← Concrete.sampleSecret
-  (simulateQ romImpl (gameAfterSecrets adversary parameter secret)).run'
-    (programmedCache seed parameter secret parameterHigh secretHigh)
-
-/-- The seeded forgery game is exactly the independent-secret game with its derivation answers installed. -/
-theorem evalDist_gameCore_eq_programmed (adversary : Adversary) :
-    𝒟[(simulateQ romImpl (gameCore randomizedScheme adversary)).run' ∅] =
-      𝒟[programmedGame adversary] := by
-  rw [gameCore_seeded_eq, run'_lift_sample_bind]
-  unfold programmedGame
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
-  intro seed
-  rw [run'_lift_hash_bind, evalDist_bind, evalDist_deriveParametersAndSecrets_eq_independent,
-    ← evalDist_bind]
-  simp only [bind_assoc, pure_bind]
 
 end XmssSecurity.Checksum.Seeded

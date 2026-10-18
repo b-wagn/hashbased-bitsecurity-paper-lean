@@ -15,12 +15,6 @@ open XmssSecurity.EUFCMA
 
 open Concrete CappedChain
 
-theorem request_ne_of_fresh (log : QueryLog SigningSpec) (forgery : Forgery)
-    (hfresh : ¬ SigningTranscript.ContainsRequest log forgery)
-    (entry : (_request : SignRequest) × Option Signature) (hentry : entry ∈ log) :
-    entry.1 ≠ forgery.request :=
-  fun heq => hfresh ⟨entry, hentry, heq⟩
-
 theorem encodingInput_ne_of_request_ne (parameter : PublicParameter)
     (request : SignRequest) (forgery : Forgery) (hne : request ≠ forgery.request)
     (randomness : Randomness) :

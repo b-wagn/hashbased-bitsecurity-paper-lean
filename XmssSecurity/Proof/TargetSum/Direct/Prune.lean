@@ -93,35 +93,6 @@ theorem simulateQ_pruneDirect_eq {α σ : Type}
         refine bind_congr_of_forall_mem_support _ fun r hr => ih r.1 budget r.2 fun result hresult => ?_
         simpa using hcont r hr result hresult
 
-/-- `simulateQ_pruneDirect_eq` with the bound stated on the `withAddCost` instrumentation. -/
-theorem simulateQ_pruneDirect_eq_of_withAddCost {α σ : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (StateT σ ProbComp))
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (budget : ℕ) (state : σ)
-    (hbound : ∀ result ∈ support
-      ((simulateQ (impl.withAddCost (fun input => if IsDirectHashQuery input then 1 else (0 : ℕ)))
-        computation).run.run state),
-      Multiplicative.toAdd result.1.2 ≤ budget) :
-    (simulateQ impl (pruneDirect budget computation)).run state =
-      (simulateQ impl computation).run state := by
-  refine simulateQ_pruneDirect_eq impl computation budget state fun result hresult => ?_
-  rw [QueryCounting.simulate_withCost] at hresult
-  exact hbound result hresult
-
-/-- `simulateQ_pruneDirect_eq` for an implementation in `OracleComp OracleWorld` run in the
-random-oracle model. -/
-theorem simulateQ_pruneDirect_eq_rom {α : Type}
-    (impl : QueryImpl (OracleWorld + SigningSpec) (OracleComp OracleWorld))
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (budget : ℕ)
-    (cache : QueryCache HashSpec)
-    (hbound : ∀ result ∈ support
-      ((simulateQ romImpl (simulateQ impl
-        (QueryCounting.counted IsDirectHashQuery computation))).run cache),
-      result.1.2 ≤ budget) :
-    (simulateQ romImpl (simulateQ impl (pruneDirect budget computation))).run cache =
-      (simulateQ romImpl (simulateQ impl computation)).run cache := by
-  simp only [← QueryImpl.simulateQ_compose] at hbound ⊢
-  exact simulateQ_pruneDirect_eq _ computation budget cache hbound
-
 /-! ## Logged implementations in the random-oracle model -/
 
 theorem run_logged_query_bind {β : Type}

@@ -28,13 +28,6 @@ noncomputable def freshSourceEncodingProbability (adversary : Adversary) : ℝ�
     let result ← sourcePrefixFinish prefixPair.1 prefixPair.2
     pure (prefixPair, result)]
 
-noncomputable def freshRevealedProbability (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[fun result => SourcePrefixForgedEncodingFresh result.1 ∧
-      SourceWinningRevealedEvent (result.1.1, result.2) | do
-    let prefixPair ← sourcePrefixProgram adversary
-    let result ← sourcePrefixFinish prefixPair.1 prefixPair.2
-    pure (prefixPair, result)]
-
 theorem sourcePrefixFinish_fresh_encoding_probability_le (adversary : Adversary)
     (key : ProgrammedGlobalChainKeygenView) (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen)
     (prefixResult : Forgery × SourceExactTracedState)
@@ -105,28 +98,5 @@ theorem freshSourceEncodingProbability_le_source_credit (adversary : Adversary) 
     _ ≤ _ := by
       simpa only [rate, div_eq_mul_inv] using
         mul_le_mul' (sourcePrefix_accepted_probability_le adversary) (le_refl rate)
-
-theorem freshFirstLaneProbability_le_encoding_add_revealed (adversary : Adversary) :
-    freshFirstLaneProbability adversary ≤
-      freshSourceEncodingProbability adversary + freshRevealedProbability adversary := by
-  unfold freshFirstLaneProbability freshSourceEncodingProbability freshRevealedProbability
-  apply le_trans _ (probEvent_or_le _ _ _)
-  apply probEvent_mono
-  intro result _ hevent
-  rcases hevent.2 with hencoding | hrevealed
-  · exact Or.inl ⟨hevent.1, hencoding.1⟩
-  · exact Or.inr ⟨hevent.1, hrevealed⟩
-
-theorem freshFirstLaneProbability_le_source_credit_add_revealed (adversary : Adversary) :
-    freshFirstLaneProbability adversary ≤
-      (TargetSum.acceptanceProbability *
-        (expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary)) /
-          ((2 ^ digestBits : Nat) : ℝ≥0∞) + freshRevealedProbability adversary :=
-  (freshFirstLaneProbability_le_encoding_add_revealed adversary).trans
-    (add_le_add (freshSourceEncodingProbability_le_source_credit adversary) le_rfl)
-
-/-- info: 'XmssSecurity.TargetSum.Deciding.freshFirstLaneProbability_le_source_credit_add_revealed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms freshFirstLaneProbability_le_source_credit_add_revealed
 
 end XmssSecurity.TargetSum.Deciding

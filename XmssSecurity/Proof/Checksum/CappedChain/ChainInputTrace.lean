@@ -81,11 +81,4 @@ theorem attackerActionFragment_toSigningLog
   | inl worldInput => cases worldInput <;> rfl
   | inr request => rfl
 
-noncomputable def sourceActionTracedMappedAdversaryImpl
-    (publicKey : PublicKey) (secretKey : SecretKey) :
-    QueryImpl (OracleWorld + SigningSpec)
-      (WriterT AttackerActionTrace (OracleComp OracleWorld)) :=
-  (sourceUnloggedMappedAdversaryImpl publicKey secretKey).withTraceAppend
-    attackerActionFragment
-
 end XmssSecurity.Checksum.CappedChain

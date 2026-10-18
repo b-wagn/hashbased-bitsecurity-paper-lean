@@ -33,23 +33,6 @@ theorem limit_query_bind (fuel : Nat) (input : spec.Domain)
       else liftM (spec.query input) >>= fun answer =>
         limit selected (fuel - if selected input then 1 else 0) (next answer) := rfl
 
-theorem limit_isQueryBoundP (fuel : Nat) (computation : OracleComp spec α) :
-    (limit selected fuel computation).IsQueryBoundP selected fuel := by
-  induction computation using OracleComp.inductionOn generalizing fuel with
-  | pure value => simp [limit_pure]
-  | query_bind input next ih =>
-      rw [limit_query_bind]
-      by_cases hstop : selected input ∧ fuel = 0
-      · rw [if_pos hstop]
-        simp
-      · rw [if_neg hstop, OracleComp.isQueryBoundP_query_bind_iff]
-        constructor
-        · by_cases h : selected input <;> simp_all
-          omega
-        · intro answer
-          by_cases h : selected input <;> simpa [h] using
-            ih answer (fuel - if selected input then 1 else 0)
-
 theorem limit_preserves_queryBound (other : Index → Prop) [DecidablePred other]
     (fuel bound : Nat) (computation : OracleComp spec α)
     (hbound : computation.IsQueryBoundP other bound) :

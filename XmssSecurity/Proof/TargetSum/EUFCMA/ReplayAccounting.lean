@@ -54,10 +54,6 @@ theorem replay_direct_attack_126 : ¬(EUFCMA.notion SUFCMA.CountingMode.direct).
   rw [notion_advantage_eq, Nat.cast_one, one_div] at hbound
   exact (not_lt_of_ge hbound) replay_seeded_advantage_exceeds_127
 
-theorem not_uniform_127 : ¬(∀ mode : SUFCMA.CountingMode, (EUFCMA.notion mode).HasExactClassicalSecurityBits xmss 127) := by
-  intro h
-  exact replay_direct_attack_126 (h SUFCMA.CountingMode.direct).1
-
 /-- info: 'XmssSecurity.TargetSum.EUFCMA.replay_direct_attack_126' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms replay_direct_attack_126

@@ -44,24 +44,4 @@ theorem exactStatement_of_basis
     subst mode
     exact ⟨hd, ha126⟩
 
-theorem exactStatement_iff_basis : (∀ mode : SUFCMA.CountingMode, (EUFCMA.notion mode).HasExactClassicalSecurityBits xmss (if mode.keygen || mode.signer || mode.verifier || mode.requests then 127 else 126)) ↔
-    (EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss 126 ∧
-    (EUFCMA.notion ⟨true, false, false, false⟩).HasClassicalSecurityBits xmss 127 ∧
-    (EUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 127 ∧
-    (EUFCMA.notion ⟨false, false, true, false⟩).HasClassicalSecurityBits xmss 127 ∧
-    (EUFCMA.notion ⟨false, false, false, true⟩).HasClassicalSecurityBits xmss 127 ∧
-    ¬(EUFCMA.notion SUFCMA.CountingMode.direct).HasClassicalSecurityBits xmss (126 + 1) ∧
-    ¬(EUFCMA.notion SUFCMA.CountingMode.everything).HasClassicalSecurityBits xmss (127 + 1) := by
-  constructor
-  · intro h
-    exact ⟨(h CountingMode.direct).1, (h ⟨true, false, false, false⟩).1,
-      (h ⟨false, true, false, false⟩).1, (h ⟨false, false, true, false⟩).1,
-      (h ⟨false, false, false, true⟩).1, (h CountingMode.direct).2, (h CountingMode.everything).2⟩
-  · rintro ⟨hd, hk, hs, hv, hr, ha126, ha127⟩
-    exact exactStatement_of_basis hd hk hs hv hr ha126 ha127
-
-/-- info: 'XmssSecurity.TargetSum.EUFCMA.exactStatement_iff_basis' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms exactStatement_iff_basis
-
 end XmssSecurity.TargetSum.EUFCMA

@@ -61,40 +61,4 @@ theorem gameCounted_signer_eq (adversary : Security.StatementAdversary) :
   rw [signer_adversaryRun_counted]
   simp only [bind_map_left, toAdd_ofAdd]
 
-theorem signer_adversaryPhase_hashQueryBound
-    (adversary : Security.StatementAdversary) (q : ℕ)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
-    (publicKey : PublicKey) (secretKey : Seeded.SecretKey) (cache : QueryCache HashSpec)
-    (hkey : ((publicKey, secretKey), cache) ∈ support ((simulateQ romImpl xmss.keygen).run ∅)) :
-    HashQueryBound ((simulateQ (Security.adversaryImpl secretKey)
-      (adversary.main publicKey)).run) cache q := by
-  rw [hashQueryBound_iff_run]
-  rintro ⟨⟨⟨forgery, log⟩, charged⟩, finalCache⟩ hadversary
-  obtain ⟨verification, hverification⟩ := probComp_support_nonempty
-    ((simulateQ romImpl (xmss.verify publicKey forgery.epoch forgery.message
-      forgery.signature)).run finalCache)
-  apply hbound (decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) &&
-    verification.1, charged)
-  simp only [SUFCMA.notion, RandomOracleModel.run]
-  rw [← Security.romImpl_eq, gameCounted_signer_eq, StateT.run'_eq, support_map]
-  refine ⟨((decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) &&
-    verification.1, charged), verification.2), ?_, rfl⟩
-  simp only [simulateQ_bind, StateT.run_bind, mem_support_bind_iff]
-  exact ⟨((publicKey, secretKey), cache), hkey, (((forgery, log), charged), finalCache),
-    hadversary, verification, hverification, by simp⟩
-
-theorem signer_expected_adversaryPhase_hashQueries_le
-    (adversary : Security.StatementAdversary) (q : ℕ)
-    (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound xmss adversary q)
-    (publicKey : PublicKey) (secretKey : Seeded.SecretKey) (cache : QueryCache HashSpec)
-    (hkey : ((publicKey, secretKey), cache) ∈ support ((simulateQ romImpl xmss.keygen).run ∅)) :
-    expectedSimulatedQueryCount romImpl IsHashQuery
-      ((simulateQ (Security.adversaryImpl secretKey) (adversary.main publicKey)).run) cache ≤ q :=
-  expectedHashQueries_le_of_hashQueryBound _ _ _
-    (signer_adversaryPhase_hashQueryBound adversary q hbound publicKey secretKey cache hkey)
-
-/-- info: 'XmssSecurity.TargetSum.Modes.signer_expected_adversaryPhase_hashQueries_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms signer_expected_adversaryPhase_hashQueries_le
-
 end XmssSecurity.TargetSum.Modes

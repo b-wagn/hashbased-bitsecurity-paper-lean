@@ -146,17 +146,6 @@ theorem neighborAfterSigning_queryBound (publicKey : PublicKey) (answer : Option
         · exact OracleComp.isQueryBoundP_pure _ _ _
         · exact neighborAfterEncoding_queryBound _ _ _
 
-theorem neighbor_direct_queryBound : Direct.IsDirectQueryBound neighborAdversary neighborDirectBudget := by
-  intro publicKey
-  change (neighborMain publicKey).IsQueryBoundP _ _
-  unfold neighborMain
-  rw [OracleComp.isQueryBoundP_query_bind_iff]
-  refine ⟨Or.inl (Direct.not_isDirectHashQuery_sign _), fun answer => ?_⟩
-  simp only [Direct.not_isDirectHashQuery_sign, if_false, bind_pure_comp, OracleComp.isQueryBoundP_map_iff]
-  apply liftWorldToAdversary_queryBound _ _ _ _ _ (neighborAfterSigning_queryBound publicKey answer)
-  intro input
-  cases input <;> simp [Seeded.hashBad, Direct.IsDirectHashQuery, Direct.isDirectHashQuery]
-
 theorem findEncodingNeighbor_noSeed (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (encoding : Encoding) :
     (findEncodingNeighbor parameter leafIndex message encoding).IsQueryBoundP MaySeedHit 0 := by
@@ -215,10 +204,6 @@ theorem neighborAfterSigning_noSeed (publicKey : PublicKey) (answer : Option Sig
       split
       · exact OracleComp.isQueryBoundP_pure _ _ _
       · exact neighborAfterEncoding_noSeed _ _ _
-
-/-- info: 'XmssSecurity.Checksum.Attack.neighbor_direct_queryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms neighbor_direct_queryBound
 
 /-- info: 'XmssSecurity.Checksum.Attack.neighborAfterSigning_noSeed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

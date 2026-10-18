@@ -42,41 +42,4 @@ theorem sourcePrefixFinishAfterHash_revealed_probability_eq_zero_of_invalid
   simp [SourceWinningRevealedEvent, cappedBothEncodingProjection, sourceGlobalExactProgramResult,
     sourceGlobalExactExecutionResult, GameOutcome.won]
 
-theorem sourcePrefixFinish_fresh_revealed_probability_eq_acceptance_mul
-    (key : ProgrammedGlobalChainKeygenView) (prefixResult : Forgery × SourceExactTracedState)
-    (hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult)) :
-    Pr[fun result => SourceWinningRevealedEvent (key, result) | sourcePrefixFinish key prefixResult] =
-      TargetSum.acceptanceProbability * Pr[fun result => SourceWinningRevealedEvent (key, result) |
-        ($ᵗ TargetSum.AcceptedHashOutput) >>= fun output => sourcePrefixFinishAfterHash key prefixResult output.1] := by
-  rw [sourcePrefixFinish_eq_uniform_afterHash _ _ hfresh]
-  exact TargetSum.uniformHashOutput_bind_probability_eq_acceptance_mul _ _
-    (sourcePrefixFinishAfterHash_revealed_probability_eq_zero_of_invalid key prefixResult)
-
-noncomputable def acceptedFreshRevealedProbability (adversary : Adversary) : ℝ≥0∞ :=
-  Pr[fun result => SourcePrefixForgedEncodingFresh result.1 ∧
-      SourceWinningRevealedEvent (result.1.1, result.2) | do
-    let prefixPair ← sourcePrefixProgram adversary
-    let output ← ($ᵗ TargetSum.AcceptedHashOutput)
-    let result ← sourcePrefixFinishAfterHash prefixPair.1 prefixPair.2 output.1
-    pure (prefixPair, result)]
-
-theorem freshRevealedProbability_eq_acceptance_mul (adversary : Adversary) :
-    freshRevealedProbability adversary =
-      TargetSum.acceptanceProbability * acceptedFreshRevealedProbability adversary := by
-  classical
-  unfold freshRevealedProbability acceptedFreshRevealedProbability
-  rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum, ← ENNReal.tsum_mul_left]
-  apply tsum_congr
-  intro prefixPair
-  rw [← bind_assoc]
-  simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-  by_cases hfresh : SourcePrefixForgedEncodingFresh prefixPair
-  · simp only [hfresh, true_and]
-    rw [sourcePrefixFinish_fresh_revealed_probability_eq_acceptance_mul _ _ hfresh, mul_left_comm]
-  · simp only [hfresh, false_and, probEvent_False, mul_zero]
-
-/-- info: 'XmssSecurity.TargetSum.Deciding.freshRevealedProbability_eq_acceptance_mul' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms freshRevealedProbability_eq_acceptance_mul
-
 end XmssSecurity.TargetSum.Deciding

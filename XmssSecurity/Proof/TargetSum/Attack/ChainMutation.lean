@@ -119,15 +119,6 @@ theorem chainMutation_transcript_valid (answer : Option Signature) :
     SigningTranscript.Valid [⟨mutationRequest, answer⟩] := by
   simp [SUFCMA.SigningTranscript.Valid]
 
-theorem chainMutation_transcript_fresh (signature : Signature) (choice : ChainIndex × Digest)
-    (hvalue : choice.2 ≠ signature.chainValue choice.1) :
-    ¬SigningTranscript.Contains [⟨mutationRequest, some signature⟩]
-      (chainMutationForgery (some signature) choice) := by
-  simp only [SUFCMA.SigningTranscript.Contains, List.mem_singleton, exists_eq_left,
-    Option.some.injEq, not_and]
-  intro _ heq
-  exact (chainMutationForgery_distinct_iff signature choice).mpr hvalue heq.symm
-
 private theorem counted_eq_of_exact {ι α : Type} {spec : OracleSpec ι}
     (predicate : spec.Domain → Prop) [DecidablePred predicate]
     {computation : OracleComp spec α} {count : ℕ}
@@ -147,9 +138,5 @@ theorem chainMutation_counted :
 /-- info: 'XmssSecurity.TargetSum.Attack.chainMutation_counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms chainMutation_counted
-
-/-- info: 'XmssSecurity.TargetSum.Attack.chainMutation_transcript_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms chainMutation_transcript_fresh
 
 end XmssSecurity.TargetSum.Attack

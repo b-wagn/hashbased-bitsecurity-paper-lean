@@ -32,11 +32,6 @@ theorem eagerTraceImpl_encodingSamples (table : Index → Digest)
   obtain ⟨output, _, rfl⟩ := hresult
   exact encodingSamples_traceFragment input output
 
-theorem limitEncodingSamples_isQueryBoundP (fuel : Nat)
-    (computation : OracleComp (World Index) α) :
-    (limitEncodingSamples fuel computation).IsQueryBoundP IsEncodingSample fuel :=
-  QueryLimiting.limit_isQueryBoundP IsEncodingSample fuel computation
-
 theorem simulate_limitEncodingSamples_eq (table : Index → Digest) (fuel : Nat)
     (computation : OracleComp (World Index) α)
     (hbound : ∀ result ∈ support (simulateQ (eagerTraceImpl table) computation).run,

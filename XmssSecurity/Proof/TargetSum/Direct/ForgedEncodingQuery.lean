@@ -198,24 +198,4 @@ theorem adversaryPhase_withForgedEncodingQuery_cached (adversary : Adversary)
   simp only [forgeryEncodingInput] at hcached
   simp [hcached]
 
-/-- The same, for the unlogged capped adversary phase (`cappedUnloggedMappedAdversaryImpl`). -/
-theorem cappedUnlogged_withForgedEncodingQuery_cached (adversary : Adversary)
-    (publicKey : PublicKey) (secretKey : SecretKey) (cache : QueryCache HashSpec)
-    (prefixResult : Forgery × QueryCache HashSpec)
-    (hprefix : prefixResult ∈ support ((simulateQ
-      (cappedUnloggedMappedAdversaryImpl publicKey secretKey)
-        ((withForgedEncodingQuery adversary).main publicKey)).run cache)) :
-    prefixResult.2 (Concrete.CacheView.encodingInput publicKey.parameter prefixResult.1.epoch
-      (prefixResult.1.message, prefixResult.1.signature.randomness)) ≠ none := by
-  have himpl (input : HashInput) :
-      cappedUnloggedMappedAdversaryImpl publicKey secretKey (.inl (.inr input)) =
-        (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) input := rfl
-  simp only [withForgedEncodingQuery, simulateQ_bind, simulateQ_spec_query, simulateQ_pure,
-    himpl, StateT.run_bind, StateT.run_pure, mem_support_bind_iff, support_pure,
-    Set.mem_singleton_iff] at hprefix
-  obtain ⟨⟨forgery, middleCache⟩, _, ⟨output, finalCache⟩, hcall, rfl⟩ := hprefix
-  have hcached := randomOracle_run_cached _ _ _ hcall
-  simp only at hcached
-  simp [hcached]
-
 end XmssSecurity.TargetSum.Direct

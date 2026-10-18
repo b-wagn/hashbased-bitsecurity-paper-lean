@@ -214,18 +214,8 @@ theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : TargetSum.Val
   rw [neighborDigests_card]
   exact digitTransfer_card_lower encoding hvalid
 
-theorem neighborDigests_decode (encoding : Encoding) (hvalid : TargetSum.Valid encoding)
-    (digest : Digest) (hmem : digest ∈ neighborDigests encoding) :
-    ∃ transfer : DigitTransfer encoding, TargetSum.decodeDigest digest = some (transferEncoding encoding transfer) := by
-  obtain ⟨transfer, _, rfl⟩ := Finset.mem_image.mp hmem
-  exact ⟨transfer, digestOfEncoding_decode _ (transferEncoding_valid encoding hvalid transfer)⟩
-
 /-- info: 'XmssSecurity.TargetSum.Attack.neighborDigests_card_lower' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms neighborDigests_card_lower
-
-/-- info: 'XmssSecurity.TargetSum.Attack.neighborDigests_decode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms neighborDigests_decode
 
 end XmssSecurity.TargetSum.Attack

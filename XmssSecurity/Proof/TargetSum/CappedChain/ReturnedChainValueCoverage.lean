@@ -55,12 +55,4 @@ theorem returnedChainValueCovered_contains_returned
   rw [returnedChainValueCovered_iff]
   exact ⟨request, signature, encoding, hreturned, hdecode, rfl, le_rfl⟩
 
-theorem returnedChainValueCovered_iff_mem_indices
-    (cache : QueryCache HashSpec) (secretKey : SecretKey)
-    (log : QueryLog SigningSpec) (chain : ChainIndex)
-    (index : ChainValueIndex) :
-    index ∈ ReturnedChainValueCovered cache secretKey log chain ↔
-      index ∈ returnedChainValueIndices cache secretKey log chain := by
-  rw [returnedChainValueCovered_iff, mem_returnedChainValueIndices_iff]
-
 end XmssSecurity.TargetSum.CappedChain

@@ -148,72 +148,12 @@ theorem simulateQ_adversaryRun (impl : QueryImpl spec m) (cost : spec.Domain →
 
 variable [DecidableEq Msg] [DecidableEq Sig]
 
-/-- `gameCounted allHashes` simulated with `impl` is `game` simulated with the charging
-implementation, converting the cost. -/
-theorem simulateQ_gameCounted_allHashes (impl : QueryImpl spec m) (cost : spec.Domain → ℕ)
-    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
-    (adversary : SUFCMA.Adversary spec PK Msg Sig L) :
-    simulateQ impl (SUFCMA.gameCounted SUFCMA.CountingMode.allHashes cost scheme adversary) =
-      (fun r => (r.1, Multiplicative.toAdd r.2)) <$>
-        (simulateQ (impl.withAddCost cost) (SUFCMA.game scheme adversary)).run := by
-  have h₁ : SUFCMA.costIf SUFCMA.CountingMode.allHashes.keygen cost = cost := rfl
-  have h₂ : SUFCMA.costIf SUFCMA.CountingMode.allHashes.signer cost = cost := rfl
-  have h₃ : SUFCMA.costIf SUFCMA.CountingMode.allHashes.verifier cost = cost := rfl
-  have h₄ : (if SUFCMA.CountingMode.allHashes.requests then 1 else 0) = 0 := rfl
-  unfold SUFCMA.gameCounted SUFCMA.game
-  rw [h₁, h₂, h₃, h₄]
-  simp only [simulateQ_bind, simulateQ_charge, simulateQ_adversaryRun, WriterT.run_bind,
-    WriterT.run_pure, map_bind, bind_map_left, map_pure, simulateQ_pure, toAdd_mul, mul_one,
-    add_assoc]
-
 end sufcma
 
 section rom
 
 variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
   {PK SK Msg Sig : Type} {L : ℕ} [DecidableEq Msg] [DecidableEq Sig]
-
-/-- The experiment of the mode `allHashes` is the experiment of the total notion. -/
-theorem notion_allHashes_experiment_eq
-    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
-    (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
-    (SUFCMA.notion SUFCMA.CountingMode.allHashes).experiment scheme adversary =
-      SUFCMA.notionTotal.experiment scheme adversary := by
-  show RandomOracleModel.run (SUFCMA.gameCounted _ _ scheme adversary) =
-    RandomOracleModel.experiment (SUFCMA.game scheme adversary)
-  rw [RandomOracleModel.run, RandomOracleModel.experiment, RandomOracleModel.countedImpl,
-    simulateQ_gameCounted_allHashes, StateT.run'_map']
-  exact id_map _
-
-/-- The advantage of an adversary is the same in the mode `allHashes` and the total notion. -/
-theorem notion_allHashes_advantage_eq
-    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
-    (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) :
-    (SUFCMA.notion SUFCMA.CountingMode.allHashes).advantage scheme adversary =
-      SUFCMA.notionTotal.advantage scheme adversary := by
-  unfold SecurityNotion.advantage
-  rw [notion_allHashes_experiment_eq]
-
-/-- The query bounds of an adversary are the same in the mode `allHashes` and the total
-notion. -/
-theorem notion_allHashes_hasQueryBound_iff
-    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
-    (adversary : SUFCMA.Adversary (RandomOracleModel.World Input Output) PK Msg Sig L) (q : ℕ) :
-    (SUFCMA.notion SUFCMA.CountingMode.allHashes).HasQueryBound scheme adversary q ↔
-      SUFCMA.notionTotal.HasQueryBound scheme adversary q := by
-  unfold SecurityNotion.HasQueryBound
-  rw [notion_allHashes_experiment_eq]
-
-/-- The mode `allHashes` and the total notion give the same bit security. -/
-theorem notion_allHashes_hasClassicalSecurityBits_iff
-    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
-    (bits : ℕ) :
-    (SUFCMA.notion SUFCMA.CountingMode.allHashes).HasClassicalSecurityBits scheme bits ↔
-      SUFCMA.notionTotal.HasClassicalSecurityBits scheme bits := by
-  unfold SecurityNotion.HasClassicalSecurityBits
-  refine forall_congr' fun q => forall_congr' fun _ => forall_congr' fun adversary => ?_
-  rw [notion_allHashes_hasQueryBound_iff scheme adversary,
-    notion_allHashes_advantage_eq scheme adversary]
 
 end rom
 

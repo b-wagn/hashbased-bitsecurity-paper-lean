@@ -267,21 +267,8 @@ theorem signedNeighborExperiment_lower
         rw [hzero]
         simp
 
-theorem signedNeighborExperiment_exceeds_five_sixtyfourths
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
-    (request : SignRequest) (message : Message) (hne : message ≠ request.message) :
-    5 / 64 < Pr[= true | signedNeighborExperiment keyResult request message] := by
-  apply lt_of_lt_of_le _ (signedNeighborExperiment_lower keyResult hkey request message hne)
-  apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
-  norm_num [ENNReal.toReal_mul, ENNReal.toReal_div]
-
 /-- info: 'XmssSecurity.TargetSum.Attack.predecessorVerificationExperiment_probability' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms predecessorVerificationExperiment_probability
-
-/-- info: 'XmssSecurity.TargetSum.Attack.signedNeighborExperiment_exceeds_five_sixtyfourths' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms signedNeighborExperiment_exceeds_five_sixtyfourths
 
 end XmssSecurity.TargetSum.Attack

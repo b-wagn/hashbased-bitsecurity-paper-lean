@@ -4,7 +4,6 @@ import XmssSecurity.Proof.Common.QueryImplTrace
 
 open OracleComp OracleSpec ENNReal
 
-
 namespace XmssSecurity.Checksum.RevealProbeOracleSimulation
 
 variable {Index : Type} [Fintype Index] [DecidableEq Index]
@@ -244,10 +243,6 @@ def runObserved
           if value ∈ state.pending index then true
           else runObserved table (state.install index value) rest
 
-def ObservedHit
-    (result : (Index → Digest) × (α × ActionTrace Index)) : Prop :=
-  runObserved result.1 AdaptiveRevealMonitor.State.empty result.2.2 = true
-
 omit [DecidableEq Index] in
 theorem tableHits_extendTable_eq_true_iff
     (state : AdaptiveRevealMonitor.State Index) (hvalid : StateValid state)
@@ -389,15 +384,6 @@ def observedProbeCount : ActionTrace Index → Nat
   | [] => 0
   | .probe _ _ :: rest => (observedProbeCount rest).succ
   | .reveal _ _ :: rest => observedProbeCount rest
-
-def emitObservedTrace : ActionTrace Index → OracleComp (World Index) Unit
-  | [] => pure ()
-  | .probe index target :: rest => do
-      probeQuery index target
-      emitObservedTrace rest
-  | .reveal index _value :: rest => do
-      let _actualValue ← revealQuery index
-      emitObservedTrace rest
 
 def TraceAgrees (table : Index → Digest) : ActionTrace Index → Prop
   | [] => True

@@ -57,24 +57,6 @@ theorem countedSourceImpl_hashInputs_update (secretKey : SecretKey)
   simp only [countedSourceUpdate, AttackerActionTrace.hashInputs_append, List.length_append,
     attackerActionFragment_hashInputs_length]
 
-theorem countedSource_direct_eq_hashInputs {α : Type} (secretKey : SecretKey)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CountedSourceState)
-    (hstate : state.counts.direct = state.attackerTrace.hashInputs.length)
-    (result : α × CountedSourceState)
-    (hresult : result ∈ support ((simulateQ (countedSourceImpl secretKey) computation).run state)) :
-    result.2.counts.direct = result.2.attackerTrace.hashInputs.length := by
-  induction computation using OracleComp.inductionOn generalizing state result with
-  | pure value =>
-      simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
-      subst result
-      exact hstate
-  | query_bind input next ih =>
-      rw [Direct.run_simulateQ_query_bind, mem_support_bind_iff] at hresult
-      obtain ⟨head, hhead, htail⟩ := hresult
-      apply ih head.1 head.2 _ result htail
-      rw [countedSourceImpl_direct_eq secretKey input state head hhead,
-        countedSourceImpl_hashInputs_update secretKey input state head hhead, hstate]
-
 theorem globalExactTracedLift_hashInputs_update
     (table : GlobalChainValueIndex → Digest) (key : ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)

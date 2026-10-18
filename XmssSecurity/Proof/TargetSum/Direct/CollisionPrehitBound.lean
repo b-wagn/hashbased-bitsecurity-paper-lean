@@ -257,30 +257,6 @@ theorem collision_run_le_of_budget (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicK
         _ = _ := by
           split_ifs <;> ring
 
-theorem collision_run_le (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) {α : Type}
-    (terminal : α → QueryCache HashSpec → SigningCacheTrace → ℝ≥0∞)
-    (hterminal : ∀ value cache trace remaining, Inv q secretKey cache trace remaining →
-      terminal value cache trace ≤ potential q secretKey cache trace remaining)
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (remaining : ℕ)
-    (hbound : computation.IsQueryBoundP (IsDirectEncodingQuery secretKey.parameter) remaining)
-    (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
-    (hinv : Inv q secretKey cache trace remaining) :
-    ∑' result, Pr[= result | (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey
-        secretKey) computation).run (cache, trace)] *
-        terminal result.1 result.2.1 result.2.2 ≤
-      potential q secretKey cache trace remaining + collisionRate q *
-        expectedSimulatedQueryCount (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-          (IsDirectEncodingQuery secretKey.parameter) computation (cache, trace) :=
-  collision_run_le_of_budget hq publicKey terminal hterminal
-    (fun computation remaining _ =>
-      computation.IsQueryBoundP (IsDirectEncodingQuery secretKey.parameter) remaining)
-    (fun input next remaining _ hbound => by
-      change (liftM (OracleSpec.query input) >>= next).IsQueryBoundP _ _ at hbound
-      rw [isQueryBoundP_query_bind_iff] at hbound
-      exact ⟨fun hP => hbound.1.resolve_left (not_not.mpr hP),
-        fun mid _ => ⟨_, le_rfl, hbound.2 mid.1⟩⟩)
-    computation remaining cache trace hbound hinv
-
 /-! ### The game -/
 
 theorem leafPotential_of_empty {parameter : PublicParameter} {cache : QueryCache HashSpec}

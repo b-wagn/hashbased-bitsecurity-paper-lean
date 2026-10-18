@@ -55,20 +55,4 @@ theorem exactStatement_of_basis
       not_hasClassicalSecurityBits_of_le
         (by simp [CountingMode.Le, hnone.1, hnone.2.1, hnone.2.2]) xmss 123 ha122⟩
 
-/-- These six obligations are equivalent to the unchanged statement of the full conjecture. -/
-theorem exactStatement_iff_basis : (∀ mode : SUFCMA.CountingMode, (SUFCMA.notion mode).HasExactClassicalSecurityBits xmss (if mode.keygen || mode.signer || mode.verifier then 127 else 122)) ↔
-    (SUFCMA.notion CountingMode.direct).HasClassicalSecurityBits xmss 122 ∧
-    (SUFCMA.notion ⟨true, false, false, false⟩).HasClassicalSecurityBits xmss 127 ∧
-    (SUFCMA.notion ⟨false, true, false, false⟩).HasClassicalSecurityBits xmss 127 ∧
-    (SUFCMA.notion ⟨false, false, true, false⟩).HasClassicalSecurityBits xmss 127 ∧
-    ¬(SUFCMA.notion ⟨false, false, false, true⟩).HasClassicalSecurityBits xmss (122 + 1) ∧
-    ¬(SUFCMA.notion SUFCMA.CountingMode.everything).HasClassicalSecurityBits xmss (127 + 1) := by
-  constructor
-  · intro h
-    exact ⟨(h CountingMode.direct).1, (h ⟨true, false, false, false⟩).1,
-      (h ⟨false, true, false, false⟩).1, (h ⟨false, false, true, false⟩).1,
-      (h ⟨false, false, false, true⟩).2, (h CountingMode.everything).2⟩
-  · rintro ⟨hd, hk, hs, hv, ha122, ha127⟩
-    exact exactStatement_of_basis hd hk hs hv ha122 ha127
-
 end XmssSecurity.TargetSum.Modes

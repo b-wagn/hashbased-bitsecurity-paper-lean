@@ -11,12 +11,6 @@ open XmssSecurity.EUFCMA
 
 open Attack DeterministicSigning
 
-theorem memoize_replayMain (publicKey : PublicKey) :
-    memoize (replayMain publicKey) ∅ = replayMain publicKey := by
-  unfold replayMain
-  rw [memoize_request]
-  simp only [QueryCache.empty_apply, memoize_liftWorldToAdversary]
-
 theorem memoAdversary_replay : XmssSecurity.TargetSum.Seeded.memoAdversary replayAdversary = replayAdversary := by
   unfold XmssSecurity.TargetSum.Seeded.memoAdversary replayAdversary
   congr 1

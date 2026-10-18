@@ -68,54 +68,8 @@ theorem limitedFirstLanePrefix_returnedCovered {α : Type}
   globalFirstLaneAdversary_support_returnedCovered key table edgeHigh computation (value, result.2)
     (limitedFirstLanePrefix_success_support table limit key edgeHigh computation _ counters result value hresult hvalue)
 
-theorem limitedFirstLanePrefix_acceptedEncoding_implies_trace {α : Type}
-    (table : GlobalChainValueIndex → Digest) (limit : Nat) (key : ProgrammedGlobalChainKeygenView)
-    (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (counters : EncodingBudgetCounters)
-    (result : (Option (α × GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
-      ActionTrace GlobalChainValueIndex) (value : α × GlobalHighDirectTracedState)
-    (hresult : result ∈ support (simulateQ (eagerTraceImpl table)
-      (limitedFirstLanePrefix limit key edgeHigh computation
-        (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) counters)).run)
-    (hvalue : result.1.1 = some value)
-    (haccepted : HasAcceptedEncoding key.secretKey.parameter value.2.causalState.cache) :
-    TraceHasAcceptedEncoding result.2 := by
-  have horiginal := limitedFirstLanePrefix_success_support table limit key edgeHigh computation _ counters
-    result value hresult hvalue
-  have hgrowth := globalFirstLaneExactTraced_acceptedGrowth table key edgeHigh computation
-    (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) (value, result.2) horiginal
-  exact (hgrowth haccepted).resolve_left (globalFilteredCausalKeygenState_no_acceptedEncoding key hkey)
-
-def LimitedPrefixHasAcceptedEncoding {α : Type} (parameter : PublicParameter)
-    (result : (Option (α × GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
-      ActionTrace GlobalChainValueIndex) : Prop :=
-  ∃ value, result.1.1 = some value ∧ HasAcceptedEncoding parameter value.2.causalState.cache
-
-theorem limitedFirstLanePrefix_accepted_probability_le_expected {α : Type}
-    (table : GlobalChainValueIndex → Digest) (limit : Nat) (key : ProgrammedGlobalChainKeygenView)
-    (hkey : key ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (counters : EncodingBudgetCounters) :
-    Pr[LimitedPrefixHasAcceptedEncoding key.secretKey.parameter |
-      (simulateQ (eagerTraceImpl table) (limitedFirstLanePrefix limit key edgeHigh computation
-        (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) counters)).run] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount (eagerUnitImpl table) IsEncodingSample
-        (limitedFirstLanePrefix limit key edgeHigh computation
-          (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key)) counters) () := by
-  apply le_trans _ (traceEncodingAcceptance_probability_le_expected table _)
-  apply probEvent_mono
-  intro result hresult haccepted
-  obtain ⟨value, hvalue, haccepted⟩ := haccepted
-  exact limitedFirstLanePrefix_acceptedEncoding_implies_trace table limit key hkey edgeHigh computation
-    counters result value hresult hvalue haccepted
-
 /-- info: 'XmssSecurity.TargetSum.CappedChain.limitedFirstLanePrefix_success_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms limitedFirstLanePrefix_success_support
-
-/-- info: 'XmssSecurity.TargetSum.CappedChain.limitedFirstLanePrefix_accepted_probability_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms limitedFirstLanePrefix_accepted_probability_le_expected
 
 end XmssSecurity.TargetSum.CappedChain

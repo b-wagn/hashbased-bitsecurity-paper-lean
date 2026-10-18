@@ -33,10 +33,6 @@ theorem countHashQueries_bind {α β : Type} (first : OracleComp OracleWorld α)
       pure (b.1, a.2 + b.2)) :=
   QueryCounting.counted_bind (fun input : OracleWorld.Domain => input matches .inr _) first next
 
-theorem countHashQueries_map {α β : Type} (first : OracleComp OracleWorld α) (f : α → β) :
-    countHashQueries (f <$> first) = (fun result => (f result.1, result.2)) <$> countHashQueries first :=
-  QueryCounting.counted_map (fun input : OracleWorld.Domain => input matches .inr _) first f
-
 theorem probComp_support_nonempty {α : Type} (computation : ProbComp α) :
     (support computation).Nonempty := by
   induction computation using OracleComp.inductionOn with
@@ -50,18 +46,6 @@ theorem hashQueryBound_iff_run {α : Type} (computation : OracleComp OracleWorld
     HashQueryBound computation cache q ↔
       ∀ result ∈ support ((simulateQ romImpl (countHashQueries computation)).run cache), result.1.2 ≤ q := by
   simp only [HashQueryBound, StateT.run'_eq, support_map, Set.forall_mem_image]
-
-theorem hashQueryBound_map_iff {α β : Type} (computation : OracleComp OracleWorld α)
-    (f : α → β) (cache : QueryCache HashSpec) (q : Nat) :
-    HashQueryBound (f <$> computation) cache q ↔ HashQueryBound computation cache q := by
-  simp only [HashQueryBound, countHashQueries_map, simulateQ_map, StateT.run'_eq,
-    StateT.run_map, Functor.map_map, support_map, Set.forall_mem_image]
-
-theorem hashQueryBound_iff_of_map_eq {α β : Type} {first : OracleComp OracleWorld α}
-    {second : OracleComp OracleWorld β} {f : α → β} (heq : f <$> first = second)
-    (cache : QueryCache HashSpec) (q : Nat) :
-    HashQueryBound first cache q ↔ HashQueryBound second cache q := by
-  rw [← heq, hashQueryBound_map_iff]
 
 theorem hashQueryBound_bind {α β : Type} (first : OracleComp OracleWorld α)
     (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
@@ -84,41 +68,6 @@ theorem hashQueryBound_bind {α β : Type} (first : OracleComp OracleWorld α)
     ((simulateQ romImpl (countHashQueries (next result.1.1))).run result.2)
   exact ⟨(Nat.le_add_right _ _).trans (hsum tail htail), fun tail ht => by have := hsum tail ht; omega⟩
 
-theorem countHashQueries_lift_prob {α : Type} (computation : ProbComp α) :
-    countHashQueries (liftM computation : OracleComp OracleWorld α) =
-      (fun value => (value, 0)) <$> (liftM computation : OracleComp OracleWorld α) := by
-  induction computation using OracleComp.inductionOn with
-  | pure value => simp only [liftM_pure, countHashQueries_pure, map_pure]
-  | query_bind input next ih =>
-      rw [liftM_bind]
-      change countHashQueries (liftM (OracleWorld.query (.inl input)) >>= _) = _
-      simp only [countHashQueries_query_bind, ih, map_bind, bind_pure_comp, Functor.map_map]
-      rfl
-
-theorem hashQueryBound_of_sampling_bind {α β : Type} (first : ProbComp α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound ((liftM first : OracleComp OracleWorld α) >>= next) cache q)
-    (value : α) (hvalue : value ∈ support first) : HashQueryBound (next value) cache q := by
-  have hrun : ((value, 0), cache) ∈
-      support ((simulateQ romImpl (countHashQueries (liftM first : OracleComp OracleWorld α))).run cache) := by
-    rw [countHashQueries_lift_prob, simulateQ_map, StateT.run_map, romImpl,
-      QueryImpl.simulateQ_add_liftM_left, unifFwdImpl.simulateQ_run]
-    simp only [Functor.map_map, support_map]
-    exact ⟨value, hvalue, rfl⟩
-  exact (hashQueryBound_bind _ next cache q hbound _ hrun).2
-
-theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleWorld α) :
-    simulateQ romImpl (countHashQueries computation) = (simulateQ countedRomImpl computation).run := by
-  rw [countHashQueries, QueryCounting.simulate_withCost]
-  congr 2
-  funext input
-  cases input <;> rfl
-
-theorem hasHashQueryBound_iff {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) :
-    HasHashQueryBound scheme adversary q ↔ HashQueryBound (gameCore scheme adversary) ∅ q := by
-  simp only [HasHashQueryBound, HashQueryBound, simulateQ_countHashQueries]
-  rfl
-
 theorem countHashQueries_forget {α : Type} (computation : OracleComp OracleWorld α) :
     Prod.fst <$> countHashQueries computation = computation :=
   QueryCounting.counted_forget _ computation
@@ -136,23 +85,6 @@ theorem HashQueryBound.mono {α : Type} {computation : OracleComp OracleWorld α
     {cache : QueryCache HashSpec} {q r : Nat} (hbound : HashQueryBound computation cache q)
     (hle : q ≤ r) : HashQueryBound computation cache r :=
   fun result hr => (hbound result hr).trans hle
-
-theorem hashQueryBound_bind_run {α β : Type} (first : OracleComp OracleWorld α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (first >>= next) cache q) (result : α × QueryCache HashSpec)
-    (hr : result ∈ support ((simulateQ romImpl first).run cache)) :
-    ∃ cost, cost ≤ q ∧ HashQueryBound (next result.1) result.2 (q - cost) := by
-  rw [← countHashQueries_run_forget first cache, support_map] at hr
-  obtain ⟨record, hrecord, rfl⟩ := hr
-  exact ⟨record.1.2, hashQueryBound_bind first next cache q hbound record hrecord⟩
-
-theorem hashQueryBound_bind_right {α β : Type} (first : OracleComp OracleWorld α)
-    (next : α → OracleComp OracleWorld β) (cache : QueryCache HashSpec) (q : Nat)
-    (hbound : HashQueryBound (first >>= next) cache q) (result : α × QueryCache HashSpec)
-    (hr : result ∈ support ((simulateQ romImpl first).run cache)) :
-    HashQueryBound (next result.1) result.2 q := by
-  obtain ⟨cost, _, hnext⟩ := hashQueryBound_bind_run first next cache q hbound result hr
-  exact hnext.mono (Nat.sub_le _ _)
 
 theorem hashQueryBound_query_bind {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α) (cache : QueryCache HashSpec) (q : Nat)

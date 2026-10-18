@@ -60,30 +60,4 @@ theorem capped_detailed_execution_verified_leaf_cached
     forgery.epoch forgery.message forgery.signature adversaryCache finalCache finalCache
     hverify le_rfl
 
-theorem capped_detailed_execution_verified_leaf_cached_as
-    (adversary : Adversary)
-    (execution : GameOutcome × QueryCache HashSpec)
-    (hgame : execution ∈ support
-      (detailedGameWithCache Concrete.scheme adversary))
-    (encoding : Encoding) (hverified : execution.1.verified = true)
-    (hdecode : TargetSum.decodeDigest
-      (Concrete.CacheView.encodingHash execution.2 execution.1.secretKey.parameter
-        execution.1.forgery.epoch
-        (execution.1.forgery.message, execution.1.forgery.signature.randomness)) =
-        some encoding) :
-    ∃ output, execution.2
-      (Concrete.CacheView.leafInput execution.1.secretKey.parameter
-        execution.1.forgery.epoch
-        (recoveredEndpoints
-          (fun chain => Concrete.CacheView.chainStep execution.2
-            execution.1.secretKey.parameter execution.1.forgery.epoch chain)
-          encoding execution.1.forgery.signature.chainValue)) = some output := by
-  obtain ⟨actualEncoding, output, hactualDecode, hcached⟩ :=
-    capped_detailed_execution_verified_leaf_cached adversary execution hgame hverified
-  have hencoding : actualEncoding = encoding := by
-    rw [hdecode] at hactualDecode
-    exact Option.some.inj hactualDecode.symm
-  subst actualEncoding
-  exact ⟨output, hcached⟩
-
 end XmssSecurity.TargetSum

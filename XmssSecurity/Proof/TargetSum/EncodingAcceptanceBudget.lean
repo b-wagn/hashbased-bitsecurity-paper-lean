@@ -111,12 +111,6 @@ theorem not_hasAcceptedEncoding_of_no_encodingInputs
       rw [hempty] at hcached
       contradiction
 
-theorem Concrete.keygen_no_acceptedEncoding
-    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
-    (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.keygen).run ∅)) :
-    ¬HasAcceptedEncoding keyResult.1.2.parameter keyResult.2 :=
-  not_hasAcceptedEncoding_of_no_encodingInputs _ _ (keygen_cache_none_encodingInput keyResult hkey)
-
 theorem Concrete.precomputedKeygen_no_acceptedEncoding
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.precomputedKeygen).run ∅)) :
@@ -136,39 +130,8 @@ theorem hasAcceptedEncoding_of_decode
     output, hcached, by simp, encoding, ?_⟩
   simpa [Concrete.CacheView.encodingHash, Concrete.CacheView.digestAt, hcached] using hdecode
 
-theorem Concrete.precomputedCappedSign_hasAcceptedEncoding_of_success
-    (secretKey : SecretKey) (request : SignRequest)
-    (initialCache finalCache : QueryCache HashSpec) (signature : Signature)
-    (hmem : (some signature, finalCache) ∈ support ((simulateQ romImpl
-      (precomputedCappedSign secretKey request.epoch request.message)).run initialCache)) :
-    HasAcceptedEncoding secretKey.parameter finalCache := by
-  obtain ⟨encoding, hdecode⟩ := precomputedCappedSign_success_decode secretKey request
-    initialCache finalCache signature hmem
-  exact hasAcceptedEncoding_of_decode _ _ _ _ _ _ hdecode
-
-theorem Concrete.precomputedCappedSign_success_le_expectedEncodingQueries
-    (secretKey : SecretKey) (request : SignRequest) (cache : QueryCache HashSpec)
-    (hcache : ¬HasAcceptedEncoding secretKey.parameter cache) :
-    Pr[fun result : Option Signature × QueryCache HashSpec => result.1 ≠ none |
-      (simulateQ romImpl (precomputedCappedSign secretKey request.epoch request.message)).run cache] ≤
-      TargetSum.acceptanceProbability * expectedSimulatedQueryCount romImpl
-        (CappedEncodingMonitor.IsEncodingHashQuery secretKey.parameter)
-        (precomputedCappedSign secretKey request.epoch request.message) cache := by
-  apply le_trans _ (probEvent_hasAcceptedEncoding_le_expectedQueries _ _ _ hcache)
-  apply probEvent_mono
-  rintro ⟨result, finalCache⟩ hresult hsuccess
-  cases result with
-  | none => exact (hsuccess rfl).elim
-  | some signature =>
-      exact precomputedCappedSign_hasAcceptedEncoding_of_success secretKey request cache
-        finalCache signature hresult
-
 /-- info: 'XmssSecurity.TargetSum.probEvent_hasAcceptedEncoding_le_expectedQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms probEvent_hasAcceptedEncoding_le_expectedQueries
-
-/-- info: 'XmssSecurity.TargetSum.Concrete.precomputedCappedSign_success_le_expectedEncodingQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms Concrete.precomputedCappedSign_success_le_expectedEncodingQueries
 
 end XmssSecurity.TargetSum

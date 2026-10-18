@@ -138,13 +138,6 @@ theorem notion_direct_hasClassicalSecurityBits_iff (bits : ℕ) :
     exact (notion_direct_advantage_eq scheme adversary).trans_le
       (h q hq adversary ((notion_direct_hasQueryBound_iff scheme adversary q).1 hbound))
 
-/-- Exact classical security bits agree between the direct mode and the legacy direct notion. -/
-theorem notion_direct_hasExactClassicalSecurityBits_iff (bits : ℕ) :
-    (notion CountingMode.direct).HasExactClassicalSecurityBits scheme bits ↔
-      notionDirect.HasExactClassicalSecurityBits scheme bits := by
-  unfold SecurityNotion.HasExactClassicalSecurityBits
-  rw [notion_direct_hasClassicalSecurityBits_iff, notion_direct_hasClassicalSecurityBits_iff]
-
 end RandomOracleModel
 
 end XmssSecurity.Modes

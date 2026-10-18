@@ -89,10 +89,6 @@ theorem validEntries_subset_entries :
     validEntries parameter cache leafIndex ⊆ entries parameter cache leafIndex :=
   fun _ hentry => (mem_validEntries.mp hentry).mem_entries
 
-theorem decodableAt_iff_isValid {message : Message} {randomness : Randomness} :
-    DecodableAt parameter leafIndex message cache randomness ↔
-      IsValid parameter cache leafIndex (message, randomness) := Iff.rfl
-
 theorem card_validRandomizers_le_ncard_validEntries (message : Message) :
     (validRandomizers parameter cache leafIndex message).card ≤
       (validEntries parameter cache leafIndex).ncard := by

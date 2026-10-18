@@ -66,17 +66,6 @@ theorem signingDerivationCache_randomizer (seed : MasterSeed) (parameterOutput :
       (randomizerInputs (truncateHash parameterOutput) seed position) = some (randomizers position) :=
   cacheTable_apply _ _ (randomizerInputs_injective _ _) _ _
 
-theorem signingDerivationCache_agreeOutside (seed : MasterSeed) (parameterOutput : HashOutput)
-    (outputs : ChainOutputs) (randomizers : RandomizerOutputs) :
-    AgreeOutside (fun input => SeedHit input seed)
-      (signingDerivationCache seed parameterOutput outputs randomizers) ∅ := by
-  intro input hinput
-  unfold signingDerivationCache
-  rw [cacheTable_apply_of_not_mem]
-  · exact derivationCache_of_not_seedHit seed parameterOutput outputs input hinput
-  · intro position heq
-    exact hinput (heq.symm ▸ derivationSeedHit_randomizer (truncateHash parameterOutput) seed position.1.epoch position.1.message position.2)
-
 noncomputable def prepareRandomizers (parameter : PublicParameter) (seed : MasterSeed) :
     OracleComp HashSpec RandomizerOutputs := queryTable (randomizerInputs parameter seed)
 

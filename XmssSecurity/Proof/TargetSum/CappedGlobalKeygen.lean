@@ -49,7 +49,6 @@ theorem globalChainInputProbe?_chainInput
   · rename_i h
     exact (h ⟨(leafIndex, chain, step, value), rfl⟩).elim
 
-
 abbrev GlobalChainEdgeIndex := ChainIndex × ChainEdgeIndex
 
 noncomputable local instance globalPresamplingSampleableTable :
@@ -286,7 +285,6 @@ theorem evalDist_actualGlobalChainKeygen_eq_explicit :
         OracleComp HashSpec Digest)
   rw [htree]
 
-
 noncomputable def globalChainEdgeHighTableOfCache
     (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (table : GlobalChainValueIndex → Digest) :
@@ -327,7 +325,6 @@ theorem globalChainEdgeHighTableOfCache_mono
   obtain ⟨output, hcache, _htarget⟩ := hmatches edge
   have hlarger := hle hcache
   simp [globalChainEdgeHighTableOfCache, hcache, hlarger]
-
 
 abbrev GlobalChainEdgeOutputTable := GlobalChainEdgeIndex → HashOutput
 
@@ -434,15 +431,6 @@ theorem globalChainEdgeOutputTableOfTape_map
       (globalTrajectoryEdgeOrder.map table) = table :=
   finiteTableOfTape_map globalTrajectoryEdgeOrder
     globalTrajectoryEdgeOrder_nodup mem_globalTrajectoryEdgeOrder table
-
-theorem evalDist_globalChainEdgeOutputTableOfTape_drawList_eq_uniform :
-    evalDist (globalChainEdgeOutputTableOfTape <$>
-      OracleComp.drawList ($ᵗ HashOutput)
-        globalTrajectoryEdgeOrder.length) =
-    (liftM (PMF.uniformOfFintype GlobalChainEdgeOutputTable) :
-      SPMF GlobalChainEdgeOutputTable) :=
-  evalDist_finiteTableOfTape_drawList_eq_uniform globalTrajectoryEdgeOrder
-    globalTrajectoryEdgeOrder_nodup mem_globalTrajectoryEdgeOrder
 
 noncomputable local instance outputTableSampleable :
     SampleableType GlobalChainEdgeOutputTable :=
@@ -657,7 +645,6 @@ theorem evalDist_globalChainKeygenRandomnessView_eq_independent :
         evalDist_uniformGlobalChainKeygenRandomness_eq_uniform,
         ← evalDist_map]
     _ = _ := evalDist_uniformGlobalChainKeygenRandomness_eq_independent
-
 
 abbrev AllChainTrajectories := ChainIndex → List FullChainTrajectory
 
@@ -2029,7 +2016,6 @@ theorem evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories :
         programmedAllChainTrajectoryKeygen) := by
       rw [evalDist_map, evalDist_allChainTrajectoryKeygen_eq_programmed,
         ← evalDist_map]
-
 
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_avoids_leaf
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)

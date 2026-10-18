@@ -19,10 +19,6 @@ noncomputable local instance : SampleableType RandomizerOutputs := randomizerOut
 
 noncomputable def sampleRequestTapes : ProbComp RequestTapes := $ᵗ RequestTapes
 
-theorem evalDist_curry_randomizers :
-    𝒟[Equiv.curry SignRequest Trial HashOutput <$> sampleRandomizerOutputs] = 𝒟[sampleRequestTapes] :=
-  evalDist_map_bijective_uniform_cross (α := RandomizerOutputs) (β := RequestTapes) _ (Equiv.curry SignRequest Trial HashOutput).bijective
-
 variable {m : Type → Type} [Monad m] [LawfulMonad m] [HasQuery HashSpec m]
 
 omit [LawfulMonad m] in

@@ -72,44 +72,6 @@ theorem phaseCounts_weighted_projection {α : Type}
   map_run_simulateQ_eq_of_query_map_eq _ _ _
     (phaseCountsImpl_weighted_projection signing weight) computation state
 
-theorem weightedPhaseCostImpl_one
-    (signing : SignRequest → OracleComp OracleWorld (Option Signature)) :
-    weightedPhaseCostImpl 1 signing =
-      worldHandler costHash + fun request => simulateQ (worldHandler costHash) (signing request) := by
-  funext input
-  cases input with
-  | inl input => rfl
-  | inr request =>
-      funext state
-      exact chargedSigning_one (signing request) state
-
-theorem phaseCounts_fullHashCount_projection {α : Type}
-    (signing : SignRequest → OracleComp OracleWorld (Option Signature))
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : PhaseCounts) :
-    (fun result => (result.1, result.2.cache, result.2.direct + result.2.signing)) <$>
-      (simulateQ (phaseCountsImpl signing) computation).run state =
-        (simulateQ (worldHandler costHash) (runWorldSigning signing computation)).run
-          (state.cache, state.direct + state.signing) := by
-  have h := phaseCounts_weighted_projection signing 1 computation state
-  rw [weightedPhaseCostImpl_one, ← simulateQ_runWorldSigning] at h
-  have hproject : Prod.map (id : α → α) (PhaseCounts.weighted 1) =
-      fun result => (result.1, result.2.cache, result.2.direct + result.2.signing) := by
-    funext result
-    simp only [Prod.map, PhaseCounts.weighted, Nat.one_mul, id_eq]
-  rw [hproject] at h
-  simpa only [PhaseCounts.weighted, Nat.one_mul] using h
-
-theorem phaseCounts_cache_projection {α : Type}
-    (signing : SignRequest → OracleComp OracleWorld (Option Signature))
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (state : PhaseCounts) :
-    (fun result => (result.1, result.2.cache)) <$>
-      (simulateQ (phaseCountsImpl signing) computation).run state =
-        (simulateQ romImpl (runWorldSigning signing computation)).run state.cache := by
-  have h := congrArg (fun execution => (fun result => (result.1, result.2.1)) <$> execution)
-    (phaseCounts_fullHashCount_projection signing computation state)
-  rw [run_costWorld] at h
-  simpa only [Functor.map_map, countHashQueries_run_forget] using h
-
 noncomputable def referencePhaseCountsImpl (secretKey : XmssSecurity.TargetSum.SecretKey) :
     QueryImpl (OracleWorld + SigningSpec) (StateT PhaseCounts ProbComp) :=
   phaseCountsImpl (fun request =>
@@ -126,9 +88,5 @@ theorem referencePhaseCounts_cost_projection {α : Type}
 /-- info: 'XmssSecurity.TargetSum.Seeded.phaseCounts_weighted_projection' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms phaseCounts_weighted_projection
-
-/-- info: 'XmssSecurity.TargetSum.Seeded.phaseCounts_fullHashCount_projection' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms phaseCounts_fullHashCount_projection
 
 end XmssSecurity.TargetSum.Seeded
