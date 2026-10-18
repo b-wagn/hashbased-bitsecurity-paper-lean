@@ -1,4 +1,8 @@
-import XmssSecurity.Proof.TargetSum.EUFCMA.Exact
+import XmssSecurity.Proof.TargetSum.Scheme.Xmss
+import XmssSecurity.Statement.Security.EUFCMA
+import XmssSecurity.Proof.Common.EUFCMA.Modes
+import XmssSecurity.Proof.TargetSum.Modes.Exact
+import XmssSecurity.Proof.Common.Legacy.PerModeNotionsEUFCMA
 
 /-! Five minimal security modes and two attacks characterize all sixteen
 standard-unforgeability modes: direct-only has 126 bits, all others have 127. -/

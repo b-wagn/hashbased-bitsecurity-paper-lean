@@ -1,4 +1,5 @@
-import XmssSecurity.Proof.TargetSum.Attack.MutationProbability
+import XmssSecurity.Proof.TargetSum.Attack.MutationPathCache
+import XmssSecurity.Proof.TargetSum.Attack.PathBounds
 
 /-! Signing only adds encoding inputs, preserving the cache on the mutation path. -/
 

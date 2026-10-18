@@ -1,7 +1,11 @@
-import XmssSecurity.Proof.TargetSum.Modes.SignerCachedLoss
+import XmssSecurity.Proof.TargetSum.Modes.SignerClassBudget
+import XmssSecurity.Proof.TargetSum.Direct.SourceLossBudget
+import XmssSecurity.Proof.TargetSum.Modes.SignerSourceBudget
+import XmssSecurity.Proof.TargetSum.Direct.LimitedPrefixCoupling
+import XmssSecurity.Proof.TargetSum.Direct.LimitedAcceptedProbe
 import XmssSecurity.Proof.TargetSum.Direct.SourceEncodingReserve
 import XmssSecurity.Proof.TargetSum.Direct.CachedEncodingCost
-import XmssSecurity.Proof.TargetSum.Direct.LimitedAcceptanceTransfer
+import XmssSecurity.Proof.TargetSum.Direct.SourcePrefixAcceptance
 
 /-! The signer-counted budget pays for the source-side secondary losses and the encoding
 reserve. -/

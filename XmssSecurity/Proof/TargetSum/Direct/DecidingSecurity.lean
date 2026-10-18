@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.TargetSum.Direct.DecidingFirstLaneBridge
-import XmssSecurity.Proof.TargetSum.Direct.DecidingAssemble
+import XmssSecurity.Proof.TargetSum.Direct.DecidingFirstLane
+import XmssSecurity.Proof.TargetSum.Direct.Bridge
+import XmssSecurity.Proof.TargetSum.Direct.SeedGuessing
 import XmssSecurity.Proof.TargetSum.Direct.CollisionLoss
 
 /-! The completed 122-bit direct-query security proof. -/

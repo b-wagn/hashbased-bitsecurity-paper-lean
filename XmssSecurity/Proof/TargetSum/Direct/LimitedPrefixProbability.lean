@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.TargetSum.Direct.LimitedFirstLaneExpected
+import XmssSecurity.Proof.TargetSum.Direct.LimitedAcceptedProbe
 
 /-! Bound collisions and the conditional deciding probe in the complete limited
 prefix experiment, including its runs after a collision. -/

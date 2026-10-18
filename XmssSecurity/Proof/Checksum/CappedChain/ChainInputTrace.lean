@@ -1,6 +1,6 @@
 import XmssSecurity.Proof.Checksum.CappedChain.EncodingQueryBound
 import XmssSecurity.Proof.Checksum.ChainInputTrace
-import XmssSecurity.Proof.Common.QueryBoundSupport
+import VCVio.OracleComp.QueryTracking.QueryBound
 
 open OracleComp OracleSpec
 

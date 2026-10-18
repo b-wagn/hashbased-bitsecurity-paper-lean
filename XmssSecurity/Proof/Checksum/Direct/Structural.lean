@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.Checksum.Direct.Basic
-import XmssSecurity.Proof.Checksum.CappedJointExactLoss
+import XmssSecurity.Proof.Checksum.CappedEncodingPrehitExpectedBound
+import XmssSecurity.Proof.Checksum.CappedUnifiedExpectedDigest
+import XmssSecurity.Proof.Checksum.LossDecomposition
 
 /-!
 # The structural-collision term under a direct query bound

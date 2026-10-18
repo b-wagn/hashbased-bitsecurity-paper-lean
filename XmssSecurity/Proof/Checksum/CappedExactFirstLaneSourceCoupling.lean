@@ -1,4 +1,6 @@
-import XmssSecurity.Proof.Checksum.CappedExactFirstLane
+import XmssSecurity.Proof.Checksum.CappedEncodingPrehitExpectedBound
+import XmssSecurity.Proof.Checksum.CappedUnifiedExpectedDigest
+import XmssSecurity.Proof.Checksum.LossDecomposition
 import XmssSecurity.Proof.Checksum.CappedGlobalFirstLaneExperiment
 import XmssSecurity.Proof.Common.StateLens
 import VCVio.OracleComp.SimSemantics.StateT.StateProjection

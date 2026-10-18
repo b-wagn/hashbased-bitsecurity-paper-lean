@@ -1,8 +1,9 @@
 import XmssSecurity.Proof.Checksum.CappedGlobalKeygen
 import XmssSecurity.Proof.Checksum.CappedGlobalTreeCacheCorrespondence
-import XmssSecurity.Proof.Checksum.CappedChain.ChainTracedGame
+import XmssSecurity.Proof.Checksum.CappedChain.ChainInputTrace
 import XmssSecurity.Proof.Checksum.PrecomputedKeygenCache
-import XmssSecurity.Proof.Checksum.CappedGlobalChainOrigin
+import XmssSecurity.Proof.Checksum.CappedChain.ChainEventDecomposition
+import XmssSecurity.Proof.Checksum.WinningEventReduction
 import XmssSecurity.Proof.Checksum.CappedChain.ChainRevealFiltering
 import XmssSecurity.Proof.Checksum.CappedChain.SignatureChainValue
 import XmssSecurity.Proof.Checksum.RevealProbeOracleSimulation

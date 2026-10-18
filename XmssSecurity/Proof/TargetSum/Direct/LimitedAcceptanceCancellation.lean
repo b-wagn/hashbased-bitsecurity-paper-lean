@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.TargetSum.AcceptedEventCoupling
-import XmssSecurity.Proof.TargetSum.Direct.LimitedAcceptanceTransfer
+import XmssSecurity.Proof.TargetSum.Direct.SourcePrefixAcceptance
 
 /-! Transfer the winning and acceptance events through the same limited-prefix
 coupling. Collisions on rejected source prefixes cancel their extra probe charge. -/

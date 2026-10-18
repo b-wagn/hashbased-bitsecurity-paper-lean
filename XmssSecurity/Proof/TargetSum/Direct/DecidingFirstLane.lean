@@ -1,6 +1,7 @@
 import XmssSecurity.Proof.TargetSum.Direct.DecidingRevealed
 import XmssSecurity.Proof.TargetSum.Direct.DecidingSecondLane
-import XmssSecurity.Proof.TargetSum.Direct.FirstLane
+import XmssSecurity.Proof.TargetSum.CappedExactFirstLaneBound
+import XmssSecurity.Proof.TargetSum.Direct.Basic
 import XmssSecurity.Proof.TargetSum.Direct.Prehit
 
 /-!

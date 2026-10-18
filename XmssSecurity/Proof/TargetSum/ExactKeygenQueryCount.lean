@@ -2,7 +2,7 @@ import XmssSecurity.Proof.TargetSum.ExactQueryCount
 import XmssSecurity.Proof.TargetSum.CacheReplayEval
 import XmssSecurity.Proof.TargetSum.DetailedExecution
 import XmssSecurity.Proof.TargetSum.CappedChain.EncodingQueryBound
-import XmssSecurity.Proof.Common.QueryBoundSupport
+import VCVio.OracleComp.QueryTracking.QueryBound
 import XmssSecurity.Proof.TargetSum.IdealStatement
 import XmssSecurity.Proof.TargetSum.StatementLemmas
 import VCVio.OracleComp.QueryTracking.SubSpec

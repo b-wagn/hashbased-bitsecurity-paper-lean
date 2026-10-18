@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.TargetSum.CappedEncodingQueryBound
-import XmssSecurity.Proof.Common.EncodingQueryAccounting
+import VCVio.OracleComp.QueryTracking.SubSpec
 
 open OracleComp OracleSpec
 

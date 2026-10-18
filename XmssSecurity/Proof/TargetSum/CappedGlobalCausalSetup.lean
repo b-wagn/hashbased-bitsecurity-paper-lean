@@ -1,8 +1,9 @@
 import XmssSecurity.Proof.TargetSum.CappedGlobalKeygen
 import XmssSecurity.Proof.TargetSum.CappedGlobalTreeCacheCorrespondence
-import XmssSecurity.Proof.TargetSum.CappedChain.ChainTracedGame
+import XmssSecurity.Proof.TargetSum.CappedChain.ChainInputTrace
 import XmssSecurity.Proof.TargetSum.PrecomputedKeygenCache
-import XmssSecurity.Proof.TargetSum.CappedGlobalChainOrigin
+import XmssSecurity.Proof.TargetSum.CappedChain.ChainEventDecomposition
+import XmssSecurity.Proof.TargetSum.WinningEventReduction
 import XmssSecurity.Proof.TargetSum.CappedChain.ChainRevealFiltering
 import XmssSecurity.Proof.TargetSum.CappedChain.SignatureChainValue
 import XmssSecurity.Proof.TargetSum.RevealProbeOracleSimulation

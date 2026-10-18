@@ -1,4 +1,5 @@
-import XmssSecurity.Proof.TargetSum.Direct.SourceTerminalRejection
+import XmssSecurity.Proof.TargetSum.Direct.SourceBudgetExhaustion
+import XmssSecurity.Proof.TargetSum.Direct.MixedFirstLane
 import XmssSecurity.Proof.TargetSum.Direct.SourceSigningCost
 
 /-! The public first-lane state can recognize a rejecting last nonencoding query.

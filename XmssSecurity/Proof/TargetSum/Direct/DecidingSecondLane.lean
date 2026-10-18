@@ -2,7 +2,10 @@ import XmssSecurity.Proof.TargetSum.Direct.DecidingCollision
 import XmssSecurity.Proof.TargetSum.Direct.DecidingVerifierCount
 import XmssSecurity.Proof.TargetSum.Direct.ForgedEncodingQuery
 import XmssSecurity.Proof.TargetSum.Direct.Structural
-import XmssSecurity.Proof.TargetSum.CappedGlobalCollisionProbability
+import XmssSecurity.Proof.TargetSum.GlobalBadEvent
+import XmssSecurity.Proof.TargetSum.CappedSuffixEventProbability
+import XmssSecurity.Proof.TargetSum.CappedMerkleEventProbability
+import XmssSecurity.Proof.TargetSum.ExpectedAdaptiveFreshTarget
 
 /-!
 # The second lane of the 122-bit direct-mode proof

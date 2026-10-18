@@ -1,6 +1,9 @@
-import XmssSecurity.Proof.Checksum.CappedGlobalCollisionProbability
+import XmssSecurity.Proof.Checksum.GlobalBadEvent
+import XmssSecurity.Proof.Checksum.CappedSuffixEventProbability
+import XmssSecurity.Proof.Checksum.CappedMerkleEventProbability
+import XmssSecurity.Proof.Checksum.ExpectedAdaptiveFreshTarget
 import XmssSecurity.Proof.Checksum.CappedLeafEventProbability
-import XmssSecurity.Proof.Checksum.GlobalWinningChainValueRevealed
+import XmssSecurity.Proof.Checksum.CappedChain.ChainEventDecomposition
 
 open OracleComp OracleSpec ENNReal
 

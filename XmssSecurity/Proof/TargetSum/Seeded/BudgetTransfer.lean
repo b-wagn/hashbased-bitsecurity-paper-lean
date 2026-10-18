@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.TargetSum.Seeded.GameComparison
+import XmssSecurity.Proof.TargetSum.Seeded.HashTrace
 
 open OracleComp OracleSpec ENNReal
 

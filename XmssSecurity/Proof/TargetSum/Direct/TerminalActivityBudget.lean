@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.TargetSum.Direct.TerminalQuiescence
+import XmssSecurity.Proof.TargetSum.Direct.TerminalPrunedPrefix
 import XmssSecurity.Proof.TargetSum.Direct.CachedEncodingCost
 
 /-! A terminal-pruned execution can spend its last direct-query unit only after

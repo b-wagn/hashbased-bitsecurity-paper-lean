@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.Checksum.Direct.DecidingFirstLaneBridge
-import XmssSecurity.Proof.Checksum.Direct.DecidingAssemble
+import XmssSecurity.Proof.Checksum.Direct.DecidingFirstLane
+import XmssSecurity.Proof.Checksum.Direct.Bridge
+import XmssSecurity.Proof.Checksum.Direct.SeedGuessing
 
 /-! The completed 122-bit direct-query security proof. -/
 

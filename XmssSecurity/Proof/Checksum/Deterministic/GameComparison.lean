@@ -1,4 +1,5 @@
-import XmssSecurity.Proof.Checksum.Deterministic.KeygenBudget
+import XmssSecurity.Proof.Checksum.Seeded.BudgetTransfer
+import XmssSecurity.Proof.Checksum.Deterministic.GameExpansion
 
 open OracleComp OracleSpec ENNReal
 

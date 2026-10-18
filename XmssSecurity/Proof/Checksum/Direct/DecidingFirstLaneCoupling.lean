@@ -1,4 +1,5 @@
-import XmssSecurity.Proof.Checksum.Direct.FirstLane
+import XmssSecurity.Proof.Checksum.CappedExactFirstLaneBound
+import XmssSecurity.Proof.Checksum.Direct.Basic
 
 /-!
 # First-lane coupling stopped before verification

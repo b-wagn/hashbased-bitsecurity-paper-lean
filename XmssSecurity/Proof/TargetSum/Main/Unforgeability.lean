@@ -2,7 +2,11 @@ import XmssSecurity.Proof.Common.Modes.QueryKinds
 import XmssSecurity.Proof.TargetSum.Main.StrongUnforgeability
 import XmssSecurity.Proof.Common.EUFCMA.Reduction
 import XmssSecurity.Proof.TargetSum.EUFCMA.NeighborAttack
-import XmssSecurity.Proof.TargetSum.EUFCMA.Exact
+import XmssSecurity.Proof.TargetSum.Scheme.Xmss
+import XmssSecurity.Statement.Security.EUFCMA
+import XmssSecurity.Proof.Common.EUFCMA.Modes
+import XmssSecurity.Proof.TargetSum.Modes.Exact
+import XmssSecurity.Proof.Common.Legacy.PerModeNotionsEUFCMA
 import XmssSecurity.Proof.TargetSum.EUFCMA.DirectBridge
 import XmssSecurity.Proof.TargetSum.EUFCMA.FreshAcceptancePrefix
 import XmssSecurity.Proof.TargetSum.EUFCMA.ReferenceHop

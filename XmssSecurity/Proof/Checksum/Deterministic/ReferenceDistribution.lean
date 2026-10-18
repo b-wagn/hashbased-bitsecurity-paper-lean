@@ -1,5 +1,5 @@
 import XmssSecurity.Proof.Checksum.Deterministic.TableToReference
-import XmssSecurity.Proof.Checksum.Seeded.GameComparison
+import XmssSecurity.Proof.Checksum.Seeded.HashTrace
 
 open OracleComp OracleSpec ENNReal
 

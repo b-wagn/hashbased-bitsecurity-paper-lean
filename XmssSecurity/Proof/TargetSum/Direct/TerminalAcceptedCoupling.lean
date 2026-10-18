@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.TargetSum.Direct.TerminalPrunedCoupling
+import XmssSecurity.Proof.TargetSum.Direct.TerminalPrunedPrefix
 
 /-! The terminal cut preserves the accepted-prefix cancellation coupling: every
 cached first-lane witness still produces a hit, and a cut performs no deciding probe. -/

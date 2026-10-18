@@ -1,4 +1,5 @@
-import XmssSecurity.Proof.TargetSum.UnifiedBadEvent
+import XmssSecurity.Proof.TargetSum.CappedEncodingEventProbability
+import XmssSecurity.Proof.TargetSum.CappedUnifiedStructuralCollision
 
 open OracleComp OracleSpec ENNReal
 

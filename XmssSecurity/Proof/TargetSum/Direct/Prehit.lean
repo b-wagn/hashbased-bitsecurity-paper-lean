@@ -1,4 +1,6 @@
-import XmssSecurity.Proof.TargetSum.CappedJointExactLoss
+import XmssSecurity.Proof.TargetSum.CappedEncodingPrehitExpectedBound
+import XmssSecurity.Proof.TargetSum.CappedUnifiedExpectedDigest
+import XmssSecurity.Proof.TargetSum.LossDecomposition
 import XmssSecurity.Proof.TargetSum.Direct.Basic
 
 /-!

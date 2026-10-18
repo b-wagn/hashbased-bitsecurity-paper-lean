@@ -1,4 +1,5 @@
-import XmssSecurity.Proof.Checksum.CappedChain.ChainOriginProbability
+import XmssSecurity.Proof.Checksum.CappedChain.ChainEventDecomposition
+import XmssSecurity.Proof.Checksum.WinningEventReduction
 
 open OracleSpec
 

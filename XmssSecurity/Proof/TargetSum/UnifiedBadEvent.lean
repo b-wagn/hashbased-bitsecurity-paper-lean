@@ -1,8 +1,0 @@
-import XmssSecurity.Proof.TargetSum.CappedEncodingEventProbability
-import XmssSecurity.Proof.TargetSum.CappedUnifiedStructuralCollision
-
-open OracleComp OracleSpec
-
-namespace XmssSecurity.TargetSum
-
-end XmssSecurity.TargetSum
