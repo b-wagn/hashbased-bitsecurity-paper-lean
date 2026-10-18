@@ -17,24 +17,6 @@ theorem validDigests_card : Generic.Code.validDigests.card = 2 ^ digestBits := b
   rw [huniv, Finset.card_univ]
   simp
 
-/-- Every digest encodes, so a uniform digest is accepted with probability one. -/
-noncomputable def acceptanceProbability : ℝ≥0∞ := 1
-
-theorem probEvent_validDigest_uniform :
-    Pr[Generic.Code.ValidDigest | $ᵗ Digest] = acceptanceProbability := by
-  rw [probEvent_uniformSample]
-  change (Generic.Code.validDigests.card : ℝ≥0∞) / Fintype.card Digest = _
-  rw [validDigests_card]
-  simp [acceptanceProbability, ENNReal.div_self]
-
-theorem acceptanceProbability_pos : 0 < acceptanceProbability := by
-  simp [acceptanceProbability]
-
-theorem acceptanceProbability_ne_top : acceptanceProbability ≠ ⊤ := by
-  simp [acceptanceProbability]
-
-theorem acceptanceProbability_eq_one : acceptanceProbability = 1 := rfl
-
 /-- The digits of a codeword sum to at most `len_1 · (2^w - 1) = 301`: the checksum digits sum to
 at most the checksum, which the message digits fall short of their maximum by. -/
 theorem sum_digits_le (encoding : Encoding) (hvalid : Valid encoding) :

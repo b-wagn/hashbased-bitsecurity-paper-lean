@@ -43,29 +43,4 @@ theorem exists_encodingInput_of_encodingInputLeafIndex?_eq_some
     exact ⟨input, hinput⟩
   · contradiction
 
-/-- `target` is the serialized input of the unique returned signature at the leaf index encoded by `candidate`. -/
-def IsSignedEncodingTarget (parameter : PublicParameter)
-    (log : QueryLog SigningSpec) (candidate target : HashInput) : Prop :=
-  ∃ request signature,
-    SigningTranscript.Returned log request signature ∧
-    encodingInputLeafIndex? parameter candidate = some request.epoch ∧
-    target = Concrete.CacheView.encodingInput parameter request.epoch
-      (request.message, signature.randomness)
-
-theorem IsSignedEncodingTarget.unique
-    {parameter : PublicParameter} {log : QueryLog SigningSpec}
-    (hvalid : SigningTranscript.Valid log) {candidate left right : HashInput}
-    (hleft : IsSignedEncodingTarget parameter log candidate left)
-    (hright : IsSignedEncodingTarget parameter log candidate right) :
-    left = right := by
-  obtain ⟨leftRequest, leftSignature, hleftReturned, hleftLeafIndex, rfl⟩ := hleft
-  obtain ⟨rightRequest, rightSignature, hrightReturned, hrightLeafIndex, rfl⟩ := hright
-  have hleafIndex : leftRequest.epoch = rightRequest.epoch :=
-    Option.some.inj (hleftLeafIndex.symm.trans hrightLeafIndex)
-  obtain ⟨hrequest, hsignature⟩ :=
-    SigningTranscript.returned_eq_of_same_leafIndex hvalid hleftReturned hrightReturned hleafIndex
-  subst rightRequest
-  subst rightSignature
-  rfl
-
 end XmssSecurity.Generic

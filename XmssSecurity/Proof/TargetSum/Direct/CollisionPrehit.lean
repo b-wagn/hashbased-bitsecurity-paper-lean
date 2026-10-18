@@ -64,15 +64,6 @@ noncomputable def potential (cache : QueryCache HashSpec) (trace : Generic.Signi
       (openCount secretKey cache trace : ℝ≥0∞) * ENNReal.ofReal (((remaining : ℝ) + 1) / realN)
   else 0
 
-/-- What the final verification can still cost: `1` after a prehit with a partner, and `1/N`
-per prehit without one. -/
-noncomputable def payoff (cache : QueryCache HashSpec) (trace : Generic.SigningCacheTrace) : ℝ≥0∞ := by
-  classical
-  exact if trace.leafIndices.Nodup then
-    if StateBad secretKey cache trace then 1
-    else (openCount secretKey cache trace : ℝ≥0∞) * ENNReal.ofReal (1 / realN)
-  else 0
-
 /-- The invariant of the run: the cached encoding inputs of the epochs not yet signed and the
 remaining queries number at most `q`, and every returned signature's input is cached with a
 decodable digest. -/

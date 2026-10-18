@@ -38,15 +38,6 @@ def PrefixFirstLaneEvent (keyView : ProgrammedGlobalChainKeygenView)
       (chain, result.1.epoch, encoding chain) ∉
         GlobalReturnedChainValueCovered cache keyView.secretKey log)
 
-theorem encodingHash_eq_of_comparableCaches (leftCache rightCache : QueryCache HashSpec)
-    (parameter : PublicParameter)
-    (hcaches : HashCachesAgreeOn (GlobalSigningComparableHashInput parameter) leftCache rightCache)
-    (leaf : LeafIndex) (input : Message × Randomness) :
-    CacheView.encodingHash leftCache parameter leaf input =
-      CacheView.encodingHash rightCache parameter leaf input := by
-  unfold CacheView.encodingHash CacheView.digestAt
-  rw [hcaches _ ⟨leaf, input.1, input.2, rfl⟩]
-
 theorem decodedEncoding_eq_of_comparableCaches (leftCache rightCache : QueryCache HashSpec)
     (parameter : PublicParameter)
     (hcaches : HashCachesAgreeOn (GlobalSigningComparableHashInput parameter) leftCache rightCache)

@@ -22,18 +22,4 @@ def IsEncodingSample : (Generic.FirstLaneOracleSimulation.World Index).Domain �
 
 noncomputable instance : DecidablePred (IsEncodingSample (Index := Index)) := Classical.decPred _
 
-noncomputable def acceptedEncodingAction : Generic.FirstLaneOracleSimulation.ObservedAction Index → Bool
-  | .encoding (.query _ output) => decide (Generic.Code.ValidDigest (Generic.truncateHash output))
-  | .encoding (.sign _ output) => decide (Generic.Code.ValidDigest (Generic.truncateHash output))
-  | .chain _ => false
-
-noncomputable def TraceHasAcceptedEncoding (trace : Generic.FirstLaneOracleSimulation.ActionTrace Index) : Prop :=
-  trace.any acceptedEncodingAction = true
-
-omit [Fintype Index] [DecidableEq Index] in
-theorem traceHasAcceptedEncoding_append (left right : Generic.FirstLaneOracleSimulation.ActionTrace Index) :
-    TraceHasAcceptedEncoding (left ++ right) ↔
-      TraceHasAcceptedEncoding left ∨ TraceHasAcceptedEncoding right := by
-  simp [TraceHasAcceptedEncoding, List.any_append, Bool.or_eq_true]
-
 end XmssSecurity.TargetSum.FirstLaneOracleSimulation

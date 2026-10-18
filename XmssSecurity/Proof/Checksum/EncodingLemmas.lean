@@ -12,14 +12,8 @@ open scoped BigOperators
 
 def PointwiseLE (x y : Encoding) : Prop := ∀ i, x i ≤ y i
 
-def Incomparable (x y : Encoding) : Prop := ¬PointwiseLE x y ∧ ¬PointwiseLE y x
-
 def verificationWork (x : Encoding) : Nat :=
   ∑ i, (chainLength - 1 - (x i).val)
-
-/-- The verifier's domain-separated WOTS chain positions for one encoding. -/
-abbrev SuffixPosition (x : Encoding) :=
-  Σ i : ChainIndex, Fin (chainLength - 1 - (x i).val)
 
 /-- Every encoding makes the verifier walk at most `322` WOTS chain edges. -/
 theorem verificationWork_le (x : Encoding) : verificationWork x ≤ verificationChainHashes := by
@@ -27,25 +21,6 @@ theorem verificationWork_le (x : Encoding) : verificationWork x ≤ verification
   calc
     _ ≤ ∑ _i : ChainIndex, (chainLength - 1) := Finset.sum_le_sum fun i _ => Nat.sub_le _ _
     _ = _ := by simp
-
-/-- The verifier's chain positions, numbered injectively below `322`. -/
-def enumerateSuffixPositions (x : Encoding) (_hx : Valid x) :
-    SuffixPosition x ↪ Fin verificationChainHashes where
-  toFun position := ⟨(chainLength - 1) * position.1.val + position.2.val, by
-    have hchain := position.1.isLt
-    have hstep := position.2.isLt
-    simp only [verificationChainHashes, numChains, chainLength, winternitzBits] at *
-    omega⟩
-  inj' := by
-    rintro ⟨i, k⟩ ⟨i', k'⟩ h
-    have hk := k.isLt
-    have hk' := k'.isLt
-    simp only [Fin.mk.injEq, chainLength, winternitzBits] at h hk hk'
-    have hi : i = i' := Fin.ext (by omega)
-    subst hi
-    have : k = k' := Fin.ext (by omega)
-    subst this
-    rfl
 
 /-! ### Chains of the message and of the checksum -/
 
@@ -181,14 +156,6 @@ theorem digest_eq_of_decodeDigest_eq_some {left right : Digest} {x : Encoding}
   encode_injective ((decodeDigest_eq_some_iff.mp hleft).1.trans
     (decodeDigest_eq_some_iff.mp hright).1.symm)
 
-/-- Two distinct encoding-hash inputs decoding to the same encoding form a target collision. -/
-theorem hash_collision_of_same_decodedEncoding {α : Type} (hash : α → Digest)
-    {left right : α} {x : Encoding} (hne : left ≠ right)
-    (hleft : decodeDigest (hash left) = some x)
-    (hright : decodeDigest (hash right) = some x) :
-    left ≠ right ∧ hash left = hash right :=
-  ⟨hne, digest_eq_of_decodeDigest_eq_some hleft hright⟩
-
 /-- No codeword dominates another one: the checksum increases when message digits decrease. -/
 theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y)
     (hxy : PointwiseLE x y) : x = y := by
@@ -222,20 +189,6 @@ theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y
   · exact Fin.ext (hterms i)
   · have hparts : messagePart x = messagePart y := funext fun i => Fin.ext (hterms i)
     rw [hx.2 j, hy.2 j, hparts]
-
-theorem incomparable_of_valid_of_ne {x y : Encoding} (hx : Valid x) (hy : Valid y)
-    (hne : x ≠ y) : Incomparable x y := by
-  constructor
-  · exact fun hxy => hne (eq_of_pointwiseLE_of_valid hx hy hxy)
-  · exact fun hyx => hne (eq_of_pointwiseLE_of_valid hy hx hyx).symm
-
-/-- A different valid encoding moves backward on at least one chain. -/
-theorem exists_forged_lt_signed {signedEncoding forgedEncoding : Encoding}
-    (hsigned : Valid signedEncoding) (hforged : Valid forgedEncoding)
-    (hne : signedEncoding ≠ forgedEncoding) :
-    ∃ i, forgedEncoding i < signedEncoding i := by
-  have hnot := (incomparable_of_valid_of_ne hsigned hforged hne).1
-  simpa only [PointwiseLE, not_forall, not_le] using hnot
 
 end Checksum
 

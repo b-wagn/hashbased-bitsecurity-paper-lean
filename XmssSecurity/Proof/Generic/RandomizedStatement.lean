@@ -63,20 +63,6 @@ noncomputable def gameCore {Key : Type} (scheme : Scheme Key) (adversary : Adver
 noncomputable def forgeAdvantage {Key : Type} (scheme : Scheme Key) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[= true | (simulateQ romImpl (gameCore scheme adversary)).run' ∅]
 
-/-- Count one per hash call, including cache hits, and zero per uniform sample. -/
-noncomputable def countedRomImpl :=
-  romImpl.withAddCost (fun | .inl _ => (0 : Nat) | .inr _ => 1)
-
-/-- Every execution of the consistent random oracle uses at most `q` hash calls, including key generation, adversarial hashing, signing, and final verification. -/
-def HasHashQueryBound {Key : Type} (scheme : Scheme Key) (adversary : Adversary) (q : Nat) : Prop :=
-  ∀ result ∈ support ((simulateQ countedRomImpl (gameCore scheme adversary)).run.run' ∅),
-    result.2 ≤ q
-
-/-- The security bound for an intermediate scheme. -/
-def HasClassicalSecurityBits {Key : Type} (scheme : Scheme Key) (bits : Nat) : Prop :=
-  ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBound scheme adversary q →
-    forgeAdvantage scheme adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
-
 noncomputable def Seeded.scheme : Scheme Seeded.SecretKey where
   keygen := Seeded.keygen
   sign := fun sk leafIndex message => liftM (Seeded.sign sk leafIndex message : OracleComp HashSpec _)

@@ -76,10 +76,6 @@ namespace CountingMode
 /-- Only the adversary's own hash calls. -/
 def direct : CountingMode := ⟨false, false, false, false⟩
 
-/-- Every hash call of the experiment: key generation, the adversary, the signer, and the
-verification of the forgery. -/
-def allHashes : CountingMode := ⟨true, true, true, false⟩
-
 /-- Every hash call of the experiment and every signing request. -/
 def everything : CountingMode := ⟨true, true, true, true⟩
 

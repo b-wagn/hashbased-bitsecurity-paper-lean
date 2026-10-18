@@ -17,15 +17,6 @@ namespace Deciding
 
 open Direct Generic.CappedChain
 
-theorem SourceWinningDecidingFirstLaneEvent.verified
-    (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (result : (Generic.Forgery × Bool) × Generic.CappedChain.SourceExactTracedState)
-    (hevent : Generic.Deciding.SourceWinningDecidingFirstLaneEvent (key, result)) : result.1.2 = true := by
-  have hwin : (Generic.CappedChain.cappedBothEncodingProjection (Generic.CappedChain.sourceGlobalExactProgramResult (key, result))).1.won = true := by
-    rcases hevent with hencoding | hchain
-    · exact hencoding.1.1
-    · exact hchain.1
-  exact (Generic.GameOutcome.won_eq_true_iff _).mp hwin |>.2.2
-
 def SourcePrefixForgedEncodingFresh
     (result : Generic.CappedChain.ProgrammedGlobalChainKeygenView × (Generic.Forgery × Generic.CappedChain.SourceExactTracedState)) : Prop :=
   result.2.2.1.1.1 (Generic.Direct.forgeryEncodingInput result.1.publicKey result.2.1) = none

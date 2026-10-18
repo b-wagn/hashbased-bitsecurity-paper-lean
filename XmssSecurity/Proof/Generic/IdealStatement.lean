@@ -73,10 +73,4 @@ noncomputable def Concrete.scheme : Scheme SecretKey where
   verify := fun publicKey leafIndex message signature =>
     liftM (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)
 
-noncomputable def Seeded.randomizedScheme : Scheme Seeded.SecretKey where
-  keygen := Seeded.keygen
-  sign := fun sk => Concrete.precomputedCappedSign sk.precomputed
-  verify := fun publicKey leafIndex message signature =>
-    liftM (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)
-
 end XmssSecurity.Generic

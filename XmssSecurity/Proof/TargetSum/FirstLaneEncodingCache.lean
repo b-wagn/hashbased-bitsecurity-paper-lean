@@ -14,35 +14,6 @@ namespace XmssSecurity.TargetSum.CappedChain
 
 open FirstLaneOracleSimulation
 
-def AcceptedEncodingGrowth (parameter : PublicParameter) (initial final : QueryCache HashSpec)
-    (trace : Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex) : Prop :=
-  HasAcceptedEncoding parameter final →
-    HasAcceptedEncoding parameter initial ∨ TraceHasAcceptedEncoding trace
-
-theorem AcceptedEncodingGrowth.refl (parameter : PublicParameter) (cache : QueryCache HashSpec) :
-    AcceptedEncodingGrowth parameter cache cache [] := fun h => Or.inl h
-
-theorem AcceptedEncodingGrowth.trans {parameter : PublicParameter}
-    {initial middle final : QueryCache HashSpec} {head tail : Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex}
-    (hhead : AcceptedEncodingGrowth parameter initial middle head)
-    (htail : AcceptedEncodingGrowth parameter middle final tail) :
-    AcceptedEncodingGrowth parameter initial final (head ++ tail) := by
-  intro hfinal
-  rcases htail hfinal with hmiddle | htail
-  · rcases hhead hmiddle with hinitial | hhead
-    · exact Or.inl hinitial
-    · exact Or.inr ((traceHasAcceptedEncoding_append _ _).2 (Or.inl hhead))
-  · exact Or.inr ((traceHasAcceptedEncoding_append _ _).2 (Or.inr htail))
-
-theorem AcceptedEncodingGrowth.cacheQuery (parameter : PublicParameter) (cache : QueryCache HashSpec)
-    (input : HashInput) (output : HashOutput) (trace : Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
-    (htrace : Generic.Code.ValidDigest (Generic.truncateHash output) → TraceHasAcceptedEncoding trace) :
-    AcceptedEncodingGrowth parameter cache (cache.cacheQuery input output) trace := by
-  intro haccepted
-  by_cases hinitial : HasAcceptedEncoding parameter cache
-  · exact Or.inl hinitial
-  · exact Or.inr (htrace ((hasAcceptedEncoding_cacheQuery_iff _ _ _ _ hinitial).1 haccepted).2)
-
 theorem randomOracle_support_cache_shape (input : HashInput) (cache : QueryCache HashSpec)
     (result : HashOutput × QueryCache HashSpec)
     (hresult : result ∈ support ((randomOracle input).run cache)) :

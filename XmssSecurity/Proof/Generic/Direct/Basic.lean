@@ -63,10 +63,6 @@ whatever the oracles answer. -/
 def IsDirectQueryBound (adversary : Adversary) (D : ℕ) : Prop :=
   ∀ publicKey, (adversary.main publicKey).IsQueryBoundP IsDirectHashQuery D
 
-theorem IsDirectQueryBound.mono {adversary : Adversary} {D D' : ℕ}
-    (h : IsDirectQueryBound adversary D) (hle : D ≤ D') : IsDirectQueryBound adversary D' :=
-  fun publicKey => (h publicKey).mono hle
-
 /-- An upper bound on the hash calls of one verification: the encoding hash, at most
 `verificationChainHashes` chain steps, the leaf hash, and the `h = 32` Merkle levels. -/
 def verifierQueryBound : ℕ := 1 + Code.verificationChainHashes + 1 + treeHeight

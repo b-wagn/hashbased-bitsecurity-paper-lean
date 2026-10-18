@@ -11,14 +11,8 @@ open scoped BigOperators
 
 def PointwiseLE (x y : Encoding) : Prop := ∀ i, x i ≤ y i
 
-def Incomparable (x y : Encoding) : Prop := ¬PointwiseLE x y ∧ ¬PointwiseLE y x
-
 def verificationWork (x : Encoding) : Nat :=
   ∑ i, (chainLength - 1 - (x i).val)
-
-/-- The verifier's domain-separated WOTS chain positions for one encoding. -/
-abbrev SuffixPosition (x : Encoding) :=
-  Σ i : ChainIndex, Fin (chainLength - 1 - (x i).val)
 
 /-- Every valid encoding makes the verifier walk exactly 99 WOTS chain edges. -/
 theorem verificationWork_eq (x : Encoding) (hx : Valid x) :
@@ -30,15 +24,6 @@ theorem verificationWork_eq (x : Encoding) (hx : Valid x) :
     exact congrArg (numChains * (chainLength - 1) - ·) hx
   · intro i _
     exact Nat.le_pred_of_lt (x i).isLt
-
-theorem card_suffixPosition (x : Encoding) (hx : Valid x) :
-    Fintype.card (SuffixPosition x) = verificationChainHashes := by
-  rw [Fintype.card_sigma]
-  simpa [verificationWork] using verificationWork_eq x hx
-
-noncomputable def enumerateSuffixPositions (x : Encoding) (hx : Valid x) :
-    SuffixPosition x ≃ Fin verificationChainHashes :=
-  Fintype.equivFinOfCardEq (card_suffixPosition x hx)
 
 /-! The encoding-view decomposition of a digest: the 42 three-bit digits together with the two padding bits 63 and 127, packed as a `Fin 4`. The statement's `decodeDigest` tests the padding bits directly; `decodeDigest_eq_decodeView` below restates it through this view. -/
 
@@ -195,14 +180,6 @@ theorem digest_eq_of_decodeDigest_eq_some {left right : Digest} {x : Encoding}
   apply digestView_injective
   rw [(decodeDigest_eq_some_iff.mp hleft).1, (decodeDigest_eq_some_iff.mp hright).1]
 
-/-- Two distinct encoding-hash inputs decoding to the same valid encoding form a target collision. -/
-theorem hash_collision_of_same_decodedEncoding {α : Type} (hash : α → Digest)
-    {left right : α} {x : Encoding} (hne : left ≠ right)
-    (hleft : decodeDigest (hash left) = some x)
-    (hright : decodeDigest (hash right) = some x) :
-    left ≠ right ∧ hash left = hash right :=
-  ⟨hne, digest_eq_of_decodeDigest_eq_some hleft hright⟩
-
 theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y)
     (hxy : PointwiseLE x y) : x = y := by
   by_contra hne
@@ -218,20 +195,6 @@ theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y
       exact hxy i
     · exact hlt
   exact (Nat.ne_of_lt hsum) (hx.trans hy.symm)
-
-theorem incomparable_of_valid_of_ne {x y : Encoding} (hx : Valid x) (hy : Valid y)
-    (hne : x ≠ y) : Incomparable x y := by
-  constructor
-  · exact fun hxy => hne (eq_of_pointwiseLE_of_valid hx hy hxy)
-  · exact fun hyx => hne (eq_of_pointwiseLE_of_valid hy hx hyx).symm
-
-/-- A different valid encoding moves backward on at least one chain. -/
-theorem exists_forged_lt_signed {signedEncoding forgedEncoding : Encoding}
-    (hsigned : Valid signedEncoding) (hforged : Valid forgedEncoding)
-    (hne : signedEncoding ≠ forgedEncoding) :
-    ∃ i, forgedEncoding i < signedEncoding i := by
-  have hnot := (incomparable_of_valid_of_ne hsigned hforged hne).1
-  simpa only [PointwiseLE, not_forall, not_le] using hnot
 
 def exampleValidEncoding : Encoding := fun chain =>
   if chain.val < 27 then ⟨7, by decide⟩

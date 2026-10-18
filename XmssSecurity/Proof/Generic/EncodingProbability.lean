@@ -22,10 +22,6 @@ theorem probEvent_validDigest_uniform :
   rw [card_bitVec]
   rfl
 
-theorem acceptanceProbability_pos : 0 < acceptanceProbability := by
-  unfold acceptanceProbability
-  exact ENNReal.div_pos (by exact_mod_cast validDigests_card_pos.ne') (by finiteness)
-
 theorem acceptanceProbability_ne_top : acceptanceProbability ≠ ⊤ := by
   unfold acceptanceProbability
   exact ENNReal.div_ne_top (by finiteness) (by simp)

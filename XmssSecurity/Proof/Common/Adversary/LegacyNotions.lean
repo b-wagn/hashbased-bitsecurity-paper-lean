@@ -20,18 +20,7 @@ namespace RandomOracleModel
 
 variable (Input Output : Type) [DecidableEq Input] [SampleableType Output]
 
-/-- As `impl`, additionally charging one unit per hash call, including cache hits, and nothing
-per uniform sample. -/
-noncomputable def countedImpl :=
-  (impl Input Output).withAddCost (hashCost Input Output)
-
 variable {Input Output}
-
-/-- Run a computation of the random-oracle world from an empty cache; return its result and the
-total number of hash calls. -/
-noncomputable def experiment {α : Type} (computation : OracleComp (World Input Output) α) :
-    ProbComp (α × ℕ) :=
-  (simulateQ (countedImpl Input Output) computation).run.run' ∅
 
 end RandomOracleModel
 
