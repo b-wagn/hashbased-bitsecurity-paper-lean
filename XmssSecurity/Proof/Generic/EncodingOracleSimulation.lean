@@ -13,8 +13,8 @@ inductive EncodingSampleKind where
   | sign
 deriving DecidableEq
 
-noncomputable def uniformHashOutput : ProbComp HashOutput :=
-  $ᵗ HashOutput
+noncomputable def uniformHashOutput : ProbComp Digest :=
+  $ᵗ Digest
 
 theorem uniformSampleImpl_hash_eq (input : HashInput) :
     (uniformSampleImpl (spec := HashSpec)) input = uniformHashOutput := by

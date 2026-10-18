@@ -20,8 +20,8 @@ theorem Concrete.CacheReplay.encodingHash_eq_of_run_support_of_cache_le
     Concrete.CacheView.encodingHash largerCache parameter leafIndex
       (message, randomness) = digest := by
   have hmapped : (digest, resultCache) ∈ support
-      ((fun result : HashOutput × QueryCache HashSpec =>
-        (truncateHash result.1, result.2)) <$> (randomOracle
+      ((fun result : Digest × QueryCache HashSpec =>
+        (result.1, result.2)) <$> (randomOracle
           (Concrete.CacheView.encodingInput parameter leafIndex
             (message, randomness))).run initialCache) := by
     simpa [Concrete.encodingHash, Concrete.tweakableHash,
@@ -52,8 +52,8 @@ theorem Concrete.CacheReplay.decodedEncoding_eq_of_run_support_of_cache_le
     Concrete.CacheView.decodedEncoding largerCache parameter leafIndex
       (message, randomness) = Code.decodeDigest digest := by
   have hmapped : (digest, resultCache) ∈ support
-      ((fun result : HashOutput × QueryCache HashSpec =>
-        (truncateHash result.1, result.2)) <$> (randomOracle
+      ((fun result : Digest × QueryCache HashSpec =>
+        (result.1, result.2)) <$> (randomOracle
           (Concrete.CacheView.encodingInput parameter leafIndex
             (message, randomness))).run initialCache) := by
     simpa [Concrete.encodingHash, Concrete.tweakableHash,

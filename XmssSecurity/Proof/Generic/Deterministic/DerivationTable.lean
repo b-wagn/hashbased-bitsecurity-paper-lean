@@ -20,7 +20,7 @@ noncomputable def signRequestEquiv : SignRequest ≃ (LeafIndex × Message) wher
 noncomputable instance : Fintype SignRequest := Fintype.ofEquiv (LeafIndex × Message) signRequestEquiv.symm
 
 abbrev RandomizerPosition := SignRequest × BitVec 32
-abbrev RandomizerOutputs := RandomizerPosition → HashOutput
+abbrev RandomizerOutputs := RandomizerPosition → Digest
 
 noncomputable opaque randomizerOutputsSampleableType : SampleableType RandomizerOutputs :=
   SampleableType.ofFintype RandomizerOutputs
@@ -46,10 +46,10 @@ theorem randomizerInputs_injective (parameter : PublicParameter) (seed : MasterS
         simp_all
   · exact heq.2.2.2.2
 
-theorem derivationCache_randomizer_fresh (seed : MasterSeed) (parameterOutput : HashOutput)
+theorem derivationCache_randomizer_fresh (seed : MasterSeed) (parameterOutput : Digest)
     (outputs : ChainOutputs) (position : RandomizerPosition) :
     derivationCache seed parameterOutput outputs
-      (randomizerInputs (truncateHash parameterOutput) seed position) = none := by
+      (randomizerInputs (parameterOutput) seed position) = none := by
   unfold derivationCache
   rw [cacheRows_apply_of_not_mem]
   · exact QueryCache.cacheQuery_of_ne _ _
@@ -57,23 +57,23 @@ theorem derivationCache_randomizer_fresh (seed : MasterSeed) (parameterOutput : 
   · intro leafIndex chain
     exact randomizerHashInput_ne_keygenHashInput _ _ _ _ _ _ _ (.chain leafIndex chain)
 
-noncomputable def signingDerivationCache (seed : MasterSeed) (parameterOutput : HashOutput)
+noncomputable def signingDerivationCache (seed : MasterSeed) (parameterOutput : Digest)
     (outputs : ChainOutputs) (randomizers : RandomizerOutputs) : QueryCache HashSpec :=
   cacheTable (derivationCache seed parameterOutput outputs)
-    (randomizerInputs (truncateHash parameterOutput) seed) randomizers
+    (randomizerInputs (parameterOutput) seed) randomizers
 
-theorem signingDerivationCache_randomizer (seed : MasterSeed) (parameterOutput : HashOutput)
+theorem signingDerivationCache_randomizer (seed : MasterSeed) (parameterOutput : Digest)
     (outputs : ChainOutputs) (randomizers : RandomizerOutputs) (position : RandomizerPosition) :
     signingDerivationCache seed parameterOutput outputs randomizers
-      (randomizerInputs (truncateHash parameterOutput) seed position) = some (randomizers position) :=
+      (randomizerInputs (parameterOutput) seed position) = some (randomizers position) :=
   cacheTable_apply _ _ (randomizerInputs_injective _ _) _ _
 
 noncomputable def prepareRandomizers (parameter : PublicParameter) (seed : MasterSeed) :
     OracleComp HashSpec RandomizerOutputs := queryTable (randomizerInputs parameter seed)
 
-theorem evalDist_prepareRandomizers (seed : MasterSeed) (parameterOutput : HashOutput)
+theorem evalDist_prepareRandomizers (seed : MasterSeed) (parameterOutput : Digest)
     (outputs : ChainOutputs) :
-    𝒟[(simulateQ randomOracle (prepareRandomizers (truncateHash parameterOutput) seed)).run
+    𝒟[(simulateQ randomOracle (prepareRandomizers (parameterOutput) seed)).run
       (derivationCache seed parameterOutput outputs)] =
         𝒟[(fun randomizers => (randomizers, signingDerivationCache seed parameterOutput outputs randomizers)) <$>
           sampleRandomizerOutputs] :=

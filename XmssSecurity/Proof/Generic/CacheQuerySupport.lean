@@ -52,7 +52,7 @@ theorem cache_unique_of_query_bound_one {α : Type}
     (hinitial : ∀ input, p input → initialCache input = none)
     (hmem : (result, finalCache) ∈
       support ((simulateQ randomOracle computation).run initialCache))
-    (left right : HashInput) (leftOutput rightOutput : HashOutput)
+    (left right : HashInput) (leftOutput rightOutput : Digest)
     (hleftP : p left) (hrightP : p right)
     (hleft : finalCache left = some leftOutput)
     (hright : finalCache right = some rightOutput) :
@@ -72,7 +72,7 @@ theorem cache_unique_of_query_bound_one {α : Type}
       by_cases hqueriedP : p queried
       · have hcontinuation : (next output).IsQueryBoundP p 0 := by
           simpa [hqueriedP] using hbound.2 output
-        have hentry_eq (input : HashInput) (inputOutput : HashOutput)
+        have hentry_eq (input : HashInput) (inputOutput : Digest)
             (hinputP : p input) (hinput : finalCache input = some inputOutput) :
             input = queried := by
           by_contra hne

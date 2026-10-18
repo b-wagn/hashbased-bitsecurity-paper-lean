@@ -9,27 +9,11 @@ namespace XmssSecurity.Generic.Rom
 
 variable [Code]
 
-/-- A uniform 256-bit oracle output has any fixed 128-bit truncation with probability exactly `2^-128`. -/
-theorem uniform_truncate_probability (target : Digest) :
-    Pr[fun output : HashOutput => truncateHash output = target | $ᵗ HashOutput] =
+/-- A uniform oracle output equals any fixed digest with probability exactly `2^-128`. -/
+theorem uniform_eq_probability (target : Digest) :
+    Pr[fun output : Digest => output = target | $ᵗ Digest] =
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  rw [probEvent_uniformSample]
-  change ((matchingOutputs target).card : ℝ≥0∞) /
-      (Fintype.card HashOutput : ℝ≥0∞) = _
-  rw [card_matchingOutputs, card_hashOutput, hashOutputBits_eq, Nat.pow_add,
-    Nat.cast_mul, div_eq_mul_inv]
-  have hzero : ((2 ^ digestBits : Nat) : ℝ≥0∞) ≠ 0 := by positivity
-  have htop : ((2 ^ digestBits : Nat) : ℝ≥0∞) ≠ ∞ := by simp
-  rw [ENNReal.mul_inv (Or.inl hzero) (Or.inl htop)]
-  calc
-    ((2 ^ digestBits : Nat) : ℝ≥0∞) *
-        (((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ *
-          ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹) =
-      (((2 ^ digestBits : Nat) : ℝ≥0∞) *
-        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹) *
-        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by ac_rfl
-    _ = ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-      rw [ENNReal.mul_inv_cancel hzero htop, one_mul]
+  rw [probEvent_eq_eq_probOutput, probOutput_uniformSample, card_digest]
 
 open OracleSpec
 

@@ -40,7 +40,7 @@ theorem globalFirstLaneFreshEncodingQuery_encodingCountGrowth
     (state : CappedChain.GlobalCausalHashState)
     (hencoding : (encodingInputLeafIndex? parameter input).isSome)
     (hfresh : state.cache input = none)
-    (result : (HashOutput × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (result : (Digest × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (CappedChain.globalFirstLaneFreshEncodingQuery kind leafIndex input state)).run)) :
     EncodingCountGrowth parameter state.cache result.1.2.cache result.2 := by
@@ -58,7 +58,7 @@ theorem globalFirstLaneFreshEncodingQuery_encodingCountGrowth
 theorem globalFirstLaneEncodingHashQuery_encodingCountGrowth
     (table : CappedChain.GlobalChainValueIndex → Digest) (secretKey : Generic.SecretKey) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) (state : CappedChain.GlobalCausalHashState)
-    (result : (HashOutput × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (result : (Digest × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (CappedChain.globalFirstLaneEncodingHashQuery secretKey leafIndex message randomness state)).run)) :
     EncodingCountGrowth secretKey.parameter state.cache result.1.2.cache result.2 := by
@@ -75,15 +75,15 @@ theorem globalFirstLaneEncodingHashQuery_encodingCountGrowth
         (by decide) _ _ _ (by simp) hcache result hresult
 
 theorem globalFirstLaneHashQuery_encodingCountGrowth
-    (table high : CappedChain.GlobalChainValueIndex → Digest) (secretKey : Generic.SecretKey) (input : HashInput)
+    (table : CappedChain.GlobalChainValueIndex → Digest) (secretKey : Generic.SecretKey) (input : HashInput)
     (state : CappedChain.GlobalCausalHashState)
-    (result : (HashOutput × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (result : (Digest × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (CappedChain.globalFirstLaneAttackerHashQueryFromHighRun high secretKey input state)).run)) :
+      (CappedChain.globalFirstLaneAttackerHashQueryFromHighRun secretKey input state)).run)) :
     EncodingCountGrowth secretKey.parameter state.cache result.1.2.cache result.2 := by
   cases hencoding : encodingInputLeafIndex? secretKey.parameter input with
   | some leafIndex =>
-      rw [CappedChain.globalFirstLaneAttackerHashQueryFromHighRun_eq_some _ _ _ _ _ hencoding] at hresult
+      rw [CappedChain.globalFirstLaneAttackerHashQueryFromHighRun_eq_some _ _ _ _ hencoding] at hresult
       cases hcached : state.cache input with
       | some output =>
           rw [CappedChain.globalFirstLaneAttackerHashQueryAtLeafIndex_eq_cached _ _ _ _ _ hcached] at hresult
@@ -101,10 +101,10 @@ theorem globalFirstLaneHashQuery_encodingCountGrowth
             result hresult
           simpa only [CappedChain.globalCausalRecordedState_cache] using h
   | none =>
-      rw [CappedChain.globalFirstLaneAttackerHashQueryFromHighRun_eq_none _ _ _ _ hencoding] at hresult
+      rw [CappedChain.globalFirstLaneAttackerHashQueryFromHighRun_eq_none _ _ _ hencoding] at hresult
       have htrace := CappedChain.globalFirstLaneLiftRevealProbe_encodingActions_eq_nil table _ result hresult
       have hprojected := CappedChain.globalFirstLaneLiftRevealProbe_mem_eagerTrace_support table _ result hresult
-      rcases globalCausalAttackerHashQueryFromHigh_cache_shape table high secretKey input state
+      rcases globalCausalAttackerHashQueryFromHigh_cache_shape table secretKey input state
         (result.1, result.2.chainActions) hprojected with hsame | ⟨output, hupdated⟩
       · change result.1.2.cache = state.cache at hsame
         simp [EncodingCountGrowth, htrace, hsame]
@@ -181,10 +181,10 @@ theorem globalExactTracedLift_encodingCountGrowth
 
 theorem globalFirstLaneExactTraced_uniform_encodingCountGrowth
     (table : CappedChain.GlobalChainValueIndex → Digest) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (n : ℕ) (state : CappedChain.GlobalHighDirectTracedState)
+    (n : ℕ) (state : CappedChain.GlobalHighDirectTracedState)
     (result : (Fin (n + 1) × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh (.inl (.inl n))).run state)).run)) :
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key (.inl (.inl n))).run state)).run)) :
     EncodingCountGrowth key.secretKey.parameter state.causalState.cache
       result.1.2.causalState.cache result.2 := by
   apply globalExactTracedLift_encodingCountGrowth table key (.inl (.inl n))
@@ -203,27 +203,27 @@ theorem globalFirstLaneExactTraced_uniform_encodingCountGrowth
 
 theorem globalFirstLaneExactTraced_hash_encodingCountGrowth
     (table : CappedChain.GlobalChainValueIndex → Digest) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (input : HashInput) (state : CappedChain.GlobalHighDirectTracedState)
-    (result : (HashOutput × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (input : HashInput) (state : CappedChain.GlobalHighDirectTracedState)
+    (result : (Digest × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh (.inl (.inr input))).run state)).run)) :
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key (.inl (.inr input))).run state)).run)) :
     EncodingCountGrowth key.secretKey.parameter state.causalState.cache
       result.1.2.causalState.cache result.2 := by
   rw [CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl_hash_eq_run] at hresult
   apply globalExactTracedLift_encodingCountGrowth table key (.inl (.inr input))
     (StateT.mk (CappedChain.globalFirstLaneAttackerHashQueryFromHighRun
-      (CappedChain.globalChainValueHighTableOfEdges edgeHigh) key.secretKey input)) state result hresult
+      key.secretKey input)) state result hresult
   intro baseResult hbase
   rw [StateT.run_mk] at hbase
-  exact globalFirstLaneHashQuery_encodingCountGrowth table (CappedChain.globalChainValueHighTableOfEdges edgeHigh)
+  exact globalFirstLaneHashQuery_encodingCountGrowth table
     key.secretKey input state.causalState baseResult hbase
 
 theorem globalFirstLaneExactTraced_signing_encodingCountGrowth
     (table : CappedChain.GlobalChainValueIndex → Digest) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (request : SignRequest) (state : CappedChain.GlobalHighDirectTracedState)
+    (request : SignRequest) (state : CappedChain.GlobalHighDirectTracedState)
     (result : (Option Generic.Signature × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh (.inr request)).run state)).run)) :
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key (.inr request)).run state)).run)) :
     EncodingCountGrowth key.secretKey.parameter state.causalState.cache
       result.1.2.causalState.cache result.2 := by
   unfold CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl CappedChain.globalFirstLaneExactTracedSigningImpl at hresult
@@ -236,40 +236,40 @@ theorem globalFirstLaneExactTraced_signing_encodingCountGrowth
 
 theorem globalFirstLaneExactTraced_query_encodingCountGrowth
     (table : CappedChain.GlobalChainValueIndex → Digest) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (input : (OracleWorld + SigningSpec).Domain)
+    (input : (OracleWorld + SigningSpec).Domain)
     (state : CappedChain.GlobalHighDirectTracedState)
     (result : ((OracleWorld + SigningSpec).Range input × CappedChain.GlobalHighDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh input).run state)).run)) :
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key input).run state)).run)) :
     EncodingCountGrowth key.secretKey.parameter state.causalState.cache
       result.1.2.causalState.cache result.2 := by
   cases input with
   | inl input =>
       cases input with
       | inl n =>
-          exact globalFirstLaneExactTraced_uniform_encodingCountGrowth table key edgeHigh n state result hresult
+          exact globalFirstLaneExactTraced_uniform_encodingCountGrowth table key n state result hresult
       | inr input =>
-          exact globalFirstLaneExactTraced_hash_encodingCountGrowth table key edgeHigh input state result hresult
+          exact globalFirstLaneExactTraced_hash_encodingCountGrowth table key input state result hresult
   | inr request =>
-      exact globalFirstLaneExactTraced_signing_encodingCountGrowth table key edgeHigh request state result hresult
+      exact globalFirstLaneExactTraced_signing_encodingCountGrowth table key request state result hresult
 
 theorem globalFirstLaneExactTraced_encodingCountGrowth
     (table : CappedChain.GlobalChainValueIndex → Digest) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (state : CappedChain.GlobalHighDirectTracedState)
     (result : (α × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh) computation).run state)).run)) :
+      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key) computation).run state)).run)) :
     EncodingCountGrowth key.secretKey.parameter state.causalState.cache
       result.1.2.causalState.cache result.2 := by
   exact simulateQ_eagerTrace_support_invariant table
-    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh)
+    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key)
     (fun initial trace final => EncodingCountGrowth key.secretKey.parameter
       initial.causalState.cache final.causalState.cache trace)
     (fun initial => EncodingCountGrowth.refl _ _)
     (fun _ _ _ _ _ hhead htail => hhead.trans htail)
-    (globalFirstLaneExactTraced_query_encodingCountGrowth table key edgeHigh) computation state result hresult
+    (globalFirstLaneExactTraced_query_encodingCountGrowth table key) computation state result hresult
 
 theorem globalFilteredCausalKeygenState_encodingCount_zero
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
@@ -290,14 +290,14 @@ theorem globalFilteredCausalKeygenState_encodingCount_zero
 theorem globalFirstLaneExactTraced_encodingCount_eq_trace
     (table : CappedChain.GlobalChainValueIndex → Digest) (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (hkey : key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (result : (α × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh) computation).run
+      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key) computation).run
         (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)))).run)) :
     cachedEncodingInputCount result.1.2.causalState.cache key.secretKey.parameter =
       (result.2.encodingActions.length : ℝ≥0∞) := by
-  have h := globalFirstLaneExactTraced_encodingCountGrowth table key edgeHigh computation
+  have h := globalFirstLaneExactTraced_encodingCountGrowth table key computation
     (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) result hresult
   change cachedEncodingInputCount result.1.2.causalState.cache key.secretKey.parameter =
     cachedEncodingInputCount (CappedChain.globalFilteredCausalKeygenState key).cache key.secretKey.parameter + _ at h

@@ -16,24 +16,23 @@ namespace XmssSecurity.TargetSum.Deciding
 open CappedChain FirstLaneOracleSimulation
 
 noncomputable def publicLimitedPrefixExecution (limit : Nat) (adversary : Adversary)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
-  limitedFirstLanePrefix limit key edgeHigh (adversary.main key.publicKey)
+  limitedFirstLanePrefix limit key (adversary.main key.publicKey)
     (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
 
 abbrev CoupledLimitedPrefixResult := Deciding.BaseHighKey × (LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
 
 theorem publicLimitedPrefix_trace_bound (limit : Nat) (adversary : Adversary)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (base : CappedChain.GlobalChainValueIndex → Digest)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
     (result : LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base)
-      (publicLimitedPrefixExecution limit adversary key edgeHigh)).run) :
+      (publicLimitedPrefixExecution limit adversary key)).run) :
     FirstLaneOracleSimulation.hazardCount result.2 ≤ limit := by
-  have hbudget := limitedFirstLanePrefix_trace_budget base limit key edgeHigh (adversary.main key.publicKey)
+  have hbudget := limitedFirstLanePrefix_trace_budget base limit key (adversary.main key.publicKey)
     (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
     (by simp [EncodingBudgetCounters.charge]) result hresult
-  have hcount := limitedFirstLanePrefix_trace_direct base limit key edgeHigh (adversary.main key.publicKey)
+  have hcount := limitedFirstLanePrefix_trace_direct base limit key (adversary.main key.publicKey)
     (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩ result hresult
   have hdirect : result.1.2.direct ≤ limit := (Nat.le_add_right _ _).trans hbudget.1
   simpa only [Nat.zero_add] using hcount.trans hdirect
@@ -45,6 +44,6 @@ theorem coupledLimitedPrefix_trace_bound (limit : Nat) (adversary : Adversary)
   unfold Deciding.coupledFirstLaneProgram at hresult
   simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult
   obtain ⟨key, _, outcome, houtcome, rfl⟩ := hresult
-  exact publicLimitedPrefix_trace_bound limit adversary key.1.1 key.1.2 key.2 outcome houtcome
+  exact publicLimitedPrefix_trace_bound limit adversary key.1 key.2 outcome houtcome
 
 end XmssSecurity.TargetSum.Deciding

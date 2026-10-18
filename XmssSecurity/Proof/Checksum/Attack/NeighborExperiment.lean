@@ -29,7 +29,7 @@ theorem encodingDecode_of_cache_le (initialCache finalCache : QueryCache HashSpe
 def checkNeighborPreimage (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message)
     (original : Generic.Signature) (encoding : Encoding) (randomness : Randomness)
     (transfer : DigitTransfer encoding) (block : PreimagePrefix) :
-    Option (ℕ × HashOutput) → OracleComp HashSpec Bool
+    Option (ℕ × Digest) → OracleComp HashSpec Bool
   | none => pure false
   | some (position, _) => do
       let advanced ← advanceSignatureChain publicKey.parameter leafIndex original encoding transfer
@@ -46,7 +46,7 @@ theorem checkNeighborPreimage_run
     (initialCache : QueryCache HashSpec) (hle : keyResult.2 ≤ initialCache)
     (hdecode : Concrete.CacheView.decodedEncoding initialCache keyResult.1.2.parameter leafIndex (message, randomness) =
         some (transferEncoding encoding transfer))
-    (block : PreimagePrefix) (answer : Option (ℕ × HashOutput)) (finalCache : QueryCache HashSpec)
+    (block : PreimagePrefix) (answer : Option (ℕ × Digest)) (finalCache : QueryCache HashSpec)
     (hsearch : (answer, finalCache) ∈ support ((simulateQ randomOracle
       (findDigestPreimage (Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
         (predecessorStep encoding transfer.1)) (original.chainValue transfer.1.1) block)).run initialCache)) :
@@ -70,7 +70,7 @@ theorem checkNeighborPreimage_run
       rfl
 
 theorem randomDigestPreimage_support (input : Digest → HashInput) (target : Digest)
-    (cache : QueryCache HashSpec) (block : PreimagePrefix) (answer : Option (ℕ × HashOutput))
+    (cache : QueryCache HashSpec) (block : PreimagePrefix) (answer : Option (ℕ × Digest))
     (finalCache : QueryCache HashSpec)
     (hmem : (block, (answer, finalCache)) ∈ support (randomDigestPreimage input target cache)) :
     (answer, finalCache) ∈ support
@@ -135,14 +135,14 @@ theorem selectedNeighborTransfer_decode (encoding : Encoding) (hvalid : Code.Val
 
 noncomputable def neighborVerificationContinuation (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (original : Generic.Signature) (encoding : Encoding)
-    (answer : Option (ℕ × HashOutput)) (cache : QueryCache HashSpec) : ProbComp Bool := by
+    (answer : Option (ℕ × Digest)) (cache : QueryCache HashSpec) : ProbComp Bool := by
   classical
   exact match answer with
   | none => pure false
   | some (position, output) =>
-      if hmem : Generic.truncateHash output ∈ neighborDigests encoding then
+      if hmem : output ∈ neighborDigests encoding then
         predecessorVerificationExperiment publicKey leafIndex message original encoding
-          (BitVec.ofNat randomnessBits position) (selectedNeighborTransfer encoding (Generic.truncateHash output) hmem) cache
+          (BitVec.ofNat digestBits position) (selectedNeighborTransfer encoding (output) hmem) cache
       else pure false
 
 theorem neighborVerificationContinuation_lower
@@ -154,19 +154,19 @@ theorem neighborVerificationContinuation_lower
     (encoding : Encoding) (hvalid : Code.Valid encoding)
     (hreplay : original = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch original.randomness encoding)
-    (message : Message) (position : ℕ) (output : HashOutput) (searchCache : QueryCache HashSpec)
+    (message : Message) (position : ℕ) (output : Digest) (searchCache : QueryCache HashSpec)
     (hsearch : (some (position, output), searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache)) :
     2 / 5 ≤ Pr[= true | neighborVerificationContinuation keyResult.1.1 request.epoch message
       original encoding (some (position, output)) searchCache] := by
   classical
   obtain ⟨_, _, hneighbor, hcached⟩ := Attack.findHash_success_cached _ _ _ _ _ _ _ _ hsearch
-  change Generic.truncateHash output ∈ neighborDigests encoding at hneighbor
+  change output ∈ neighborDigests encoding at hneighbor
   unfold neighborSearchInput at hcached
   simp only [neighborVerificationContinuation, dif_pos hneighbor]
   have hdecode : Concrete.CacheView.decodedEncoding searchCache keyResult.1.2.parameter
-      request.epoch (message, BitVec.ofNat randomnessBits position) =
-        some (transferEncoding encoding (selectedNeighborTransfer encoding (Generic.truncateHash output) hneighbor)) := by
+      request.epoch (message, BitVec.ofNat digestBits position) =
+        some (transferEncoding encoding (selectedNeighborTransfer encoding (output) hneighbor)) := by
     rw [Concrete.CacheView.decodedEncoding_eq_of_cache_eq_some hcached, Concrete.CacheView.encodingHash,
       Concrete.CacheView.digestAt_eq_of_cache_eq_some hcached]
     exact selectedNeighborTransfer_decode encoding hvalid _ hneighbor

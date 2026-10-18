@@ -47,16 +47,15 @@ theorem relTriple_firstLaneHit_append {α β : Type}
 
 theorem relTriple_countedSource_limitedPrefix_of_related {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (computation : OracleComp (OracleWorld + SigningSpec) α)
     (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 leftState.toSource rightState history)
-    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.1.secretKey.parameter =
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState history)
+    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.secretKey.parameter =
       (history.encodingActions.length : ℝ≥0∞))
     (hencoding : CountedSourceEncodingBudget left.secretKey.parameter leftState)
     (hcount : FirstLaneOracleSimulation.hazardCount history ≤ leftState.counts.direct)
@@ -66,10 +65,10 @@ theorem relTriple_countedSource_limitedPrefix_of_related {α : Type}
     RelTriple
       ((simulateQ (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
         computation).run leftState)
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        (limitedFirstLanePrefix limit right.1.1 right.2 computation rightState
-          (firstLaneCounters right.1.1.secretKey.parameter rightState history))).run)
-      (LimitedFirstLaneOutcomeRelation left right.1 history) := by
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+        (limitedFirstLanePrefix limit right.1 computation rightState
+          (firstLaneCounters right.1.secretKey.parameter rightState history))).run)
+      (LimitedFirstLaneOutcomeRelation left right history) := by
   induction computation using OracleComp.inductionOn generalizing leftState rightState history with
   | pure value =>
       simp only [simulateQ_pure, StateT.run_pure, limitedFirstLanePrefix_pure, WriterT.run_pure]
@@ -85,24 +84,24 @@ theorem relTriple_countedSource_limitedPrefix_of_related {α : Type}
         ((countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey) input).run leftState >>=
           fun head => (simulateQ (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
             (next head.1)).run head.2)
-        ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-          ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2 input).run rightState)).run >>=
+        ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+          ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1 input).run rightState)).run >>=
           fun head => Prod.map id (fun tail => head.2 ++ tail) <$>
-            (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-              (limitedFirstLanePrefix limit right.1.1 right.2 (next head.1.1) head.1.2
-                (firstLaneCounters right.1.1.secretKey.parameter head.1.2 (history ++ head.2)))).run)
-        (LimitedFirstLaneOutcomeRelation left right.1 history)
+            (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+              (limitedFirstLanePrefix limit right.1 (next head.1.1) head.1.2
+                (firstLaneCounters right.1.secretKey.parameter head.1.2 (history ++ head.2)))).run)
+        (LimitedFirstLaneOutcomeRelation left right history)
       apply relTriple_bind (relTriple_with_support (relTriple_countedSource_firstLane_action left right
         hrel hleftSupport hrightSupport input next limit leftState rightState history hstate hcount hbudget))
       intro headLeft headRight hhead
       obtain ⟨⟨_hcharge, hnextBudget, hnextCount, hnext⟩, hleft, hright⟩ := hhead
       rcases hnext with ⟨hvalue, hnextState⟩ | hhit
-      · have hnextCache := globalFirstLaneExactTraced_query_encodingCountGrowth right.1.2 right.1.1
-          right.2 input rightState headRight hright
-        change cachedEncodingInputCount headRight.1.2.causalState.cache right.1.1.secretKey.parameter = _
+      · have hnextCache := globalFirstLaneExactTraced_query_encodingCountGrowth right.2 right.1
+          input rightState headRight hright
+        change cachedEncodingInputCount headRight.1.2.causalState.cache right.1.secretKey.parameter = _
           at hnextCache
         rw [hcacheCount] at hnextCache
-        have hnextCache' : cachedEncodingInputCount headRight.1.2.causalState.cache right.1.1.secretKey.parameter =
+        have hnextCache' : cachedEncodingInputCount headRight.1.2.causalState.cache right.1.secretKey.parameter =
             ((history ++ headRight.2).encodingActions.length : ℝ≥0∞) := by
           simpa only [FirstLaneOracleSimulation.ActionTrace.encodingActions_append, List.length_append, Nat.cast_add] using hnextCache
         have hnextEncoding := countedSourceImpl_encodingBudget
@@ -117,48 +116,47 @@ theorem relTriple_countedSource_limitedPrefix_of_related {α : Type}
             (id <$> ((simulateQ (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
               (next headRight.1.1)).run headLeft.2))
             (Prod.map id (fun tail => headRight.2 ++ tail) <$>
-              (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-                (limitedFirstLanePrefix limit right.1.1 right.2 (next headRight.1.1) headRight.1.2
-                  (firstLaneCounters right.1.1.secretKey.parameter headRight.1.2 (history ++ headRight.2)))).run)
-            (LimitedFirstLaneOutcomeRelation left right.1 history) := by
+              (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+                (limitedFirstLanePrefix limit right.1 (next headRight.1.1) headRight.1.2
+                  (firstLaneCounters right.1.secretKey.parameter headRight.1.2 (history ++ headRight.2)))).run)
+            (LimitedFirstLaneOutcomeRelation left right history) := by
           apply relTriple_map
           apply relTriple_post_mono hrec
           intro source target hresult
           simpa only [LimitedFirstLaneOutcomeRelation, Prod.map, id_eq, List.append_assoc] using hresult
         rw [hvalue]
         simpa only [id_map] using hmapped
-      · apply relTriple_post_mono (relTriple_firstLaneHit_append right.1.2 history headRight.2 hhit
+      · apply relTriple_post_mono (relTriple_firstLaneHit_append right.2 history headRight.2 hhit
           ((simulateQ (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
             (next headLeft.1)).run headLeft.2)
-          ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-            (limitedFirstLanePrefix limit right.1.1 right.2 (next headRight.1.1) headRight.1.2
-              (firstLaneCounters right.1.1.secretKey.parameter headRight.1.2 (history ++ headRight.2)))).run))
+          ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+            (limitedFirstLanePrefix limit right.1 (next headRight.1.1) headRight.1.2
+              (firstLaneCounters right.1.secretKey.parameter headRight.1.2 (history ++ headRight.2)))).run))
         intro _ _ hhit
         exact Or.inr hhit
 
 theorem relTriple_countedSource_limitedPrefix {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (computation : OracleComp (OracleWorld + SigningSpec) α)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
       limit computation (CountedSourceState.initial left.cache)) :
     RelTriple
       ((simulateQ (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
         computation).run (CountedSourceState.initial left.cache))
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        (limitedFirstLanePrefix limit right.1.1 right.2 computation
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1.1)) ⟨0, 0, 0⟩)).run)
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+        (limitedFirstLanePrefix limit right.1 computation
+          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run)
       (fun source target => source.2.charge ≤ limit ∧ target.1.2.charge ≤ limit ∧
         target.1.2.samples = target.2.encodingActions.length ∧
         FirstLaneOracleSimulation.hazardCount target.2 ≤ target.1.2.direct ∧
-        LimitedFirstLaneOutcomeRelation left right.1 [] source target) := by
+        LimitedFirstLaneOutcomeRelation left right [] source target) := by
   let sourceInitial := CountedSourceState.initial left.cache
-  let targetInitial := CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1.1)
-  have hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 sourceInitial.toSource targetInitial [] := by
+  let targetInitial := CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)
+  have hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right sourceInitial.toSource targetInitial [] := by
     refine ⟨?_, ?_, ?_⟩
     · simpa [sourceInitial, targetInitial, CountedSourceState.initial,
         CountedSourceState.toSource, CappedChain.globalStateOfFirstLane, CappedChain.sourceExactSigningProjection,
@@ -168,8 +166,8 @@ theorem relTriple_countedSource_limitedPrefix {α : Type}
         FirstLaneOracleSimulation.ActionTrace.encodingActions]
     · simp [targetInitial, CappedEncodingMonitor.validObservedSignLeafIndices,
         FirstLaneOracleSimulation.ActionTrace.encodingActions, CappedEncodingMonitor.validActions, EncodingMonitor.observedSignLeafIndices]
-  have hcacheCount : cachedEncodingInputCount targetInitial.causalState.cache right.1.1.secretKey.parameter = 0 := by
-    exact globalFilteredCausalKeygenState_encodingCount_zero right.1.1 hrightSupport
+  have hcacheCount : cachedEncodingInputCount targetInitial.causalState.cache right.1.secretKey.parameter = 0 := by
+    exact globalFilteredCausalKeygenState_encodingCount_zero right.1 hrightSupport
   have hencoding : CountedSourceEncodingBudget left.secretKey.parameter sourceInitial := by
     change cachedEncodingInputCount left.cache left.secretKey.parameter ≤ _
     rw [cachedEncodingInputCount_eq_zero_of_no_encodingInputs left.cache left.secretKey.parameter
@@ -180,13 +178,13 @@ theorem relTriple_countedSource_limitedPrefix {α : Type}
     limit computation sourceInitial targetInitial [] hstate
     (by simpa [FirstLaneOracleSimulation.ActionTrace.encodingActions] using hcacheCount) hencoding
     (by simp [FirstLaneOracleSimulation.hazardCount]) rfl hbudget
-  change RelTriple _ ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-    (limitedFirstLanePrefix limit right.1.1 right.2 computation targetInitial ⟨0, 0, 0⟩)).run) _ at hcoupling
+  change RelTriple _ ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+    (limitedFirstLanePrefix limit right.1 computation targetInitial ⟨0, 0, 0⟩)).run) _ at hcoupling
   apply relTriple_post_mono (relTriple_with_support hcoupling)
   intro source target hresult
-  have hlimited := limitedFirstLanePrefix_trace_budget right.1.2 limit right.1.1 right.2 computation
+  have hlimited := limitedFirstLanePrefix_trace_budget right.2 limit right.1 computation
     targetInitial ⟨0, 0, 0⟩ (by simp [EncodingBudgetCounters.charge]) target hresult.2.2
-  have hcount := limitedFirstLanePrefix_trace_direct right.1.2 limit right.1.1 right.2 computation
+  have hcount := limitedFirstLanePrefix_trace_direct right.2 limit right.1 computation
     targetInitial ⟨0, 0, 0⟩ target hresult.2.2
   exact ⟨hbudget source hresult.2.1, hlimited.1, by simpa using hlimited.2,
     by simpa using hcount, hresult.1⟩

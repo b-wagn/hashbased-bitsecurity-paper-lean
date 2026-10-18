@@ -28,9 +28,9 @@ def FreshPrefixFirstLaneEvent (key : CappedChain.ProgrammedGlobalChainKeygenView
   Deciding.PrefixFirstLaneEvent key result ∧ SourcePrefixFreshAccepted key result
 
 noncomputable def publicFreshPrefixProbeExecution (fuel : ℕ) (adversary : Adversary)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     OracleComp CappedChain.GlobalFirstLaneWorld (Forgery × CappedChain.GlobalHighDirectTracedState) := do
-  let result ← FirstLaneOracleSimulation.enforceHazardBound fuel (Deciding.publicPrefixExecution adversary key edgeHigh)
+  let result ← FirstLaneOracleSimulation.enforceHazardBound fuel (Deciding.publicPrefixExecution adversary key)
   if PublicFreshAccepted key result then
     let _ ← Deciding.publicDecidingProbe result.1.epoch
       (Deciding.signedEncoding result.2.causalState.cache key.secretKey.parameter
@@ -49,11 +49,10 @@ noncomputable def appendFreshPrefixProbe (fuel : ℕ) (base : CappedChain.Global
   else (result.1, FirstLaneOracleSimulation.enforceHazardTrace fuel result.2)
 
 theorem publicFreshPrefixProbeExecution_eager (fuel : ℕ) (adversary : Adversary)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (base : CappedChain.GlobalChainValueIndex → Digest)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
-    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (publicFreshPrefixProbeExecution fuel adversary key edgeHigh)).run =
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) (base : CappedChain.GlobalChainValueIndex → Digest) :
+    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (publicFreshPrefixProbeExecution fuel adversary key)).run =
       appendFreshPrefixProbe fuel base key <$>
-        (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (Deciding.publicPrefixExecution adversary key edgeHigh)).run := by
+        (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (Deciding.publicPrefixExecution adversary key)).run := by
   unfold publicFreshPrefixProbeExecution
   simp only [simulateQ_bind, WriterT.run_bind']
   rw [FirstLaneOracleSimulation.simulate_eagerTrace_enforceHazardBound]
@@ -86,15 +85,15 @@ theorem hazardCount_appendFreshPrefixProbe_le (fuel : ℕ) (base : CappedChain.G
 
 def CoupledPrefixFreshAccepted
     (result : Deciding.BaseHighKey × ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
-  PublicFreshAccepted result.1.1.1 result.2.1
+  PublicFreshAccepted result.1.1 result.2.1
 
 def CoupledFreshProbedHit (fuel : ℕ)
     (result : Deciding.BaseHighKey × ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
-  FirstLaneOracleSimulation.CombinedHit result.1.1.2 (appendFreshPrefixProbe fuel result.1.1.2 result.1.1.1 result.2).2
+  FirstLaneOracleSimulation.CombinedHit result.1.2 (appendFreshPrefixProbe fuel result.1.2 result.1.1 result.2).2
 
 theorem coupledFreshPrefixProbe_eq_map (fuel : ℕ) (adversary : Adversary) :
     Deciding.coupledFirstLaneProgram (publicFreshPrefixProbeExecution fuel adversary) =
-      (fun result => (result.1, appendFreshPrefixProbe fuel result.1.1.2 result.1.1.1 result.2)) <$>
+      (fun result => (result.1, appendFreshPrefixProbe fuel result.1.2 result.1.1 result.2)) <$>
         Deciding.coupledFirstLaneProgram (Deciding.publicPrefixExecution adversary) := by
   unfold Deciding.coupledFirstLaneProgram
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_apply]
@@ -112,7 +111,7 @@ theorem expectedCoupledHazards_freshProbe_eq (fuel : ℕ) (adversary : Adversary
   rw [coupledFreshPrefixProbe_eq_map, tsum_probOutput_map_mul]
   have hweight (result : Deciding.BaseHighKey ×
       ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) :
-      ((min (fuel + 1) (FirstLaneOracleSimulation.hazardCount (appendFreshPrefixProbe fuel result.1.1.2 result.1.1.1 result.2).2) : ℕ) : ℝ≥0∞) =
+      ((min (fuel + 1) (FirstLaneOracleSimulation.hazardCount (appendFreshPrefixProbe fuel result.1.2 result.1.1 result.2).2) : ℕ) : ℝ≥0∞) =
         ((min fuel (FirstLaneOracleSimulation.hazardCount result.2.2) : ℕ) : ℝ≥0∞) + if CoupledPrefixFreshAccepted result then 1 else 0 := by
     rw [min_eq_right (hazardCount_appendFreshPrefixProbe_le fuel _ _ _),
       hazardCount_appendFreshPrefixProbe, Nat.cast_add]
@@ -130,7 +129,7 @@ theorem coupledFreshProbedHit_probability_le (adversary : Adversary) (D : ℕ) :
       (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) + ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ *
         Pr[CoupledPrefixFreshAccepted | Deciding.coupledFirstLaneProgram (Deciding.publicPrefixExecution adversary)] := by
   have hhit : Pr[CoupledFreshProbedHit D | Deciding.coupledFirstLaneProgram (Deciding.publicPrefixExecution adversary)] =
-      Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (D + 1) result.2.2) |
+      Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (D + 1) result.2.2) |
         Deciding.coupledFirstLaneProgram (publicFreshPrefixProbeExecution D adversary)] := by
     rw [coupledFreshPrefixProbe_eq_map, probEvent_map]
     apply probEvent_congr' (fun result _ => ?_) rfl

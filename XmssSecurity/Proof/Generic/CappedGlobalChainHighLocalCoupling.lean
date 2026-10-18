@@ -11,10 +11,10 @@ namespace XmssSecurity.Generic.CappedChain
 variable [Code]
 
 inductive GlobalFilteredCausalHashPlan where
-  | cached (output : HashOutput)
+  | cached (output : Digest)
   | reveal (index : GlobalChainValueIndex)
   | probeThenFresh (index : GlobalChainValueIndex) (target : Digest)
-  | redirect (output : HashOutput)
+  | redirect (output : Digest)
   | fresh
 
 structure GlobalLeafInputData where
@@ -256,7 +256,7 @@ theorem globalFilteredCausalAttackerHashPlan_eq_reveal_globalEdge
 
 noncomputable def globalFilteredCausalRedirectResultState
     (secretKey : SecretKey) (input : HashInput)
-    (state : GlobalCausalHashState) (output : HashOutput) :
+    (state : GlobalCausalHashState) (output : Digest) :
     GlobalCausalHashState :=
   let recorded := globalCausalRecordedState secretKey input state
   { recorded with cache := recorded.cache.cacheQuery input output }
@@ -264,18 +264,17 @@ noncomputable def globalFilteredCausalRedirectResultState
 @[simp]
 theorem globalFilteredCausalRedirectResultState_revealed
     (secretKey : SecretKey) (input : HashInput)
-    (state : GlobalCausalHashState) (output : HashOutput) :
+    (state : GlobalCausalHashState) (output : Digest) :
     (globalFilteredCausalRedirectResultState secretKey input state
       output).revealed = state.revealed := by
   simp [globalFilteredCausalRedirectResultState,
     globalCausalRecordedState_revealed]
 
 noncomputable def globalCausalAttackerHashQueryFromHigh
-    (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput) :
     StateT GlobalCausalHashState
       (OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex))
-      HashOutput := fun state =>
+      Digest := fun state =>
   let recorded := globalCausalRecordedState secretKey input state
   match globalFilteredCausalAttackerHashPlan secretKey input state with
   | .cached output => pure (output, recorded)
@@ -287,13 +286,12 @@ noncomputable def globalCausalAttackerHashQueryFromHigh
       (globalCausalHashQuery input).run recorded
   | .fresh => (globalCausalHashQuery input).run recorded
   | .reveal index =>
-      globalCausalRevealHashQueryFromHigh high secretKey input state index
+      globalCausalRevealHashQueryFromHigh secretKey input state index
 
 theorem globalCausalAttackerHashQueryFromHigh_run
-    (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) :
-    (globalCausalAttackerHashQueryFromHigh high secretKey input).run state =
+    (globalCausalAttackerHashQueryFromHigh secretKey input).run state =
       (let recorded := globalCausalRecordedState secretKey input state
        match globalFilteredCausalAttackerHashPlan secretKey input state with
        | .cached output => pure (output, recorded)
@@ -306,15 +304,14 @@ theorem globalCausalAttackerHashQueryFromHigh_run
            (globalCausalHashQuery input).run recorded
        | .fresh => (globalCausalHashQuery input).run recorded
        | .reveal index =>
-           globalCausalRevealHashQueryFromHigh high secretKey input state
+           globalCausalRevealHashQueryFromHigh secretKey input state
              index) := rfl
 
 
 theorem globalCausalRevealHashQueryFromHigh_isProbeQueryBoundP
-    (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) (index : GlobalChainValueIndex) :
-    (globalCausalRevealHashQueryFromHigh high secretKey input state index)
+    (globalCausalRevealHashQueryFromHigh secretKey input state index)
       |>.IsQueryBoundP RevealProbeOracleSimulation.IsProbeQuery 0 := by
   unfold globalCausalRevealHashQueryFromHigh
   apply OracleComp.isQueryBoundP_bind (n := 0) (m := 0)
@@ -324,10 +321,9 @@ theorem globalCausalRevealHashQueryFromHigh_isProbeQueryBoundP
     (p := RevealProbeOracleSimulation.IsProbeQuery) _ 0
 
 theorem globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP
-    (high : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) :
-    (globalCausalAttackerHashQueryFromHigh high secretKey input).run state
+    (globalCausalAttackerHashQueryFromHigh secretKey input).run state
       |>.IsQueryBoundP RevealProbeOracleSimulation.IsProbeQuery 1 := by
   rw [globalCausalAttackerHashQueryFromHigh_run]
   generalize hplan :
@@ -339,8 +335,8 @@ theorem globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP
       exact (globalCausalHashQuery_run_isProbeQueryBoundP input
         (globalCausalRecordedState secretKey input state)).mono (by omega)
   | reveal index =>
-      exact (globalCausalRevealHashQueryFromHigh_isProbeQueryBoundP high
-        secretKey input state index).mono (by omega)
+      exact (globalCausalRevealHashQueryFromHigh_isProbeQueryBoundP secretKey
+        input state index).mono (by omega)
   | probeThenFresh index target =>
       apply OracleComp.isQueryBoundP_bind (n := 1) (m := 0)
         (RevealProbeOracleSimulation.probeQuery_isProbeQueryBoundP index target)
@@ -354,51 +350,47 @@ set_option maxHeartbeats 2000000
 
 theorem relTriple_programmed_globalFilteredHashQuery_cached
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
-    (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
+    (hstate : GlobalFilteredCausalStateRelation left right leftCache
       rightState)
-    (input : HashInput) (output : HashOutput)
+    (input : HashInput) (output : Digest)
     (hright : rightState.cache input = some output) :
     RelTriple
       ((randomOracle input).run leftCache)
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             input).run rightState)).run)
-      (GlobalFilteredHashResultRelation left right.1) := by
+      (GlobalFilteredHashResultRelation left right) := by
   have hleft : leftCache input = some output :=
     hstate.2.1.right_le_left hright
-  have hplan : globalFilteredCausalAttackerHashPlan right.1.1.secretKey input
+  have hplan : globalFilteredCausalAttackerHashPlan right.1.secretKey input
       rightState = .cached output := by
     simp [globalFilteredCausalAttackerHashPlan, hright]
   rw [randomOracle, QueryImpl.withCaching_run_some _ hleft,
     globalCausalAttackerHashQueryFromHigh_run, hplan, simulateQ_pure,
     WriterT.run_pure]
   apply relTriple_pure_pure
-  exact ⟨rfl, hstate.recordedState right.1.1.secretKey input⟩
+  exact ⟨rfl, hstate.recordedState right.1.secretKey input⟩
 
 theorem relTriple_programmed_globalFilteredHashQuery_fresh
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
-    (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
+    (hstate : GlobalFilteredCausalStateRelation left right leftCache
       rightState)
     (input : HashInput)
     (hbaseNone : left.cache input = none)
-    (hplan : globalFilteredCausalAttackerHashPlan right.1.1.secretKey input
+    (hplan : globalFilteredCausalAttackerHashPlan right.1.secretKey input
       rightState = .fresh) :
     RelTriple
       ((randomOracle input).run leftCache)
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             input).run rightState)).run)
-      (GlobalFilteredHashResultRelation left right.1) := by
+      (GlobalFilteredHashResultRelation left right) := by
   have hcurrent : leftCache input = rightState.cache input := by
     rcases hstate.2.1 input with hagree | ⟨hleft, hright⟩
     · exact hagree
@@ -407,23 +399,23 @@ theorem relTriple_programmed_globalFilteredHashQuery_fresh
     (GlobalSigningComparableHashInput left.secretKey.parameter) left.cache
       leftCache rightState.cache input hcurrent hstate.1 hstate.2.1
   let recorded :=
-    globalCausalRecordedState right.1.1.secretKey input rightState
-  let wrap := fun result : HashOutput × QueryCache HashSpec =>
+    globalCausalRecordedState right.1.secretKey input rightState
+  let wrap := fun result : Digest × QueryCache HashSpec =>
     ((result.1, recorded.setCache result.2),
       ([] : RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex))
   have hprepared : RelTriple ((randomOracle input).run leftCache)
       ((randomOracle input).run rightState.cache)
       (fun leftResult rightResult =>
-        GlobalFilteredHashResultRelation left right.1 leftResult
+        GlobalFilteredHashResultRelation left right leftResult
           (wrap rightResult)) := by
     apply relTriple_post_mono hcouple
     intro leftResult rightResult hresult
     refine ⟨hresult.1, ?_⟩
-    exact hstate.recordedStateSetCache right.1.1.secretKey input
+    exact hstate.recordedStateSetCache right.1.secretKey input
       leftResult.2 rightResult.2 hresult.2.1 hresult.2.2.2.2
         hresult.2.2.1
   have hmapped := relTriple_map
-    (R := GlobalFilteredHashResultRelation left right.1)
+    (R := GlobalFilteredHashResultRelation left right)
     (f := id) (g := wrap) hprepared
   rw [globalCausalAttackerHashQueryFromHigh_run, hplan,
     simulate_eagerTrace_globalCausalHashQuery]
@@ -431,28 +423,26 @@ theorem relTriple_programmed_globalFilteredHashQuery_fresh
 
 theorem relTriple_programmed_globalFilteredHashQuery_redirect
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
-    (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
+    (hstate : GlobalFilteredCausalStateRelation left right leftCache
       rightState)
-    (input : HashInput) (output : HashOutput)
+    (input : HashInput) (output : Digest)
     (hbase : left.cache input = some output)
     (hinput : ¬ GlobalSigningComparableHashInput left.secretKey.parameter input)
-    (hplan : globalFilteredCausalAttackerHashPlan right.1.1.secretKey input
+    (hplan : globalFilteredCausalAttackerHashPlan right.1.secretKey input
       rightState = .redirect output) :
     RelTriple
       ((randomOracle input).run leftCache)
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             input).run rightState)).run)
-      (GlobalFilteredHashResultRelation left right.1) := by
+      (GlobalFilteredHashResultRelation left right) := by
   have hleft : leftCache input = some output := hstate.2.2.1 hbase
   have hagrees : HashCachesAgreeOn
       (GlobalSigningComparableHashInput left.secretKey.parameter) leftCache
-      ((globalCausalRecordedState right.1.1.secretKey input rightState).cache
+      ((globalCausalRecordedState right.1.secretKey input rightState).cache
         |>.cacheQuery input output) := by
     intro candidate hcandidate
     have hne : candidate ≠ input := by
@@ -463,7 +453,7 @@ theorem relTriple_programmed_globalFilteredHashQuery_redirect
       globalCausalRecordedState_cache]
     exact hstate.1 candidate hcandidate
   have hfiltered : FilteredCacheExtensionRelation left.cache leftCache
-      ((globalCausalRecordedState right.1.1.secretKey input rightState).cache
+      ((globalCausalRecordedState right.1.secretKey input rightState).cache
         |>.cacheQuery input output) := by
     intro candidate
     by_cases heq : candidate = input
@@ -473,9 +463,9 @@ theorem relTriple_programmed_globalFilteredHashQuery_redirect
     · rw [QueryCache.cacheQuery_of_ne _ _ heq,
         globalCausalRecordedState_cache]
       exact hstate.2.1 candidate
-  have hnext := hstate.recordedStateSetCache right.1.1.secretKey input
+  have hnext := hstate.recordedStateSetCache right.1.secretKey input
     leftCache
-    ((globalCausalRecordedState right.1.1.secretKey input rightState).cache
+    ((globalCausalRecordedState right.1.secretKey input rightState).cache
       |>.cacheQuery input output)
     hagrees hfiltered le_rfl
   rw [randomOracle, QueryImpl.withCaching_run_some _ hleft,
@@ -489,15 +479,14 @@ set_option maxHeartbeats 2000000
 
 theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
+    (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
-    (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
+    (hstate : GlobalFilteredCausalStateRelation left right leftCache
       rightState)
     (edge : GlobalChainEdgeIndex)
     (hrightCache : rightState.cache
@@ -505,80 +494,68 @@ theorem relTriple_programmed_globalFilteredHashQuery_revealEdge
         none)
     (hrevealed : rightState.revealed
       (edge.1, edge.2.1, chainStepDigit edge.2.2) =
-        some (right.1.2
+        some (right.2
           (edge.1, edge.2.1, chainStepDigit edge.2.2))) :
     RelTriple
       ((randomOracle
         (globalChainTableEdgeInput left.secretKey.parameter left.table edge)).run
           leftCache)
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             (globalChainTableEdgeInput left.secretKey.parameter left.table
               edge)).run rightState)).run)
-      (GlobalFilteredHashResultRelation left right.1) := by
+      (GlobalFilteredHashResultRelation left right) := by
   have hleftKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
     left hleftSupport
   have hrightKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
-    right.1.1 hrightSupport
+    right.1 hrightSupport
   have hparameter : left.secretKey.parameter =
-      right.1.1.secretKey.parameter := by
+      right.1.secretKey.parameter := by
     calc
       left.secretKey.parameter = left.publicKey.parameter :=
         (keygen_parameter_eq left.keyResult hleftKey).symm
-      _ = right.1.1.publicKey.parameter :=
+      _ = right.1.publicKey.parameter :=
         congrArg PublicKey.parameter hrel.1.toStable.1.2.1
-      _ = right.1.1.secretKey.parameter :=
-        keygen_parameter_eq right.1.1.keyResult hrightKey
-  have htable : left.table = right.1.2 := hrel.1.toStable.1.1
+      _ = right.1.secretKey.parameter :=
+        keygen_parameter_eq right.1.keyResult hrightKey
+  have htable : left.table = right.2 := hrel.1.toStable.1.1
   have hedgeInput :
       globalChainTableEdgeInput left.secretKey.parameter left.table edge =
-        globalChainTableEdgeInput right.1.1.secretKey.parameter right.1.2
+        globalChainTableEdgeInput right.1.secretKey.parameter right.2
           edge := by
     rw [hparameter, htable]
   have hrightCanonical : rightState.cache
-      (globalChainTableEdgeInput right.1.1.secretKey.parameter right.1.2
+      (globalChainTableEdgeInput right.1.secretKey.parameter right.2
         edge) = none := by
     rw [← hedgeInput]
     exact hrightCache
   have hplanCanonical := globalFilteredCausalAttackerHashPlan_eq_reveal_globalEdge
-    right.1.1.secretKey right.1.2 edge rightState hrightCanonical hrevealed
-  have hplan : globalFilteredCausalAttackerHashPlan right.1.1.secretKey
+    right.1.secretKey right.2 edge rightState hrightCanonical hrevealed
+  have hplan : globalFilteredCausalAttackerHashPlan right.1.secretKey
       (globalChainTableEdgeInput left.secretKey.parameter left.table edge)
         rightState =
       .reveal (edge.1, edge.2.1, chainStepNextDigit edge.2.2) := by
     rw [hedgeInput]
     exact hplanCanonical
-  obtain ⟨output, hbase, htruncate⟩ := hrel.2.2 edge
+  obtain ⟨output, hbase, htarget⟩ := hrel.2 edge
+  have houtput : output =
+      right.2 (edge.1, edge.2.1, chainStepNextDigit edge.2.2) := by
+    rw [htarget, ← htable]
+    rfl
+  subst houtput
   have hleft : leftCache
       (globalChainTableEdgeInput left.secretKey.parameter left.table edge) =
-        some output := hstate.2.2.1 hbase
+        some (right.2 (edge.1, edge.2.1, chainStepNextDigit edge.2.2)) :=
+    hstate.2.2.1 hbase
   rw [randomOracle, QueryImpl.withCaching_run_some _ hleft,
     globalCausalAttackerHashQueryFromHigh_run, hplan,
     simulate_eagerTrace_globalCausalRevealHashQueryFromHigh]
   apply relTriple_pure_pure
-  have hconstructed :
-      Rom.hashOutputEquivDigestPair.symm
-          (globalChainValueHighTableOfEdges right.2
-            (edge.1, edge.2.1, chainStepNextDigit edge.2.2),
-            right.1.2
-              (edge.1, edge.2.1, chainStepNextDigit edge.2.2)) =
-        output := by
-    calc
-      _ = globalChainEdgeOutputFromHigh right.2 right.1.2 edge :=
-        globalChainEdgeOutputFromHigh_eq_revealOutput right.2 right.1.2 edge
-      _ = globalChainEdgeOutputFromHigh
-          (globalChainEdgeHighTableOfCache left.cache
-            left.secretKey.parameter left.table) left.table edge := by
-        rw [hrel.2.1, htable]
-      _ = output := globalChainEdgeOutputFromHigh_eq_cached left.cache
-        left.secretKey.parameter left.table edge output hbase htruncate
-  refine ⟨hconstructed.symm, ?_⟩
-  rw [hconstructed]
-  apply hstate.revealResultState right.1.1.secretKey
+  refine ⟨rfl, ?_⟩
+  apply hstate.revealResultState right.1.secretKey
     (globalChainTableEdgeInput left.secretKey.parameter left.table edge)
     (edge.1, edge.2.1, chainStepNextDigit edge.2.2)
-    (right.1.2 (edge.1, edge.2.1, chainStepNextDigit edge.2.2)) output
+    (right.2 (edge.1, edge.2.1, chainStepNextDigit edge.2.2))
   · exact globalChainTableEdgeInput_not_signingComparable
       left.secretKey.parameter left.table edge
   · exact hleft
@@ -593,8 +570,8 @@ def GlobalFilteredHashUntilHitRelation
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
     (monitor : AdaptiveRevealMonitor.State GlobalChainValueIndex)
-    (leftResult : HashOutput × QueryCache HashSpec)
-    (rightResult : (HashOutput × GlobalCausalHashState) ×
+    (leftResult : Digest × QueryCache HashSpec)
+    (rightResult : (Digest × GlobalCausalHashState) ×
       RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) : Prop :=
   GlobalFilteredHashResultRelation left right leftResult rightResult ∨
     RevealProbeOracleSimulation.runObserved right.2 monitor rightResult.2 = true
@@ -630,16 +607,16 @@ theorem globalRunObserved_probe_hit_hidden
   simp [AdaptiveRevealMonitor.State.addPending, hhit]
 
 theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
-    (table high : GlobalChainValueIndex → Digest)
+    (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) (index : GlobalChainValueIndex)
     (target : Digest)
     (hplan : globalFilteredCausalAttackerHashPlan secretKey input state =
       .probeThenFresh index target) :
     (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table)
-      ((globalCausalAttackerHashQueryFromHigh high secretKey input).run
+      ((globalCausalAttackerHashQueryFromHigh secretKey input).run
         state)).run =
-      (fun result : HashOutput × QueryCache HashSpec =>
+      (fun result : Digest × QueryCache HashSpec =>
         ((result.1,
           (globalCausalRecordedState secretKey input state).setCache result.2),
           [RevealProbeOracleSimulation.ObservedAction.probe index target])) <$>
@@ -653,23 +630,21 @@ theorem simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
 
 theorem relTriple_programmed_globalFilteredHashQuery_probeThenFresh_of_baseNone
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
-    (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
+    (hstate : GlobalFilteredCausalStateRelation left right leftCache
       rightState)
     (input : HashInput) (index : GlobalChainValueIndex) (target : Digest)
     (hbaseNone : left.cache input = none)
-    (hplan : globalFilteredCausalAttackerHashPlan right.1.1.secretKey input
+    (hplan : globalFilteredCausalAttackerHashPlan right.1.secretKey input
       rightState = .probeThenFresh index target) :
     RelTriple
       ((randomOracle input).run leftCache)
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             input).run rightState)).run)
-      (GlobalFilteredHashResultRelation left right.1) := by
+      (GlobalFilteredHashResultRelation left right) := by
   have hcurrent : leftCache input = rightState.cache input := by
     rcases hstate.2.1 input with hagree | ⟨hleft, hright⟩
     · exact hagree
@@ -678,80 +653,74 @@ theorem relTriple_programmed_globalFilteredHashQuery_probeThenFresh_of_baseNone
     (GlobalSigningComparableHashInput left.secretKey.parameter) left.cache
       leftCache rightState.cache input hcurrent hstate.1 hstate.2.1
   let recorded :=
-    globalCausalRecordedState right.1.1.secretKey input rightState
+    globalCausalRecordedState right.1.secretKey input rightState
   let trace : RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex :=
     [RevealProbeOracleSimulation.ObservedAction.probe index target]
-  let wrap := fun result : HashOutput × QueryCache HashSpec =>
+  let wrap := fun result : Digest × QueryCache HashSpec =>
     ((result.1, recorded.setCache result.2), trace)
   have hprepared : RelTriple ((randomOracle input).run leftCache)
       ((randomOracle input).run rightState.cache)
       (fun leftResult rightResult =>
-        GlobalFilteredHashResultRelation left right.1 leftResult
+        GlobalFilteredHashResultRelation left right leftResult
           (wrap rightResult)) := by
     apply relTriple_post_mono hcouple
     intro leftResult rightResult hresult
     refine ⟨hresult.1, ?_⟩
-    exact hstate.recordedStateSetCache right.1.1.secretKey input
+    exact hstate.recordedStateSetCache right.1.secretKey input
       leftResult.2 rightResult.2 hresult.2.1 hresult.2.2.2.2
         hresult.2.2.1
   have hmapped := relTriple_map
-    (R := GlobalFilteredHashResultRelation left right.1)
+    (R := GlobalFilteredHashResultRelation left right)
     (f := id) (g := wrap) hprepared
   rw [simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
-    right.1.2 (globalChainValueHighTableOfEdges right.2)
-      right.1.1.secretKey input rightState index target hplan]
+    right.2 right.1.secretKey input rightState index target hplan]
   simpa [wrap, trace, recorded, GlobalCausalHashState.setCache] using hmapped
 
 theorem relTriple_programmed_globalFilteredHashQuery_probeThenFresh_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
-    (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
+    (hstate : GlobalFilteredCausalStateRelation left right leftCache
       rightState)
     (monitor : AdaptiveRevealMonitor.State GlobalChainValueIndex)
     (hmonitor : monitor.revealed = rightState.revealed)
     (input : HashInput) (index : GlobalChainValueIndex) (target : Digest)
     (hhidden : rightState.revealed index = none)
-    (hplan : globalFilteredCausalAttackerHashPlan right.1.1.secretKey input
+    (hplan : globalFilteredCausalAttackerHashPlan right.1.secretKey input
       rightState = .probeThenFresh index target)
-    (hbaseNone : right.1.2 index ≠ target → left.cache input = none) :
+    (hbaseNone : right.2 index ≠ target → left.cache input = none) :
     RelTriple
       ((randomOracle input).run leftCache)
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             input).run rightState)).run)
-      (GlobalFilteredHashUntilHitRelation left right.1 monitor) := by
-  by_cases hhit : right.1.2 index = target
+      (GlobalFilteredHashUntilHitRelation left right monitor) := by
+  by_cases hhit : right.2 index = target
   · have hmonitorHidden : monitor.revealed index = none := by
       rw [hmonitor, hhidden]
     have hright : ∀ result ∈ support
-        ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-          ((globalCausalAttackerHashQueryFromHigh
-            (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+        ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+          ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
               input).run rightState)).run),
-        RevealProbeOracleSimulation.runObserved right.1.2 monitor result.2 =
+        RevealProbeOracleSimulation.runObserved right.2 monitor result.2 =
           true := by
       intro result hresult
       rw [simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
-        right.1.2 (globalChainValueHighTableOfEdges right.2)
-          right.1.1.secretKey input rightState index target hplan,
+        right.2 right.1.secretKey input rightState index target hplan,
         support_map] at hresult
       obtain ⟨raw, _hraw, rfl⟩ := hresult
       exact globalRunObserved_probe_hit_hidden
-        right.1.2 monitor index target [] hmonitorHidden hhit
+        right.2 monitor index target [] hmonitorHidden hhit
     have hproduct := relTriple_prod
       (oa := (randomOracle input).run leftCache)
       (ob := (simulateQ
-        (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+        (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             input).run rightState)).run)
       (P := fun _ => True)
       (Q := fun result => RevealProbeOracleSimulation.runObserved
-        right.1.2 monitor result.2 = true)
+        right.2 monitor result.2 = true)
       (fun _ _ => True.intro) hright
     apply relTriple_post_mono hproduct
     intro _leftResult _rightResult hresult
@@ -793,9 +762,8 @@ theorem globalChainInputProbe?_eq_some_iff
 
 theorem programmedGlobal_left_chainValue_eq_table
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (index : GlobalChainValueIndex) :
@@ -803,23 +771,22 @@ theorem programmedGlobal_left_chainValue_eq_table
         (Concrete.CacheView.chainStep left.cache left.secretKey.parameter
           index.2.1 index.1)
         0 index.2.2.val (left.secretKey.chainStart index.2.1 index.1) =
-      right.1.2 index := by
+      right.2 index := by
   change globalKeygenChainValueTable left.cache left.secretKey index =
-    right.1.2 index
+    right.2 index
   rw [trajectoryProgrammedGlobalChainKeygen_support_table left hleftSupport]
   exact congrFun hrel.1.toStable.1.1 index
 
 theorem programmedGlobal_left_cache_chainInput_eq_none_of_probe_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (input : HashInput) (index : GlobalChainValueIndex) (target : Digest)
     (hprobe : globalChainInputProbe? left.secretKey.parameter input =
       some (index, target))
-    (hmiss : right.1.2 index ≠ target) :
+    (hmiss : right.2 index ≠ target) :
     left.cache input = none := by
   obtain ⟨step, hinput, hindex⟩ :=
     (globalChainInputProbe?_eq_some_iff left.secretKey.parameter input index
@@ -837,15 +804,14 @@ theorem programmedGlobal_left_cache_chainInput_eq_none_of_probe_miss
 
 theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
+    (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
     (leftCache : QueryCache HashSpec) (rightState : GlobalCausalHashState)
-    (hstate : GlobalFilteredCausalStateRelation left right.1 leftCache
+    (hstate : GlobalFilteredCausalStateRelation left right leftCache
       rightState)
     (monitor : AdaptiveRevealMonitor.State GlobalChainValueIndex)
     (hmonitor : monitor.revealed = rightState.revealed)
@@ -854,26 +820,25 @@ theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
       some (index, target)) :
     RelTriple
       ((randomOracle input).run leftCache)
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalCausalAttackerHashQueryFromHigh
-          (globalChainValueHighTableOfEdges right.2) right.1.1.secretKey
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        ((globalCausalAttackerHashQueryFromHigh right.1.secretKey
             input).run rightState)).run)
-      (GlobalFilteredHashUntilHitRelation left right.1 monitor) := by
+      (GlobalFilteredHashUntilHitRelation left right monitor) := by
   have hleftKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
     left hleftSupport
   have hrightKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
-    right.1.1 hrightSupport
+    right.1 hrightSupport
   have hparameter : left.secretKey.parameter =
-      right.1.1.secretKey.parameter := by
+      right.1.secretKey.parameter := by
     calc
       left.secretKey.parameter = left.publicKey.parameter :=
         (keygen_parameter_eq left.keyResult hleftKey).symm
-      _ = right.1.1.publicKey.parameter :=
+      _ = right.1.publicKey.parameter :=
         congrArg PublicKey.parameter hrel.1.toStable.1.2.1
-      _ = right.1.1.secretKey.parameter :=
-        keygen_parameter_eq right.1.1.keyResult hrightKey
+      _ = right.1.secretKey.parameter :=
+        keygen_parameter_eq right.1.keyResult hrightKey
   have hprobeRight : globalChainInputProbe?
-      right.1.1.secretKey.parameter input = some (index, target) := by
+      right.1.secretKey.parameter input = some (index, target) := by
     rw [← hparameter]
     exact hprobe
   cases hcache : rightState.cache input with
@@ -893,7 +858,7 @@ theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
       cases hhidden : rightState.revealed index with
       | none =>
           have hplan := globalFilteredCausalAttackerHashPlan_eq_probeThenFresh
-            right.1.1.secretKey input rightState index target hcache hprobeRight
+            right.1.secretKey input rightState index target hcache hprobeRight
               hhidden hnext
           exact
             relTriple_programmed_globalFilteredHashQuery_probeThenFresh_until_hit
@@ -904,9 +869,9 @@ theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
       | some value =>
           by_cases hvalue : value = target
           · subst value
-            have hhit : right.1.2 index = target :=
+            have hhit : right.2 index = target :=
               hstate.2.2.2.2 index target hhidden
-            have htable : left.table = right.1.2 := hrel.1.toStable.1.1
+            have htable : left.table = right.2 := hrel.1.toStable.1.1
             have htarget : left.table index = target :=
               (congrFun htable index).trans hhit
             have hedgeInput : input = globalChainTableEdgeInput
@@ -924,7 +889,7 @@ theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
               exact Or.inl hresult
             · rw [← hindex, hhit]
               exact hhidden
-          · have hmiss : right.1.2 index ≠ target := by
+          · have hmiss : right.2 index ≠ target := by
               intro hhit
               exact hvalue ((hstate.2.2.2.2 index value hhidden).symm.trans
                 hhit)
@@ -932,7 +897,7 @@ theorem relTriple_programmed_globalFilteredChainHashQuery_until_hit
               programmedGlobal_left_cache_chainInput_eq_none_of_probe_miss
                 left right hrel hleftSupport input index target hprobe hmiss
             have hplan : globalFilteredCausalAttackerHashPlan
-                right.1.1.secretKey input rightState = .fresh := by
+                right.1.secretKey input rightState = .fresh := by
               rw [globalFilteredCausalAttackerHashPlan, hcache, hprobeRight]
               simp [globalFilteredCausalUncachedAttackerHashPlan, hhidden,
                 hvalue]
@@ -954,28 +919,26 @@ theorem globalLeafInput_not_signingComparable
 
 theorem programmedGlobal_left_endpoint_eq_table
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (leafIndex : LeafIndex) (chain : ChainIndex) :
     Concrete.CacheReplay.oneTimePublicKey left.cache
         left.secretKey.parameter left.secretKey.chainStart leafIndex chain =
-      right.1.2 (chain, leafIndex, chainEndpointDigit) := by
+      right.2 (chain, leafIndex, chainEndpointDigit) := by
   exact programmedGlobal_left_chainValue_eq_table left right hrel hleftSupport
     (chain, leafIndex, chainEndpointDigit)
 
 theorem programmedGlobal_left_leaf_cache_none_of_endpoint_miss
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (leafIndex : LeafIndex) (endpoints : ChainIndex → Digest)
     (chain : ChainIndex)
-    (hmiss : right.1.2 (chain, leafIndex, chainEndpointDigit) ≠ endpoints chain) :
+    (hmiss : right.2 (chain, leafIndex, chainEndpointDigit) ≠ endpoints chain) :
     left.cache (Concrete.CacheView.leafInput left.secretKey.parameter leafIndex
       endpoints) = none := by
   apply Concrete.keygen_cache_leafInput_eq_none_of_ne left.keyResult
@@ -989,19 +952,18 @@ theorem programmedGlobal_left_leaf_cache_none_of_endpoint_miss
 
 theorem globalLeafRevealsMatch_endpoints_eq_leftReplay
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (state : GlobalCausalHashState) (leafIndex : LeafIndex)
     (endpoints : ChainIndex → Digest)
-    (hreveals : GlobalSigningRevealsAgree right.1.2 state)
+    (hreveals : GlobalSigningRevealsAgree right.2 state)
     (hmatch : GlobalLeafRevealsMatch state leafIndex endpoints) :
     endpoints = Concrete.CacheReplay.oneTimePublicKey left.cache
       left.secretKey.parameter left.secretKey.chainStart leafIndex := by
   funext chain
-  have htable : right.1.2 (chain, leafIndex, chainEndpointDigit) =
+  have htable : right.2 (chain, leafIndex, chainEndpointDigit) =
       endpoints chain :=
     hreveals (chain, leafIndex, chainEndpointDigit) (endpoints chain)
       (hmatch chain)
@@ -1011,21 +973,20 @@ theorem globalLeafRevealsMatch_endpoints_eq_leftReplay
 
 theorem programmedGlobal_secretKey_parameter_eq
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
+    (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen) :
-    right.1.1.secretKey.parameter = left.secretKey.parameter := by
+    right.1.secretKey.parameter = left.secretKey.parameter := by
   have hleftKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
     left hleftSupport
   have hrightKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
-    right.1.1 hrightSupport
+    right.1 hrightSupport
   calc
-    right.1.1.secretKey.parameter = right.1.1.publicKey.parameter :=
-      (keygen_parameter_eq right.1.1.keyResult hrightKey).symm
+    right.1.secretKey.parameter = right.1.publicKey.parameter :=
+      (keygen_parameter_eq right.1.keyResult hrightKey).symm
     _ = left.publicKey.parameter :=
       congrArg PublicKey.parameter hrel.1.toStable.1.2.1.symm
     _ = left.secretKey.parameter := keygen_parameter_eq left.keyResult hleftKey
@@ -1049,11 +1010,11 @@ theorem leafBaseCachePair_of_treeCorrespondence
       endpoints)
     (hendpoints : endpoints = Concrete.CacheReplay.oneTimePublicKey leftCache
       parameter leftSecret leafIndex)
-    (hcached : ∃ output : HashOutput, leftCache
+    (hcached : ∃ output : Digest, leftCache
       (Concrete.CacheView.leafInput parameter leafIndex
         (Concrete.CacheReplay.oneTimePublicKey leftCache parameter leftSecret
           leafIndex)) = some output) :
-    ∃ output : HashOutput,
+    ∃ output : Digest,
       leftCache input = some output ∧
       rightCache (keygenLeafTargetInput rightSecret rightCache input) =
         some output := by
@@ -1113,59 +1074,57 @@ theorem leafBaseCachePair_of_treeCorrespondence
 
 theorem programmedGlobal_leaf_base_cache_pair
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
+    (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
     (input : HashInput) (leafIndex : LeafIndex)
     (endpoints : ChainIndex → Digest)
     (hinput : input = Concrete.CacheView.leafInput
-      right.1.1.secretKey.parameter leafIndex endpoints)
+      right.1.secretKey.parameter leafIndex endpoints)
     (hendpoints : endpoints = Concrete.CacheReplay.oneTimePublicKey left.cache
       left.secretKey.parameter left.secretKey.chainStart leafIndex) :
-    ∃ output : HashOutput,
+    ∃ output : Digest,
       left.cache input = some output ∧
-      right.1.1.cache
-        (keygenLeafTargetInput right.1.1.secretKey right.1.1.cache input) =
+      right.1.cache
+        (keygenLeafTargetInput right.1.secretKey right.1.cache input) =
           some output := by
   have hleftKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
     left hleftSupport
-  have hparameter : right.1.1.secretKey.parameter =
+  have hparameter : right.1.secretKey.parameter =
       left.secretKey.parameter :=
     programmedGlobal_secretKey_parameter_eq left right hrel hleftSupport
       hrightSupport
   obtain ⟨leftEndpoints, rightEndpoints, htree, hleftReplay, hrightReplay⟩ :=
     hrel.1.2.2.2
   apply leafBaseCachePair_of_treeCorrespondence left.secretKey.parameter
-    left.secretKey.chainStart right.1.1.secretKey left.cache right.1.1.cache
+    left.secretKey.chainStart right.1.secretKey left.cache right.1.cache
       leftEndpoints rightEndpoints htree hleftReplay hrightReplay hparameter
         input leafIndex endpoints hinput hendpoints
   exact Concrete.keygen_cache_has_leafInput left.keyResult hleftKey leafIndex
 
 theorem programmedGlobal_leaf_cache_pair_of_reveals_match
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
+    (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
     (state : GlobalCausalHashState)
-    (hkeygenCache : state.keygenCache = right.1.1.cache)
-    (hreveals : GlobalSigningRevealsAgree right.1.2 state)
+    (hkeygenCache : state.keygenCache = right.1.cache)
+    (hreveals : GlobalSigningRevealsAgree right.2 state)
     (input : HashInput) (leafIndex : LeafIndex)
     (endpoints : ChainIndex → Digest)
     (hinput : input = Concrete.CacheView.leafInput
-      right.1.1.secretKey.parameter leafIndex endpoints)
+      right.1.secretKey.parameter leafIndex endpoints)
     (hmatch : GlobalLeafRevealsMatch state leafIndex endpoints) :
-    ∃ output : HashOutput,
+    ∃ output : Digest,
       left.cache input = some output ∧
       state.keygenCache
-        (keygenLeafTargetInput right.1.1.secretKey state.keygenCache input) =
+        (keygenLeafTargetInput right.1.secretKey state.keygenCache input) =
           some output := by
   have hendpoints := globalLeafRevealsMatch_endpoints_eq_leftReplay left right
     hrel hleftSupport state leafIndex endpoints hreveals hmatch

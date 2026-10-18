@@ -28,9 +28,9 @@ def MixedEncodingPrefixEvent (key : CappedChain.ProgrammedGlobalChainKeygenView)
       ∃ encoding, fallback = some encoding ∧ RevealedEncodingPrefixEvent key result encoding)
 
 noncomputable def limitedMixedEncodingProbeExecution (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) Forgery)
+    (computation : OracleComp (OracleWorld + SigningSpec) Forgery)
     (fallback : Option Encoding) : OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult := do
-  let result ← limitedFirstLanePrefix limit key edgeHigh computation
+  let result ← limitedFirstLanePrefix limit key computation
     (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
   match result.1 with
   | none => pure result
@@ -61,11 +61,11 @@ def LimitedMixedEncodingProbeEligible (key : CappedChain.ProgrammedGlobalChainKe
     (mixedProbeEncoding completed.2.causalState.cache key.secretKey.parameter completed.1 fallback).isSome
 
 theorem limitedMixedEncodingProbeExecution_eager (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (base : CappedChain.GlobalChainValueIndex → Digest) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
+    (base : CappedChain.GlobalChainValueIndex → Digest)
     (computation : OracleComp (OracleWorld + SigningSpec) Forgery) (fallback : Option Encoding) :
-    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (limitedMixedEncodingProbeExecution limit key edgeHigh computation fallback)).run =
+    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (limitedMixedEncodingProbeExecution limit key computation fallback)).run =
       appendLimitedMixedEncodingProbe base key fallback <$>
-        (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (limitedFirstLanePrefix limit key edgeHigh computation
+        (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (limitedFirstLanePrefix limit key computation
           (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run := by
   unfold limitedMixedEncodingProbeExecution
   simp only [simulateQ_bind, WriterT.run_bind', map_eq_bind_pure_comp]
@@ -120,26 +120,26 @@ theorem limitedMixedEncoding_cancellation_coupling_afterKeygen (adversary : Adve
     (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
       limit (adversary.main left.publicKey) (CountedSourceState.initial left.cache)) (fallback : Option Encoding) :
     RelTriple (sourceCountedPrefixExecution adversary left)
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        (publicLimitedPrefixExecution limit adversary right.1.1 right.2)).run)
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+        (publicLimitedPrefixExecution limit adversary right.1)).run)
       (fun source target =>
         (MixedEncodingPrefixEvent left (source.1, source.2.toSource) fallback →
           (HasAcceptedEncoding left.secretKey.parameter source.2.counts.cache ∨ fallback.isSome) ∧
-            FirstLaneOracleSimulation.CombinedHit right.1.2 (appendLimitedMixedEncodingProbe right.1.2 right.1.1 fallback target).2) ∧
-        (LimitedMixedEncodingProbeEligible right.1.1 fallback target →
+            FirstLaneOracleSimulation.CombinedHit right.2 (appendLimitedMixedEncodingProbe right.2 right.1 fallback target).2) ∧
+        (LimitedMixedEncodingProbeEligible right.1 fallback target →
           (HasAcceptedEncoding left.secretKey.parameter source.2.counts.cache ∨ fallback.isSome) ∨
-            FirstLaneOracleSimulation.CombinedHit right.1.2 (appendLimitedMixedEncodingProbe right.1.2 right.1.1 fallback target).2)) := by
+            FirstLaneOracleSimulation.CombinedHit right.2 (appendLimitedMixedEncodingProbe right.2 right.1 fallback target).2)) := by
   have hcoupling := relTriple_countedSource_limitedPrefix left right hrel hleft hright limit
     (adversary.main left.publicKey) hbudget
-  have hpk : left.publicKey = right.1.1.publicKey := hrel.1.toStable.1.2.1
+  have hpk : left.publicKey = right.1.publicKey := hrel.1.toStable.1.2.1
   change RelTriple (sourceCountedPrefixExecution adversary left)
-    ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2) (limitedFirstLanePrefix limit right.1.1 right.2
+    ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2) (limitedFirstLanePrefix limit right.1
       (adversary.main left.publicKey)
-      (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1.1)) ⟨0, 0, 0⟩)).run) _ at hcoupling
+      (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run) _ at hcoupling
   rw [hpk] at hcoupling
   apply relTriple_post_mono (relTriple_with_support hcoupling)
   intro source target hresult
@@ -148,11 +148,11 @@ theorem limitedMixedEncoding_cancellation_coupling_afterKeygen (adversary : Adve
     have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hrel hleft hright
     obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hgood.1.1
     have hencoding : Deciding.forgedEncoding source.2.counts.cache left.secretKey.parameter source.1 =
-        Deciding.forgedEncoding state.causalState.cache right.1.1.secretKey.parameter source.1 := by
+        Deciding.forgedEncoding state.causalState.cache right.1.secretKey.parameter source.1 := by
       rw [hparameter]
       exact forgedEncoding_eq_of_comparableCaches _ _ _ hcausal.1 _
-    have hcovered := limitedFirstLanePrefix_returnedCovered right.1.2 limit right.1.1 right.2
-      (adversary.main right.1.1.publicKey) ⟨0, 0, 0⟩ target (source.1, state) hresult.2.2 hvalue
+    have hcovered := limitedFirstLanePrefix_returnedCovered right.2 limit right.1
+      (adversary.main right.1.publicKey) ⟨0, 0, 0⟩ target (source.1, state) hresult.2.2 hvalue
     constructor
     · intro hevent
       refine ⟨mixedEncodingPrefixEvent_implies_accepted left source fallback hevent, ?_⟩
@@ -179,7 +179,7 @@ theorem limitedMixedEncoding_cancellation_coupling_afterKeygen (adversary : Adve
       cases hdecode : Deciding.forgedEncoding source.2.counts.cache left.secretKey.parameter source.1 with
       | none => exact Or.inl (Or.inr (by simpa [hdecode] using heligible))
       | some encoding => exact Or.inl (Or.inl (hasAcceptedEncoding_of_decode _ _ _ _ _ _ hdecode))
-  · have hprobed := appendLimitedMixedEncodingProbe_preserves_hit right.1.2 right.1.1 fallback target
+  · have hprobed := appendLimitedMixedEncodingProbe_preserves_hit right.2 right.1 fallback target
       (by simpa only [List.nil_append] using hhit)
     exact ⟨fun hevent => ⟨mixedEncodingPrefixEvent_implies_accepted left source fallback hevent, hprobed⟩,
       fun _ => Or.inr hprobed⟩

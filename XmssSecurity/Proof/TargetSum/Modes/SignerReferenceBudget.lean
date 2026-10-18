@@ -22,15 +22,15 @@ attribute [local irreducible] Generic.sampleMasterSeed Seeded.signingDerivationC
 theorem signer_tablePhaseCostBound_after_independent_tree
     (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
-      (Generic.Concrete.treeNode (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+      (Generic.Concrete.treeNode (parameterOutput) (outputs)
         treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog).run ∅)) :
     TablePhaseCostBound randomizers
-      (Generic.Concrete.precomputedSecretKey (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+      (Generic.Concrete.precomputedSecretKey (parameterOutput) (outputs)
         (Generic.hashCacheOfLog tree.1.2))
-      (DeterministicSigning.withRequestLog (adversary.main ⟨tree.1.1, Generic.truncateHash parameterOutput⟩)) tree.2 q := by
+      (DeterministicSigning.withRequestLog (adversary.main ⟨tree.1.1, parameterOutput⟩)) tree.2 q := by
   classical
   let caches : MasterSeed → QueryCache HashSpec := fun seed =>
     Classical.choose (exists_prepared_tree_of_independent seed parameterOutput outputs randomizers
@@ -55,25 +55,25 @@ theorem signer_tablePhaseCostBound_after_independent_tree
       _ _ _ hkey
     rw [signer_phase_eq_runSigning] at hphase
     exact fun result hresult => tablePhaseCost_le_of_hashQueryBound seed
-      (Generic.Concrete.precomputedSecretKey (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+      (Generic.Concrete.precomputedSecretKey (parameterOutput) (outputs)
         (Generic.hashCacheOfLog tree.1.2)) randomizers
-      (DeterministicSigning.withRequestLog (adversary.main ⟨tree.1.1, Generic.truncateHash parameterOutput⟩))
+      (DeterministicSigning.withRequestLog (adversary.main ⟨tree.1.1, parameterOutput⟩))
       (caches seed) (hcaches seed).2.2 q hphase result hresult
 
 theorem signer_referencePhaseCost_le_after_independent_tree
     (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
-      (Generic.Concrete.treeNode (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+      (Generic.Concrete.treeNode (parameterOutput) (outputs)
         treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog).run ∅))
     (result : (Forgery × QueryLog SigningSpec) × Seeded.CostState)
     (hresult : result ∈ support ((simulateQ
-      (referencePhaseCostImpl (Generic.Concrete.precomputedSecretKey (Generic.truncateHash parameterOutput)
-        (Seeded.outputSecrets outputs) (Generic.hashCacheOfLog tree.1.2)))
+      (referencePhaseCostImpl (Generic.Concrete.precomputedSecretKey (parameterOutput)
+        (outputs) (Generic.hashCacheOfLog tree.1.2)))
       (DeterministicSigning.withRequestLog (DeterministicSigning.memoize
-        (adversary.main ⟨tree.1.1, Generic.truncateHash parameterOutput⟩) ∅))).run (tree.2, 0))) :
+        (adversary.main ⟨tree.1.1, parameterOutput⟩) ∅))).run (tree.2, 0))) :
     result.2.2 ≤ q := by
   apply referencePhaseCost_logged_memo_le_of_table _ _ tree.2 q _ result hresult
   intro randomizers
@@ -95,10 +95,7 @@ theorem signer_referencePhaseCost_le_after_tree
       (DeterministicSigning.withRequestLog (DeterministicSigning.memoize (adversary.main ⟨tree.1.1, parameter⟩) ∅))).run (tree.2, 0))) :
     result.2.2 ≤ q := by
   refine signer_referencePhaseCost_le_after_independent_tree adversary q hsmall hbound
-    (Rom.hashOutputEquivDigestPair.symm (0, parameter))
-    (Seeded.chainOutputHalves.symm ((fun _ _ => 0), secret)) tree ?_ result ?_
-  · simpa only [Seeded.truncate_from_halves, Seeded.outputSecrets_from_halves] using htree
-  · simpa only [Seeded.truncate_from_halves, Seeded.outputSecrets_from_halves] using hresult
+    parameter secret tree htree result hresult
 
 /-- The statement's budget bounds every supported reference adversary phase after ordinary
 independent key generation. No programmed-cache or randomizer premise remains. -/

@@ -18,17 +18,16 @@ open Seeded FirstLaneOracleSimulation
 
 theorem firstLane_step_charge_bounds {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
     (limit : Nat) (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 leftState.toSource rightState history)
-    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.1.secretKey.parameter =
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState history)
+    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.secretKey.parameter =
       (history.encodingActions.length : ℝ≥0∞))
     (hencoding : CountedSourceEncodingBudget left.secretKey.parameter leftState)
     (hcount : FirstLaneOracleSimulation.hazardCount history ≤ leftState.counts.direct)
@@ -36,12 +35,12 @@ theorem firstLane_step_charge_bounds {α : Type}
       limit (liftM ((OracleWorld + SigningSpec).query input) >>= next) leftState)
     (result : ((OracleWorld + SigningSpec).Range input × CappedChain.GlobalHighDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2 input).run rightState)).run)) :
+    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1 input).run rightState)).run)) :
     (leftState.counts.direct + CappedChain.directHashActionCost input +
       2 * ((history ++ result.2).encodingActions.length -
-        result.1.2.attackerTrace.encodingInputCount right.1.1.secretKey.parameter) ≤ limit) ∧
-    observableFirstLaneCharge right.1.1.secretKey.parameter result.1.2 (history ++ result.2) ≤ limit := by
+        result.1.2.attackerTrace.encodingInputCount right.1.secretKey.parameter) ≤ limit) ∧
+    observableFirstLaneCharge right.1.secretKey.parameter result.1.2 (history ++ result.2) ≤ limit := by
   cases input with
   | inl input =>
       exact firstLane_world_charge_bounds left right hrel hleftSupport hrightSupport input next
@@ -80,17 +79,17 @@ theorem globalExactTracedLift_hashInputs_update
 
 theorem globalFirstLane_query_hashInputs_update
     (table : CappedChain.GlobalChainValueIndex → Digest) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (input : (OracleWorld + SigningSpec).Domain)
+    (input : (OracleWorld + SigningSpec).Domain)
     (state : CappedChain.GlobalHighDirectTracedState)
     (result : ((OracleWorld + SigningSpec).Range input × CappedChain.GlobalHighDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh input).run state)).run)) :
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key input).run state)).run)) :
     result.1.2.attackerTrace.hashInputs.length = state.attackerTrace.hashInputs.length + CappedChain.directHashActionCost input := by
   cases input with
   | inl input =>
       exact globalExactTracedLift_hashInputs_update table key (.inl input)
-        (StateT.mk (CappedChain.globalFirstLaneOracleExecution key edgeHigh input)) state result hresult
+        (StateT.mk (CappedChain.globalFirstLaneOracleExecution key input)) state result hresult
   | inr request =>
       exact globalExactTracedLift_hashInputs_update table key (.inr request)
         (CappedChain.globalFirstLaneSigningImpl key request) state result hresult
@@ -102,17 +101,16 @@ noncomputable def observableFirstLaneDirectCharge (parameter : PublicParameter)
 
 theorem firstLane_step_observableDirectCharge_le {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
     (limit : Nat) (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 leftState.toSource rightState history)
-    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.1.secretKey.parameter =
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState history)
+    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.secretKey.parameter =
       (history.encodingActions.length : ℝ≥0∞))
     (hencoding : CountedSourceEncodingBudget left.secretKey.parameter leftState)
     (hcount : FirstLaneOracleSimulation.hazardCount history ≤ leftState.counts.direct)
@@ -121,14 +119,14 @@ theorem firstLane_step_observableDirectCharge_le {α : Type}
       limit (liftM ((OracleWorld + SigningSpec).query input) >>= next) leftState)
     (result : ((OracleWorld + SigningSpec).Range input × CappedChain.GlobalHighDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2 input).run rightState)).run)) :
-    observableFirstLaneDirectCharge right.1.1.secretKey.parameter result.1.2 (history ++ result.2) ≤ limit := by
+    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1 input).run rightState)).run)) :
+    observableFirstLaneDirectCharge right.1.secretKey.parameter result.1.2 (history ++ result.2) ≤ limit := by
   have hstep := (firstLane_step_charge_bounds left right hrel hleftSupport hrightSupport input next limit
     leftState rightState history hstate hcacheCount hencoding hcount hbudget result hresult).1
   have htraceEq : leftState.attackerTrace = rightState.attackerTrace := hstate.1.2
   unfold observableFirstLaneDirectCharge
-  rw [globalFirstLane_query_hashInputs_update right.1.2 right.1.1 right.2 input rightState result hresult,
+  rw [globalFirstLane_query_hashInputs_update right.2 right.1 input rightState result hresult,
     ← htraceEq, ← hsourceTrace]
   exact hstep
 

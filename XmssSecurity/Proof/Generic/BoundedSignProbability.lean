@@ -9,9 +9,6 @@ variable [Code]
 
 set_option maxRecDepth 100000
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
 noncomputable def Concrete.signBoundedAttemptsContinuation
     (attempts : Nat) (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (result : Option Signature × QueryCache HashSpec) :

@@ -51,10 +51,10 @@ def SigningCacheEntry.PrehitPartnered
   ∃ signature output, entry.signature = some signature ∧
     cache (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch
       (entry.request.message, signature.randomness)) = some output ∧
-    (∃ encoding, Code.decodeDigest (truncateHash output) = some encoding) ∧
+    (∃ encoding, Code.decodeDigest (output) = some encoding) ∧
     ∃ other ≠ (entry.request.message, signature.randomness), ∃ otherOutput,
       cache (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch other) =
-        some otherOutput ∧ truncateHash otherOutput = truncateHash output
+        some otherOutput ∧ otherOutput = output
 
 def SigningCacheEntry.PreexistingEncodingCollision
     (secretKey : SecretKey) (entry : SigningCacheEntry) : Prop :=
@@ -67,7 +67,7 @@ def SigningCacheEntry.PreexistingEncodingCollision
       (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch oldInput) =
         some oldOutput ∧
     oldInput ≠ (entry.request.message, signature.randomness) ∧
-    truncateHash signedOutput = truncateHash oldOutput
+    signedOutput = oldOutput
 
 def SigningCacheEntry.FreshSigningEncodingCollision
     (secretKey : SecretKey) (entry : SigningCacheEntry) : Prop :=
@@ -83,7 +83,7 @@ def SigningCacheEntry.FreshSigningEncodingCollision
       (Concrete.CacheView.encodingInput secretKey.parameter entry.request.epoch oldInput) =
         some oldOutput ∧
     oldInput ≠ (entry.request.message, signature.randomness) ∧
-    truncateHash signedOutput = truncateHash oldOutput
+    signedOutput = oldOutput
 
 def SigningCacheEntry.FreshForgedEncodingCollision
     (secretKey : SecretKey) (forgery : Forgery)
@@ -104,7 +104,7 @@ def SigningCacheEntry.FreshForgedEncodingCollision
         (entry.request.message, signature.randomness) ≠
       Concrete.CacheView.encodingInput secretKey.parameter forgery.epoch
         (forgery.message, forgery.signature.randomness) ∧
-    truncateHash signedOutput = truncateHash forgedOutput
+    signedOutput = forgedOutput
 
 def SigningCacheEntry.PostSigningFreshForgedEncodingCollision
     (secretKey : SecretKey) (forgery : Forgery)

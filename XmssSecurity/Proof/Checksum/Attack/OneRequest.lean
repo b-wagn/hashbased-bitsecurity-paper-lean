@@ -25,7 +25,7 @@ theorem liftPrivateSamples_counted_zero {Key α : Type}
     (secretKey : Key) (requestCost : ℕ) (computation : ProbComp α) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
+          (RandomOracleModel.hashCost HashInput Digest) +
         SUFCMA.signingOracleCounted (fun _ => 0) requestCost scheme secretKey)
       (Generic.Attack.liftPrivateSamples computation)).run.run =
       (fun result : α => ((result, Multiplicative.ofAdd 0), ([] : QueryLog Generic.SigningSpec))) <$>
@@ -65,8 +65,8 @@ theorem oneRequestMain_counted {Key : Type}
     (choices : ProbComp (ChainIndex × Digest)) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
-        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) requestCost scheme secretKey)
+          (RandomOracleModel.hashCost HashInput Digest) +
+        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest) requestCost scheme secretKey)
       (oneRequestMain finish choices)).run.run = (do
       let signed ← Generic.countHashQueries (scheme.sign secretKey Generic.Attack.mutationRequest.epoch Generic.Attack.mutationRequest.message)
       let choice ← worldPrivateSamples choices
@@ -100,7 +100,7 @@ theorem oneRequestMain_counted_zero {Key : Type}
     (choices : ProbComp (ChainIndex × Digest)) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
+          (RandomOracleModel.hashCost HashInput Digest) +
         SUFCMA.signingOracleCounted (fun _ => 0) requestCost scheme secretKey)
       (oneRequestMain finish choices)).run.run = (do
       let answer ← scheme.sign secretKey Generic.Attack.mutationRequest.epoch Generic.Attack.mutationRequest.message
@@ -122,7 +122,7 @@ theorem oneRequest_counted_support_bound
     (finish : Option Generic.Signature → ChainIndex × Digest → Generic.Forgery) (signer requests : Bool)
     (result : Bool × ℕ)
     (hresult : result ∈ support (SUFCMA.gameCounted ⟨false, signer, false, requests⟩
-      (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss (oneRequestSufCmaAdversary finish))) :
+      (RandomOracleModel.hashCost HashInput Digest) Generic.xmss (oneRequestSufCmaAdversary finish))) :
     result.2 ≤ (if requests then 1 else 0) + (if signer then 2 else 0) := by
   unfold SUFCMA.gameCounted at hresult
   cases signer

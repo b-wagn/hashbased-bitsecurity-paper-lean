@@ -37,7 +37,7 @@ theorem unionCache_of_none (hidden cache : QueryCache HashSpec) (input : HashInp
   simp [unionCache, hnone]
 
 theorem unionCache_cacheQuery (hidden cache : QueryCache HashSpec) (input : HashInput)
-    (output : HashOutput) (hnone : hidden input = none) :
+    (output : Digest) (hnone : hidden input = none) :
     (unionCache hidden cache).cacheQuery input output =
       unionCache hidden (cache.cacheQuery input output) := by
   funext candidate
@@ -83,8 +83,8 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
         rw [hrun, hrun, probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
         exact ENNReal.tsum_le_tsum fun sampled =>
           mul_le_mul' le_rfl (ih sampled cache hdisjoint)
-      · change HashOutput → OracleComp OracleWorld α at next
-        have hcachedRun : ∀ (start : QueryCache HashSpec) (output : HashOutput),
+      · change Digest → OracleComp OracleWorld α at next
+        have hcachedRun : ∀ (start : QueryCache HashSpec) (output : Digest),
             start hashInput = some output →
             (simulateQ romImpl
               (liftM (OracleWorld.query (.inr hashInput)) >>= next)).run start =
@@ -101,13 +101,13 @@ theorem probEvent_run_unionCache_le {α : Type} (computation : OracleComp Oracle
         have hfreshRun : ∀ start : QueryCache HashSpec, start hashInput = none →
             (simulateQ romImpl
               (liftM (OracleWorld.query (.inr hashInput)) >>= next)).run start =
-            (($ᵗ HashOutput) >>= fun output =>
+            (($ᵗ Digest) >>= fun output =>
               (simulateQ romImpl (next output)).run (start.cacheQuery hashInput output)) := by
           intro start hnone
           have hquery :
               (simulateQ romImpl
                 (liftM (OracleWorld.query (.inr hashInput)))).run start =
-              (($ᵗ HashOutput) >>= fun output =>
+              (($ᵗ Digest) >>= fun output =>
                 pure (output, start.cacheQuery hashInput output) : ProbComp _) := by
             rw [simulateQ_spec_query]
             change (randomOracle (spec := HashSpec) hashInput).run start = _

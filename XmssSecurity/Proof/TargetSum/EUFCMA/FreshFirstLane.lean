@@ -22,18 +22,18 @@ theorem sourcePublic_freshAccepted_iff
     (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
     (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (source : Forgery × CappedChain.SourceExactTracedState)
     (target : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hforgery : source.1 = target.1.1)
-    (hgood : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 source.2 target.1.2 target.2) :
-    SourcePrefixFreshAccepted left source ↔ PublicFreshAccepted right.1.1 target.1 := by
+    (hgood : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.2 target.1.2 target.2) :
+    SourcePrefixFreshAccepted left source ↔ PublicFreshAccepted right.1 target.1 := by
   have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hkey hleft hright
   have htrace : source.2.2 = target.1.2.attackerTrace := hgood.1.2
   obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hgood.1.1
-  change CappedChain.GlobalFilteredCausalStateRelation left right.1 source.2.1.1.1 target.1.2.causalState at hcausal
+  change CappedChain.GlobalFilteredCausalStateRelation left right source.2.1.1.1 target.1.2.causalState at hcausal
   have hencoding : Deciding.forgedEncoding source.2.1.1.1 left.secretKey.parameter source.1 =
-      Deciding.forgedEncoding target.1.2.causalState.cache right.1.1.secretKey.parameter target.1.1 := by
+      Deciding.forgedEncoding target.1.2.causalState.cache right.1.secretKey.parameter target.1.1 := by
     rw [hparameter, ← hforgery]
     exact forgedEncoding_eq_of_comparableCaches _ _ _ hcausal.1 _
   constructor
@@ -52,23 +52,23 @@ theorem freshPrefix_acceptance_coupling_afterKeygen
     (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
     (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
+    (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
     RelTriple (Deciding.sourcePrefixExecution adversary left)
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2) (Deciding.publicPrefixExecution adversary right.1.1 right.2)).run)
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2) (Deciding.publicPrefixExecution adversary right.1)).run)
       (fun source target =>
         (FreshPrefixFirstLaneEvent left source → SourcePrefixFreshAccepted left source ∧
-          FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2) ∧
-        (PublicFreshAccepted right.1.1 target.1 → SourcePrefixFreshAccepted left source ∨
-          FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2)) := by
-  have hpk : left.publicKey = right.1.1.publicKey := hkey.1.toStable.1.2.1
+          FirstLaneOracleSimulation.CombinedHit right.2 (appendFreshPrefixProbe D right.2 right.1 target).2) ∧
+        (PublicFreshAccepted right.1 target.1 → SourcePrefixFreshAccepted left source ∨
+          FirstLaneOracleSimulation.CombinedHit right.2 (appendFreshPrefixProbe D right.2 right.1 target).2)) := by
+  have hpk : left.publicKey = right.1.publicKey := hkey.1.toStable.1.2.1
   have hcoupling := CappedChain.relTriple_sourceExact_firstLane_adversary_boundedHit_direct D D le_rfl adversary
     left right hkey hleft hright (hD left.publicKey)
-  have hrightProgram : (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      (Deciding.publicPrefixExecution adversary right.1.1 right.2)).run =
-    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
+  have hrightProgram : (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      (Deciding.publicPrefixExecution adversary right.1)).run =
+    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         (adversary.main left.publicKey)).run
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1.1)))).run := by
+          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
     unfold Deciding.publicPrefixExecution
     rw [hpk]
   rw [hrightProgram]
@@ -83,12 +83,12 @@ theorem freshPrefix_acceptance_coupling_afterKeygen
         FirstLaneOracleSimulation.enforceHazardTrace_eq_self_of_count_le _ D hcount]
       have hsupport := hresult.2.2
       rw [hpk] at hsupport
-      have hcovered := CappedChain.globalFirstLaneAdversary_support_returnedCovered right.1.1 right.1.2
-        right.2 (adversary.main right.1.1.publicKey) target hsupport
+      have hcovered := CappedChain.globalFirstLaneAdversary_support_returnedCovered right.1 right.2
+        (adversary.main right.1.publicKey) target hsupport
       exact Deciding.prefixFirstLaneEvent_good_implies_hit left right hkey hleft hright source target
         hforgery hgood hcovered hevent.1
     · exact fun haccepted => Or.inl (hacceptance.mpr haccepted)
-  · have hprobed : FirstLaneOracleSimulation.CombinedHit right.1.2 (appendFreshPrefixProbe D right.1.2 right.1.1 target).2 := by
+  · have hprobed : FirstLaneOracleSimulation.CombinedHit right.2 (appendFreshPrefixProbe D right.2 right.1 target).2 := by
       unfold appendFreshPrefixProbe
       split
       · exact FirstLaneOracleSimulation.CombinedHit.append_of_prefix _ _ _ hhit

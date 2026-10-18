@@ -73,7 +73,7 @@ theorem CountedSourceBudget.signing_room {α : Type} {secretKey : Generic.Secret
     (hbudget.query_step head hhead).1
 
 theorem CountedSourceBudget.direct_hash_room {α : Type} {secretKey : Generic.SecretKey} {limit : Nat}
-    {input : HashInput} {next : HashOutput → OracleComp (OracleWorld + SigningSpec) α}
+    {input : HashInput} {next : Digest → OracleComp (OracleWorld + SigningSpec) α}
     {state : CountedSourceState}
     (hbudget : CountedSourceBudget secretKey limit
       (liftM ((OracleWorld + SigningSpec).query (.inl (.inr input))) >>= next) state) :

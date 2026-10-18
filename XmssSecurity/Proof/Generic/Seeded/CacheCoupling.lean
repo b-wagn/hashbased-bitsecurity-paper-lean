@@ -21,7 +21,7 @@ def AgreeOutside (bad : HashInput → Prop) (left right : QueryCache HashSpec) :
   ∀ input, ¬bad input → left input = right input
 
 theorem AgreeOutside.cacheQuery {bad : HashInput → Prop} {left right : QueryCache HashSpec}
-    (h : AgreeOutside bad left right) (input : HashInput) (answer : HashOutput) :
+    (h : AgreeOutside bad left right) (input : HashInput) (answer : Digest) :
     AgreeOutside bad (left.cacheQuery input answer) (right.cacheQuery input answer) := by
   intro other hother
   by_cases heq : other = input

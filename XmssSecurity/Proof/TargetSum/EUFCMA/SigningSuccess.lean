@@ -14,7 +14,7 @@ open XmssSecurity.EUFCMA
 theorem capped_rejection_bound_lt_one_over_131072 :
     (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit +
       (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
-        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 131072 := by
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 131072 := by
   have hpow : (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit ≤
       1 / (1 + (signingAttemptLimit : ℝ≥0∞) * (1 / ((2 ^ 15 : ℕ) : ℝ≥0∞))) :=
     (pow_le_pow_left' (tsub_le_tsub_left TargetSum.acceptanceProbability_lower.le 1) signingAttemptLimit).trans
@@ -24,7 +24,7 @@ theorem capped_rejection_bound_lt_one_over_131072 :
   rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
   simp only [ENNReal.toReal_div, ENNReal.toReal_mul, ENNReal.toReal_inv]
   rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
-  norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul]
+  norm_num [signingAttemptLimit, digestBits, ENNReal.toReal_div, ENNReal.toReal_mul]
 
 theorem signing_failure_lt_one_over_131072
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)

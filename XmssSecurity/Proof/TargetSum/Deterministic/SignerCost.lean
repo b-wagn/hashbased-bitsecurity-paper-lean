@@ -30,7 +30,7 @@ theorem countHashQueries_precomputedSignAttempt
           OracleComp OracleWorld Digest) := by
     change countHashQueries (liftM (OracleWorld.query (.inr
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex (message, randomness))))
-      >>= fun output => pure (Generic.truncateHash output)) = _
+      >>= fun output => pure (output)) = _
     rw [countHashQueries_query_bind]
     simp only [countHashQueries_pure, pure_bind]
     rfl
@@ -46,23 +46,23 @@ namespace Seeded
 theorem run_counted_deriveRandomizer_of_cached
     (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
     (message : Message) (trial : BitVec 32) (cache : QueryCache HashSpec)
-    (output : HashOutput)
+    (output : Digest)
     (hcache : cache (Generic.randomizerHashInput parameter seed leafIndex message trial) = some output) :
     (simulateQ romImpl (countHashQueries
       (Generic.deriveRandomizer parameter seed leafIndex message trial :
         OracleComp OracleWorld Randomness))).run cache =
-      pure ((output.extractLsb' 0 randomnessBits, 1), cache) := by
+      pure ((output, 1), cache) := by
   unfold Generic.deriveRandomizer Generic.Concrete.oracleHash
   change (simulateQ romImpl (countHashQueries
     (liftM (OracleWorld.query (.inr (Generic.randomizerHashInput parameter seed leafIndex message trial)))
-      >>= fun value => pure (value.extractLsb' 0 randomnessBits)))).run cache = _
+      >>= fun value => pure (value)))).run cache = _
   rw [countHashQueries_query_bind]
   simp only [countHashQueries_pure, pure_bind, simulateQ_bind, simulateQ_spec_query,
     simulateQ_pure, StateT.run_bind, StateT.run_pure]
   change (do
     let result ← (randomOracle (spec := HashSpec)
       (Generic.randomizerHashInput parameter seed leafIndex message trial)).run cache
-    pure ((result.1.extractLsb' 0 randomnessBits, 1), result.2)) = _
+    pure ((result.1, 1), result.2)) = _
   rw [QueryImpl.withCaching_run_some _ hcache, pure_bind]
 
 theorem tableSignFrom_lift_hash_eq_world

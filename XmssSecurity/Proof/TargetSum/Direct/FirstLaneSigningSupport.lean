@@ -53,25 +53,24 @@ theorem countedSourceImpl_cache_projection (publicKey : PublicKey) (secretKey : 
 
 theorem exists_source_signing_of_firstLane_support
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (leftCache : QueryCache HashSpec) (rightState : CappedChain.GlobalCausalHashState)
-    (hstate : CappedChain.GlobalFilteredCausalStateRelation left right.1 leftCache rightState)
+    (hstate : CappedChain.GlobalFilteredCausalStateRelation left right leftCache rightState)
     (request : SignRequest)
     (result : (Option Generic.Signature × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      (CappedChain.globalFirstLaneSigningQuery right.1.1 request rightState)).run)) :
+    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      (CappedChain.globalFirstLaneSigningQuery right.1 request rightState)).run)) :
     ∃ source ∈ support ((simulateQ romImpl
       (Concrete.scheme.sign (Concrete.materializePrecomputation left.cache left.secretKey)
         request.epoch request.message)).run leftCache),
       HashCachesAgreeOn (CappedChain.GlobalSigningComparableHashInput left.secretKey.parameter)
         source.2 result.1.2.cache := by
   have hprojected : (result.1, result.2.chainActions) ∈ support
-      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.1.2)
-        (CappedChain.globalFirstLaneErase (CappedChain.globalFirstLaneSigningQuery right.1.1 request rightState))).run) := by
+      ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl right.2)
+        (CappedChain.globalFirstLaneErase (CappedChain.globalFirstLaneSigningQuery right.1 request rightState))).run) := by
     rw [← CappedChain.simulate_globalFirstLaneEagerTrace_chainProjection, support_map]
     exact ⟨result, hresult, rfl⟩
   rw [CappedChain.globalFirstLaneErase_signingQuery] at hprojected
@@ -82,17 +81,16 @@ theorem exists_source_signing_of_firstLane_support
 
 theorem exists_countedSource_signing_of_firstLane_support
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (leftState : CountedSourceState) (rightState : CappedChain.GlobalCausalHashState)
-    (hstate : CappedChain.GlobalFilteredCausalStateRelation left right.1 leftState.counts.cache rightState)
+    (hstate : CappedChain.GlobalFilteredCausalStateRelation left right leftState.counts.cache rightState)
     (request : SignRequest)
     (result : (Option Generic.Signature × CappedChain.GlobalCausalHashState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      (CappedChain.globalFirstLaneSigningQuery right.1.1 request rightState)).run)) :
+    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      (CappedChain.globalFirstLaneSigningQuery right.1 request rightState)).run)) :
     ∃ source ∈ support ((countedSourceImpl
       (Concrete.materializePrecomputation left.cache left.secretKey) (.inr request)).run leftState),
       HashCachesAgreeOn (CappedChain.GlobalSigningComparableHashInput left.secretKey.parameter)

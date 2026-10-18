@@ -65,7 +65,7 @@ theorem simulate_sequenceFin_single_uncached {α : Type} {n : ℕ}
 theorem hashPath_run_honest (inputs : ℕ → Digest → HashInput) (honest : ℕ → Digest)
     (start steps : ℕ) (cache : QueryCache HashSpec)
     (hhonest : ∀ i, start ≤ i → i < start + steps →
-      ∃ output, cache (inputs i (honest i)) = some output ∧ truncateHash output = honest (i + 1)) :
+      ∃ output, cache (inputs i (honest i)) = some output ∧ output = honest (i + 1)) :
     (simulateQ randomOracle (Rom.hashPath inputs start steps (honest start))).run cache =
       pure (honest (start + steps), cache) := by
   induction steps generalizing start with
@@ -134,8 +134,8 @@ theorem encodingHash_run_cached (cache : QueryCache HashSpec) (parameter : Publi
   obtain ⟨output, hcached⟩ := CacheView.encodingInput_cached_of_decode_some cache parameter
     leafIndex message randomness encoding hdecode
   unfold encodingHash tweakableHash oracleHash
-  simp only [simulateQ_bind, HasQuery.instOfMonadLift_query, simulateQ_spec_query, StateT.run_bind]
-  change (randomOracle (CacheView.encodingInput parameter leafIndex (message, randomness))).run cache >>= _ = _
+  simp only [HasQuery.instOfMonadLift_query, simulateQ_spec_query]
+  change (randomOracle (CacheView.encodingInput parameter leafIndex (message, randomness))).run cache = _
   rw [QueryImpl.withCaching_run_some _ hcached]
   simp [CacheView.encodingHash, CacheView.digestAt, hcached]
 

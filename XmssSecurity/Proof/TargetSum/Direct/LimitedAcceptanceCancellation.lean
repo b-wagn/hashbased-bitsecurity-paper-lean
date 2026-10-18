@@ -21,7 +21,7 @@ def SourceCountedPrefixFirstLane (result : CappedChain.ProgrammedGlobalChainKeyg
   AcceptedPrefixFirstLaneEvent result.1 (result.2.1, result.2.2.toSource)
 
 def CoupledLimitedProbedHit (result : CoupledLimitedPrefixResult) : Prop :=
-  FirstLaneOracleSimulation.CombinedHit result.1.1.2 (appendLimitedAcceptedPrefixProbe result.1.1.2 result.1.1.1 result.2).2
+  FirstLaneOracleSimulation.CombinedHit result.1.2 (appendLimitedAcceptedPrefixProbe result.1.2 result.1.1 result.2).2
 
 theorem acceptedPrefixFirstLane_implies_accepted (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (result : Forgery × CountedSourceState)

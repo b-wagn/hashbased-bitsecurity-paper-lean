@@ -55,7 +55,7 @@ attribute [local irreducible] sampleMasterSeed
 
 theorem chainMutation_gameCounted_requests :
     SUFCMA.gameCounted ⟨false, false, false, true⟩
-        (RandomOracleModel.hashCost HashInput HashOutput) xmss chainMutationSufCmaAdversary =
+        (RandomOracleModel.hashCost HashInput Digest) xmss chainMutationSufCmaAdversary =
       (fun result => (result, 1)) <$> SUFCMA.game xmss chainMutationSufCmaAdversary := by
   unfold SUFCMA.gameCounted SUFCMA.game
   simp only [SUFCMA.costIf, Bool.false_eq_true, if_false, if_true, Modes.charge_zero,
@@ -63,7 +63,7 @@ theorem chainMutation_gameCounted_requests :
   apply bind_congr
   intro keys
   rcases keys with ⟨publicKey, secretKey⟩
-  have himpl := (Modes.impl_requests_eq (RandomOracleModel.hashCost HashInput HashOutput)
+  have himpl := (Modes.impl_requests_eq (RandomOracleModel.hashCost HashInput Digest)
     xmss secretKey).trans (congrArg
       (fun cost => (QueryImpl.ofLift OracleWorld
         (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld)) +

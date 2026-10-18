@@ -18,15 +18,15 @@ open FirstLaneOracleSimulation
 
 theorem limitedFirstLanePrefix_success_support {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters)
     (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalHighDirectTracedState)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (limitedFirstLanePrefix limit key edgeHigh computation state counters)).run)
+      (limitedFirstLanePrefix limit key computation state counters)).run)
     (hvalue : result.1.1 = some value) :
     (value, result.2) ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh) computation).run state)).run := by
+      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key) computation).run state)).run := by
   induction computation using OracleComp.inductionOn generalizing state counters result value with
   | pure output =>
       simp only [limitedFirstLanePrefix_pure, simulateQ_pure, WriterT.run_pure, support_pure,
@@ -50,7 +50,7 @@ theorem limitedFirstLanePrefix_success_support {α : Type}
           simp only [hhandled] at htail
           have hheadOriginal := limitEncodingAction_success_support table limit (CappedChain.directHashActionCost input)
             (directEncodingActionCost key.secretKey.parameter input) counters
-            ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh input).run state) head handled hhead hhandled
+            ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key input).run state) head handled hhead hhandled
           have htailOriginal := ih handled.1 handled.2 head.1.2 tail value htail hvalue
           simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, WriterT.run_bind',
             mem_support_bind_iff, support_map]
@@ -58,19 +58,19 @@ theorem limitedFirstLanePrefix_success_support {α : Type}
 
 theorem limitedFirstLanePrefix_returnedCovered {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (counters : EncodingBudgetCounters)
     (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalHighDirectTracedState)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (limitedFirstLanePrefix limit key edgeHigh computation
+      (limitedFirstLanePrefix limit key computation
         (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) counters)).run)
     (hvalue : result.1.1 = some value) :
     CappedChain.GlobalCausalTraceRevealsCovered
       (CappedChain.GlobalReturnedChainValueCovered value.2.causalState.cache key.secretKey
         value.2.attackerTrace.toSigningLog) result.2.chainActions :=
-  CappedChain.globalFirstLaneAdversary_support_returnedCovered key table edgeHigh computation (value, result.2)
-    (limitedFirstLanePrefix_success_support table limit key edgeHigh computation _ counters result value hresult hvalue)
+  CappedChain.globalFirstLaneAdversary_support_returnedCovered key table computation (value, result.2)
+    (limitedFirstLanePrefix_success_support table limit key computation _ counters result value hresult hvalue)
 
 /-- info: 'XmssSecurity.TargetSum.CappedChain.limitedFirstLanePrefix_success_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -61,30 +61,29 @@ noncomputable def replayCollisionRate : ℝ≥0∞ :=
   TargetSum.acceptanceProbability * digestCollisionRate +
     digestCollisionRate * (1 - digestCollisionRate)
 
-noncomputable def replayScore (target : Digest) (output : HashOutput) : ℝ≥0∞ :=
-  (if Code.ValidDigest (Generic.truncateHash output) then digestCollisionRate else 0) +
-    (if Generic.truncateHash output = target then 1 - digestCollisionRate else 0)
+noncomputable def replayScore (target : Digest) (output : Digest) : ℝ≥0∞ :=
+  (if Code.ValidDigest (output) then digestCollisionRate else 0) +
+    (if output = target then 1 - digestCollisionRate else 0)
 
 theorem digestCollisionRate_le_one : digestCollisionRate ≤ 1 := by
   norm_num [digestCollisionRate, digestBits]
 
 theorem replayScore_average (target : Digest) :
-    (∑' output, Pr[= output | $ᵗ HashOutput] * replayScore target output) = replayCollisionRate := by
+    (∑' output, Pr[= output | $ᵗ Digest] * replayScore target output) = replayCollisionRate := by
   classical
-  have hindicator (predicate : HashOutput → Prop) [DecidablePred predicate] (rate : ℝ≥0∞) :
-      (∑' output, Pr[= output | $ᵗ HashOutput] * (if predicate output then rate else 0)) =
-        Pr[predicate | $ᵗ HashOutput] * rate := by
+  have hindicator (predicate : Digest → Prop) [DecidablePred predicate] (rate : ℝ≥0∞) :
+      (∑' output, Pr[= output | $ᵗ Digest] * (if predicate output then rate else 0)) =
+        Pr[predicate | $ᵗ Digest] * rate := by
     rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
     apply tsum_congr
     intro output
     split <;> simp only [*, mul_zero, zero_mul]
-  have hvalid : Pr[fun output : HashOutput => Code.ValidDigest (Generic.truncateHash output) |
-      $ᵗ HashOutput] = TargetSum.acceptanceProbability := by
-    change Pr[Code.ValidDigest ∘ Generic.truncateHash | $ᵗ HashOutput] = _
-    rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput, ← probEvent_def]
+  have hvalid : Pr[fun output : Digest => Code.ValidDigest (output) |
+      $ᵗ Digest] = TargetSum.acceptanceProbability := by
+    change Pr[Code.ValidDigest | $ᵗ Digest] = _
     exact TargetSum.probEvent_validDigest_uniform
-  have heq : Pr[fun output : HashOutput => Generic.truncateHash output = target | $ᵗ HashOutput] =
-      digestCollisionRate := Rom.uniform_truncate_probability target
+  have heq : Pr[fun output : Digest => output = target | $ᵗ Digest] =
+      digestCollisionRate := Rom.uniform_eq_probability target
   unfold replayScore
   simp_rw [mul_add]
   rw [ENNReal.tsum_add, hindicator, hindicator, hvalid, heq]
@@ -97,7 +96,7 @@ theorem replayScore_le_cached_verification
     (randomness : Randomness) (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
     (hroot : RootCache keyResult.1.2.parameter leafIndex keyResult.1.1.root cache)
     (hfresh : cache (Concrete.CacheView.encodingInput keyResult.1.2.parameter leafIndex (message, randomness)) = none)
-    (output : HashOutput) :
+    (output : Digest) :
     replayScore (digestOfEncoding encoding) output ≤
       Pr[fun result : Bool × QueryCache HashSpec => result.1 = true |
         (simulateQ randomOracle (Generic.Concrete.verify keyResult.1.1 leafIndex message
@@ -109,15 +108,15 @@ theorem replayScore_le_cached_verification
   let updated := cache.cacheQuery (Concrete.CacheView.encodingInput keyResult.1.2.parameter leafIndex
     (message, randomness)) output
   have hcached : Concrete.CacheView.encodingHash updated keyResult.1.2.parameter leafIndex (message, randomness) =
-      Generic.truncateHash output := by simp [updated, Concrete.CacheView.encodingHash, Concrete.CacheView.digestAt]
-  by_cases heq : Generic.truncateHash output = digestOfEncoding encoding
+      output := by simp [updated, Concrete.CacheView.encodingHash, Concrete.CacheView.digestAt]
+  by_cases heq : output = digestOfEncoding encoding
   · have hdecode : Code.decodeDigest (Concrete.CacheView.encodingHash updated keyResult.1.2.parameter
         leafIndex (message, randomness)) = some encoding := by
       rw [hcached, heq]
       exact digestOfEncoding_decode encoding hvalid
     have hle' : keyResult.2 ≤ updated := hle.trans (QueryCache.le_cacheQuery cache hfresh)
     rw [verifyReplay_run keyResult hkey leafIndex message encoding randomness updated hle' hdecode]
-    have hv : Code.ValidDigest (Generic.truncateHash output) := by
+    have hv : Code.ValidDigest (output) := by
       rw [Code.ValidDigest, heq, digestOfEncoding_decode encoding hvalid]
       simp
     simp only [replayScore, if_pos hv, if_pos heq,
@@ -141,7 +140,7 @@ theorem verify_fresh_run (publicKey : PublicKey) (leafIndex : LeafIndex)
     (hfresh : cache (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
       (message, signature.randomness)) = none) :
     (simulateQ randomOracle (Generic.Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)).run cache =
-      ($ᵗ HashOutput) >>= fun output =>
+      ($ᵗ Digest) >>= fun output =>
         (simulateQ randomOracle (Generic.Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)).run
           (cache.cacheQuery (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
             (message, signature.randomness)) output) := by

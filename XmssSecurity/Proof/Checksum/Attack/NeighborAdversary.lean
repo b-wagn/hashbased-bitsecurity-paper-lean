@@ -43,10 +43,10 @@ noncomputable def neighborAfterEncoding (publicKey : PublicKey) (original : Gene
     match answer with
     | none => pure Attack.fallbackSignature
     | some (position, output) =>
-        if hmem : Generic.truncateHash output ∈ neighborDigests encoding then
+        if hmem : output ∈ neighborDigests encoding then
           let block ← worldPrivateSamples ($ᵗ PreimagePrefix)
-          liftM (neighborFinish publicKey original encoding (BitVec.ofNat randomnessBits position)
-            (selectedNeighborTransfer encoding (Generic.truncateHash output) hmem) block)
+          liftM (neighborFinish publicKey original encoding (BitVec.ofNat digestBits position)
+            (selectedNeighborTransfer encoding (output) hmem) block)
         else pure Attack.fallbackSignature
 
 noncomputable def neighborAfterSigning (publicKey : PublicKey) : Option Generic.Signature → OracleComp OracleWorld Generic.Signature

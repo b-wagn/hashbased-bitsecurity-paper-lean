@@ -50,37 +50,34 @@ theorem map_eagerTrace_erasure_eq {α : Type}
 theorem map_globalHighMonitored_action_eq_firstLane
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
-    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
     (highState : GlobalMonitoredTracedState) :
     (fun result => ((result.1, GlobalHighDirectTracedState.mk
       result.2.1.causal result.2.2), result.2.1.trace)) <$>
         (globalHighMonitoredMappedAdversaryImpl
-          ((keyView, base), edgeHigh) input).run highState =
+          (keyView, base) input).run highState =
       globalFirstLaneExactFullProjection highState.1.trace <$>
         (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base)
-          ((globalFirstLaneExactTracedMappedAdversaryImpl keyView edgeHigh
+          ((globalFirstLaneExactTracedMappedAdversaryImpl keyView
             input).run (GlobalHighDirectTracedState.mk highState.1.causal
               highState.2))).run := by
   have hhigh := map_globalHighMonitored_adversary_exact_query keyView base
-    edgeHigh input highState
+    input highState
   have herase := globalFirstLaneErase_exactTracedMappedAdversaryImpl keyView
-    edgeHigh input
-      (GlobalHighDirectTracedState.mk highState.1.causal highState.2)
+    input (GlobalHighDirectTracedState.mk highState.1.causal highState.2)
   rw [hhigh]
   exact map_eagerTrace_erasure_eq base highState.1.trace _ _ herase
 
 theorem relTriple_globalHighMonitored_firstLane_action
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
-    (edgeHigh : GlobalChainEdgeIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
     (highState : GlobalMonitoredTracedState) :
     RelTriple
       ((globalHighMonitoredMappedAdversaryImpl
-        ((keyView, base), edgeHigh) input).run highState)
+        (keyView, base) input).run highState)
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base)
-        ((globalFirstLaneExactTracedMappedAdversaryImpl keyView edgeHigh
+        ((globalFirstLaneExactTracedMappedAdversaryImpl keyView
           input).run (GlobalHighDirectTracedState.mk highState.1.causal
             highState.2))).run)
       (fun highResult firstLaneResult =>
@@ -91,10 +88,10 @@ theorem relTriple_globalHighMonitored_firstLane_action
             firstLaneResult ∧
         highResult ∈ support
           ((globalHighMonitoredMappedAdversaryImpl
-            ((keyView, base), edgeHigh) input).run highState) ∧
+            (keyView, base) input).run highState) ∧
         firstLaneResult ∈ support
           ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base)
-            ((globalFirstLaneExactTracedMappedAdversaryImpl keyView edgeHigh
+            ((globalFirstLaneExactTracedMappedAdversaryImpl keyView
               input).run (GlobalHighDirectTracedState.mk highState.1.causal
                 highState.2))).run)) := by
   classical
@@ -105,7 +102,7 @@ theorem relTriple_globalHighMonitored_firstLane_action
     Classical.decEq _
   apply relTriple_of_evalDist_map_eq_with_support_general
   exact congrArg evalDist
-    (map_globalHighMonitored_action_eq_firstLane keyView base edgeHigh input
+    (map_globalHighMonitored_action_eq_firstLane keyView base input
       highState)
 
 def globalStateOfFirstLane
@@ -200,43 +197,42 @@ def SourceFirstLaneExactGoodStateRelation
 theorem relTriple_sourceExact_firstLane_action
     (used : Nat)
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView ×
-      (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView ×
+      (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support
+    (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
     (input : (OracleWorld + SigningSpec).Domain)
     (leftState : SourceExactTracedState)
     (firstLaneState : GlobalHighDirectTracedState)
     (trace : FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
-    (hstate : SourceFirstLaneExactGoodStateRelation left right.1 leftState
+    (hstate : SourceFirstLaneExactGoodStateRelation left right leftState
       firstLaneState trace)
     (hcount : FirstLaneOracleSimulation.hazardCount trace ≤ used) :
     RelTriple
       ((cappedBothTracedMappedAdversaryImpl left.publicKey
         (Concrete.materializePrecomputation left.cache left.secretKey)
           input).run leftState)
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        ((globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+        ((globalFirstLaneExactTracedMappedAdversaryImpl right.1
           input).run firstLaneState)).run)
       (fun leftResult firstLaneResult =>
         (leftResult.1 = firstLaneResult.1.1 ∧
-          SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2
+          SourceFirstLaneExactGoodStateRelation left right leftResult.2
             firstLaneResult.1.2 (trace ++ firstLaneResult.2) ∧
           FirstLaneOracleSimulation.hazardCount
               (trace ++ firstLaneResult.2) ≤
             used + directHashActionCost input ∧
           leftResult.2.2.hashInputs.length =
             leftState.2.hashInputs.length + directHashActionCost input) ∨
-        (FirstLaneOracleSimulation.CombinedHit right.1.2
+        (FirstLaneOracleSimulation.CombinedHit right.2
             (trace ++ firstLaneResult.2) ∧
           FirstLaneOracleSimulation.hazardCount
               (trace ++ firstLaneResult.2) ≤
             used + directHashActionCost input)) := by
   let highState := globalStateOfFirstLane firstLaneState trace
-  have hsourceHigh : GlobalSigningMonitoredTracedStateRelation left right.1
+  have hsourceHigh : GlobalSigningMonitoredTracedStateRelation left right
       (sourceExactSigningProjection leftState) highState := hstate.1
   have hencodingTrace := hstate.2.1
   have hvalidLeafIndices := hstate.2.2
@@ -244,7 +240,7 @@ theorem relTriple_sourceExact_firstLane_action
     relTriple_programmed_globalHighMonitored_sourceExact_action left right hrel
       hleftSupport hrightSupport leftState highState hsourceHigh input
   have hhigh := relTriple_globalHighMonitored_firstLane_action
-    right.1.1 right.1.2 right.2 input highState
+    right.1 right.2 input highState
   apply relTriple_post_mono (relTriple_trans_exists hsource hhigh)
   intro leftResult firstLaneResult hglued
   obtain ⟨highResult, hsourceResult, hhighResult⟩ := hglued
@@ -252,13 +248,13 @@ theorem relTriple_sourceExact_firstLane_action
   have hfragmentCount : FirstLaneOracleSimulation.hazardCount
       firstLaneResult.2 ≤ directHashActionCost input :=
     FirstLaneOracleSimulation.simulate_eagerTrace_support_hazardCount_le
-      right.1.2
-      ((globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2
+      right.2
+      ((globalFirstLaneExactTracedMappedAdversaryImpl right.1
         input).run (GlobalHighDirectTracedState.mk highState.1.causal
           highState.2))
       (directHashActionCost input)
-      (globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound right.1.1
-        right.2 input (GlobalHighDirectTracedState.mk highState.1.causal
+      (globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound right.1
+        input (GlobalHighDirectTracedState.mk highState.1.causal
           highState.2))
       firstLaneResult hfirstLaneSupport
   have htotalCount : FirstLaneOracleSimulation.hazardCount
@@ -271,7 +267,7 @@ theorem relTriple_sourceExact_firstLane_action
       input highState highResult hhighSupport
   have hfirstLaneEncodingSub :=
     globalFirstLaneExactTracedMappedAdversaryImpl_query_trace_sublist
-      right.1.2 right.1.1 right.2 input
+      right.2 right.1 input
         (GlobalHighDirectTracedState.mk highState.1.causal highState.2)
           leftState.1.2 firstLaneResult hfirstLaneSupport
   have hprojectionFacts :=
@@ -280,7 +276,7 @@ theorem relTriple_sourceExact_firstLane_action
         simpa [highState, globalStateOfFirstLane] using hprojection)
   have hfragmentValid :=
     globalFirstLaneExactTracedMappedAdversary_validSignLeafIndices_sublist
-      right.1.2 right.1.1 right.2 (liftM (OracleSpec.query input))
+      right.2 right.1 (liftM (OracleSpec.query input))
         (GlobalHighDirectTracedState.mk highState.1.causal highState.2)
           firstLaneResult
           (by simpa only [simulateQ_spec_query] using hfirstLaneSupport)
@@ -312,7 +308,7 @@ theorem relTriple_sourceExact_firstLane_action
         AttackerActionTrace.hashInputs_append, List.length_append,
         attackerActionFragment_hashInputs_length]
   · apply Or.inr
-    exact ⟨hprojectionFacts.combinedHit_of_bad right.1.2 hbad, htotalCount⟩
+    exact ⟨hprojectionFacts.combinedHit_of_bad right.2 hbad, htotalCount⟩
 
 set_option maxRecDepth 1000000
 

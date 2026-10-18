@@ -24,7 +24,7 @@ set_option backward.isDefEq.respectTransparency false
 -- Unfolding the master-seed sampler enumerates `2^256` seeds; keep it opaque.
 attribute [local irreducible] sampleMasterSeed
 
-theorem romImpl_eq : romImpl = RandomOracleModel.impl HashInput HashOutput := rfl
+theorem romImpl_eq : romImpl = RandomOracleModel.impl HashInput Digest := rfl
 
 /-- Forgetting the cost layer of a counted simulation under a logged implementation. -/
 theorem map_fst_run_run_withAddCost {ι : Type} {spec : OracleSpec ι} {ι' : Type}

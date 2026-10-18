@@ -16,7 +16,7 @@ def tableSignFrom (randomizers : RandomizerOutputs) (secretKey : XmssSecurity.Ge
     (leafIndex : LeafIndex) (message : Message) : Nat → Nat → m (Option Signature)
   | 0, _ => pure none
   | attempts + 1, trial => do
-      let randomness := (randomizers (⟨leafIndex, message⟩, BitVec.ofNat 32 trial)).extractLsb' 0 randomnessBits
+      let randomness := (randomizers (⟨leafIndex, message⟩, BitVec.ofNat 32 trial))
       match ← Concrete.precomputedSignAttempt secretKey leafIndex message randomness with
       | some signature => return some signature
       | none => tableSignFrom randomizers secretKey leafIndex message attempts (trial + 1)
@@ -43,9 +43,9 @@ theorem erases_signFrom (known : QueryCache HashSpec)
       simp only [bind_assoc, pure_bind]
       apply Erases.skip _ _ (hknown (⟨leafIndex, message⟩, BitVec.ofNat 32 trial))
       change Erases known (Concrete.precomputedSignAttempt sk leafIndex message
-        ((randomizers (⟨leafIndex, message⟩, BitVec.ofNat 32 trial)).extractLsb' 0 randomnessBits) >>= _)
+        ((randomizers (⟨leafIndex, message⟩, BitVec.ofNat 32 trial))) >>= _)
           (Concrete.precomputedSignAttempt sk leafIndex message
-            ((randomizers (⟨leafIndex, message⟩, BitVec.ofNat 32 trial)).extractLsb' 0 randomnessBits) >>= _)
+            ((randomizers (⟨leafIndex, message⟩, BitVec.ofNat 32 trial))) >>= _)
       apply (Erases.refl known _).bind
       intro attempt
       cases attempt with

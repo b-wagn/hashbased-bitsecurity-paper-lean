@@ -74,18 +74,18 @@ theorem erases_deterministicGameAfterSecrets (known : QueryCache HashSpec) (seed
 attribute [local irreducible] deterministicGameAfterSecrets tableGameAfterSecrets Seeded.signingDerivationCache
 
 theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) :
-    𝒟[(simulateQ romImpl (deterministicGameAfterSecrets adversary seed (Generic.truncateHash parameterOutput)
-        (Seeded.outputSecrets outputs))).run' (Seeded.derivationCache seed parameterOutput outputs)] =
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) :
+    𝒟[(simulateQ romImpl (deterministicGameAfterSecrets adversary seed (parameterOutput)
+        (outputs))).run' (Seeded.derivationCache seed parameterOutput outputs)] =
       𝒟[do
         let randomizers ← Seeded.sampleRandomizerOutputs
-        (simulateQ romImpl (tableGameAfterSecrets adversary (Generic.truncateHash parameterOutput)
-            (Seeded.outputSecrets outputs) randomizers)).run'
+        (simulateQ romImpl (tableGameAfterSecrets adversary (parameterOutput)
+            (outputs) randomizers)).run'
           (Seeded.signingDerivationCache seed parameterOutput outputs randomizers)] := by
   rw [Seeded.evalDist_presample_computation _
-    (liftM (Seeded.prepareRandomizers (Generic.truncateHash parameterOutput) seed) : OracleComp OracleWorld Seeded.RandomizerOutputs)]
-  rw [show simulateQ romImpl (liftM (Seeded.prepareRandomizers (Generic.truncateHash parameterOutput) seed) : OracleComp OracleWorld Seeded.RandomizerOutputs) =
-      simulateQ randomOracle (Seeded.prepareRandomizers (Generic.truncateHash parameterOutput) seed)
+    (liftM (Seeded.prepareRandomizers (parameterOutput) seed) : OracleComp OracleWorld Seeded.RandomizerOutputs)]
+  rw [show simulateQ romImpl (liftM (Seeded.prepareRandomizers (parameterOutput) seed) : OracleComp OracleWorld Seeded.RandomizerOutputs) =
+      simulateQ randomOracle (Seeded.prepareRandomizers (parameterOutput) seed)
       from QueryImpl.simulateQ_add_liftM_right _ _ _,
     evalDist_bind, Seeded.evalDist_prepareRandomizers, ← evalDist_bind, bind_map_left]
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left
@@ -96,11 +96,11 @@ theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) 
 
 noncomputable def programmedDeterministicGame (adversary : Adversary) : ProbComp Bool := do
   let seed ← Generic.sampleMasterSeed
-  let parameterOutput ← $ᵗ HashOutput
+  let parameterOutput ← $ᵗ Digest
   let outputs ← $ᵗ Seeded.ChainOutputs
   let randomizers ← Seeded.sampleRandomizerOutputs
-  (simulateQ romImpl (tableGameAfterSecrets adversary (Generic.truncateHash parameterOutput)
-      (Seeded.outputSecrets outputs) randomizers)).run'
+  (simulateQ romImpl (tableGameAfterSecrets adversary (parameterOutput)
+      (outputs) randomizers)).run'
     (Seeded.signingDerivationCache seed parameterOutput outputs randomizers)
 
 theorem evalDist_gameCore_deterministic_programmed (adversary : Adversary) :
@@ -120,18 +120,18 @@ theorem evalDist_gameCore_deterministic_programmed (adversary : Adversary) :
 
 noncomputable def independentTableGame (adversary : Adversary) : ProbComp Bool := do
   let material ← Seeded.drawSigningMaterial
-  (simulateQ romImpl (tableGameAfterSecrets adversary (Generic.truncateHash material.1) (Seeded.outputSecrets material.2.1) material.2.2)).run' ∅
+  (simulateQ romImpl (tableGameAfterSecrets adversary (material.1) (material.2.1) material.2.2)).run' ∅
 
 theorem evalDist_programmedDeterministicGame_seed_last (adversary : Adversary) :
     𝒟[programmedDeterministicGame adversary] = 𝒟[do
       let material ← Seeded.drawSigningMaterial
       let seed ← Generic.sampleMasterSeed
-      (simulateQ romImpl (tableGameAfterSecrets adversary (Generic.truncateHash material.1) (Seeded.outputSecrets material.2.1) material.2.2)).run'
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1) (material.2.1) material.2.2)).run'
         (Seeded.signingDerivationCache seed material.1 material.2.1 material.2.2)] := by
   have heq : programmedDeterministicGame adversary = (do
       let seed ← Generic.sampleMasterSeed
       let material ← Seeded.drawSigningMaterial
-      (simulateQ romImpl (tableGameAfterSecrets adversary (Generic.truncateHash material.1) (Seeded.outputSecrets material.2.1) material.2.2)).run'
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1) (material.2.1) material.2.2)).run'
         (Seeded.signingDerivationCache seed material.1 material.2.1 material.2.2)) := by
     simp only [programmedDeterministicGame, Seeded.drawSigningMaterial, bind_assoc, pure_bind]
   rw [heq, evalDist_bind_bind_swap]
@@ -173,12 +173,12 @@ theorem forgeAdvantage_deterministic_le_table_direct (adversary : Adversary) (D 
   simp only [probOutput_def, evalDist_gameCore_deterministic_programmed,
     evalDist_programmedDeterministicGame_seed_last]
   change Pr[= true | Seeded.drawSigningMaterial >>= fun material => Generic.sampleMasterSeed >>= fun seed =>
-      (simulateQ romImpl (tableGameAfterSecrets adversary (Generic.truncateHash material.1)
-        (Seeded.outputSecrets material.2.1) material.2.2)).run'
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run'
         (Seeded.signingDerivationCache seed material.1 material.2.1 material.2.2)] ≤
     Pr[= true | Seeded.drawSigningMaterial >>= fun material =>
-      (simulateQ romImpl (tableGameAfterSecrets adversary (Generic.truncateHash material.1)
-        (Seeded.outputSecrets material.2.1) material.2.2)).run' ∅] + _
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run' ∅] + _
   rw [← probEvent_eq_eq_probOutput, ← probEvent_eq_eq_probOutput]
   apply probEvent_bind_congr_le_add
   intro material _

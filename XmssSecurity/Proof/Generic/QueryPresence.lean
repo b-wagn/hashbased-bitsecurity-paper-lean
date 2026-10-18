@@ -15,14 +15,9 @@ theorem tweakableHash_query_cached
         (Concrete.tweakableHash parameter domain payload :
           OracleComp HashSpec Digest)).run initialCache)) :
     ∃ output, finalCache (tweakableHashInput parameter domain payload) = some output ∧
-      digest = truncateHash output := by
+      digest = output := by
   unfold Concrete.tweakableHash Concrete.oracleHash at hmem
-  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
-  obtain ⟨⟨output, middleCache⟩, hquery, hrest⟩ := hmem
-  simp only [simulateQ_pure, StateT.run_pure, support_pure,
-    Set.mem_singleton_iff] at hrest
-  cases hrest
-  exact ⟨output, randomOracle_query_caches _ _ _ _ (by simpa using hquery), rfl⟩
+  exact ⟨digest, randomOracle_query_caches _ _ _ _ (by simpa using hmem), rfl⟩
 
 theorem encodingHash_query_cached
     (parameter : PublicParameter) (leafIndex : LeafIndex) (message : Message)
@@ -32,7 +27,7 @@ theorem encodingHash_query_cached
         (Concrete.encodingHash parameter leafIndex message randomness :
           OracleComp HashSpec Digest)).run initialCache)) :
     ∃ output, finalCache (CacheView.encodingInput parameter leafIndex (message, randomness)) =
-      some output ∧ digest = truncateHash output :=
+      some output ∧ digest = output :=
   tweakableHash_query_cached parameter (.encoding leafIndex)
     (Concrete.encodingPayload message randomness) initialCache finalCache digest hmem
 

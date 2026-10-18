@@ -203,7 +203,7 @@ theorem Concrete.precomputedKeygen_cache_has_chainValue_preimage
           (Wots.walk
             (Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter leafIndex chain)
             0 previous.val (keyResult.1.2.chainStart leafIndex chain))) = some output ∧
-      truncateHash output =
+      output =
         Wots.signChain
           (Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter leafIndex chain)
           digit (keyResult.1.2.chainStart leafIndex chain) := by

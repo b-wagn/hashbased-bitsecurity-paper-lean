@@ -18,10 +18,10 @@ open Concrete
 
 theorem hashPath_run_after_first_cached (inputs : ℕ → Digest → HashInput) (honest : ℕ → Digest)
     (start steps : ℕ) (value : Digest) (cache : QueryCache HashSpec)
-    (output : HashOutput) (hcached : cache (inputs start value) = some output)
-    (htarget : Generic.truncateHash output = honest (start + 1))
+    (output : Digest) (hcached : cache (inputs start value) = some output)
+    (htarget : output = honest (start + 1))
     (hhonest : ∀ i, start + 1 ≤ i → i < start + 1 + steps →
-      ∃ answer, cache (inputs i (honest i)) = some answer ∧ Generic.truncateHash answer = honest (i + 1)) :
+      ∃ answer, cache (inputs i (honest i)) = some answer ∧ answer = honest (i + 1)) :
     (simulateQ randomOracle (Rom.hashPath inputs start (steps + 1) value)).run cache =
       pure (honest (start + (steps + 1)), cache) := by
   rw [Rom.hashPath_run_succ, QueryImpl.withCaching_run_some _ hcached, pure_bind, htarget,
@@ -33,10 +33,10 @@ theorem mutationRoot_run_after_cached_step
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (leafIndex : LeafIndex) (chain : ChainIndex) (encoding : Encoding) (randomness : Randomness)
     (cache : QueryCache HashSpec) (hle : keyResult.2 ≤ cache)
-    (hstep : (encoding chain).val < chainLength - 1) (value : Digest) (output : HashOutput)
+    (hstep : (encoding chain).val < chainLength - 1) (value : Digest) (output : Digest)
     (hcached : cache (Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex chain
       ⟨(encoding chain).val, hstep⟩ value) = some output)
-    (htarget : Generic.truncateHash output =
+    (htarget : output =
       Wots.walk (Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter leafIndex chain)
         0 ((encoding chain).val + 1) (keyResult.1.2.chainStart leafIndex chain)) :
     (simulateQ randomOracle (Attack.mutationRoot keyResult.1.2.parameter leafIndex chain (encoding chain)
@@ -81,10 +81,10 @@ def advanceSignatureChain (parameter : PublicParameter) (leafIndex : LeafIndex)
 
 theorem chainHash_run_cached (parameter : PublicParameter) (leafIndex : LeafIndex)
     (chain : ChainIndex) (step : ChainStep) (value : Digest) (cache : QueryCache HashSpec)
-    (output : HashOutput) (hcached : cache (Concrete.CacheView.chainInput parameter leafIndex chain step value) = some output) :
+    (output : Digest) (hcached : cache (Concrete.CacheView.chainInput parameter leafIndex chain step value) = some output) :
     (simulateQ randomOracle (Generic.Concrete.chainHash parameter leafIndex chain step value :
-      OracleComp HashSpec Digest)).run cache = pure (Generic.truncateHash output, cache) := by
-  change (fun result : HashOutput × QueryCache HashSpec => (Generic.truncateHash result.1, result.2)) <$>
+      OracleComp HashSpec Digest)).run cache = pure (output, cache) := by
+  change (fun result : Digest × QueryCache HashSpec => (result.1, result.2)) <$>
     (randomOracle (Concrete.CacheView.chainInput parameter leafIndex chain step value)).run cache = _
   rw [QueryImpl.withCaching_run_some _ hcached, map_pure]
 
@@ -108,10 +108,10 @@ theorem advanceSignatureChain_run
     rfl
   unfold advanceSignatureChain
   rw [chainHash_run_cached _ _ _ _ _ cache output (by rw [hvalue]; exact hle hcached)]
-  have houtput : Generic.truncateHash output =
+  have houtput : output =
       (Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness
         (transferEncoding encoding transfer)).chainValue transfer.2.1 := by
-    change Generic.truncateHash output = Wots.walk _ 0 (transferEncoding encoding transfer transfer.2.1).val _
+    change output = Wots.walk _ 0 (transferEncoding encoding transfer transfer.2.1).val _
     rw [transferEncoding_upper, Wots.walk, Nat.zero_add]
     unfold Concrete.CacheView.chainStep
     have hposition : (encoding transfer.2.1).val < chainLength - 1 :=
@@ -163,10 +163,10 @@ theorem verifyTransferredSignature_run
     (hadvanced : advanced =
       (Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2 leafIndex randomness
         (transferEncoding encoding transfer)).chainValue transfer.2.1)
-    (output : HashOutput)
+    (output : Digest)
     (hcached : cache (Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex transfer.1.1
       (predecessorStep encoding transfer.1) preimage) = some output)
-    (htarget : Generic.truncateHash output = original.chainValue transfer.1.1) :
+    (htarget : output = original.chainValue transfer.1.1) :
     (simulateQ randomOracle (Generic.Concrete.verify keyResult.1.1 leafIndex message
       (transferredSignature original randomness encoding transfer preimage advanced) :
         OracleComp HashSpec Bool)).run cache = pure (true, cache) := by

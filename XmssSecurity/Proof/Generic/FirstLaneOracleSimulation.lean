@@ -20,8 +20,8 @@ deriving DecidableEq
 def World (Index : Type) : OracleSpec (Query Index) :=
   OracleSpec.ofFn fun
   | .uniform n => Fin (n + 1)
-  | .encodingQuery _ => HashOutput
-  | .encodingSignAttempt _ => HashOutput
+  | .encodingQuery _ => Digest
+  | .encodingSignAttempt _ => Digest
   | .probe _ _ => Unit
   | .reveal _ => Digest
 
@@ -29,11 +29,11 @@ def uniformQuery (n : Nat) : OracleComp (World Index) (Fin (n + 1)) :=
   liftM ((World Index).query (.uniform n))
 
 def encodingQuery (leafIndex : LeafIndex) :
-    OracleComp (World Index) HashOutput :=
+    OracleComp (World Index) Digest :=
   liftM ((World Index).query (.encodingQuery leafIndex))
 
 def encodingSignAttemptQuery (leafIndex : LeafIndex) :
-    OracleComp (World Index) HashOutput :=
+    OracleComp (World Index) Digest :=
   liftM ((World Index).query (.encodingSignAttempt leafIndex))
 
 def probeQuery (index : Index) (target : Digest) :

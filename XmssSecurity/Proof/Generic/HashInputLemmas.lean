@@ -219,8 +219,8 @@ theorem nodePayload_injective :
 namespace CacheView
 
 theorem digestAt_eq_of_cache_eq_some {cache : QueryCache HashSpec} {input : HashInput}
-    {output : HashOutput} (hcache : cache input = some output) :
-    digestAt cache input = truncateHash output := by
+    {output : Digest} (hcache : cache input = some output) :
+    digestAt cache input = output := by
   simp [digestAt, hcache]
 
 @[simp]

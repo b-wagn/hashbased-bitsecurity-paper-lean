@@ -16,7 +16,7 @@ theorem HashCachesAgreeOn.cacheQuery
     (inputs : HashInput → Prop)
     (left right : QueryCache HashSpec)
     (hagrees : HashCachesAgreeOn inputs left right)
-    (input : HashInput) (output : HashOutput) :
+    (input : HashInput) (output : Digest) :
     HashCachesAgreeOn inputs
       (left.cacheQuery input output) (right.cacheQuery input output) := by
   intro candidate hcandidate
@@ -31,7 +31,7 @@ theorem HashCachesAgreeOn.cacheQuery_distinct
     (inputs : HashInput → Prop)
     (left right : QueryCache HashSpec)
     (hagrees : HashCachesAgreeOn inputs left right)
-    (leftInput rightInput : HashInput) (output : HashOutput)
+    (leftInput rightInput : HashInput) (output : Digest)
     (hleft : ∀ candidate, inputs candidate → candidate ≠ leftInput)
     (hright : ∀ candidate, inputs candidate → candidate ≠ rightInput) :
     HashCachesAgreeOn inputs

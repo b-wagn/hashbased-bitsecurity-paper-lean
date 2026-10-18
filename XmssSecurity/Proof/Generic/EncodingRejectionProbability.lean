@@ -15,9 +15,6 @@ namespace XmssSecurity.Generic
 
 variable [Code]
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
 theorem cachedEncodingEntryCount_le_inputCount (cache : QueryCache HashSpec)
     (parameter : PublicParameter) (leafIndex : LeafIndex) :
     cachedEncodingEntryCount cache parameter leafIndex ≤ cachedEncodingInputCount cache parameter := by
@@ -34,11 +31,11 @@ theorem Concrete.precomputedSignAttempt_run_fresh
     (simulateQ randomOracle
       (precomputedSignAttempt secretKey leafIndex message randomness :
         OracleComp HashSpec (Option Signature))).run cache =
-      (fun output : HashOutput =>
-        ((Code.decodeDigest (truncateHash output)).map
+      (fun output : Digest =>
+        ((Code.decodeDigest (output)).map
           (precomputedSignWithEncoding secretKey leafIndex randomness),
         cache.cacheQuery (CacheView.encodingInput secretKey.parameter leafIndex
-          (message, randomness)) output)) <$> ($ᵗ HashOutput) := by
+          (message, randomness)) output)) <$> ($ᵗ Digest) := by
   unfold precomputedSignAttempt encodingHash tweakableHash oracleHash
   simp only [bind_assoc, pure_bind, simulateQ_bind, HasQuery.instOfMonadLift_query,
     simulateQ_spec_query, StateT.run_bind]
@@ -50,20 +47,18 @@ theorem Concrete.precomputedSignAttempt_run_fresh
   apply bind_congr
   intro output
   simp only [Function.comp_apply]
-  cases Code.decodeDigest (truncateHash output) <;> simp
+  cases Code.decodeDigest (output) <;> simp
 
 theorem Code.probEvent_invalidDigest_uniformHashOutput :
-    Pr[fun output : HashOutput => ¬ ValidDigest (truncateHash output) | $ᵗ HashOutput] =
+    Pr[fun output : Digest => ¬ ValidDigest (output) | $ᵗ Digest] =
       1 - Code.acceptanceProbability := by
-  have hvalid : Pr[fun output : HashOutput => ValidDigest (truncateHash output) |
-      $ᵗ HashOutput] = Code.acceptanceProbability := by
-    change Pr[ValidDigest ∘ truncateHash | $ᵗ HashOutput] = _
-    rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput,
-      ← probEvent_def]
+  have hvalid : Pr[fun output : Digest => ValidDigest (output) |
+      $ᵗ Digest] = Code.acceptanceProbability := by
+    change Pr[ValidDigest | $ᵗ Digest] = _
     exact Code.probEvent_validDigest_uniform
   apply ENNReal.eq_sub_of_add_eq Code.acceptanceProbability_ne_top
   simpa only [hvalid, add_comm, probFailure_uniformSample, tsub_zero] using
-    probEvent_compl ($ᵗ HashOutput) (fun output => ValidDigest (truncateHash output))
+    probEvent_compl ($ᵗ Digest) (fun output => ValidDigest (output))
 
 private theorem probEvent_bind_le_event_mul {α β : Type} (first : ProbComp α)
     (next : α → ProbComp β) (event : β → Prop) (gate : α → Prop) [DecidablePred gate]
@@ -89,14 +84,14 @@ theorem Concrete.precomputedSignBoundedAttempts_failure_le
       (simulateQ romImpl (precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
         cache] ≤
       (1 - Code.acceptanceProbability) ^ attempts +
-        (attempts : ℝ≥0∞) * (known + attempts) * ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ := by
+        (attempts : ℝ≥0∞) * (known + attempts) * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := by
   classical
   induction attempts generalizing cache known with
   | zero => simp [precomputedSignBoundedAttempts]
   | succ attempts ih =>
       rw [precomputedSignBoundedAttempts_run_succ_eq]
       let a : ℝ≥0∞ := 1 - Code.acceptanceProbability
-      let r : ℝ≥0∞ := ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹
+      let r : ℝ≥0∞ := ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹
       let b : ℝ≥0∞ := a ^ attempts + (attempts : ℝ≥0∞) * (known + 1 + attempts) * r
       have ha : a ≤ 1 := tsub_le_self
       have hsplit : Pr[fun result : Option Signature × QueryCache HashSpec => result.1 = none |
@@ -118,7 +113,7 @@ theorem Concrete.precomputedSignBoundedAttempts_failure_le
             | some value => exact (hmiss ⟨value, hcache⟩).elim
           rw [precomputedSignAttempt_run_fresh _ _ _ _ _ hfresh, bind_map_left]
           refine (probEvent_bind_le_event_mul _ _ _
-            (fun output => ¬ Code.ValidDigest (truncateHash output)) b ?_).trans_eq ?_
+            (fun output => ¬ Code.ValidDigest (output)) b ?_).trans_eq ?_
           · intro output
             have hnext : cachedEncodingInputCount
                 (cache.cacheQuery (CacheView.encodingInput secretKey.parameter leafIndex
@@ -128,7 +123,7 @@ theorem Concrete.precomputedSignBoundedAttempts_failure_le
                   simpa using cachedEncodingInputCount_cacheQuery_le cache secretKey.parameter
                     (CacheView.encodingInput secretKey.parameter leafIndex (message, randomness)) output
                 _ ≤ _ := by simpa using add_le_add hknown (le_refl (1 : ℝ≥0∞))
-            cases hdecode : Code.decodeDigest (truncateHash output) with
+            cases hdecode : Code.decodeDigest (output) with
             | none =>
                 simpa [precomputedSignBoundedAttemptsContinuation, Code.ValidDigest,
                   hdecode, b, a, r, Nat.cast_add, Nat.cast_one] using
@@ -197,7 +192,7 @@ class Code.SignerBound : Prop where
   capped_rejection_bound_lt :
     (1 - Code.acceptanceProbability) ^ Code.signingAttemptLimit +
       (Code.signingAttemptLimit : ℝ≥0∞) * Code.signingAttemptLimit *
-        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
 
 variable [Code.SignerBound]
 

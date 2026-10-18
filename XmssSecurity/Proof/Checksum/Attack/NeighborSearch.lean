@@ -20,13 +20,13 @@ def neighborSearchSteps : ℕ := 2 ^ 124
 
 def neighborSearchInput (parameter : PublicParameter) (leafIndex : LeafIndex) (message : Message)
     (position : ℕ) : HashInput :=
-  Concrete.CacheView.encodingInput parameter leafIndex (message, BitVec.ofNat randomnessBits position)
+  Concrete.CacheView.encodingInput parameter leafIndex (message, BitVec.ofNat digestBits position)
 
 noncomputable def findEncodingNeighbor (parameter : PublicParameter) (leafIndex : LeafIndex)
-    (message : Message) (encoding : Encoding) : OracleComp HashSpec (Option (ℕ × HashOutput)) := by
+    (message : Message) (encoding : Encoding) : OracleComp HashSpec (Option (ℕ × Digest)) := by
   classical
   exact Attack.findHash (neighborSearchInput parameter leafIndex message)
-    (fun output => Generic.truncateHash output ∈ neighborDigests encoding) 0 neighborSearchSteps
+    (fun output => output ∈ neighborDigests encoding) 0 neighborSearchSteps
 
 theorem neighborSearchInput_separate (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (i j : ℕ) (hi : i < neighborSearchSteps) (hj : j < neighborSearchSteps)
@@ -35,18 +35,17 @@ theorem neighborSearchInput_separate (parameter : PublicParameter) (leafIndex : 
   intro heq
   have hrandomness := congrArg Prod.snd (Concrete.CacheView.encodingInput_injective parameter leafIndex heq)
   have hnat := congrArg BitVec.toNat hrandomness
-  have hbound : neighborSearchSteps ≤ 2 ^ randomnessBits := by norm_num [neighborSearchSteps, randomnessBits]
+  have hbound : neighborSearchSteps ≤ 2 ^ digestBits := by norm_num [neighborSearchSteps, digestBits]
   simp only [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (hi.trans_le hbound),
     Nat.mod_eq_of_lt (hj.trans_le hbound)] at hnat
   exact hne hnat
 
-theorem uniform_truncate_mem_probability (targets : Finset Digest) :
-    Pr[fun output : HashOutput => Generic.truncateHash output ∈ targets | $ᵗ HashOutput] =
+theorem uniform_mem_probability (targets : Finset Digest) :
+    Pr[fun output : Digest => output ∈ targets | $ᵗ Digest] =
       targets.card / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   classical
-  change Pr[(fun value : Digest => value ∈ targets) ∘ Generic.truncateHash | $ᵗ HashOutput] = _
-  rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput, ← probEvent_def,
-    probEvent_uniformSample]
+  change Pr[(fun value : Digest => value ∈ targets) | $ᵗ Digest] = _
+  rw [probEvent_uniformSample]
   simp
 
 noncomputable def neighborAcceptanceProbability (encoding : Encoding) : ℝ≥0∞ :=
@@ -58,7 +57,7 @@ theorem neighborAcceptanceProbability_lower (encoding : Encoding) (hvalid : Code
   exact_mod_cast neighborDigests_card_lower encoding hvalid
 
 theorem neighborAcceptanceProbability_le_one (encoding : Encoding) : neighborAcceptanceProbability encoding ≤ 1 := by
-  rw [neighborAcceptanceProbability, ← uniform_truncate_mem_probability]
+  rw [neighborAcceptanceProbability, ← uniform_mem_probability]
   exact probEvent_le_one
 
 /-- `(1 - p)^n ≤ e^(-n p) ≤ 1 / (1 + n p + (n p)^2 / 2)`, here with `n p ≥ 42 · 2^124 / 2^128`. -/
@@ -100,14 +99,14 @@ theorem neighbor_rejection_power_lt_seventh (encoding : Encoding) (hvalid : Code
     _ ≤ _ := hexp
     _ < _ := by simpa using hseven
 
-theorem uniform_truncate_reject_neighbors (encoding : Encoding) :
-    Pr[fun output : HashOutput => Generic.truncateHash output ∉ neighborDigests encoding | $ᵗ HashOutput] =
+theorem uniform_reject_neighbors (encoding : Encoding) :
+    Pr[fun output : Digest => output ∉ neighborDigests encoding | $ᵗ Digest] =
       1 - neighborAcceptanceProbability encoding := by
   classical
   apply ENNReal.eq_sub_of_add_eq (by unfold neighborAcceptanceProbability; finiteness)
-  simpa only [uniform_truncate_mem_probability, probFailure_uniformSample, tsub_zero,
+  simpa only [uniform_mem_probability, probFailure_uniformSample, tsub_zero,
     neighborAcceptanceProbability, add_comm] using
-      probEvent_compl ($ᵗ HashOutput) (fun output => Generic.truncateHash output ∈ neighborDigests encoding)
+      probEvent_compl ($ᵗ Digest) (fun output => output ∈ neighborDigests encoding)
 
 theorem findEncodingNeighbor_failure_fresh (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (encoding : Encoding) (cache : QueryCache HashSpec)
@@ -118,7 +117,7 @@ theorem findEncodingNeighbor_failure_fresh (parameter : PublicParameter) (leafIn
   classical
   unfold findEncodingNeighbor
   rw [Attack.findHash_failure_fresh]
-  · rw [uniform_truncate_reject_neighbors]
+  · rw [uniform_reject_neighbors]
   · intro i _ hi j _ hj hne
     exact neighborSearchInput_separate parameter leafIndex message i j (by omega) (by omega) hne
   · intro i _ hi

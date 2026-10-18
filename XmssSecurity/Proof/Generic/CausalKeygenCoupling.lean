@@ -15,13 +15,13 @@ theorem simulate_chainHash_run_of_fresh
     (simulateQ randomOracle
       (Concrete.chainHash parameter leafIndex chain step value :
         OracleComp HashSpec Digest)).run cache =
-      (fun output => (truncateHash output,
+      (fun output => (output,
         cache.cacheQuery
           (Concrete.CacheView.chainInput parameter leafIndex chain step value)
           output)) <$> uniformHashOutput := by
   let input := Concrete.CacheView.chainInput parameter leafIndex chain step value
-  change (fun result : HashOutput × QueryCache HashSpec =>
-      (truncateHash result.1, result.2)) <$> (randomOracle input).run cache = _
+  change (fun result : Digest × QueryCache HashSpec =>
+      (result.1, result.2)) <$> (randomOracle input).run cache = _
   rw [randomOracle_run_none_eq_uniformHashOutput _ _ habsent]
   simp [Functor.map_map]
 
@@ -30,11 +30,11 @@ noncomputable def programmedChainExtension
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec) :
     ProbComp (Vector Digest ((n + 1) + 1) × QueryCache HashSpec) := do
-  let sampled ← Rom.sampledHashOutputWithDigest
-  pure (values.push sampled.1,
+  let next ← $ᵗ Digest
+  pure (values.push next,
     cache.cacheQuery
       (Concrete.CacheView.chainInput parameter leafIndex chain step values.back)
-      sampled.2)
+      next)
 
 set_option maxRecDepth 100000 in
 theorem evalDist_chainExtension_eq_programmed
@@ -54,14 +54,7 @@ theorem evalDist_chainExtension_eq_programmed
       cache habsent]
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply, simulateQ_pure, StateT.run_pure]
-  unfold programmedChainExtension
-  symm
-  exact Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind
-    (fun sampled => pure
-      (values.push sampled.1,
-        cache.cacheQuery
-          (Concrete.CacheView.chainInput parameter leafIndex chain step values.back)
-          sampled.2))
+  rfl
 
 noncomputable def programmedChainTrajectory
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)

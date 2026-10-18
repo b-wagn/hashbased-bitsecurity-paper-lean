@@ -29,9 +29,9 @@ theorem eager_enforcedHit_probability_le (fuel : ℕ)
     _ ≤ _ := structuralExperiment_empty_true_probability_le fuel (enforceHazardBound fuel computation)
 
 theorem coupled_enforcedHit_probability_le (fuel : ℕ)
-    (body : ProgrammedGlobalChainKeygenView → (GlobalChainEdgeIndex → Digest) →
+    (body : ProgrammedGlobalChainKeygenView →
       OracleComp GlobalFirstLaneWorld α) :
-    Pr[fun result => CombinedHit result.1.1.2 (enforceHazardTrace fuel result.2.2) |
+    Pr[fun result => CombinedHit result.1.2 (enforceHazardTrace fuel result.2.2) |
       coupledFirstLaneProgram body] ≤ (fuel : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   calc
     _ = Pr[fun result => CombinedHit result.1 (enforceHazardTrace fuel result.2.2) |
@@ -48,7 +48,7 @@ theorem sourcePrefixProgram_coupling (adversary : Adversary) (D : ℕ)
     RelTriple (sourcePrefixProgram adversary)
       (coupledFirstLaneProgram (publicPrefixProbeExecution adversary))
       (fun left right => PrefixFirstLaneEvent left.1 left.2 →
-        CombinedHit right.1.1.2 (enforceHazardTrace (D + 1) right.2.2)) := by
+        CombinedHit right.1.2 (enforceHazardTrace (D + 1) right.2.2)) := by
   unfold sourcePrefixProgram coupledFirstLaneProgram
   apply relTriple_bind (relTriple_with_support
     relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
@@ -66,7 +66,7 @@ theorem prefixFirstLane_probability_le (adversary : Adversary) (D : ℕ)
     Pr[fun result => PrefixFirstLaneEvent result.1 result.2 | sourcePrefixProgram adversary] ≤
       ((D + 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   calc
-    _ ≤ Pr[fun result => CombinedHit result.1.1.2 (enforceHazardTrace (D + 1) result.2.2) |
+    _ ≤ Pr[fun result => CombinedHit result.1.2 (enforceHazardTrace (D + 1) result.2.2) |
         coupledFirstLaneProgram (publicPrefixProbeExecution adversary)] := by
       apply probEvent_le_of_relTriple (sourcePrefixProgram_coupling adversary D hD)
       intro left right hrel hevent

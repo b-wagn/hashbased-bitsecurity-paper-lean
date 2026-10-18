@@ -63,16 +63,16 @@ theorem mixedEncodingPrefixProbability_le_terminal_credit (adversary : Adversary
   unfold mixedEncodingPrefixProbability mixedEncodingPrefixProgram
   rw [probEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-        (base + rate * (credit + if Code.ValidDigest (Generic.truncateHash output) then 1 else 0)) := by
+    _ ≤ ∑' output : Digest, Pr[= output | $ᵗ Digest] *
+        (base + rate * (credit + if Code.ValidDigest (output) then 1 else 0)) := by
       apply ENNReal.tsum_le_tsum
       intro output
       apply mul_le_mul' le_rfl
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
       have h := mixedEncodingPrefixEvent_probability_le_terminal_credit adversary limit hpositive hbudget
-        (Code.decodeDigest (Generic.truncateHash output))
-      have hvalid : (Code.decodeDigest (Generic.truncateHash output)).isSome ↔
-          Code.ValidDigest (Generic.truncateHash output) := Option.isSome_iff_exists
+        (Code.decodeDigest (output))
+      have hvalid : (Code.decodeDigest (output)).isSome ↔
+          Code.ValidDigest (output) := Option.isSome_iff_exists
       simp only [hvalid] at h
       exact h
     _ = base + rate * (credit + TargetSum.acceptanceProbability) := by

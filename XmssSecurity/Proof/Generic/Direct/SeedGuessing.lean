@@ -391,7 +391,7 @@ theorem probEvent_random_cache_change_derivationHit_le {α : Type}
         (probOutput_stopBefore_derivationHit_le computation cache D hbound)
 
 theorem signingDerivationCache_agreeOutside_derivationHit (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : ChainOutputs) (randomizers : RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : ChainOutputs) (randomizers : RandomizerOutputs) :
     AgreeOutside (DerivationHit seed)
       (signingDerivationCache seed parameterOutput outputs randomizers) ∅ := by
   intro input hinput
@@ -404,13 +404,13 @@ theorem signingDerivationCache_agreeOutside_derivationHit (seed : MasterSeed)
       exact hinput (h.symm ▸ ⟨derivationSeedHit_keygen 0 .parameter seed,
         maySeedHit_keygenHashInput 0 .parameter seed⟩)
     · intro leafIndex chain h
-      exact hinput (h.symm ▸ ⟨derivationSeedHit_keygen (truncateHash parameterOutput)
+      exact hinput (h.symm ▸ ⟨derivationSeedHit_keygen (parameterOutput)
         (.chain leafIndex chain) seed,
-        maySeedHit_keygenHashInput (truncateHash parameterOutput) (.chain leafIndex chain) seed⟩)
+        maySeedHit_keygenHashInput (parameterOutput) (.chain leafIndex chain) seed⟩)
   · intro position heq
-    exact hinput (heq.symm ▸ ⟨derivationSeedHit_randomizer (truncateHash parameterOutput) seed
+    exact hinput (heq.symm ▸ ⟨derivationSeedHit_randomizer (parameterOutput) seed
       position.1.epoch position.1.message position.2,
-      maySeedHit_randomizerHashInput (truncateHash parameterOutput) seed
+      maySeedHit_randomizerHashInput (parameterOutput) seed
         position.1.epoch position.1.message position.2⟩)
 
 theorem forgeAdvantage_deterministic_le_table_direct (adversary : Adversary) (D : ℕ)
@@ -422,12 +422,12 @@ theorem forgeAdvantage_deterministic_le_table_direct (adversary : Adversary) (D 
   simp only [probOutput_def, evalDist_gameCore_deterministic_programmed,
     evalDist_programmedDeterministicGame_seed_last]
   change Pr[= true | drawSigningMaterial >>= fun material => sampleMasterSeed >>= fun seed =>
-      (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash material.1)
-        (outputSecrets material.2.1) material.2.2)).run'
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run'
         (signingDerivationCache seed material.1 material.2.1 material.2.2)] ≤
     Pr[= true | drawSigningMaterial >>= fun material =>
-      (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash material.1)
-        (outputSecrets material.2.1) material.2.2)).run' ∅] + _
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run' ∅] + _
   rw [← probEvent_eq_eq_probOutput, ← probEvent_eq_eq_probOutput]
   apply probEvent_bind_congr_le_add
   intro material _

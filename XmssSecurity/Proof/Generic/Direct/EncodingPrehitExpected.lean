@@ -43,7 +43,7 @@ theorem expected_const_add_mul_le
     (one_mul constant)) le_rfl
 
 noncomputable def encodingPrehitRate : ℝ≥0∞ :=
-  (Code.signingAttemptLimit : ℝ≥0∞) * ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹
+  (Code.signingAttemptLimit : ℝ≥0∞) * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹
 
 theorem encodingPrehitRate_ne_zero : encodingPrehitRate ≠ 0 := by
   simp [encodingPrehitRate, Code.signingAttemptLimit_pos.ne']
@@ -207,7 +207,7 @@ theorem cappedCacheTracedMappedAdversary_freshLeafPrehit_le_expected_encoding
                   publicKey secretKey request initialCache initialTrace
               have hrate : (Code.signingAttemptLimit : ℝ≥0∞) *
                   cachedEncodingEntryCount initialCache secretKey.parameter request.epoch *
-                  ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ = encodingPrehitRate *
+                  ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ = encodingPrehitRate *
                   cachedEncodingEntryCount initialCache secretKey.parameter request.epoch := by
                 unfold encodingPrehitRate
                 ac_rfl

@@ -21,7 +21,7 @@ open XmssSecurity.EUFCMA
 attribute [local irreducible] Generic.sampleMasterSeed
 
 theorem replay_gameCounted_direct :
-    SUFCMA.gameCountedDirect (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss replayStatementAdversary =
+    SUFCMA.gameCountedDirect (RandomOracleModel.hashCost HashInput Digest) Generic.xmss replayStatementAdversary =
       (fun result => (result, 1)) <$> SUFCMA.game Generic.xmss replayStatementAdversary := by
   unfold SUFCMA.gameCountedDirect SUFCMA.game
   simp only [map_bind, map_pure]
@@ -46,7 +46,7 @@ theorem replay_statement_direct_queryBound :
   rw [direct_queryBound_iff_strong_legacy]
   intro result hresult
   change result ∈ support (RandomOracleModel.run
-    (SUFCMA.gameCountedDirect (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss replayStatementAdversary)) at hresult
+    (SUFCMA.gameCountedDirect (RandomOracleModel.hashCost HashInput Digest) Generic.xmss replayStatementAdversary)) at hresult
   rw [replay_gameCounted_direct] at hresult
   simp only [RandomOracleModel.run, simulateQ_map, StateT.run'_map', support_map, Set.mem_image] at hresult
   obtain ⟨won, _, rfl⟩ := hresult

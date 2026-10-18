@@ -62,11 +62,11 @@ theorem evalDist_deterministic_eq_table_of_noSeed (adversary : Adversary)
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left
   intro material
   have hrun : ∀ seed,
-      (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash material.1)
-        (outputSecrets material.2.1) material.2.2)).run'
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run'
           (signingDerivationCache seed material.1 material.2.1 material.2.2) =
-      (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash material.1)
-        (outputSecrets material.2.1) material.2.2)).run' ∅ := by
+      (simulateQ romImpl (tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run' ∅ := by
     intro seed
     apply run'_cache_change_eq_of_zero MaySeedHit
     · intro input hinput

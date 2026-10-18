@@ -11,7 +11,7 @@ variable [Code]
 
 theorem randomOracle_query_result_cache_eq_cacheQuery
     (input : HashInput) (initialCache middleCache : QueryCache HashSpec)
-    (output : HashOutput)
+    (output : Digest)
     (hmem : (output, middleCache) ∈ support
       ((randomOracle (spec := HashSpec) input).run initialCache)) :
     middleCache = initialCache.cacheQuery input output := by

@@ -20,33 +20,32 @@ variable [Code]
 theorem relTriple_sourceExact_firstLane_adversary_boundedHit_direct
     (D hitLimit : ℕ) (hlimit : D ≤ hitLimit) (adversary : Adversary)
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest))
     (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hD : (adversary.main left.publicKey).IsQueryBoundP Direct.IsDirectHashQuery D) :
     RelTriple
       ((simulateQ (cappedBothTracedMappedAdversaryImpl left.publicKey
           (Concrete.materializePrecomputation left.cache left.secretKey))
         (adversary.main left.publicKey)).run ((((left.cache, []), []), [])))
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+        ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl right.1)
           (adversary.main left.publicKey)).run
-            (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState right.1.1)))).run)
+            (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState right.1)))).run)
       (fun leftResult rightResult =>
         (leftResult.1 = rightResult.1.1 ∧
-          SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2 rightResult.1.2
+          SourceFirstLaneExactGoodStateRelation left right leftResult.2 rightResult.1.2
             rightResult.2 ∧ FirstLaneOracleSimulation.hazardCount rightResult.2 ≤ D) ∨
-          FirstLaneOracleSimulation.CombinedHit right.1.2
+          FirstLaneOracleSimulation.CombinedHit right.2
             (FirstLaneOracleSimulation.enforceHazardTrace hitLimit rightResult.2)) := by
   let secretKey := Concrete.materializePrecomputation left.cache left.secretKey
   let sourceInitial : SourceExactTracedState := ((((left.cache, []), []), []))
   let highInitial : GlobalMonitoredTracedState :=
-    (⟨globalFilteredCausalKeygenState right.1.1, []⟩, [])
+    (⟨globalFilteredCausalKeygenState right.1, []⟩, [])
   let firstLaneInitial := GlobalHighDirectTracedState.initial
-    (globalFilteredCausalKeygenState right.1.1)
-  have hinitial : SourceFirstLaneExactGoodStateRelation left right.1 sourceInitial firstLaneInitial
+    (globalFilteredCausalKeygenState right.1)
+  have hinitial : SourceFirstLaneExactGoodStateRelation left right sourceInitial firstLaneInitial
       [] := by
     refine ⟨?_, ?_, ?_⟩
     · simpa [sourceInitial, highInitial, firstLaneInitial, globalStateOfFirstLane,
@@ -58,12 +57,12 @@ theorem relTriple_sourceExact_firstLane_adversary_boundedHit_direct
         EncodingMonitor.observedSignLeafIndices]
   let Budget := fun (rest : OracleComp (OracleWorld + SigningSpec) Forgery) (fuel : ℕ)
     (_state : SourceExactTracedState) => rest.IsQueryBoundP Direct.IsDirectHashQuery fuel
-  have hcoupling := relTriple_simulateQ_bind_bounded_firstLane right.1.2
+  have hcoupling := relTriple_simulateQ_bind_bounded_firstLane right.2
     (cappedBothTracedMappedAdversaryImpl left.publicKey secretKey)
-    (globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
+    (globalFirstLaneExactTracedMappedAdversaryImpl right.1)
     (fun forgery state => pure (forgery, state))
     (fun forgery state => pure (forgery, state))
-    directHashActionCost (SourceFirstLaneExactGoodStateRelation left right.1)
+    directHashActionCost (SourceFirstLaneExactGoodStateRelation left right)
     (fun state spent => state.2.hashInputs.length = spent) Budget
     (by
       intro input next remaining state result hrest _hresult
@@ -92,7 +91,7 @@ theorem relTriple_sourceExact_firstLane_adversary_boundedHit_direct
       intro forgery spent remaining state firstState history _hremaining hstates hcount _hacct htotal
       simp only [simulateQ_pure, WriterT.run_pure']
       apply relTriple_pure_pure
-      simpa using Or.inl (b := FirstLaneOracleSimulation.CombinedHit right.1.2
+      simpa using Or.inl (b := FirstLaneOracleSimulation.CombinedHit right.2
         (FirstLaneOracleSimulation.enforceHazardTrace hitLimit history))
         (And.intro (Eq.refl forgery)
           (And.intro hstates (hcount.trans (show spent ≤ D by omega)))))

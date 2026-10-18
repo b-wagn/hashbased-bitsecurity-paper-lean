@@ -8,9 +8,6 @@ variable [Code]
 
 namespace Concrete
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
 /-- `rho`, fresh per attempt. -/
 noncomputable def signingRandomness : ProbComp Randomness :=
   $ᵗ Randomness
@@ -38,9 +35,6 @@ noncomputable def precomputedCappedSign (secretKey : SecretKey)
 attribute [irreducible] signingRandomness precomputedCappedSign
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-
-noncomputable local instance : SampleableType PublicParameter :=
-  SampleableType.ofFintype PublicParameter
 
 noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Digest) :=
   SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)

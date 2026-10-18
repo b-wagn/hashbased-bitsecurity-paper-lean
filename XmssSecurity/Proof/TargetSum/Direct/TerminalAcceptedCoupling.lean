@@ -17,9 +17,9 @@ namespace XmssSecurity.TargetSum.Deciding
 open CappedChain FirstLaneOracleSimulation
 
 noncomputable def publicTerminalPrefixExecution (limit : Nat) (adversary : Adversary)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
-  terminalPrunedFirstLanePrefix limit key edgeHigh (adversary.main key.publicKey)
+  terminalPrunedFirstLanePrefix limit key (adversary.main key.publicKey)
     (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
 
 end XmssSecurity.TargetSum.Deciding

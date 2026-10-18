@@ -67,33 +67,32 @@ theorem relTriple_countedSource_source_action
 
 theorem relTriple_countedSource_firstLane_action {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
     (limit : Nat) (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
     (trace : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 leftState.toSource rightState trace)
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState trace)
     (hcount : FirstLaneOracleSimulation.hazardCount trace ≤ leftState.counts.direct)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
       limit (liftM ((OracleWorld + SigningSpec).query input) >>= next) leftState) :
     RelTriple
       ((countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey) input).run
         leftState)
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2 input).run rightState)).run)
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+        ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1 input).run rightState)).run)
       (fun leftResult rightResult =>
         leftResult.2.charge ≤ limit ∧
         CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
           limit (next leftResult.1) leftResult.2 ∧
         FirstLaneOracleSimulation.hazardCount (trace ++ rightResult.2) ≤ leftResult.2.counts.direct ∧
         ((leftResult.1 = rightResult.1.1 ∧
-          CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2.toSource
+          CappedChain.SourceFirstLaneExactGoodStateRelation left right leftResult.2.toSource
             rightResult.1.2 (trace ++ rightResult.2)) ∨
-          FirstLaneOracleSimulation.CombinedHit right.1.2 (trace ++ rightResult.2))) := by
+          FirstLaneOracleSimulation.CombinedHit right.2 (trace ++ rightResult.2))) := by
   have hlift := relTriple_countedSource_source_action left.publicKey
     (Concrete.materializePrecomputation left.cache left.secretKey) input leftState
   have hstep := CappedChain.relTriple_sourceExact_firstLane_action leftState.counts.direct left right hrel

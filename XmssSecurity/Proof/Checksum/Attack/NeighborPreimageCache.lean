@@ -53,7 +53,7 @@ theorem precomputedCappedSign_preserves_chainInput
 
 theorem findEncodingNeighbor_preserves_chainInput
     (parameter : PublicParameter) (searchLeaf : LeafIndex) (message : Message) (encoding : Encoding)
-    (initialCache finalCache : QueryCache HashSpec) (result : Option (ℕ × HashOutput))
+    (initialCache finalCache : QueryCache HashSpec) (result : Option (ℕ × Digest))
     (hmem : (result, finalCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor parameter searchLeaf message encoding)).run initialCache))
     (leafIndex : LeafIndex) (chain : ChainIndex) (step : ChainStep) (value : Digest) :
@@ -72,14 +72,14 @@ theorem predecessorCache_after_neighborSearch
     (encoding : Encoding)
     (hreplay : signature = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch signature.randomness encoding)
-    (message : Message) (answer : Option (ℕ × HashOutput)) (searchCache : QueryCache HashSpec)
+    (message : Message) (answer : Option (ℕ × Digest)) (searchCache : QueryCache HashSpec)
     (hsearch : (answer, searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache))
     (lower : DecreasingChain encoding) :
     ∃ genuine,
       (∃ output, searchCache (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
           (predecessorStep encoding lower) genuine) = some output ∧
-        Generic.truncateHash output = signature.chainValue lower.1) ∧
+        output = signature.chainValue lower.1) ∧
       ∀ value, value ≠ genuine →
         searchCache (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
           (predecessorStep encoding lower) value) = none := by
@@ -119,7 +119,7 @@ theorem randomDigestPreimage_success_after_neighborSearch
     (encoding : Encoding)
     (hreplay : signature = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch signature.randomness encoding)
-    (message : Message) (answer : Option (ℕ × HashOutput)) (searchCache : QueryCache HashSpec)
+    (message : Message) (answer : Option (ℕ × Digest)) (searchCache : QueryCache HashSpec)
     (hsearch : (answer, searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache))
     (lower : DecreasingChain encoding) :

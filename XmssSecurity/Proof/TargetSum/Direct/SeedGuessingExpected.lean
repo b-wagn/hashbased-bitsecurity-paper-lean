@@ -73,7 +73,7 @@ theorem probEvent_random_cache_change_derivationHit_le_expected {α : Type}
 noncomputable def expectedTableSeedQueries (adversary : Adversary) : ℝ≥0∞ :=
   ∑' material, Pr[= material | Seeded.drawSigningMaterial] *
     expectedSimulatedQueryCount romImpl (Seeded.hashBad MaySeedHit)
-      (Seeded.tableGameAfterSecrets adversary (Generic.truncateHash material.1) (Seeded.outputSecrets material.2.1) material.2.2) ∅
+      (Seeded.tableGameAfterSecrets adversary (material.1) (material.2.1) material.2.2) ∅
 
 theorem forgeAdvantage_deterministic_le_table_expectedSeed (adversary : Adversary) :
     forgeAdvantage Seeded.scheme adversary ≤ Pr[= true | Seeded.independentTableGame adversary] +
@@ -83,25 +83,25 @@ theorem forgeAdvantage_deterministic_le_table_expectedSeed (adversary : Adversar
   simp only [probOutput_def, Seeded.evalDist_gameCore_deterministic_programmed,
     Seeded.evalDist_programmedDeterministicGame_seed_last]
   change Pr[= true | Seeded.drawSigningMaterial >>= fun material => Generic.sampleMasterSeed >>= fun seed =>
-      (simulateQ romImpl (Seeded.tableGameAfterSecrets adversary (Generic.truncateHash material.1)
-        (Seeded.outputSecrets material.2.1) material.2.2)).run'
+      (simulateQ romImpl (Seeded.tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run'
         (Seeded.signingDerivationCache seed material.1 material.2.1 material.2.2)] ≤
     Pr[= true | Seeded.drawSigningMaterial >>= fun material =>
-      (simulateQ romImpl (Seeded.tableGameAfterSecrets adversary (Generic.truncateHash material.1)
-        (Seeded.outputSecrets material.2.1) material.2.2)).run' ∅] + _
+      (simulateQ romImpl (Seeded.tableGameAfterSecrets adversary (material.1)
+        (material.2.1) material.2.2)).run' ∅] + _
   simp only [probOutput_bind_eq_tsum]
   calc
     _ ≤ ∑' material, Pr[= material | Seeded.drawSigningMaterial] *
-        (Pr[= true | (simulateQ romImpl (Seeded.tableGameAfterSecrets adversary (Generic.truncateHash material.1)
-            (Seeded.outputSecrets material.2.1) material.2.2)).run' ∅] +
+        (Pr[= true | (simulateQ romImpl (Seeded.tableGameAfterSecrets adversary (material.1)
+            (material.2.1) material.2.2)).run' ∅] +
           expectedSimulatedQueryCount romImpl (Seeded.hashBad MaySeedHit)
-            (Seeded.tableGameAfterSecrets adversary (Generic.truncateHash material.1) (Seeded.outputSecrets material.2.1)
+            (Seeded.tableGameAfterSecrets adversary (material.1) (material.2.1)
               material.2.2) ∅ / ((2 ^ 256 : Nat) : ℝ≥0∞)) := by
       apply ENNReal.tsum_le_tsum
       intro material
       apply mul_le_mul' le_rfl
       have h := probEvent_random_cache_change_derivationHit_le_expected
-        (Seeded.tableGameAfterSecrets adversary (Generic.truncateHash material.1) (Seeded.outputSecrets material.2.1) material.2.2)
+        (Seeded.tableGameAfterSecrets adversary (material.1) (material.2.1) material.2.2)
         (fun seed => Seeded.signingDerivationCache seed material.1 material.2.1 material.2.2) ∅
         (fun seed => Seeded.signingDerivationCache_agreeOutside_derivationHit seed _ _ _) (fun value => value = true)
       simpa only [probEvent_eq_eq_probOutput, probOutput_bind_eq_tsum] using h

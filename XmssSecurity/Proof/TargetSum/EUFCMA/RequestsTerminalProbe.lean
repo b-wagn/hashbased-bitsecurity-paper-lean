@@ -20,18 +20,17 @@ def PublicExtra (key : CappedChain.ProgrammedGlobalChainKeygenView) (result : Fo
 
 def CoupledExtra (result : Deciding.BaseHighKey ×
     ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
-  PublicExtra result.1.1.1 result.2.1
+  PublicExtra result.1.1 result.2.1
 
 theorem public_stopped_probe_hazards_le (adversary : Adversary) (q : ℕ) (hpositive : 0 < q)
     (hbound : IsQueryBound adversary q) (table : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (hparameter : key.publicKey.parameter = key.secretKey.parameter)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
     (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (Deciding.publicPrefixExecution (stoppedAdversary q adversary) key edgeHigh)).run)) :
+      (Deciding.publicPrefixExecution (stoppedAdversary q adversary) key)).run)) :
     FirstLaneOracleSimulation.hazardCount (appendFreshPrefixProbe q table key result).2 ≤
       (q - 1) + if PublicExtra key result.1 then 2 else 0 := by
-  have h := public_stopped_hazards_le_encoding adversary q hpositive hbound table key hparameter edgeHigh result hresult
+  have h := public_stopped_hazards_le_encoding adversary q hpositive hbound table key hparameter result hresult
   rw [hazardCount_appendFreshPrefixProbe]
   by_cases hextra : PublicExtra key result.1
   · rw [if_pos hextra]
@@ -61,10 +60,10 @@ theorem expected_stopped_probe_hazards_le (adversary : Adversary) (q : ℕ) (hpo
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult
         obtain ⟨key, hkey, outcome, houtcome, rfl⟩ := hresult
         have hkey' := CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView key hkey
-        have hparameter : key.1.1.publicKey.parameter = key.1.1.secretKey.parameter :=
-          CappedChain.keygen_parameter_eq key.1.1.keyResult (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult _ hkey')
+        have hparameter : key.1.publicKey.parameter = key.1.secretKey.parameter :=
+          CappedChain.keygen_parameter_eq key.1.keyResult (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult _ hkey')
         have h := (Nat.min_le_right (q + 1) _).trans
-          (public_stopped_probe_hazards_le adversary q hpositive hbound key.1.2 key.1.1 hparameter key.2 outcome houtcome)
+          (public_stopped_probe_hazards_le adversary q hpositive hbound key.2 key.1 hparameter outcome houtcome)
         exact_mod_cast h
       · rw [probOutput_eq_zero_of_not_mem_support hresult, zero_mul, zero_mul]
     _ = _ := by
@@ -84,7 +83,7 @@ theorem stopped_probedHit_probability_le (adversary : Adversary) (q : ℕ) (hpos
           Pr[CoupledExtra | Deciding.coupledFirstLaneProgram (Deciding.publicPrefixExecution (stoppedAdversary q adversary))] := by
   have hhit : Pr[CoupledFreshProbedHit q |
       Deciding.coupledFirstLaneProgram (Deciding.publicPrefixExecution (stoppedAdversary q adversary))] =
-      Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (q + 1) result.2.2) |
+      Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (q + 1) result.2.2) |
         Deciding.coupledFirstLaneProgram (publicFreshPrefixProbeExecution q (stoppedAdversary q adversary))] := by
     rw [coupledFreshPrefixProbe_eq_map, probEvent_map]
     apply probEvent_congr' (fun result _ => ?_) rfl

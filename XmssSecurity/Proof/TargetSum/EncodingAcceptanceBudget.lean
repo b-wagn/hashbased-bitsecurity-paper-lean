@@ -19,25 +19,23 @@ open XmssSecurity.Generic
 namespace XmssSecurity.TargetSum
 
 theorem TargetSum.probEvent_validDigest_uniformHashOutput :
-    Pr[fun output : HashOutput => Code.ValidDigest (Generic.truncateHash output) | $ᵗ HashOutput] =
+    Pr[fun output : Digest => Code.ValidDigest (output) | $ᵗ Digest] =
       acceptanceProbability := by
-  change Pr[Code.ValidDigest ∘ Generic.truncateHash | $ᵗ HashOutput] = _
-  rw [← probEvent_map, probEvent_def, Rom.evalDist_truncate_uniformHashOutput,
-    ← probEvent_def]
+  change Pr[Code.ValidDigest | $ᵗ Digest] = _
   exact probEvent_validDigest_uniform
 
 def HasAcceptedEncoding (parameter : PublicParameter) (cache : QueryCache HashSpec) : Prop :=
   ∃ input output, cache input = some output ∧
-    (encodingInputLeafIndex? parameter input).isSome ∧ Code.ValidDigest (Generic.truncateHash output)
+    (encodingInputLeafIndex? parameter input).isSome ∧ Code.ValidDigest (output)
 
 noncomputable instance (parameter : PublicParameter) : DecidablePred (HasAcceptedEncoding parameter) :=
   Classical.decPred _
 
 theorem hasAcceptedEncoding_cacheQuery_iff
     (parameter : PublicParameter) (cache : QueryCache HashSpec)
-    (input : HashInput) (output : HashOutput) (hcache : ¬HasAcceptedEncoding parameter cache) :
+    (input : HashInput) (output : Digest) (hcache : ¬HasAcceptedEncoding parameter cache) :
     HasAcceptedEncoding parameter (cache.cacheQuery input output) ↔
-      (encodingInputLeafIndex? parameter input).isSome ∧ Code.ValidDigest (Generic.truncateHash output) := by
+      (encodingInputLeafIndex? parameter input).isSome ∧ Code.ValidDigest (output) := by
   constructor
   · rintro ⟨candidate, answer, hanswer, hencoding, hvalid⟩
     by_cases heq : candidate = input

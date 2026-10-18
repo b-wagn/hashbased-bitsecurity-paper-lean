@@ -391,176 +391,11 @@ theorem applyUniformQueryMonitor_true_probability_le
               rw [Nat.cast_succ, add_mul, one_mul]
               ac_rfl
 
-noncomputable def applyProgrammedQueryMonitor
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) : ProbComp Bool :=
-  applyUniformQueryMonitor leafIndex
-    (fun digest nextState =>
-      Rom.sampleHashOutputWithDigest digest >>= fun output =>
-        resume output nextState)
-    state
-
-theorem applyProgrammedQueryMonitor_true_probability_le
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) (fuel : Nat)
-    (hresume : ∀ output nextState,
-      Pr[(· = true) | resume output nextState] ≤
-        (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
-          State.pendingRisk nextState) :
-    Pr[(· = true) | applyProgrammedQueryMonitor leafIndex resume state] ≤
-      (fuel.succ : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
-        State.pendingRisk state := by
-  apply applyUniformQueryMonitor_true_probability_le
-  intro digest nextState
-  exact probEvent_bind_le_of_forall_le fun output _houtput => hresume output nextState
-
-noncomputable def applyProgrammedSignAttemptMonitor
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) : ProbComp Bool :=
-  applyUniformSignAttemptMonitor leafIndex
-    (fun digest nextState =>
-      Rom.sampleHashOutputWithDigest digest >>= fun output =>
-        resume output nextState)
-    state
-
-theorem applyProgrammedSignAttemptMonitor_true_probability_le
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) (fuel : Nat)
-    (hresume : ∀ output nextState,
-      Pr[(· = true) | resume output nextState] ≤
-        (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
-          State.pendingRisk nextState) :
-    Pr[(· = true) | applyProgrammedSignAttemptMonitor leafIndex resume state] ≤
-      (fuel : ℝ≥0∞) * (Fintype.card Digest : ℝ≥0∞)⁻¹ +
-        State.pendingRisk state := by
-  apply applyUniformSignAttemptMonitor_true_probability_le
-  intro digest nextState
-  exact probEvent_bind_le_of_forall_le fun output _houtput => hresume output nextState
-
-noncomputable def applyHashOutputQueryMonitor
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) : ProbComp Bool := do
-  let output ← uniformHashOutput
-  let digest := truncateHash output
-  match state.signed leafIndex with
-  | some target =>
-      if digest = target then pure true else resume output state
-  | none =>
-      if Code.ValidDigest digest then
-        resume output (state.addPending leafIndex digest)
-      else resume output state
-
-noncomputable def applyHashOutputSignAttemptMonitor
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) : ProbComp Bool := do
-  let output ← uniformHashOutput
-  let digest := truncateHash output
-  if Code.ValidDigest digest then
-    match state.signed leafIndex with
-    | some _ => pure false
-    | none =>
-        if digest ∈ state.pending leafIndex then pure true
-        else resume output (state.install leafIndex digest)
-  else resume output state
-
-theorem applyProgrammedQueryMonitor_evalDist_eq
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) :
-    evalDist (applyProgrammedQueryMonitor leafIndex resume state) =
-      evalDist (applyHashOutputQueryMonitor leafIndex resume state) := by
-  let continuation := fun result : Digest × HashOutput =>
-    match state.signed leafIndex with
-    | some target =>
-        if result.1 = target then pure true else resume result.2 state
-    | none =>
-        if Code.ValidDigest result.1 then
-          resume result.2 (state.addPending leafIndex result.1)
-        else resume result.2 state
-  calc
-    _ = evalDist ($ᵗ Digest >>= fun digest =>
-          Rom.sampleHashOutputWithDigest digest >>= fun output =>
-            continuation (digest, output)) := by
-      unfold applyProgrammedQueryMonitor applyUniformQueryMonitor continuation
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
-      intro digest
-      cases hsigned : state.signed leafIndex with
-      | none =>
-          by_cases hvalid : Code.ValidDigest digest <;>
-            simp only [hvalid, ↓reduceIte]
-      | some target =>
-          by_cases heq : digest = target
-          · simp only [heq, ↓reduceIte]
-            symm
-            exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-              (Rom.sampleHashOutputWithDigest target)
-              (by simp [Rom.sampleHashOutputWithDigest]) (pure true)
-          · simp only [heq, ↓reduceIte]
-    _ = evalDist (Rom.sampledHashOutputWithDigest >>= continuation) := by
-      congr 1
-    _ = evalDist ($ᵗ HashOutput >>= fun output =>
-          continuation (truncateHash output, output)) :=
-      Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
-    _ = _ := by
-      congr 1
-
-theorem applyProgrammedSignAttemptMonitor_evalDist_eq
-    (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
-    (state : EncodingMonitor.State) :
-    evalDist (applyProgrammedSignAttemptMonitor leafIndex resume state) =
-      evalDist (applyHashOutputSignAttemptMonitor leafIndex resume state) := by
-  let continuation := fun result : Digest × HashOutput =>
-    if Code.ValidDigest result.1 then
-      match state.signed leafIndex with
-      | some _ => pure false
-      | none =>
-          if result.1 ∈ state.pending leafIndex then pure true
-          else resume result.2 (state.install leafIndex result.1)
-    else resume result.2 state
-  calc
-    _ = evalDist ($ᵗ Digest >>= fun digest =>
-          Rom.sampleHashOutputWithDigest digest >>= fun output =>
-            continuation (digest, output)) := by
-      unfold applyProgrammedSignAttemptMonitor applyUniformSignAttemptMonitor continuation
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
-      intro digest
-      by_cases hvalid : Code.ValidDigest digest
-      · simp only [hvalid, ↓reduceIte]
-        cases hsigned : state.signed leafIndex with
-        | some target =>
-            symm
-            exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-              (Rom.sampleHashOutputWithDigest digest)
-              (by simp [Rom.sampleHashOutputWithDigest]) (pure false)
-        | none =>
-            by_cases hmem : digest ∈ state.pending leafIndex
-            · simp only [hmem, ↓reduceIte]
-              symm
-              exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
-                (Rom.sampleHashOutputWithDigest digest)
-                (by simp [Rom.sampleHashOutputWithDigest]) (pure true)
-            · simp only [hmem, ↓reduceIte]
-      · simp only [hvalid, ↓reduceIte]
-    _ = evalDist (Rom.sampledHashOutputWithDigest >>= continuation) := by
-      congr 1
-    _ = evalDist ($ᵗ HashOutput >>= fun output =>
-          continuation (truncateHash output, output)) :=
-      Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
-    _ = _ := by
-      congr 1
-
 noncomputable def State.applyObserved
     (state : EncodingMonitor.State) : EncodingMonitor.ObservedAction →
       Option (EncodingMonitor.State × Bool)
   | .query leafIndex output =>
-      let digest := truncateHash output
+      let digest := output
       match state.signed leafIndex with
       | some target => some (state, digest = target)
       | none =>
@@ -568,52 +403,52 @@ noncomputable def State.applyObserved
             some (state.addPending leafIndex digest, false)
           else some (state, false)
   | .sign leafIndex output =>
-      let digest := truncateHash output
+      let digest := output
       if Code.ValidDigest digest then
         match state.signed leafIndex with
         | some _ => none
         | none => some (state.install leafIndex digest, digest ∈ state.pending leafIndex)
       else some (state, false)
 
-theorem applyHashOutputQueryMonitor_eq_observed
+theorem applyUniformQueryMonitor_eq_observed
     (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
+    (resume : Digest → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) :
-    applyHashOutputQueryMonitor leafIndex resume state =
+    applyUniformQueryMonitor leafIndex resume state =
       uniformHashOutput >>= fun output =>
         match State.applyObserved state (.query leafIndex output) with
         | none => pure false
         | some (nextState, hit) =>
             if hit then pure true else resume output nextState := by
-  unfold applyHashOutputQueryMonitor State.applyObserved
+  unfold applyUniformQueryMonitor State.applyObserved uniformHashOutput
   apply bind_congr
   intro output
   cases hsigned : state.signed leafIndex with
   | some target =>
-      by_cases heq : truncateHash output = target <;>
+      by_cases heq : output = target <;>
         simp [hsigned, heq]
   | none =>
-      by_cases hvalid : Code.ValidDigest (truncateHash output) <;>
+      by_cases hvalid : Code.ValidDigest (output) <;>
         simp [hsigned, hvalid]
 
-theorem applyHashOutputSignAttemptMonitor_eq_observed
+theorem applyUniformSignAttemptMonitor_eq_observed
     (leafIndex : LeafIndex)
-    (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
+    (resume : Digest → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) :
-    applyHashOutputSignAttemptMonitor leafIndex resume state =
+    applyUniformSignAttemptMonitor leafIndex resume state =
       uniformHashOutput >>= fun output =>
         match State.applyObserved state (.sign leafIndex output) with
         | none => pure false
         | some (nextState, hit) =>
             if hit then pure true else resume output nextState := by
-  unfold applyHashOutputSignAttemptMonitor State.applyObserved
+  unfold applyUniformSignAttemptMonitor State.applyObserved uniformHashOutput
   apply bind_congr
   intro output
-  by_cases hvalid : Code.ValidDigest (truncateHash output)
+  by_cases hvalid : Code.ValidDigest (output)
   · cases hsigned : state.signed leafIndex with
     | some target => simp [hvalid, hsigned]
     | none =>
-        by_cases hmem : truncateHash output ∈ state.pending leafIndex <;>
+        by_cases hmem : output ∈ state.pending leafIndex <;>
           simp [hvalid, hsigned, hmem]
   · simp [hvalid]
 
@@ -626,8 +461,8 @@ noncomputable def runObserved : EncodingMonitor.State →
       | some (nextState, hit) => hit || runObserved nextState actions
 
 def ActionValid : EncodingMonitor.ObservedAction → Prop
-  | .query _ output => Code.ValidDigest (truncateHash output)
-  | .sign _ output => Code.ValidDigest (truncateHash output)
+  | .query _ output => Code.ValidDigest (output)
+  | .sign _ output => Code.ValidDigest (output)
 
 noncomputable instance : DecidablePred ActionValid :=
   Classical.decPred _
@@ -672,14 +507,14 @@ theorem validObservedSignLeafIndices_append
   simp [validObservedSignLeafIndices]
 
 @[simp] theorem validObservedSignLeafIndices_singleton_query
-    (leafIndex : LeafIndex) (output : HashOutput) :
+    (leafIndex : LeafIndex) (output : Digest) :
     validObservedSignLeafIndices [.query leafIndex output] = [] := by
   by_cases hvalid : ActionValid (.query leafIndex output) <;>
     simp [validObservedSignLeafIndices, validActions, hvalid,
       EncodingMonitor.observedSignLeafIndices]
 
 theorem validObservedSignLeafIndices_singleton_sign
-    (leafIndex : LeafIndex) (output : HashOutput) :
+    (leafIndex : LeafIndex) (output : Digest) :
     validObservedSignLeafIndices [.sign leafIndex output] =
       if ActionValid (.sign leafIndex output) then [leafIndex] else [] := by
   by_cases hvalid : ActionValid (.sign leafIndex output) <;>
@@ -779,7 +614,7 @@ theorem State.applyObserved_eq_unchanged_of_invalid
       | none => simp [State.applyObserved, hsigned, hinvalid]
       | some target =>
           have htarget := hstate.1 leafIndex target hsigned
-          have hne : truncateHash output ≠ target := by
+          have hne : output ≠ target := by
             intro heq
             exact hinvalid (heq ▸ htarget)
           simp [State.applyObserved, hsigned, hne]
@@ -804,7 +639,7 @@ theorem State.Valid.applyObserved
       | none =>
           simp [State.applyObserved, hsigned, hvalid] at happly
           rcases happly with ⟨rfl, rfl⟩
-          exact hstate.addPending leafIndex (truncateHash output) hvalid
+          exact hstate.addPending leafIndex (output) hvalid
   | sign leafIndex output =>
       simp only [ActionValid] at hvalid
       cases hsigned : state.signed leafIndex with
@@ -812,7 +647,7 @@ theorem State.Valid.applyObserved
       | none =>
           simp [State.applyObserved, hsigned, hvalid] at happly
           rcases happly with ⟨rfl, rfl⟩
-          exact hstate.install leafIndex (truncateHash output) hvalid
+          exact hstate.install leafIndex (output) hvalid
 
 theorem runObserved_eq_standard_validActions
     (state : EncodingMonitor.State)

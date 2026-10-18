@@ -14,15 +14,6 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum
 
-theorem Rom.expected_truncate_uniformHashOutput (weight : Digest → ℝ≥0∞) :
-    (∑' output, Pr[= output | $ᵗ HashOutput] * weight (Generic.truncateHash output)) =
-      ∑' digest, Pr[= digest | $ᵗ Digest] * weight digest := by
-  rw [← tsum_probOutput_map_mul]
-  apply tsum_congr
-  intro digest
-  congr 1
-  exact congrArg (fun distribution => distribution digest) Rom.evalDist_truncate_uniformHashOutput
-
 namespace CappedEncodingMonitor
 
 noncomputable def observedRisk : Option (EncodingMonitor.State × Bool) → ℝ≥0∞
@@ -46,18 +37,18 @@ noncomputable def signDigestRisk (state : EncodingMonitor.State) (leafIndex : Le
   else CappedEncodingMonitor.State.pendingRisk state
 
 theorem observedRisk_query (state : EncodingMonitor.State) (leafIndex : LeafIndex)
-    (output : HashOutput) : observedRisk (CappedEncodingMonitor.State.applyObserved state (.query leafIndex output)) =
-      queryDigestRisk state leafIndex (Generic.truncateHash output) := by
+    (output : Digest) : observedRisk (CappedEncodingMonitor.State.applyObserved state (.query leafIndex output)) =
+      queryDigestRisk state leafIndex (output) := by
   cases hsigned : state.signed leafIndex with
   | some target => simp [CappedEncodingMonitor.State.applyObserved, queryDigestRisk, observedRisk, hsigned]
   | none =>
-      by_cases hvalid : Code.ValidDigest (Generic.truncateHash output) <;>
+      by_cases hvalid : Code.ValidDigest (output) <;>
         simp [CappedEncodingMonitor.State.applyObserved, queryDigestRisk, observedRisk, hsigned, hvalid]
 
 theorem observedRisk_sign (state : EncodingMonitor.State) (leafIndex : LeafIndex)
-    (output : HashOutput) : observedRisk (CappedEncodingMonitor.State.applyObserved state (.sign leafIndex output)) =
-      signDigestRisk state leafIndex (Generic.truncateHash output) := by
-  by_cases hvalid : Code.ValidDigest (Generic.truncateHash output)
+    (output : Digest) : observedRisk (CappedEncodingMonitor.State.applyObserved state (.sign leafIndex output)) =
+      signDigestRisk state leafIndex (output) := by
+  by_cases hvalid : Code.ValidDigest (output)
   · cases hsigned : state.signed leafIndex <;>
       simp [CappedEncodingMonitor.State.applyObserved, signDigestRisk, observedRisk, hsigned, hvalid]
   · simp [CappedEncodingMonitor.State.applyObserved, signDigestRisk, observedRisk, hvalid]
@@ -148,19 +139,17 @@ theorem expected_signDigestRisk_le (state : EncodingMonitor.State) (leafIndex : 
         _ = _ := hrisk
 
 theorem expected_observedRisk_query_le (state : EncodingMonitor.State) (leafIndex : LeafIndex) :
-    (∑' output, Pr[= output | $ᵗ HashOutput] *
+    (∑' output, Pr[= output | $ᵗ Digest] *
       observedRisk (CappedEncodingMonitor.State.applyObserved state (.query leafIndex output))) ≤
       CappedEncodingMonitor.State.pendingRisk state + ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := by
   simp_rw [observedRisk_query]
-  rw [Rom.expected_truncate_uniformHashOutput]
   have hcard : Fintype.card Digest = 2 ^ digestBits := by simp
   simpa only [hcard] using expected_queryDigestRisk_le state leafIndex
 
 theorem expected_observedRisk_sign_le (state : EncodingMonitor.State) (leafIndex : LeafIndex) :
-    (∑' output, Pr[= output | $ᵗ HashOutput] *
+    (∑' output, Pr[= output | $ᵗ Digest] *
       observedRisk (CappedEncodingMonitor.State.applyObserved state (.sign leafIndex output))) ≤ CappedEncodingMonitor.State.pendingRisk state := by
   simp_rw [observedRisk_sign]
-  rw [Rom.expected_truncate_uniformHashOutput]
   exact expected_signDigestRisk_le state leafIndex
 
 end CappedEncodingMonitor

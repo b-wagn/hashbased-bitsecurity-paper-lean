@@ -18,7 +18,7 @@ namespace XmssSecurity.TargetSum.Deciding
 open CappedChain FirstLaneOracleSimulation
 
 noncomputable def expectedCoupledHazards (fuel : ℕ)
-    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+    (body : CappedChain.ProgrammedGlobalChainKeygenView →
       OracleComp CappedChain.GlobalFirstLaneWorld α) : ℝ≥0∞ :=
   ∑' result, Pr[= result | Deciding.coupledFirstLaneProgram body] *
     ((min fuel (FirstLaneOracleSimulation.hazardCount result.2.2) : ℕ) : ℝ≥0∞)
@@ -39,7 +39,7 @@ theorem eager_enforcedHit_probability_le_expected (fuel : ℕ)
       (FirstLaneOracleSimulation.enforceHazardBound fuel computation) (FirstLaneOracleSimulation.enforceHazardBound_isHazardQueryBoundP fuel computation)
 
 theorem expectedCoupledHazards_eq_public (fuel : ℕ)
-    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+    (body : CappedChain.ProgrammedGlobalChainKeygenView →
       OracleComp CappedChain.GlobalFirstLaneWorld α) :
     expectedCoupledHazards fuel body =
       expectedEagerQueryCount FirstLaneOracleSimulation.IsHazardQuery (FirstLaneOracleSimulation.enforceHazardBound fuel (Deciding.publicFirstLaneProgram body)) := by
@@ -56,7 +56,7 @@ theorem expectedCoupledHazards_eq_public (fuel : ℕ)
       rw [probOutput_congr rfl (Deciding.evalDist_coupledFirstLaneProgram_projection body)]
 
 theorem expectedCoupledHazards_le (fuel : ℕ)
-    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+    (body : CappedChain.ProgrammedGlobalChainKeygenView →
       OracleComp CappedChain.GlobalFirstLaneWorld α) : expectedCoupledHazards fuel body ≤ fuel := by
   unfold expectedCoupledHazards
   calc
@@ -70,9 +70,9 @@ theorem expectedCoupledHazards_le (fuel : ℕ)
       exact (mul_le_mul' tsum_probOutput_le_one le_rfl).trans_eq (one_mul _)
 
 theorem coupled_enforcedHit_probability_le_expected (fuel : ℕ)
-    (body : CappedChain.ProgrammedGlobalChainKeygenView → (CappedChain.GlobalChainEdgeIndex → Digest) →
+    (body : CappedChain.ProgrammedGlobalChainKeygenView →
       OracleComp CappedChain.GlobalFirstLaneWorld α) :
-    Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.1.2 (FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
+    Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.2 (FirstLaneOracleSimulation.enforceHazardTrace fuel result.2.2) |
       Deciding.coupledFirstLaneProgram body] ≤
       ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ * expectedCoupledHazards fuel body := by
   rw [expectedCoupledHazards_eq_public]

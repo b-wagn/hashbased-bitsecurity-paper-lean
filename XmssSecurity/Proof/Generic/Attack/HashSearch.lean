@@ -13,15 +13,15 @@ namespace XmssSecurity.Generic.Attack
 variable [Code]
 
 /-- Search consecutive candidates, stopping at the first acceptable hash output. -/
-def findHash (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
-    (start : ℕ) : ℕ → OracleComp HashSpec (Option (ℕ × HashOutput))
+def findHash (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
+    (start : ℕ) : ℕ → OracleComp HashSpec (Option (ℕ × Digest))
   | 0 => pure none
   | steps + 1 => do
       let output ← liftM (HashSpec.query (inputs start))
       if accept output then pure (some (start, output))
       else findHash inputs accept (start + 1) steps
 
-theorem findHash_run_succ (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+theorem findHash_run_succ (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
     (start steps : ℕ) (cache : QueryCache HashSpec) :
     (simulateQ randomOracle (findHash inputs accept start (steps + 1))).run cache =
       (randomOracle (inputs start)).run cache >>= fun result =>
@@ -29,7 +29,7 @@ theorem findHash_run_succ (inputs : ℕ → HashInput) (accept : HashOutput → 
           else findHash inputs accept (start + 1) steps)).run result.2 := by
   simp only [findHash, simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
 
-theorem findHash_queryBound (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+theorem findHash_queryBound (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
     (start steps : ℕ) : (findHash inputs accept start steps).IsQueryBoundP (fun _ => True) steps := by
   induction steps generalizing start with
   | zero => simp [findHash]
@@ -43,7 +43,7 @@ theorem findHash_queryBound (inputs : ℕ → HashInput) (accept : HashOutput �
       · exact ih (start + 1)
 
 theorem findHash_queryBound_zero
-    (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+    (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
     (start steps : ℕ) (predicate : HashInput → Prop) [DecidablePred predicate]
     (hother : ∀ i, start ≤ i → i < start + steps → ¬predicate (inputs i)) :
     (findHash inputs accept start steps).IsQueryBoundP predicate 0 := by
@@ -60,17 +60,17 @@ theorem findHash_queryBound_zero
       · exact ih (start + 1) (fun i hi hiEnd => hother i (by omega) (by omega))
 
 theorem findHash_queryBound_zero_at_other_input
-    (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+    (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
     (start steps : ℕ) (target : HashInput)
     (hother : ∀ i, start ≤ i → i < start + steps → inputs i ≠ target) :
     (findHash inputs accept start steps).IsQueryBoundP (· = target) 0 :=
   findHash_queryBound_zero inputs accept start steps (· = target) hother
 
 theorem findHash_preserves_unqueriedInput
-    (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+    (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
     (start steps : ℕ) (target : HashInput)
     (hother : ∀ i, start ≤ i → i < start + steps → inputs i ≠ target)
-    (initialCache finalCache : QueryCache HashSpec) (result : Option (ℕ × HashOutput))
+    (initialCache finalCache : QueryCache HashSpec) (result : Option (ℕ × Digest))
     (hmem : (result, finalCache) ∈ support
       ((simulateQ randomOracle (findHash inputs accept start steps)).run initialCache)) :
     finalCache target = initialCache target := by
@@ -81,25 +81,25 @@ theorem findHash_preserves_unqueriedInput
   | some output =>
       exact Concrete.CacheReplay.randomOracle_cache_le _ initialCache (result, finalCache) hmem hcached
 
-theorem findHash_failure_fresh (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+theorem findHash_failure_fresh (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
     (start steps : ℕ) (cache : QueryCache HashSpec)
     (hseparate : ∀ i, start ≤ i → i < start + steps →
       ∀ j, start ≤ j → j < start + steps → i ≠ j → inputs i ≠ inputs j)
     (hfresh : ∀ i, start ≤ i → i < start + steps → cache (inputs i) = none) :
     Pr[fun result => result.1 = none | (simulateQ randomOracle (findHash inputs accept start steps)).run cache] =
-      (Pr[fun output : HashOutput => ¬accept output | $ᵗ HashOutput]) ^ steps := by
+      (Pr[fun output : Digest => ¬accept output | $ᵗ Digest]) ^ steps := by
   induction steps generalizing start cache with
   | zero => simp only [findHash, simulateQ_pure, StateT.run_pure, probEvent_pure, pow_zero, if_true]
   | succ steps ih =>
       rw [findHash_run_succ, randomOracle_run_none_eq_uniformHashOutput _ _ (hfresh start le_rfl (by omega))]
       simp only [uniformHashOutput, bind_map_left]
-      have htail : ∀ output : HashOutput,
+      have htail : ∀ output : Digest,
           Pr[fun result => result.1 = none |
             (simulateQ randomOracle (if accept output then pure (some (start, output))
               else findHash inputs accept (start + 1) steps)).run
                 (cache.cacheQuery (inputs start) output)] =
             if accept output then 0 else
-              (Pr[fun answer : HashOutput => ¬accept answer | $ᵗ HashOutput]) ^ steps := by
+              (Pr[fun answer : Digest => ¬accept answer | $ᵗ Digest]) ^ steps := by
         intro output
         by_cases haccept : accept output
         · simp [haccept]
@@ -114,8 +114,8 @@ theorem findHash_failure_fresh (inputs : ℕ → HashInput) (accept : HashOutput
       rw [probEvent_bind_eq_tsum]
       simp_rw [htail]
       calc
-        _ = Pr[fun output : HashOutput => ¬accept output | $ᵗ HashOutput] *
-            (Pr[fun output : HashOutput => ¬accept output | $ᵗ HashOutput]) ^ steps := by
+        _ = Pr[fun output : Digest => ¬accept output | $ᵗ Digest] *
+            (Pr[fun output : Digest => ¬accept output | $ᵗ Digest]) ^ steps := by
           rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
           apply tsum_congr
           intro output
@@ -123,10 +123,10 @@ theorem findHash_failure_fresh (inputs : ℕ → HashInput) (accept : HashOutput
         _ = _ := by rw [pow_succ]; ac_rfl
 
 theorem findHash_failure_zero_of_cached_hit
-    (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
+    (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
     (start steps : ℕ) (cache : QueryCache HashSpec)
     (position : ℕ) (hstart : start ≤ position) (hend : position < start + steps)
-    (output : HashOutput) (hcached : cache (inputs position) = some output) (haccept : accept output) :
+    (output : Digest) (hcached : cache (inputs position) = some output) (haccept : accept output) :
     Pr[fun result => result.1 = none |
       (simulateQ randomOracle (findHash inputs accept start steps)).run cache] = 0 := by
   induction steps generalizing start cache with
@@ -150,8 +150,8 @@ theorem findHash_failure_zero_of_cached_hit
         · rw [probOutput_eq_zero_of_not_mem_support hmem]
           simp
 
-theorem findHash_success_cached (inputs : ℕ → HashInput) (accept : HashOutput → Prop) [DecidablePred accept]
-    (start steps : ℕ) (initialCache finalCache : QueryCache HashSpec) (position : ℕ) (output : HashOutput)
+theorem findHash_success_cached (inputs : ℕ → HashInput) (accept : Digest → Prop) [DecidablePred accept]
+    (start steps : ℕ) (initialCache finalCache : QueryCache HashSpec) (position : ℕ) (output : Digest)
     (hmem : (some (position, output), finalCache) ∈ support
       ((simulateQ randomOracle (findHash inputs accept start steps)).run initialCache)) :
     start ≤ position ∧ position < start + steps ∧ accept output ∧ finalCache (inputs position) = some output := by

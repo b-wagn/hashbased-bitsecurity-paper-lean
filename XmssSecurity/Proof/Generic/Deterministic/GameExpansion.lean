@@ -81,18 +81,18 @@ theorem erases_deterministicGameAfterSecrets (known : QueryCache HashSpec) (seed
 attribute [local irreducible] deterministicGameAfterSecrets tableGameAfterSecrets signingDerivationCache
 
 theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : ChainOutputs) :
-    𝒟[(simulateQ romImpl (deterministicGameAfterSecrets adversary seed (truncateHash parameterOutput)
-        (outputSecrets outputs))).run' (derivationCache seed parameterOutput outputs)] =
+    (parameterOutput : Digest) (outputs : ChainOutputs) :
+    𝒟[(simulateQ romImpl (deterministicGameAfterSecrets adversary seed (parameterOutput)
+        (outputs))).run' (derivationCache seed parameterOutput outputs)] =
       𝒟[do
         let randomizers ← sampleRandomizerOutputs
-        (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash parameterOutput)
-            (outputSecrets outputs) randomizers)).run'
+        (simulateQ romImpl (tableGameAfterSecrets adversary (parameterOutput)
+            (outputs) randomizers)).run'
           (signingDerivationCache seed parameterOutput outputs randomizers)] := by
   rw [evalDist_presample_computation _
-    (liftM (prepareRandomizers (truncateHash parameterOutput) seed) : OracleComp OracleWorld RandomizerOutputs)]
-  rw [show simulateQ romImpl (liftM (prepareRandomizers (truncateHash parameterOutput) seed) : OracleComp OracleWorld RandomizerOutputs) =
-      simulateQ randomOracle (prepareRandomizers (truncateHash parameterOutput) seed)
+    (liftM (prepareRandomizers (parameterOutput) seed) : OracleComp OracleWorld RandomizerOutputs)]
+  rw [show simulateQ romImpl (liftM (prepareRandomizers (parameterOutput) seed) : OracleComp OracleWorld RandomizerOutputs) =
+      simulateQ randomOracle (prepareRandomizers (parameterOutput) seed)
       from QueryImpl.simulateQ_add_liftM_right _ _ _,
     evalDist_bind, evalDist_prepareRandomizers, ← evalDist_bind, bind_map_left]
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left
@@ -103,11 +103,11 @@ theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) 
 
 noncomputable def programmedDeterministicGame (adversary : Adversary) : ProbComp Bool := do
   let seed ← sampleMasterSeed
-  let parameterOutput ← $ᵗ HashOutput
+  let parameterOutput ← $ᵗ Digest
   let outputs ← $ᵗ ChainOutputs
   let randomizers ← sampleRandomizerOutputs
-  (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash parameterOutput)
-      (outputSecrets outputs) randomizers)).run'
+  (simulateQ romImpl (tableGameAfterSecrets adversary (parameterOutput)
+      (outputs) randomizers)).run'
     (signingDerivationCache seed parameterOutput outputs randomizers)
 
 theorem evalDist_gameCore_deterministic_programmed (adversary : Adversary) :

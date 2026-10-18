@@ -133,16 +133,15 @@ theorem of_isQueryBoundP_zero
 end ExactPredicateQueryCount
 
 theorem oracleHash (input : HashInput) :
-    ExactQueryCount (Concrete.oracleHash input : OracleComp HashSpec HashOutput) 1 := by
-  exact .query input (fun output => (Pure.pure output : OracleComp HashSpec HashOutput)) 0
+    ExactQueryCount (Concrete.oracleHash input : OracleComp HashSpec Digest) 1 := by
+  exact .query input (fun output => (Pure.pure output : OracleComp HashSpec Digest)) 0
     (fun output => ExactQueryCount.pure output)
 
 theorem tweakableHash (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) :
     ExactQueryCount
       (Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest) 1 := by
-  unfold Concrete.tweakableHash
-  exact (oracleHash _).map truncateHash
+  exact oracleHash _
 
 theorem chainWalk (parameter : PublicParameter) (leafIndex : LeafIndex)
     (chain : ChainIndex) (position steps : Nat) (value : Digest)

@@ -36,11 +36,11 @@ theorem sourcePrefixFinish_fresh_revealed_probability_le_mixed (adversary : Adve
     (hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult)) :
     Pr[fun result => SourceWinningRevealedEvent (key, result) | Deciding.sourcePrefixFinish key prefixResult] ≤
       Pr[fun output => MixedEncodingPrefixEvent key prefixResult
-        (Code.decodeDigest (Generic.truncateHash output)) | $ᵗ HashOutput] := by
+        (Code.decodeDigest (output)) | $ᵗ Digest] := by
   rw [sourcePrefixFinish_eq_uniform_afterHash _ _ hfresh]
   apply probEvent_bind_le_probEvent
   intro output _ hnone
-  by_cases hvalid : Code.ValidDigest (Generic.truncateHash output)
+  by_cases hvalid : Code.ValidDigest (output)
   · apply probEvent_eq_zero
     intro result hresult hevent
     let accepted : TargetSum.AcceptedHashOutput := ⟨output, hvalid⟩
@@ -57,7 +57,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_mixed_add_encoding (adversar
     (hprefix : prefixResult ∈ support (Deciding.sourcePrefixExecution adversary key)) :
     Pr[fun result => Deciding.SourceWinningDecidingFirstLaneEvent (key, result) | Deciding.sourcePrefixFinish key prefixResult] ≤
       Pr[fun output => MixedEncodingPrefixEvent key prefixResult
-        (Code.decodeDigest (Generic.truncateHash output)) | $ᵗ HashOutput] +
+        (Code.decodeDigest (output)) | $ᵗ Digest] +
       Pr[fun result => SourcePrefixForgedEncodingFresh (key, prefixResult) ∧
         SourceWinningEncodingEvent (key, result) | Deciding.sourcePrefixFinish key prefixResult] := by
   by_cases hfresh : SourcePrefixForgedEncodingFresh (key, prefixResult)
@@ -77,7 +77,7 @@ theorem sourcePrefixFinish_firstLane_probability_le_mixed_add_encoding (adversar
   · simp only [hfresh, false_and, probEvent_False, add_zero]
     by_cases haccepted : AcceptedPrefixFirstLaneEvent key prefixResult
     · have htrue : Pr[fun output => MixedEncodingPrefixEvent key prefixResult
-          (Code.decodeDigest (Generic.truncateHash output)) | $ᵗ HashOutput] = 1 := by
+          (Code.decodeDigest (output)) | $ᵗ Digest] = 1 := by
         simp [MixedEncodingPrefixEvent, haccepted]
       rw [htrue]
       exact probEvent_le_one
@@ -100,13 +100,13 @@ theorem sourcePrefixFinish_firstLane_probability_le_mixed_add_encoding (adversar
 theorem mixedEncodingPrefixProbability_eq_prefix (adversary : Adversary) :
     mixedEncodingPrefixProbability adversary =
       Pr[fun pair : MixedEncodingPrefixResult => MixedEncodingPrefixEvent pair.1.1 pair.1.2
-        (Code.decodeDigest (Generic.truncateHash pair.2)) | do
+        (Code.decodeDigest (pair.2)) | do
           let prefixPair ← Deciding.sourcePrefixProgram adversary
-          let output ← ($ᵗ HashOutput)
+          let output ← ($ᵗ Digest)
           pure (prefixPair, output)] := by
   unfold mixedEncodingPrefixProbability mixedEncodingPrefixProgram
   apply CappedChain.probEvent_eq_of_evalDist_eq
-  exact OracleComp.DeferredSampling.evalDist_bind_comm ($ᵗ HashOutput) (Deciding.sourcePrefixProgram adversary)
+  exact OracleComp.DeferredSampling.evalDist_bind_comm ($ᵗ Digest) (Deciding.sourcePrefixProgram adversary)
     (fun output prefixPair => pure (prefixPair, output))
 
 theorem decidingFirstLane_probability_le_mixed_add_encoding (adversary : Adversary) :

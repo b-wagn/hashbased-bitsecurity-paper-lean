@@ -83,10 +83,10 @@ theorem probEvent_tweakableHash_fresh (parameter : PublicParameter) (domain : Ge
       (simulateQ randomOracle
         (Generic.Concrete.tweakableHash parameter domain payload : OracleComp HashSpec Digest)).run
           cache =
-      (fun output : HashOutput =>
-        (Generic.truncateHash output,
+      (fun output : Digest =>
+        (output,
           cache.cacheQuery (Generic.tweakableHashInput parameter domain payload) output)) <$>
-        ($ᵗ HashOutput) := by
+        ($ᵗ Digest) := by
     simp only [Generic.Concrete.tweakableHash, Generic.Concrete.oracleHash, simulateQ_bind, simulateQ_pure,
       StateT.run_bind]
     rw [show (simulateQ randomOracle
@@ -97,7 +97,7 @@ theorem probEvent_tweakableHash_fresh (parameter : PublicParameter) (domain : Ge
     rw [QueryImpl.withCaching_run_none _ hnone]
     simp [uniformSampleImpl, map_eq_bind_pure_comp]
   rw [hrun, probEvent_map]
-  exact Rom.uniform_truncate_probability target
+  exact Rom.uniform_eq_probability target
 
 theorem probEvent_bind_tweakableHash_le {β : Type} (head : OracleComp HashSpec β)
     (parameter : PublicParameter) (domain : Generic.HashDomain) (payload : β → HashInput)

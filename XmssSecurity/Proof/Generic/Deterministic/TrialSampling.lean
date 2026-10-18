@@ -17,7 +17,7 @@ attribute [local irreducible] Concrete.precomputedSignAttempt
 
 variable {State : Type}
 
-def trialKernel (_ : Trial) (output : HashOutput) : StateT State ProbComp HashOutput := pure output
+def trialKernel (_ : Trial) (output : Digest) : StateT State ProbComp Digest := pure output
 
 theorem trialTableRun_eq (handler : QueryImpl OracleWorld (StateT State ProbComp)) (tape : TrialTape)
     (secretKey : XmssSecurity.Generic.SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : Nat) :
@@ -31,57 +31,26 @@ theorem trialTableRun_eq (handler : QueryImpl OracleWorld (StateT State ProbComp
         liftM_bind]
       change (pure (tape (BitVec.ofNat 32 trial)) >>= fun output =>
         simulateQ (handler + fun input => trialKernel input (tape input))
-          (baseLift (liftM (Concrete.precomputedSignAttempt secretKey leafIndex message (output.extractLsb' 0 randomnessBits) : OracleComp HashSpec _) :
+          (baseLift (liftM (Concrete.precomputedSignAttempt secretKey leafIndex message (output) : OracleComp HashSpec _) :
             OracleComp OracleWorld _) : OracleComp TrialWorld _) >>= _) = _
       rw [pure_bind, simulateQ_baseLift]
       apply congrArg (fun k => simulateQ handler
-        (liftM (Concrete.precomputedSignAttempt secretKey leafIndex message ((tape (BitVec.ofNat 32 trial)).extractLsb' 0 randomnessBits)) :
+        (liftM (Concrete.precomputedSignAttempt secretKey leafIndex message ((tape (BitVec.ofNat 32 trial)))) :
           OracleComp OracleWorld _) >>= k)
       funext attempt
       cases attempt with
       | none => exact ih _
       | some result => rfl
 
-def randomizerHalves : HashOutput ≃ (BitVec 128 × Randomness) where
-  toFun output := (output.extractLsb' randomnessBits 128, output.extractLsb' 0 randomnessBits)
-  invFun pair := pair.1 ++ pair.2
-  left_inv output := BitVec.extractLsb'_append_extractLsb' (w := 128) (len := 128) (x := output)
-  right_inv pair := by
-    apply Prod.ext
-    · exact BitVec.extractLsb'_append_eq_left
-    · exact BitVec.extractLsb'_append_eq_right
-
-noncomputable local instance : SampleableType Randomness := SampleableType.ofFintype Randomness
-
-theorem evalDist_uniform_discard {A B : Type} [SampleableType A] (next : ProbComp B) :
-    𝒟[do let _ ← $ᵗ A; next] = 𝒟[next] :=
-  OracleComp.DeferredSampling.evalDist_bind_const_neverFails _ (probFailure_uniformSample _) _
-
-theorem evalDist_randomizer :
-    𝒟[(fun output : HashOutput => output.extractLsb' 0 randomnessBits) <$> ($ᵗ HashOutput)] =
-      𝒟[Concrete.signingRandomness] := by
-  have h := evalDist_map_bijective_uniform_cross
-    (α := HashOutput) (β := BitVec 128 × Randomness) randomizerHalves randomizerHalves.bijective
-  have hpair := evalDist_independent_uniform_pair (α := BitVec 128) (β := Randomness)
-  calc
-    _ = 𝒟[Prod.snd <$> (randomizerHalves <$> ($ᵗ HashOutput))] := by
-      simp only [Functor.map_map]; rfl
-    _ = 𝒟[Prod.snd <$> ($ᵗ (BitVec 128 × Randomness))] := by rw [evalDist_map, h, ← evalDist_map]
-    _ = 𝒟[Prod.snd <$> (do
-        let high ← $ᵗ (BitVec 128)
-        let low ← $ᵗ Randomness
-        pure (high, low))] := by rw [evalDist_map, ← hpair, ← evalDist_map]
-    _ = _ := by
-      simp only [map_bind, bind_pure_comp, Functor.map_map, id_map', Concrete.signingRandomness_eq]
-      exact evalDist_uniform_discard (A := BitVec 128) ($ᵗ Randomness)
-
+theorem evalDist_randomizer : 𝒟[($ᵗ Digest : ProbComp Digest)] = 𝒟[Concrete.signingRandomness] := by
+  rw [Concrete.signingRandomness_eq]
 
 theorem run_freshTrialLoop_succ (hash : QueryImpl HashSpec (StateT State ProbComp))
     (secretKey : XmssSecurity.Generic.SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : Nat) (state : State) :
     (freshRun (worldHandler hash) trialKernel (trialLoop secretKey leafIndex message (attempts + 1) trial)).run state = (do
-      let output ← ($ᵗ HashOutput : ProbComp HashOutput)
+      let output ← ($ᵗ Digest : ProbComp Digest)
       let result ← (simulateQ (worldHandler hash) (liftM
-        (Concrete.precomputedSignAttempt secretKey leafIndex message (output.extractLsb' 0 randomnessBits) : OracleComp HashSpec _) : OracleComp OracleWorld _)).run state
+        (Concrete.precomputedSignAttempt secretKey leafIndex message (output) : OracleComp HashSpec _) : OracleComp OracleWorld _)).run state
       (freshRun (worldHandler hash) trialKernel (match result.1 with
         | none => trialLoop secretKey leafIndex message attempts (trial + 1)
         | some signature => pure (some signature))).run result.2) := by
@@ -120,7 +89,7 @@ theorem evalDist_freshTrialLoop (hash : QueryImpl HashSpec (StateT State ProbCom
   | zero => rfl
   | succ attempts ih =>
       rw [run_freshTrialLoop_succ, run_randomTrialLoop_succ]
-      conv_rhs => rw [evalDist_bind, ← evalDist_randomizer, ← evalDist_bind, bind_map_left]
+      conv_rhs => rw [evalDist_bind, ← evalDist_randomizer, ← evalDist_bind]
       apply OracleComp.DeferredSampling.evalDist_bind_congr_left
       intro output
       apply OracleComp.DeferredSampling.evalDist_bind_congr_left

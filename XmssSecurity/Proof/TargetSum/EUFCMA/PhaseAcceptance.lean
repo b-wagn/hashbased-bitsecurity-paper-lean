@@ -19,11 +19,11 @@ open Concrete Generic.CappedChain Deciding
 
 def HasFreshAcceptedEncodingInLog (parameter : PublicParameter) (cache : QueryCache HashSpec)
     (log : QueryLog Generic.SigningSpec) : Prop :=
-  ∃ forgery : Generic.Forgery, ∃ output : HashOutput,
+  ∃ forgery : Generic.Forgery, ∃ output : Digest,
     ¬ SigningTranscript.ContainsRequest log forgery ∧
     cache (Generic.Concrete.CacheView.encodingInput parameter forgery.epoch
       (forgery.message, forgery.signature.randomness)) = some output ∧
-    Generic.Code.ValidDigest (Generic.truncateHash output)
+    Generic.Code.ValidDigest (output)
 
 theorem sourceDirectTraced_log_projection (publicKey : PublicKey) (secretKey : Generic.SecretKey)
     {α : Type} (computation : OracleComp (OracleWorld + Generic.SigningSpec) α)

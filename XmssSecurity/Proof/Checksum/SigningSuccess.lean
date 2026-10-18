@@ -16,11 +16,11 @@ namespace XmssSecurity.Checksum
 theorem Checksum.capped_rejection_bound_lt :
     (1 - Code.acceptanceProbability) ^ Code.signingAttemptLimit +
       (Code.signingAttemptLimit : ℝ≥0∞) * Code.signingAttemptLimit *
-        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 128 := by
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 128 := by
   rw [code_acceptanceProbability, code_signingAttemptLimit]
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
-  norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul,
+  norm_num [signingAttemptLimit, digestBits, ENNReal.toReal_div, ENNReal.toReal_mul,
     ENNReal.toReal_inv]
 
 /-- In the reference scheme, a fresh signing request succeeds with probability greater than

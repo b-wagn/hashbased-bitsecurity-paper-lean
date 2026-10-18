@@ -38,19 +38,19 @@ theorem firstLaneCounters_charge_le_source_of_related
     (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (source : CountedSourceState) (target : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 source.toSource target history)
-    (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.1.secretKey.parameter =
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.toSource target history)
+    (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.secretKey.parameter =
       (history.encodingActions.length : ℝ≥0∞))
     (hencoding : CountedSourceEncodingBudget left.secretKey.parameter source)
     (hsourceTrace : source.counts.direct = source.attackerTrace.hashInputs.length) :
-    (firstLaneCounters right.1.1.secretKey.parameter target history).charge ≤ source.charge := by
+    (firstLaneCounters right.1.secretKey.parameter target history).charge ≤ source.charge := by
   have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hrel hleft hright
   have htrace : source.attackerTrace = target.attackerTrace := hstate.1.2
   obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hstate.1.1
-  change CappedChain.GlobalFilteredCausalStateRelation left right.1 source.counts.cache target.causalState at hcausal
+  change CappedChain.GlobalFilteredCausalStateRelation left right source.counts.cache target.causalState at hcausal
   have hcacheEq := encodingInputCount_eq_of_globalSigning_agree left.secretKey.parameter
     source.counts.cache target.causalState.cache hcausal.1
   change cachedEncodingInputCount source.counts.cache left.secretKey.parameter ≤
@@ -58,7 +58,7 @@ theorem firstLaneCounters_charge_le_source_of_related
     at hencoding
   rw [hcacheEq, ← hparameter, hcacheCount] at hencoding
   have hsamples : history.encodingActions.length ≤
-      source.attackerTrace.encodingInputCount right.1.1.secretKey.parameter + source.counts.signing :=
+      source.attackerTrace.encodingInputCount right.1.secretKey.parameter + source.counts.signing :=
     by exact_mod_cast hencoding
   unfold firstLaneCounters EncodingBudgetCounters.charge CountedSourceState.charge
   rw [← htrace, ← hsourceTrace]
@@ -76,20 +76,20 @@ theorem rejectingLastNonencoding_source_noAccepted {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
     (source : CountedSourceState) (target : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 source.toSource target history)
-    (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.1.secretKey.parameter =
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.toSource target history)
+    (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.secretKey.parameter =
       (history.encodingActions.length : ℝ≥0∞))
     (hencoding : CountedSourceEncodingBudget left.secretKey.parameter source)
     (hsourceTrace : source.counts.direct = source.attackerTrace.hashInputs.length)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey) limit
       (liftM ((OracleWorld + SigningSpec).query input) >>= next) source)
-    (hcut : RejectingLastNonencoding limit right.1.1 input target
-      (firstLaneCounters right.1.1.secretKey.parameter target history))
+    (hcut : RejectingLastNonencoding limit right.1 input target
+      (firstLaneCounters right.1.secretKey.parameter target history))
     (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
       (liftM ((OracleWorld + SigningSpec).query input) >>= next)).run source)) :
@@ -99,7 +99,7 @@ theorem rejectingLastNonencoding_source_noAccepted {α : Type}
   have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hrel hleft hright
   obtain ⟨hlast, hrejecting, hashInput, rfl, hinput⟩ := hcut
   obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hstate.1.1
-  change CappedChain.GlobalFilteredCausalStateRelation left right.1 source.counts.cache target.causalState at hcausal
+  change CappedChain.GlobalFilteredCausalStateRelation left right source.counts.cache target.causalState at hcausal
   have hcache : ¬HasAcceptedEncoding left.secretKey.parameter source.counts.cache := by
     rw [hasAcceptedEncoding_iff_of_comparableCaches _ _ _ hcausal.1]
     simpa only [hparameter] using hrejecting
@@ -119,20 +119,20 @@ theorem terminalPrefixCut_source_noAccepted {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
     (source : CountedSourceState) (target : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 source.toSource target history)
-    (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.1.secretKey.parameter =
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.toSource target history)
+    (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.secretKey.parameter =
       (history.encodingActions.length : ℝ≥0∞))
     (hencoding : CountedSourceEncodingBudget left.secretKey.parameter source)
     (hsourceTrace : source.counts.direct = source.attackerTrace.hashInputs.length)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey) limit
       (liftM ((OracleWorld + SigningSpec).query input) >>= next) source)
-    (hcut : TerminalPrefixCut limit right.1.1 input target
-      (firstLaneCounters right.1.1.secretKey.parameter target history))
+    (hcut : TerminalPrefixCut limit right.1 input target
+      (firstLaneCounters right.1.secretKey.parameter target history))
     (result : α × CountedSourceState)
     (hresult : result ∈ support ((simulateQ (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
       (liftM ((OracleWorld + SigningSpec).query input) >>= next)).run source)) :

@@ -14,10 +14,10 @@ set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 4096
 
 abbrev Trial := BitVec 32
-abbrev TrialSpec := Trial →ₒ HashOutput
+abbrev TrialSpec := Trial →ₒ Digest
 abbrev TrialWorld := OracleWorld + TrialSpec
 abbrev TrialResult := Option Signature
-abbrev TrialTape := Trial → HashOutput
+abbrev TrialTape := Trial → Digest
 
 noncomputable opaque trialTapeSampleableType : SampleableType TrialTape := SampleableType.ofFintype TrialTape
 noncomputable local instance : SampleableType TrialTape := trialTapeSampleableType
@@ -28,7 +28,7 @@ def trialLoop (secretKey : XmssSecurity.Generic.SecretKey) (leafIndex : LeafInde
   | 0, _ => pure none
   | attempts + 1, trial => do
       let output ← liftM (TrialWorld.query (.inr (BitVec.ofNat 32 trial)))
-      let randomness := output.extractLsb' 0 randomnessBits
+      let randomness := output
       let attempt ← baseLift (liftM
         (Concrete.precomputedSignAttempt secretKey leafIndex message randomness : OracleComp HashSpec (Option Signature)) :
           OracleComp OracleWorld (Option Signature))
@@ -62,8 +62,8 @@ theorem freshRequests_trialLoop (secretKey : XmssSecurity.Generic.SecretKey) (le
           exact Nat.lt_irrefl _)
       intro output
       dsimp only
-      apply freshRequests_base_bind (base := OracleWorld) (Request := Trial) (Answer := HashOutput) _
-        (liftM (Concrete.precomputedSignAttempt secretKey leafIndex message (output.extractLsb' 0 randomnessBits) : OracleComp HashSpec _) :
+      apply freshRequests_base_bind (base := OracleWorld) (Request := Trial) (Answer := Digest) _
+        (liftM (Concrete.precomputedSignAttempt secretKey leafIndex message (output) : OracleComp HashSpec _) :
           OracleComp OracleWorld _)
       intro attempt
       cases attempt with

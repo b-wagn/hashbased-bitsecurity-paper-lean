@@ -23,10 +23,9 @@ noncomputable def mixedPrefixEncoding (cache : QueryCache HashSpec) (parameter :
   (mixedProbeEncoding cache parameter forgery fallback).getD (fun _ => ⟨0, by decide⟩)
 
 noncomputable def publicMixedPrefixProbeExecution (adversary : Adversary)
-    (fallback : Option Encoding) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
+    (fallback : Option Encoding) (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     OracleComp CappedChain.GlobalFirstLaneWorld (Forgery × CappedChain.GlobalHighDirectTracedState) := do
-  let result ← Deciding.publicPrefixExecution adversary key edgeHigh
+  let result ← Deciding.publicPrefixExecution adversary key
   let _ ← Deciding.publicDecidingProbe result.1.epoch
     (Deciding.signedEncoding result.2.causalState.cache key.secretKey.parameter
       result.2.attackerTrace.toSigningLog result.1.epoch)
@@ -45,11 +44,10 @@ noncomputable def appendMixedPrefixProbe (base : CappedChain.GlobalChainValueInd
     result.1.1.signature.chainValue).2)
 
 theorem publicMixedPrefixProbeExecution_eager (adversary : Adversary) (fallback : Option Encoding)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (base : CappedChain.GlobalChainValueIndex → Digest)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
-    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (publicMixedPrefixProbeExecution adversary fallback key edgeHigh)).run =
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) (base : CappedChain.GlobalChainValueIndex → Digest) :
+    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (publicMixedPrefixProbeExecution adversary fallback key)).run =
       appendMixedPrefixProbe base key fallback <$>
-        (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (Deciding.publicPrefixExecution adversary key edgeHigh)).run := by
+        (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (Deciding.publicPrefixExecution adversary key)).run := by
   unfold publicMixedPrefixProbeExecution
   simp only [simulateQ_bind, WriterT.run_bind']
   apply bind_congr
@@ -63,22 +61,22 @@ theorem mixedPrefix_coupling_afterKeygen (adversary : Adversary) (D : ℕ)
     (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
     (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
+    (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
     RelTriple (Deciding.sourcePrefixExecution adversary left)
-      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-        (publicMixedPrefixProbeExecution adversary fallback right.1.1 right.2)).run)
+      ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+        (publicMixedPrefixProbeExecution adversary fallback right.1)).run)
       (fun source target => MixedEncodingPrefixEvent left source fallback →
-        FirstLaneOracleSimulation.CombinedHit right.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (D + 1) target.2)) := by
+        FirstLaneOracleSimulation.CombinedHit right.2 (FirstLaneOracleSimulation.enforceHazardTrace (D + 1) target.2)) := by
   rw [publicMixedPrefixProbeExecution_eager]
-  have hpk : left.publicKey = right.1.1.publicKey := hkey.1.toStable.1.2.1
+  have hpk : left.publicKey = right.1.publicKey := hkey.1.toStable.1.2.1
   have hcoupling := CappedChain.relTriple_sourceExact_firstLane_adversary_boundedHit_direct D (D + 1)
     (by omega) adversary left right hkey hleft hright (hD left.publicKey)
-  have hrightProgram : (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      (Deciding.publicPrefixExecution adversary right.1.1 right.2)).run =
-    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
+  have hrightProgram : (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      (Deciding.publicPrefixExecution adversary right.1)).run =
+    (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         (adversary.main left.publicKey)).run
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1.1)))).run := by
+          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
     unfold Deciding.publicPrefixExecution
     rw [hpk]
   rw [hrightProgram, ← id_map (Deciding.sourcePrefixExecution adversary left)]
@@ -89,12 +87,12 @@ theorem mixedPrefix_coupling_afterKeygen (adversary : Adversary) (D : ℕ)
   obtain ⟨hrel, _hsource, htarget⟩ := hresult
   rcases hrel with ⟨hforgery, hgood, hcount⟩ | hhit
   · rw [hpk] at htarget
-    have hcovered := CappedChain.globalFirstLaneAdversary_support_returnedCovered right.1.1 right.1.2
-      right.2 (adversary.main right.1.1.publicKey) target htarget
+    have hcovered := CappedChain.globalFirstLaneAdversary_support_returnedCovered right.1 right.2
+      (adversary.main right.1.publicKey) target htarget
     have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hkey hleft hright
     obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hgood.1.1
     have hencoding : Deciding.forgedEncoding source.2.1.1.1 left.secretKey.parameter source.1 =
-        Deciding.forgedEncoding target.1.2.causalState.cache right.1.1.secretKey.parameter target.1.1 := by
+        Deciding.forgedEncoding target.1.2.causalState.cache right.1.secretKey.parameter target.1.1 := by
       rw [hparameter, ← hforgery]
       exact forgedEncoding_eq_of_comparableCaches _ _ _ hcausal.1 _
     rw [FirstLaneOracleSimulation.enforceHazardTrace_eq_self_of_count_le]
@@ -119,7 +117,7 @@ theorem mixedPrefix_coupling (adversary : Adversary) (D : ℕ)
     RelTriple (Deciding.sourcePrefixProgram adversary)
       (Deciding.coupledFirstLaneProgram (publicMixedPrefixProbeExecution adversary fallback))
       (fun source target => MixedEncodingPrefixEvent source.1 source.2 fallback →
-        FirstLaneOracleSimulation.CombinedHit target.1.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (D + 1) target.2.2)) := by
+        FirstLaneOracleSimulation.CombinedHit target.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (D + 1) target.2.2)) := by
   unfold Deciding.sourcePrefixProgram Deciding.coupledFirstLaneProgram
   apply relTriple_bind (relTriple_with_support
     CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)

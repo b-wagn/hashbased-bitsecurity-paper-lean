@@ -7,14 +7,14 @@ import XmssSecurity.Proof.Generic.Direct.Basic
 # Encoding prehits charged to the adversary's direct hash queries
 
 The encoding-prehit term of the second lane is bounded by
-`signingAttemptLimit · D / 2^randomnessBits`, where `D` is a syntactic bound on the adversary's own
+`signingAttemptLimit · D / 2^digestBits`, where `D` is a syntactic bound on the adversary's own
 hash queries (`Direct.IsDirectQueryBound`).
 
 The potential `untracedEncodingEntryCount cache parameter trace` counts the encoding-domain cache
 entries at leaves not yet signed. Key generation caches no encoding input, the signer only adds
 encoding entries at the leaf it signs (which then leaves the potential), and each direct hash
 query adds at most one entry; a signing request at a fresh leaf `ℓ` pays
-`signingAttemptLimit · (entries at ℓ) / 2^randomnessBits` and removes those entries from the
+`signingAttemptLimit · (entries at ℓ) / 2^digestBits` and removes those entries from the
 potential.
 -/
 
@@ -101,7 +101,7 @@ theorem hash_query_cache_subset
         (.inl (.inr hashInput))).run initialCache)) :
     ∃ newEntry, result.2.toSet ⊆ insert newEntry initialCache.toSet := by
   rcases result with ⟨returned, finalCache⟩
-  change HashOutput at returned
+  change Digest at returned
   change (returned, finalCache) ∈
     support ((randomOracle (spec := HashSpec) hashInput).run initialCache) at hmem
   cases hcache : initialCache hashInput with
@@ -227,7 +227,7 @@ theorem probEvent_bind_le_of_forall {β γ : Type}
   simpa using this
 
 /-- The risk of a fresh-leaf prehit along the adversary's run is at most
-`signingAttemptLimit · (potential + n) / 2^randomnessBits`, for a program with at most `n` direct
+`signingAttemptLimit · (potential + n) / 2^digestBits`, for a program with at most `n` direct
 hash queries. -/
 theorem cappedCacheTracedMappedAdversary_freshLeafPrehit_le
     (publicKey : PublicKey) (secretKey : SecretKey)
@@ -240,7 +240,7 @@ theorem cappedCacheTracedMappedAdversary_freshLeafPrehit_le
         computation).run (initialCache, initialTrace)] ≤
       (Code.signingAttemptLimit : ℝ≥0∞) *
         (untracedEncodingEntryCount initialCache secretKey.parameter initialTrace + n) *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
+        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   induction computation using OracleComp.inductionOn generalizing
       initialCache initialTrace n with
   | pure value =>
@@ -361,7 +361,7 @@ theorem cappedCacheTracedMappedAdversary_freshLeafPrehit_le
                 (ε := (Code.signingAttemptLimit : ℝ≥0∞) *
                   (untracedEncodingEntryCount initialCache secretKey.parameter initialTrace -
                     cachedEncodingEntryCount initialCache secretKey.parameter request.epoch + n) *
-                  ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹) ?_).trans ?_
+                  ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹) ?_).trans ?_
             · rintro ⟨answer, cache, trace⟩ hmiddle hmiss
               have htrace := cappedCacheTracedMappedAdversaryImpl_query_trace_update
                 publicKey secretKey _ initialCache initialTrace _ hmiddle
@@ -412,7 +412,7 @@ theorem cappedCacheTracedMappedAdversary_freshLeafPrehit_le
               rw [← add_mul, ← mul_add, ← add_assoc, add_tsub_cancel_of_le hk]
 
 /-- After key generation, the winning prehit event has probability at most
-`signingAttemptLimit · D / 2^randomnessBits`. -/
+`signingAttemptLimit · D / 2^digestBits`. -/
 theorem cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_le_direct
     (adversary : Adversary) (D : ℕ) (hD : IsDirectQueryBound adversary D)
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
@@ -424,7 +424,7 @@ theorem cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_le_direct
         execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
       cappedDetailedGameAfterKeygenWithSigningTrace adversary keyResult.1.1
         keyResult.1.2 keyResult.2] ≤
-      (Code.signingAttemptLimit : ℝ≥0∞) * D * ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
+      (Code.signingAttemptLimit : ℝ≥0∞) * D * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   unfold cappedDetailedGameAfterKeygenWithSigningTrace
   refine (probEvent_bind_le_probEvent
     (p := fun result : Forgery × (QueryCache HashSpec × SigningCacheTrace) =>
@@ -462,11 +462,11 @@ theorem cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_le_direct
 end Direct
 
 /-- The encoding-prehit term of the second lane, charged to the adversary's direct hash
-queries only: at most `signingAttemptLimit · D / 2^randomnessBits = D / 2^128`. -/
+queries only: at most `signingAttemptLimit · D / 2^digestBits = D / 2^128`. -/
 theorem winningEncodingPrehit_probability_le_direct (adversary : Adversary) (D : ℕ)
     (hD : Direct.IsDirectQueryBound adversary D) :
     Pr[WinningEncodingPrehitOccurs | cappedDetailedGameWithEncodingTrace adversary] ≤
-      (Code.signingAttemptLimit : ℝ≥0∞) * D * ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
+      (Code.signingAttemptLimit : ℝ≥0∞) * D * ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   calc
     _ ≤ Pr[fun execution : GameOutcome ×
           (QueryCache HashSpec × SigningCacheTrace) =>

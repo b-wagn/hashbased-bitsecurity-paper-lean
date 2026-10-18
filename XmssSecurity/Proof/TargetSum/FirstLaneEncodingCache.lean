@@ -17,7 +17,7 @@ namespace XmssSecurity.TargetSum.CappedChain
 open FirstLaneOracleSimulation
 
 theorem randomOracle_support_cache_shape (input : HashInput) (cache : QueryCache HashSpec)
-    (result : HashOutput × QueryCache HashSpec)
+    (result : Digest × QueryCache HashSpec)
     (hresult : result ∈ support ((randomOracle input).run cache)) :
     result.2 = cache ∨ ∃ output, result.2 = cache.cacheQuery input output := by
   cases hcached : cache input with
@@ -32,11 +32,11 @@ theorem randomOracle_support_cache_shape (input : HashInput) (cache : QueryCache
       exact Or.inr ⟨output, rfl⟩
 
 theorem globalCausalAttackerHashQueryFromHigh_cache_shape
-    (table high : CappedChain.GlobalChainValueIndex → Digest) (secretKey : Generic.SecretKey) (input : HashInput)
+    (table : CappedChain.GlobalChainValueIndex → Digest) (secretKey : Generic.SecretKey) (input : HashInput)
     (state : CappedChain.GlobalCausalHashState)
-    (result : (HashOutput × CappedChain.GlobalCausalHashState) × RevealProbeOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (result : (Digest × CappedChain.GlobalCausalHashState) × RevealProbeOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalCausalAttackerHashQueryFromHigh high secretKey input).run state)).run)) :
+      ((CappedChain.globalCausalAttackerHashQueryFromHigh secretKey input).run state)).run)) :
     result.1.2.cache = state.cache ∨ ∃ output, result.1.2.cache = state.cache.cacheQuery input output := by
   generalize hplan : CappedChain.globalFilteredCausalAttackerHashPlan secretKey input state = plan
   cases plan with
@@ -65,7 +65,7 @@ theorem globalCausalAttackerHashQueryFromHigh_cache_shape
       exact Or.inr ⟨_, rfl⟩
   | probeThenFresh index target =>
       rw [CappedChain.simulate_eagerTrace_globalCausalAttackerHashQueryFromHigh_probeThenFresh
-        table high secretKey input state index target hplan, support_map] at hresult
+        table secretKey input state index target hplan, support_map] at hresult
       obtain ⟨sample, hsample, rfl⟩ := hresult
       exact randomOracle_support_cache_shape input state.cache sample hsample
 

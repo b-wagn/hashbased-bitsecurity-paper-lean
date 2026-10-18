@@ -39,32 +39,31 @@ theorem countedSourceImpl_encodingInputCount_update (secretKey : Generic.SecretK
 
 theorem firstLane_signing_charge_bounds {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (request : SignRequest) (next : Option Generic.Signature → OracleComp (OracleWorld + SigningSpec) α)
     (limit : Nat) (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 leftState.toSource rightState history)
-    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.1.secretKey.parameter =
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState history)
+    (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.secretKey.parameter =
       (history.encodingActions.length : ℝ≥0∞))
     (hencoding : CountedSourceEncodingBudget left.secretKey.parameter leftState)
     (hcount : FirstLaneOracleSimulation.hazardCount history ≤ leftState.counts.direct)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
       limit (liftM ((OracleWorld + SigningSpec).query (.inr request)) >>= next) leftState)
     (result : (Option Generic.Signature × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
-    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2 (.inr request)).run rightState)).run)) :
+    (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1 (.inr request)).run rightState)).run)) :
     (leftState.counts.direct + 2 * ((history ++ result.2).encodingActions.length -
-      result.1.2.attackerTrace.encodingInputCount right.1.1.secretKey.parameter) ≤ limit) ∧
-    observableFirstLaneCharge right.1.1.secretKey.parameter result.1.2 (history ++ result.2) ≤ limit := by
+      result.1.2.attackerTrace.encodingInputCount right.1.secretKey.parameter) ≤ limit) ∧
+    observableFirstLaneCharge right.1.secretKey.parameter result.1.2 (history ++ result.2) ≤ limit := by
   let secretKey := Concrete.materializePrecomputation left.cache left.secretKey
   have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hrel hleftSupport hrightSupport
   obtain ⟨monitor, _hobserved, _hagrees, _hrevealed, hcausal, _hretained⟩ := hstate.1.1
-  obtain ⟨base, hbase, hresultEq⟩ := CappedChain.globalExactTracedLift_eager_support_decompose right.1.2 right.1.1
-    (.inr request) (CappedChain.globalFirstLaneSigningImpl right.1.1 request) rightState result hresult
+  obtain ⟨base, hbase, hresultEq⟩ := CappedChain.globalExactTracedLift_eager_support_decompose right.2 right.1
+    (.inr request) (CappedChain.globalFirstLaneSigningImpl right.1 request) rightState result hresult
   obtain ⟨source, hsource, hagrees⟩ := exists_countedSource_signing_of_firstLane_support left right hrel
     hleftSupport hrightSupport leftState rightState.causalState hcausal request base hbase
   have hcharge := (hbudget.query_step source hsource).1
@@ -74,33 +73,33 @@ theorem firstLane_signing_charge_bounds {α : Type}
     source.2.counts.cache base.1.2.cache hagrees
   have hfinalCache : result.1.2.causalState.cache = base.1.2.cache := by
     rw [hresultEq, CappedChain.globalExactTracedNextState]
-  have hgrowth := globalFirstLaneExactTraced_query_encodingCountGrowth right.1.2 right.1.1 right.2
+  have hgrowth := globalFirstLaneExactTraced_query_encodingCountGrowth right.2 right.1
     (.inr request) rightState result hresult
-  change cachedEncodingInputCount result.1.2.causalState.cache right.1.1.secretKey.parameter = _ at hgrowth
+  change cachedEncodingInputCount result.1.2.causalState.cache right.1.secretKey.parameter = _ at hgrowth
   rw [hcacheCount] at hgrowth
   have htraceLeft : leftState.attackerTrace = rightState.attackerTrace := hstate.1.2
   have hsourceTrace := countedSourceImpl_encodingInputCount_update secretKey left.secretKey.parameter
     (.inr request) leftState source hsource
   simp only [attackerActionFragment_encodingInputCount, Nat.add_zero] at hsourceTrace
-  have htargetTrace : result.1.2.attackerTrace.encodingInputCount right.1.1.secretKey.parameter =
-      rightState.attackerTrace.encodingInputCount right.1.1.secretKey.parameter := by
+  have htargetTrace : result.1.2.attackerTrace.encodingInputCount right.1.secretKey.parameter =
+      rightState.attackerTrace.encodingInputCount right.1.secretKey.parameter := by
     rw [hresultEq, CappedChain.globalExactTracedNextState]
     change (rightState.attackerTrace ++ CappedChain.attackerActionFragment (.inr request) base.1.1).encodingInputCount
-      right.1.1.secretKey.parameter = _
+      right.1.secretKey.parameter = _
     simp only [CappedChain.AttackerActionTrace.encodingInputCount_append, attackerActionFragment_encodingInputCount,
       Nat.add_zero]
   have hsamples : (history ++ result.2).encodingActions.length ≤
-      result.1.2.attackerTrace.encodingInputCount right.1.1.secretKey.parameter + source.2.counts.signing := by
+      result.1.2.attackerTrace.encodingInputCount right.1.secretKey.parameter + source.2.counts.signing := by
     change cachedEncodingInputCount source.2.counts.cache left.secretKey.parameter ≤
       ((source.2.attackerTrace.encodingInputCount left.secretKey.parameter +
         source.2.counts.signing : Nat) : ℝ≥0∞) at hsourceEncoding
     rw [hsourceTrace, htraceLeft, hcacheEq, ← hfinalCache, ← hparameter, hgrowth] at hsourceEncoding
     rw [htargetTrace, FirstLaneOracleSimulation.ActionTrace.encodingActions_append, List.length_append]
     exact_mod_cast hsourceEncoding
-  have hfragment := FirstLaneOracleSimulation.simulate_eagerTrace_support_hazardCount_le right.1.2
-    ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2 (.inr request)).run rightState)
+  have hfragment := FirstLaneOracleSimulation.simulate_eagerTrace_support_hazardCount_le right.2
+    ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1 (.inr request)).run rightState)
     (CappedChain.directHashActionCost (.inr request))
-    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound right.1.1 right.2 (.inr request) rightState)
+    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound right.1 (.inr request) rightState)
     result hresult
   have hdirect := countedSourceImpl_direct_eq secretKey (.inr request) leftState source hsource
   change FirstLaneOracleSimulation.hazardCount result.2 ≤ 0 at hfragment

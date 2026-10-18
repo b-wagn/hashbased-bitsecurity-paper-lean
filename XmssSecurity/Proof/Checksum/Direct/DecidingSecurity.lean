@@ -14,7 +14,7 @@ namespace XmssSecurity.Checksum.Direct
 
 noncomputable def decidingPrefixLoss (D : ℕ) : ℝ≥0∞ :=
   ((D + 2 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-    ((signingAttemptLimit : ℝ≥0∞) * ((D + 1 : ℕ) : ℝ≥0∞) * ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ +
+    ((signingAttemptLimit : ℝ≥0∞) * ((D + 1 : ℕ) : ℝ≥0∞) * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ +
       ((D + 42 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) +
     D / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
@@ -43,7 +43,7 @@ theorem decidingPrefixLoss_le_122 (D : ℕ) (hD : 1 ≤ D) :
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
   simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_div, ENNReal.toReal_mul,
     ENNReal.toReal_inv, ENNReal.toReal_natCast, Nat.cast_add]
-  simp only [digestBits, randomnessBits, signingAttemptLimit]
+  simp only [digestBits, digestBits, signingAttemptLimit]
   push_cast
   linarith
 

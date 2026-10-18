@@ -34,7 +34,7 @@ theorem isDirectHashQuery_of_encoding (parameter : PublicParameter)
 
 theorem hash_query_cache_subset_at_input (publicKey : PublicKey) (secretKey : SecretKey)
     (input : HashInput) (initialCache : QueryCache HashSpec)
-    (result : HashOutput × QueryCache HashSpec)
+    (result : Digest × QueryCache HashSpec)
     (hresult : result ∈ support
       ((cappedUnloggedMappedAdversaryImpl publicKey secretKey (.inl (.inr input))).run initialCache)) :
     result.2.toSet ⊆ insert ⟨input, result.1⟩ initialCache.toSet := by
@@ -51,7 +51,7 @@ theorem hash_query_cache_subset_at_input (publicKey : PublicKey) (secretKey : Se
 
 theorem untracedEncodingEntryCount_le_of_nonencoding_insert
     (initialCache finalCache : QueryCache HashSpec) (parameter : PublicParameter)
-    (trace : SigningCacheTrace) (input : HashInput) (output : HashOutput)
+    (trace : SigningCacheTrace) (input : HashInput) (output : Digest)
     (hsubset : finalCache.toSet ⊆ insert ⟨input, output⟩ initialCache.toSet)
     (hnone : encodingInputLeafIndex? parameter input = none) :
     untracedEncodingEntryCount finalCache parameter trace ≤
@@ -68,7 +68,7 @@ theorem untracedEncodingEntryCount_le_of_nonencoding_insert
 theorem untracedEncodingEntryCount_hash_query_le
     (publicKey : PublicKey) (secretKey : SecretKey)
     (input : HashInput) (initialCache : QueryCache HashSpec) (trace : SigningCacheTrace)
-    (result : HashOutput × QueryCache HashSpec)
+    (result : Digest × QueryCache HashSpec)
     (hresult : result ∈ support
       ((cappedUnloggedMappedAdversaryImpl publicKey secretKey (.inl (.inr input))).run initialCache)) :
     untracedEncodingEntryCount result.2 secretKey.parameter trace ≤

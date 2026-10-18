@@ -27,8 +27,8 @@ theorem verify_run_fresh (publicKey : PublicKey) (leafIndex : LeafIndex) (messag
     (hfresh : cache (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
       (message, signature.randomness)) = none) :
     (simulateQ romImpl (Concrete.scheme.verify publicKey leafIndex message signature)).run cache = (do
-      let output ← ($ᵗ HashOutput)
-      (simulateQ randomOracle (Direct.verifyAfterDigest publicKey leafIndex signature (Generic.truncateHash output))).run
+      let output ← ($ᵗ Digest)
+      (simulateQ randomOracle (Direct.verifyAfterDigest publicKey leafIndex signature (output))).run
         (cache.cacheQuery (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
           (message, signature.randomness)) output)) := by
   rw [Direct.simulateQ_romImpl_scheme_verify, StateT.run_bind,

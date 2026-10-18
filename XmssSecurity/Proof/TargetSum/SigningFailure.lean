@@ -37,9 +37,9 @@ abbrev randomizerInput (trial : ℕ) : HashInput :=
   Generic.randomizerHashInput parameter seed leafIndex message (BitVec.ofNat 32 trial)
 
 /-- The digest input of the message under the randomizer read from `output`. -/
-abbrev digestInput (output : HashOutput) : HashInput :=
+abbrev digestInput (output : Digest) : HashInput :=
   Concrete.CacheView.encodingInput parameter leafIndex
-    (message, output.extractLsb' 0 randomnessBits)
+    (message, output)
 
 /-! ### Distinct inputs -/
 
@@ -63,62 +63,20 @@ theorem randomizerInput_ne_encodingInput (trial : ℕ) (randomness : Randomness)
   have htag := congrArg Generic.TweakFields.tag hfields
   simp [Generic.hashDomainFields, Generic.tweakFields] at htag
 
-theorem randomizerInput_ne_digestInput (trial : ℕ) (output : HashOutput) :
+theorem randomizerInput_ne_digestInput (trial : ℕ) (output : Digest) :
     randomizerInput parameter seed leafIndex message trial ≠
       digestInput parameter leafIndex message output :=
   randomizerInput_ne_encodingInput parameter seed leafIndex message trial _
 
-/-! ### The randomizer of a uniform answer is uniform -/
+/-! ### A uniform answer is a uniform randomizer -/
 
-theorem hashOutputBits_eq_randomness : hashOutputBits = 128 + randomnessBits := by decide
-
-/-- A 256-bit oracle answer is equivalently its high 128 bits and its low 128 bits, the
-randomizer. -/
-def randomnessSplitEquiv : HashOutput ≃ BitVec 128 × Randomness where
-  toFun output := ((output.cast hashOutputBits_eq_randomness).extractLsb' randomnessBits 128,
-    (output.cast hashOutputBits_eq_randomness).extractLsb' 0 randomnessBits)
-  invFun halves := (halves.1 ++ halves.2).cast hashOutputBits_eq_randomness.symm
-  left_inv output := by
-    simp only
-    rw [BitVec.extractLsb'_append_extractLsb']
-    simp
-  right_inv halves := by
-    simp only [BitVec.cast_eq]
-    exact Prod.ext BitVec.extractLsb'_append_eq_left BitVec.extractLsb'_append_eq_right
-
-theorem randomnessSplitEquiv_snd (output : HashOutput) :
-    (randomnessSplitEquiv output).2 = output.extractLsb' 0 randomnessBits := by
-  apply BitVec.eq_of_toNat_eq
-  simp [randomnessSplitEquiv, BitVec.extractLsb']
-
-/-- The randomizer read from a uniform answer lands in a set of `T.card` values with probability
+/-- A uniform answer, read as a randomizer, lands in a set of `T.card` values with probability
 `T.card / 2^128`. -/
 theorem probEvent_randomness_mem (T : Finset Randomness) :
-    Pr[fun output : HashOutput => output.extractLsb' 0 randomnessBits ∈ T | $ᵗ HashOutput] =
-      T.card / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞) := by
+    Pr[fun output : Digest => output ∈ T | $ᵗ Digest] =
+      T.card / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   classical
-  rw [probEvent_uniformSample]
-  have hcard : (Finset.univ.filter fun output : HashOutput =>
-      output.extractLsb' 0 randomnessBits ∈ T).card = 2 ^ 128 * T.card := by
-    rw [← Finset.card_map randomnessSplitEquiv.toEmbedding]
-    have hmap : (Finset.univ.filter fun output : HashOutput =>
-        output.extractLsb' 0 randomnessBits ∈ T).map randomnessSplitEquiv.toEmbedding =
-        (Finset.univ : Finset (BitVec 128)) ×ˢ T := by
-      ext pair
-      simp only [Finset.mem_map, Finset.mem_filter, Finset.mem_univ, true_and,
-        Equiv.toEmbedding_apply, Finset.mem_product]
-      constructor
-      · rintro ⟨output, houtput, rfl⟩
-        rw [randomnessSplitEquiv_snd]
-        exact houtput
-      · intro hpair
-        refine ⟨randomnessSplitEquiv.symm pair, ?_, by simp⟩
-        rw [← randomnessSplitEquiv_snd, Equiv.apply_symm_apply]
-        exact hpair
-    rw [hmap, Finset.card_product, Finset.card_univ]
-    simp
-  rw [hcard, Rom.card_hashOutput, hashOutputBits_eq_randomness, pow_add, Nat.cast_mul,
-    Nat.cast_mul, ENNReal.mul_div_mul_left _ _ (by simp) (by simp)]
+  rw [probEvent_uniformSample, Finset.filter_mem_eq_inter, Finset.univ_inter, Rom.card_digest]
 
 /-! ### Checking the trials -/
 
@@ -129,19 +87,19 @@ noncomputable def checkTrials : ℕ → ℕ → OracleComp OracleWorld Bool
   | count + 1, trial => do
       let randomizerOutput ← (liftM (OracleWorld.query
         (.inr (randomizerInput parameter seed leafIndex message trial))) :
-          OracleComp OracleWorld HashOutput)
+          OracleComp OracleWorld Digest)
       let digestOutput ← (liftM (OracleWorld.query
         (.inr (digestInput parameter leafIndex message randomizerOutput))) :
-          OracleComp OracleWorld HashOutput)
-      if (Code.decodeDigest (Generic.truncateHash digestOutput)).isNone then
+          OracleComp OracleWorld Digest)
+      if (Code.decodeDigest (digestOutput)).isNone then
         checkTrials count (trial + 1)
       else
         pure false
 
 theorem romImpl_run_cached {input : HashInput} {cache : QueryCache HashSpec}
-    {output : HashOutput} (hcached : cache input = some output) :
+    {output : Digest} (hcached : cache input = some output) :
     (simulateQ romImpl (liftM (OracleWorld.query (.inr input)) :
-      OracleComp OracleWorld HashOutput)).run cache = pure (output, cache) := by
+      OracleComp OracleWorld Digest)).run cache = pure (output, cache) := by
   rw [simulateQ_spec_query]
   change (randomOracle (spec := HashSpec) input).run cache = pure (output, cache)
   rw [QueryImpl.withCaching_run_some _ hcached]
@@ -193,13 +151,13 @@ trial its randomizer, and its digest unless that input is already cached. -/
 noncomputable def presampleChain : ℕ → ℕ → QueryCache HashSpec → ProbComp (QueryCache HashSpec)
   | 0, _, cache => pure cache
   | count + 1, trial, cache => do
-      let randomizerOutput ← $ᵗ HashOutput
+      let randomizerOutput ← $ᵗ Digest
       let cacheWithRandomizer := cache.cacheQuery
         (randomizerInput parameter seed leafIndex message trial) randomizerOutput
       match cacheWithRandomizer (digestInput parameter leafIndex message randomizerOutput) with
       | some _ => presampleChain count (trial + 1) cacheWithRandomizer
       | none => do
-          let digestOutput ← $ᵗ HashOutput
+          let digestOutput ← $ᵗ Digest
           presampleChain count (trial + 1) (cacheWithRandomizer.cacheQuery
             (digestInput parameter leafIndex message randomizerOutput) digestOutput)
 
@@ -207,7 +165,7 @@ theorem randomizerInput_fresh_after {trial : ℕ} {cache : QueryCache HashSpec} 
     (hbound : trial + (count + 1) ≤ 2 ^ 32)
     (hfresh : ∀ index < count + 1,
       cache (randomizerInput parameter seed leafIndex message (trial + index)) = none)
-    (randomizerOutput : HashOutput) :
+    (randomizerOutput : Digest) :
     ∀ index < count, (cache.cacheQuery (randomizerInput parameter seed leafIndex message trial)
       randomizerOutput) (randomizerInput parameter seed leafIndex message (trial + 1 + index)) =
         none := by
@@ -259,7 +217,7 @@ def ChainCached (count trial : ℕ) (cache : QueryCache HashSpec) : Prop :=
       some digestOutput
 
 theorem le_cacheQuery_of_none {cache : QueryCache HashSpec} {input : HashInput}
-    (hnone : cache input = none) (output : HashOutput) :
+    (hnone : cache input = none) (output : Digest) :
     cache ≤ cache.cacheQuery input output := by
   intro other value hvalue
   have hne : other ≠ input := fun h => by rw [h, hnone] at hvalue; simp at hvalue
@@ -336,7 +294,7 @@ theorem checkTrials_true_of_cached :
       simp only [checkTrials, simulateQ_bind, StateT.run_bind] at hresult
       rw [romImpl_run_cached (hle hrandomizer), pure_bind, romImpl_run_cached (hle hdigest),
         pure_bind] at hresult
-      cases hdecode : Code.decodeDigest (Generic.truncateHash digestOutput) with
+      cases hdecode : Code.decodeDigest (digestOutput) with
       | some encoding =>
           simp only [hdecode, Option.isNone_some, Bool.false_eq_true, if_false, simulateQ_pure,
             StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
@@ -395,7 +353,7 @@ noncomputable def cachedRandomizers (cache : QueryCache HashSpec) : Finset Rando
     cache (Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) ≠ none
 
 theorem cachedRandomizers_cacheQuery_randomizer (cache : QueryCache HashSpec) (trial : ℕ)
-    (output : HashOutput) :
+    (output : Digest) :
     cachedRandomizers parameter leafIndex message
         (cache.cacheQuery (randomizerInput parameter seed leafIndex message trial) output) =
       cachedRandomizers parameter leafIndex message cache := by
@@ -405,7 +363,7 @@ theorem cachedRandomizers_cacheQuery_randomizer (cache : QueryCache HashSpec) (t
     (randomizerInput_ne_encodingInput parameter seed leafIndex message trial randomness).symm]
 
 theorem card_cachedRandomizers_cacheQuery_le (cache : QueryCache HashSpec) (input : HashInput)
-    (output : HashOutput) (randomness : Randomness)
+    (output : Digest) (randomness : Randomness)
     (hinput : input = Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) :
     (cachedRandomizers parameter leafIndex message (cache.cacheQuery input output)).card ≤
       (cachedRandomizers parameter leafIndex message cache).card + 1 := by
@@ -425,8 +383,8 @@ theorem card_cachedRandomizers_cacheQuery_le (cache : QueryCache HashSpec) (inpu
     rwa [QueryCache.cacheQuery_of_ne _ _ hne] at hother
 
 theorem probEvent_invalid_uniform :
-    Pr[fun output : HashOutput => Code.decodeDigest (Generic.truncateHash output) = none |
-      $ᵗ HashOutput] = 1 - TargetSum.acceptanceProbability := by
+    Pr[fun output : Digest => Code.decodeDigest (output) = none |
+      $ᵗ Digest] = 1 - TargetSum.acceptanceProbability := by
   rw [← code_acceptanceProbability, ← Code.probEvent_invalidDigest_uniformHashOutput]
   congr 1
   funext output
@@ -443,7 +401,7 @@ theorem probEvent_presampleChain_fails_le :
           TrialFails parameter seed leafIndex message presampled (trial + index) |
         presampleChain parameter seed leafIndex message count trial cache] ≤
       (1 - TargetSum.acceptanceProbability +
-        ((bound + count : ℕ) : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)) ^ count := by
+        ((bound + count : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) ^ count := by
   intro count
   induction count with
   | zero => intro _ _ _ _ _ _; exact probEvent_le_one.trans (le_of_eq (pow_zero _).symm)
@@ -451,7 +409,7 @@ theorem probEvent_presampleChain_fails_le :
       intro trial cache bound hbound hfresh hcard
       classical
       set rest : ℝ≥0∞ := (1 - TargetSum.acceptanceProbability +
-        ((bound + 1 + count : ℕ) : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)) ^ count with hrest
+        ((bound + 1 + count : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) ^ count with hrest
       -- the bound for the remaining trials, from any cache with one more cached digest
       have hrestBound : ∀ (other : QueryCache HashSpec),
           (∀ index < count,
@@ -463,7 +421,7 @@ theorem probEvent_presampleChain_fails_le :
         intro other hotherFresh hotherCard
         have := ih (trial + 1) other (bound + 1) (by omega) hotherFresh hotherCard
         simpa [hrest, Nat.add_assoc, Nat.add_comm 1] using this
-      have hstep : ∀ randomizerOutput : HashOutput,
+      have hstep : ∀ randomizerOutput : Digest,
           Pr[fun presampled => ∀ index < count + 1,
               TrialFails parameter seed leafIndex message presampled (trial + index) |
             (match (cache.cacheQuery (randomizerInput parameter seed leafIndex message trial)
@@ -472,12 +430,12 @@ theorem probEvent_presampleChain_fails_le :
                   (cache.cacheQuery (randomizerInput parameter seed leafIndex message trial)
                     randomizerOutput)
               | none => do
-                  let digestOutput ← $ᵗ HashOutput
+                  let digestOutput ← $ᵗ Digest
                   presampleChain parameter seed leafIndex message count (trial + 1)
                     ((cache.cacheQuery (randomizerInput parameter seed leafIndex message trial)
                       randomizerOutput).cacheQuery
                         (digestInput parameter leafIndex message randomizerOutput) digestOutput))] ≤
-            (if randomizerOutput.extractLsb' 0 randomnessBits ∈
+            (if randomizerOutput ∈
                 cachedRandomizers parameter leafIndex message cache then rest else 0) +
               (1 - TargetSum.acceptanceProbability) * rest := by
         intro randomizerOutput
@@ -495,7 +453,7 @@ theorem probEvent_presampleChain_fails_le :
             rwa [show trial + (index + 1) = trial + 1 + index by omega] at this
         split
         · rename_i digestOutput hcached
-          have hmem : randomizerOutput.extractLsb' 0 randomnessBits ∈
+          have hmem : randomizerOutput ∈
               cachedRandomizers parameter leafIndex message cache := by
             rw [← hcard₁]
             simp only [cachedRandomizers, Finset.mem_filter, Finset.mem_univ, true_and]
@@ -512,15 +470,15 @@ theorem probEvent_presampleChain_fails_le :
           refine le_add_left ?_
           rw [probEvent_bind_eq_tsum]
           calc
-            ∑' digestOutput, Pr[= digestOutput | $ᵗ HashOutput] *
+            ∑' digestOutput, Pr[= digestOutput | $ᵗ Digest] *
                 Pr[fun presampled => ∀ index < count + 1,
                   TrialFails parameter seed leafIndex message presampled (trial + index) |
                 presampleChain parameter seed leafIndex message count (trial + 1)
                   ((cache.cacheQuery (randomizerInput parameter seed leafIndex message trial)
                     randomizerOutput).cacheQuery
                       (digestInput parameter leafIndex message randomizerOutput) digestOutput)] ≤
-              ∑' digestOutput, Pr[= digestOutput | $ᵗ HashOutput] *
-                (if Code.decodeDigest (Generic.truncateHash digestOutput) = none then rest
+              ∑' digestOutput, Pr[= digestOutput | $ᵗ Digest] *
+                (if Code.decodeDigest (digestOutput) = none then rest
                   else 0) := by
               refine ENNReal.tsum_le_tsum fun digestOutput => mul_le_mul_right ?_ _
               have hfresh₂ : ∀ index < count,
@@ -536,7 +494,7 @@ theorem probEvent_presampleChain_fails_le :
               · refine (probEvent_mono fun presampled _ hall =>
                   hshift presampled hall).trans (hrestBound _ hfresh₂ ?_)
                 refine (card_cachedRandomizers_cacheQuery_le parameter leafIndex message _ _
-                  digestOutput (randomizerOutput.extractLsb' 0 randomnessBits) rfl).trans ?_
+                  digestOutput (randomizerOutput) rfl).trans ?_
                 rw [hcard₁]
                 omega
               · refine le_of_eq (probEvent_eq_zero fun presampled hpresampled hall => ?_)
@@ -567,8 +525,8 @@ theorem probEvent_presampleChain_fails_le :
                 rw [hdigest'] at h₂
                 rw [Option.some.inj h₂] at hdecode'
                 exact hdecode hdecode'
-            _ = Pr[fun output : HashOutput =>
-                  Code.decodeDigest (Generic.truncateHash output) = none | $ᵗ HashOutput] * rest := by
+            _ = Pr[fun output : Digest =>
+                  Code.decodeDigest (output) = none | $ᵗ Digest] * rest := by
               rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
               congr 1
               funext digestOutput
@@ -577,13 +535,13 @@ theorem probEvent_presampleChain_fails_le :
       simp only [presampleChain]
       rw [probEvent_bind_eq_tsum]
       calc
-        _ ≤ ∑' randomizerOutput, Pr[= randomizerOutput | $ᵗ HashOutput] *
-              ((if randomizerOutput.extractLsb' 0 randomnessBits ∈
+        _ ≤ ∑' randomizerOutput, Pr[= randomizerOutput | $ᵗ Digest] *
+              ((if randomizerOutput ∈
                   cachedRandomizers parameter leafIndex message cache then rest else 0) +
                 (1 - TargetSum.acceptanceProbability) * rest) :=
           ENNReal.tsum_le_tsum fun randomizerOutput => mul_le_mul_right (hstep randomizerOutput) _
-        _ ≤ Pr[fun output : HashOutput => output.extractLsb' 0 randomnessBits ∈
-                cachedRandomizers parameter leafIndex message cache | $ᵗ HashOutput] * rest +
+        _ ≤ Pr[fun output : Digest => output ∈
+                cachedRandomizers parameter leafIndex message cache | $ᵗ Digest] * rest +
               (1 - TargetSum.acceptanceProbability) * rest := by
           simp only [mul_add]
           rw [ENNReal.tsum_add]
@@ -596,14 +554,14 @@ theorem probEvent_presampleChain_fails_le :
               _ ≤ 1 * ((1 - TargetSum.acceptanceProbability) * rest) :=
                 mul_le_mul_left tsum_probOutput_le_one _
               _ = _ := one_mul _
-        _ ≤ ((bound : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)) * rest +
+        _ ≤ ((bound : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) * rest +
               (1 - TargetSum.acceptanceProbability) * rest := by
           rw [probEvent_randomness_mem]
           gcongr
         _ = (1 - TargetSum.acceptanceProbability +
-              (bound : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)) * rest := by ring
+              (bound : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) * rest := by ring
         _ ≤ (1 - TargetSum.acceptanceProbability +
-              ((bound + (count + 1) : ℕ) : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)) * rest := by
+              ((bound + (count + 1) : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) * rest := by
           gcongr
           exact_mod_cast Nat.le_add_right bound (count + 1)
         _ = _ := by
@@ -618,11 +576,11 @@ theorem one_div_two_pow_le_one (bits : ℕ) : (1 : ℝ≥0∞) / ((2 ^ bits : �
 repeats with probability at most `A_max / 2^128`. -/
 theorem trialFailure_le :
     1 - TargetSum.acceptanceProbability +
-        ((signingAttemptLimit : ℕ) : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞) ≤
+        ((signingAttemptLimit : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
       1 - 1 / ((2 ^ 16 : ℕ) : ℝ≥0∞) := by
   calc
     _ ≤ 1 - 1 / ((2 ^ 15 : ℕ) : ℝ≥0∞) +
-        ((signingAttemptLimit : ℕ) : ℝ≥0∞) / ((2 ^ randomnessBits : ℕ) : ℝ≥0∞) := by
+        ((signingAttemptLimit : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
       gcongr
       exact TargetSum.acceptanceProbability_lower.le
     _ ≤ _ := by
@@ -630,7 +588,7 @@ theorem trialFailure_le :
       rw [ENNReal.toReal_add (by finiteness) (by finiteness),
         ENNReal.toReal_sub_of_le (one_div_two_pow_le_one 15) ENNReal.one_ne_top,
         ENNReal.toReal_sub_of_le (one_div_two_pow_le_one 16) ENNReal.one_ne_top]
-      norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div]
+      norm_num [signingAttemptLimit, digestBits, ENNReal.toReal_div]
 
 /-- `(1 - 2^-16)^(2^32) ≤ 2^-(2^16)`, from `(1 - 2^-16)^(2^16) ≤ 1/2`. -/
 theorem trialFailure_pow_le :
@@ -658,7 +616,7 @@ theorem card_requestTuples :
     Fintype.card (PublicParameter × MasterSeed × LeafIndex × Message) = 2 ^ 672 := by
   rw [Fintype.card_prod, Fintype.card_prod, Fintype.card_prod, card_bitVec, card_bitVec,
     card_bitVec, Fintype.card_fin, lifetime, ← pow_add, ← pow_add, ← pow_add]
-  norm_num [publicParameterBits, treeHeight, messageBits]
+  norm_num [digestBits, treeHeight, messageBits]
 
 theorem union_numeric : (2 : ℝ≥0∞) ^ 672 * (1 / 2) ^ (2 ^ 16) = 1 / 2 ^ 64864 := by
   rw [one_div, one_div, show (2 : ℕ) ^ 16 = 672 + 64864 by norm_num, pow_add, ← mul_assoc,

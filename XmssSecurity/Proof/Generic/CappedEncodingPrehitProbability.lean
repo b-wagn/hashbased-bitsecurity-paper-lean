@@ -74,7 +74,7 @@ theorem cappedCacheTracedSigningQuery_encodingInputPrehit_probability_le_cachedC
       cappedCacheTracedSigningQuery publicKey secretKey request initialCache initialTrace] ≤
       (Code.signingAttemptLimit : ℝ≥0∞) *
         cachedEncodingEntryCount initialCache secretKey.parameter request.epoch *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
+        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   have hprojection :
       Prod.map id Prod.fst <$>
           cappedCacheTracedSigningQuery publicKey secretKey request initialCache initialTrace =

@@ -67,49 +67,48 @@ theorem prefixProbeEncoding_eq_of_comparableCaches (leftCache rightCache : Query
 
 theorem prefixFirstLaneEvent_good_implies_hit
     (left : ProgrammedGlobalChainKeygenView)
-    (right : (ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest)) ×
-      (GlobalChainEdgeIndex → Digest))
+    (right : ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest))
     (hkey : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
     (leftResult : Forgery × SourceExactTracedState)
     (rightResult : (Forgery × GlobalHighDirectTracedState) × ActionTrace GlobalChainValueIndex)
     (hforgery : leftResult.1 = rightResult.1.1)
-    (hgood : SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2
+    (hgood : SourceFirstLaneExactGoodStateRelation left right leftResult.2
       rightResult.1.2 rightResult.2)
     (hcovered : GlobalCausalTraceRevealsCovered
-      (GlobalReturnedChainValueCovered rightResult.1.2.causalState.cache right.1.1.secretKey
+      (GlobalReturnedChainValueCovered rightResult.1.2.causalState.cache right.1.secretKey
         rightResult.1.2.attackerTrace.toSigningLog) rightResult.2.chainActions)
     (hevent : PrefixFirstLaneEvent left leftResult) :
-    CombinedHit right.1.2 (rightResult.2 ++
-      (prefixProbeResult right.1.2 rightResult.1.2.causalState.cache right.1.1.secretKey.parameter
+    CombinedHit right.2 (rightResult.2 ++
+      (prefixProbeResult right.2 rightResult.1.2.causalState.cache right.1.secretKey.parameter
         rightResult.1.2.attackerTrace.toSigningLog rightResult.1.1).2) := by
   have hparameter := programmedGlobal_secretKey_parameter_eq left right hkey hleftSupport hrightSupport
-  have htables : left.table = right.1.2 := hkey.1.toStable.1.1
+  have htables : left.table = right.2 := hkey.1.toStable.1.1
   have htrace : leftResult.2.2 = rightResult.1.2.attackerTrace := hgood.1.2
   obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hgood.1.1
-  change GlobalFilteredCausalStateRelation left right.1 leftResult.2.1.1.1
+  change GlobalFilteredCausalStateRelation left right leftResult.2.1.1.1
     rightResult.1.2.causalState at hcausal
   have hsigned : signedEncoding leftResult.2.1.1.1 left.secretKey.parameter
       leftResult.2.2.toSigningLog leftResult.1.epoch =
-    signedEncoding rightResult.1.2.causalState.cache right.1.1.secretKey.parameter
+    signedEncoding rightResult.1.2.causalState.cache right.1.secretKey.parameter
       rightResult.1.2.attackerTrace.toSigningLog rightResult.1.1.epoch := by
     rw [hparameter, ← htrace, ← hforgery]
     exact signedEncoding_eq_of_comparableCaches _ _ _ hcausal.1 _ _
   have hencoding : prefixProbeEncoding leftResult.2.1.1.1 left.secretKey.parameter leftResult.1 =
-    prefixProbeEncoding rightResult.1.2.causalState.cache right.1.1.secretKey.parameter
+    prefixProbeEncoding rightResult.1.2.causalState.cache right.1.secretKey.parameter
       rightResult.1.1 := by
     rw [hparameter, ← hforgery]
     exact prefixProbeEncoding_eq_of_comparableCaches _ _ _ hcausal.1 _
   have hprobe : prefixProbeResult left.table leftResult.2.1.1.1 left.secretKey.parameter
       leftResult.2.2.toSigningLog leftResult.1 =
-    prefixProbeResult right.1.2 rightResult.1.2.causalState.cache right.1.1.secretKey.parameter
+    prefixProbeResult right.2 rightResult.1.2.causalState.cache right.1.secretKey.parameter
       rightResult.1.2.attackerTrace.toSigningLog rightResult.1.1 := by
     unfold prefixProbeResult
     rw [htables, hsigned, hencoding, hforgery]
   obtain ⟨hvalid, hencodingHit | ⟨hhidden, hvalue, huncovered⟩⟩ := hevent
   · apply CombinedHit.append_of_prefix
-    exact globalHighExactEncodingEvent_implies_combinedHit right.1.2 leftResult.2.1.2
+    exact globalHighExactEncodingEvent_implies_combinedHit right.2 leftResult.2.1.2
       rightResult.1.2.attackerTrace rightResult.2 hgood.2.1 hgood.2.2
       (htrace ▸ hvalid) hencodingHit
   · rw [hprobe, hsigned, hencoding] at hhidden
@@ -120,7 +119,7 @@ theorem prefixFirstLaneEvent_good_implies_hit
     · intro value hmem
       apply huncovered
       apply globalReturnedChainValueCovered_of_comparableCaches left.secretKey.parameter
-        leftResult.2.1.1.1 rightResult.1.2.causalState.cache left.secretKey right.1.1.secretKey
+        leftResult.2.1.1.1 rightResult.1.2.causalState.cache left.secretKey right.1.secretKey
         leftResult.2.2.toSigningLog rightResult.1.2.attackerTrace.toSigningLog rfl hparameter
         (congrArg AttackerActionTrace.toSigningLog htrace.symm) hcausal.1
       exact hcovered _ value ((chainAction_mem_iff _ _).mpr hmem)

@@ -139,7 +139,7 @@ theorem Concrete.CacheReplay.rootTree_cache_unique_leafAddress
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
           OracleComp HashSpec Digest)).run ∅))
     (targetLeafIndex : LeafIndex) (left right : HashInput)
-    (leftOutput rightOutput : HashOutput)
+    (leftOutput rightOutput : Digest)
     (hleftP : AtHashAddress parameter (.leaf targetLeafIndex) left)
     (hrightP : AtHashAddress parameter (.leaf targetLeafIndex) right)
     (hleft : cache left = some leftOutput)
@@ -236,7 +236,7 @@ theorem Concrete.CacheReplay.rootTree_cache_unique_chainAddress
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
           OracleComp HashSpec Digest)).run ∅))
     (targetLeafIndex : LeafIndex) (targetChain : ChainIndex) (targetStep : ChainStep)
-    (left right : HashInput) (leftOutput rightOutput : HashOutput)
+    (left right : HashInput) (leftOutput rightOutput : Digest)
     (hleftP : AtHashAddress parameter (.chain targetLeafIndex targetChain targetStep) left)
     (hrightP : AtHashAddress parameter (.chain targetLeafIndex targetChain targetStep) right)
     (hleft : cache left = some leftOutput)

@@ -240,7 +240,7 @@ theorem freshVerification_lower
     rfl
   have hhonest : ∀ i, start ≤ i → i < start + treeHeight →
       ∃ output, endpointsCache (inputs i (honest i)) = some output ∧
-        Generic.truncateHash output = honest (i + 1) := by
+        output = honest (i + 1) := by
     intro i hi hi'
     rw [hnode i hi hi']
     exact Attack.mutationReplayInputs_honest keyResult hkey leafIndex chain encoding signature.randomness
@@ -265,7 +265,7 @@ theorem freshVerification_lower
         Generic.Concrete.verifyAfterLeaf keyResult.1.1 leafIndex signature leaf : OracleComp HashSpec Bool)).run cache =
       (randomOracle leafInput).run cache >>= fun result =>
         (simulateQ randomOracle (Generic.Concrete.verifyAfterLeaf keyResult.1.1 leafIndex signature
-          (Generic.truncateHash result.1) : OracleComp HashSpec Bool)).run result.2 := by
+          (result.1) : OracleComp HashSpec Bool)).run result.2 := by
     intro cache
     simp only [Generic.Concrete.leafHash, Generic.Concrete.tweakableHash, Generic.Concrete.oracleHash, bind_assoc, pure_bind, simulateQ_bind,
       simulateQ_spec_query, StateT.run_bind, HasQuery.instOfMonadLift_query]
@@ -294,7 +294,7 @@ theorem freshVerification_lower
     simp [Function.comp_def]
   by_cases hhonestEndpoints : endpoints = honestEndpoints
   · -- The honest leaf is cached, and the honest path leads to the root.
-    obtain ⟨output, houtput, htruncate⟩ := Attack.mutationReplayInputs_honest keyResult hkey leafIndex
+    obtain ⟨output, houtput, htarget⟩ := Attack.mutationReplayInputs_honest keyResult hkey leafIndex
       chain encoding signature.randomness (Attack.mutationChainSteps (encoding chain)) (by omega)
     have hinput : Attack.mutationReplayInputs keyResult.2 keyResult.1.2 leafIndex chain encoding
         signature.randomness (Attack.mutationChainSteps (encoding chain))
@@ -305,7 +305,7 @@ theorem freshVerification_lower
       simp only [leafInput, hhonestEndpoints, honestEndpoints, hparameter]
     rw [hinput] at houtput
     rw [QueryImpl.withCaching_run_some _ (hleafPreserved.trans houtput), pure_bind, hpathRun,
-      htruncate, Attack.hashPath_run_honest inputs honest start treeHeight endpointsCache hhonest]
+      htarget, Attack.hashPath_run_honest inputs honest start treeHeight endpointsCache hhonest]
     simp only [probEvent_pure, if_true]
     exact freshPathLower_le_one
   · -- A fresh leaf meets the honest path with the remaining `33` hash calls.
@@ -332,15 +332,15 @@ theorem freshVerification_lower
       simp only [Concrete.CacheView.nodeInput, leafInput, Concrete.CacheView.leafInput, hparameter] at heq
       have := domain_eq_of_tweakableHashInput_eq _ heq
       simp at this
-    have hstep (output : HashOutput) :
+    have hstep (output : Digest) :
         Pr[fun result => result.1 = true |
           (simulateQ randomOracle (Generic.Concrete.verifyAfterLeaf keyResult.1.1 leafIndex signature
-            (Generic.truncateHash output) : OracleComp HashSpec Bool)).run
+            (output) : OracleComp HashSpec Bool)).run
               (endpointsCache.cacheQuery leafInput output)] =
-          if Generic.truncateHash output = honest start then 1
+          if output = honest start then 1
           else 1 - (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ treeHeight := by
       rw [hpathRun]
-      apply Rom.hashPath_hit_probability inputs honest start treeHeight (Generic.truncateHash output) _
+      apply Rom.hashPath_hit_probability inputs honest start treeHeight (output) _
         hseparate
       · intro i hi hi'
         obtain ⟨answer, hanswer, htarget⟩ := hhonest i hi hi'
@@ -350,14 +350,14 @@ theorem freshVerification_lower
         rw [QueryCache.cacheQuery_of_ne _ _ (hnodeInput i hi hi' _)]
         exact hfresh i hi hi' other hother
     simp_rw [hstep]
-    have hhit : Pr[fun output : HashOutput => Generic.truncateHash output = honest start | $ᵗ HashOutput] =
-        ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := Rom.uniform_truncate_probability _
-    have hmiss := Rom.uniform_truncate_miss_probability (honest start)
+    have hhit : Pr[fun output : Digest => output = honest start | $ᵗ Digest] =
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := Rom.uniform_eq_probability _
+    have hmiss := Rom.uniform_ne_probability (honest start)
     apply le_of_eq
     calc
-      freshPathLower = Pr[fun output : HashOutput => Generic.truncateHash output = honest start |
-            $ᵗ HashOutput] * 1 +
-          Pr[fun output : HashOutput => Generic.truncateHash output ≠ honest start | $ᵗ HashOutput] *
+      freshPathLower = Pr[fun output : Digest => output = honest start |
+            $ᵗ Digest] * 1 +
+          Pr[fun output : Digest => output ≠ honest start | $ᵗ Digest] *
             (1 - (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ treeHeight) := by
         rw [hhit, hmiss, mul_one]
         rfl
@@ -366,7 +366,7 @@ theorem freshVerification_lower
           ← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
         apply tsum_congr
         intro output
-        by_cases h : Generic.truncateHash output = honest start <;> simp [h]
+        by_cases h : output = honest start <;> simp [h]
 
 
 /-! ### The advantage of the fresh-message adversary -/

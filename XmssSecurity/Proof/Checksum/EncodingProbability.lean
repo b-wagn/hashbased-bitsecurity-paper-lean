@@ -65,10 +65,10 @@ scoped instance signerBound : Code.SignerBound where
   capped_rejection_bound_lt := by
     rw [code_acceptanceProbability]
     show (1 - 1) ^ signingAttemptLimit + (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
-        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
     apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
     rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
-    norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul,
+    norm_num [signingAttemptLimit, digestBits, ENNReal.toReal_div, ENNReal.toReal_mul,
       ENNReal.toReal_inv]
 
 end XmssSecurity.Checksum

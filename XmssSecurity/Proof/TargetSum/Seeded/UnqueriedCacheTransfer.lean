@@ -15,7 +15,7 @@ namespace XmssSecurity.TargetSum.Seeded
 theorem randomOracle_support_transfer_of_agreeOutside
     (bad : HashInput → Prop) (left right : QueryCache HashSpec)
     (hagree : Seeded.AgreeOutside bad left right) (input : HashInput) (hinput : ¬bad input)
-    (result : HashOutput × QueryCache HashSpec)
+    (result : Digest × QueryCache HashSpec)
     (hresult : result ∈ support ((randomOracle (spec := HashSpec) input).run right)) :
     ∃ cache, (result.1, cache) ∈ support ((randomOracle (spec := HashSpec) input).run left) ∧
       Seeded.AgreeOutside bad cache result.2 := by

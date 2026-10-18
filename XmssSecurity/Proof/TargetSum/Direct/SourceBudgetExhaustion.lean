@@ -155,7 +155,7 @@ theorem CountedSourceBudget.noAcceptedEncoding_of_exhausted {α : Type}
 
 theorem CountedSourceBudget.noAcceptedEncoding_after_last_nonencoding {α : Type}
     {secretKey : Generic.SecretKey} {limit : Nat} {input : HashInput}
-    {next : HashOutput → OracleComp (OracleWorld + SigningSpec) α} {state : CountedSourceState}
+    {next : Digest → OracleComp (OracleWorld + SigningSpec) α} {state : CountedSourceState}
     (hbudget : CountedSourceBudget secretKey limit
       (liftM ((OracleWorld + SigningSpec).query (.inl (.inr input))) >>= next) state)
     (hlast : limit ≤ state.charge + 1)

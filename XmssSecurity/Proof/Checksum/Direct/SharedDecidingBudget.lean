@@ -18,7 +18,7 @@ theorem encodingPrehitRate_le_digest_inverse :
     Direct.encodingPrehitRate ≤ ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := by
   unfold Direct.encodingPrehitRate
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-  norm_num [ENNReal.toReal_mul, ENNReal.toReal_inv, signingAttemptLimit, randomnessBits, digestBits]
+  norm_num [ENNReal.toReal_mul, ENNReal.toReal_inv, signingAttemptLimit, digestBits, digestBits]
 
 theorem prehit_add_decidingSecondLane_le (adversary : Adversary) (D : ℕ)
     (hD : Direct.IsDirectQueryBound adversary D)

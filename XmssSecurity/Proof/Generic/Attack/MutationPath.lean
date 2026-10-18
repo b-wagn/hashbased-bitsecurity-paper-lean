@@ -30,7 +30,7 @@ theorem Rom.hashPath_snoc (inputs : ℕ → Digest → HashInput) (start steps :
     hashPath inputs start (steps + 1) value = do
       let previous ← hashPath inputs start steps value
       let output ← liftM (HashSpec.query (inputs (start + steps) previous))
-      return truncateHash output := by
+      return output := by
   rw [hashPath_append]
   rfl
 
@@ -106,7 +106,7 @@ theorem mutationPath_chain (parameter : PublicParameter) (leafIndex : LeafIndex)
       rw [show 0 + steps = steps from Nat.zero_add _, mutationPathInput_chain _ _ _ _ _ _ _ hchain,
         dif_pos hposition]
       simp only [chainHash, tweakableHash, oracleHash, HasQuery.instOfMonadLift_query,
-        CacheView.chainInput, digestBytes]
+        CacheView.chainInput, digestBytes, bind_pure]
 
 theorem mutationPath_leaf (parameter : PublicParameter) (leafIndex : LeafIndex)
     (chain : ChainIndex) (digit : Digit) (signature : Signature)

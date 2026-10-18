@@ -45,9 +45,9 @@ theorem verificationPhase_run_fresh (publicKey : PublicKey) (secretKey : Generic
     (prefixResult : Forgery × QueryLog SigningSpec) (cache : QueryCache HashSpec)
     (hfresh : cache (Direct.forgeryEncodingInput publicKey prefixResult.1) = none) :
     (simulateQ romImpl (Deciding.verificationPhase publicKey secretKey prefixResult)).run cache = (do
-      let output ← ($ᵗ HashOutput)
+      let output ← ($ᵗ Digest)
       let result ← (simulateQ randomOracle (Direct.verifyAfterDigest publicKey prefixResult.1.epoch
-        prefixResult.1.signature (Generic.truncateHash output))).run
+        prefixResult.1.signature (output))).run
           (cache.cacheQuery (Direct.forgeryEncodingInput publicKey prefixResult.1) output)
       pure (⟨publicKey, secretKey, prefixResult.1, prefixResult.2, result.1⟩, result.2)) := by
   unfold Deciding.verificationPhase
@@ -80,7 +80,7 @@ theorem verificationPhase_fresh_encoding_probability_le (publicKey : PublicKey) 
       let target := Concrete.CacheView.encodingHash cache secretKey.parameter pair.1.epoch
         (pair.1.message, pair.2.randomness)
       calc
-        _ ≤ Pr[fun output : HashOutput => Generic.truncateHash output = target | $ᵗ HashOutput] := by
+        _ ≤ Pr[fun output : Digest => output = target | $ᵗ Digest] := by
           apply probEvent_bind_le_probEvent
           intro output _houtput hmiss
           simp only [bind_pure_comp, probEvent_map]
@@ -104,12 +104,12 @@ theorem verificationPhase_fresh_encoding_probability_le (publicKey : PublicKey) 
               (request.message, signature.randomness) at hhash
           rw [← hsignedHash, ← hparameter] at hhash
           have hforgedHash : Concrete.CacheView.encodingHash result.2 publicKey.parameter prefixResult.1.epoch
-              (prefixResult.1.message, prefixResult.1.signature.randomness) = Generic.truncateHash output := by
+              (prefixResult.1.message, prefixResult.1.signature.randomness) = output := by
             exact Concrete.CacheView.digestAt_eq_of_cache_eq_some hforged
           rw [hforgedHash] at hhash
           apply hmiss
           simpa only [target, hparameter] using hhash
-        _ = _ := Rom.uniform_truncate_probability target
+        _ = _ := Rom.uniform_eq_probability target
 
 /-- info: 'XmssSecurity.TargetSum.Deciding.verificationPhase_fresh_encoding_probability_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

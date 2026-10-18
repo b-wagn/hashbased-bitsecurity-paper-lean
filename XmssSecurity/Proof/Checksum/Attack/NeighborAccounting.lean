@@ -44,8 +44,8 @@ theorem liftWorldToAdversary_counted {Key α : Type} (scheme : EpochBasedSignatu
     (requestCost : ℕ) (computation : OracleComp OracleWorld α) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
-        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) requestCost scheme secretKey)
+          (RandomOracleModel.hashCost HashInput Digest) +
+        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest) requestCost scheme secretKey)
       (liftWorldToAdversary computation)).run.run =
       (fun result : α × ℕ => ((result.1, Multiplicative.ofAdd result.2), ([] : QueryLog SigningSpec))) <$>
         countHashQueries computation := by
@@ -67,7 +67,7 @@ theorem liftWorldToAdversary_counted {Key α : Type} (scheme : EpochBasedSignatu
 
 theorem signingOracleCounted_run {Key : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Generic.Signature lifetime) (secretKey : Key)
     (requestCost : ℕ) (request : SignRequest) :
-    (SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput)
+    (SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest)
       requestCost scheme secretKey request).run.run =
       (fun result : Option Generic.Signature × ℕ =>
         ((result.1, Multiplicative.ofAdd (requestCost + result.2)), [⟨request, result.1⟩])) <$>
@@ -81,8 +81,8 @@ theorem signingOracleCounted_run {Key : Type} (scheme : EpochBasedSignature Orac
 theorem neighborMain_counted {Key : Type} (scheme : EpochBasedSignature OracleWorld PublicKey Key Message Generic.Signature lifetime) (secretKey : Key) (publicKey : PublicKey) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
-        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) 1 scheme secretKey)
+          (RandomOracleModel.hashCost HashInput Digest) +
+        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest) 1 scheme secretKey)
       (neighborMain publicKey)).run.run = (do
       let signed ← countHashQueries (scheme.sign secretKey neighborRequest.epoch neighborRequest.message)
       let forged ← countHashQueries (neighborAfterSigning publicKey signed.1)
@@ -97,7 +97,7 @@ theorem neighborMain_counted {Key : Type} (scheme : EpochBasedSignature OracleWo
   rfl
 
 theorem neighbor_gameCounted_everything :
-    SUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput HashOutput)
+    SUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput Digest)
       Generic.xmss neighborSufCmaAdversary = (do
       let keyResult ← countHashQueries Generic.xmss.keygen
       let signed ← countHashQueries (Generic.xmss.sign keyResult.1.2 neighborRequest.epoch neighborRequest.message)
@@ -115,7 +115,7 @@ theorem neighbor_gameCounted_everything :
 
 theorem neighbor_counted_support_bound (result : Bool × ℕ)
     (hresult : result ∈ support (SUFCMA.gameCounted CountingMode.everything
-      (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss neighborSufCmaAdversary)) :
+      (RandomOracleModel.hashCost HashInput Digest) Generic.xmss neighborSufCmaAdversary)) :
     result.2 ≤ neighborEverythingBudget := by
   rw [neighbor_gameCounted_everything] at hresult
   simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult

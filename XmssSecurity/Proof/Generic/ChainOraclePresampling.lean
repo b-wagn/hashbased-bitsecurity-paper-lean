@@ -281,7 +281,7 @@ theorem Concrete.keygen_cache_chainInput_eq_none_of_ne
       · exact hcandidate
       · exact hhonest
 
-/-- Every positive honest chain value is the truncated output of its preceding key-generation query. -/
+/-- Every positive honest chain value is the output of its preceding key-generation query. -/
 theorem Concrete.keygen_cache_has_chainValue_preimage
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hmem : keyResult ∈ support
@@ -295,7 +295,7 @@ theorem Concrete.keygen_cache_has_chainValue_preimage
           (Wots.walk
             (Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter leafIndex chain)
             0 previous.val (keyResult.1.2.chainStart leafIndex chain))) = some output ∧
-      truncateHash output =
+      output =
         Wots.signChain
           (Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter leafIndex chain)
           digit (keyResult.1.2.chainStart leafIndex chain) := by
@@ -307,7 +307,7 @@ theorem Concrete.keygen_cache_has_chainValue_preimage
   refine ⟨previous, output, by dsimp only [previous]; omega, hcached, ?_⟩
   let step := Concrete.CacheView.chainStep keyResult.2 keyResult.1.2.parameter leafIndex chain
   calc
-    truncateHash output = Concrete.CacheView.digestAt keyResult.2
+    output = Concrete.CacheView.digestAt keyResult.2
         (Concrete.CacheView.chainInput keyResult.1.2.parameter leafIndex chain previous
           (Wots.walk step 0 previous.val
             (keyResult.1.2.chainStart leafIndex chain))) :=
@@ -385,7 +385,7 @@ def ChainTableEdgesMatch
     (chain : ChainIndex) (table : ChainValueIndex → Digest) : Prop :=
   ∀ edge, ∃ output,
     cache (chainTableEdgeInput parameter chain table edge) = some output ∧
-      truncateHash output = chainTableEdgeTarget table edge
+      output = chainTableEdgeTarget table edge
 
 theorem ChainTableEdgesMatch.mono
     {cache larger : QueryCache HashSpec} {parameter : PublicParameter}

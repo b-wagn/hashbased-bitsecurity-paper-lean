@@ -24,23 +24,23 @@ theorem signer_adversaryRun_counted
     (simulateQ
       ((QueryImpl.ofLift OracleWorld
         (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
-        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) 0
+          (RandomOracleModel.hashCost HashInput Digest) +
+        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest) 0
           Generic.xmss secretKey) (adversary.main publicKey)).run.run =
       (fun result => ((result.1.1, Multiplicative.ofAdd result.2), result.1.2)) <$>
         countHashQueries ((simulateQ (Security.adversaryImpl secretKey)
           (adversary.main publicKey)).run) := by
   have h := simulateQ_adversaryRun (QueryImpl.id' OracleWorld)
-    (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss secretKey adversary publicKey
+    (RandomOracleModel.hashCost HashInput Digest) Generic.xmss secretKey adversary publicKey
   simp only [simulateQ_id'] at h
-  have hcost : RandomOracleModel.hashCost HashInput HashOutput =
+  have hcost : RandomOracleModel.hashCost HashInput Digest =
       fun input : OracleWorld.Domain => if input matches .inr _ then 1 else 0 := by
     funext input
     cases input <;> rfl
   let phase := (simulateQ (Security.adversaryImpl secretKey) (adversary.main publicKey)).run
   calc
     _ = swapLayers <$> (simulateQ
-        ((QueryImpl.id' OracleWorld).withAddCost (RandomOracleModel.hashCost HashInput HashOutput))
+        ((QueryImpl.id' OracleWorld).withAddCost (RandomOracleModel.hashCost HashInput Digest))
         phase).run := h
     _ = (fun result => ((result.1.1, Multiplicative.ofAdd result.2), result.1.2)) <$>
         simulateQ (QueryImpl.id' OracleWorld) (countHashQueries phase) := by
@@ -50,7 +50,7 @@ theorem signer_adversaryRun_counted
 
 theorem gameCounted_signer_eq (adversary : Security.StatementAdversary) :
     SUFCMA.gameCounted ⟨false, true, false, false⟩
-      (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss adversary = (do
+      (RandomOracleModel.hashCost HashInput Digest) Generic.xmss adversary = (do
         let (publicKey, secretKey) ← Generic.xmss.keygen
         let ((forgery, log), charged) ← countHashQueries
           ((simulateQ (Security.adversaryImpl secretKey) (adversary.main publicKey)).run)

@@ -8,37 +8,26 @@ chains, target sum `T = 195`, at most `A_max = 2^32` randomizer trials), and the
 with a checksum of SLH-DSA (FIPS 205) in `Checksum.lean` (`len_1 = 43` message digits and
 `len_2 = 3` checksum digits, `v = 46` chains, a single randomizer).
 
-| Symbol  | Lean                  | Value   | Meaning                                 |
-|---------|-----------------------|---------|-----------------------------------------|
-| `n`     | `digestBits`          | 128     | hash value and Merkle node length (bits)|
-| —       | `hashOutputBits`      | 256     | output length of the hash function `H`  |
-| `ℓ_msg` | `messageBits`         | 256     | message length                          |
-| `ℓ_p`   | `publicParameterBits` | 128     | public parameter length                 |
-| `ℓ_rnd` | `randomnessBits`      | 128     | randomizer length                       |
-| `w`     | `winternitzBits`      | 3       | chunk size in bits                      |
-| `h`     | `treeHeight`          | 32      | Merkle tree height                      |
-| `L`     | `lifetime`            | `2^32`  | lifetime (number of epochs)             |
+| Symbol  | Lean             | Value  | Meaning                     |
+|---------|------------------|--------|-----------------------------|
+| `n`     | `digestBits`     | 128    | hash output length (bits)   |
+| `ℓ_msg` | `messageBits`    | 256    | message length              |
+| `w`     | `winternitzBits` | 3      | chunk size in bits          |
+| `h`     | `treeHeight`     | 32     | Merkle tree height          |
+| `L`     | `lifetime`       | `2^32` | lifetime (number of epochs) |
 
+The public parameter and the randomizers are hash outputs, so their lengths are `ℓ_p = ℓ_rnd = n`.
 The master seed has 256 bits and the tweak has 128 bits (16 bytes); both are fixed by the byte
 layout in `Types.lean` and `Hashing.lean`.
 -/
 
 namespace XmssSecurity
 
-/-- `n`: hash value and Merkle node length in bits. -/
+/-- `n`: the output length of the hash function `H : {0,1}^* → {0,1}^n`, in bits. -/
 def digestBits : Nat := 128
-
-/-- Output length of the hash function `H : {0,1}^* → {0,1}^256`. -/
-def hashOutputBits : Nat := 256
 
 /-- `ℓ_msg`: message length in bits. -/
 def messageBits : Nat := 256
-
-/-- `ℓ_p`: public parameter length in bits. -/
-def publicParameterBits : Nat := 128
-
-/-- `ℓ_rnd`: randomizer length in bits. -/
-def randomnessBits : Nat := 128
 
 /-- `h`: the Merkle tree height. -/
 def treeHeight : Nat := 32

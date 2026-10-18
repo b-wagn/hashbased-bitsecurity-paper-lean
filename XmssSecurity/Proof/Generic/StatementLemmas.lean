@@ -14,16 +14,13 @@ namespace XmssSecurity.Generic
 
 variable [Code]
 
-@[simp]
-theorem truncateHash_zero : truncateHash 0 = 0 := by decide
-
 namespace Concrete
 
 namespace CacheView
 
 def digestAt (cache : QueryCache HashSpec) (input : HashInput) : Digest :=
   match cache input with
-  | some output => truncateHash output
+  | some output => output
   | none => 0
 
 def tweakableHash (cache : QueryCache HashSpec) (parameter : PublicParameter)
@@ -59,7 +56,7 @@ encoding read from the cache witnesses that the query was made. -/
 def decodedEncoding (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (leafIndex : LeafIndex) (input : Message × Randomness) : Option Encoding :=
   match cache (encodingInput parameter leafIndex input) with
-  | some output => Code.decodeDigest (truncateHash output)
+  | some output => Code.decodeDigest (output)
   | none => none
 
 theorem encodingInput_cached_of_decode_some
@@ -74,7 +71,7 @@ theorem encodingInput_cached_of_decode_some
 
 theorem decodedEncoding_eq_of_cache_eq_some {cache : QueryCache HashSpec}
     {parameter : PublicParameter} {leafIndex : LeafIndex} {input : Message × Randomness}
-    {output : HashOutput} (hcache : cache (encodingInput parameter leafIndex input) = some output) :
+    {output : Digest} (hcache : cache (encodingInput parameter leafIndex input) = some output) :
     decodedEncoding cache parameter leafIndex input =
       Code.decodeDigest (encodingHash cache parameter leafIndex input) := by
   simp [decodedEncoding, encodingHash, digestAt, hcache]
@@ -180,9 +177,6 @@ attribute [local semireducible] treeNode CacheReplay.treeNode sampleSecret signi
 
 noncomputable local instance : SampleableType (LeafIndex → ChainIndex → Digest) :=
   SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)
-
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
 
 @[simp]
 theorem treeNode_zero_eq {m : Type → Type} [Monad m] [HasQuery HashSpec m]

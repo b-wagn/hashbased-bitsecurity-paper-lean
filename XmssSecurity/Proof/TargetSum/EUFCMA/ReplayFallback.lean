@@ -21,7 +21,7 @@ noncomputable def replayFallbackExperiment (publicKey : PublicKey) (leafIndex : 
     (candidate fallback : Message) (signature : Generic.Signature) (cache : QueryCache HashSpec) : ProbComp Bool := do
   let probe ← (randomOracle (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
     (candidate, signature.randomness))).run cache
-  let message := if Code.ValidDigest (Generic.truncateHash probe.1) then candidate else fallback
+  let message := if Code.ValidDigest (probe.1) then candidate else fallback
   let result ← (simulateQ randomOracle (Generic.Concrete.verify publicKey leafIndex message signature :
     OracleComp HashSpec Bool)).run probe.2
   return result.1
@@ -30,9 +30,9 @@ noncomputable def replayFallbackRate : ℝ≥0∞ :=
   replayCollisionRate + (1 - TargetSum.acceptanceProbability) * replayCollisionRate
 
 theorem replayFallbackScore_average (target : Digest) :
-    (∑' output, Pr[= output | $ᵗ HashOutput] *
+    (∑' output, Pr[= output | $ᵗ Digest] *
       (replayScore target output +
-        if ¬ Code.ValidDigest (Generic.truncateHash output) then replayCollisionRate else 0)) =
+        if ¬ Code.ValidDigest (output) then replayCollisionRate else 0)) =
       replayFallbackRate := by
   classical
   simp_rw [mul_add]
@@ -44,7 +44,7 @@ theorem replayFallbackScore_average (target : Digest) :
     ← ENNReal.tsum_mul_right]
   apply tsum_congr
   intro output
-  by_cases hvalid : Code.ValidDigest (Generic.truncateHash output) <;> simp [hvalid]
+  by_cases hvalid : Code.ValidDigest (output) <;> simp [hvalid]
 
 theorem replayFallbackExperiment_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
@@ -73,11 +73,11 @@ theorem replayFallbackExperiment_lower
   intro output
   apply mul_le_mul' le_rfl
   simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-  by_cases haccepted : Code.ValidDigest (Generic.truncateHash output)
+  by_cases haccepted : Code.ValidDigest (output)
   · simp only [haccepted, if_true, not_true_eq_false, if_false, add_zero]
     exact replayScore_le_cached_verification keyResult hkey leafIndex candidate encoding hvalid randomness
       cache hle hroot hcandidate output
-  · have hmiss : Generic.truncateHash output ≠ digestOfEncoding encoding := fun heq => haccepted (heq ▸ htarget)
+  · have hmiss : output ≠ digestOfEncoding encoding := fun heq => haccepted (heq ▸ htarget)
     simp only [replayScore, haccepted, hmiss, if_false, not_false_eq_true, if_true, zero_add]
     apply verify_fresh_replay_probability_ge keyResult hkey leafIndex fallback encoding hvalid randomness
     · exact hle.trans (QueryCache.le_cacheQuery cache hcandidate)

@@ -23,7 +23,7 @@ variable (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
 include hkeygen hle
 
 theorem decidingWitness_of_chain_collision (leafIndex : LeafIndex) (chain : ChainIndex)
-    (step : ChainStep) (value : Digest) (output : HashOutput)
+    (step : ChainStep) (value : Digest) (output : Digest)
     (hcached : finalCache (CacheView.chainInput keyResult.1.2.parameter leafIndex chain step value) =
       some output)
     (hne : value ≠ Wots.walk
@@ -42,7 +42,7 @@ theorem decidingWitness_of_chain_collision (leafIndex : LeafIndex) (chain : Chai
     simpa only [CacheView.chainStep_eq _ _ _ _ _ _ step.isLt] using heq
 
 theorem decidingWitness_of_leaf_collision (leafIndex : LeafIndex) (chain : ChainIndex)
-    (endpoints : ChainIndex → Digest) (output : HashOutput)
+    (endpoints : ChainIndex → Digest) (output : Digest)
     (hcached : finalCache (CacheView.leafInput keyResult.1.2.parameter leafIndex endpoints) =
       some output)
     (hcollision : Wots.HasLeafCollision (CacheView.leafHash finalCache keyResult.1.2.parameter leafIndex)
@@ -58,7 +58,7 @@ theorem decidingWitness_of_leaf_collision (leafIndex : LeafIndex) (chain : Chain
 
 theorem decidingWitness_of_merkle_collision (leafIndex : LeafIndex) (chain : ChainIndex)
     (level : MerkleLevel) (current sibling honestCurrent honestSibling : Digest)
-    (output : HashOutput)
+    (output : Digest)
     (hcached : finalCache (CacheView.nodeInput keyResult.1.2.parameter leafIndex level
       current sibling) = some output)
     (hne : (current, sibling) ≠ (honestCurrent, honestSibling))

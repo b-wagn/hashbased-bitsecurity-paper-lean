@@ -51,7 +51,7 @@ theorem run_simulateQ_withForgedEncodingQuery (adversary : Adversary) (secretKey
     WriterT.run_bind', WriterT.run_pure']
   refine bind_congr fun result => ?_
   change (Prod.map id (result.2 ++ ·)) <$>
-    (((fun answer : HashOutput => (answer, (∅ : QueryLog SigningSpec))) <$>
+    (((fun answer : Digest => (answer, (∅ : QueryLog SigningSpec))) <$>
       liftM (OracleWorld.query (.inr (forgeryEncodingInput publicKey result.1)))) >>=
         fun answer => Prod.map id (answer.2 ++ ·) <$> pure (result.1, ∅)) = _
   simp only [map_bind, bind_map_left, map_pure, Prod.map_apply, id_eq, List.empty_eq,
@@ -62,7 +62,7 @@ theorem run_simulateQ_withForgedEncodingQuery (adversary : Adversary) (secretKey
 
 /-- After one random-oracle call on `input`, the returned cache holds the returned answer. -/
 theorem randomOracle_run_cached (input : HashInput) (cache : QueryCache HashSpec)
-    (result : HashOutput × QueryCache HashSpec)
+    (result : Digest × QueryCache HashSpec)
     (hresult : result ∈ support
       (((randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) input).run
         cache)) :
@@ -80,7 +80,7 @@ theorem randomOracle_run_cached (input : HashInput) (cache : QueryCache HashSpec
 
 /-- Two consecutive random-oracle calls on the same input: the second is a cache hit. -/
 theorem randomOracle_bind_randomOracle_same {β : Type} (input : HashInput)
-    (continuation : HashOutput → HashOutput → StateT (QueryCache HashSpec) ProbComp β) :
+    (continuation : Digest → Digest → StateT (QueryCache HashSpec) ProbComp β) :
     ((randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) input >>=
         fun first => randomOracle input >>= fun second => continuation first second) =
       (randomOracle input >>= fun first => continuation first first) := by
@@ -113,13 +113,12 @@ theorem concrete_verify_eq_query_bind (publicKey : PublicKey) (leafIndex : LeafI
     (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool) =
       (liftM (HashSpec.query (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
         (message, signature.randomness))) >>= fun output =>
-          verifyAfterDigest publicKey leafIndex signature (truncateHash output)) := by
+          verifyAfterDigest publicKey leafIndex signature (output)) := by
   simp only [Concrete.verify_eq_decode]
   unfold Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash
     verifyAfterDigest
-  simp only [bind_assoc, pure_bind]
   refine bind_congr fun output => ?_
-  cases Code.decodeDigest (truncateHash output) <;> rfl
+  cases Code.decodeDigest (output) <;> rfl
 
 /-- The verifier under the random oracle: the encoding query, then the rest. -/
 theorem simulateQ_romImpl_scheme_verify (publicKey : PublicKey) (leafIndex : LeafIndex)
@@ -129,7 +128,7 @@ theorem simulateQ_romImpl_scheme_verify (publicKey : PublicKey) (leafIndex : Lea
         (Concrete.CacheView.encodingInput publicKey.parameter leafIndex
           (message, signature.randomness)) >>= fun output =>
         simulateQ randomOracle (verifyAfterDigest publicKey leafIndex signature
-          (truncateHash output))) := by
+          (output))) := by
   change simulateQ (unifFwdImpl HashSpec +
       (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)))
     (liftM (Concrete.verify publicKey leafIndex message signature : OracleComp HashSpec Bool)) = _

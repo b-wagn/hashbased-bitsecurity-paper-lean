@@ -7,14 +7,14 @@ namespace XmssSecurity.Generic
 variable [Code]
 
 def CacheGrowthRepresented
-    (target : Key → HashInput) (observe : Key → HashOutput → Action)
+    (target : Key → HashInput) (observe : Key → Digest → Action)
     (initial final : QueryCache HashSpec) (trace : List Action) : Prop :=
   initial ≤ final ∧
     ∀ key output, initial (target key) = none →
       final (target key) = some output → observe key output ∈ trace
 
 theorem CacheGrowthRepresented.refl
-    (target : Key → HashInput) (observe : Key → HashOutput → Action)
+    (target : Key → HashInput) (observe : Key → Digest → Action)
     (cache : QueryCache HashSpec) :
     CacheGrowthRepresented target observe cache cache [] := by
   constructor
@@ -24,8 +24,8 @@ theorem CacheGrowthRepresented.refl
     contradiction
 
 theorem CacheGrowthRepresented.cacheQuery
-    {target : Key → HashInput} {observe : Key → HashOutput → Action}
-    (cache : QueryCache HashSpec) (key : Key) (output : HashOutput)
+    {target : Key → HashInput} {observe : Key → Digest → Action}
+    (cache : QueryCache HashSpec) (key : Key) (output : Digest)
     (hfresh : cache (target key) = none)
     (hobserve : ∀ candidate,
       target candidate = target key →
@@ -44,7 +44,7 @@ theorem CacheGrowthRepresented.cacheQuery
       contradiction
 
 theorem CacheGrowthRepresented.trans
-    {target : Key → HashInput} {observe : Key → HashOutput → Action}
+    {target : Key → HashInput} {observe : Key → Digest → Action}
     {initial middle final : QueryCache HashSpec} {head tail : List Action}
     (hhead : CacheGrowthRepresented target observe initial middle head)
     (htail : CacheGrowthRepresented target observe middle final tail) :

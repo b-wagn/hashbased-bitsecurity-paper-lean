@@ -66,7 +66,7 @@ theorem attackerActionFragment_uniform
     attackerActionFragment (.inl (.inl index)) output = [] := rfl
 
 @[simp]
-theorem attackerActionFragment_hash (input : HashInput) (output : HashOutput) :
+theorem attackerActionFragment_hash (input : HashInput) (output : Digest) :
     attackerActionFragment (.inl (.inr input)) output = [.hash input] := rfl
 
 @[simp]

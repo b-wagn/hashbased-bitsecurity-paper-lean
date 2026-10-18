@@ -11,25 +11,21 @@ namespace XmssSecurity.Generic.Concrete.CacheReplay
 
 variable [Code]
 
-def answer (cache : QueryCache HashSpec) (input : HashInput) : HashOutput :=
+def answer (cache : QueryCache HashSpec) (input : HashInput) : Digest :=
   (cache input).getD 0
 
 def answerFn (cache : QueryCache HashSpec) : QueryImpl HashSpec Id :=
   fun input => answer cache input
 
 @[simp]
-theorem truncateHash_answer (cache : QueryCache HashSpec) (input : HashInput) :
-    truncateHash (answer cache input) = CacheView.digestAt cache input := by
-  cases hcache : cache input with
-  | none =>
-      simp only [answer, CacheView.digestAt, hcache, Option.getD_none]
-      exact truncateHash_zero
-  | some output => simp [answer, CacheView.digestAt, hcache]
+theorem answer_eq_digestAt (cache : QueryCache HashSpec) (input : HashInput) :
+    answer cache input = CacheView.digestAt cache input := by
+  cases hcache : cache input <;> simp [answer, CacheView.digestAt, hcache]
 
 @[simp]
 theorem eval_oracleHash (cache : QueryCache HashSpec) (input : HashInput) :
     evalWithAnswerFn (answerFn cache)
-      (Concrete.oracleHash input : OracleComp HashSpec HashOutput) = answer cache input := by
+      (Concrete.oracleHash input : OracleComp HashSpec Digest) = answer cache input := by
   simpa [Concrete.oracleHash, answerFn] using
     evalWithAnswerFn_query (answerFn cache) input
 
@@ -285,7 +281,7 @@ theorem eval_verify (cache : QueryCache HashSpec) (publicKey : PublicKey)
     (CacheView.encodingHash cache publicKey.parameter leafIndex (message, signature.randomness)) <;> simp
 
 theorem randomOracle_query_caches (input : HashInput)
-    (initialCache : QueryCache HashSpec) (output : HashOutput)
+    (initialCache : QueryCache HashSpec) (output : Digest)
     (finalCache : QueryCache HashSpec)
     (hmem : (output, finalCache) ∈
       support ((randomOracle (spec := HashSpec) input).run initialCache)) :
@@ -371,7 +367,7 @@ theorem eval_answerFn_finalCache_eq_of_mem_support {α : Type}
       simp only [evalWithAnswerFn_bind]
       have hqueryEval :
           evalWithAnswerFn (answerFn finalCache)
-            (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) = output := by
+            (liftM (OracleSpec.query input) : OracleComp HashSpec Digest) = output := by
         simpa [Concrete.oracleHash, answer, hfinal] using
           eval_oracleHash finalCache input
       rw [hqueryEval]
@@ -403,7 +399,7 @@ theorem eval_answerFn_largerCache_eq_of_mem_support {α : Type}
       simp only [evalWithAnswerFn_bind]
       have hqueryEval :
           evalWithAnswerFn (answerFn largerCache)
-            (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) = output := by
+            (liftM (OracleSpec.query input) : OracleComp HashSpec Digest) = output := by
         simpa [Concrete.oracleHash, answer, hlarger] using
           eval_oracleHash largerCache input
       rw [hqueryEval]
@@ -425,14 +421,9 @@ theorem verify_run_encodingInput_cached
   obtain ⟨⟨digest, digestCache⟩, hdigest, hrest⟩ := hmem
   have hle : digestCache ≤ finalCache := randomOracle_cache_le _ digestCache _ hrest
   unfold Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash at hdigest
-  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hdigest
-  obtain ⟨⟨output, middleCache⟩, hquery, hpure⟩ := hdigest
-  simp only [simulateQ_pure, StateT.run_pure, support_pure,
-    Set.mem_singleton_iff] at hpure
-  cases hpure
-  exact ⟨output, hle (randomOracle_query_caches (tweakableHashInput publicKey.parameter
+  exact ⟨digest, hle (randomOracle_query_caches (tweakableHashInput publicKey.parameter
     (.encoding leafIndex) (encodingPayload message signature.randomness)) _ _ _
-    (by simpa using hquery))⟩
+    (by simpa using hdigest))⟩
 
 /-- A signing attempt records its encoding query. -/
 theorem precomputedSignAttempt_run_encodingInput_cached
@@ -450,14 +441,9 @@ theorem precomputedSignAttempt_run_encodingInput_cached
   obtain ⟨⟨digest, digestCache⟩, hdigest, hrest⟩ := hmem
   have hle : digestCache ≤ finalCache := randomOracle_cache_le _ digestCache _ hrest
   unfold Concrete.encodingHash Concrete.tweakableHash Concrete.oracleHash at hdigest
-  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hdigest
-  obtain ⟨⟨output, middleCache⟩, hquery, hpure⟩ := hdigest
-  simp only [simulateQ_pure, StateT.run_pure, support_pure,
-    Set.mem_singleton_iff] at hpure
-  cases hpure
-  exact ⟨output, hle (randomOracle_query_caches (tweakableHashInput secretKey.parameter
+  exact ⟨digest, hle (randomOracle_query_caches (tweakableHashInput secretKey.parameter
     (.encoding leafIndex) (encodingPayload message randomness)) _ _ _
-    (by simpa using hquery))⟩
+    (by simpa using hdigest))⟩
 
 theorem verifyFromCache_eq_of_mem_support
     (publicKey : PublicKey) (leafIndex : LeafIndex) (message : Message)

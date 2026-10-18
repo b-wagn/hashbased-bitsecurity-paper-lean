@@ -26,8 +26,8 @@ theorem winning_encoding_event_has_signed_collision
       cache (Concrete.CacheView.encodingInput outcome.secretKey.parameter request.epoch
           (outcome.forgery.message, outcome.forgery.signature.randomness)) =
         some forgedOutput ∧
-      truncateHash signedOutput = truncateHash forgedOutput ∧
-      ∃ encoding, Code.decodeDigest (truncateHash signedOutput) = some encoding := by
+      signedOutput = forgedOutput ∧
+      ∃ encoding, Code.decodeDigest (signedOutput) = some encoding := by
   refine ⟨hevent.signingTranscript_valid,
     hevent.signingLog_length_le_lifetime, ?_⟩
   rcases hevent.2.2 with hsame | hfresh

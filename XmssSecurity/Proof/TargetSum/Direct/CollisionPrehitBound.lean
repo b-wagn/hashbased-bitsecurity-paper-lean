@@ -31,7 +31,7 @@ def hitSet (secretKey : Generic.SecretKey) (cache : QueryCache HashSpec) (trace 
   {digest | ∃ entry ∈ trace, entry.request.epoch = leafIndex ∧
     EntryOpen secretKey cache entry ∧ ∃ signature found, entry.signature = some signature ∧
       cache (input secretKey.parameter leafIndex (entry.request.message, signature.randomness)) =
-        some found ∧ digest = Generic.truncateHash found}
+        some found ∧ digest = found}
 
 theorem ncard_hitSet_le {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     (hnodup : trace.leafIndices.Nodup) (leafIndex : LeafIndex) :
@@ -62,10 +62,10 @@ theorem ncard_hitSet_le {cache : QueryCache HashSpec} {trace : SigningCacheTrace
 theorem stateBad_cacheQuery {cache : QueryCache HashSpec} {trace : SigningCacheTrace}
     {remaining : ℕ} (hinv : Inv q secretKey cache trace remaining) {leafIndex : LeafIndex}
     {fresh : Message × Randomness}
-    (hfresh : cache (input secretKey.parameter leafIndex fresh) = none) (output : HashOutput)
+    (hfresh : cache (input secretKey.parameter leafIndex fresh) = none) (output : Digest)
     (hbad : StateBad secretKey
       (cache.cacheQuery (input secretKey.parameter leafIndex fresh) output) trace) :
-    StateBad secretKey cache trace ∨ Generic.truncateHash output ∈ hitSet secretKey cache trace leafIndex := by
+    StateBad secretKey cache trace ∨ output ∈ hitSet secretKey cache trace leafIndex := by
   by_contra hcontra
   push Not at hcontra
   obtain ⟨hnotBad, hnotHit⟩ := hcontra
@@ -102,9 +102,9 @@ theorem verify_bad_le (publicKey : PublicKey) (hparameter : publicKey.parameter 
     exact probEvent_le_one
   set forgedInput := input secretKey.parameter forgery.epoch
     (forgery.message, forgery.signature.randomness)
-  have hrest : ∀ (startCache : QueryCache HashSpec) (output : HashOutput),
+  have hrest : ∀ (startCache : QueryCache HashSpec) (output : Digest),
       ∀ result ∈ support ((simulateQ randomOracle (Direct.verifyAfterDigest publicKey forgery.epoch
-        forgery.signature (Generic.truncateHash output))).run startCache),
+        forgery.signature (output))).run startCache),
         AgreeOnEncoding secretKey.parameter startCache result.2 := by
     intro startCache output result hresult
     rw [← hparameter]
@@ -123,12 +123,12 @@ theorem verify_bad_le (publicKey : PublicKey) (hparameter : publicKey.parameter 
   | none =>
       rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, uniformHashOutput,
         bind_map_left, probEvent_bind_eq_tsum]
-      have hstep : ∀ output : HashOutput,
+      have hstep : ∀ output : Digest,
           Pr[fun result : Bool × QueryCache HashSpec =>
               trace.leafIndices.Nodup ∧ StateBad secretKey result.2 trace |
             (simulateQ randomOracle (Direct.verifyAfterDigest publicKey forgery.epoch forgery.signature
-              (Generic.truncateHash output))).run (cache.cacheQuery forgedInput output)] ≤
-            if Generic.truncateHash output ∈ hitSet secretKey cache trace forgery.epoch then 1 else 0 := by
+              (output))).run (cache.cacheQuery forgedInput output)] ≤
+            if output ∈ hitSet secretKey cache trace forgery.epoch then 1 else 0 := by
         intro output
         split_ifs with hhit
         · exact probEvent_le_one
@@ -138,14 +138,14 @@ theorem verify_bad_le (publicKey : PublicKey) (hparameter : publicKey.parameter 
           · exact hbad hold
           · exact hhit hnew
       calc
-        _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-              (if Generic.truncateHash output ∈ hitSet secretKey cache trace forgery.epoch then 1 else 0) :=
+        _ ≤ ∑' output : Digest, Pr[= output | $ᵗ Digest] *
+              (if output ∈ hitSet secretKey cache trace forgery.epoch then 1 else 0) :=
           ENNReal.tsum_le_tsum fun output => mul_le_mul' le_rfl (hstep output)
-        _ = Pr[fun output : HashOutput =>
-              Generic.truncateHash output ∈ hitSet secretKey cache trace forgery.epoch | $ᵗ HashOutput] := by
+        _ = Pr[fun output : Digest =>
+              output ∈ hitSet secretKey cache trace forgery.epoch | $ᵗ Digest] := by
           rw [tsum_uniform_ite, mul_one, mul_zero, add_zero]
         _ = ((hitSet secretKey cache trace forgery.epoch).ncard : ℝ≥0∞) /
-              ((2 ^ digestBits : ℕ) : ℝ≥0∞) := probEvent_truncate_mem _
+              ((2 ^ digestBits : ℕ) : ℝ≥0∞) := probEvent_uniform_mem _
         _ ≤ (openCount secretKey cache trace : ℝ≥0∞) * ENNReal.ofReal (1 / realN) := by
           have hN : 0 < realN := by unfold realN; positivity
           have h1N : ENNReal.ofReal (1 / realN) = 1 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by

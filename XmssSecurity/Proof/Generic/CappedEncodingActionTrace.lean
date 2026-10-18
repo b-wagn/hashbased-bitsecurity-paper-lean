@@ -15,9 +15,9 @@ def ValidFreshSigningCollisionsRepresented
   signingTrace.leafIndices.Nodup →
     ∀ entry ∈ signingTrace, entry.FreshSigningEncodingCollision secretKey →
       ∃ signedOutput oldOutput before middle after,
-        Code.ValidDigest (truncateHash signedOutput) ∧
-        Code.ValidDigest (truncateHash oldOutput) ∧
-        truncateHash signedOutput = truncateHash oldOutput ∧
+        Code.ValidDigest (signedOutput) ∧
+        Code.ValidDigest (oldOutput) ∧
+        signedOutput = oldOutput ∧
         actions = before ++ [.query entry.request.epoch oldOutput] ++ middle ++
           [.sign entry.request.epoch signedOutput] ++ after
 
@@ -118,7 +118,7 @@ theorem cappedUnloggedMappedAdversaryImpl_directHash_fresh_cache_eq
     (publicKey : PublicKey) (secretKey : SecretKey)
     (queriedInput targetInput : HashInput)
     (initialCache finalCache : QueryCache HashSpec)
-    (output targetOutput : HashOutput)
+    (output targetOutput : Digest)
     (hmem : (output, finalCache) ∈ support
       ((cappedUnloggedMappedAdversaryImpl publicKey secretKey
         (.inl (.inr queriedInput))).run initialCache))
@@ -419,12 +419,12 @@ theorem cappedEncodingTracedMappedAdversaryImpl_query_validFreshSigningCollision
             obtain ⟨encoding, hdecode⟩ :=
               Concrete.precomputedCappedSign_success_decode secretKey request
                 initialState.1.1 finalState.1 signature hsignSupport
-            have hsignedValid : Code.ValidDigest (truncateHash signedOutput) := by
+            have hsignedValid : Code.ValidDigest (signedOutput) := by
               refine ⟨encoding, ?_⟩
               simpa [Concrete.CacheView.encodingHash,
                 Concrete.CacheView.digestAt_eq_of_cache_eq_some hsigned] using
                 Concrete.CacheView.decodeDigest_of_decodedEncoding hdecode
-            have holdValid : Code.ValidDigest (truncateHash oldOutput) := by
+            have holdValid : Code.ValidDigest (oldOutput) := by
               rw [← hdigest]
               exact hsignedValid
             have hrequestFresh : request.epoch ∉ initialState.1.2.leafIndices := by
@@ -836,11 +836,11 @@ theorem cappedDetailedGameWithEncodingTrace_validSignLeafIndices_nodup_of_winnin
     (CappedEncodingMonitor.validActions_sublist result.2.2))
 
 theorem CappedEncodingMonitor.runObserved_empty_eq_true_of_query_before_sign_of_valid
-    (leafIndex : LeafIndex) (oldOutput signedOutput : HashOutput)
+    (leafIndex : LeafIndex) (oldOutput signedOutput : Digest)
     (before middle after : EncodingActionTrace)
-    (holdValid : Code.ValidDigest (truncateHash oldOutput))
-    (hsignedValid : Code.ValidDigest (truncateHash signedOutput))
-    (hdigest : truncateHash oldOutput = truncateHash signedOutput)
+    (holdValid : Code.ValidDigest (oldOutput))
+    (hsignedValid : Code.ValidDigest (signedOutput))
+    (hdigest : oldOutput = signedOutput)
     (hnodup : (CappedEncodingMonitor.validObservedSignLeafIndices
       (before ++ [.query leafIndex oldOutput] ++ middle ++
         [.sign leafIndex signedOutput] ++ after)).Nodup) :
@@ -866,11 +866,11 @@ theorem CappedEncodingMonitor.runObserved_empty_eq_true_of_query_before_sign_of_
   exact hnodup
 
 theorem CappedEncodingMonitor.runObserved_empty_eq_true_of_sign_before_query_of_valid
-    (leafIndex : LeafIndex) (signedOutput forgedOutput : HashOutput)
+    (leafIndex : LeafIndex) (signedOutput forgedOutput : Digest)
     (before middle after : EncodingActionTrace)
-    (hsignedValid : Code.ValidDigest (truncateHash signedOutput))
-    (hforgedValid : Code.ValidDigest (truncateHash forgedOutput))
-    (hdigest : truncateHash signedOutput = truncateHash forgedOutput)
+    (hsignedValid : Code.ValidDigest (signedOutput))
+    (hforgedValid : Code.ValidDigest (forgedOutput))
+    (hdigest : signedOutput = forgedOutput)
     (hnodup : (CappedEncodingMonitor.validObservedSignLeafIndices
       (before ++ [.sign leafIndex signedOutput] ++ middle ++
         [.query leafIndex forgedOutput] ++ after)).Nodup) :
@@ -974,11 +974,11 @@ theorem cappedDetailedGameWithEncodingTrace_postSigningFreshForgedCollision_moni
     simpa using hleafIndex
   let forgedInput := Concrete.CacheView.encodingInput secretKey.parameter forgery.epoch
     (forgery.message, forgery.signature.randomness)
-  have hforgedValid : Code.ValidDigest (truncateHash forgedOutput) := by
+  have hforgedValid : Code.ValidDigest (forgedOutput) := by
     refine ⟨encoding, ?_⟩
     simpa [Concrete.CacheView.encodingHash, forgedInput,
       Concrete.CacheView.digestAt_eq_of_cache_eq_some hforgedFinal] using hdecode
-  have hsignedValid : Code.ValidDigest (truncateHash signedOutput) := by
+  have hsignedValid : Code.ValidDigest (signedOutput) := by
     rw [hdigest]
     exact hforgedValid
   cases hadversaryForged : adversaryState.1 forgedInput with

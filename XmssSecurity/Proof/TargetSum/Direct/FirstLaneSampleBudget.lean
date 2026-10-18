@@ -35,25 +35,24 @@ theorem countedSource_encodingBudget_after_trajectory {α : Type}
 
 theorem countedSource_firstLane_encodingSamples_le {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
-    (right : (CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest)) ×
-      (CappedChain.GlobalChainEdgeIndex → Digest))
+    (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (leftResult : α × CountedSourceState)
     (rightResult : (α × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hleft : leftResult ∈ support ((simulateQ
       (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
       computation).run (CountedSourceState.initial left.cache)))
-    (hright : rightResult ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.1.2)
-      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
+    (hright : rightResult ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
+      ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         computation).run
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1.1)))).run))
-    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 leftResult.2.toSource
+          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run))
+    (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftResult.2.toSource
       rightResult.1.2 rightResult.2) :
     rightResult.2.encodingActions.length ≤
-      rightResult.1.2.attackerTrace.encodingInputCount right.1.1.secretKey.parameter +
+      rightResult.1.2.attackerTrace.encodingInputCount right.1.secretKey.parameter +
         leftResult.2.counts.signing := by
   have hsource := countedSource_encodingBudget_after_trajectory left hleftSupport computation leftResult hleft
   change cachedEncodingInputCount leftResult.2.counts.cache left.secretKey.parameter ≤ _ at hsource
@@ -63,8 +62,8 @@ theorem countedSource_firstLane_encodingSamples_le {α : Type}
     cachedEncodingInputCount rightResult.1.2.causalState.cache left.secretKey.parameter at hcache
   have htrace : leftResult.2.attackerTrace = rightResult.1.2.attackerTrace := hstate.1.2
   rw [hcache, ← hparameter,
-    globalFirstLaneExactTraced_encodingCount_eq_trace right.1.2 right.1.1 hrightSupport
-      right.2 computation rightResult hright, htrace] at hsource
+    globalFirstLaneExactTraced_encodingCount_eq_trace right.2 right.1 hrightSupport
+      computation rightResult hright, htrace] at hsource
   exact_mod_cast hsource
 
 noncomputable def observableFirstLaneCharge (parameter : PublicParameter) (state : CappedChain.GlobalHighDirectTracedState)

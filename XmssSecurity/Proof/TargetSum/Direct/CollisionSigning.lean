@@ -23,9 +23,6 @@ namespace XmssSecurity.TargetSum.Direct.Collision
 
 open CollisionMath
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
 /-- What the bounded-attempt signer leaves in the cache: the cache only grows, the returned
 signature's input is cached with a decodable digest, and every other newly cached encoding input
 of the epoch has an undecodable digest. -/
@@ -65,10 +62,10 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
       -- the attempt either reads a cached digest or samples a fresh one
       have hcases : (attempt.2 = cache ∧
             ∃ output, cache attemptInput = some output ∧
-              attempt.1 = (Code.decodeDigest (Generic.truncateHash output)).map
+              attempt.1 = (Code.decodeDigest (output)).map
                 (Generic.Concrete.precomputedSignWithEncoding secretKey leafIndex randomness)) ∨
           (cache attemptInput = none ∧ ∃ output, attempt.2 = cache.cacheQuery attemptInput output ∧
-              attempt.1 = (Code.decodeDigest (Generic.truncateHash output)).map
+              attempt.1 = (Code.decodeDigest (output)).map
                 (Generic.Concrete.precomputedSignWithEncoding secretKey leafIndex randomness)) := by
         cases hcached : cache attemptInput with
         | some output =>
@@ -94,7 +91,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
           have hrandomness : signature.randomness = randomness := by
             rcases hcases with ⟨_, output, _, hmap⟩ | ⟨_, output, _, hmap⟩ <;>
             · rw [hanswer] at hmap
-              cases hdecode : Code.decodeDigest (Generic.truncateHash output) <;>
+              cases hdecode : Code.decodeDigest (output) <;>
                 simp [hdecode, Generic.Concrete.precomputedSignWithEncoding] at hmap
               subst hmap
               rfl
@@ -106,7 +103,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
               rw [hrandomness, hcacheEq]
               refine ⟨output, houtput, ?_⟩
               rw [hanswer] at hmap
-              cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
+              cases hdecode : Code.decodeDigest (output) with
               | some encoding => exact ⟨encoding, hdecode⟩
               | none => simp [hdecode] at hmap
             · intro entry hnone hvalid
@@ -122,7 +119,7 @@ theorem precomputedSignBoundedAttempts_newValid (secretKey : Generic.SecretKey) 
               rw [hrandomness, hcacheEq]
               refine ⟨output, by simp [attemptInput], ?_⟩
               rw [hanswer] at hmap
-              cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
+              cases hdecode : Code.decodeDigest (output) with
               | some encoding => exact ⟨encoding, hdecode⟩
               | none => simp [hdecode] at hmap
             · intro entry hnone _hvalid
@@ -231,10 +228,10 @@ theorem raceBound_le_leafPotential (hq : q + 1 ≤ 2 ^ 127) (cache : QueryCache 
   have hnK : cached.card ≤ (entries parameter cache leafIndex).ncard :=
     card_cachedRandomizersAt_le_ncard_entries message
   have hKq : (entries parameter cache leafIndex).ncard ≤ q := by omega
-  have hnbound : cached.card + signingAttemptLimit ≤ 2 ^ randomnessBits := by
+  have hnbound : cached.card + signingAttemptLimit ≤ 2 ^ digestBits := by
     have : q ≤ 2 ^ 127 := by omega
     have hsig : signingAttemptLimit = 2 ^ 32 := rfl
-    rw [hsig, show randomnessBits = 128 from rfl]
+    rw [hsig, show digestBits = 128 from rfl]
     omega
   have hN : 0 < realN := by unfold realN; positivity
   have hDn : 0 < realD - cached.card := by
@@ -248,13 +245,13 @@ theorem raceBound_le_leafPotential (hq : q + 1 ≤ 2 ^ 127) (cache : QueryCache 
   set w : ℝ := ((remaining : ℝ) + 1) / realN
   have hw : 0 ≤ w := div_nonneg (add_nonneg (Nat.cast_nonneg _) zero_le_one) hN.le
   have hdenEq : (W.card : ℝ≥0∞) + TargetSum.acceptanceProbability *
-      ((2 ^ randomnessBits - cached.card - signingAttemptLimit : ℕ) : ℝ≥0∞) =
+      ((2 ^ digestBits - cached.card - signingAttemptLimit : ℕ) : ℝ≥0∞) =
         ENNReal.ofReal ((W.card : ℝ) + realP * (realD - cached.card)) := by
-    have hsub : ((2 ^ randomnessBits - cached.card - signingAttemptLimit : ℕ) : ℝ) =
+    have hsub : ((2 ^ digestBits - cached.card - signingAttemptLimit : ℕ) : ℝ) =
         realD - cached.card := by
       rw [Nat.cast_sub (by omega), Nat.cast_sub (by omega)]
       unfold realD
-      simp only [show randomnessBits = 128 from rfl, show signingAttemptLimit = 2 ^ 32 from rfl]
+      simp only [show digestBits = 128 from rfl, show signingAttemptLimit = 2 ^ 32 from rfl]
       push_cast
       ring
     rw [ENNReal.ofReal_add (Nat.cast_nonneg _) (mul_nonneg realP_pos.le hDn.le),

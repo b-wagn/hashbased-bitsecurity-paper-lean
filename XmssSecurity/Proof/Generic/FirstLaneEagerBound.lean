@@ -41,7 +41,7 @@ inductive EncodingRequest where
   | sign (leafIndex : LeafIndex)
 
 def EncodingRequest.observed
-    (request : EncodingRequest) (output : HashOutput) :
+    (request : EncodingRequest) (output : Digest) :
     EncodingMonitor.ObservedAction :=
   match request with
   | .query leafIndex => .query leafIndex output
@@ -53,7 +53,7 @@ def EncodingRequest.cost : EncodingRequest → Nat
 
 noncomputable def applyEncodingRequest
     (request : EncodingRequest)
-    (resume : HashOutput → Option EncodingMonitor.State → ProbComp Bool) :
+    (resume : Digest → Option EncodingMonitor.State → ProbComp Bool) :
     Option EncodingMonitor.State → ProbComp Bool
   | none => uniformHashOutput >>= fun output => resume output none
   | some state => uniformHashOutput >>= fun output =>
@@ -66,7 +66,7 @@ noncomputable def applyEncodingRequest
 theorem evalDist_sample_applyEncodingRequest
     (sample : ProbComp β) (hmass : Pr[⊥ | sample] = 0)
     (request : EncodingRequest)
-    (resume : β → HashOutput → Option EncodingMonitor.State → ProbComp Bool)
+    (resume : β → Digest → Option EncodingMonitor.State → ProbComp Bool)
     (state : Option EncodingMonitor.State) :
     evalDist (sample >>= fun seed =>
       applyEncodingRequest request (resume seed) state) =
@@ -146,7 +146,7 @@ noncomputable def potential
 
 theorem applyEncodingRequest_true_probability_le
     (request : EncodingRequest)
-    (resume : HashOutput → Option EncodingMonitor.State → ProbComp Bool)
+    (resume : Digest → Option EncodingMonitor.State → ProbComp Bool)
     (state : Option EncodingMonitor.State) (fuel : Nat)
     (hresume : ∀ output nextState,
       Pr[(· = true) | resume output nextState] ≤
@@ -171,32 +171,24 @@ theorem applyEncodingRequest_true_probability_le
             resume output (some nextState)
           have hdirect :
               applyEncodingRequest (.query leafIndex) resume (some state) =
-                CappedEncodingMonitor.applyHashOutputQueryMonitor leafIndex
+                CappedEncodingMonitor.applyUniformQueryMonitor leafIndex
                   activeResume state := by
-            rw [CappedEncodingMonitor.applyHashOutputQueryMonitor_eq_observed]
+            rw [CappedEncodingMonitor.applyUniformQueryMonitor_eq_observed]
             unfold applyEncodingRequest EncodingRequest.observed activeResume
             apply bind_congr
             intro output
             cases hsigned : state.signed leafIndex with
             | none =>
                 by_cases hvalid :
-                    Code.ValidDigest (truncateHash output) <;>
+                    Code.ValidDigest (output) <;>
                   simp [CappedEncodingMonitor.State.applyObserved, hsigned,
                     hvalid]
             | some target =>
                 simp [CappedEncodingMonitor.State.applyObserved, hsigned]
-          have hdist :
-              evalDist (applyEncodingRequest (.query leafIndex) resume (some state)) =
-                evalDist (CappedEncodingMonitor.applyProgrammedQueryMonitor leafIndex
-                  activeResume state) := by
-            rw [hdirect]
-            exact
-              CappedEncodingMonitor.applyProgrammedQueryMonitor_evalDist_eq
-                leafIndex activeResume state |>.symm
-          refine (probEvent_congr' (fun _ _ => Iff.rfl) hdist).le.trans ?_
+          rw [hdirect]
           simpa [EncodingRequest.cost, encodingPendingRisk, Nat.cast_add,
             HiddenValue.card_digest] using
-            CappedEncodingMonitor.applyProgrammedQueryMonitor_true_probability_le
+            CappedEncodingMonitor.applyUniformQueryMonitor_true_probability_le
               leafIndex activeResume state fuel fun output nextState => by
                 simpa [activeResume, encodingPendingRisk,
                   HiddenValue.card_digest] using
@@ -214,30 +206,20 @@ theorem applyEncodingRequest_true_probability_le
                 resume output (some nextState)
               have hdirect :
                   applyEncodingRequest (.sign leafIndex) resume (some state) =
-                    CappedEncodingMonitor.applyHashOutputSignAttemptMonitor leafIndex
+                    CappedEncodingMonitor.applyUniformSignAttemptMonitor leafIndex
                       activeResume state := by
-                rw [CappedEncodingMonitor.applyHashOutputSignAttemptMonitor_eq_observed]
+                rw [CappedEncodingMonitor.applyUniformSignAttemptMonitor_eq_observed]
                 unfold applyEncodingRequest EncodingRequest.observed activeResume
                 apply bind_congr
                 intro output
                 by_cases hvalid :
-                    Code.ValidDigest (truncateHash output) <;>
+                    Code.ValidDigest (output) <;>
                   simp [CappedEncodingMonitor.State.applyObserved, hsigned,
                     hvalid]
-              have hdist :
-                  evalDist
-                      (applyEncodingRequest (.sign leafIndex) resume (some state)) =
-                    evalDist
-                      (CappedEncodingMonitor.applyProgrammedSignAttemptMonitor
-                        leafIndex activeResume state) := by
-                rw [hdirect]
-                exact
-                  CappedEncodingMonitor.applyProgrammedSignAttemptMonitor_evalDist_eq
-                    leafIndex activeResume state |>.symm
-              refine (probEvent_congr' (fun _ _ => Iff.rfl) hdist).le.trans ?_
+              rw [hdirect]
               simpa [EncodingRequest.cost, encodingPendingRisk,
                 HiddenValue.card_digest] using
-                CappedEncodingMonitor.applyProgrammedSignAttemptMonitor_true_probability_le
+                CappedEncodingMonitor.applyUniformSignAttemptMonitor_true_probability_le
                   leafIndex activeResume state fuel fun output nextState => by
                     simpa [activeResume, encodingPendingRisk,
                       HiddenValue.card_digest] using
@@ -249,7 +231,7 @@ theorem applyEncodingRequest_true_probability_le
                     ((2 ^ digestBits : Nat) : ENNReal)⁻¹ +
                   encodingPendingRisk (some state))
                 fun output _ => ?_).trans ?_
-              · by_cases hvalid : Code.ValidDigest (truncateHash output)
+              · by_cases hvalid : Code.ValidDigest (output)
                 · rw [show CappedEncodingMonitor.State.applyObserved state
                       (.sign leafIndex output) = none by
                     simp [CappedEncodingMonitor.State.applyObserved, hsigned,

@@ -28,20 +28,20 @@ theorem freshMixedPrefixProbability_le_of_cached (adversary : Adversary) (D : �
   unfold freshMixedPrefixProbability mixedEncodingPrefixProgram
   rw [probEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-        (base + credit + if Code.ValidDigest (Generic.truncateHash output) then extra else 0) := by
+    _ ≤ ∑' output : Digest, Pr[= output | $ᵗ Digest] *
+        (base + credit + if Code.ValidDigest (output) then extra else 0) := by
       apply ENNReal.tsum_le_tsum
       intro output
       apply mul_le_mul' le_rfl
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-      by_cases hvalid : Code.ValidDigest (Generic.truncateHash output)
+      by_cases hvalid : Code.ValidDigest (output)
       · rw [if_pos hvalid]
         apply le_trans (probEvent_mono'' (fun _ h => h.2))
         apply (mixedPrefix_probability_le_direct adversary D hD _).trans
         exact hgeneral.trans (by simp only [add_assoc]; exact add_le_add le_rfl (le_add_left le_rfl))
       · rw [if_neg hvalid, add_zero]
-        have hnone : Code.decodeDigest (Generic.truncateHash output) = none := by
-          cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
+        have hnone : Code.decodeDigest (output) = none := by
+          cases hdecode : Code.decodeDigest (output) with
           | none => rfl
           | some encoding => exact (hvalid ⟨encoding, hdecode⟩).elim
         simp only [hnone]

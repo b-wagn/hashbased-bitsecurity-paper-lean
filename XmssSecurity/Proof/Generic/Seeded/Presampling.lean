@@ -10,7 +10,7 @@ variable [Code]
 set_option backward.isDefEq.respectTransparency false
 
 theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
-    (h : left ≠ right) (a b : HashOutput) :
+    (h : left ≠ right) (a b : Digest) :
     (cache.cacheQuery left a).cacheQuery right b = (cache.cacheQuery right b).cacheQuery left a := by
   funext input
   by_cases hl : input = left
@@ -25,7 +25,7 @@ theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
 theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (target : HashInput) (hfresh : cache target = none) :
     𝒟[(simulateQ romImpl computation).run' cache] = 𝒟[do
-      let output ← $ᵗ HashOutput
+      let output ← $ᵗ Digest
       (simulateQ romImpl computation).run' (cache.cacheQuery target output)] := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
@@ -48,7 +48,7 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
           rw [hrun]
           trans 𝒟[do
             let answer ← (liftM (unifSpec.query input) : ProbComp _)
-            let output ← $ᵗ HashOutput
+            let output ← $ᵗ Digest
             (simulateQ romImpl (next answer)).run' (cache.cacheQuery target output)]
           · exact evalDist_bind_congr' _ (fun answer => ih answer cache hfresh)
           · rw [evalDist_bind_bind_swap]
@@ -67,7 +67,7 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
             apply evalDist_bind_congr'
             intro output
             rw [hrun, QueryImpl.withCaching_run_some _ (QueryCache.cacheQuery_self _ _ _), pure_bind]
-          · have hfresh' (output : HashOutput) : (cache.cacheQuery input output) target = none := by
+          · have hfresh' (output : Digest) : (cache.cacheQuery input output) target = none := by
               rw [QueryCache.cacheQuery_of_ne _ _ (Ne.symm heq), hfresh]
             cases hinput : cache input with
             | some answer =>
@@ -79,8 +79,8 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
             | none =>
                 rw [hrun, QueryImpl.withCaching_run_none _ hinput, bind_map_left]
                 trans 𝒟[do
-                  let answer ← $ᵗ HashOutput
-                  let output ← $ᵗ HashOutput
+                  let answer ← $ᵗ Digest
+                  let output ← $ᵗ Digest
                   (simulateQ romImpl (next answer)).run' ((cache.cacheQuery input answer).cacheQuery target output)]
                 · exact evalDist_bind_congr' _ (fun answer => ih answer _ (hfresh' answer))
                 · rw [evalDist_bind_bind_swap]

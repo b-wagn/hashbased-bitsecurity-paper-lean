@@ -58,7 +58,7 @@ theorem Concrete.keygen_cache_unique_leafAddress
     (hmem : keyResult ∈ support
       ((simulateQ romImpl Concrete.keygen).run ∅))
     (targetLeafIndex : LeafIndex) (left right : HashInput)
-    (leftOutput rightOutput : HashOutput)
+    (leftOutput rightOutput : Digest)
     (hleftP : AtHashAddress keyResult.1.2.parameter (.leaf targetLeafIndex) left)
     (hrightP : AtHashAddress keyResult.1.2.parameter (.leaf targetLeafIndex) right)
     (hleft : keyResult.2 left = some leftOutput)
@@ -76,7 +76,7 @@ theorem Concrete.keygen_cache_unique_chainAddress
     (hmem : keyResult ∈ support
       ((simulateQ romImpl Concrete.keygen).run ∅))
     (targetLeafIndex : LeafIndex) (targetChain : ChainIndex) (targetStep : ChainStep)
-    (left right : HashInput) (leftOutput rightOutput : HashOutput)
+    (left right : HashInput) (leftOutput rightOutput : Digest)
     (hleftP : AtHashAddress keyResult.1.2.parameter
       (.chain targetLeafIndex targetChain targetStep) left)
     (hrightP : AtHashAddress keyResult.1.2.parameter
@@ -96,7 +96,7 @@ theorem Concrete.keygen_cache_unique_merkleAddress
     (hmem : keyResult ∈ support
       ((simulateQ romImpl Concrete.keygen).run ∅))
     (targetLevel : MerkleLevel) (targetNode : MerkleNode)
-    (left right : HashInput) (leftOutput rightOutput : HashOutput)
+    (left right : HashInput) (leftOutput rightOutput : Digest)
     (hleftP : AtHashAddress keyResult.1.2.parameter
       (.merkle targetLevel targetNode) left)
     (hrightP : AtHashAddress keyResult.1.2.parameter

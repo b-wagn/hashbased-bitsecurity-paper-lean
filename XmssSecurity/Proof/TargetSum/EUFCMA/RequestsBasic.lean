@@ -77,7 +77,7 @@ theorem prune_uniform_bind {α : Type} (budget : ℕ) (sample : unifSpec.Domain)
         prune budget (next answer) := rfl
 
 theorem prune_hash_bind {α : Type} (budget : ℕ) (input : HashInput)
-    (next : HashOutput → OracleComp (OracleWorld + SigningSpec) α) :
+    (next : Digest → OracleComp (OracleWorld + SigningSpec) α) :
     prune budget (liftM ((OracleWorld + SigningSpec).query (.inl (.inr input))) >>= next) =
       if budget = 0 then prune 0 (next default)
       else liftM ((OracleWorld + SigningSpec).query (.inl (.inr input))) >>= fun answer =>

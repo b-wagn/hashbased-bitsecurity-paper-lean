@@ -26,9 +26,9 @@ theorem neighbor_request_fresh (answer : Option Generic.Signature) (signature : 
     (congrArg (fun request : SignRequest => request.message) heq).symm
 
 theorem neighbor_euf_gameCounted_eq_strong :
-    EUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput HashOutput)
+    EUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput Digest)
       Generic.xmss neighborSufCmaAdversary =
-    SUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput HashOutput)
+    SUFCMA.gameCounted CountingMode.everything (RandomOracleModel.hashCost HashInput Digest)
       Generic.xmss neighborSufCmaAdversary := by
   rw [neighbor_gameCounted_everything]
   unfold EUFCMA.gameCounted

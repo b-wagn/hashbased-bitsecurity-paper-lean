@@ -26,8 +26,8 @@ theorem liftPrivateSamples_counted {Key α : Type}
     (secretKey : Key) (requestCost : ℕ) (computation : ProbComp α) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
-        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) requestCost scheme secretKey)
+          (RandomOracleModel.hashCost HashInput Digest) +
+        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest) requestCost scheme secretKey)
       (Generic.Attack.liftPrivateSamples computation)).run.run =
       (fun result : α => ((result, Multiplicative.ofAdd 0), ([] : QueryLog Generic.SigningSpec))) <$>
         worldPrivateSamples computation := by
@@ -57,8 +57,8 @@ theorem chainMutationMainOf_counted {Key : Type}
     (secretKey : Key) (requestCost : ℕ) (choices : ProbComp (ChainIndex × Digest)) :
     (simulateQ
       ((QueryImpl.ofLift OracleWorld (WriterT (QueryLog Generic.SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
-        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput) requestCost scheme secretKey)
+          (RandomOracleModel.hashCost HashInput Digest) +
+        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest) requestCost scheme secretKey)
       (chainMutationMainOf choices)).run.run = (do
       let signed ← Generic.countHashQueries (scheme.sign secretKey Generic.Attack.mutationRequest.epoch Generic.Attack.mutationRequest.message)
       let choice ← worldPrivateSamples choices
@@ -76,7 +76,7 @@ theorem chainMutationMainOf_counted {Key : Type}
 adversary is charged its request (if requests are charged) and the signer's hash calls. -/
 theorem chainMutation_signer_counted_support_bound (requests : Bool) (result : Bool × ℕ)
     (hresult : result ∈ support (SUFCMA.gameCounted ⟨false, true, false, requests⟩
-      (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss Generic.Attack.chainMutationSufCmaAdversary)) :
+      (RandomOracleModel.hashCost HashInput Digest) Generic.xmss Generic.Attack.chainMutationSufCmaAdversary)) :
     result.2 ≤ (if requests then 1 else 0) + 2 := by
   unfold SUFCMA.gameCounted at hresult
   simp only [costIf, Bool.false_eq_true, if_false, if_true, Modes.charge_zero] at hresult

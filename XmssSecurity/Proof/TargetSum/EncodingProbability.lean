@@ -73,7 +73,7 @@ scoped instance signerBound : Code.SignerBound where
     rw [code_acceptanceProbability]
     show (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit +
       (signingAttemptLimit : ℝ≥0∞) * signingAttemptLimit *
-        ((2 ^ randomnessBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
+        ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ < 1 / 32
     have hpow : (1 - TargetSum.acceptanceProbability) ^ signingAttemptLimit ≤
         1 / (1 + (signingAttemptLimit : ℝ≥0∞) * (1 / ((2 ^ 15 : ℕ) : ℝ≥0∞))) :=
       (pow_le_pow_left' (tsub_le_tsub_left TargetSum.acceptanceProbability_lower.le 1)
@@ -83,6 +83,6 @@ scoped instance signerBound : Code.SignerBound where
     rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
     simp only [ENNReal.toReal_div, ENNReal.toReal_mul, ENNReal.toReal_inv]
     rw [ENNReal.toReal_add (by finiteness) (by finiteness)]
-    norm_num [signingAttemptLimit, randomnessBits, ENNReal.toReal_div, ENNReal.toReal_mul]
+    norm_num [signingAttemptLimit, digestBits, ENNReal.toReal_div, ENNReal.toReal_mul]
 
 end XmssSecurity.TargetSum

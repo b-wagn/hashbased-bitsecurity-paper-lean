@@ -135,7 +135,7 @@ theorem evalDist_freshRequests {α : Type} (hash : QueryImpl HashSpec (StateT St
 
 theorem evalDist_uncurry_tapes :
     𝒟[Function.uncurry <$> sampleRequestTapes] = 𝒟[sampleRandomizerOutputs] :=
-  evalDist_map_bijective_uniform_cross (α := RequestTapes) (β := RandomizerOutputs) _ (Equiv.curry SignRequest Trial HashOutput).symm.bijective
+  evalDist_map_bijective_uniform_cross (α := RequestTapes) (β := RandomizerOutputs) _ (Equiv.curry SignRequest Trial Digest).symm.bijective
 
 theorem evalDist_tableRequests {α : Type} {used : Set SignRequest}
     (hash : QueryImpl HashSpec (StateT State ProbComp)) (secretKey : XmssSecurity.Generic.SecretKey)

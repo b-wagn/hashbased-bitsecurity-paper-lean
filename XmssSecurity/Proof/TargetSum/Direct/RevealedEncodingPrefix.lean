@@ -154,27 +154,27 @@ theorem revealedEncodingPrefixEvent_good_implies_hit
     (left : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (right : Generic.Deciding.BaseHighKey)
     (hkey : Generic.CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleft : left ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (hright : right.1.1 ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
+    (hright : right.1 ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (source : Generic.Forgery × Generic.CappedChain.SourceExactTracedState)
     (target : (Generic.Forgery × Generic.CappedChain.GlobalHighDirectTracedState) × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
     (hforgery : source.1 = target.1.1)
-    (hgood : Generic.CappedChain.SourceFirstLaneExactGoodStateRelation left right.1 source.2 target.1.2 target.2)
+    (hgood : Generic.CappedChain.SourceFirstLaneExactGoodStateRelation left right source.2 target.1.2 target.2)
     (hcovered : Generic.CappedChain.GlobalCausalTraceRevealsCovered
-      (Generic.CappedChain.GlobalReturnedChainValueCovered target.1.2.causalState.cache right.1.1.secretKey
+      (Generic.CappedChain.GlobalReturnedChainValueCovered target.1.2.causalState.cache right.1.secretKey
         target.1.2.attackerTrace.toSigningLog) target.2.chainActions)
     (encoding : Encoding) (hevent : RevealedEncodingPrefixEvent left source encoding) :
-    Generic.FirstLaneOracleSimulation.CombinedHit right.1.2 (target.2 ++
-      (Generic.Deciding.decidingProbeResult right.1.2 target.1.1.epoch
-        (Generic.Deciding.signedEncoding target.1.2.causalState.cache right.1.1.secretKey.parameter
+    Generic.FirstLaneOracleSimulation.CombinedHit right.2 (target.2 ++
+      (Generic.Deciding.decidingProbeResult right.2 target.1.1.epoch
+        (Generic.Deciding.signedEncoding target.1.2.causalState.cache right.1.secretKey.parameter
           target.1.2.attackerTrace.toSigningLog target.1.1.epoch)
         encoding target.1.1.signature.chainValue).2) := by
   have hparameter := Generic.CappedChain.programmedGlobal_secretKey_parameter_eq left right hkey hleft hright
-  have htables : left.table = right.1.2 := hkey.1.toStable.1.1
+  have htables : left.table = right.2 := hkey.1.toStable.1.1
   have htrace : source.2.2 = target.1.2.attackerTrace := hgood.1.2
   obtain ⟨_monitor, _hmonitor, _hagrees, _hrevealed, hcausal, _hretained⟩ := hgood.1.1
-  change Generic.CappedChain.GlobalFilteredCausalStateRelation left right.1 source.2.1.1.1 target.1.2.causalState at hcausal
+  change Generic.CappedChain.GlobalFilteredCausalStateRelation left right source.2.1.1.1 target.1.2.causalState at hcausal
   have hsigned : Generic.Deciding.signedEncoding source.2.1.1.1 left.secretKey.parameter source.2.2.toSigningLog source.1.epoch =
-      Generic.Deciding.signedEncoding target.1.2.causalState.cache right.1.1.secretKey.parameter
+      Generic.Deciding.signedEncoding target.1.2.causalState.cache right.1.secretKey.parameter
         target.1.2.attackerTrace.toSigningLog target.1.1.epoch := by
     rw [hparameter, ← htrace, ← hforgery]
     exact Generic.Deciding.signedEncoding_eq_of_comparableCaches _ _ _ hcausal.1 _ _
@@ -184,7 +184,7 @@ theorem revealedEncodingPrefixEvent_good_implies_hit
   intro value hmem
   apply huncovered
   apply Generic.CappedChain.globalReturnedChainValueCovered_of_comparableCaches left.secretKey.parameter
-    source.2.1.1.1 target.1.2.causalState.cache left.secretKey right.1.1.secretKey
+    source.2.1.1.1 target.1.2.causalState.cache left.secretKey right.1.secretKey
     source.2.2.toSigningLog target.1.2.attackerTrace.toSigningLog rfl hparameter
     (congrArg Generic.CappedChain.AttackerActionTrace.toSigningLog htrace.symm) hcausal.1
   exact hcovered _ value ((Generic.Deciding.chainAction_mem_iff _ _).mpr hmem)

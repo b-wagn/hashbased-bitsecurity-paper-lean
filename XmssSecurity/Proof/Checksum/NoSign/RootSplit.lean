@@ -126,8 +126,8 @@ theorem evalDist_rootTree_split (parameter : PublicParameter)
         let right ← (simulateQ randomOracle
           (Generic.Concrete.treeNode parameter secret (treeHeight - 1)
             (Generic.Concrete.childNode Generic.Concrete.rootNode true) : OracleComp HashSpec Digest)).run left.2
-        let output ← $ᵗ HashOutput
-        pure (Generic.truncateHash output,
+        let output ← $ᵗ Digest
+        pure (output,
           right.2.cacheQuery (topInput parameter left.1 right.1) output)] := by
   have htree : (Generic.Concrete.treeNode parameter secret treeHeight Generic.Concrete.rootNode :
       OracleComp HashSpec Digest) = (do
@@ -150,9 +150,9 @@ theorem evalDist_rootTree_split (parameter : PublicParameter)
       (simulateQ randomOracle
         (Generic.Concrete.tweakableHash parameter (.merkle topLevel Generic.Concrete.rootNode)
           (Generic.Concrete.nodePayload left.1 right.1) : OracleComp HashSpec Digest)).run right.2 =
-      (fun output : HashOutput =>
-        (Generic.truncateHash output, right.2.cacheQuery (topInput parameter left.1 right.1) output)) <$>
-        ($ᵗ HashOutput) := by
+      (fun output : Digest =>
+        (output, right.2.cacheQuery (topInput parameter left.1 right.1) output)) <$>
+        ($ᵗ Digest) := by
     simp only [Generic.Concrete.tweakableHash, Generic.Concrete.oracleHash, simulateQ_bind, simulateQ_pure,
       StateT.run_bind]
     rw [show (simulateQ randomOracle

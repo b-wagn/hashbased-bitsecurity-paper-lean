@@ -91,8 +91,8 @@ noncomputable def globalCausalHashQuery
     (input : HashInput) :
     StateT GlobalCausalHashState
       (OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex))
-      HashOutput := fun state =>
-  (fun result : HashOutput × QueryCache HashSpec =>
+      Digest := fun state =>
+  (fun result : Digest × QueryCache HashSpec =>
     (result.1, state.setCache result.2)) <$>
       RevealProbeOracleSimulation.liftProbComp
         ((randomOracle input).run state.cache)
@@ -100,7 +100,7 @@ noncomputable def globalCausalHashQuery
 theorem globalCausalHashQuery_run
     (input : HashInput) (state : GlobalCausalHashState) :
     (globalCausalHashQuery input).run state =
-      (fun result : HashOutput × QueryCache HashSpec =>
+      (fun result : Digest × QueryCache HashSpec =>
         (result.1, state.setCache result.2)) <$>
           RevealProbeOracleSimulation.liftProbComp
             ((randomOracle input).run state.cache) := rfl

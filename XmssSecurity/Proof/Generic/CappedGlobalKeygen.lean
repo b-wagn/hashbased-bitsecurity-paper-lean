@@ -1,6 +1,5 @@
 import XmssSecurity.Proof.Generic.CappedChain.ChainRevealFiltering
 import XmssSecurity.Proof.Generic.ChainOraclePresampling
-import XmssSecurity.Proof.Generic.HashOutputHigh
 import XmssSecurity.Proof.Common.UniformFiniteTable
 import XmssSecurity.Proof.Generic.CausalKeygenCoupling
 import XmssSecurity.Proof.Generic.CausalTreeCoupling
@@ -82,18 +81,12 @@ def globalChainTableEdgeTarget
     (edge : GlobalChainEdgeIndex) : Digest :=
   table (edge.1, edge.2.1, chainStepNextDigit edge.2.2)
 
-def GlobalChainTableSeedsMatch
-    (secretKey : SecretKey) (table : GlobalChainValueIndex → Digest) : Prop :=
-  ∀ leafIndex chain,
-    secretKey.chainStart leafIndex chain =
-      table (chain, leafIndex, ⟨0, by simp [chainLength]⟩)
-
 def GlobalChainTableEdgesMatch
     (cache : QueryCache HashSpec) (parameter : PublicParameter)
     (table : GlobalChainValueIndex → Digest) : Prop :=
   ∀ edge, ∃ output,
     cache (globalChainTableEdgeInput parameter table edge) = some output ∧
-      truncateHash output = globalChainTableEdgeTarget table edge
+      output = globalChainTableEdgeTarget table edge
 
 theorem GlobalChainTableEdgesMatch.mono
     {cache larger : QueryCache HashSpec} {parameter : PublicParameter}
@@ -287,103 +280,6 @@ theorem evalDist_actualGlobalChainKeygen_eq_explicit :
         OracleComp HashSpec Digest)
   rw [htree]
 
-noncomputable def globalChainEdgeHighTableOfCache
-    (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (table : GlobalChainValueIndex → Digest) :
-    GlobalChainEdgeIndex → Digest := fun edge =>
-  match cache (globalChainTableEdgeInput parameter table edge) with
-  | none => 0
-  | some output => XmssSecurity.Generic.hashOutputHigh output
-
-def globalChainEdgeOutputFromHigh
-    (high : GlobalChainEdgeIndex → Digest)
-    (table : GlobalChainValueIndex → Digest)
-    (edge : GlobalChainEdgeIndex) : HashOutput :=
-  Rom.hashOutputEquivDigestPair.symm
-    (high edge, globalChainTableEdgeTarget table edge)
-
-theorem globalChainEdgeOutputFromHigh_eq_cached
-    (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (table : GlobalChainValueIndex → Digest)
-    (edge : GlobalChainEdgeIndex) (output : HashOutput)
-    (hcache : cache (globalChainTableEdgeInput parameter table edge) =
-      some output)
-    (htarget : truncateHash output = globalChainTableEdgeTarget table edge) :
-    globalChainEdgeOutputFromHigh
-        (globalChainEdgeHighTableOfCache cache parameter table) table edge =
-      output := by
-  simp [globalChainEdgeOutputFromHigh, globalChainEdgeHighTableOfCache,
-    hcache, XmssSecurity.Generic.hashOutputHigh, ← htarget]
-  exact Rom.hashOutputEquivDigestPair.symm_apply_apply output
-
-theorem globalChainEdgeHighTableOfCache_mono
-    (cache larger : QueryCache HashSpec) (parameter : PublicParameter)
-    (table : GlobalChainValueIndex → Digest)
-    (hmatches : GlobalChainTableEdgesMatch cache parameter table)
-    (hle : cache ≤ larger) :
-    globalChainEdgeHighTableOfCache cache parameter table =
-      globalChainEdgeHighTableOfCache larger parameter table := by
-  funext edge
-  obtain ⟨output, hcache, _htarget⟩ := hmatches edge
-  have hlarger := hle hcache
-  simp [globalChainEdgeHighTableOfCache, hcache, hlarger]
-
-abbrev GlobalChainEdgeOutputTable := GlobalChainEdgeIndex → HashOutput
-
-def outputChainSteps : List ChainStep :=
-  List.ofFn (id : ChainStep → ChainStep)
-
-theorem outputChainSteps_nodup : outputChainSteps.Nodup :=
-  List.nodup_ofFn.mpr Function.injective_id
-
-theorem mem_outputChainSteps (step : ChainStep) :
-    step ∈ outputChainSteps := by
-  simp [outputChainSteps]
-
-theorem outputChainSteps_length :
-    outputChainSteps.length = chainLength - 1 := by
-  simp [outputChainSteps, ChainStep]
-
-noncomputable def globalOutputEdgeOrder : List GlobalChainEdgeIndex :=
-  allChains ×ˢ (allLeafIndices ×ˢ outputChainSteps)
-
-theorem globalOutputEdgeOrder_nodup : globalOutputEdgeOrder.Nodup :=
-  allChains_nodup.product (allLeafIndices_nodup.product outputChainSteps_nodup)
-
-theorem mem_globalOutputEdgeOrder (edge : GlobalChainEdgeIndex) :
-    edge ∈ globalOutputEdgeOrder := by
-  rcases edge with ⟨chain, leafIndex, step⟩
-  exact List.mem_product.mpr ⟨mem_allChains chain,
-    List.mem_product.mpr ⟨mem_allLeafIndices leafIndex,
-      mem_outputChainSteps step⟩⟩
-
-theorem globalOutputEdgeOrder_length :
-    globalOutputEdgeOrder.length =
-      allChains.length * (allLeafIndices.length * (chainLength - 1)) := by
-  rw [globalOutputEdgeOrder, List.length_product,
-    List.length_product, outputChainSteps_length]
-
-noncomputable def globalChainEdgeOutputTableOfOutputTape
-    (outputs : List HashOutput) : GlobalChainEdgeOutputTable :=
-  finiteTableOfTape globalOutputEdgeOrder globalOutputEdgeOrder_nodup
-    mem_globalOutputEdgeOrder outputs
-
-@[simp]
-theorem globalChainEdgeOutputTableOfOutputTape_map
-    (table : GlobalChainEdgeOutputTable) :
-    globalChainEdgeOutputTableOfOutputTape
-      (globalOutputEdgeOrder.map table) = table :=
-  finiteTableOfTape_map globalOutputEdgeOrder globalOutputEdgeOrder_nodup
-    mem_globalOutputEdgeOrder table
-
-theorem evalDist_globalChainEdgeOutputTableOfOutputTape_uniformSnoc_eq_uniform :
-    evalDist (globalChainEdgeOutputTableOfOutputTape <$>
-      uniformSnocList HashOutput globalOutputEdgeOrder.length) =
-    (liftM (PMF.uniformOfFintype GlobalChainEdgeOutputTable) :
-      SPMF GlobalChainEdgeOutputTable) :=
-  evalDist_finiteTableOfTape_uniformSnoc_eq_uniform globalOutputEdgeOrder
-    globalOutputEdgeOrder_nodup mem_globalOutputEdgeOrder
-
 def trajectoryChainSteps : List ChainStep :=
   (List.ofFn (id : ChainStep → ChainStep)).reverse
 
@@ -421,232 +317,9 @@ theorem globalTrajectoryEdgeOrder_length :
   rw [globalTrajectoryEdgeOrder, List.length_product,
     List.length_product, trajectoryChainSteps_length]
 
-noncomputable def globalChainEdgeOutputTableOfTape
-    (outputs : List HashOutput) : GlobalChainEdgeOutputTable :=
-  finiteTableOfTape globalTrajectoryEdgeOrder
-    globalTrajectoryEdgeOrder_nodup mem_globalTrajectoryEdgeOrder outputs
-
-@[simp]
-theorem globalChainEdgeOutputTableOfTape_map
-    (table : GlobalChainEdgeOutputTable) :
-    globalChainEdgeOutputTableOfTape
-      (globalTrajectoryEdgeOrder.map table) = table :=
-  finiteTableOfTape_map globalTrajectoryEdgeOrder
-    globalTrajectoryEdgeOrder_nodup mem_globalTrajectoryEdgeOrder table
-
-noncomputable local instance outputTableSampleable :
-    SampleableType GlobalChainEdgeOutputTable :=
-  SampleableType.ofFintype GlobalChainEdgeOutputTable
-
-noncomputable local instance secretTableSampleable :
-    SampleableType (LeafIndex → ChainIndex → Digest) :=
-  SampleableType.ofFintype (LeafIndex → ChainIndex → Digest)
-
-noncomputable local instance highTableSampleable :
-    SampleableType (GlobalChainEdgeIndex → Digest) :=
-  SampleableType.ofFintype (GlobalChainEdgeIndex → Digest)
-
-noncomputable def globalChainValueTableOfRandomness
-    (randomness : (LeafIndex → ChainIndex → Digest) ×
-      GlobalChainEdgeOutputTable) :
-    GlobalChainValueIndex → Digest :=
-  globalChainTableMaterialEquiv.symm
-    (randomness.1, fun edge => truncateHash (randomness.2 edge))
-
-def globalChainHighTableOfRandomness
-    (randomness : (LeafIndex → ChainIndex → Digest) ×
-      GlobalChainEdgeOutputTable) :
-    GlobalChainEdgeIndex → Digest :=
-  fun edge => hashOutputHigh (randomness.2 edge)
-
-noncomputable def globalChainKeygenRandomnessView
-    (randomness : (LeafIndex → ChainIndex → Digest) ×
-      GlobalChainEdgeOutputTable) :
-    (GlobalChainValueIndex → Digest) ×
-      (GlobalChainEdgeIndex → Digest) :=
-  (globalChainValueTableOfRandomness randomness,
-    globalChainHighTableOfRandomness randomness)
-
-noncomputable def globalChainKeygenRandomnessOfView
-    (view : (GlobalChainValueIndex → Digest) ×
-      (GlobalChainEdgeIndex → Digest)) :
-    (LeafIndex → ChainIndex → Digest) × GlobalChainEdgeOutputTable :=
-  let material := globalChainTableMaterialEquiv view.1
-  (material.1, fun edge =>
-    Rom.hashOutputEquivDigestPair.symm (view.2 edge, material.2 edge))
-
-theorem globalChainKeygenRandomnessOfView_view
-    (randomness : (LeafIndex → ChainIndex → Digest) ×
-      GlobalChainEdgeOutputTable) :
-    globalChainKeygenRandomnessOfView
-      (globalChainKeygenRandomnessView randomness) = randomness := by
-  apply Prod.ext
-  · change (globalChainTableMaterialEquiv
-        (globalChainTableMaterialEquiv.symm
-          (randomness.1, fun edge => truncateHash (randomness.2 edge)))).1 =
-      randomness.1
-    exact congrArg Prod.fst (globalChainTableMaterialEquiv.apply_symm_apply
-      (randomness.1, fun edge => truncateHash (randomness.2 edge)))
-  · funext edge
-    have hmaterial := globalChainTableMaterialEquiv.apply_symm_apply
-      (randomness.1, fun edge => truncateHash (randomness.2 edge))
-    have hlow := congrFun (congrArg Prod.snd hmaterial) edge
-    change Rom.hashOutputEquivDigestPair.symm
-        (hashOutputHigh (randomness.2 edge),
-          (globalChainTableMaterialEquiv
-            (globalChainTableMaterialEquiv.symm
-              (randomness.1, fun edge => truncateHash (randomness.2 edge)))).2
-                edge) = randomness.2 edge
-    rw [hlow]
-    exact Rom.hashOutputEquivDigestPair.symm_apply_apply (randomness.2 edge)
-
-theorem globalChainKeygenRandomnessView_ofView
-    (view : (GlobalChainValueIndex → Digest) ×
-      (GlobalChainEdgeIndex → Digest)) :
-    globalChainKeygenRandomnessView
-      (globalChainKeygenRandomnessOfView view) = view := by
-  apply Prod.ext
-  · change globalChainTableMaterialEquiv.symm
-        ((globalChainTableMaterialEquiv view.1).1, fun edge =>
-          truncateHash (Rom.hashOutputEquivDigestPair.symm
-            (view.2 edge, (globalChainTableMaterialEquiv view.1).2 edge))) = view.1
-    have hlow : (fun edge =>
-        truncateHash (Rom.hashOutputEquivDigestPair.symm
-          (view.2 edge, (globalChainTableMaterialEquiv view.1).2 edge))) =
-        (globalChainTableMaterialEquiv view.1).2 := by
-      funext edge
-      exact congrArg Prod.snd
-        (Rom.hashOutputEquivDigestPair.apply_symm_apply
-          (view.2 edge, (globalChainTableMaterialEquiv view.1).2 edge))
-    rw [hlow, globalChainTableMaterialEquiv.symm_apply_apply]
-  · funext edge
-    exact congrArg Prod.fst
-      (Rom.hashOutputEquivDigestPair.apply_symm_apply
-        (view.2 edge, (globalChainTableMaterialEquiv view.1).2 edge))
-
-theorem globalChainKeygenRandomnessView_bijective :
-    Function.Bijective globalChainKeygenRandomnessView := by
-  constructor
-  · intro left right heq
-    rw [← globalChainKeygenRandomnessOfView_view left,
-      ← globalChainKeygenRandomnessOfView_view right, heq]
-  · intro view
-    exact ⟨globalChainKeygenRandomnessOfView view,
-      globalChainKeygenRandomnessView_ofView view⟩
-
 noncomputable def independentGlobalChainValueTable :
     ProbComp (GlobalChainValueIndex → Digest) :=
   $ᵗ (GlobalChainValueIndex → Digest)
-
-noncomputable def independentGlobalChainHigh :
-    ProbComp (GlobalChainEdgeIndex → Digest) :=
-  $ᵗ (GlobalChainEdgeIndex → Digest)
-
-theorem independentGlobalChainValueTable_eq_uniform :
-    independentGlobalChainValueTable =
-      ($ᵗ (GlobalChainValueIndex → Digest)) := rfl
-
-theorem evalDist_independentGlobalChainValueTable_eq_uniformMeasure :
-    evalDist independentGlobalChainValueTable =
-      (liftM (PMF.uniformOfFintype
-        (GlobalChainValueIndex → Digest)) :
-        SPMF (GlobalChainValueIndex → Digest)) := by
-  rw [independentGlobalChainValueTable_eq_uniform,
-    evalDist_uniformSample]
-
-noncomputable def independentGlobalChainTableHigh :
-    ProbComp ((GlobalChainValueIndex → Digest) ×
-      (GlobalChainEdgeIndex → Digest)) := do
-  let table ← independentGlobalChainValueTable
-  let high ← independentGlobalChainHigh
-  pure (table, high)
-
-noncomputable def uniformGlobalChainKeygenRandomness :
-    ProbComp ((LeafIndex → ChainIndex → Digest) ×
-      GlobalChainEdgeOutputTable) :=
-  Prod.mk <$> Concrete.sampleSecret <*>
-    ($ᵗ GlobalChainEdgeOutputTable)
-
-theorem Concrete.evalDist_sampleSecret_eq_uniformMeasure :
-    evalDist Concrete.sampleSecret =
-    (liftM (PMF.uniformOfFintype (LeafIndex → ChainIndex → Digest)) :
-      SPMF (LeafIndex → ChainIndex → Digest)) := by
-  calc
-    _ = evalDist ($ᵗ (LeafIndex → ChainIndex → Digest)) :=
-      congrArg evalDist Concrete.sampleSecret_eq
-    _ = _ := evalDist_uniformSample (LeafIndex → ChainIndex → Digest)
-
-set_option maxRecDepth 100000 in
-theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniform :
-    evalDist uniformGlobalChainKeygenRandomness =
-      evalDist ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
-        GlobalChainEdgeOutputTable)) := by
-  apply SPMF.ext
-  intro target
-  change Pr[= target | uniformGlobalChainKeygenRandomness] =
-    Pr[= target | $ᵗ ((LeafIndex → ChainIndex → Digest) ×
-      GlobalChainEdgeOutputTable)]
-  rw [uniformGlobalChainKeygenRandomness,
-    probOutput_seq_map_prod_mk_eq_mul]
-  rw [Concrete.probOutput_sampleSecret, probOutput_uniformSample,
-    probOutput_uniformSample, Fintype.card_prod, Nat.cast_mul,
-    ENNReal.mul_inv]
-  · exact Or.inr (ENNReal.natCast_ne_top _)
-  · exact Or.inl (ENNReal.natCast_ne_top _)
-
-theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniformMeasure :
-    evalDist uniformGlobalChainKeygenRandomness =
-    (liftM (PMF.uniformOfFintype
-      ((LeafIndex → ChainIndex → Digest) × GlobalChainEdgeOutputTable)) :
-      SPMF ((LeafIndex → ChainIndex → Digest) ×
-        GlobalChainEdgeOutputTable)) :=
-  evalDist_uniformGlobalChainKeygenRandomness_eq_uniform.trans
-    (evalDist_uniformSample
-      ((LeafIndex → ChainIndex → Digest) × GlobalChainEdgeOutputTable))
-
-set_option maxRecDepth 100000 in
-theorem evalDist_uniformGlobalChainKeygenRandomness_eq_independent :
-    evalDist (globalChainKeygenRandomnessView <$>
-      ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
-        GlobalChainEdgeOutputTable))) =
-    evalDist independentGlobalChainTableHigh := by
-  apply SPMF.ext
-  intro target
-  change Pr[= target | globalChainKeygenRandomnessView <$>
-      ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
-        GlobalChainEdgeOutputTable))] =
-    Pr[= target | independentGlobalChainTableHigh]
-  rw [probOutput_map_bijective_uniform_cross
-    (α := (LeafIndex → ChainIndex → Digest) × GlobalChainEdgeOutputTable)
-    (β := (GlobalChainValueIndex → Digest) ×
-      (GlobalChainEdgeIndex → Digest))
-    globalChainKeygenRandomnessView
-    globalChainKeygenRandomnessView_bijective]
-  rw [show independentGlobalChainTableHigh =
-      Prod.mk <$> ($ᵗ (GlobalChainValueIndex → Digest)) <*>
-        ($ᵗ (GlobalChainEdgeIndex → Digest)) by
-      simp [independentGlobalChainTableHigh,
-        independentGlobalChainValueTable, independentGlobalChainHigh,
-        monad_norm]]
-  rw [probOutput_seq_map_prod_mk_eq_mul]
-  rw [probOutput_uniformSample, probOutput_uniformSample,
-    probOutput_uniformSample, Fintype.card_prod, Nat.cast_mul,
-    ENNReal.mul_inv]
-  · exact Or.inr (ENNReal.natCast_ne_top _)
-  · exact Or.inl (ENNReal.natCast_ne_top _)
-
-theorem evalDist_globalChainKeygenRandomnessView_eq_independent :
-    evalDist (globalChainKeygenRandomnessView <$>
-      uniformGlobalChainKeygenRandomness) =
-    evalDist independentGlobalChainTableHigh := by
-  calc
-    _ = evalDist (globalChainKeygenRandomnessView <$>
-          ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
-            GlobalChainEdgeOutputTable))) := by
-      rw [evalDist_map,
-        evalDist_uniformGlobalChainKeygenRandomness_eq_uniform,
-        ← evalDist_map]
-    _ = _ := evalDist_uniformGlobalChainKeygenRandomness_eq_independent
 
 abbrev AllChainTrajectories := ChainIndex → List FullChainTrajectory
 
@@ -1076,16 +749,6 @@ theorem drawList_append (firstLength secondLength : Nat) :
           congr 1
           omega
 
-theorem evalDist_sampledHashOutputWithDigest_fst_eq_uniform :
-    evalDist (Prod.fst <$> Rom.sampledHashOutputWithDigest) =
-      evalDist ($ᵗ Digest) := by
-  calc
-    _ = evalDist (truncateHash <$> ($ᵗ HashOutput)) := by
-      rw [evalDist_map, Rom.evalDist_sampledHashOutputWithDigest_eq_uniform,
-        ← evalDist_map]
-      simp [Functor.map_map]
-    _ = evalDist ($ᵗ Digest) := Rom.evalDist_truncate_uniformHashOutput
-
 theorem evalDist_programmedChainExtension_fst
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
@@ -1093,16 +756,7 @@ theorem evalDist_programmedChainExtension_fst
     evalDist (Prod.fst <$>
       programmedChainExtension parameter leafIndex chain step values cache) =
       evalDist ((fun next : Digest => values.push next) <$> ($ᵗ Digest)) := by
-  unfold programmedChainExtension
-  simp only [bind_pure_comp]
-  calc
-    _ = evalDist ((fun next : Digest => values.push next) <$>
-          (Prod.fst <$> Rom.sampledHashOutputWithDigest)) := by
-      simp [Functor.map_map]
-    _ = evalDist ((fun next : Digest => values.push next) <$>
-          ($ᵗ Digest)) := by
-      rw [evalDist_map,
-        evalDist_sampledHashOutputWithDigest_fst_eq_uniform, ← evalDist_map]
+  simp [programmedChainExtension]
 
 set_option maxRecDepth 100000 in
 theorem evalDist_programmedChainTrajectory_fst_eq_uniform

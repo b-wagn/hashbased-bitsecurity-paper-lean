@@ -13,39 +13,38 @@ variable [Code]
 
 open CappedChain FirstLaneOracleSimulation
 
-abbrev BaseHighKey := (ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest)) ×
-  (GlobalChainEdgeIndex → Digest)
+abbrev BaseHighKey := ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest)
 
 noncomputable def coupledFirstLaneProgram
-    (body : ProgrammedGlobalChainKeygenView → (GlobalChainEdgeIndex → Digest) →
+    (body : ProgrammedGlobalChainKeygenView →
       OracleComp GlobalFirstLaneWorld α) :
     ProbComp (BaseHighKey × (α × ActionTrace GlobalChainValueIndex)) := do
   let key ← coupledGlobalChainKeygenWithBaseHighFull
-  let result ← (simulateQ (eagerTraceImpl key.1.2) (body key.1.1 key.2)).run
+  let result ← (simulateQ (eagerTraceImpl key.2) (body key.1)).run
   pure (key, result)
 
 noncomputable def publicFirstLaneProgram
-    (body : ProgrammedGlobalChainKeygenView → (GlobalChainEdgeIndex → Digest) →
+    (body : ProgrammedGlobalChainKeygenView →
       OracleComp GlobalFirstLaneWorld α) :
-    OracleComp GlobalFirstLaneWorld (GlobalHighDirectKeyResult × α) := do
+    OracleComp GlobalFirstLaneWorld (ProgrammedGlobalChainKeygenView × α) := do
   let key ← liftProbComp globalHighDirectKeygen
-  let result ← body key.1 key.2
+  let result ← body key
   pure (key, result)
 
 def coupledFirstLaneProjection
     (result : BaseHighKey × (α × ActionTrace GlobalChainValueIndex)) :
     (GlobalChainValueIndex → Digest) ×
-      ((GlobalHighDirectKeyResult × α) × ActionTrace GlobalChainValueIndex) :=
-  (result.1.1.2, (((result.1.1.1, result.1.2), result.2.1), result.2.2))
+      ((ProgrammedGlobalChainKeygenView × α) × ActionTrace GlobalChainValueIndex) :=
+  (result.1.2, ((result.1.1, result.2.1), result.2.2))
 
 theorem evalDist_coupledFirstLaneProgram_projection
-    (body : ProgrammedGlobalChainKeygenView → (GlobalChainEdgeIndex → Digest) →
+    (body : ProgrammedGlobalChainKeygenView →
       OracleComp GlobalFirstLaneWorld α) :
     evalDist (coupledFirstLaneProjection <$> coupledFirstLaneProgram body) =
       evalDist (eagerExperiment (publicFirstLaneProgram body)) := by
   let continuation := fun parameter base => do
     let key ← globalHighDirectKeygenAfterParameter parameter
-    let result ← (simulateQ (eagerTraceImpl base) (body key.1 key.2)).run
+    let result ← (simulateQ (eagerTraceImpl base) (body key)).run
     pure (base, ((key, result.1), result.2))
   have hproject : coupledFirstLaneProjection <$> coupledFirstLaneProgram body = (do
       let parameter ← Concrete.samplePublicParameter
@@ -64,7 +63,7 @@ theorem evalDist_coupledFirstLaneProgram_projection
       (do
         let parameter ← Concrete.samplePublicParameter
         globalHighDirectKeygenAfterParameter parameter)
-      (fun key => body key.1 key.2)
+      body
   rw [hproject]
   calc
     _ = evalDist (do
@@ -94,9 +93,9 @@ noncomputable def sourcePrefixExecution (adversary : Adversary)
     (adversary.main key.publicKey)).run ((((key.cache, []), []), []))
 
 noncomputable def publicPrefixExecution (adversary : Adversary)
-    (key : ProgrammedGlobalChainKeygenView) (edgeHigh : GlobalChainEdgeIndex → Digest) :
+    (key : ProgrammedGlobalChainKeygenView) :
     OracleComp GlobalFirstLaneWorld (Forgery × GlobalHighDirectTracedState) :=
-  (simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh)
+  (simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl key)
     (adversary.main key.publicKey)).run
       (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState key))
 
@@ -107,9 +106,9 @@ noncomputable def sourcePrefixProgram (adversary : Adversary) :
   pure (key, result)
 
 noncomputable def publicPrefixProbeExecution (adversary : Adversary)
-    (key : ProgrammedGlobalChainKeygenView) (edgeHigh : GlobalChainEdgeIndex → Digest) :
+    (key : ProgrammedGlobalChainKeygenView) :
     OracleComp GlobalFirstLaneWorld (Forgery × GlobalHighDirectTracedState) := do
-  let result ← publicPrefixExecution adversary key edgeHigh
+  let result ← publicPrefixExecution adversary key
   let _ ← publicDecidingProbe result.1.epoch
     (signedEncoding result.2.causalState.cache key.secretKey.parameter
       result.2.attackerTrace.toSigningLog result.1.epoch)
@@ -126,11 +125,10 @@ noncomputable def appendPrefixProbe (base : GlobalChainValueIndex → Digest)
       result.1.2.attackerTrace.toSigningLog result.1.1).2)
 
 theorem publicPrefixProbeExecution_eager (adversary : Adversary)
-    (key : ProgrammedGlobalChainKeygenView) (base : GlobalChainValueIndex → Digest)
-    (edgeHigh : GlobalChainEdgeIndex → Digest) :
-    (simulateQ (eagerTraceImpl base) (publicPrefixProbeExecution adversary key edgeHigh)).run =
+    (key : ProgrammedGlobalChainKeygenView) (base : GlobalChainValueIndex → Digest) :
+    (simulateQ (eagerTraceImpl base) (publicPrefixProbeExecution adversary key)).run =
       appendPrefixProbe base key <$>
-        (simulateQ (eagerTraceImpl base) (publicPrefixExecution adversary key edgeHigh)).run := by
+        (simulateQ (eagerTraceImpl base) (publicPrefixExecution adversary key)).run := by
   unfold publicPrefixProbeExecution
   simp only [simulateQ_bind, WriterT.run_bind']
   apply bind_congr
@@ -144,22 +142,22 @@ theorem prefixFirstLaneEvent_probability_le_enforcedHit_afterKeygen
     (left : ProgrammedGlobalChainKeygenView) (right : BaseHighKey)
     (hkey : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
-    (hrightSupport : right.1.1 ∈ support trajectoryProgrammedGlobalChainKeygen) :
+    (hrightSupport : right.1 ∈ support trajectoryProgrammedGlobalChainKeygen) :
     RelTriple (sourcePrefixExecution adversary left)
-      ((simulateQ (eagerTraceImpl right.1.2)
-        (publicPrefixProbeExecution adversary right.1.1 right.2)).run)
+      ((simulateQ (eagerTraceImpl right.2)
+        (publicPrefixProbeExecution adversary right.1)).run)
       (fun leftResult rightResult => PrefixFirstLaneEvent left leftResult →
-        CombinedHit right.1.2 (enforceHazardTrace (D + 1) rightResult.2)) := by
+        CombinedHit right.2 (enforceHazardTrace (D + 1) rightResult.2)) := by
   rw [publicPrefixProbeExecution_eager]
-  have hpk : left.publicKey = right.1.1.publicKey := hkey.1.toStable.1.2.1
+  have hpk : left.publicKey = right.1.publicKey := hkey.1.toStable.1.2.1
   have hcoupling := relTriple_sourceExact_firstLane_adversary_boundedHit_direct D (D + 1)
     (by omega) adversary left right hkey hleftSupport hrightSupport (hD left.publicKey)
-  have hrightProgram : (simulateQ (eagerTraceImpl right.1.2)
-      (publicPrefixExecution adversary right.1.1 right.2)).run =
-    (simulateQ (eagerTraceImpl right.1.2)
-      ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl right.1.1 right.2)
+  have hrightProgram : (simulateQ (eagerTraceImpl right.2)
+      (publicPrefixExecution adversary right.1)).run =
+    (simulateQ (eagerTraceImpl right.2)
+      ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         (adversary.main left.publicKey)).run
-          (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState right.1.1)))).run := by
+          (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState right.1)))).run := by
     unfold publicPrefixExecution
     rw [hpk]
   rw [hrightProgram]
@@ -170,8 +168,8 @@ theorem prefixFirstLaneEvent_probability_le_enforcedHit_afterKeygen
   obtain ⟨hrel, _hleft, hright⟩ := hresult
   rcases hrel with ⟨hforgery, hgood, hcount⟩ | hhit
   · rw [hpk] at hright
-    have hcovered := globalFirstLaneAdversary_support_returnedCovered right.1.1 right.1.2
-      right.2 (adversary.main right.1.1.publicKey) rightResult hright
+    have hcovered := globalFirstLaneAdversary_support_returnedCovered right.1 right.2
+      (adversary.main right.1.publicKey) rightResult hright
     have hhit := prefixFirstLaneEvent_good_implies_hit left right hkey hleftSupport hrightSupport
       leftResult rightResult hforgery hgood hcovered hevent
     rw [enforceHazardTrace_eq_self_of_count_le]

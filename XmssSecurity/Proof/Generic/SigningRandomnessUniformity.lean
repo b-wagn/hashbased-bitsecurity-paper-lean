@@ -7,10 +7,7 @@ namespace XmssSecurity.Generic
 
 variable [Code]
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
-theorem card_randomness : Fintype.card Randomness = 2 ^ randomnessBits := by
+theorem card_randomness : Fintype.card Randomness = 2 ^ digestBits := by
   simp
 
 end XmssSecurity.Generic

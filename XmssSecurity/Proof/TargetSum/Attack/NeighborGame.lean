@@ -124,20 +124,20 @@ theorem neighborAfterEncoding_probability_ge_experiment (publicKey : PublicKey) 
   | none => simp [neighborVerificationContinuation]
   | some answer =>
       rcases answer with ⟨position, output⟩
-      by_cases hmem : Generic.truncateHash output ∈ neighborDigests encoding
+      by_cases hmem : output ∈ neighborDigests encoding
       · simp only [neighborVerificationContinuation, dif_pos hmem, bind_assoc]
         rw [world_run'_bind, worldPrivateSamples_run, bind_map_left]
         have heq : (do
             let block ← $ᵗ PreimagePrefix
             (simulateQ romImpl (do
-              let signature ← liftM (neighborFinish publicKey original encoding (BitVec.ofNat randomnessBits position)
-                (selectedNeighborTransfer encoding (Generic.truncateHash output) hmem) block)
+              let signature ← liftM (neighborFinish publicKey original encoding (BitVec.ofNat digestBits position)
+                (selectedNeighborTransfer encoding (output) hmem) block)
               liftM (Generic.Concrete.verify publicKey neighborRequest.epoch neighborMessage signature : OracleComp HashSpec Bool))).run' searchCache) =
             (do
               let block ← $ᵗ PreimagePrefix
               (simulateQ randomOracle (do
-                let signature ← neighborFinish publicKey original encoding (BitVec.ofNat randomnessBits position)
-                  (selectedNeighborTransfer encoding (Generic.truncateHash output) hmem) block
+                let signature ← neighborFinish publicKey original encoding (BitVec.ofNat digestBits position)
+                  (selectedNeighborTransfer encoding (output) hmem) block
                 Generic.Concrete.verify publicKey neighborRequest.epoch neighborMessage signature)).run' searchCache) := by
           apply bind_congr
           intro block

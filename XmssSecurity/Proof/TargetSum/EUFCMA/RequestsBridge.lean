@@ -36,7 +36,7 @@ theorem signingOracleCounted_request
 theorem impl_requests_eq (secretKey : Generic.Seeded.SecretKey) :
     (QueryImpl.ofLift OracleWorld
         (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
-        (RandomOracleModel.hashCost HashInput HashOutput) +
+        (RandomOracleModel.hashCost HashInput Digest) +
       SUFCMA.signingOracleCounted (fun _ => 0) 1 Generic.xmss secretKey =
     (Security.adversaryImpl secretKey).withAddCost (fun input => if IsCharged input then 1 else 0) := by
   funext input
@@ -47,7 +47,7 @@ theorem impl_requests_eq (secretKey : Generic.Seeded.SecretKey) :
       Security.adversaryImpl, charged_sign, if_true] using signingOracleCounted_request secretKey request
 
 theorem gameCounted_eq (adversary : Security.StatementAdversary) :
-    gameCounted mode (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss adversary = (do
+    gameCounted mode (RandomOracleModel.hashCost HashInput Digest) Generic.xmss adversary = (do
       let (publicKey, secretKey) ← Generic.xmss.keygen
       let ((forgery, charged), log) ← (simulateQ (Security.adversaryImpl secretKey)
         (QueryCounting.counted IsCharged (adversary.main publicKey))).run

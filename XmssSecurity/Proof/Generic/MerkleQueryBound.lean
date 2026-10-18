@@ -160,7 +160,7 @@ theorem Concrete.CacheReplay.rootTree_cache_unique_merkleAddress
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
           OracleComp HashSpec Digest)).run ∅))
     (targetLevel : MerkleLevel) (targetNode : MerkleNode)
-    (left right : HashInput) (leftOutput rightOutput : HashOutput)
+    (left right : HashInput) (leftOutput rightOutput : Digest)
     (hleftP : AtHashAddress parameter (.merkle targetLevel targetNode) left)
     (hrightP : AtHashAddress parameter (.merkle targetLevel targetNode) right)
     (hleft : cache left = some leftOutput)

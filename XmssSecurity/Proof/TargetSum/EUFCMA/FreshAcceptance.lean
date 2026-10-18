@@ -17,11 +17,11 @@ open XmssSecurity.EUFCMA
 open Concrete Generic.CappedChain
 
 def HasFreshAcceptedEncoding (parameter : PublicParameter) (state : Generic.CappedChain.SourceTracedState) : Prop :=
-  ∃ forgery : Generic.Forgery, ∃ output : HashOutput,
+  ∃ forgery : Generic.Forgery, ∃ output : Digest,
     ¬ SigningTranscript.ContainsRequest state.2.toSigningLog forgery ∧
     state.1 (Generic.Concrete.CacheView.encodingInput parameter forgery.epoch
       (forgery.message, forgery.signature.randomness)) = some output ∧
-    Generic.Code.ValidDigest (Generic.truncateHash output)
+    Generic.Code.ValidDigest (output)
 
 noncomputable instance (parameter : PublicParameter) : DecidablePred (HasFreshAcceptedEncoding parameter) :=
   Classical.decPred _
@@ -40,10 +40,10 @@ theorem hasFreshAcceptedEncoding_append_hash (parameter : PublicParameter)
   simp [HasFreshAcceptedEncoding, Generic.CappedChain.AttackerActionTrace.toSigningLog, Generic.CappedChain.AttackerAction.signingEntry?]
 
 theorem hasFreshAcceptedEncoding_cacheQuery (parameter : PublicParameter)
-    (cache : QueryCache HashSpec) (trace : Generic.AttackerActionTrace) (input : HashInput) (output : HashOutput)
+    (cache : QueryCache HashSpec) (trace : Generic.AttackerActionTrace) (input : HashInput) (output : Digest)
     (hstate : ¬ HasFreshAcceptedEncoding parameter (cache, trace))
     (hnew : HasFreshAcceptedEncoding parameter (cache.cacheQuery input output, trace)) :
-    (Generic.encodingInputLeafIndex? parameter input).isSome ∧ Generic.Code.ValidDigest (Generic.truncateHash output) := by
+    (Generic.encodingInputLeafIndex? parameter input).isSome ∧ Generic.Code.ValidDigest (output) := by
   obtain ⟨forgery, answer, hfresh, hcache, hvalid⟩ := hnew
   dsimp only at hfresh hcache
   by_cases heq : Generic.Concrete.CacheView.encodingInput parameter forgery.epoch
@@ -99,7 +99,7 @@ theorem hasFreshAcceptedEncoding_query_le (publicKey : PublicKey) (secretKey : G
     change finalCache = cache at hcache
     exact hstate (by simpa only [Generic.CappedChain.attackerActionFragment_uniform, List.append_nil, hcache] using hevent)
   · have hrun : (Generic.CappedChain.sourceDirectTracedMappedAdversaryImpl publicKey secretKey (.inl (.inr hashInput))).run
-        (cache, trace) = (fun result : HashOutput × QueryCache HashSpec =>
+        (cache, trace) = (fun result : Digest × QueryCache HashSpec =>
           (result.1, (result.2, trace ++ [.hash hashInput]))) <$>
             (randomOracle (spec := HashSpec) hashInput).run cache := by
       simp only [Generic.CappedChain.sourceDirectTracedMappedAdversaryImpl, Generic.CappedChain.actionTracedStateImpl, StateT.run_mk,

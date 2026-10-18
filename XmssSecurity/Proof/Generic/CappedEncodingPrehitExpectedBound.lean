@@ -36,7 +36,7 @@ theorem cachedEncodingInputCount_romImpl_step_le
       simp [CappedEncodingMonitor.IsEncodingHashQuery]
   | inr hashInput =>
       rcases result with ⟨returned, finalCache⟩
-      change HashOutput at returned
+      change Digest at returned
       change (returned, finalCache) ∈
         support ((randomOracle (spec := HashSpec) hashInput).run initialCache) at hresult
       cases hcache : initialCache hashInput with

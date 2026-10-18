@@ -24,10 +24,10 @@ def replayCandidate : Message := 1
 
 def replayFallbackMessage : Message := 2
 
-noncomputable def replaySelectedMessage (output : HashOutput) : Message :=
-  if Code.ValidDigest (Generic.truncateHash output) then replayCandidate else replayFallbackMessage
+noncomputable def replaySelectedMessage (output : Digest) : Message :=
+  if Code.ValidDigest (output) then replayCandidate else replayFallbackMessage
 
-theorem replaySelectedMessage_fresh (output : HashOutput) :
+theorem replaySelectedMessage_fresh (output : Digest) :
     replaySelectedMessage output ≠ replayRequest.message := by
   unfold replaySelectedMessage
   split <;> decide

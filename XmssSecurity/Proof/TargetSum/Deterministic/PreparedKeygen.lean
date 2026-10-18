@@ -20,21 +20,21 @@ attribute [local irreducible] Generic.sampleMasterSeed Seeded.derivationCache Se
   Seeded.prepareRandomizers Seeded.sampleRandomizerOutputs Seeded.deriveParametersAndSecrets
 
 theorem deriveParametersAndSecrets_support (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) :
-    ((Generic.truncateHash parameterOutput, Seeded.outputSecrets outputs), Seeded.derivationCache seed parameterOutput outputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) :
+    ((parameterOutput, outputs), Seeded.derivationCache seed parameterOutput outputs)
       ∈ support ((simulateQ randomOracle (Seeded.deriveParametersAndSecrets seed)).run ∅) := by
   rw [mem_support_iff_of_evalDist_eq (Seeded.evalDist_deriveParametersAndSecrets seed),
     mem_support_bind_iff]
-  refine ⟨parameterOutput, mem_support_uniformSample HashOutput, ?_⟩
+  refine ⟨parameterOutput, mem_support_uniformSample Digest, ?_⟩
   rw [mem_support_bind_iff]
   refine ⟨outputs, ?_, by simp⟩
   rw [mem_support_iff, probOutput_uniformSample]
   exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
 
 theorem prepareRandomizers_support (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
     (randomizers, Seeded.signingDerivationCache seed parameterOutput outputs randomizers) ∈
-      support ((simulateQ randomOracle (Seeded.prepareRandomizers (Generic.truncateHash parameterOutput) seed)).run
+      support ((simulateQ randomOracle (Seeded.prepareRandomizers (parameterOutput) seed)).run
         (Seeded.derivationCache seed parameterOutput outputs)) := by
   rw [mem_support_iff_of_evalDist_eq (Seeded.evalDist_prepareRandomizers seed parameterOutput outputs),
     support_map]
@@ -49,24 +49,24 @@ noncomputable def prepareSigningMaterial (seed : MasterSeed) : OracleComp HashSp
   Seeded.prepareRandomizers parameter seed
 
 theorem prepareSigningMaterial_support (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
     (randomizers, Seeded.signingDerivationCache seed parameterOutput outputs randomizers) ∈
       support ((simulateQ randomOracle (prepareSigningMaterial seed)).run ∅) := by
   rw [prepareSigningMaterial, simulateQ_bind, StateT.run_bind, mem_support_bind_iff]
-  exact ⟨((Generic.truncateHash parameterOutput, Seeded.outputSecrets outputs),
+  exact ⟨((parameterOutput, outputs),
       Seeded.derivationCache seed parameterOutput outputs),
     deriveParametersAndSecrets_support seed parameterOutput outputs,
     prepareRandomizers_support seed parameterOutput outputs randomizers⟩
 
 theorem run_deriveParametersAndSecrets_prepared (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
     (simulateQ randomOracle (Seeded.deriveParametersAndSecrets seed)).run
       (Seeded.signingDerivationCache seed parameterOutput outputs randomizers) =
-        pure ((Generic.truncateHash parameterOutput, Seeded.outputSecrets outputs),
+        pure ((parameterOutput, outputs),
           Seeded.signingDerivationCache seed parameterOutput outputs randomizers) := by
   exact ((DeterministicSigning.resolves_of_run (Seeded.deriveParametersAndSecrets seed) ∅ _
     (deriveParametersAndSecrets_support seed parameterOutput outputs)).mono
-      (DeterministicSigning.cache_le_of_run (Seeded.prepareRandomizers (Generic.truncateHash parameterOutput) seed) _ _
+      (DeterministicSigning.cache_le_of_run (Seeded.prepareRandomizers (parameterOutput) seed) _ _
         (prepareRandomizers_support seed parameterOutput outputs randomizers))).run_eq_pure
 
 theorem keygenFromSeed_eq_derive_then_tree (seed : MasterSeed) :
@@ -79,15 +79,15 @@ theorem keygenFromSeed_eq_derive_then_tree (seed : MasterSeed) :
   simp only [Generic.Seeded.keygenFromSeed, Seeded.deriveParametersAndSecrets, Seeded.deriveChainSecrets, bind_assoc, pure_bind]
 
 theorem run_keygenFromSeed_prepared (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
     (simulateQ randomOracle (Generic.Seeded.keygenFromSeed seed)).run
       (Seeded.signingDerivationCache seed parameterOutput outputs randomizers) =
       (fun result =>
-        ((⟨result.1.1, Generic.truncateHash parameterOutput⟩,
-          ⟨seed, Generic.Concrete.precomputedSecretKey (Generic.truncateHash parameterOutput)
-            (Seeded.outputSecrets outputs) (Generic.hashCacheOfLog result.1.2)⟩), result.2)) <$>
+        ((⟨result.1.1, parameterOutput⟩,
+          ⟨seed, Generic.Concrete.precomputedSecretKey (parameterOutput)
+            (outputs) (Generic.hashCacheOfLog result.1.2)⟩), result.2)) <$>
         (simulateQ randomOracle
-          (Generic.Concrete.treeNode (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+          (Generic.Concrete.treeNode (parameterOutput) (outputs)
             treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog).run
           (Seeded.signingDerivationCache seed parameterOutput outputs randomizers) := by
   rw [keygenFromSeed_eq_derive_then_tree, simulateQ_bind, StateT.run_bind,
@@ -95,15 +95,15 @@ theorem run_keygenFromSeed_prepared (seed : MasterSeed)
   simp only [bind_pure_comp, simulateQ_map, StateT.run_map]
 
 theorem xmss_keygen_prepared_support (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
-      (Generic.Concrete.treeNode (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+      (Generic.Concrete.treeNode (parameterOutput) (outputs)
         treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog).run
           (Seeded.signingDerivationCache seed parameterOutput outputs randomizers))) :
-    ((⟨tree.1.1, Generic.truncateHash parameterOutput⟩,
-      ⟨seed, Generic.Concrete.precomputedSecretKey (Generic.truncateHash parameterOutput)
-        (Seeded.outputSecrets outputs) (Generic.hashCacheOfLog tree.1.2)⟩), tree.2) ∈
+    ((⟨tree.1.1, parameterOutput⟩,
+      ⟨seed, Generic.Concrete.precomputedSecretKey (parameterOutput)
+        (outputs) (Generic.hashCacheOfLog tree.1.2)⟩), tree.2) ∈
       support ((simulateQ romImpl Generic.xmss.keygen).run
         (Seeded.signingDerivationCache seed parameterOutput outputs randomizers)) := by
   change _ ∈ support ((simulateQ romImpl (do
@@ -121,22 +121,22 @@ theorem xmss_keygen_prepared_support (seed : MasterSeed)
     exact ⟨tree, htree, rfl⟩
 
 theorem exists_prepared_tree_of_independent (seed : MasterSeed)
-    (parameterOutput : HashOutput) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
-      (Generic.Concrete.treeNode (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+      (Generic.Concrete.treeNode (parameterOutput) (outputs)
         treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog).run ∅)) :
     ∃ cache,
       (tree.1, cache) ∈ support ((simulateQ randomOracle
-        (Generic.Concrete.treeNode (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+        (Generic.Concrete.treeNode (parameterOutput) (outputs)
           treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog).run
             (Seeded.signingDerivationCache seed parameterOutput outputs randomizers)) ∧
       Seeded.AgreeOutside (fun input => SeedHit input seed) cache tree.2 ∧
-      (∀ position, cache (Seeded.randomizerInputs (Generic.truncateHash parameterOutput) seed position) =
+      (∀ position, cache (Seeded.randomizerInputs (parameterOutput) seed position) =
         some (randomizers position)) := by
   classical
   have hqueries :
-      (Generic.Concrete.treeNode (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+      (Generic.Concrete.treeNode (parameterOutput) (outputs)
         treeHeight Generic.Concrete.rootNode : OracleComp HashSpec Digest).withQueryLog.IsQueryBoundP
           (Seeded.DerivationHit seed) 0 := by
     rw [withQueryLog,

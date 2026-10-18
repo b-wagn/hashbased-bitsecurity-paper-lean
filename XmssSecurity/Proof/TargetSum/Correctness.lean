@@ -250,8 +250,8 @@ def TrialFails (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : Le
   ∃ randomizerOutput, cache (Generic.randomizerHashInput parameter seed leafIndex message
       (BitVec.ofNat 32 trial)) = some randomizerOutput ∧
     ∃ digestOutput, cache (Concrete.CacheView.encodingInput parameter leafIndex
-        (message, randomizerOutput.extractLsb' 0 randomnessBits)) = some digestOutput ∧
-      Code.decodeDigest (Generic.truncateHash digestOutput) = none
+        (message, randomizerOutput)) = some digestOutput ∧
+      Code.decodeDigest (digestOutput) = none
 
 /-- All `A_max` trials of signing `message` at `leafIndex` failed in `cache`. -/
 def SigningFails (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
@@ -287,7 +287,7 @@ theorem precomputedSignAttempt_outcome (secretKey : Generic.SecretKey) (leafInde
     initialCache ≤ step.2 ∧
     (step.1 = none → ∃ digestOutput, step.2 (Concrete.CacheView.encodingInput
         secretKey.parameter leafIndex (message, randomness)) = some digestOutput ∧
-      Code.decodeDigest (Generic.truncateHash digestOutput) = none) ∧
+      Code.decodeDigest (digestOutput) = none) ∧
     (∀ signature, step.1 = some signature →
       ∀ largerCache, keyCache ≤ largerCache → step.2 ≤ largerCache →
         ∃ encoding,
@@ -301,32 +301,26 @@ theorem precomputedSignAttempt_outcome (secretKey : Generic.SecretKey) (leafInde
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hstep
   obtain ⟨⟨digest, digestCache⟩, hdigest, hrest⟩ := hstep
   have hquery : ∃ output, digestCache (Concrete.CacheView.encodingInput secretKey.parameter
-      leafIndex (message, randomness)) = some output ∧ digest = Generic.truncateHash output := by
+      leafIndex (message, randomness)) = some output ∧ digest = output := by
     unfold Generic.Concrete.encodingHash Generic.Concrete.tweakableHash Generic.Concrete.oracleHash at hdigest
-    rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hdigest
-    obtain ⟨⟨output, middleCache⟩, hq, hpure⟩ := hdigest
-    simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff,
-      Prod.mk.injEq] at hpure
-    obtain ⟨rfl, rfl⟩ := hpure
-    have hc := Concrete.CacheReplay.randomOracle_query_caches
+    exact ⟨digest, Concrete.CacheReplay.randomOracle_query_caches
       (Generic.tweakableHashInput secretKey.parameter (.encoding leafIndex)
-        (Generic.Concrete.encodingPayload message randomness)) initialCache output digestCache
-      (by simpa using hq)
-    exact ⟨output, hc, rfl⟩
+        (Generic.Concrete.encodingPayload message randomness)) initialCache digest digestCache
+      (by simpa using hdigest), rfl⟩
   obtain ⟨output, hcached, rfl⟩ := hquery
   have hrestLe : digestCache ≤ step.2 :=
     Concrete.CacheReplay.randomOracle_cache_le _ digestCache step hrest
   refine ⟨hle, ?_, ?_⟩
   · intro hnone
-    cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
-    | none => exact ⟨output, hrestLe hcached, hdecode⟩
+    cases hdecode : Code.decodeDigest (digest) with
+    | none => exact ⟨digest, hrestLe hcached, hdecode⟩
     | some encoding =>
         simp only [hdecode, simulateQ_pure, StateT.run_pure, support_pure,
           Set.mem_singleton_iff] at hrest
         rw [hrest] at hnone
         simp at hnone
   · intro signature hsignature largerCache hkeyLe hlarger
-    cases hdecode : Code.decodeDigest (Generic.truncateHash output) with
+    cases hdecode : Code.decodeDigest (digest) with
     | none =>
         simp only [hdecode, simulateQ_pure, StateT.run_pure, support_pure,
           Set.mem_singleton_iff] at hrest
@@ -393,17 +387,13 @@ theorem signFrom_outcome (secretKey : Generic.Seeded.SecretKey) (publicKey : Pub
       have hrandomizer : ∃ randomizerOutput,
           randomnessCache (Generic.randomizerHashInput secretKey.precomputed.parameter secretKey.seed
             leafIndex message (BitVec.ofNat 32 trial)) = some randomizerOutput ∧
-          randomizerOutput.extractLsb' 0 randomnessBits = randomness := by
+          randomizerOutput = randomness := by
         unfold Generic.deriveRandomizer Generic.Concrete.oracleHash at hrandomness
-        rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hrandomness
-        obtain ⟨⟨output, outputCache⟩, hquery, hpure⟩ := hrandomness
-        simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff,
-          Prod.mk.injEq] at hpure
-        obtain ⟨rfl, rfl⟩ := hpure
-        have hc := Concrete.CacheReplay.randomOracle_query_caches
+        exact ⟨randomness, Concrete.CacheReplay.randomOracle_query_caches
           (Generic.randomizerHashInput secretKey.precomputed.parameter secretKey.seed leafIndex message
-            (BitVec.ofNat 32 trial)) cache output randomnessCache (by simpa using hquery)
-        exact ⟨output, hc, rfl⟩
+            (BitVec.ofNat 32 trial)) cache randomness randomnessCache
+            (by simpa using hrandomness),
+          rfl⟩
       cases attempt with
       | some signature =>
           simp only [simulateQ_pure, StateT.run_pure, support_pure,

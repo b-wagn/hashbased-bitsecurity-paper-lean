@@ -10,9 +10,6 @@ variable [Code]
 
 set_option maxRecDepth 100000
 
-noncomputable local instance precomputedRandomnessSampleable : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
 noncomputable def Concrete.precomputedSignBoundedAttemptsContinuation
     (attempts : Nat) (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (result : Option Signature × QueryCache HashSpec) :
@@ -87,7 +84,7 @@ theorem Concrete.precomputedSignBoundedAttempts_encodingInput_referenceCache_hit
           workingCache] ≤
       (attempts : ℝ≥0∞) *
         cachedEncodingEntryCount referenceCache secretKey.parameter leafIndex *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
+        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   induction attempts generalizing workingCache with
   | zero =>
       simp [Concrete.precomputedSignBoundedAttempts]
@@ -99,7 +96,7 @@ theorem Concrete.precomputedSignBoundedAttempts_encodingInput_referenceCache_hit
             (message, randomness)) = some output)
         (ε := (attempts : ℝ≥0∞) *
           cachedEncodingEntryCount referenceCache secretKey.parameter leafIndex *
-          ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹) ?_).trans ?_
+          ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹) ?_).trans ?_
       · intro randomness _hrandomness hmiss
         refine probEvent_bind_le_of_forall_le fun attemptResult hattempt => ?_
         cases hresult : attemptResult.1 with
@@ -133,10 +130,10 @@ theorem Concrete.precomputedSignBoundedAttempts_encodingInput_referenceCache_hit
               exact hattempt
       · calc
           _ ≤ cachedEncodingEntryCount referenceCache secretKey.parameter leafIndex *
-                ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ +
+                ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ +
               (attempts : ℝ≥0∞) *
                 cachedEncodingEntryCount referenceCache secretKey.parameter leafIndex *
-                ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ :=
+                ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ :=
             add_le_add
               (uniform_signingRandomness_encodingInput_cacheHit_le_cachedEncodingEntryCount
                 secretKey.parameter leafIndex message referenceCache) le_rfl
@@ -156,7 +153,7 @@ theorem Concrete.precomputedCappedSign_encodingInput_initialCache_hit_le_cachedC
         (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache] ≤
       (Code.signingAttemptLimit : ℝ≥0∞) *
         cachedEncodingEntryCount cache secretKey.parameter leafIndex *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
+        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   rw [Concrete.precomputedCappedSign]
   exact Concrete.precomputedSignBoundedAttempts_encodingInput_referenceCache_hit_le_cachedCount
     Code.signingAttemptLimit secretKey leafIndex message cache cache

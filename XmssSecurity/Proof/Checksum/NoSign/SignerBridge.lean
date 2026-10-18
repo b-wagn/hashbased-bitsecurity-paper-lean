@@ -36,15 +36,15 @@ theorem countHashQueries_xmss_sign (secretKey : Generic.Seeded.SecretKey) (leafI
     (fun answer => (answer, 2)) <$> liftComp (Generic.Seeded.sign secretKey leafIndex message :
       OracleComp HashSpec (Option Generic.Signature)) OracleWorld
   have hlift : ∀ input : HashInput,
-      (liftComp (liftM (OracleSpec.query (spec := HashSpec) input) : OracleComp HashSpec HashOutput)
-        OracleWorld : OracleComp OracleWorld HashOutput) = liftM (OracleWorld.query (.inr input)) :=
+      (liftComp (liftM (OracleSpec.query (spec := HashSpec) input) : OracleComp HashSpec Digest)
+        OracleWorld : OracleComp OracleWorld Digest) = liftM (OracleWorld.query (.inr input)) :=
     fun _ => rfl
   have hsingle : ∀ input : HashInput,
-      countHashQueries (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld HashOutput) =
+      countHashQueries (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld Digest) =
         (fun output => (output, 1)) <$> liftM (OracleWorld.query (.inr input)) := by
     intro input
     unfold countHashQueries
-    rw [← bind_pure (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld HashOutput),
+    rw [← bind_pure (liftM (OracleWorld.query (.inr input)) : OracleComp OracleWorld Digest),
       QueryCounting.counted_query_bind]
     simp [QueryCounting.counted_pure]
   have hsign : (Generic.Seeded.sign secretKey leafIndex message :
@@ -77,8 +77,8 @@ theorem statementCountedRun_eq {α : Type} (secretKey : Generic.Seeded.SecretKey
     (simulateQ
       ((QueryImpl.ofLift OracleWorld
         (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
-          (RandomOracleModel.hashCost HashInput HashOutput) +
-        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput)
+          (RandomOracleModel.hashCost HashInput Digest) +
+        SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest)
           requestCost Generic.xmss secretKey) computation).run.run =
       (fun result : (α × ℕ) × QueryLog SigningSpec =>
         ((result.1.1, Multiplicative.ofAdd (result.1.2 + (requestCost + 2) * result.2.length)),
@@ -130,8 +130,8 @@ theorem statementCountedRun_eq {α : Type} (secretKey : Generic.Seeded.SecretKey
             (WriterT.run (simulateQ
               ((QueryImpl.ofLift OracleWorld
                 (WriterT (QueryLog SigningSpec) (OracleComp OracleWorld))).withAddCost
-                  (RandomOracleModel.hashCost HashInput HashOutput) +
-                SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput HashOutput)
+                  (RandomOracleModel.hashCost HashInput Digest) +
+                SUFCMA.signingOracleCounted (RandomOracleModel.hashCost HashInput Digest)
                   requestCost Generic.xmss secretKey) (next answer))).run =
             (fun result : (α × ℕ) × QueryLog SigningSpec =>
               ((result.1.1, Multiplicative.ofAdd (result.1.2 + (requestCost + 2) * result.2.length)),

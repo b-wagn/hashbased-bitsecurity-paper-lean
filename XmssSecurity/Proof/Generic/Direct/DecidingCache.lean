@@ -20,7 +20,7 @@ include hkeygen
 /-- Every deciding input has an honest target already present after key generation. -/
 theorem keygen_deciding_target_cached (leafIndex : LeafIndex) (chain : ChainIndex)
     (input : HashInput) (hinput : IsDecidingInput keyResult.1.2.parameter leafIndex chain input) :
-    ∃ output : HashOutput, keyResult.2 (keygenStructuralTargetInput keyResult.1.2 keyResult.2 input) =
+    ∃ output : Digest, keyResult.2 (keygenStructuralTargetInput keyResult.1.2 keyResult.2 input) =
       some output := by
   rcases hinput with ⟨step, value, rfl⟩ | ⟨endpoints, rfl⟩ | ⟨level, left, right, rfl⟩
   · rw [keygenStructuralTargetInput_chainInput,
@@ -94,7 +94,7 @@ theorem keygen_deciding_target_stable (finalCache : QueryCache HashSpec)
 /-- A collision against the replayed honest target gives a fresh deciding-path witness. -/
 theorem decidingWitness_of_final_target_collision (finalCache : QueryCache HashSpec)
     (hle : keyResult.2 ≤ finalCache) (leafIndex : LeafIndex) (chain : ChainIndex)
-    (input : HashInput) (output : HashOutput)
+    (input : HashInput) (output : Digest)
     (hinput : IsDecidingInput keyResult.1.2.parameter leafIndex chain input)
     (hcached : finalCache input = some output)
     (hne : input ≠ keygenStructuralTargetInput keyResult.1.2 finalCache input)

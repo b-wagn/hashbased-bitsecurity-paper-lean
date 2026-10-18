@@ -31,7 +31,7 @@ theorem cacheSize_empty : cacheSize ∅ = 0 := by
   simp [cacheSize]
 
 theorem cacheSize_cacheQuery_le (cache : QueryCache HashSpec) (input : HashInput)
-    (output : HashOutput) : cacheSize (cache.cacheQuery input output) ≤ cacheSize cache + 1 := by
+    (output : Digest) : cacheSize (cache.cacheQuery input output) ≤ cacheSize cache + 1 := by
   unfold cacheSize
   calc
     _ ≤ ∑' candidate, ((if cache candidate ≠ none then 1 else 0 : ℝ≥0∞) +
@@ -148,8 +148,8 @@ theorem probEvent_exists_le_tsum {α β : Type} (computation : ProbComp α)
 /-- An average over the public key of key generation. -/
 noncomputable def publicKeyAverage (value : PublicKey → ℝ≥0∞) : ℝ≥0∞ :=
   ∑' parameter, Pr[= parameter | Concrete.samplePublicParameter] *
-    ∑' output, Pr[= output | ($ᵗ HashOutput : ProbComp HashOutput)] *
-      value ⟨Generic.truncateHash output, parameter⟩
+    ∑' output, Pr[= output | ($ᵗ Digest : ProbComp Digest)] *
+      value ⟨output, parameter⟩
 
 theorem tsum_probOutput_mul_const {α : Type} (computation : ProbComp α) (value : ℝ≥0∞) :
     ∑' a, Pr[= a | computation] * value = value := by
@@ -176,8 +176,8 @@ theorem tsum_keygen_publicKey (value : PublicKey → ℝ≥0∞) :
         let right ← (simulateQ randomOracle
           (Generic.Concrete.treeNode parameter secret (treeHeight - 1)
             (Generic.Concrete.childNode Generic.Concrete.rootNode true) : OracleComp HashSpec Digest)).run left.2
-        let output ← $ᵗ HashOutput
-        pure (Generic.truncateHash output,
+        let output ← $ᵗ Digest
+        pure (output,
           right.2.cacheQuery (topInput parameter left.1 right.1) output))] *
         value ⟨tree.1, parameter⟩
     from tsum_congr fun tree => by rw [probOutput_congr rfl hdist]]
@@ -204,7 +204,7 @@ theorem tsum_scheme_keygen_publicKey (value : PublicKey → ℝ≥0∞) :
 
 /-! ## The hidden sibling on the executions without a request -/
 
-theorem probEvent_subtrees_ideal_le_size (parameter : PublicParameter) (output : HashOutput)
+theorem probEvent_subtrees_ideal_le_size (parameter : PublicParameter) (output : Digest)
     (forgery : Forgery) (finalCache : QueryCache HashSpec) :
     Pr[fun sample =>
         HiddenSiblingGuessed (splitCache parameter sample output)
@@ -270,16 +270,16 @@ theorem hiddenSibling_forward_le (adversary : Adversary) :
       let keyOf : (LeafIndex → ChainIndex → Digest) → Digest × QueryCache HashSpec →
           (PublicKey × Generic.SecretKey) × QueryCache HashSpec := fun secret tree =>
         ((⟨tree.1, parameter⟩, Generic.SecretKey.withoutPrecomputation parameter secret), tree.2)
-      let observed : ProbComp (HashOutput × (Forgery × QueryCache HashSpec)) := do
-        let output ← $ᵗ HashOutput
-        let result ← idealRun adversary ⟨Generic.truncateHash output, parameter⟩
+      let observed : ProbComp (Digest × (Forgery × QueryCache HashSpec)) := do
+        let output ← $ᵗ Digest
+        let result ← idealRun adversary ⟨output, parameter⟩
         pure (output, result)
       let finish : ((LeafIndex → ChainIndex → Digest) ×
           (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec)) →
-          HashOutput × (Forgery × QueryCache HashSpec) →
+          Digest × (Forgery × QueryCache HashSpec) →
           ((PublicKey × Generic.SecretKey) × QueryCache HashSpec) × (Forgery × QueryCache HashSpec) :=
         fun sample seen =>
-          (keyOf sample.1 (Generic.truncateHash seen.1, splitCache parameter sample seen.1), seen.2)
+          (keyOf sample.1 (seen.1, splitCache parameter sample seen.1), seen.2)
       have hsplit :
           𝒟[Concrete.sampleSecret >>= fun secret =>
             (simulateQ randomOracle
@@ -311,8 +311,8 @@ theorem hiddenSibling_forward_le (adversary : Adversary) :
           refine ENNReal.tsum_le_tsum fun seen => mul_le_mul' le_rfl ?_
           rw [bind_pure_comp, probEvent_map]
           exact probEvent_subtrees_ideal_le_size parameter seen.1 seen.2.1 seen.2.2
-        _ = digestInverse * ∑' output, Pr[= output | ($ᵗ HashOutput : ProbComp HashOutput)] *
-            ∑' result, Pr[= result | idealRun adversary ⟨Generic.truncateHash output, parameter⟩] *
+        _ = digestInverse * ∑' output, Pr[= output | ($ᵗ Digest : ProbComp Digest)] *
+            ∑' result, Pr[= result | idealRun adversary ⟨output, parameter⟩] *
               (1 + cacheSize result.2) := by
           simp only [observed]
           simp_rw [tsum_probOutput_bind_mul, tsum_probOutput_pure_mul]
@@ -323,7 +323,7 @@ theorem hiddenSibling_forward_le (adversary : Adversary) :
           refine mul_le_mul' le_rfl (ENNReal.tsum_le_tsum fun output => mul_le_mul' le_rfl ?_)
           simp only [mul_add, mul_one, ENNReal.tsum_add, idealSize]
           exact add_le_add
-            (tsum_probOutput_le_one (mx := idealRun adversary ⟨Generic.truncateHash output, parameter⟩))
+            (tsum_probOutput_le_one (mx := idealRun adversary ⟨output, parameter⟩))
             le_rfl
 
 /-- On the executions without a request of the game's key generation, the forged top sibling is

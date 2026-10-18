@@ -19,19 +19,19 @@ attribute [local irreducible] Seeded.gameAfterSecrets
 theorem evalDist_referenceOutputs_withState {State : Type}
     (hash : QueryImpl HashSpec (StateT State ProbComp)) (adversary : Adversary) (state : State) :
     𝒟[do
-      let parameterOutput ← ($ᵗ HashOutput : ProbComp HashOutput)
+      let parameterOutput ← ($ᵗ Digest : ProbComp Digest)
       let outputs ← ($ᵗ Seeded.ChainOutputs)
-      (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary (Generic.truncateHash parameterOutput)
-        (Seeded.outputSecrets outputs))).run state] =
+      (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary (parameterOutput)
+        (outputs))).run state] =
       𝒟[(simulateQ (Seeded.worldHandler hash) (gameCore Concrete.scheme adversary)).run state] := by
   rw [Seeded.gameCore_independent_eq, Seeded.worldHandler_sampling_bind]
   trans 𝒟[do
     let parameter ← Concrete.samplePublicParameter
     let outputs ← ($ᵗ Seeded.ChainOutputs)
-    (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary parameter (Seeded.outputSecrets outputs))).run state]
+    (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary parameter (outputs))).run state]
   · exact Seeded.evalDist_parameter_continuation fun parameter => do
       let outputs ← ($ᵗ Seeded.ChainOutputs)
-      (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary parameter (Seeded.outputSecrets outputs))).run state
+      (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary parameter (outputs))).run state
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left
   intro parameter
   rw [Seeded.worldHandler_sampling_bind]
@@ -43,7 +43,7 @@ theorem evalDist_independentTableRun_memo {State : Type}
     𝒟[do
       let material ← Seeded.drawSigningMaterial
       (simulateQ (Seeded.worldHandler hash) (Seeded.tableGameAfterSecrets (Seeded.memoAdversary adversary)
-        (Generic.truncateHash material.1) (Seeded.outputSecrets material.2.1) material.2.2)).run state] =
+        (material.1) (material.2.1) material.2.2)).run state] =
       𝒟[(simulateQ (Seeded.worldHandler hash) (gameCore Concrete.scheme (Seeded.memoAdversary adversary))).run state] := by
   rw [← evalDist_referenceOutputs_withState hash]
   unfold Seeded.drawSigningMaterial
@@ -52,7 +52,7 @@ theorem evalDist_independentTableRun_memo {State : Type}
   intro parameterOutput
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left
   intro outputs
-  exact Seeded.evalDist_tableGameAfterSecrets_memo hash adversary (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs) state
+  exact Seeded.evalDist_tableGameAfterSecrets_memo hash adversary (parameterOutput) (outputs) state
 
 theorem expectedTableSeedQueries_memo_eq_reference (adversary : Adversary) :
     expectedTableSeedQueries (Seeded.memoAdversary adversary) =
@@ -79,7 +79,7 @@ theorem forgeAdvantage_seeded_le_memo (adversary : Adversary) :
   intro outputs _
   apply probOutput_bind_mono
   intro randomizers _
-  exact Seeded.prob_tableGameAfterSecrets_le_memo adversary (Generic.truncateHash parameterOutput) (Seeded.outputSecrets outputs)
+  exact Seeded.prob_tableGameAfterSecrets_le_memo adversary (parameterOutput) (outputs)
     randomizers (Seeded.signingDerivationCache seed parameterOutput outputs randomizers)
 
 theorem forgeAdvantage_deterministic_le_reference_expectedReferenceSeed (adversary : Adversary) :

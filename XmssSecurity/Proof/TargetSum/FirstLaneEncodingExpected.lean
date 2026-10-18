@@ -43,7 +43,7 @@ theorem RiskState.resource_step_active (state : EncodingMonitor.State)
       cases wasHit <;> simp [RiskState.step, hstep, RiskState.resource, observedRisk]
 
 theorem RiskState.expected_step_query_le (state : RiskState) (leafIndex : LeafIndex) :
-    (∑' output, Pr[= output | $ᵗ HashOutput] * (state.step (.query leafIndex output)).resource) ≤
+    (∑' output, Pr[= output | $ᵗ Digest] * (state.step (.query leafIndex output)).resource) ≤
       state.resource + ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ := by
   cases state with
   | active state =>
@@ -55,7 +55,7 @@ theorem RiskState.expected_step_query_le (state : RiskState) (leafIndex : LeafIn
       exact le_add_right tsum_probOutput_le_one
 
 theorem RiskState.expected_step_sign_le (state : RiskState) (leafIndex : LeafIndex) :
-    (∑' output, Pr[= output | $ᵗ HashOutput] * (state.step (.sign leafIndex output)).resource) ≤
+    (∑' output, Pr[= output | $ᵗ Digest] * (state.step (.sign leafIndex output)).resource) ≤
       state.resource := by
   cases state with
   | active state =>
@@ -63,7 +63,7 @@ theorem RiskState.expected_step_sign_le (state : RiskState) (leafIndex : LeafInd
       exact expected_observedRisk_sign_le state leafIndex
   | disabled => simp [RiskState.step, RiskState.resource]
   | hit => simpa only [RiskState.step, RiskState.resource, mul_one] using
-      (tsum_probOutput_le_one (mx := ($ᵗ HashOutput)))
+      (tsum_probOutput_le_one (mx := ($ᵗ Digest)))
 
 @[simp] theorem RiskState.run_disabled (actions : EncodingActionTrace) :
     RiskState.run .disabled actions = .disabled := by

@@ -23,7 +23,7 @@ attribute [local irreducible] Generic.sampleMasterSeed
 
 theorem gameCounted_verifier_eq (adversary : Security.StatementAdversary) :
     SUFCMA.gameCounted ⟨false, false, true, false⟩
-        (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss adversary = (do
+        (RandomOracleModel.hashCost HashInput Digest) Generic.xmss adversary = (do
       let (publicKey, secretKey) ← Generic.xmss.keygen
       let ((forgery, charged), log) ← (simulateQ (Security.adversaryImpl secretKey)
         (QueryCounting.counted Direct.IsDirectHashQuery (adversary.main publicKey))).run

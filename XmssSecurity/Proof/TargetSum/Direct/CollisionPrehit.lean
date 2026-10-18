@@ -233,7 +233,7 @@ theorem traced_hash_run (publicKey : PublicKey) (hashInput : HashInput)
     (cache : QueryCache HashSpec) (trace : SigningCacheTrace) :
     (cappedCacheTracedMappedAdversaryImpl publicKey secretKey (.inl (.inr hashInput))).run
         (cache, trace) =
-      (fun result : HashOutput × QueryCache HashSpec => (result.1, (result.2, trace))) <$>
+      (fun result : Digest × QueryCache HashSpec => (result.1, (result.2, trace))) <$>
         (randomOracle (spec := HashSpec) hashInput).run cache := by
   rw [cappedCacheTracedMappedAdversaryImpl, QueryImpl.extendState_apply,
     map_eq_bind_pure_comp]
@@ -295,7 +295,7 @@ theorem step_uniform (publicKey : PublicKey) (uniformInput : unifSpec.Domain)
 
 theorem hash_support_cases (publicKey : PublicKey) (hashInput : HashInput)
     (cache : QueryCache HashSpec) (trace : SigningCacheTrace)
-    (mid : HashOutput × (QueryCache HashSpec × SigningCacheTrace))
+    (mid : Digest × (QueryCache HashSpec × SigningCacheTrace))
     (hmid : mid ∈ support ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey
       (.inl (.inr hashInput))).run (cache, trace))) :
     mid.2.2 = trace ∧ (mid.2.1 = cache ∨ (cache hashInput = none ∧
@@ -351,7 +351,7 @@ theorem mem_leafIndices_of_mem {trace : SigningCacheTrace} {entry : SigningCache
 
 theorem agree_cacheQuery_other_leaf {parameter : PublicParameter} (cache : QueryCache HashSpec)
     {leafIndex leafIndex' : LeafIndex} (hne : leafIndex' ≠ leafIndex) (fresh : Message × Randomness)
-    (output : HashOutput) (entry : Message × Randomness) :
+    (output : Digest) (entry : Message × Randomness) :
     (cache.cacheQuery (input parameter leafIndex fresh) output) (input parameter leafIndex' entry) =
       cache (input parameter leafIndex' entry) :=
   QueryCache.cacheQuery_of_ne _ _ (input_ne_of_leafIndex_ne hne fresh entry)
@@ -360,13 +360,13 @@ theorem agree_cacheQuery_other_leaf {parameter : PublicParameter} (cache : Query
 had one or the fresh digest equals its digest. -/
 theorem isPartnered_cacheQuery_iff {parameter : PublicParameter} {cache : QueryCache HashSpec}
     {leafIndex : LeafIndex} {fresh : Message × Randomness}
-    (hfresh : cache (input parameter leafIndex fresh) = none) (output : HashOutput)
-    {entry : Message × Randomness} {found : HashOutput}
+    (hfresh : cache (input parameter leafIndex fresh) = none) (output : Digest)
+    {entry : Message × Randomness} {found : Digest}
     (hfound : cache (input parameter leafIndex entry) = some found) :
     IsPartnered parameter (cache.cacheQuery (input parameter leafIndex fresh) output) leafIndex
         entry ↔
       IsPartnered parameter cache leafIndex entry ∨
-        (Code.ValidDigest (Generic.truncateHash found) ∧ Generic.truncateHash output = Generic.truncateHash found) := by
+        (Code.ValidDigest (found) ∧ output = found) := by
   have hne : entry ≠ fresh := by
     rintro rfl
     rw [hfresh] at hfound
@@ -507,7 +507,7 @@ theorem fresh_signed_le (publicKey : PublicKey) {leafIndex : LeafIndex}
     (hcached : cache (input secretKey.parameter leafIndex fresh) = none)
     (hleaf : leafIndex ∈ trace.leafIndices) (hnodup : trace.leafIndices.Nodup)
     (hbad : ¬ StateBad secretKey cache trace) :
-    ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
+    ∑' output : Digest, Pr[= output | $ᵗ Digest] *
         potential q secretKey (cache.cacheQuery (input secretKey.parameter leafIndex fresh) output)
           trace remaining ≤
       ENNReal.ofReal (unsignedSum q secretKey cache trace) +
@@ -523,13 +523,13 @@ theorem fresh_signed_le (publicKey : PublicKey) {leafIndex : LeafIndex}
   set hitSet : Set Digest := {digest | ∃ entry ∈ trace, entry.request.epoch = leafIndex ∧
     EntryOpen secretKey cache entry ∧ ∃ signature found, entry.signature = some signature ∧
       cache (input parameter leafIndex (entry.request.message, signature.randomness)) =
-        some found ∧ digest = Generic.truncateHash found}
-  have hother : ∀ output : HashOutput, ∀ leafIndex' ≠ leafIndex, ∀ entry,
+        some found ∧ digest = found}
+  have hother : ∀ output : Digest, ∀ leafIndex' ≠ leafIndex, ∀ entry,
       (cache.cacheQuery hashInput output) (input parameter leafIndex' entry) =
         cache (input parameter leafIndex' entry) :=
     fun output leafIndex' hne entry => agree_cacheQuery_other_leaf cache hne fresh output entry
   -- partner status of prehits is unchanged without a hit
-  have hiff : ∀ output : HashOutput, Generic.truncateHash output ∉ hitSet → ∀ entry ∈ trace,
+  have hiff : ∀ output : Digest, output ∉ hitSet → ∀ entry ∈ trace,
       entry.EncodingInputPrehit secretKey → ∀ signature, entry.signature = some signature →
         (IsPartnered parameter (cache.cacheQuery hashInput output) entry.request.epoch
           (entry.request.message, signature.randomness) ↔
@@ -551,9 +551,9 @@ theorem fresh_signed_le (publicKey : PublicKey) {leafIndex : LeafIndex}
         rw [hepoch]
         exact hold
     · exact hold ((isPartnered_congr (hother output _ hepoch) _).mp hnew)
-  have hafter : ∀ output : HashOutput,
+  have hafter : ∀ output : Digest,
       potential q secretKey (cache.cacheQuery hashInput output) trace remaining ≤
-        if Generic.truncateHash output ∈ hitSet then 1 else X := by
+        if output ∈ hitSet then 1 else X := by
     intro output
     split_ifs with hhit
     · obtain ⟨entry, hentry, hepoch, hopen, signature, found, hsignature, hfound, hdigest⟩ := hhit
@@ -611,14 +611,14 @@ theorem fresh_signed_le (publicKey : PublicKey) {leafIndex : LeafIndex}
         exact List.countP_pos_iff.mpr ⟨entry, hentry, by simpa using hopen⟩
       exact_mod_cast hle1.trans hpos
   calc
-    _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-          (if Generic.truncateHash output ∈ hitSet then 1 else X) :=
+    _ ≤ ∑' output : Digest, Pr[= output | $ᵗ Digest] *
+          (if output ∈ hitSet then 1 else X) :=
       ENNReal.tsum_le_tsum fun output => mul_le_mul' le_rfl (hafter output)
-    _ = Pr[fun output : HashOutput => Generic.truncateHash output ∈ hitSet | $ᵗ HashOutput] * 1 +
-          Pr[fun output : HashOutput => ¬ Generic.truncateHash output ∈ hitSet | $ᵗ HashOutput] * X :=
+    _ = Pr[fun output : Digest => output ∈ hitSet | $ᵗ Digest] * 1 +
+          Pr[fun output : Digest => ¬ output ∈ hitSet | $ᵗ Digest] * X :=
       tsum_uniform_ite _ 1 X
     _ ≤ (hitSet.ncard : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) + X := by
-      rw [probEvent_truncate_mem, mul_one]
+      rw [probEvent_uniform_mem, mul_one]
       exact add_le_add le_rfl ((mul_le_mul' probEvent_le_one le_rfl).trans_eq (one_mul X))
     _ ≤ (openCount secretKey cache trace : ℝ≥0∞) * ENNReal.ofReal (1 / realN) + X := by
       apply add_le_add _ le_rfl
@@ -638,7 +638,7 @@ theorem fresh_unsigned_le (hq : q + 1 ≤ 2 ^ 127) {leafIndex : LeafIndex}
     (hcached : cache (input secretKey.parameter leafIndex fresh) = none)
     (hleaf : leafIndex ∉ trace.leafIndices) (hnodup : trace.leafIndices.Nodup)
     (hbad : ¬ StateBad secretKey cache trace) :
-    ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
+    ∑' output : Digest, Pr[= output | $ᵗ Digest] *
         potential q secretKey (cache.cacheQuery (input secretKey.parameter leafIndex fresh) output)
           trace remaining ≤
       ENNReal.ofReal (unsignedSum q secretKey cache trace) +
@@ -650,11 +650,11 @@ theorem fresh_unsigned_le (hq : q + 1 ≤ 2 ^ 127) {leafIndex : LeafIndex}
   set U := unsignedSum q secretKey cache trace
   set openW := (openCount secretKey cache trace : ℝ≥0∞) *
     ENNReal.ofReal (((remaining : ℝ) + 1) / realN)
-  have hother : ∀ output : HashOutput, ∀ leafIndex' ≠ leafIndex, ∀ entry,
+  have hother : ∀ output : Digest, ∀ leafIndex' ≠ leafIndex, ∀ entry,
       (cache.cacheQuery hashInput output) (input secretKey.parameter leafIndex' entry) =
         cache (input secretKey.parameter leafIndex' entry) :=
     fun output leafIndex' hne entry => agree_cacheQuery_other_leaf cache hne fresh output entry
-  have htrace : ∀ output : HashOutput, ∀ entry ∈ trace, ∀ x,
+  have htrace : ∀ output : Digest, ∀ entry ∈ trace, ∀ x,
       (cache.cacheQuery hashInput output) (input secretKey.parameter entry.request.epoch x) =
         cache (input secretKey.parameter entry.request.epoch x) := by
     intro output entry hentry x
@@ -666,7 +666,7 @@ theorem fresh_unsigned_le (hq : q + 1 ≤ 2 ^ 127) {leafIndex : LeafIndex}
     apply leafPotential_nonneg hq
     have := hinv.entries_add_le hleaf
     omega
-  have hafter : ∀ output : HashOutput,
+  have hafter : ∀ output : Digest,
       potential q secretKey (cache.cacheQuery hashInput output) trace remaining ≤
         ENNReal.ofReal (U - φ) +
           ENNReal.ofReal (leafPotential q secretKey.parameter (cache.cacheQuery hashInput output) leafIndex) +
@@ -682,12 +682,12 @@ theorem fresh_unsigned_le (hq : q + 1 ≤ 2 ^ 127) {leafIndex : LeafIndex}
     have := hinv.entries_add_le hleaf
     omega
   calc
-    _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
+    _ ≤ ∑' output : Digest, Pr[= output | $ᵗ Digest] *
           (ENNReal.ofReal (U - φ) +
             ENNReal.ofReal (leafPotential q secretKey.parameter (cache.cacheQuery hashInput output) leafIndex) +
             openW) :=
       ENNReal.tsum_le_tsum fun output => mul_le_mul' le_rfl (hafter output)
-    _ = ENNReal.ofReal (U - φ) + (∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
+    _ = ENNReal.ofReal (U - φ) + (∑' output : Digest, Pr[= output | $ᵗ Digest] *
           ENNReal.ofReal (leafPotential q secretKey.parameter (cache.cacheQuery hashInput output) leafIndex)) +
           openW := by
       simp_rw [mul_add]
@@ -729,13 +729,13 @@ theorem step_hash_encoding (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (lea
   | none =>
       have hrun : (cappedCacheTracedMappedAdversaryImpl publicKey secretKey
           (.inl (.inr hashInput))).run (cache, trace) =
-          (fun output : HashOutput => (output, (cache.cacheQuery hashInput output, trace))) <$>
-            ($ᵗ HashOutput) := by
+          (fun output : Digest => (output, (cache.cacheQuery hashInput output, trace))) <$>
+            ($ᵗ Digest) := by
         rw [traced_hash_run, randomOracle_run_none_eq_uniformHashOutput _ _ hcached]
         simp [uniformHashOutput, Functor.map_map]
-      have hle : ∀ output : HashOutput, cache ≤ cache.cacheQuery hashInput output :=
+      have hle : ∀ output : Digest, cache ≤ cache.cacheQuery hashInput output :=
         fun output => QueryCache.le_cacheQuery _ hcached
-      have hother : ∀ output : HashOutput, ∀ leafIndex' ≠ leafIndex, ∀ entry,
+      have hother : ∀ output : Digest, ∀ leafIndex' ≠ leafIndex, ∀ entry,
           (cache.cacheQuery hashInput output) (input parameter leafIndex' entry) =
             cache (input parameter leafIndex' entry) :=
         fun output leafIndex' hne entry => agree_cacheQuery_other_leaf cache hne fresh output entry
@@ -759,7 +759,7 @@ theorem step_hash_encoding (hq : q + 1 ≤ 2 ^ 127) (publicKey : PublicKey) (lea
       · refine le_trans (le_of_eq ?_) bot_le
         simp [potential, hnodup]
       by_cases hbad : StateBad secretKey cache trace
-      · have hbadAfter : ∀ output : HashOutput,
+      · have hbadAfter : ∀ output : Digest,
             potential q secretKey (cache.cacheQuery hashInput output) trace remaining = 1 := by
           intro output
           simp [potential, hnodup, hbad.mono (hle output) (fun _ h => h)]

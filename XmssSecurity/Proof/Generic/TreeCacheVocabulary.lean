@@ -9,7 +9,7 @@ namespace XmssSecurity.Generic
 variable [Code]
 
 def hashCacheLookup (cache : QueryCache HashSpec) (input : HashInput) :
-    Option HashOutput :=
+    Option Digest :=
   cache input
 
 def MerkleHashInput
@@ -78,7 +78,7 @@ theorem Concrete.CacheView.leafInput_ne_merkleInput
   simp at hdomain
 
 theorem Concrete.CacheView.chainStep_cacheQuery_merkleInput
-    (cache : QueryCache HashSpec) (output : HashOutput)
+    (cache : QueryCache HashSpec) (output : Digest)
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
     (level : MerkleLevel) (node : MerkleNode) (left right : Digest) :
     Concrete.CacheView.chainStep
@@ -96,7 +96,7 @@ theorem Concrete.CacheView.chainStep_cacheQuery_merkleInput
   · rfl
 
 theorem Concrete.CacheView.chainStep_cacheQuery_leafInput
-    (cache : QueryCache HashSpec) (output : HashOutput)
+    (cache : QueryCache HashSpec) (output : Digest)
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
     (targetLeafIndex : LeafIndex) (endpoints : ChainIndex → Digest) :
     Concrete.CacheView.chainStep
@@ -114,7 +114,7 @@ theorem Concrete.CacheView.chainStep_cacheQuery_leafInput
   · rfl
 
 theorem Concrete.CacheReplay.oneTimePublicKey_cacheQuery_merkleInput
-    (cache : QueryCache HashSpec) (output : HashOutput)
+    (cache : QueryCache HashSpec) (output : Digest)
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (leafIndex : LeafIndex) (level : MerkleLevel) (node : MerkleNode)
     (left right : Digest) :
@@ -128,7 +128,7 @@ theorem Concrete.CacheReplay.oneTimePublicKey_cacheQuery_merkleInput
   rw [Concrete.CacheView.chainStep_cacheQuery_merkleInput]
 
 theorem Concrete.CacheReplay.oneTimePublicKey_cacheQuery_leafInput
-    (cache : QueryCache HashSpec) (output : HashOutput)
+    (cache : QueryCache HashSpec) (output : Digest)
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (leafIndex targetLeafIndex : LeafIndex) (endpoints : ChainIndex → Digest) :
     Concrete.CacheReplay.oneTimePublicKey
@@ -147,7 +147,7 @@ theorem ReplayEndpointsMatch.cacheQuery_merkleInput
     (cache : QueryCache HashSpec)
     (hrel : ReplayEndpointsMatch parameter secret endpoints cache)
     (level : MerkleLevel) (node : MerkleNode) (left right : Digest)
-    (output : HashOutput) :
+    (output : Digest) :
     ReplayEndpointsMatch parameter secret endpoints
       (cache.cacheQuery
         (Concrete.CacheView.merkleInput parameter level node left right)
@@ -163,7 +163,7 @@ theorem ReplayEndpointsMatch.cacheQuery_leafInput
     (cache : QueryCache HashSpec)
     (hrel : ReplayEndpointsMatch parameter secret endpoints cache)
     (targetLeafIndex : LeafIndex) (targetEndpoints : ChainIndex → Digest)
-    (output : HashOutput) :
+    (output : Digest) :
     ReplayEndpointsMatch parameter secret endpoints
       (cache.cacheQuery
         (Concrete.CacheView.leafInput parameter targetLeafIndex targetEndpoints)
@@ -178,7 +178,7 @@ theorem LeafCacheOutputsCorrespond.cacheQuery_distinct
     (left right : QueryCache HashSpec)
     (hrel : LeafCacheOutputsCorrespond parameter leftEndpoints rightEndpoints
       left right)
-    (leftInput rightInput : HashInput) (output : HashOutput)
+    (leftInput rightInput : HashInput) (output : Digest)
     (hleft : ∀ leafIndex, leftInput ≠ Concrete.CacheView.leafInput parameter
       leafIndex (leftEndpoints leafIndex))
     (hright : ∀ leafIndex, rightInput ≠ Concrete.CacheView.leafInput parameter
@@ -214,7 +214,7 @@ theorem LeafCacheOutputsCorrespond.cacheQuery_pair
     (left right : QueryCache HashSpec)
     (hrel : LeafCacheOutputsCorrespond parameter leftEndpoints rightEndpoints
       left right)
-    (leafIndex : LeafIndex) (output : HashOutput) :
+    (leafIndex : LeafIndex) (output : Digest) :
     LeafCacheOutputsCorrespond parameter leftEndpoints rightEndpoints
       (left.cacheQuery
         (Concrete.CacheView.leafInput parameter leafIndex (leftEndpoints leafIndex))

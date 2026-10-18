@@ -8,9 +8,6 @@ namespace XmssSecurity.Generic
 
 variable [Code]
 
-noncomputable local instance : SampleableType Randomness :=
-  SampleableType.ofFintype Randomness
-
 noncomputable def cachedEncodingEntryCount (cache : QueryCache HashSpec)
     (parameter : PublicParameter) (leafIndex : LeafIndex) : ℝ≥0∞ :=
   (({entry ∈ cache.toSet |
@@ -29,7 +26,7 @@ set_option maxRecDepth 100000 in
 set_option linter.constructorNameAsVariable false in
 theorem cachedEncodingInputSet_cacheQuery_subset
     (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (input : HashInput) (output : HashOutput) :
+    (input : HashInput) (output : Digest) :
     cachedEncodingInputSet (cache.cacheQuery input output) parameter ⊆
       if (encodingInputLeafIndex? parameter input).isSome then
         insert ⟨input, output⟩ (cachedEncodingInputSet cache parameter)
@@ -58,7 +55,7 @@ set_option maxRecDepth 100000 in
 set_option linter.constructorNameAsVariable false in
 theorem cachedEncodingInputCount_cacheQuery_le
     (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (input : HashInput) (output : HashOutput) :
+    (input : HashInput) (output : Digest) :
     cachedEncodingInputCount (cache.cacheQuery input output) parameter ≤
       cachedEncodingInputCount cache parameter +
         if (encodingInputLeafIndex? parameter input).isSome then 1 else 0 := by
@@ -102,7 +99,7 @@ theorem uniform_signingRandomness_encodingInput_cacheHit_le_cachedEncodingEntryC
         some output |
       $ᵗ Randomness] ≤
       cachedEncodingEntryCount cache parameter leafIndex *
-        ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
+        ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   classical
   let hit : Randomness → Prop := fun randomness => ∃ output,
     cache (Concrete.CacheView.encodingInput parameter leafIndex (message, randomness)) =
@@ -125,7 +122,7 @@ theorem uniform_signingRandomness_encodingInput_cacheHit_le_cachedEncodingEntryC
       ENat.toENNReal_mono embedding.encard_le
   rw [probEvent_uniformSample, card_randomness, div_eq_mul_inv]
   change (targets.card : ℝ≥0∞) *
-      ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ ≤ _
+      ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ ≤ _
   exact mul_le_mul' hcard le_rfl
 
 /-- Running one signing query samples its 128-bit randomness first, without changing the random-oracle cache, and then performs the fixed-randomness signing attempt. -/

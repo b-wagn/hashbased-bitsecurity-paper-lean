@@ -41,7 +41,7 @@ theorem freshMixedPrefixEvent_none (key : CappedChain.ProgrammedGlobalChainKeyge
 
 noncomputable def freshMixedPrefixProbability (adversary : Adversary) : ℝ≥0∞ :=
   Pr[fun pair => FreshMixedPrefixEvent pair.1.1 pair.1.2
-    (Code.decodeDigest (Generic.truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
+    (Code.decodeDigest (pair.2)) | mixedEncodingPrefixProgram adversary]
 
 theorem sourcePrefixFinish_standardFresh (adversary : Adversary)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (prefixResult : Forgery × CappedChain.SourceExactTracedState)
@@ -65,7 +65,7 @@ theorem sourcePrefixFinish_freshFirstLane_probability_le_mixed_add_encoding (adv
     (hprefix : prefixResult ∈ support (Deciding.sourcePrefixExecution adversary key)) :
     Pr[fun result => SourceWinningFreshFirstLane (key, result) | Deciding.sourcePrefixFinish key prefixResult] ≤
       Pr[fun output => FreshMixedPrefixEvent key prefixResult
-        (Code.decodeDigest (Generic.truncateHash output)) | $ᵗ HashOutput] +
+        (Code.decodeDigest (output)) | $ᵗ Digest] +
       Pr[fun result => SourcePrefixForgedEncodingFresh (key, prefixResult) ∧
         SourceWinningEncodingEvent (key, result) | Deciding.sourcePrefixFinish key prefixResult] := by
   by_cases hfresh : ¬ SigningTranscript.ContainsRequest prefixResult.2.2.toSigningLog prefixResult.1
@@ -83,13 +83,13 @@ theorem sourcePrefixFinish_freshFirstLane_probability_le_mixed_add_encoding (adv
 theorem freshMixedPrefixProbability_eq_prefix (adversary : Adversary) :
     freshMixedPrefixProbability adversary =
       Pr[fun pair : MixedEncodingPrefixResult => FreshMixedPrefixEvent pair.1.1 pair.1.2
-        (Code.decodeDigest (Generic.truncateHash pair.2)) | do
+        (Code.decodeDigest (pair.2)) | do
           let prefixPair ← Deciding.sourcePrefixProgram adversary
-          let output ← ($ᵗ HashOutput)
+          let output ← ($ᵗ Digest)
           pure (prefixPair, output)] := by
   unfold freshMixedPrefixProbability mixedEncodingPrefixProgram
   apply CappedChain.probEvent_eq_of_evalDist_eq
-  exact OracleComp.DeferredSampling.evalDist_bind_comm ($ᵗ HashOutput) (Deciding.sourcePrefixProgram adversary)
+  exact OracleComp.DeferredSampling.evalDist_bind_comm ($ᵗ Digest) (Deciding.sourcePrefixProgram adversary)
     (fun output prefixPair => pure (prefixPair, output))
 
 theorem freshFirstLane_probability_le_mixed_add_encoding (adversary : Adversary) :

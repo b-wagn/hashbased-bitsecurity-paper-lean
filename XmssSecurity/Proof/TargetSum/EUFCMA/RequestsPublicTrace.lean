@@ -33,18 +33,18 @@ theorem globalExactTracedLift_activity (table : CappedChain.GlobalChainValueInde
   exact traceActive_append_fragment _ _ _ _
 
 theorem public_query_activity (table : CappedChain.GlobalChainValueIndex → Digest)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain) (state : CappedChain.GlobalHighDirectTracedState)
     (result : ((OracleWorld + SigningSpec).Range input × CappedChain.GlobalHighDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh input).run state)).run)) :
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key input).run state)).run)) :
     traceActive key.secretKey.parameter result.1.2.attackerTrace =
       (traceActive key.secretKey.parameter state.attackerTrace || activity key.secretKey.parameter input) := by
   cases input with
   | inl input =>
       exact globalExactTracedLift_activity table key (.inl input)
-        (StateT.mk (CappedChain.globalFirstLaneOracleExecution key edgeHigh input)) state result hresult
+        (StateT.mk (CappedChain.globalFirstLaneOracleExecution key input)) state result hresult
   | inr request =>
       exact globalExactTracedLift_activity table key (.inr request)
         (CappedChain.globalFirstLaneSigningImpl key request) state result hresult
@@ -62,17 +62,17 @@ theorem globalExactTracedLift_attackerTrace (table : CappedChain.GlobalChainValu
   rw [hresultEq, CappedChain.globalExactTracedNextState]
 
 theorem public_query_attackerTrace (table : CappedChain.GlobalChainValueIndex → Digest)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain) (state : CappedChain.GlobalHighDirectTracedState)
     (result : ((OracleWorld + SigningSpec).Range input × CappedChain.GlobalHighDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh input).run state)).run)) :
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key input).run state)).run)) :
     result.1.2.attackerTrace = state.attackerTrace ++ CappedChain.attackerActionFragment input result.1.1 := by
   cases input with
   | inl input =>
       exact globalExactTracedLift_attackerTrace table key (.inl input)
-        (StateT.mk (CappedChain.globalFirstLaneOracleExecution key edgeHigh input)) state result hresult
+        (StateT.mk (CappedChain.globalFirstLaneOracleExecution key input)) state result hresult
   | inr request =>
       exact globalExactTracedLift_attackerTrace table key (.inr request)
         (CappedChain.globalFirstLaneSigningImpl key request) state result hresult
@@ -80,20 +80,20 @@ theorem public_query_attackerTrace (table : CappedChain.GlobalChainValueIndex �
 abbrev PublicTraceState := CappedChain.GlobalHighDirectTracedState × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex
 
 noncomputable def publicTraceImpl (table : CappedChain.GlobalChainValueIndex → Digest)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
+    (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     QueryImpl (OracleWorld + SigningSpec) (StateT PublicTraceState ProbComp) := fun input =>
   StateT.mk fun state => (fun result => (result.1.1, (result.1.2, state.2 ++ result.2))) <$>
     (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh input).run state.1)).run
+      ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key input).run state.1)).run
 
 theorem publicTrace_run {α : Type} (table : CappedChain.GlobalChainValueIndex → Digest)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (computation : OracleComp (OracleWorld + SigningSpec) α) (state : CappedChain.GlobalHighDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
-    (simulateQ (publicTraceImpl table key edgeHigh) computation).run (state, history) =
+    (simulateQ (publicTraceImpl table key) computation).run (state, history) =
       (fun result => (result.1.1, (result.1.2, history ++ result.2))) <$>
         (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-          ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key edgeHigh) computation).run state)).run := by
+          ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl key) computation).run state)).run := by
   induction computation using OracleComp.inductionOn generalizing state history with
   | pure value => simp
   | query_bind input next ih =>
@@ -107,26 +107,26 @@ theorem publicTrace_run {α : Type} (table : CappedChain.GlobalChainValueIndex �
       congr 1
 
 theorem publicTrace_activity_step (table : CappedChain.GlobalChainValueIndex → Digest)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain) (state : PublicTraceState)
     (result : (OracleWorld + SigningSpec).Range input × PublicTraceState)
-    (hresult : result ∈ support ((publicTraceImpl table key edgeHigh input).run state)) :
+    (hresult : result ∈ support ((publicTraceImpl table key input).run state)) :
     traceActive key.secretKey.parameter result.2.1.attackerTrace =
       (traceActive key.secretKey.parameter state.1.attackerTrace || activity key.secretKey.parameter input) := by
   simp only [publicTraceImpl, StateT.run_mk, support_map] at hresult
   obtain ⟨handled, hhandled, rfl⟩ := hresult
-  exact public_query_activity table key edgeHigh input state.1 handled hhandled
+  exact public_query_activity table key input state.1 handled hhandled
 
 theorem publicTrace_hazard_step (table : CappedChain.GlobalChainValueIndex → Digest)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain) (state : PublicTraceState)
     (result : (OracleWorld + SigningSpec).Range input × PublicTraceState)
-    (hresult : result ∈ support ((publicTraceImpl table key edgeHigh input).run state)) :
+    (hresult : result ∈ support ((publicTraceImpl table key input).run state)) :
     FirstLaneOracleSimulation.hazardCount result.2.2 ≤ FirstLaneOracleSimulation.hazardCount state.2 + if IsCharged input then 1 else 0 := by
   simp only [publicTraceImpl, StateT.run_mk, support_map] at hresult
   obtain ⟨handled, hhandled, rfl⟩ := hresult
   have h := FirstLaneOracleSimulation.simulate_eagerTrace_support_hazardCount_le table _ (CappedChain.directHashActionCost input)
-    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound key edgeHigh input state.1) handled hhandled
+    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound key input state.1) handled hhandled
   simp only [FirstLaneOracleSimulation.hazardCount_append]
   apply Nat.add_le_add_left (h.trans ?_)
   rcases input with (sample | hashInput) | request <;> simp [CappedChain.directHashActionCost]
@@ -134,22 +134,21 @@ theorem publicTrace_hazard_step (table : CappedChain.GlobalChainValueIndex → D
 theorem public_stopped_hazards_le (adversary : Adversary) (q : ℕ) (hpositive : 0 < q)
     (hbound : IsQueryBound adversary q) (table : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (hparameter : key.publicKey.parameter = key.secretKey.parameter)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
     (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (Deciding.publicPrefixExecution (stoppedAdversary q adversary) key edgeHigh)).run)) :
+      (Deciding.publicPrefixExecution (stoppedAdversary q adversary) key)).run)) :
     FirstLaneOracleSimulation.hazardCount result.2 ≤ (q - 1) + if traceActive key.secretKey.parameter result.1.2.attackerTrace then 1 else 0 := by
   have hsupport : (result.1.1, (result.1.2, result.2)) ∈ support
-      ((simulateQ (publicTraceImpl table key edgeHigh)
+      ((simulateQ (publicTraceImpl table key)
         ((stoppedAdversary q adversary).main key.publicKey)).run
         (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key), [])) := by
     rw [publicTrace_run, support_map]
     exact ⟨result, hresult, by simp⟩
-  have h := stopInactive_counter_le_terminal (publicTraceImpl table key edgeHigh)
+  have h := stopInactive_counter_le_terminal (publicTraceImpl table key)
     (activity key.secretKey.parameter)
     (fun state : PublicTraceState => traceActive key.secretKey.parameter state.1.attackerTrace)
     (fun state : PublicTraceState => FirstLaneOracleSimulation.hazardCount state.2)
-    (publicTrace_activity_step table key edgeHigh) (publicTrace_hazard_step table key edgeHigh)
+    (publicTrace_activity_step table key) (publicTrace_hazard_step table key)
     stoppedFallback (adversary.main key.publicKey) q
     (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key), []) hpositive (hbound key.publicKey)
     (result.1.1, (result.1.2, result.2))
@@ -162,17 +161,17 @@ theorem public_stopped_hazards_le (adversary : Adversary) (q : ℕ) (hpositive :
 #print axioms public_stopped_hazards_le
 
 theorem publicTrace_hazards_requests_step (table : CappedChain.GlobalChainValueIndex → Digest)
-    (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
+    (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain) (state : PublicTraceState)
     (result : (OracleWorld + SigningSpec).Range input × PublicTraceState)
-    (hresult : result ∈ support ((publicTraceImpl table key edgeHigh input).run state)) :
+    (hresult : result ∈ support ((publicTraceImpl table key input).run state)) :
     FirstLaneOracleSimulation.hazardCount result.2.2 + result.2.1.attackerTrace.toSigningLog.length ≤
       (FirstLaneOracleSimulation.hazardCount state.2 + state.1.attackerTrace.toSigningLog.length) + if IsCharged input then 1 else 0 := by
   simp only [publicTraceImpl, StateT.run_mk, support_map] at hresult
   obtain ⟨handled, hhandled, rfl⟩ := hresult
   have h := FirstLaneOracleSimulation.simulate_eagerTrace_support_hazardCount_le table _ (CappedChain.directHashActionCost input)
-    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound key edgeHigh input state.1) handled hhandled
-  simp only [FirstLaneOracleSimulation.hazardCount_append, public_query_attackerTrace table key edgeHigh input state.1 handled hhandled,
+    (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl_hazardBound key input state.1) handled hhandled
+  simp only [FirstLaneOracleSimulation.hazardCount_append, public_query_attackerTrace table key input state.1 handled hhandled,
     CappedChain.AttackerActionTrace.toSigningLog_append, List.length_append, CappedChain.attackerActionFragment_toSigningLog]
   rcases input with (sample | hashInput) | request <;>
     simp only [CappedChain.directHashActionCost, signingLogFragment, List.length_nil, List.length_cons,
@@ -181,25 +180,24 @@ theorem publicTrace_hazards_requests_step (table : CappedChain.GlobalChainValueI
 theorem public_stopped_hazards_le_encoding (adversary : Adversary) (q : ℕ) (hpositive : 0 < q)
     (hbound : IsQueryBound adversary q) (table : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (hparameter : key.publicKey.parameter = key.secretKey.parameter)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest)
     (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (Deciding.publicPrefixExecution (stoppedAdversary q adversary) key edgeHigh)).run)) :
+      (Deciding.publicPrefixExecution (stoppedAdversary q adversary) key)).run)) :
     FirstLaneOracleSimulation.hazardCount result.2 ≤ (q - 1) + if encodingActive key.secretKey.parameter result.1.2.attackerTrace then 1 else 0 := by
   by_cases hrequests : result.1.2.attackerTrace.toSigningLog.length = 0
-  · have h := public_stopped_hazards_le adversary q hpositive hbound table key hparameter edgeHigh result hresult
+  · have h := public_stopped_hazards_le adversary q hpositive hbound table key hparameter result hresult
     simpa only [traceActive, activityCount, hrequests, Nat.add_zero, encodingActive] using h
   · have hsupport : (result.1.1, (result.1.2, result.2)) ∈ support
-        ((simulateQ (publicTraceImpl table key edgeHigh)
+        ((simulateQ (publicTraceImpl table key)
           ((stoppedAdversary q adversary).main key.publicKey)).run
           (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key), [])) := by
       rw [publicTrace_run, support_map]
       exact ⟨result, hresult, by simp⟩
-    have h := stopInactive_support_budget (publicTraceImpl table key edgeHigh)
+    have h := stopInactive_support_budget (publicTraceImpl table key)
       (activity key.secretKey.parameter)
       (fun state : PublicTraceState => traceActive key.secretKey.parameter state.1.attackerTrace)
       (fun state : PublicTraceState => FirstLaneOracleSimulation.hazardCount state.2 + state.1.attackerTrace.toSigningLog.length)
-      (publicTrace_activity_step table key edgeHigh) (publicTrace_hazards_requests_step table key edgeHigh)
+      (publicTrace_activity_step table key) (publicTrace_hazards_requests_step table key)
       stoppedFallback (adversary.main key.publicKey) q
       (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key), []) (hbound key.publicKey)
       (result.1.1, (result.1.2, result.2))

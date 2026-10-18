@@ -26,20 +26,20 @@ def SourceCountedMixedPrefixAccepted (fallback : Option Encoding)
   SourceCountedPrefixAccepted result ∨ fallback.isSome
 
 def CoupledLimitedMixedProbeEligible (fallback : Option Encoding) (result : CoupledLimitedPrefixResult) : Prop :=
-  LimitedMixedEncodingProbeEligible result.1.1.1 fallback result.2
+  LimitedMixedEncodingProbeEligible result.1.1 fallback result.2
 
 def CoupledLimitedMixedProbedHit (fallback : Option Encoding) (result : CoupledLimitedPrefixResult) : Prop :=
-  FirstLaneOracleSimulation.CombinedHit result.1.1.2 (appendLimitedMixedEncodingProbe result.1.1.2 result.1.1.1 fallback result.2).2
+  FirstLaneOracleSimulation.CombinedHit result.1.2 (appendLimitedMixedEncodingProbe result.1.2 result.1.1 fallback result.2).2
 
 noncomputable def publicLimitedMixedEncodingProbeExecution (limit : Nat) (adversary : Adversary)
-    (fallback : Option Encoding) (key : CappedChain.ProgrammedGlobalChainKeygenView) (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) :
+    (fallback : Option Encoding) (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
-  limitedMixedEncodingProbeExecution limit key edgeHigh (adversary.main key.publicKey) fallback
+  limitedMixedEncodingProbeExecution limit key (adversary.main key.publicKey) fallback
 
 theorem coupledLimitedMixedEncodingProbe_eq_map (limit : Nat) (adversary : Adversary) (fallback : Option Encoding) :
     Deciding.coupledFirstLaneProgram (publicLimitedMixedEncodingProbeExecution limit adversary fallback) =
       (fun result : CoupledLimitedPrefixResult =>
-        (result.1, appendLimitedMixedEncodingProbe result.1.1.2 result.1.1.1 fallback result.2)) <$>
+        (result.1, appendLimitedMixedEncodingProbe result.1.2 result.1.1 fallback result.2)) <$>
           Deciding.coupledFirstLaneProgram (publicLimitedPrefixExecution limit adversary) := by
   unfold Deciding.coupledFirstLaneProgram publicLimitedMixedEncodingProbeExecution publicLimitedPrefixExecution
   simp only [map_bind, map_pure, limitedMixedEncodingProbeExecution_eager, bind_map_left]
@@ -94,10 +94,10 @@ theorem coupledLimitedMixedProbedHit_probability_le (adversary : Adversary) (lim
           Deciding.coupledFirstLaneProgram (publicLimitedPrefixExecution limit adversary)] := by
   have hevent : Pr[CoupledLimitedMixedProbedHit fallback |
       Deciding.coupledFirstLaneProgram (publicLimitedPrefixExecution limit adversary)] =
-      Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (limit + 1) result.2.2) |
+      Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (limit + 1) result.2.2) |
         Deciding.coupledFirstLaneProgram (publicLimitedMixedEncodingProbeExecution limit adversary fallback)] := by
     calc
-      _ = Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.1.2 result.2.2 |
+      _ = Pr[fun result => FirstLaneOracleSimulation.CombinedHit result.1.2 result.2.2 |
           Deciding.coupledFirstLaneProgram (publicLimitedMixedEncodingProbeExecution limit adversary fallback)] := by
         rw [coupledLimitedMixedEncodingProbe_eq_map, probEvent_map]
         rfl

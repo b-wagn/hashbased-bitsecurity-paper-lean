@@ -17,16 +17,16 @@ namespace XmssSecurity.TargetSum.Deciding
 open CappedChain FirstLaneOracleSimulation
 
 abbrev MixedEncodingPrefixResult :=
-  (CappedChain.ProgrammedGlobalChainKeygenView × (Forgery × CappedChain.SourceExactTracedState)) × HashOutput
+  (CappedChain.ProgrammedGlobalChainKeygenView × (Forgery × CappedChain.SourceExactTracedState)) × Digest
 
 noncomputable def mixedEncodingPrefixProgram (adversary : Adversary) : ProbComp MixedEncodingPrefixResult := do
-  let output ← ($ᵗ HashOutput)
+  let output ← ($ᵗ Digest)
   let prefixPair ← Deciding.sourcePrefixProgram adversary
   pure (prefixPair, output)
 
 noncomputable def mixedEncodingPrefixProbability (adversary : Adversary) : ℝ≥0∞ :=
   Pr[fun pair => MixedEncodingPrefixEvent pair.1.1 pair.1.2
-    (Code.decodeDigest (Generic.truncateHash pair.2)) | mixedEncodingPrefixProgram adversary]
+    (Code.decodeDigest (pair.2)) | mixedEncodingPrefixProgram adversary]
 
 theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
     (hbudget : ∀ key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen,
@@ -44,16 +44,16 @@ theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
   unfold mixedEncodingPrefixProbability mixedEncodingPrefixProgram
   rw [probEvent_bind_eq_tsum]
   calc
-    _ ≤ ∑' output : HashOutput, Pr[= output | $ᵗ HashOutput] *
-        (base + rate * (credit + if Code.ValidDigest (Generic.truncateHash output) then 1 else 0)) := by
+    _ ≤ ∑' output : Digest, Pr[= output | $ᵗ Digest] *
+        (base + rate * (credit + if Code.ValidDigest (output) then 1 else 0)) := by
       apply ENNReal.tsum_le_tsum
       intro output
       apply mul_le_mul' le_rfl
       simp only [bind_pure_comp, probEvent_map, Function.comp_def]
       have h := mixedEncodingPrefixEvent_probability_le_source_credit adversary limit hbudget
-        (Code.decodeDigest (Generic.truncateHash output))
-      have hvalid : (Code.decodeDigest (Generic.truncateHash output)).isSome ↔
-          Code.ValidDigest (Generic.truncateHash output) := Option.isSome_iff_exists
+        (Code.decodeDigest (output))
+      have hvalid : (Code.decodeDigest (output)).isSome ↔
+          Code.ValidDigest (output) := Option.isSome_iff_exists
       simp only [hvalid] at h
       exact h
     _ = base + rate * (credit + TargetSum.acceptanceProbability) := by

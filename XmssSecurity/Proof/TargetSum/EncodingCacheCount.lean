@@ -14,7 +14,7 @@ namespace XmssSecurity.TargetSum
 
 theorem cachedEncodingInputSet_cacheQuery_eq_insert
     (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (input : HashInput) (output : HashOutput)
+    (input : HashInput) (output : Digest)
     (hencoding : (encodingInputLeafIndex? parameter input).isSome)
     (hfresh : cache input = none) :
     cachedEncodingInputSet (cache.cacheQuery input output) parameter =
@@ -29,7 +29,7 @@ theorem cachedEncodingInputSet_cacheQuery_eq_insert
 
 theorem cachedEncodingInputCount_cacheQuery_eq_add_one
     (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (input : HashInput) (output : HashOutput)
+    (input : HashInput) (output : Digest)
     (hencoding : (encodingInputLeafIndex? parameter input).isSome)
     (hfresh : cache input = none) :
     cachedEncodingInputCount (cache.cacheQuery input output) parameter =
@@ -49,7 +49,7 @@ theorem cachedEncodingInputCount_cacheQuery_eq_add_one
 
 theorem cachedEncodingInputCount_cacheQuery_eq_of_nonencoding
     (cache : QueryCache HashSpec) (parameter : PublicParameter)
-    (input : HashInput) (output : HashOutput)
+    (input : HashInput) (output : Digest)
     (hinput : encodingInputLeafIndex? parameter input = none) :
     cachedEncodingInputCount (cache.cacheQuery input output) parameter =
       cachedEncodingInputCount cache parameter := by

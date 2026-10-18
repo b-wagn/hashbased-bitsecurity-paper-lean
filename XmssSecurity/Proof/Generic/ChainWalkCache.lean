@@ -32,14 +32,14 @@ theorem simulate_chainWalk_run_eq_pure_of_table_matches
       · rename_i hvalid
         simp only [zero_add] at hvalid ⊢
         let edge : ChainEdgeIndex := (leafIndex, ⟨steps, hedgeStep⟩)
-        obtain ⟨output, hcached, htruncate⟩ := hedges edge
+        obtain ⟨output, hcached, htarget⟩ := hedges edge
         let input := chainTableEdgeInput
           secretKey.parameter chain table edge
-        change (fun result : HashOutput × QueryCache HashSpec =>
-          (truncateHash result.1, result.2)) <$>
+        change (fun result : Digest × QueryCache HashSpec =>
+          (result.1, result.2)) <$>
             (randomOracle input).run cache = _
         rw [randomOracle, QueryImpl.withCaching_run_some _ hcached]
-        simp [htruncate, chainTableEdgeTarget, chainStepNextDigit, edge]
+        simp [htarget, chainTableEdgeTarget, chainStepNextDigit, edge]
       · rename_i hinvalid
         omega
 

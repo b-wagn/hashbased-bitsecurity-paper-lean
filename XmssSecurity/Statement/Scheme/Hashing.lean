@@ -16,10 +16,6 @@ namespace XmssSecurity
 
 /-! ## Hash inputs and tweaks -/
 
-/-- Keep the first 128 output bits, the low bits of the little-endian bit vector. -/
-def truncateHash (output : HashOutput) : Digest :=
-  output.extractLsb' 0 digestBits
-
 /-- Serialize a bit vector into a fixed number of bytes, least significant byte first. -/
 def bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) : List UInt8 :=
   List.ofFn fun index : Fin byteCount =>
@@ -110,14 +106,13 @@ def nodePayload (left right : Digest) : HashInput :=
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- One query to the random oracle `H`. -/
-def oracleHash (input : HashInput) : m HashOutput :=
+def oracleHash (input : HashInput) : m Digest :=
   HasQuery.query (spec := HashSpec) (m := m) input
 
-/-- `Th(P, tw, M) = Truncate_n(H(tw || P || M))`. -/
+/-- `Th(P, tw, M) = H(tw || P || M)`. -/
 def tweakableHash
-    (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) : m Digest := do
-  let output ← oracleHash (tweakableHashInput parameter domain payload)
-  return truncateHash output
+    (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) : m Digest :=
+  oracleHash (tweakableHashInput parameter domain payload)
 
 /-- The message digest `D = Th(P, enc(4, 0, idx), m || rho)`, which the WOTS encoding
 decodes. -/
@@ -146,12 +141,12 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
 /-- `Th(P, enc, S)`: the public parameter (`P = 0`, `enc(5, 0, 0)`) and the chain starts
 (`enc(0, i, idx)`). -/
-def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest := do
-  return truncateHash (← Concrete.oracleHash (keygenHashInput parameter domain seed))
+def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest :=
+  Concrete.oracleHash (keygenHashInput parameter domain seed)
 
-/-- Randomizer trial `a`: `ρ_a = Truncate_ℓrnd(H(enc(7, a, idx) ∥ P ∥ S ∥ m))`. -/
+/-- Randomizer trial `a`: `ρ_a = H(enc(7, a, idx) ∥ P ∥ S ∥ m)`. -/
 def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
-    (message : Message) (trial : BitVec 32) : m Randomness := do
-  return (← Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message trial)).extractLsb' 0 randomnessBits
+    (message : Message) (trial : BitVec 32) : m Randomness :=
+  Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message trial)
 
 end XmssSecurity

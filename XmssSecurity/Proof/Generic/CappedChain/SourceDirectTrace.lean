@@ -34,7 +34,7 @@ noncomputable def sourceDirectTracedMappedAdversaryImpl
     attackerActionFragment
 
 noncomputable abbrev sourceDirectTracedHashVerifierImpl
-    (hashInput : HashInput) : StateT SourceTracedState ProbComp HashOutput :=
+    (hashInput : HashInput) : StateT SourceTracedState ProbComp Digest :=
   StateT.mk fun state =>
     (fun result => (result.1, (result.2, state.2))) <$>
       (randomOracle hashInput).run state.1

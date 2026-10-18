@@ -64,7 +64,7 @@ theorem mutationPathInput_cached_unique
     (leafIndex : LeafIndex) (chain : ChainIndex) (digit : Digit) (signature : Signature)
     (endpoints : ChainIndex → Digest) (position : ℕ)
     (hposition : position < mutationChainSteps digit + 1 + treeHeight)
-    (left right : Digest) (leftOutput rightOutput : HashOutput)
+    (left right : Digest) (leftOutput rightOutput : Digest)
     (hleft : keyResult.2
       (mutationPathInput keyResult.1.2.parameter leafIndex chain digit signature endpoints position left) =
         some leftOutput)
@@ -184,7 +184,7 @@ theorem mutationReplayInputs_honest
     (position : ℕ) (hposition : position < mutationChainSteps (encoding chain) + 1 + treeHeight) :
     ∃ output, keyResult.2 (mutationReplayInputs keyResult.2 keyResult.1.2 leafIndex chain encoding randomness
         position (mutationHonestValue keyResult.2 keyResult.1.2 leafIndex chain (encoding chain) position)) =
-      some output ∧ truncateHash output =
+      some output ∧ output =
         mutationHonestValue keyResult.2 keyResult.1.2 leafIndex chain (encoding chain) (position + 1) := by
   obtain ⟨output, houtput⟩ := mutationReplayInputs_cached keyResult hkey leafIndex chain encoding
     randomness position hposition

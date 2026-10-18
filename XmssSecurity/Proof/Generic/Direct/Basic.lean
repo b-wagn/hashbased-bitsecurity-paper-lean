@@ -97,7 +97,7 @@ theorem pruneDirect_pure {α : Type} (budget : ℕ) (value : α) :
     pruneDirect budget (pure value : OracleComp (OracleWorld + SigningSpec) α) = pure value := rfl
 
 theorem pruneDirect_hash_bind {α : Type} (budget : ℕ) (hashInput : HashInput)
-    (next : HashOutput → OracleComp (OracleWorld + SigningSpec) α) :
+    (next : Digest → OracleComp (OracleWorld + SigningSpec) α) :
     pruneDirect budget (liftM ((OracleWorld + SigningSpec).query (.inl (.inr hashInput))) >>= next) =
       if budget = 0 then pruneDirect 0 (next default)
       else liftM ((OracleWorld + SigningSpec).query (.inl (.inr hashInput))) >>= fun answer =>

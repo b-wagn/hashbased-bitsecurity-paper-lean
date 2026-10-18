@@ -8,7 +8,7 @@ The data types of XMSS, in terms of
 the constants of `Parameters.lean`: seeds, digests, messages, indices, encodings, keys, and
 signatures. Encodings, secret keys, and signatures depend on the number `v` of WOTS chains, which
 the encoding fixes (`WotsEncoding`). It also fixes the random-oracle world of XMSS: the hash
-function `H` maps byte strings to 256-bit outputs and is the random oracle `HashSpec`, so every
+function `H` maps byte strings to `n`-bit digests and is the random oracle `HashSpec`, so every
 hash call is an oracle query.
 -/
 
@@ -21,10 +21,11 @@ namespace XmssSecurity
 abbrev MasterSeed := BitVec 256
 
 abbrev Digest := BitVec digestBits
-abbrev HashOutput := BitVec hashOutputBits
 abbrev Message := BitVec messageBits
-abbrev PublicParameter := BitVec publicParameterBits
-abbrev Randomness := BitVec randomnessBits
+/-- The public parameter `P`, a hash output (`ℓ_p = n`). -/
+abbrev PublicParameter := Digest
+/-- A randomizer `ρ`, a hash output (`ℓ_rnd = n`). -/
+abbrev Randomness := Digest
 /-- `idx < L`. -/
 abbrev LeafIndex := Fin lifetime
 abbrev Digit := Fin chainLength
@@ -76,10 +77,10 @@ deriving DecidableEq
 
 /-! ## The random-oracle world of XMSS -/
 
-/-- A hash query takes an arbitrary byte string and returns 32 bytes. -/
-abbrev HashSpec := RandomOracleModel.HashSpec HashInput HashOutput
+/-- A hash query takes an arbitrary byte string and returns a digest. -/
+abbrev HashSpec := RandomOracleModel.HashSpec HashInput Digest
 
 /-- Private uniform sampling and the shared hash oracle. Only hash calls count toward the query budget. -/
-abbrev OracleWorld := RandomOracleModel.World HashInput HashOutput
+abbrev OracleWorld := RandomOracleModel.World HashInput Digest
 
 end XmssSecurity

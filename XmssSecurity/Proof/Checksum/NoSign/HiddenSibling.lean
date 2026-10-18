@@ -74,7 +74,7 @@ noncomputable def subtrees (parameter : PublicParameter) :
 def splitCache (parameter : PublicParameter)
     (sample : (LeafIndex → ChainIndex → Digest) ×
       (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec))
-    (output : HashOutput) : QueryCache HashSpec :=
+    (output : Digest) : QueryCache HashSpec :=
   sample.2.2.2.cacheQuery (topInput parameter sample.2.1.1 sample.2.2.1) output
 
 /-- Key generation with the chain starts, for a fixed parameter. -/
@@ -89,8 +89,8 @@ noncomputable def keygenTree (parameter : PublicParameter) :
 theorem evalDist_keygenTree_split (parameter : PublicParameter) :
     𝒟[keygenTree parameter] =
       𝒟[subtrees parameter >>= fun sample =>
-        (fun output => (sample.1, (Generic.truncateHash output, splitCache parameter sample output))) <$>
-          ($ᵗ HashOutput)] := by
+        (fun output => (sample.1, (output, splitCache parameter sample output))) <$>
+          ($ᵗ Digest)] := by
   unfold keygenTree subtrees
   simp only [bind_assoc, pure_bind, map_eq_bind_pure_comp]
   refine evalDist_bind_congr fun secret _ => ?_
@@ -105,7 +105,7 @@ theorem probEvent_subtrees_eq_keygenTree (parameter : PublicParameter)
     (hinvariant : ∀ sample ∈ support (subtrees parameter), ∀ output output',
       event sample.1 (splitCache parameter sample output) ↔
         event sample.1 (splitCache parameter sample output'))
-    (output : HashOutput) :
+    (output : Digest) :
     Pr[fun sample => event sample.1 (splitCache parameter sample output) | subtrees parameter] =
       Pr[fun result => event result.1 result.2.2 | keygenTree parameter] := by
   classical
@@ -116,10 +116,10 @@ theorem probEvent_subtrees_eq_keygenTree (parameter : PublicParameter)
   · rw [probEvent_map]
     have hconst : Pr[(fun result : (LeafIndex → ChainIndex → Digest) ×
           (Digest × QueryCache HashSpec) => event result.1 result.2.2) ∘
-          (fun output => (sample.1, (Generic.truncateHash output, splitCache parameter sample output))) |
-          $ᵗ HashOutput] =
-        Pr[fun _ : HashOutput => event sample.1 (splitCache parameter sample output) |
-          $ᵗ HashOutput] :=
+          (fun output => (sample.1, (output, splitCache parameter sample output))) |
+          $ᵗ Digest] =
+        Pr[fun _ : Digest => event sample.1 (splitCache parameter sample output) |
+          $ᵗ Digest] :=
       probEvent_congr' (fun output' _ => hinvariant sample hsample output' output) rfl
     rw [hconst, probEvent_const_uniform]
     split_ifs <;> simp
@@ -129,7 +129,7 @@ theorem probEvent_subtrees_eq_keygenTree (parameter : PublicParameter)
 theorem honestChild_splitCache (parameter : PublicParameter)
     (sample : (LeafIndex → ChainIndex → Digest) ×
       (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec))
-    (hsample : sample ∈ support (subtrees parameter)) (output : HashOutput) (right : Bool) :
+    (hsample : sample ∈ support (subtrees parameter)) (output : Digest) (right : Bool) :
     honestChild (splitCache parameter sample output) parameter sample.1 right =
       if right then sample.2.2.1 else sample.2.1.1 := by
   unfold subtrees at hsample
@@ -156,7 +156,7 @@ theorem honestChild_splitCache (parameter : PublicParameter)
 theorem splitCache_ne_none_iff (parameter : PublicParameter)
     (sample : (LeafIndex → ChainIndex → Digest) ×
       (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec))
-    (output : HashOutput) (input : HashInput) :
+    (output : Digest) (input : HashInput) :
     splitCache parameter sample output input ≠ none ↔
       input = topInput parameter sample.2.1.1 sample.2.2.1 ∨ sample.2.2.2 input ≠ none := by
   unfold splitCache
@@ -184,7 +184,7 @@ theorem probEvent_keygenTree_honestSibling_le (parameter : PublicParameter)
     (childNode_subtreeValid _ _ _ hvalid) target
 
 theorem probEvent_subtrees_honestSibling_le (parameter : PublicParameter)
-    (output : HashOutput) (leafIndex : LeafIndex) (target : Digest) :
+    (output : Digest) (leafIndex : LeafIndex) (target : Digest) :
     Pr[fun sample => honestSibling (splitCache parameter sample output) parameter sample.1
         leafIndex = target | subtrees parameter] ≤ digestInverse := by
   rw [probEvent_subtrees_eq_keygenTree parameter
@@ -193,7 +193,7 @@ theorem probEvent_subtrees_honestSibling_le (parameter : PublicParameter)
       simp only [honestSibling, honestChild_splitCache parameter sample hsample])]
   exact probEvent_keygenTree_honestSibling_le parameter leafIndex target
 
-theorem probEvent_subtrees_cached_le (parameter : PublicParameter) (output : HashOutput)
+theorem probEvent_subtrees_cached_le (parameter : PublicParameter) (output : Digest)
     (input : HashInput) :
     Pr[fun sample => splitCache parameter sample output input ≠ none | subtrees parameter] ≤
       digestInverse := by
@@ -205,7 +205,7 @@ theorem probEvent_subtrees_cached_le (parameter : PublicParameter) (output : Has
 /-- For a fixed root output and a fixed run of the adversary from the empty cache with at most
 `D` cached inputs, the honest key generation below the root makes the forged sibling honest, or
 caches one of those inputs, with probability at most `(D + 1) / 2^128`. -/
-theorem probEvent_subtrees_ideal_le (parameter : PublicParameter) (output : HashOutput)
+theorem probEvent_subtrees_ideal_le (parameter : PublicParameter) (output : Digest)
     (forgery : Forgery) (finalCache : QueryCache HashSpec) (D : ℕ)
     (hinputs : ∃ inputs : List HashInput, inputs.length ≤ D ∧
       ∀ input, finalCache input ≠ none → input ∈ inputs) :
@@ -306,16 +306,16 @@ theorem hiddenSibling_le (adversary : Adversary) (D : ℕ)
       let keyOf : (LeafIndex → ChainIndex → Digest) → Digest × QueryCache HashSpec →
           (PublicKey × Generic.SecretKey) × QueryCache HashSpec := fun secret tree =>
         ((⟨tree.1, parameter⟩, Generic.SecretKey.withoutPrecomputation parameter secret), tree.2)
-      let observed : ProbComp (HashOutput × (Forgery × QueryCache HashSpec)) := do
-        let output ← $ᵗ HashOutput
-        let result ← idealRun adversary ⟨Generic.truncateHash output, parameter⟩
+      let observed : ProbComp (Digest × (Forgery × QueryCache HashSpec)) := do
+        let output ← $ᵗ Digest
+        let result ← idealRun adversary ⟨output, parameter⟩
         pure (output, result)
       let finish : ((LeafIndex → ChainIndex → Digest) ×
           (Digest × QueryCache HashSpec) × (Digest × QueryCache HashSpec)) →
-          HashOutput × (Forgery × QueryCache HashSpec) →
+          Digest × (Forgery × QueryCache HashSpec) →
           ((PublicKey × Generic.SecretKey) × QueryCache HashSpec) × (Forgery × QueryCache HashSpec) :=
         fun sample seen =>
-          (keyOf sample.1 (Generic.truncateHash seen.1, splitCache parameter sample seen.1), seen.2)
+          (keyOf sample.1 (seen.1, splitCache parameter sample seen.1), seen.2)
       have hsplit :
           𝒟[Concrete.sampleSecret >>= fun secret =>
             (simulateQ randomOracle
@@ -343,7 +343,7 @@ theorem hiddenSibling_le (adversary : Adversary) (D : ℕ)
       rw [probEvent_congr' (fun _ _ => Iff.rfl) hsplit, probEvent_bind_bind_swap,
         probEvent_bind_eq_tsum]
       refine tsum_probOutput_mul_le_of_mem_support _ _ _ fun seen hseen => ?_
-      have hresult : seen.2 ∈ support (idealRun adversary ⟨Generic.truncateHash seen.1, parameter⟩) := by
+      have hresult : seen.2 ∈ support (idealRun adversary ⟨seen.1, parameter⟩) := by
         simp only [observed, support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff,
           exists_prop] at hseen
         obtain ⟨output, _, result, hresult, rfl⟩ := hseen

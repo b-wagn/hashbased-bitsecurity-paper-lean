@@ -27,7 +27,7 @@ def finalRootDomain (leafIndex : LeafIndex) : Generic.HashDomain :=
 def RootCache (parameter : PublicParameter) (leafIndex : LeafIndex)
     (root : Digest) (cache : QueryCache HashSpec) : Prop :=
   ∀ input output, AtHashAddress parameter (finalRootDomain leafIndex) input →
-    cache input = some output → Generic.truncateHash output = root
+    cache input = some output → output = root
 
 theorem rootCache_after_keygen
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
@@ -98,7 +98,7 @@ theorem rootCache_after_signing (secretKey : Generic.SecretKey) (leafIndex : Lea
 
 theorem rootCache_cache_encoding (parameter : PublicParameter) (leafIndex : LeafIndex)
     (root : Digest) (cache : QueryCache HashSpec) (hroot : RootCache parameter leafIndex root cache)
-    (epoch : LeafIndex) (message : Message) (randomness : Randomness) (output : HashOutput) :
+    (epoch : LeafIndex) (message : Message) (randomness : Randomness) (output : Digest) :
     RootCache parameter leafIndex root
       (cache.cacheQuery (Concrete.CacheView.encodingInput parameter epoch (message, randomness)) output) := by
   intro input answer haddress hcached
@@ -151,14 +151,14 @@ theorem finalRootHash_probability_ge (parameter : PublicParameter) (leafIndex : 
     have haddress : AtHashAddress parameter (finalRootDomain leafIndex) input := by
       simp [input, Concrete.CacheView.merkleInput, finalRootDomain, finalRootLevel]
     change _ ≤ Pr[fun result : Digest × QueryCache HashSpec => result.1 = root |
-      (fun result : HashOutput × QueryCache HashSpec => (Generic.truncateHash result.1, result.2)) <$>
+      (fun result : Digest × QueryCache HashSpec => (result.1, result.2)) <$>
         (randomOracle input).run cache]
     rw [probEvent_map]
     cases hcached : cache input with
     | none =>
         rw [randomOracle_run_none_eq_uniformHashOutput _ _ hcached, probEvent_map]
         simpa only [Function.comp_def, uniformHashOutput] using
-          (Rom.uniform_truncate_probability root).ge
+          (Rom.uniform_eq_probability root).ge
     | some output =>
         rw [QueryImpl.withCaching_run_some _ hcached]
         simp only [Function.comp_def, probEvent_pure, hroot _ _ haddress hcached, if_true]

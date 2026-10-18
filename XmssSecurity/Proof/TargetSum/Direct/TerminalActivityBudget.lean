@@ -53,7 +53,7 @@ theorem hasAcceptedEncoding_samples_positive (parameter : PublicParameter)
 
 theorem limitedFirstLaneAction_last_unit_requires_activity
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (input : (OracleWorld + SigningSpec).Domain)
+    (input : (OracleWorld + SigningSpec).Domain)
     (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters)
     (hprevious : counters.direct < limit ∨ 0 < counters.encoding + counters.samples)
     (hcache : HasAcceptedEncoding key.secretKey.parameter state.causalState.cache →
@@ -62,7 +62,7 @@ theorem limitedFirstLaneAction_last_unit_requires_activity
     (result : (Option ((OracleWorld + SigningSpec).Range input × CappedChain.GlobalHighDirectTracedState) ×
       EncodingBudgetCounters) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (limitedFirstLaneAction limit key edgeHigh input state counters)).run) :
+      (limitedFirstLaneAction limit key input state counters)).run) :
     result.1.2.direct < limit ∨ 0 < result.1.2.encoding + result.1.2.samples := by
   have hshape := limitEncodingAction_counter_shape table limit (CappedChain.directHashActionCost input)
     (directEncodingActionCost key.secretKey.parameter input) counters _ result hresult
@@ -98,7 +98,7 @@ theorem limitedFirstLaneAction_last_unit_requires_activity
 
 theorem terminalPrunedFirstLanePrefix_last_unit_requires_activity {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters)
     (hbudget : counters.charge ≤ limit)
     (hprevious : counters.direct < limit ∨ 0 < counters.encoding + counters.samples)
@@ -107,7 +107,7 @@ theorem terminalPrunedFirstLanePrefix_last_unit_requires_activity {α : Type}
     (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (terminalPrunedFirstLanePrefix limit key edgeHigh computation state counters)).run) :
+      (terminalPrunedFirstLanePrefix limit key computation state counters)).run) :
     result.1.2.direct < limit ∨ 0 < result.1.2.encoding + result.1.2.samples := by
   induction computation using OracleComp.inductionOn generalizing state counters result with
   | pure value =>
@@ -125,7 +125,7 @@ theorem terminalPrunedFirstLanePrefix_last_unit_requires_activity {α : Type}
         obtain ⟨head, hhead, htail⟩ := hresult
         rw [support_map] at htail
         obtain ⟨tail, htail, rfl⟩ := htail
-        have hheadActivity := limitedFirstLaneAction_last_unit_requires_activity table limit key edgeHigh
+        have hheadActivity := limitedFirstLaneAction_last_unit_requires_activity table limit key
           input state counters hprevious (fun h => by
             have hpositive := hasAcceptedEncoding_samples_positive _ _ _ hcacheCount h
             omega) hcut head hhead
@@ -140,7 +140,7 @@ theorem terminalPrunedFirstLanePrefix_last_unit_requires_activity {α : Type}
             simp only [hhandled] at htail
             have hheadOriginal := limitEncodingAction_success_support table limit (CappedChain.directHashActionCost input)
               (directEncodingActionCost key.secretKey.parameter input) counters _ head handled hhead hhandled
-            have hnextCount := globalFirstLaneExactTraced_query_encodingCountGrowth table key edgeHigh
+            have hnextCount := globalFirstLaneExactTraced_query_encodingCountGrowth table key
               input state (handled, head.2) hheadOriginal
             change cachedEncodingInputCount handled.2.causalState.cache key.secretKey.parameter = _ at hnextCount
             have hnextCount' : cachedEncodingInputCount handled.2.causalState.cache key.secretKey.parameter =
@@ -152,21 +152,21 @@ theorem terminalPrunedFirstLanePrefix_hazardCount_lt_of_no_activity {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (hpositive : 0 < limit)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (hkey : key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (edgeHigh : CappedChain.GlobalChainEdgeIndex → Digest) (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
     (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
-      (terminalPrunedFirstLanePrefix limit key edgeHigh computation
+      (terminalPrunedFirstLanePrefix limit key computation
         (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run)
     (hactivity : result.1.2.encoding + result.1.2.samples = 0) :
     FirstLaneOracleSimulation.hazardCount result.2 < limit := by
   let initial := CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)
   have hcacheCount : cachedEncodingInputCount initial.causalState.cache key.secretKey.parameter = 0 :=
     globalFilteredCausalKeygenState_encodingCount_zero key hkey
-  have hlast := terminalPrunedFirstLanePrefix_last_unit_requires_activity table limit key edgeHigh
+  have hlast := terminalPrunedFirstLanePrefix_last_unit_requires_activity table limit key
     computation initial ⟨0, 0, 0⟩ (by simp [EncodingBudgetCounters.charge]) (Or.inl hpositive)
     (by simpa only [Nat.cast_zero] using hcacheCount) result hresult
-  have hbudget := terminalPrunedFirstLanePrefix_trace_budget table limit key edgeHigh computation initial
+  have hbudget := terminalPrunedFirstLanePrefix_trace_budget table limit key computation initial
     ⟨0, 0, 0⟩ (by simp [EncodingBudgetCounters.charge]) result hresult
   dsimp only at hbudget
   omega

@@ -45,7 +45,7 @@ theorem pruneWeighted_pure {α : Type} (signCost budget : ℕ) (value : α) :
       pure value := rfl
 
 theorem pruneWeighted_hash_bind {α : Type} (signCost budget : ℕ) (hashInput : HashInput)
-    (next : HashOutput → OracleComp (OracleWorld + SigningSpec) α) :
+    (next : Digest → OracleComp (OracleWorld + SigningSpec) α) :
     pruneWeighted signCost budget
         (liftM ((OracleWorld + SigningSpec).query (.inl (.inr hashInput))) >>= next) =
       if budget = 0 then pruneWeighted signCost 0 (next default)

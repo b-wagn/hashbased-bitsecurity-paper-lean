@@ -23,8 +23,7 @@ def seededKeygenQueryCount : ℕ :=
 theorem exactQueryCount_deriveKey (parameter : PublicParameter) (domain : Generic.KeygenDomain)
     (seed : MasterSeed) :
     ExactQueryCount (Generic.deriveKey parameter domain seed : OracleComp HashSpec Digest) 1 := by
-  unfold Generic.deriveKey
-  exact (ExactQueryCount.oracleHash _).map Generic.truncateHash
+  exact ExactQueryCount.oracleHash _
 
 theorem exactQueryCount_seededKeygenFromSeed (seed : MasterSeed) :
     ExactQueryCount (Generic.Seeded.keygenFromSeed seed) seededKeygenQueryCount := by
@@ -69,10 +68,10 @@ namespace Modes
 open XmssSecurity.Modes
 
 theorem charge_hashCost_eq_countHashQueries (computation : OracleComp OracleWorld α) :
-    SUFCMA.charge (RandomOracleModel.hashCost HashInput HashOutput) computation =
+    SUFCMA.charge (RandomOracleModel.hashCost HashInput Digest) computation =
       countHashQueries computation := by
   unfold SUFCMA.charge addCostOracle countHashQueries
-  have hcost : RandomOracleModel.hashCost HashInput HashOutput =
+  have hcost : RandomOracleModel.hashCost HashInput Digest =
       fun input : OracleWorld.Domain => if input matches .inr _ then 1 else 0 := by
     funext input
     cases input <;> rfl
@@ -84,7 +83,7 @@ theorem charge_hashCost_eq_countHashQueries (computation : OracleComp OracleWorl
   rfl
 
 theorem charge_xmss_keygen :
-    SUFCMA.charge (RandomOracleModel.hashCost HashInput HashOutput) Generic.xmss.keygen =
+    SUFCMA.charge (RandomOracleModel.hashCost HashInput Digest) Generic.xmss.keygen =
       (fun keys => (keys, seededKeygenQueryCount)) <$> Generic.xmss.keygen := by
   rw [charge_hashCost_eq_countHashQueries]
   exact countHashQueries_of_exact exactPredicateQueryCount_xmss_keygen
