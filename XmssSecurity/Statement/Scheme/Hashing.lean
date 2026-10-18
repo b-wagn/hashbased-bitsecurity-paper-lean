@@ -95,9 +95,9 @@ def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
 
 namespace Concrete
 
-/-- `m || rho || 0^128`. -/
+/-- `m || rho`. -/
 def encodingPayload (message : Message) (randomness : Randomness) : HashInput :=
-  bytesLE 32 message ++ bytesLE 16 randomness ++ List.replicate 16 0
+  bytesLE 32 message ++ bytesLE 16 randomness
 
 /-- `pk_0 || ... || pk_{v-1}`. -/
 def leafPayload {v : Nat} (endpoints : Fin v → Digest) : HashInput :=
@@ -119,7 +119,7 @@ def tweakableHash
   let output ← oracleHash (tweakableHashInput parameter domain payload)
   return truncateHash output
 
-/-- The message digest `D = Th(P, enc(4, 0, idx), m || rho || 0^128)`, which the WOTS encoding
+/-- The message digest `D = Th(P, enc(4, 0, idx), m || rho)`, which the WOTS encoding
 decodes. -/
 def encodingHash (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) : m Digest :=

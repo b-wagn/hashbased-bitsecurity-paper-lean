@@ -197,11 +197,7 @@ private theorem flatMap_injective_of_eq_length {α β : Type}
 theorem encodingPayload_injective :
     Function.Injective fun input : Message × Randomness => encodingPayload input.1 input.2 := by
   rintro ⟨leftMessage, leftRandomness⟩ ⟨rightMessage, rightRandomness⟩ heq
-  have hpairs :
-      messageBytes leftMessage ++ randomnessBytes leftRandomness =
-        messageBytes rightMessage ++ randomnessBytes rightRandomness :=
-    List.append_left_injective (List.replicate 16 0) heq
-  obtain ⟨hmessage, hrandomness⟩ := List.append_inj hpairs (by simp [messageBytes])
+  obtain ⟨hmessage, hrandomness⟩ := List.append_inj heq (by simp [messageBytes])
   exact Prod.ext (messageBytes_injective hmessage) (randomnessBytes_injective hrandomness)
 
 theorem leafPayload_injective : Function.Injective leafPayload := by
