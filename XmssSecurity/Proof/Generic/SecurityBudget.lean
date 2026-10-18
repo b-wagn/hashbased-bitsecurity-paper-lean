@@ -1,5 +1,7 @@
 import XmssSecurity.Proof.Generic.Code
-import XmssSecurity.Proof.Generic.RandomOracle
+import XmssSecurity.Proof.Generic.IdealStatement
+import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+import VCVio.OracleComp.QueryTracking.Unpredictability
 
 namespace XmssSecurity.Generic
 

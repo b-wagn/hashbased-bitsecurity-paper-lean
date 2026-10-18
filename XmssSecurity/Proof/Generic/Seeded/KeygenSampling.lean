@@ -9,8 +9,6 @@ variable [Code]
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 4096
 
-abbrev ChainSecrets := LeafIndex → ChainIndex → Digest
-
 theorem evalDist_samplePublicParameter : 𝒟[Concrete.samplePublicParameter] = 𝒟[$ᵗ Digest] := by
   unfold Concrete.samplePublicParameter
   rw [evalDist_uniformSample]

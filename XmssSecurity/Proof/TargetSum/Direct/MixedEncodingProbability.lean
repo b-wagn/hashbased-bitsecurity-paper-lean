@@ -65,7 +65,7 @@ theorem mixedEncodingPrefixProbability_le (adversary : Adversary) (limit : Nat)
       rw [ENNReal.tsum_add, ENNReal.tsum_mul_right,
         tsum_probOutput_eq_one' (probFailure_of_liftM_PMF _), one_mul]
       congr 1
-      rw [← TargetSum.probEvent_validDigest_uniformHashOutput, probEvent_eq_tsum_ite,
+      rw [← TargetSum.probEvent_validDigest_uniform, probEvent_eq_tsum_ite,
         ← ENNReal.tsum_mul_left]
       apply tsum_congr
       intro output

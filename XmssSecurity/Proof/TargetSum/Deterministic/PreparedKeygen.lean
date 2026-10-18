@@ -20,7 +20,7 @@ attribute [local irreducible] Generic.sampleMasterSeed Seeded.derivationCache Se
   Seeded.prepareRandomizers Seeded.sampleRandomizerOutputs Seeded.deriveParametersAndSecrets
 
 theorem deriveParametersAndSecrets_support (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) :
     ((parameterOutput, outputs), Seeded.derivationCache seed parameterOutput outputs)
       ∈ support ((simulateQ randomOracle (Seeded.deriveParametersAndSecrets seed)).run ∅) := by
   rw [mem_support_iff_of_evalDist_eq (Seeded.evalDist_deriveParametersAndSecrets seed),
@@ -32,7 +32,7 @@ theorem deriveParametersAndSecrets_support (seed : MasterSeed)
   exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
 
 theorem prepareRandomizers_support (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs) :
     (randomizers, Seeded.signingDerivationCache seed parameterOutput outputs randomizers) ∈
       support ((simulateQ randomOracle (Seeded.prepareRandomizers (parameterOutput) seed)).run
         (Seeded.derivationCache seed parameterOutput outputs)) := by
@@ -49,7 +49,7 @@ noncomputable def prepareSigningMaterial (seed : MasterSeed) : OracleComp HashSp
   Seeded.prepareRandomizers parameter seed
 
 theorem prepareSigningMaterial_support (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs) :
     (randomizers, Seeded.signingDerivationCache seed parameterOutput outputs randomizers) ∈
       support ((simulateQ randomOracle (prepareSigningMaterial seed)).run ∅) := by
   rw [prepareSigningMaterial, simulateQ_bind, StateT.run_bind, mem_support_bind_iff]
@@ -59,7 +59,7 @@ theorem prepareSigningMaterial_support (seed : MasterSeed)
     prepareRandomizers_support seed parameterOutput outputs randomizers⟩
 
 theorem run_deriveParametersAndSecrets_prepared (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs) :
     (simulateQ randomOracle (Seeded.deriveParametersAndSecrets seed)).run
       (Seeded.signingDerivationCache seed parameterOutput outputs randomizers) =
         pure ((parameterOutput, outputs),
@@ -79,7 +79,7 @@ theorem keygenFromSeed_eq_derive_then_tree (seed : MasterSeed) :
   simp only [Generic.Seeded.keygenFromSeed, Seeded.deriveParametersAndSecrets, Seeded.deriveChainSecrets, bind_assoc, pure_bind]
 
 theorem run_keygenFromSeed_prepared (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs) :
     (simulateQ randomOracle (Generic.Seeded.keygenFromSeed seed)).run
       (Seeded.signingDerivationCache seed parameterOutput outputs randomizers) =
       (fun result =>
@@ -95,7 +95,7 @@ theorem run_keygenFromSeed_prepared (seed : MasterSeed)
   simp only [bind_pure_comp, simulateQ_map, StateT.run_map]
 
 theorem xmss_keygen_prepared_support (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
       (Generic.Concrete.treeNode (parameterOutput) (outputs)
@@ -121,7 +121,7 @@ theorem xmss_keygen_prepared_support (seed : MasterSeed)
     exact ⟨tree, htree, rfl⟩
 
 theorem exists_prepared_tree_of_independent (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
       (Generic.Concrete.treeNode (parameterOutput) (outputs)

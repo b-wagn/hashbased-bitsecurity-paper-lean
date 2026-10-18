@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.Generic.Seeded.FreshTable
 import XmssSecurity.Proof.Generic.Seeded.SeedGuessing
-import XmssSecurity.Proof.Generic.RandomOracle
+import XmssSecurity.Proof.Generic.IdealStatement
+import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+import VCVio.OracleComp.QueryTracking.Unpredictability
 
 open OracleComp OracleSpec
 
@@ -10,7 +12,7 @@ variable [Code]
 
 set_option backward.isDefEq.respectTransparency false
 
-abbrev ChainOutputs := LeafIndex → ChainIndex → Digest
+abbrev ChainSecrets := LeafIndex → ChainIndex → Digest
 
 def chainInputs (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex) (chain : ChainIndex) :
     HashInput := keygenHashInput parameter (.chain leafIndex chain) seed
@@ -32,7 +34,7 @@ theorem parameterCache_chain_fresh (seed : MasterSeed) (output : Digest)
   have hdomain := (keygenHashInput_injective h).2.1
   cases hdomain
 
-def derivationCache (seed : MasterSeed) (parameterOutput : Digest) (outputs : ChainOutputs) :
+def derivationCache (seed : MasterSeed) (parameterOutput : Digest) (outputs : ChainSecrets) :
     QueryCache HashSpec :=
   cacheRows (parameterCache seed parameterOutput) (chainInputs (parameterOutput) seed) outputs
 
@@ -41,15 +43,14 @@ def deriveChainSecrets (parameter : PublicParameter) (seed : MasterSeed) :
   Concrete.sequenceFin fun leafIndex => Concrete.sequenceFin fun chain =>
     deriveKey parameter (.chain leafIndex chain) seed
 
-noncomputable def drawChainOutputs : ProbComp ChainOutputs :=
+noncomputable def drawChainSecrets : ProbComp ChainSecrets :=
   Concrete.sequenceFin fun _ : LeafIndex => Concrete.sequenceFin fun _ : ChainIndex => $ᵗ Digest
 
 theorem deriveChainSecrets_eq_map (parameter : PublicParameter) (seed : MasterSeed) :
     deriveChainSecrets parameter seed =
       Concrete.sequenceFin (fun leafIndex => Concrete.sequenceFin fun chain =>
         (liftM (HashSpec.query (chainInputs parameter seed leafIndex chain)) : OracleComp HashSpec Digest)) := by
-  simp only [deriveChainSecrets, deriveKey, Concrete.oracleHash, bind_pure_comp,
-    sequenceFin_map, chainInputs]
+  simp only [deriveChainSecrets, deriveKey, Concrete.oracleHash, chainInputs]
   rfl
 
 /-- The actual WOTS derivation loop, including its final cache, equals fresh full-output sampling. -/
@@ -57,15 +58,15 @@ theorem run_deriveChainSecrets (seed : MasterSeed) (parameterOutput : Digest) :
     (simulateQ randomOracle (deriveChainSecrets (parameterOutput) seed)).run
       (parameterCache seed parameterOutput) =
         (fun outputs => (outputs, derivationCache seed parameterOutput outputs)) <$>
-          drawChainOutputs := by
+          drawChainSecrets := by
   rw [deriveChainSecrets_eq_map,
     run_sequenceFin_rows_fresh _
       (fun leafIndex chain leafIndex' chain' => chainInputs_injective _ seed leafIndex leafIndex' chain chain')
       _ (parameterCache_chain_fresh seed parameterOutput _)]
-  simp only [bind_pure_comp, Functor.map_map, drawChainOutputs, derivationCache]
+  simp only [bind_pure_comp, Functor.map_map, drawChainSecrets, derivationCache]
   try rfl
 
-theorem evalDist_drawChainOutputs : 𝒟[drawChainOutputs] = 𝒟[$ᵗ ChainOutputs] := by
+theorem evalDist_drawChainSecrets : 𝒟[drawChainSecrets] = 𝒟[$ᵗ ChainSecrets] := by
   calc
     _ = 𝒟[Concrete.sequenceFin fun _ : LeafIndex => ($ᵗ (ChainIndex → Digest))] :=
       evalDist_sequenceFin_congr _ _ (fun _ => evalDist_sequenceFin_uniform _)
@@ -75,8 +76,8 @@ theorem evalDist_deriveChainSecrets (seed : MasterSeed) (parameterOutput : Diges
     𝒟[(simulateQ randomOracle (deriveChainSecrets (parameterOutput) seed)).run
       (parameterCache seed parameterOutput)] =
         𝒟[(fun outputs => (outputs, derivationCache seed parameterOutput outputs)) <$>
-          ($ᵗ ChainOutputs)] := by
-  rw [run_deriveChainSecrets, evalDist_map, evalDist_map, evalDist_drawChainOutputs]
+          ($ᵗ ChainSecrets)] := by
+  rw [run_deriveChainSecrets, evalDist_map, evalDist_map, evalDist_drawChainSecrets]
 
 def deriveParametersAndSecrets (seed : MasterSeed) :
     OracleComp HashSpec (PublicParameter × (LeafIndex → ChainIndex → Digest)) := do
@@ -98,7 +99,7 @@ theorem evalDist_deriveParametersAndSecrets (seed : MasterSeed) :
     𝒟[(simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅] =
       𝒟[do
         let parameterOutput ← $ᵗ Digest
-        let outputs ← $ᵗ ChainOutputs
+        let outputs ← $ᵗ ChainSecrets
         pure ((parameterOutput, outputs),
           derivationCache seed parameterOutput outputs)] := by
   simp only [deriveParametersAndSecrets, simulateQ_bind, simulateQ_pure,

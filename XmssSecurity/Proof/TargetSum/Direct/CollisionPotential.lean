@@ -117,12 +117,6 @@ theorem leafMain_C_mono {K V C C' : ℝ} (hC : C ≤ C') :
 
 /-! ### One fresh query at an epoch -/
 
-theorem probEvent_validDigest_uniformHashOutput' :
-    Pr[fun output : Digest => Code.ValidDigest (output) | $ᵗ Digest] =
-      TargetSum.acceptanceProbability := by
-  change Pr[Code.ValidDigest | $ᵗ Digest] = _
-  exact TargetSum.probEvent_validDigest_uniform
-
 theorem probEvent_uniform_mem (T : Set Digest) :
     Pr[fun output : Digest => output ∈ T | $ᵗ Digest] =
       (T.ncard : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
@@ -293,7 +287,7 @@ theorem expected_leafPotential_cacheQuery_le (hq : q + 1 ≤ 2 ^ 127)
           hitProb * ENNReal.ofReal (2 / (realP * realD)) + ENNReal.ofReal R := by
       simp_rw [mul_add]
       rw [ENNReal.tsum_add, ENNReal.tsum_add, tsum_uniform_ite, tsum_uniform_ite,
-        tsum_uniform_const, probEvent_validDigest_uniformHashOutput', probEvent_invalid_eq]
+        tsum_uniform_const, TargetSum.probEvent_validDigest_uniform, probEvent_invalid_eq]
       have hzero : Pr[fun output : Digest =>
           ¬ output ∈ validDigests parameter cache leafIndex | $ᵗ Digest] * 0 = 0 :=
         mul_zero _

@@ -47,7 +47,7 @@ theorem randomizerInputs_injective (parameter : PublicParameter) (seed : MasterS
   · exact heq.2.2.2.2
 
 theorem derivationCache_randomizer_fresh (seed : MasterSeed) (parameterOutput : Digest)
-    (outputs : ChainOutputs) (position : RandomizerPosition) :
+    (outputs : ChainSecrets) (position : RandomizerPosition) :
     derivationCache seed parameterOutput outputs
       (randomizerInputs (parameterOutput) seed position) = none := by
   unfold derivationCache
@@ -58,12 +58,12 @@ theorem derivationCache_randomizer_fresh (seed : MasterSeed) (parameterOutput : 
     exact randomizerHashInput_ne_keygenHashInput _ _ _ _ _ _ _ (.chain leafIndex chain)
 
 noncomputable def signingDerivationCache (seed : MasterSeed) (parameterOutput : Digest)
-    (outputs : ChainOutputs) (randomizers : RandomizerOutputs) : QueryCache HashSpec :=
+    (outputs : ChainSecrets) (randomizers : RandomizerOutputs) : QueryCache HashSpec :=
   cacheTable (derivationCache seed parameterOutput outputs)
     (randomizerInputs (parameterOutput) seed) randomizers
 
 theorem signingDerivationCache_randomizer (seed : MasterSeed) (parameterOutput : Digest)
-    (outputs : ChainOutputs) (randomizers : RandomizerOutputs) (position : RandomizerPosition) :
+    (outputs : ChainSecrets) (randomizers : RandomizerOutputs) (position : RandomizerPosition) :
     signingDerivationCache seed parameterOutput outputs randomizers
       (randomizerInputs (parameterOutput) seed position) = some (randomizers position) :=
   cacheTable_apply _ _ (randomizerInputs_injective _ _) _ _
@@ -72,7 +72,7 @@ noncomputable def prepareRandomizers (parameter : PublicParameter) (seed : Maste
     OracleComp HashSpec RandomizerOutputs := queryTable (randomizerInputs parameter seed)
 
 theorem evalDist_prepareRandomizers (seed : MasterSeed) (parameterOutput : Digest)
-    (outputs : ChainOutputs) :
+    (outputs : ChainSecrets) :
     𝒟[(simulateQ randomOracle (prepareRandomizers (parameterOutput) seed)).run
       (derivationCache seed parameterOutput outputs)] =
         𝒟[(fun randomizers => (randomizers, signingDerivationCache seed parameterOutput outputs randomizers)) <$>

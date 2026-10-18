@@ -40,14 +40,6 @@ theorem neighborSearchInput_separate (parameter : PublicParameter) (leafIndex : 
     Nat.mod_eq_of_lt (hj.trans_le hbound)] at hnat
   exact hne hnat
 
-theorem uniform_mem_probability (targets : Finset Digest) :
-    Pr[fun output : Digest => output ∈ targets | $ᵗ Digest] =
-      targets.card / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
-  classical
-  change Pr[(fun value : Digest => value ∈ targets) | $ᵗ Digest] = _
-  rw [probEvent_uniformSample]
-  simp
-
 noncomputable def neighborAcceptanceProbability (encoding : Encoding) : ℝ≥0∞ :=
   (neighborDigests encoding).card / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
 
@@ -57,7 +49,7 @@ theorem neighborAcceptanceProbability_lower (encoding : Encoding) (hvalid : Code
   exact_mod_cast neighborDigests_card_lower encoding hvalid
 
 theorem neighborAcceptanceProbability_le_one (encoding : Encoding) : neighborAcceptanceProbability encoding ≤ 1 := by
-  rw [neighborAcceptanceProbability, ← uniform_mem_probability]
+  rw [neighborAcceptanceProbability, ← Rom.uniform_mem_probability]
   exact probEvent_le_one
 
 /-- `(1 - p)^n ≤ e^(-n p) ≤ 1 / (1 + n p + (n p)^2 / 2)`, here with `n p ≥ 42 · 2^124 / 2^128`. -/
@@ -104,7 +96,7 @@ theorem uniform_reject_neighbors (encoding : Encoding) :
       1 - neighborAcceptanceProbability encoding := by
   classical
   apply ENNReal.eq_sub_of_add_eq (by unfold neighborAcceptanceProbability; finiteness)
-  simpa only [uniform_mem_probability, probFailure_uniformSample, tsub_zero,
+  simpa only [Rom.uniform_mem_probability, probFailure_uniformSample, tsub_zero,
     neighborAcceptanceProbability, add_comm] using
       probEvent_compl ($ᵗ Digest) (fun output => output ∈ neighborDigests encoding)
 

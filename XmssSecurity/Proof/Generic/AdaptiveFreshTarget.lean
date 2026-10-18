@@ -1,7 +1,9 @@
 import XmssSecurity.Proof.Generic.HashInputLemmas
 import XmssSecurity.Proof.Generic.StatementLemmas
 import XmssSecurity.Proof.Generic.Execution
-import XmssSecurity.Proof.Generic.RandomOracle
+import XmssSecurity.Proof.Generic.IdealStatement
+import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+import VCVio.OracleComp.QueryTracking.Unpredictability
 
 open OracleComp ENNReal
 
@@ -13,7 +15,14 @@ variable [Code]
 theorem uniform_eq_probability (target : Digest) :
     Pr[fun output : Digest => output = target | $ᵗ Digest] =
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
-  rw [probEvent_eq_eq_probOutput, probOutput_uniformSample, card_digest]
+  rw [probEvent_eq_eq_probOutput, probOutput_uniformSample, card_bitVec]
+
+/-- A uniform oracle output lands in a set of `T.card` digests with probability `T.card / 2^128`. -/
+theorem uniform_mem_probability (T : Finset Digest) :
+    Pr[fun output : Digest => output ∈ T | $ᵗ Digest] =
+      T.card / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+  classical
+  rw [probEvent_uniformSample, Finset.filter_mem_eq_inter, Finset.univ_inter, card_bitVec]
 
 open OracleSpec
 

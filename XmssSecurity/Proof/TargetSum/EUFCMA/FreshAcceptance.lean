@@ -116,7 +116,7 @@ theorem hasFreshAcceptedEncoding_query_le (publicKey : PublicKey) (secretKey : G
         rw [Generic.randomOracle_run_none_eq_uniformHashOutput _ _ hcached, probEvent_map]
         by_cases hencoding : (Generic.encodingInputLeafIndex? secretKey.parameter hashInput).isSome
         · rw [if_pos (by exact hencoding)]
-          apply le_trans _ TargetSum.probEvent_validDigest_uniformHashOutput.le
+          apply le_trans _ TargetSum.probEvent_validDigest_uniform.le
           apply probEvent_mono''
           intro output hnew
           exact (hasFreshAcceptedEncoding_cacheQuery _ _ _ _ _ hstate hnew).2

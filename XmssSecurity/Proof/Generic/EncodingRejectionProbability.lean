@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.Generic.EncodingProbability
 import XmssSecurity.Proof.Generic.PrecomputedBoundedSignProbability
-import XmssSecurity.Proof.Generic.RandomOracle
+import XmssSecurity.Proof.Generic.IdealStatement
+import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+import VCVio.OracleComp.QueryTracking.Unpredictability
 import XmssSecurity.Proof.Generic.CappedEncodingPrehitExpectedBound
 
 /-! Failure bounds for capped encoding search, including repeated randomizers. -/

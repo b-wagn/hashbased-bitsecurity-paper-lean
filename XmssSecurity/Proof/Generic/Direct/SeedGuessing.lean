@@ -391,7 +391,7 @@ theorem probEvent_random_cache_change_derivationHit_le {α : Type}
         (probOutput_stopBefore_derivationHit_le computation cache D hbound)
 
 theorem signingDerivationCache_agreeOutside_derivationHit (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : ChainOutputs) (randomizers : RandomizerOutputs) :
+    (parameterOutput : Digest) (outputs : ChainSecrets) (randomizers : RandomizerOutputs) :
     AgreeOutside (DerivationHit seed)
       (signingDerivationCache seed parameterOutput outputs randomizers) ∅ := by
   intro input hinput

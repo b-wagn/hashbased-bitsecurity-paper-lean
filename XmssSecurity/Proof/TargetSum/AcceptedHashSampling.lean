@@ -22,7 +22,7 @@ noncomputable instance acceptedHashOutputFintype : Fintype AcceptedHashOutput :=
 
 instance acceptedHashOutputNonempty : Nonempty AcceptedHashOutput := by
   have hpositive : 0 < Pr[fun output : Digest => Code.ValidDigest (output) | $ᵗ Digest] := by
-    rw [probEvent_validDigest_uniformHashOutput]
+    rw [TargetSum.probEvent_validDigest_uniform]
     exact acceptanceProbability_pos
   obtain ⟨output, _hsupport, hvalid⟩ := probEvent_pos_iff.mp hpositive
   exact ⟨⟨output, hvalid⟩⟩

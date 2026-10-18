@@ -120,24 +120,6 @@ theorem run_sequenceFin_rows_fresh {rows cols : Nat} (inputs : Fin rows → Fin 
       simp only [bind_pure_comp, Functor.map_map, cacheRows]
       rfl
 
-theorem sequenceFin_map {m : Type → Type} [Monad m] [LawfulMonad m] {A B : Type} {n : Nat}
-    (f : A → B) (computation : Fin n → m A) :
-    Concrete.sequenceFin (fun i => f <$> computation i) =
-      (fun values i => f (values i)) <$> Concrete.sequenceFin computation := by
-  induction n with
-  | zero =>
-      simp only [Concrete.sequenceFin, map_pure]
-      congr 1
-      funext i
-      exact i.elim0
-  | succ n ih =>
-      simp only [Concrete.sequenceFin, bind_map_left, ih, map_bind, bind_pure_comp, Functor.map_map]
-      apply bind_congr
-      intro head
-      congr 1
-      funext tail i
-      cases i using Fin.cases <;> rfl
-
 theorem evalDist_sequenceFin_congr {A : Type} {n : Nat}
     (left right : Fin n → ProbComp A) (h : ∀ i, 𝒟[left i] = 𝒟[right i]) :
     𝒟[Concrete.sequenceFin left] = 𝒟[Concrete.sequenceFin right] := by

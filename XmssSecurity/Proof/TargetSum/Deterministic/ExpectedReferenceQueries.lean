@@ -20,17 +20,17 @@ theorem evalDist_referenceOutputs_withState {State : Type}
     (hash : QueryImpl HashSpec (StateT State ProbComp)) (adversary : Adversary) (state : State) :
     𝒟[do
       let parameterOutput ← ($ᵗ Digest : ProbComp Digest)
-      let outputs ← ($ᵗ Seeded.ChainOutputs)
+      let outputs ← ($ᵗ Seeded.ChainSecrets)
       (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary (parameterOutput)
         (outputs))).run state] =
       𝒟[(simulateQ (Seeded.worldHandler hash) (gameCore Concrete.scheme adversary)).run state] := by
   rw [Seeded.gameCore_independent_eq, Seeded.worldHandler_sampling_bind]
   trans 𝒟[do
     let parameter ← Concrete.samplePublicParameter
-    let outputs ← ($ᵗ Seeded.ChainOutputs)
+    let outputs ← ($ᵗ Seeded.ChainSecrets)
     (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary parameter (outputs))).run state]
   · exact Seeded.evalDist_parameter_continuation fun parameter => do
-      let outputs ← ($ᵗ Seeded.ChainOutputs)
+      let outputs ← ($ᵗ Seeded.ChainSecrets)
       (simulateQ (Seeded.worldHandler hash) (Seeded.gameAfterSecrets adversary parameter (outputs))).run state
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left
   intro parameter

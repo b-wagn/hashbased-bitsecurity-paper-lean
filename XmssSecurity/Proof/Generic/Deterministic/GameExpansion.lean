@@ -81,7 +81,7 @@ theorem erases_deterministicGameAfterSecrets (known : QueryCache HashSpec) (seed
 attribute [local irreducible] deterministicGameAfterSecrets tableGameAfterSecrets signingDerivationCache
 
 theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) (seed : MasterSeed)
-    (parameterOutput : Digest) (outputs : ChainOutputs) :
+    (parameterOutput : Digest) (outputs : ChainSecrets) :
     𝒟[(simulateQ romImpl (deterministicGameAfterSecrets adversary seed (parameterOutput)
         (outputs))).run' (derivationCache seed parameterOutput outputs)] =
       𝒟[do
@@ -104,7 +104,7 @@ theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) 
 noncomputable def programmedDeterministicGame (adversary : Adversary) : ProbComp Bool := do
   let seed ← sampleMasterSeed
   let parameterOutput ← $ᵗ Digest
-  let outputs ← $ᵗ ChainOutputs
+  let outputs ← $ᵗ ChainSecrets
   let randomizers ← sampleRandomizerOutputs
   (simulateQ romImpl (tableGameAfterSecrets adversary (parameterOutput)
       (outputs) randomizers)).run'

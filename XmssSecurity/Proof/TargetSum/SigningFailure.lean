@@ -68,16 +68,6 @@ theorem randomizerInput_ne_digestInput (trial : ℕ) (output : Digest) :
       digestInput parameter leafIndex message output :=
   randomizerInput_ne_encodingInput parameter seed leafIndex message trial _
 
-/-! ### A uniform answer is a uniform randomizer -/
-
-/-- A uniform answer, read as a randomizer, lands in a set of `T.card` values with probability
-`T.card / 2^128`. -/
-theorem probEvent_randomness_mem (T : Finset Randomness) :
-    Pr[fun output : Digest => output ∈ T | $ᵗ Digest] =
-      T.card / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
-  classical
-  rw [probEvent_uniformSample, Finset.filter_mem_eq_inter, Finset.univ_inter, Rom.card_digest]
-
 /-! ### Checking the trials -/
 
 /-- Query the randomizer and the digest of trials `trial, …, trial + count - 1`, and return
@@ -556,7 +546,7 @@ theorem probEvent_presampleChain_fails_le :
               _ = _ := one_mul _
         _ ≤ ((bound : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) * rest +
               (1 - TargetSum.acceptanceProbability) * rest := by
-          rw [probEvent_randomness_mem]
+          rw [Rom.uniform_mem_probability]
           gcongr
         _ = (1 - TargetSum.acceptanceProbability +
               (bound : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) * rest := by ring

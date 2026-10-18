@@ -76,17 +76,17 @@ theorem evalDist_tableGameAfterSecrets_memo (hash : QueryImpl HashSpec (StateT S
 theorem evalDist_referenceOutputs (adversary : Adversary) :
     𝒟[do
       let parameterOutput ← ($ᵗ Digest : ProbComp Digest)
-      let outputs ← ($ᵗ Seeded.ChainOutputs)
+      let outputs ← ($ᵗ Seeded.ChainSecrets)
       (simulateQ romImpl (gameAfterSecrets adversary (parameterOutput)
         (outputs))).run' ∅] =
       𝒟[(simulateQ romImpl (EUFCMA.gameCore Concrete.scheme adversary)).run' ∅] := by
   rw [gameCore_independent_eq, Seeded.run'_lift_sample_bind]
   trans 𝒟[do
     let parameter ← Concrete.samplePublicParameter
-    let outputs ← ($ᵗ Seeded.ChainOutputs)
+    let outputs ← ($ᵗ Seeded.ChainSecrets)
     (simulateQ romImpl (gameAfterSecrets adversary parameter (outputs))).run' ∅]
   · exact Seeded.evalDist_parameter_continuation fun parameter => do
-      let outputs ← ($ᵗ Seeded.ChainOutputs)
+      let outputs ← ($ᵗ Seeded.ChainSecrets)
       (simulateQ romImpl (gameAfterSecrets adversary parameter (outputs))).run' ∅
   apply OracleComp.DeferredSampling.evalDist_bind_congr_left
   intro parameter

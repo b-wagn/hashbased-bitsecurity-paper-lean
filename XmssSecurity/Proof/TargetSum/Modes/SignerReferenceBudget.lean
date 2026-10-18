@@ -22,7 +22,7 @@ attribute [local irreducible] Generic.sampleMasterSeed Seeded.signingDerivationC
 theorem signer_tablePhaseCostBound_after_independent_tree
     (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs) (randomizers : Seeded.RandomizerOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets) (randomizers : Seeded.RandomizerOutputs)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
       (Generic.Concrete.treeNode (parameterOutput) (outputs)
@@ -63,7 +63,7 @@ theorem signer_tablePhaseCostBound_after_independent_tree
 theorem signer_referencePhaseCost_le_after_independent_tree
     (adversary : Security.StatementAdversary) (q : Nat) (hsmall : q < 2 ^ 256)
     (hbound : (SUFCMA.notion ⟨false, true, false, false⟩).HasQueryBound Generic.xmss adversary q)
-    (parameterOutput : Digest) (outputs : Seeded.ChainOutputs)
+    (parameterOutput : Digest) (outputs : Seeded.ChainSecrets)
     (tree : (Digest × QueryLog HashSpec) × QueryCache HashSpec)
     (htree : tree ∈ support ((simulateQ randomOracle
       (Generic.Concrete.treeNode (parameterOutput) (outputs)

@@ -9,11 +9,11 @@ variable [Code]
 
 set_option backward.isDefEq.respectTransparency false
 
-abbrev SigningMaterial := Digest × ChainOutputs × RandomizerOutputs
+abbrev SigningMaterial := Digest × ChainSecrets × RandomizerOutputs
 
 noncomputable def drawSigningMaterial : ProbComp SigningMaterial := do
   let parameterOutput ← $ᵗ Digest
-  let outputs ← ($ᵗ ChainOutputs)
+  let outputs ← ($ᵗ ChainSecrets)
   let randomizers ← sampleRandomizerOutputs
   return (parameterOutput, outputs, randomizers)
 

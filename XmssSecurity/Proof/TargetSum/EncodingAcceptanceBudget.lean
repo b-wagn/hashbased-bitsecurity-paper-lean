@@ -1,6 +1,8 @@
 import XmssSecurity.Proof.Common.ExpectedStateEvent
 import XmssSecurity.Proof.TargetSum.EncodingProbability
-import XmssSecurity.Proof.Generic.RandomOracle
+import XmssSecurity.Proof.Generic.IdealStatement
+import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+import VCVio.OracleComp.QueryTracking.Unpredictability
 import XmssSecurity.Proof.Generic.CappedEncodingExpectedBound
 import XmssSecurity.Proof.Generic.KeygenCache
 import XmssSecurity.Proof.Generic.PrecomputedBoundedSignCache
@@ -17,12 +19,6 @@ set_option maxRecDepth 1000
 open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum
-
-theorem TargetSum.probEvent_validDigest_uniformHashOutput :
-    Pr[fun output : Digest => Code.ValidDigest (output) | $ᵗ Digest] =
-      acceptanceProbability := by
-  change Pr[Code.ValidDigest | $ᵗ Digest] = _
-  exact probEvent_validDigest_uniform
 
 def HasAcceptedEncoding (parameter : PublicParameter) (cache : QueryCache HashSpec) : Prop :=
   ∃ input output, cache input = some output ∧
@@ -82,7 +78,7 @@ theorem hasAcceptedEncoding_romImpl_step_le
           by_cases hencoding : (encodingInputLeafIndex? parameter hashInput).isSome
           · simp only [hencoding, true_and, CappedEncodingMonitor.IsEncodingHashQuery_inr,
               if_true, uniformHashOutput]
-            exact TargetSum.probEvent_validDigest_uniformHashOutput.le
+            exact TargetSum.probEvent_validDigest_uniform.le
           · simp [hencoding, CappedEncodingMonitor.IsEncodingHashQuery_inr]
 
 /-- This bound counts actual encoding queries, including adaptive honest signing attempts. -/
