@@ -21,7 +21,7 @@ def TerminalActivityOutcomeRelation {α : Type} (limit : Nat)
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (source : α × CountedSourceState)
-    (target : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
+    (target : (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) : Prop :=
   LimitedFirstLaneOutcomeRelation left right history source target ∨
     (target.1.1 = none ∧ ¬HasAcceptedEncoding left.secretKey.parameter source.2.counts.cache ∧
@@ -30,11 +30,11 @@ def TerminalActivityOutcomeRelation {α : Type} (limit : Nat)
 theorem relTriple_countedSource_terminalPrefix_activity_of_related {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
+    (leftState : CountedSourceState) (rightState : CappedChain.GlobalDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState history)
     (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.secretKey.parameter =
@@ -147,7 +147,7 @@ theorem relTriple_countedSource_terminalPrefix_activity_of_related {α : Type}
 theorem relTriple_countedSource_terminalPrefix_activity {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (computation : OracleComp (OracleWorld + SigningSpec) α)
@@ -158,10 +158,10 @@ theorem relTriple_countedSource_terminalPrefix_activity {α : Type}
         computation).run (CountedSourceState.initial left.cache))
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
         (terminalPrunedFirstLanePrefix limit right.1 computation
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run)
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run)
       (TerminalActivityOutcomeRelation limit left right []) := by
   let sourceInitial := CountedSourceState.initial left.cache
-  let targetInitial := CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)
+  let targetInitial := CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)
   have hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right sourceInitial.toSource targetInitial [] := by
     refine ⟨?_, ?_, ?_⟩
     · simpa [sourceInitial, targetInitial, CountedSourceState.initial,

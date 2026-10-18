@@ -68,11 +68,11 @@ theorem prefixProbeEncoding_eq_of_comparableCaches (leftCache rightCache : Query
 theorem prefixFirstLaneEvent_good_implies_hit
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest))
-    (hkey : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hkey : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
     (leftResult : Forgery × SourceExactTracedState)
-    (rightResult : (Forgery × GlobalHighDirectTracedState) × ActionTrace GlobalChainValueIndex)
+    (rightResult : (Forgery × GlobalDirectTracedState) × ActionTrace GlobalChainValueIndex)
     (hforgery : leftResult.1 = rightResult.1.1)
     (hgood : SourceFirstLaneExactGoodStateRelation left right leftResult.2
       rightResult.1.2 rightResult.2)
@@ -108,7 +108,7 @@ theorem prefixFirstLaneEvent_good_implies_hit
     rw [htables, hsigned, hencoding, hforgery]
   obtain ⟨hvalid, hencodingHit | ⟨hhidden, hvalue, huncovered⟩⟩ := hevent
   · apply CombinedHit.append_of_prefix
-    exact globalHighExactEncodingEvent_implies_combinedHit right.2 leftResult.2.1.2
+    exact globalExactEncodingEvent_implies_combinedHit right.2 leftResult.2.1.2
       rightResult.1.2.attackerTrace rightResult.2 hgood.2.1 hgood.2.2
       (htrace ▸ hvalid) hencodingHit
   · rw [hprobe, hsigned, hencoding] at hhidden

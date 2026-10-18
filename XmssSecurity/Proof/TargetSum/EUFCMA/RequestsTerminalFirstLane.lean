@@ -19,8 +19,8 @@ open Concrete CappedChain Deciding FirstLaneOracleSimulation
 
 theorem activity_coupling_afterKeygen (adversary : Adversary) (q : ℕ)
     (hbound : Direct.IsDirectQueryBound adversary q)
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
     RelTriple (Deciding.sourcePrefixExecution adversary left)
@@ -38,7 +38,7 @@ theorem activity_coupling_afterKeygen (adversary : Adversary) (q : ℕ)
     (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
       ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         (adversary.main left.publicKey)).run
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
     unfold Deciding.publicPrefixExecution
     rw [hpk]
   rw [hrightProgram]
@@ -78,11 +78,11 @@ theorem activity_coupling (adversary : Adversary) (q : ℕ)
         (CoupledExtra target → SourcePrefixEncoded source ∨ CoupledFreshProbedHit q target)) := by
   unfold Deciding.sourcePrefixProgram Deciding.coupledFirstLaneProgram
   apply relTriple_bind (relTriple_with_support
-    CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
+    CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBase_stable)
   intro left right hkeys
   obtain ⟨hkey, hleft, hright⟩ := hkeys
   apply relTriple_bind (activity_coupling_afterKeygen adversary q hbound left right hkey hleft
-    (CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hright))
+    (CappedChain.coupledGlobalChainKeygenWithBaseFull_support_keyView right hright))
   intro source target hresult
   exact relTriple_pure_pure hresult
 

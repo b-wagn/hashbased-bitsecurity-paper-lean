@@ -20,7 +20,7 @@ noncomputable def terminalAcceptedPrefixProbeExecution (limit : Nat) (key : Capp
     (computation : OracleComp (OracleWorld + SigningSpec) Forgery) :
     OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult := do
   let result ← terminalPrunedFirstLanePrefix limit key computation
-    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
+    (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
   match result.1 with
   | none => pure result
   | some completed =>
@@ -39,7 +39,7 @@ theorem terminalAcceptedPrefixProbeExecution_eager (limit : Nat) (key : CappedCh
     (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (terminalAcceptedPrefixProbeExecution limit key computation)).run =
       appendLimitedAcceptedPrefixProbe base key <$>
         (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (terminalPrunedFirstLanePrefix limit key computation
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run := by
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run := by
   unfold terminalAcceptedPrefixProbeExecution
   simp only [simulateQ_bind, WriterT.run_bind', map_eq_bind_pure_comp]
   apply bind_congr
@@ -75,7 +75,7 @@ theorem coupledTerminalPrefix_trace_bound (limit : Nat) (adversary : Adversary)
   obtain ⟨key, _, outcome, houtcome, rfl⟩ := hresult
   have hbudget := terminalPrunedFirstLanePrefix_trace_budget key.2 limit key.1
     (adversary.main key.1.publicKey)
-    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key.1)) ⟨0, 0, 0⟩
+    (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key.1)) ⟨0, 0, 0⟩
     (by simp [EncodingBudgetCounters.charge]) outcome houtcome
   dsimp only at hbudget
   unfold EncodingBudgetCounters.charge at hbudget

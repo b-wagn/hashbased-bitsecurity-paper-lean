@@ -20,6 +20,6 @@ noncomputable def publicTerminalPrefixExecution (limit : Nat) (adversary : Adver
     (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
   terminalPrunedFirstLanePrefix limit key (adversary.main key.publicKey)
-    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
+    (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
 
 end XmssSecurity.TargetSum.Deciding

@@ -19,8 +19,8 @@ open FirstLaneOracleSimulation
 noncomputable def terminalPrunedFirstLanePrefix {α : Type} (limit : Nat)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters) :
-    OracleComp CappedChain.GlobalFirstLaneWorld (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) :=
+    (state : CappedChain.GlobalDirectTracedState) (counters : EncodingBudgetCounters) :
+    OracleComp CappedChain.GlobalFirstLaneWorld (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) :=
   OracleComp.recOn computation (fun value state counters => pure (some (value, state), counters))
     (fun input _ next state counters =>
       if TerminalPrefixCut limit key input state counters then pure (none, counters)
@@ -32,7 +32,7 @@ noncomputable def terminalPrunedFirstLanePrefix {α : Type} (limit : Nat)
 
 theorem terminalPrunedFirstLanePrefix_pure {α : Type} (limit : Nat)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (value : α) (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters) :
+    (value : α) (state : CappedChain.GlobalDirectTracedState) (counters : EncodingBudgetCounters) :
     terminalPrunedFirstLanePrefix limit key (pure value) state counters =
       pure (some (value, state), counters) := rfl
 
@@ -40,7 +40,7 @@ theorem terminalPrunedFirstLanePrefix_query_bind {α : Type} (limit : Nat)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
-    (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters) :
+    (state : CappedChain.GlobalDirectTracedState) (counters : EncodingBudgetCounters) :
     terminalPrunedFirstLanePrefix limit key (liftM ((OracleWorld + SigningSpec).query input) >>= next)
       state counters =
       (if TerminalPrefixCut limit key input state counters then pure (none, counters)
@@ -53,9 +53,9 @@ theorem terminalPrunedFirstLanePrefix_query_bind {α : Type} (limit : Nat)
 theorem terminalPrunedFirstLanePrefix_trace_budget {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters)
+    (state : CappedChain.GlobalDirectTracedState) (counters : EncodingBudgetCounters)
     (hbudget : counters.charge ≤ limit)
-    (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
+    (result : (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (terminalPrunedFirstLanePrefix limit key computation state counters)).run) :
@@ -103,9 +103,9 @@ theorem terminalPrunedFirstLanePrefix_trace_budget {α : Type}
 theorem terminalPrunedFirstLanePrefix_success_support {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters)
-    (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
-      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalHighDirectTracedState)
+    (state : CappedChain.GlobalDirectTracedState) (counters : EncodingBudgetCounters)
+    (result : (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) ×
+      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalDirectTracedState)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (terminalPrunedFirstLanePrefix limit key computation state counters)).run)
     (hvalue : result.1.1 = some value) :
@@ -148,11 +148,11 @@ theorem terminalPrunedFirstLanePrefix_returnedCovered {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (counters : EncodingBudgetCounters)
-    (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
-      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalHighDirectTracedState)
+    (result : (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) ×
+      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalDirectTracedState)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (terminalPrunedFirstLanePrefix limit key computation
-        (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) counters)).run)
+        (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) counters)).run)
     (hvalue : result.1.1 = some value) :
     CappedChain.GlobalCausalTraceRevealsCovered
       (CappedChain.GlobalReturnedChainValueCovered value.2.causalState.cache key.secretKey

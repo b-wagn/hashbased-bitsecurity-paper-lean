@@ -24,7 +24,7 @@ noncomputable def mixedPrefixEncoding (cache : QueryCache HashSpec) (parameter :
 
 noncomputable def publicMixedPrefixProbeExecution (adversary : Adversary)
     (fallback : Option Encoding) (key : CappedChain.ProgrammedGlobalChainKeygenView) :
-    OracleComp CappedChain.GlobalFirstLaneWorld (Forgery × CappedChain.GlobalHighDirectTracedState) := do
+    OracleComp CappedChain.GlobalFirstLaneWorld (Forgery × CappedChain.GlobalDirectTracedState) := do
   let result ← Deciding.publicPrefixExecution adversary key
   let _ ← Deciding.publicDecidingProbe result.1.epoch
     (Deciding.signedEncoding result.2.causalState.cache key.secretKey.parameter
@@ -35,8 +35,8 @@ noncomputable def publicMixedPrefixProbeExecution (adversary : Adversary)
 
 noncomputable def appendMixedPrefixProbe (base : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (fallback : Option Encoding)
-    (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
-    (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex :=
+    (result : (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
+    (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex :=
   (result.1, result.2 ++ (Deciding.decidingProbeResult base result.1.1.epoch
     (Deciding.signedEncoding result.1.2.causalState.cache key.secretKey.parameter
       result.1.2.attackerTrace.toSigningLog result.1.1.epoch)
@@ -58,8 +58,8 @@ theorem publicMixedPrefixProbeExecution_eager (adversary : Adversary) (fallback 
 
 theorem mixedPrefix_coupling_afterKeygen (adversary : Adversary) (D : ℕ)
     (hD : Direct.IsDirectQueryBound adversary D) (fallback : Option Encoding)
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
     RelTriple (Deciding.sourcePrefixExecution adversary left)
@@ -76,7 +76,7 @@ theorem mixedPrefix_coupling_afterKeygen (adversary : Adversary) (D : ℕ)
     (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
       ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         (adversary.main left.publicKey)).run
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
     unfold Deciding.publicPrefixExecution
     rw [hpk]
   rw [hrightProgram, ← id_map (Deciding.sourcePrefixExecution adversary left)]
@@ -120,11 +120,11 @@ theorem mixedPrefix_coupling (adversary : Adversary) (D : ℕ)
         FirstLaneOracleSimulation.CombinedHit target.1.2 (FirstLaneOracleSimulation.enforceHazardTrace (D + 1) target.2.2)) := by
   unfold Deciding.sourcePrefixProgram Deciding.coupledFirstLaneProgram
   apply relTriple_bind (relTriple_with_support
-    CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
+    CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBase_stable)
   intro left right hkeys
   obtain ⟨hkey, hleft, hright⟩ := hkeys
   apply relTriple_bind (mixedPrefix_coupling_afterKeygen adversary D hD fallback left right hkey hleft
-    (CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hright))
+    (CappedChain.coupledGlobalChainKeygenWithBaseFull_support_keyView right hright))
   intro source target hresult
   exact relTriple_pure_pure hresult
 

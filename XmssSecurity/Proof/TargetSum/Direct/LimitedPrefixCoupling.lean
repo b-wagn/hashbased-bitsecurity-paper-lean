@@ -21,7 +21,7 @@ def LimitedFirstLaneOutcomeRelation {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (source : α × CountedSourceState)
-    (target : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
+    (target : (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) ×
       FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) : Prop :=
   (∃ state, target.1.1 = some (source.1, state) ∧
     CappedChain.SourceFirstLaneExactGoodStateRelation left right source.2.toSource state (history ++ target.2) ∧
@@ -48,11 +48,11 @@ theorem relTriple_firstLaneHit_append {α β : Type}
 theorem relTriple_countedSource_limitedPrefix_of_related {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
+    (leftState : CountedSourceState) (rightState : CappedChain.GlobalDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState history)
     (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.secretKey.parameter =
@@ -138,7 +138,7 @@ theorem relTriple_countedSource_limitedPrefix_of_related {α : Type}
 theorem relTriple_countedSource_limitedPrefix {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (computation : OracleComp (OracleWorld + SigningSpec) α)
@@ -149,13 +149,13 @@ theorem relTriple_countedSource_limitedPrefix {α : Type}
         computation).run (CountedSourceState.initial left.cache))
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
         (limitedFirstLanePrefix limit right.1 computation
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run)
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run)
       (fun source target => source.2.charge ≤ limit ∧ target.1.2.charge ≤ limit ∧
         target.1.2.samples = target.2.encodingActions.length ∧
         FirstLaneOracleSimulation.hazardCount target.2 ≤ target.1.2.direct ∧
         LimitedFirstLaneOutcomeRelation left right [] source target) := by
   let sourceInitial := CountedSourceState.initial left.cache
-  let targetInitial := CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)
+  let targetInitial := CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)
   have hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right sourceInitial.toSource targetInitial [] := by
     refine ⟨?_, ?_, ?_⟩
     · simpa [sourceInitial, targetInitial, CountedSourceState.initial,

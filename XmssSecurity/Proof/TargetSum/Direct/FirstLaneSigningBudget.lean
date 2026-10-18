@@ -40,11 +40,11 @@ theorem countedSourceImpl_encodingInputCount_update (secretKey : Generic.SecretK
 theorem firstLane_signing_charge_bounds {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (request : SignRequest) (next : Option Generic.Signature → OracleComp (OracleWorld + SigningSpec) α)
-    (limit : Nat) (leftState : CountedSourceState) (rightState : CappedChain.GlobalHighDirectTracedState)
+    (limit : Nat) (leftState : CountedSourceState) (rightState : CappedChain.GlobalDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftState.toSource rightState history)
     (hcacheCount : cachedEncodingInputCount rightState.causalState.cache right.1.secretKey.parameter =
@@ -53,7 +53,7 @@ theorem firstLane_signing_charge_bounds {α : Type}
     (hcount : FirstLaneOracleSimulation.hazardCount history ≤ leftState.counts.direct)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
       limit (liftM ((OracleWorld + SigningSpec).query (.inr request)) >>= next) leftState)
-    (result : (Option Generic.Signature × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (result : (Option Generic.Signature × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
       ((CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1 (.inr request)).run rightState)).run)) :
     (leftState.counts.direct + 2 * ((history ++ result.2).encodingActions.length -

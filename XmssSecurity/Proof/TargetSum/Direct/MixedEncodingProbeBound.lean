@@ -123,11 +123,11 @@ theorem limitedMixedEncoding_cancellation_coupling (adversary : Adversary) (limi
         (CoupledLimitedMixedProbeEligible fallback target →
           SourceCountedMixedPrefixAccepted fallback source ∨ CoupledLimitedMixedProbedHit fallback target)) := by
   unfold sourceCountedPrefixProgram Deciding.coupledFirstLaneProgram
-  apply relTriple_bind (relTriple_with_support CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
+  apply relTriple_bind (relTriple_with_support CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBase_stable)
   intro left right hkeys
   obtain ⟨hrel, hleft, hright⟩ := hkeys
   apply relTriple_bind (limitedMixedEncoding_cancellation_coupling_afterKeygen adversary limit left right hrel hleft
-    (CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hright) (hbudget left hleft) fallback)
+    (CappedChain.coupledGlobalChainKeygenWithBaseFull_support_keyView right hright) (hbudget left hleft) fallback)
   intro source target hresult
   exact relTriple_pure_pure hresult
 

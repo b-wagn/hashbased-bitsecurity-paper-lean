@@ -35,11 +35,11 @@ theorem hasAcceptedEncoding_iff_of_comparableCaches (parameter : PublicParameter
     exact ⟨input, output, (hencoding input hinput).trans houtput, hinput, hvalid⟩
 
 theorem firstLaneCounters_charge_le_source_of_related
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
-    (source : CountedSourceState) (target : CappedChain.GlobalHighDirectTracedState)
+    (source : CountedSourceState) (target : CappedChain.GlobalDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.toSource target history)
     (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.secretKey.parameter =
@@ -66,20 +66,20 @@ theorem firstLaneCounters_charge_le_source_of_related
   omega
 
 noncomputable def RejectingLastNonencoding (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (input : (OracleWorld + SigningSpec).Domain) (state : CappedChain.GlobalHighDirectTracedState)
+    (input : (OracleWorld + SigningSpec).Domain) (state : CappedChain.GlobalDirectTracedState)
     (counters : EncodingBudgetCounters) : Prop :=
   limit ≤ counters.charge + 1 ∧ ¬HasAcceptedEncoding key.secretKey.parameter state.causalState.cache ∧
     ∃ hashInput, input = .inl (.inr hashInput) ∧
       ¬CappedEncodingMonitor.IsEncodingHashQuery key.secretKey.parameter (.inr hashInput)
 
 theorem rejectingLastNonencoding_source_noAccepted {α : Type}
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
-    (source : CountedSourceState) (target : CappedChain.GlobalHighDirectTracedState)
+    (source : CountedSourceState) (target : CappedChain.GlobalDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.toSource target history)
     (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.secretKey.parameter =
@@ -109,20 +109,20 @@ theorem rejectingLastNonencoding_source_noAccepted {α : Type}
   exact hinput
 
 noncomputable def TerminalPrefixCut (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (input : (OracleWorld + SigningSpec).Domain) (state : CappedChain.GlobalHighDirectTracedState)
+    (input : (OracleWorld + SigningSpec).Domain) (state : CappedChain.GlobalDirectTracedState)
     (counters : EncodingBudgetCounters) : Prop :=
   RejectingLastNonencoding limit key input state counters ∨
     (limit ≤ counters.charge + 1 ∧ ∃ request, input = .inr request) ∨
     (limit ≤ counters.charge ∧ ∃ hashInput, input = .inl (.inr hashInput))
 
 theorem terminalPrefixCut_source_noAccepted {α : Type}
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (limit : Nat) (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input → OracleComp (OracleWorld + SigningSpec) α)
-    (source : CountedSourceState) (target : CappedChain.GlobalHighDirectTracedState)
+    (source : CountedSourceState) (target : CappedChain.GlobalDirectTracedState)
     (history : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.toSource target history)
     (hcacheCount : cachedEncodingInputCount target.causalState.cache right.1.secretKey.parameter =

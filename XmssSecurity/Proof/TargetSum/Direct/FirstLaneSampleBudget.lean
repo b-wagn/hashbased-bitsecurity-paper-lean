@@ -36,19 +36,19 @@ theorem countedSource_encodingBudget_after_trajectory {α : Type}
 theorem countedSource_firstLane_encodingSamples_le {α : Type}
     (left : CappedChain.ProgrammedGlobalChainKeygenView)
     (right : CappedChain.ProgrammedGlobalChainKeygenView × (CappedChain.GlobalChainValueIndex → Digest))
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (leftResult : α × CountedSourceState)
-    (rightResult : (α × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (rightResult : (α × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hleft : leftResult ∈ support ((simulateQ
       (countedSourceImpl (Concrete.materializePrecomputation left.cache left.secretKey))
       computation).run (CountedSourceState.initial left.cache)))
     (hright : rightResult ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
       ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         computation).run
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run))
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run))
     (hstate : CappedChain.SourceFirstLaneExactGoodStateRelation left right leftResult.2.toSource
       rightResult.1.2 rightResult.2) :
     rightResult.2.encodingActions.length ≤
@@ -66,7 +66,7 @@ theorem countedSource_firstLane_encodingSamples_le {α : Type}
       computation rightResult hright, htrace] at hsource
   exact_mod_cast hsource
 
-noncomputable def observableFirstLaneCharge (parameter : PublicParameter) (state : CappedChain.GlobalHighDirectTracedState)
+noncomputable def observableFirstLaneCharge (parameter : PublicParameter) (state : CappedChain.GlobalDirectTracedState)
     (trace : FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) : Nat :=
   FirstLaneOracleSimulation.hazardCount trace + 2 * (trace.encodingActions.length - state.attackerTrace.encodingInputCount parameter)
 

@@ -15,17 +15,17 @@ open XmssSecurity.EUFCMA
 
 open Concrete CappedChain Deciding FirstLaneOracleSimulation
 
-def PublicExtra (key : CappedChain.ProgrammedGlobalChainKeygenView) (result : Forgery × CappedChain.GlobalHighDirectTracedState) : Prop :=
+def PublicExtra (key : CappedChain.ProgrammedGlobalChainKeygenView) (result : Forgery × CappedChain.GlobalDirectTracedState) : Prop :=
   encodingActive key.secretKey.parameter result.2.attackerTrace = true ∨ PublicFreshAccepted key result
 
-def CoupledExtra (result : Deciding.BaseHighKey ×
-    ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
+def CoupledExtra (result : Deciding.BaseKey ×
+    ((Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
   PublicExtra result.1.1 result.2.1
 
 theorem public_stopped_probe_hazards_le (adversary : Adversary) (q : ℕ) (hpositive : 0 < q)
     (hbound : IsQueryBound adversary q) (table : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (hparameter : key.publicKey.parameter = key.secretKey.parameter)
-    (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (result : (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hresult : result ∈ support ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (Deciding.publicPrefixExecution (stoppedAdversary q adversary) key)).run)) :
     FirstLaneOracleSimulation.hazardCount (appendFreshPrefixProbe q table key result).2 ≤
@@ -59,7 +59,7 @@ theorem expected_stopped_probe_hazards_le (adversary : Adversary) (q : ℕ) (hpo
         unfold Deciding.coupledFirstLaneProgram at hresult
         simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult
         obtain ⟨key, hkey, outcome, houtcome, rfl⟩ := hresult
-        have hkey' := CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView key hkey
+        have hkey' := CappedChain.coupledGlobalChainKeygenWithBaseFull_support_keyView key hkey
         have hparameter : key.1.publicKey.parameter = key.1.secretKey.parameter :=
           CappedChain.keygen_parameter_eq key.1.keyResult (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult _ hkey')
         have h := (Nat.min_le_right (q + 1) _).trans

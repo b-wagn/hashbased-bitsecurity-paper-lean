@@ -31,7 +31,7 @@ noncomputable def limitedMixedEncodingProbeExecution (limit : Nat) (key : Capped
     (computation : OracleComp (OracleWorld + SigningSpec) Forgery)
     (fallback : Option Encoding) : OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult := do
   let result ← limitedFirstLanePrefix limit key computation
-    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
+    (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
   match result.1 with
   | none => pure result
   | some completed =>
@@ -66,7 +66,7 @@ theorem limitedMixedEncodingProbeExecution_eager (limit : Nat) (key : CappedChai
     (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (limitedMixedEncodingProbeExecution limit key computation fallback)).run =
       appendLimitedMixedEncodingProbe base key fallback <$>
         (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base) (limitedFirstLanePrefix limit key computation
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run := by
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩)).run := by
   unfold limitedMixedEncodingProbeExecution
   simp only [simulateQ_bind, WriterT.run_bind', map_eq_bind_pure_comp]
   apply bind_congr
@@ -117,8 +117,8 @@ theorem mixedEncodingPrefixEvent_implies_accepted (key : CappedChain.ProgrammedG
   · exact Or.inr (by simp [hencoding])
 
 theorem limitedMixedEncoding_cancellation_coupling_afterKeygen (adversary : Adversary) (limit : Nat)
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
@@ -139,7 +139,7 @@ theorem limitedMixedEncoding_cancellation_coupling_afterKeygen (adversary : Adve
   change RelTriple (sourceCountedPrefixExecution adversary left)
     ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2) (limitedFirstLanePrefix limit right.1
       (adversary.main left.publicKey)
-      (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run) _ at hcoupling
+      (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run) _ at hcoupling
   rw [hpk] at hcoupling
   apply relTriple_post_mono (relTriple_with_support hcoupling)
   intro source target hresult

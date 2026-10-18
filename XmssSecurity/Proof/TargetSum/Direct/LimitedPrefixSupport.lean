@@ -19,9 +19,9 @@ open FirstLaneOracleSimulation
 theorem limitedFirstLanePrefix_success_support {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (state : CappedChain.GlobalHighDirectTracedState) (counters : EncodingBudgetCounters)
-    (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
-      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalHighDirectTracedState)
+    (state : CappedChain.GlobalDirectTracedState) (counters : EncodingBudgetCounters)
+    (result : (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) ×
+      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalDirectTracedState)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (limitedFirstLanePrefix limit key computation state counters)).run)
     (hvalue : result.1.1 = some value) :
@@ -60,11 +60,11 @@ theorem limitedFirstLanePrefix_returnedCovered {α : Type}
     (table : CappedChain.GlobalChainValueIndex → Digest) (limit : Nat) (key : CappedChain.ProgrammedGlobalChainKeygenView)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (counters : EncodingBudgetCounters)
-    (result : (Option (α × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters) ×
-      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalHighDirectTracedState)
+    (result : (Option (α × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters) ×
+      FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) (value : α × CappedChain.GlobalDirectTracedState)
     (hresult : result ∈ support (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
       (limitedFirstLanePrefix limit key computation
-        (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) counters)).run)
+        (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) counters)).run)
     (hvalue : result.1.1 = some value) :
     CappedChain.GlobalCausalTraceRevealsCovered
       (CappedChain.GlobalReturnedChainValueCovered value.2.causalState.cache key.secretKey

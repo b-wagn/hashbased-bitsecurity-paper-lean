@@ -17,7 +17,7 @@ namespace XmssSecurity.TargetSum.Deciding
 
 open CappedChain FirstLaneOracleSimulation
 
-abbrev LimitedPrefixResult := Option (Forgery × CappedChain.GlobalHighDirectTracedState) × EncodingBudgetCounters
+abbrev LimitedPrefixResult := Option (Forgery × CappedChain.GlobalDirectTracedState) × EncodingBudgetCounters
 
 noncomputable def appendLimitedAcceptedPrefixProbe (base : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)

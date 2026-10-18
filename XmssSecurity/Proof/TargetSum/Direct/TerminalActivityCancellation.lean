@@ -27,8 +27,8 @@ def CoupledTerminalExtraCharge (limit : Nat) (result : CoupledLimitedPrefixResul
   TerminalPrefixExtraCharge limit result.1.1 result.2
 
 theorem terminalPrefix_activity_cancellation_coupling_afterKeygen (adversary : Adversary) (limit : Nat) (hpositive : 0 < limit)
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hrel : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hbudget : CountedSourceBudget (Concrete.materializePrecomputation left.cache left.secretKey)
@@ -49,7 +49,7 @@ theorem terminalPrefix_activity_cancellation_coupling_afterKeygen (adversary : A
   change RelTriple (sourceCountedPrefixExecution adversary left)
     ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2) (terminalPrunedFirstLanePrefix limit right.1
       (adversary.main left.publicKey)
-      (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run) _ at hcoupling
+      (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)) ⟨0, 0, 0⟩)).run) _ at hcoupling
   rw [hpk] at hcoupling
   apply relTriple_post_mono (relTriple_with_support hcoupling)
   intro source target hresult
@@ -121,11 +121,11 @@ theorem terminalPrefix_activity_cancellation_coupling (adversary : Adversary) (l
         (SourceCountedPrefixFirstLane source → SourceCountedPrefixEncodingActivity source ∧ CoupledLimitedProbedHit target) ∧
         (CoupledTerminalExtraCharge limit target → SourceCountedPrefixEncodingActivity source ∨ CoupledLimitedProbedHit target)) := by
   unfold sourceCountedPrefixProgram Deciding.coupledFirstLaneProgram
-  apply relTriple_bind (relTriple_with_support CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
+  apply relTriple_bind (relTriple_with_support CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBase_stable)
   intro left right hkeys
   obtain ⟨hrel, hleft, hright⟩ := hkeys
   apply relTriple_bind (terminalPrefix_activity_cancellation_coupling_afterKeygen adversary limit hpositive left right hrel hleft
-    (CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hright) (hbudget left hleft))
+    (CappedChain.coupledGlobalChainKeygenWithBaseFull_support_keyView right hright) (hbudget left hleft))
   intro source target hresult
   exact relTriple_pure_pure hresult
 

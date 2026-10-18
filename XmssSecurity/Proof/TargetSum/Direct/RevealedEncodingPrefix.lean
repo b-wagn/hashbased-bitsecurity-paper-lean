@@ -151,12 +151,12 @@ theorem sourcePrefixFinishAfterHash_revealed_implies_prefixEvent (adversary : Ge
       Generic.CappedChain.sourceGlobalExactExecutionResult, hlogs] using hevent.2
 
 theorem revealedEncodingPrefixEvent_good_implies_hit
-    (left : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (right : Generic.Deciding.BaseHighKey)
-    (hkey : Generic.CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : Generic.CappedChain.ProgrammedGlobalChainKeygenView) (right : Generic.Deciding.BaseKey)
+    (hkey : Generic.CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (source : Generic.Forgery × Generic.CappedChain.SourceExactTracedState)
-    (target : (Generic.Forgery × Generic.CappedChain.GlobalHighDirectTracedState) × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
+    (target : (Generic.Forgery × Generic.CappedChain.GlobalDirectTracedState) × Generic.FirstLaneOracleSimulation.ActionTrace Generic.CappedChain.GlobalChainValueIndex)
     (hforgery : source.1 = target.1.1)
     (hgood : Generic.CappedChain.SourceFirstLaneExactGoodStateRelation left right source.2 target.1.2 target.2)
     (hcovered : Generic.CappedChain.GlobalCausalTraceRevealsCovered

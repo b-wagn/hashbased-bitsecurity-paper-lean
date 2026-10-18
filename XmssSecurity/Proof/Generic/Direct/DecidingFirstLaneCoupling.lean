@@ -21,7 +21,7 @@ theorem relTriple_sourceExact_firstLane_adversary_boundedHit_direct
     (D hitLimit : ℕ) (hlimit : D ≤ hitLimit) (adversary : Adversary)
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hD : (adversary.main left.publicKey).IsQueryBoundP Direct.IsDirectHashQuery D) :
@@ -32,7 +32,7 @@ theorem relTriple_sourceExact_firstLane_adversary_boundedHit_direct
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
         ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl right.1)
           (adversary.main left.publicKey)).run
-            (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState right.1)))).run)
+            (GlobalDirectTracedState.initial (globalFilteredCausalKeygenState right.1)))).run)
       (fun leftResult rightResult =>
         (leftResult.1 = rightResult.1.1 ∧
           SourceFirstLaneExactGoodStateRelation left right leftResult.2 rightResult.1.2
@@ -41,14 +41,14 @@ theorem relTriple_sourceExact_firstLane_adversary_boundedHit_direct
             (FirstLaneOracleSimulation.enforceHazardTrace hitLimit rightResult.2)) := by
   let secretKey := Concrete.materializePrecomputation left.cache left.secretKey
   let sourceInitial : SourceExactTracedState := ((((left.cache, []), []), []))
-  let highInitial : GlobalMonitoredTracedState :=
+  let monitoredInitial : GlobalMonitoredTracedState :=
     (⟨globalFilteredCausalKeygenState right.1, []⟩, [])
-  let firstLaneInitial := GlobalHighDirectTracedState.initial
+  let firstLaneInitial := GlobalDirectTracedState.initial
     (globalFilteredCausalKeygenState right.1)
   have hinitial : SourceFirstLaneExactGoodStateRelation left right sourceInitial firstLaneInitial
       [] := by
     refine ⟨?_, ?_, ?_⟩
-    · simpa [sourceInitial, highInitial, firstLaneInitial, globalStateOfFirstLane,
+    · simpa [sourceInitial, monitoredInitial, firstLaneInitial, globalStateOfFirstLane,
         sourceExactSigningProjection, FirstLaneOracleSimulation.ActionTrace.chainActions] using
         globalSigningMonitoredTracedStateRelation_initial left right hrel hleftSupport hrightSupport
     · simp [sourceInitial, FirstLaneOracleSimulation.ActionTrace.encodingActions]

@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.Generic.CappedGlobalChainHighReduction
+import XmssSecurity.Proof.Generic.CappedGlobalChainReduction
 import XmssSecurity.Proof.Generic.FirstLaneOracleSimulation
 import XmssSecurity.Proof.Generic.CappedEncodingActionTrace
 import XmssSecurity.Proof.Generic.FirstLaneEagerSimulation
@@ -55,35 +55,35 @@ noncomputable def globalFirstLaneAttackerHashQueryByLeafIndex
   | some leafIndex => globalFirstLaneAttackerHashQueryAtLeafIndex secretKey input state leafIndex
   | none =>
       globalFirstLaneLiftRevealProbe
-        ((globalCausalAttackerHashQueryFromHigh secretKey input).run state)
+        ((globalCausalAttackerHashQuery secretKey input).run state)
 
 @[irreducible]
-noncomputable def globalFirstLaneAttackerHashQueryFromHighRun
+noncomputable def globalFirstLaneAttackerHashQueryRun
     (secretKey : SecretKey) (input : HashInput) :
     GlobalCausalHashState →
       OracleComp GlobalFirstLaneWorld (Digest × GlobalCausalHashState) :=
   fun state => globalFirstLaneAttackerHashQueryByLeafIndex secretKey input state
     (encodingInputLeafIndex? secretKey.parameter input)
 
-theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_some
+theorem globalFirstLaneAttackerHashQueryRun_eq_some
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) (leafIndex : LeafIndex)
     (hleafIndex : encodingInputLeafIndex? secretKey.parameter input = some leafIndex) :
-    globalFirstLaneAttackerHashQueryFromHighRun secretKey input state =
+    globalFirstLaneAttackerHashQueryRun secretKey input state =
       globalFirstLaneAttackerHashQueryAtLeafIndex secretKey input state leafIndex := by
-  unfold globalFirstLaneAttackerHashQueryFromHighRun
+  unfold globalFirstLaneAttackerHashQueryRun
   rw [hleafIndex]
   unfold globalFirstLaneAttackerHashQueryByLeafIndex
   rfl
 
-theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_none
+theorem globalFirstLaneAttackerHashQueryRun_eq_none
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState)
     (hleafIndex : encodingInputLeafIndex? secretKey.parameter input = none) :
-    globalFirstLaneAttackerHashQueryFromHighRun secretKey input state =
+    globalFirstLaneAttackerHashQueryRun secretKey input state =
       globalFirstLaneLiftRevealProbe
-        ((globalCausalAttackerHashQueryFromHigh secretKey input).run state) := by
-  unfold globalFirstLaneAttackerHashQueryFromHighRun
+        ((globalCausalAttackerHashQuery secretKey input).run state) := by
+  unfold globalFirstLaneAttackerHashQueryRun
   rw [hleafIndex]
   unfold globalFirstLaneAttackerHashQueryByLeafIndex
   rfl
@@ -169,7 +169,7 @@ noncomputable def globalFirstLaneOracleExecution
   match input with
   | .inl n => (globalFirstLaneUniformImpl n).run state
   | .inr hashInput =>
-      globalFirstLaneAttackerHashQueryFromHighRun
+      globalFirstLaneAttackerHashQueryRun
         keyView.secretKey hashInput state
 
 noncomputable def globalFirstLaneSigningImpl
@@ -285,21 +285,21 @@ theorem globalFirstLaneFreshEncodingQuery_hazardBound
       exact OracleComp.isQueryBoundP_pure
         (p := FirstLaneOracleSimulation.IsHazardQuery) _ 0
 
-theorem globalFirstLaneAttackerHashQueryFromHigh_hazardBound
+theorem globalFirstLaneAttackerHashQuery_hazardBound
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) :
-    (globalFirstLaneAttackerHashQueryFromHighRun secretKey input state)
+    (globalFirstLaneAttackerHashQueryRun secretKey input state)
       |>.IsQueryBoundP FirstLaneOracleSimulation.IsHazardQuery 1 := by
   cases hleafIndex : encodingInputLeafIndex? secretKey.parameter input with
   | none =>
-      rw [globalFirstLaneAttackerHashQueryFromHighRun_eq_none secretKey
+      rw [globalFirstLaneAttackerHashQueryRun_eq_none secretKey
         input state hleafIndex]
       exact globalFirstLaneLiftRevealProbe_hazardBound
-        ((globalCausalAttackerHashQueryFromHigh secretKey input).run state) 1
-        (globalCausalAttackerHashQueryFromHigh_isProbeQueryBoundP secretKey
+        ((globalCausalAttackerHashQuery secretKey input).run state) 1
+        (globalCausalAttackerHashQuery_isProbeQueryBoundP secretKey
           input state)
   | some leafIndex =>
-      rw [globalFirstLaneAttackerHashQueryFromHighRun_eq_some secretKey
+      rw [globalFirstLaneAttackerHashQueryRun_eq_some secretKey
         input state leafIndex hleafIndex]
       cases hcache : state.cache input with
       | none =>
@@ -409,7 +409,7 @@ theorem globalFirstLaneOracleExecution_hazardBound
   | inl n =>
       exact globalFirstLaneUniformImpl_hazardBound n state
   | inr input =>
-      exact globalFirstLaneAttackerHashQueryFromHigh_hazardBound
+      exact globalFirstLaneAttackerHashQuery_hazardBound
         keyView.secretKey input state
 
 theorem globalFirstLaneSigningImpl_hazardBound
@@ -596,20 +596,20 @@ theorem globalFirstLane_globalLeafInputData_encodingInput
   · rfl
 
 set_option maxRecDepth 1000000 in
-theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
+theorem globalFirstLaneErase_attackerHashQuery_encoding_cached
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
     (state : GlobalCausalHashState) (output : Digest)
     (hcache : state.cache
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
         some output) :
     globalFirstLaneErase
-      (globalFirstLaneAttackerHashQueryFromHighRun secretKey
+      (globalFirstLaneAttackerHashQueryRun secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           state) =
-      ((globalCausalAttackerHashQueryFromHigh secretKey
+      ((globalCausalAttackerHashQuery secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           ).run state) := by
-  rw [globalFirstLaneAttackerHashQueryFromHighRun_eq_some secretKey
+  rw [globalFirstLaneAttackerHashQueryRun_eq_some secretKey
     (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) state
     leafIndex (encodingInputLeafIndex?_encodingInput secretKey.parameter leafIndex payload)]
   rw [globalFirstLaneAttackerHashQueryAtLeafIndex_eq_cached _ _ _ _ _ hcache]
@@ -617,7 +617,7 @@ theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
         state = .cached output := by
     rw [globalFilteredCausalAttackerHashPlan, hcache]
-  rw [globalCausalAttackerHashQueryFromHigh_run, hplan]
+  rw [globalCausalAttackerHashQuery_run, hplan]
   change globalFirstLaneErase
       (pure (output, globalCausalRecordedState secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
@@ -625,21 +625,21 @@ theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
   simp [globalFirstLaneErase]
 
 set_option maxRecDepth 1000000 in
-theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_source
+theorem globalFirstLaneErase_attackerHashQuery_encoding_fresh_source
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
     (state : GlobalCausalHashState)
     (hcache : state.cache
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
         none) :
     globalFirstLaneErase
-      (globalFirstLaneAttackerHashQueryFromHighRun secretKey
+      (globalFirstLaneAttackerHashQueryRun secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           state) = globalFirstLaneErasedFreshQuery
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
         (globalCausalRecordedState secretKey
           (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
             state) := by
-  rw [globalFirstLaneAttackerHashQueryFromHighRun_eq_some secretKey
+  rw [globalFirstLaneAttackerHashQueryRun_eq_some secretKey
     (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) state
     leafIndex (encodingInputLeafIndex?_encodingInput secretKey.parameter leafIndex payload)]
   rw [globalFirstLaneAttackerHashQueryAtLeafIndex_eq_fresh _ _ _ _ hcache]
@@ -656,37 +656,37 @@ theorem globalCausalHashQuery_eq_globalFirstLaneErasedFreshQuery
   simp [RevealProbeOracleSimulation.liftProbComp, simulateQ_map,
     Functor.map_map]
 
-theorem globalCausalAttackerHashQueryFromHigh_fresh_eq_hashQuery
+theorem globalCausalAttackerHashQuery_fresh_eq_hashQuery
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState)
     (hplan : globalFilteredCausalAttackerHashPlan secretKey input state =
       .fresh) :
-    (globalCausalAttackerHashQueryFromHigh secretKey input).run state =
+    (globalCausalAttackerHashQuery secretKey input).run state =
       (globalCausalHashQuery input).run
         (globalCausalRecordedState secretKey input state) := by
-  rw [globalCausalAttackerHashQueryFromHigh_run, hplan]
+  rw [globalCausalAttackerHashQuery_run, hplan]
 
-theorem globalCausalAttackerHashQueryFromHigh_fresh_eq_erasedFresh
+theorem globalCausalAttackerHashQuery_fresh_eq_erasedFresh
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState)
     (hplan : globalFilteredCausalAttackerHashPlan secretKey input state =
       .fresh)
     (hcache : state.cache input = none) :
-    (globalCausalAttackerHashQueryFromHigh secretKey input).run state =
+    (globalCausalAttackerHashQuery secretKey input).run state =
       globalFirstLaneErasedFreshQuery input
         (globalCausalRecordedState secretKey input state) :=
-  (globalCausalAttackerHashQueryFromHigh_fresh_eq_hashQuery secretKey input
+  (globalCausalAttackerHashQuery_fresh_eq_hashQuery secretKey input
     state hplan).trans
       (globalCausalHashQuery_eq_globalFirstLaneErasedFreshQuery input
         (globalCausalRecordedState secretKey input state) (by simpa using hcache))
 
-theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_target
+theorem globalFirstLaneErase_attackerHashQuery_encoding_fresh_target
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
     (state : GlobalCausalHashState)
     (hcache : state.cache
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
         none) :
-    ((globalCausalAttackerHashQueryFromHigh secretKey
+    ((globalCausalAttackerHashQuery secretKey
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
         ).run state) = globalFirstLaneErasedFreshQuery
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
@@ -694,7 +694,7 @@ theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_target
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           state) := by
   let input := Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload
-  change (globalCausalAttackerHashQueryFromHigh secretKey input).run state =
+  change (globalCausalAttackerHashQuery secretKey input).run state =
     globalFirstLaneErasedFreshQuery input
       (globalCausalRecordedState secretKey input state)
   have hcache' : state.cache input = none := by simpa [input] using hcache
@@ -704,45 +704,45 @@ theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_target
       input hcache'
     · simp [input]
     · simp [input]
-  exact globalCausalAttackerHashQueryFromHigh_fresh_eq_erasedFresh secretKey
+  exact globalCausalAttackerHashQuery_fresh_eq_erasedFresh secretKey
     input state hplan hcache'
 
-theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh
+theorem globalFirstLaneErase_attackerHashQuery_encoding_fresh
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
     (state : GlobalCausalHashState)
     (hcache : state.cache
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) =
         none) :
     globalFirstLaneErase
-      (globalFirstLaneAttackerHashQueryFromHighRun secretKey
+      (globalFirstLaneAttackerHashQueryRun secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           state) =
-      ((globalCausalAttackerHashQueryFromHigh secretKey
+      ((globalCausalAttackerHashQuery secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           ).run state) := by
-  rw [globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_source
+  rw [globalFirstLaneErase_attackerHashQuery_encoding_fresh_source
     secretKey leafIndex payload state hcache]
-  exact (globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh_target
+  exact (globalFirstLaneErase_attackerHashQuery_encoding_fresh_target
     secretKey leafIndex payload state hcache).symm
 
-theorem globalFirstLaneErase_attackerHashQueryFromHigh_encoding
+theorem globalFirstLaneErase_attackerHashQuery_encoding
     (secretKey : SecretKey) (leafIndex : LeafIndex) (payload : Message × Randomness)
     (state : GlobalCausalHashState) :
     GlobalFirstLaneErases (α := Digest × GlobalCausalHashState)
-      (globalFirstLaneAttackerHashQueryFromHighRun secretKey
+      (globalFirstLaneAttackerHashQueryRun secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           state)
-      ((globalCausalAttackerHashQueryFromHigh secretKey
+      ((globalCausalAttackerHashQuery secretKey
         (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload)
           ).run state) := by
   unfold GlobalFirstLaneErases
   cases hcache : state.cache
       (Concrete.CacheView.encodingInput secretKey.parameter leafIndex payload) with
   | some output =>
-      exact globalFirstLaneErase_attackerHashQueryFromHigh_encoding_cached
+      exact globalFirstLaneErase_attackerHashQuery_encoding_cached
         secretKey leafIndex payload state output hcache
   | none =>
-      exact globalFirstLaneErase_attackerHashQueryFromHigh_encoding_fresh
+      exact globalFirstLaneErase_attackerHashQuery_encoding_fresh
         secretKey leafIndex payload state hcache
 
 noncomputable def globalFirstLaneErasedEncodingHashQuery
@@ -948,36 +948,36 @@ theorem globalFirstLaneErase_signingQuery
     request state
 
 set_option maxRecDepth 1000000 in
-theorem globalFirstLaneAttackerHashQueryFromHighRun_eq_lift_of_none
+theorem globalFirstLaneAttackerHashQueryRun_eq_lift_of_none
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState)
     (hleafIndex : encodingInputLeafIndex? secretKey.parameter input = none) :
-    globalFirstLaneAttackerHashQueryFromHighRun secretKey input state =
+    globalFirstLaneAttackerHashQueryRun secretKey input state =
       globalFirstLaneLiftRevealProbe
-        ((globalCausalAttackerHashQueryFromHigh secretKey input).run
+        ((globalCausalAttackerHashQuery secretKey input).run
           state) := by
-  exact globalFirstLaneAttackerHashQueryFromHighRun_eq_none secretKey input
+  exact globalFirstLaneAttackerHashQueryRun_eq_none secretKey input
     state hleafIndex
 
 set_option maxRecDepth 100000 in
-theorem globalFirstLaneErase_attackerHashQueryFromHigh
+theorem globalFirstLaneErase_attackerHashQuery
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) :
     GlobalFirstLaneErases (α := Digest × GlobalCausalHashState)
-      (globalFirstLaneAttackerHashQueryFromHighRun secretKey input state)
-      ((globalCausalAttackerHashQueryFromHigh secretKey input).run
+      (globalFirstLaneAttackerHashQueryRun secretKey input state)
+      ((globalCausalAttackerHashQuery secretKey input).run
         state) := by
   cases hleafIndex : encodingInputLeafIndex? secretKey.parameter input with
   | none =>
       apply GlobalFirstLaneErases.of_eq_liftRevealProbe
-      exact globalFirstLaneAttackerHashQueryFromHighRun_eq_lift_of_none
+      exact globalFirstLaneAttackerHashQueryRun_eq_lift_of_none
         secretKey input state hleafIndex
   | some leafIndex =>
       obtain ⟨payload, hinput⟩ :=
         exists_encodingInput_of_encodingInputLeafIndex?_eq_some secretKey.parameter
           input leafIndex hleafIndex
       subst input
-      exact globalFirstLaneErase_attackerHashQueryFromHigh_encoding
+      exact globalFirstLaneErase_attackerHashQuery_encoding
         secretKey leafIndex payload state
 
 theorem globalFirstLaneErase_uniformImpl
@@ -1002,8 +1002,8 @@ theorem globalFirstLaneErase_directUniformImpl
     (n : Nat) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       ((globalFirstLaneUniformImpl n).run state)
-      ((globalHighDirectUniformImpl n).run state) := by
-  unfold globalHighDirectUniformImpl
+      ((globalDirectUniformImpl n).run state) := by
+  unfold globalDirectUniformImpl
   exact globalFirstLaneErase_uniformImpl n state
 
 theorem globalFirstLaneErase_directSigningImpl
@@ -1011,8 +1011,8 @@ theorem globalFirstLaneErase_directSigningImpl
     (request : SignRequest) (state : GlobalCausalHashState) :
     GlobalFirstLaneErases
       ((globalFirstLaneSigningImpl keyView request).run state)
-      ((globalHighDirectSigningImpl keyView request).run state) := by
-  unfold globalHighDirectSigningImpl
+      ((globalDirectSigningImpl keyView request).run state) := by
+  unfold globalDirectSigningImpl
   exact globalFirstLaneErase_signingImpl keyView request state
 
 abbrev GlobalFirstLaneOracleErasure
@@ -1020,7 +1020,7 @@ abbrev GlobalFirstLaneOracleErasure
     Prop :=
   ∀ input state, GlobalFirstLaneErases
     (globalFirstLaneOracleExecution keyView input state)
-    (globalHighDirectOracleExecution keyView input state)
+    (globalDirectOracleExecution keyView input state)
 
 theorem globalFirstLaneOracleErasure
     (keyView : ProgrammedGlobalChainKeygenView) :
@@ -1028,11 +1028,11 @@ theorem globalFirstLaneOracleErasure
   intro input state
   cases input with
   | inl n =>
-      unfold globalFirstLaneOracleExecution globalHighDirectOracleExecution
+      unfold globalFirstLaneOracleExecution globalDirectOracleExecution
       exact globalFirstLaneErase_directUniformImpl n state
   | inr hashInput =>
-      unfold globalFirstLaneOracleExecution globalHighDirectOracleExecution
-      exact globalFirstLaneErase_attackerHashQueryFromHigh
+      unfold globalFirstLaneOracleExecution globalDirectOracleExecution
+      exact globalFirstLaneErase_attackerHashQuery
         keyView.secretKey hashInput state
 
 set_option maxRecDepth 1000000

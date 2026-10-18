@@ -19,9 +19,9 @@ noncomputable def publicLimitedPrefixExecution (limit : Nat) (adversary : Advers
     (key : CappedChain.ProgrammedGlobalChainKeygenView) :
     OracleComp CappedChain.GlobalFirstLaneWorld LimitedPrefixResult :=
   limitedFirstLanePrefix limit key (adversary.main key.publicKey)
-    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
+    (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
 
-abbrev CoupledLimitedPrefixResult := Deciding.BaseHighKey × (LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+abbrev CoupledLimitedPrefixResult := Deciding.BaseKey × (LimitedPrefixResult × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
 
 theorem publicLimitedPrefix_trace_bound (limit : Nat) (adversary : Adversary)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) (base : CappedChain.GlobalChainValueIndex → Digest)
@@ -30,10 +30,10 @@ theorem publicLimitedPrefix_trace_bound (limit : Nat) (adversary : Adversary)
       (publicLimitedPrefixExecution limit adversary key)).run) :
     FirstLaneOracleSimulation.hazardCount result.2 ≤ limit := by
   have hbudget := limitedFirstLanePrefix_trace_budget base limit key (adversary.main key.publicKey)
-    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
+    (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩
     (by simp [EncodingBudgetCounters.charge]) result hresult
   have hcount := limitedFirstLanePrefix_trace_direct base limit key (adversary.main key.publicKey)
-    (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩ result hresult
+    (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState key)) ⟨0, 0, 0⟩ result hresult
   have hdirect : result.1.2.direct ≤ limit := (Nat.le_add_right _ _).trans hbudget.1
   simpa only [Nat.zero_add] using hcount.trans hdirect
 

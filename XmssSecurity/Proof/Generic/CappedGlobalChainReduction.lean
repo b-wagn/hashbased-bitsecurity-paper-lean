@@ -1,4 +1,4 @@
-import XmssSecurity.Proof.Generic.CappedGlobalChainHighCoverage
+import XmssSecurity.Proof.Generic.CappedGlobalChainCoverage
 import XmssSecurity.Proof.Common.StateLens
 
 open OracleComp OracleSpec
@@ -11,33 +11,33 @@ variable [Code]
 set_option maxHeartbeats 2000000
 set_option maxRecDepth 1000000
 
-noncomputable def globalHighDirectUniformImpl :
+noncomputable def globalDirectUniformImpl :
     QueryImpl unifSpec
       (StateT GlobalCausalHashState
         (OracleComp
           (RevealProbeOracleSimulation.World GlobalChainValueIndex))) :=
   globalCausalUniformImpl
 
-noncomputable def globalHighDirectOracleExecution
+noncomputable def globalDirectOracleExecution
     (keyView : ProgrammedGlobalChainKeygenView)
     (input : OracleWorld.Domain) (state : GlobalCausalHashState) :
     OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex)
       (OracleWorld.Range input × GlobalCausalHashState) :=
   match input with
-  | .inl n => (globalHighDirectUniformImpl n).run state
+  | .inl n => (globalDirectUniformImpl n).run state
   | .inr hashInput =>
-      (globalCausalAttackerHashQueryFromHigh keyView.secretKey hashInput).run
+      (globalCausalAttackerHashQuery keyView.secretKey hashInput).run
         state
 
-noncomputable def globalHighDirectOracleImpl
+noncomputable def globalDirectOracleImpl
     (keyView : ProgrammedGlobalChainKeygenView) :
     QueryImpl OracleWorld
       (StateT GlobalCausalHashState
         (OracleComp
           (RevealProbeOracleSimulation.World GlobalChainValueIndex))) :=
-  fun input state => globalHighDirectOracleExecution keyView input state
+  fun input state => globalDirectOracleExecution keyView input state
 
-noncomputable def globalHighDirectSigningImpl
+noncomputable def globalDirectSigningImpl
     (keyView : ProgrammedGlobalChainKeygenView) :
     QueryImpl SigningSpec
       (StateT GlobalCausalHashState
@@ -45,15 +45,15 @@ noncomputable def globalHighDirectSigningImpl
           (RevealProbeOracleSimulation.World GlobalChainValueIndex))) :=
   fun request state => globalFilteredCausalSigningQuery keyView request state
 
-noncomputable def globalHighDirectBaseMappedAdversaryImpl
+noncomputable def globalDirectBaseMappedAdversaryImpl
     (keyView : ProgrammedGlobalChainKeygenView) :
     QueryImpl (OracleWorld + SigningSpec)
       (StateT GlobalCausalHashState
         (OracleComp
           (RevealProbeOracleSimulation.World GlobalChainValueIndex))) :=
-  globalHighDirectOracleImpl keyView + globalHighDirectSigningImpl keyView
+  globalDirectOracleImpl keyView + globalDirectSigningImpl keyView
 
-noncomputable def globalHighDirectKeygenAfterMaterial
+noncomputable def globalDirectKeygenAfterMaterial
     (parameter : PublicParameter) (material : GlobalChainTrajectoryMaterial) :
     ProbComp ProgrammedGlobalChainKeygenView := do
   let tree ← treeValues parameter material.1 allTreeValueIndices material.2.2
@@ -64,15 +64,15 @@ noncomputable def globalHighDirectKeygenAfterMaterial
       cache := tree.2
     } : CoupledGlobalChainKeygenView).toProgrammedView parameter)
 
-noncomputable def globalHighDirectKeygenAfterParameter
+noncomputable def globalDirectKeygenAfterParameter
     (parameter : PublicParameter) : ProbComp ProgrammedGlobalChainKeygenView := do
   let material ← programmedGlobalChainTrajectoryMaterial parameter
-  globalHighDirectKeygenAfterMaterial parameter material
+  globalDirectKeygenAfterMaterial parameter material
 
-noncomputable def globalHighDirectKeygen :
+noncomputable def globalDirectKeygen :
     ProbComp ProgrammedGlobalChainKeygenView := do
   let parameter ← Concrete.samplePublicParameter
-  globalHighDirectKeygenAfterParameter parameter
+  globalDirectKeygenAfterParameter parameter
 
 attribute [local irreducible]
   treeValues
@@ -80,7 +80,7 @@ attribute [local irreducible]
   globalChainTrajectoryMaterialTable
   CoupledGlobalChainKeygenView.toProgrammedView
 
-theorem globalHighDirectKeygenAfterMaterial_with_base
+theorem globalDirectKeygenAfterMaterial_with_base
     (parameter : PublicParameter) (material : GlobalChainTrajectoryMaterial)
     (base : GlobalChainValueIndex → Digest) :
     (do
@@ -94,21 +94,21 @@ theorem globalHighDirectKeygenAfterMaterial_with_base
           cache := tree.2
         } : CoupledGlobalChainKeygenView).toProgrammedView parameter)
       pure (view, base)) = (do
-      let keyView ← globalHighDirectKeygenAfterMaterial parameter material
+      let keyView ← globalDirectKeygenAfterMaterial parameter material
       pure (keyView, base)) := by
-  unfold globalHighDirectKeygenAfterMaterial
+  unfold globalDirectKeygenAfterMaterial
   simp
 
-theorem coupledGlobalChainKeygenWithBaseHighFull_eq_direct :
-    coupledGlobalChainKeygenWithBaseHighFull = (do
+theorem coupledGlobalChainKeygenWithBaseFull_eq_direct :
+    coupledGlobalChainKeygenWithBaseFull = (do
       let parameter ← Concrete.samplePublicParameter
       let base ← independentGlobalChainValueTable
-      let keyView ← globalHighDirectKeygenAfterParameter parameter
+      let keyView ← globalDirectKeygenAfterParameter parameter
       pure (keyView, base)) := by
-  unfold coupledGlobalChainKeygenWithBaseHighFull
-    coupledGlobalChainKeygenWithBaseHigh
+  unfold coupledGlobalChainKeygenWithBaseFull
+    coupledGlobalChainKeygenWithBase
     programmedGlobalChainTrajectoryMaterialWithBase
-    globalHighDirectKeygenAfterParameter independentGlobalChainValueTable
+    globalDirectKeygenAfterParameter independentGlobalChainValueTable
   simp only [bind_assoc, pure_bind]
   apply bind_congr
   intro parameter
@@ -116,7 +116,7 @@ theorem coupledGlobalChainKeygenWithBaseHighFull_eq_direct :
   intro base
   apply bind_congr
   intro material
-  exact globalHighDirectKeygenAfterMaterial_with_base parameter material base
+  exact globalDirectKeygenAfterMaterial_with_base parameter material base
 
 theorem map_monitorGlobalCausalTrace_projection
     (computation : GlobalCausalHashState → ProbComp
@@ -150,7 +150,7 @@ theorem map_actionTracedStateImpl_globalMonitor_erased_step
   unfold actionTracedStateImpl
   simp [StateT.run_mk, map_eq_bind_pure_comp, bind_assoc]
 
-theorem map_globalHighMonitored_uniform_erased_projection
+theorem map_globalMonitored_uniform_erased_projection
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest) (n : Nat)
     (state : GlobalMonitoredCausalState)
@@ -158,7 +158,7 @@ theorem map_globalHighMonitored_uniform_erased_projection
     (fun result : (OracleWorld + SigningSpec).Range (.inl (.inl n)) ×
         GlobalMonitoredTracedState =>
       ((result.1, result.2.1.causal), result.2.1.trace)) <$>
-        (globalHighMonitoredMappedAdversaryImpl
+        (globalMonitoredMappedAdversaryImpl
           (keyView, base) (.inl (.inl n))).run
             (state, attackerTrace) =
       (fun result : (((OracleWorld + SigningSpec).Range (.inl (.inl n)) ×
@@ -171,13 +171,13 @@ theorem map_globalHighMonitored_uniform_erased_projection
     _ = (fun result : (OracleWorld + SigningSpec).Range (.inl (.inl n)) ×
           GlobalMonitoredCausalState =>
           ((result.1, result.2.causal), result.2.trace)) <$>
-        (globalHighMonitoredBaseMappedAdversaryImpl
+        (globalMonitoredBaseMappedAdversaryImpl
           (keyView, base) (.inl (.inl n))).run state := by
       have herase := map_actionTracedStateImpl_globalMonitor_erased_step
-        (globalHighMonitoredBaseMappedAdversaryImpl
+        (globalMonitoredBaseMappedAdversaryImpl
           (keyView, base)) attackerActionFragment
         (.inl (.inl n)) state attackerTrace
-      simpa [globalHighMonitoredMappedAdversaryImpl, Functor.map_map,
+      simpa [globalMonitoredMappedAdversaryImpl, Functor.map_map,
         Function.comp_def] using congrArg
           (fun candidate =>
             (fun result : (OracleWorld + SigningSpec).Range (.inl (.inl n)) ×
@@ -185,10 +185,10 @@ theorem map_globalHighMonitored_uniform_erased_projection
               ((result.1, result.2.causal), result.2.trace)) <$> candidate)
           herase
     _ = _ := by
-      unfold globalHighMonitoredBaseMappedAdversaryImpl
+      unfold globalMonitoredBaseMappedAdversaryImpl
       exact map_monitorGlobalCausalTrace_projection _ state
 
-theorem map_globalHighMonitored_hash_erased_projection
+theorem map_globalMonitored_hash_erased_projection
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest) (input : HashInput)
     (state : GlobalMonitoredCausalState)
@@ -196,7 +196,7 @@ theorem map_globalHighMonitored_hash_erased_projection
     (fun result : (OracleWorld + SigningSpec).Range (.inl (.inr input)) ×
         GlobalMonitoredTracedState =>
       ((result.1, result.2.1.causal), result.2.1.trace)) <$>
-        (globalHighMonitoredMappedAdversaryImpl
+        (globalMonitoredMappedAdversaryImpl
           (keyView, base) (.inl (.inr input))).run
             (state, attackerTrace) =
       (fun result : (((OracleWorld + SigningSpec).Range (.inl (.inr input)) ×
@@ -204,19 +204,19 @@ theorem map_globalHighMonitored_hash_erased_projection
           RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) =>
         (result.1, state.trace ++ result.2)) <$>
         (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl base)
-          ((globalCausalAttackerHashQueryFromHigh keyView.secretKey input
+          ((globalCausalAttackerHashQuery keyView.secretKey input
               ).run state.causal)).run := by
   calc
     _ = (fun result : (OracleWorld + SigningSpec).Range (.inl (.inr input)) ×
           GlobalMonitoredCausalState =>
           ((result.1, result.2.causal), result.2.trace)) <$>
-        (globalHighMonitoredBaseMappedAdversaryImpl
+        (globalMonitoredBaseMappedAdversaryImpl
           (keyView, base) (.inl (.inr input))).run state := by
       have herase := map_actionTracedStateImpl_globalMonitor_erased_step
-        (globalHighMonitoredBaseMappedAdversaryImpl
+        (globalMonitoredBaseMappedAdversaryImpl
           (keyView, base)) attackerActionFragment
         (.inl (.inr input)) state attackerTrace
-      simpa [globalHighMonitoredMappedAdversaryImpl, Functor.map_map,
+      simpa [globalMonitoredMappedAdversaryImpl, Functor.map_map,
         Function.comp_def] using congrArg
           (fun candidate =>
             (fun result : (OracleWorld + SigningSpec).Range
@@ -224,10 +224,10 @@ theorem map_globalHighMonitored_hash_erased_projection
               ((result.1, result.2.causal), result.2.trace)) <$> candidate)
           herase
     _ = _ := by
-      unfold globalHighMonitoredBaseMappedAdversaryImpl
+      unfold globalMonitoredBaseMappedAdversaryImpl
       exact map_monitorGlobalCausalTrace_projection _ state
 
-theorem map_globalHighMonitored_sign_erased_projection
+theorem map_globalMonitored_sign_erased_projection
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest) (request : SignRequest)
     (state : GlobalMonitoredCausalState)
@@ -235,7 +235,7 @@ theorem map_globalHighMonitored_sign_erased_projection
     (fun result : (OracleWorld + SigningSpec).Range (.inr request) ×
         GlobalMonitoredTracedState =>
       ((result.1, result.2.1.causal), result.2.1.trace)) <$>
-        (globalHighMonitoredMappedAdversaryImpl
+        (globalMonitoredMappedAdversaryImpl
           (keyView, base) (.inr request)).run
             (state, attackerTrace) =
       (fun result : (((OracleWorld + SigningSpec).Range (.inr request) ×
@@ -248,13 +248,13 @@ theorem map_globalHighMonitored_sign_erased_projection
     _ = (fun result : (OracleWorld + SigningSpec).Range (.inr request) ×
           GlobalMonitoredCausalState =>
           ((result.1, result.2.causal), result.2.trace)) <$>
-        (globalHighMonitoredBaseMappedAdversaryImpl
+        (globalMonitoredBaseMappedAdversaryImpl
           (keyView, base) (.inr request)).run state := by
       have herase := map_actionTracedStateImpl_globalMonitor_erased_step
-        (globalHighMonitoredBaseMappedAdversaryImpl
+        (globalMonitoredBaseMappedAdversaryImpl
           (keyView, base)) attackerActionFragment
         (.inr request) state attackerTrace
-      simpa [globalHighMonitoredMappedAdversaryImpl, Functor.map_map,
+      simpa [globalMonitoredMappedAdversaryImpl, Functor.map_map,
         Function.comp_def] using congrArg
           (fun candidate =>
             (fun result : (OracleWorld + SigningSpec).Range (.inr request) ×
@@ -262,7 +262,7 @@ theorem map_globalHighMonitored_sign_erased_projection
               ((result.1, result.2.causal), result.2.trace)) <$> candidate)
           herase
     _ = _ := by
-      unfold globalHighMonitoredBaseMappedAdversaryImpl
+      unfold globalMonitoredBaseMappedAdversaryImpl
       exact map_monitorGlobalCausalTrace_projection _ state
 
 set_option maxRecDepth 1000000
@@ -274,22 +274,22 @@ theorem evalDist_map_congr_of_evalDist_eq
     evalDist (project <$> left) = evalDist (project <$> right) := by
   rw [evalDist_map, evalDist_map, hdist]
 
-abbrev GlobalHighDirectTracedState :=
+abbrev GlobalDirectTracedState :=
   GlobalCausalHashState × AttackerActionTrace
 
-noncomputable def globalHighDirectTracedMappedAdversaryImpl
+noncomputable def globalDirectTracedMappedAdversaryImpl
     (keyView : ProgrammedGlobalChainKeygenView) :
     QueryImpl (OracleWorld + SigningSpec)
-      (StateT GlobalHighDirectTracedState
+      (StateT GlobalDirectTracedState
         (OracleComp
           (RevealProbeOracleSimulation.World GlobalChainValueIndex))) :=
   fun input => StateT.mk fun state => do
     let result ←
-      (globalHighDirectBaseMappedAdversaryImpl keyView input).run state.1
+      (globalDirectBaseMappedAdversaryImpl keyView input).run state.1
     pure (result.1,
       (result.2, state.2 ++ attackerActionFragment input result.1))
 
-theorem globalHighMonitoredMappedAdversaryImpl_support_actionTrace_eq
+theorem globalMonitoredMappedAdversaryImpl_support_actionTrace_eq
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
     (input : (OracleWorld + SigningSpec).Domain)
@@ -297,12 +297,12 @@ theorem globalHighMonitoredMappedAdversaryImpl_support_actionTrace_eq
     (result : (OracleWorld + SigningSpec).Range input ×
       GlobalMonitoredTracedState)
     (hresult : result ∈ support
-      ((globalHighMonitoredMappedAdversaryImpl right input).run state)) :
+      ((globalMonitoredMappedAdversaryImpl right input).run state)) :
     result.2.2 = state.2 ++ attackerActionFragment input result.1 := by
-  unfold globalHighMonitoredMappedAdversaryImpl actionTracedStateImpl at hresult
+  unfold globalMonitoredMappedAdversaryImpl actionTracedStateImpl at hresult
   change result ∈ support (do
     let baseResult ←
-      (globalHighMonitoredBaseMappedAdversaryImpl right input).run state.1
+      (globalMonitoredBaseMappedAdversaryImpl right input).run state.1
     pure (baseResult.1,
       (baseResult.2, state.2 ++ attackerActionFragment input baseResult.1)))
       at hresult
@@ -312,7 +312,7 @@ theorem globalHighMonitoredMappedAdversaryImpl_support_actionTrace_eq
   subst result
   rfl
 
-theorem map_globalHighMonitored_adversary_full_query
+theorem map_globalMonitored_adversary_full_query
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (input : (OracleWorld + SigningSpec).Domain)
@@ -321,14 +321,14 @@ theorem map_globalHighMonitored_adversary_full_query
     (fun result : (OracleWorld + SigningSpec).Range input ×
         GlobalMonitoredTracedState =>
       ((result.1, (result.2.1.causal, result.2.2)), result.2.1.trace)) <$>
-        (globalHighMonitoredMappedAdversaryImpl
+        (globalMonitoredMappedAdversaryImpl
           (keyView, base) input).run (state, attackerTrace) =
       (fun result : (((OracleWorld + SigningSpec).Range input ×
-          GlobalHighDirectTracedState) ×
+          GlobalDirectTracedState) ×
           RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) =>
         (result.1, state.trace ++ result.2)) <$>
         (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl base)
-          ((globalHighDirectTracedMappedAdversaryImpl keyView input
+          ((globalDirectTracedMappedAdversaryImpl keyView input
             ).run (state.causal, attackerTrace))).run := by
   let addAttackerTrace := fun result :
       (((OracleWorld + SigningSpec).Range input × GlobalCausalHashState) ×
@@ -340,34 +340,34 @@ theorem map_globalHighMonitored_adversary_full_query
       (fun result : (OracleWorld + SigningSpec).Range input ×
           GlobalMonitoredTracedState =>
         ((result.1, result.2.1.causal), result.2.1.trace)) <$>
-          (globalHighMonitoredMappedAdversaryImpl
+          (globalMonitoredMappedAdversaryImpl
             (keyView, base) input).run (state, attackerTrace) =
         (fun result : (((OracleWorld + SigningSpec).Range input ×
             GlobalCausalHashState) ×
             RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) =>
           (result.1, state.trace ++ result.2)) <$>
           (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl base)
-            ((globalHighDirectBaseMappedAdversaryImpl keyView input
+            ((globalDirectBaseMappedAdversaryImpl keyView input
               ).run state.causal)).run := by
     rcases input with (uniformOrHash | request)
     · rcases uniformOrHash with n | hashInput
-      · unfold globalHighDirectBaseMappedAdversaryImpl
-          globalHighDirectOracleImpl globalHighDirectOracleExecution
-          globalHighDirectUniformImpl
-        exact map_globalHighMonitored_uniform_erased_projection keyView base
+      · unfold globalDirectBaseMappedAdversaryImpl
+          globalDirectOracleImpl globalDirectOracleExecution
+          globalDirectUniformImpl
+        exact map_globalMonitored_uniform_erased_projection keyView base
           n state attackerTrace
-      · unfold globalHighDirectBaseMappedAdversaryImpl
-          globalHighDirectOracleImpl globalHighDirectOracleExecution
-        exact map_globalHighMonitored_hash_erased_projection keyView base
+      · unfold globalDirectBaseMappedAdversaryImpl
+          globalDirectOracleImpl globalDirectOracleExecution
+        exact map_globalMonitored_hash_erased_projection keyView base
           hashInput state attackerTrace
-    · unfold globalHighDirectBaseMappedAdversaryImpl
-        globalHighDirectSigningImpl
-      exact map_globalHighMonitored_sign_erased_projection keyView base
+    · unfold globalDirectBaseMappedAdversaryImpl
+        globalDirectSigningImpl
+      exact map_globalMonitored_sign_erased_projection keyView base
         request state attackerTrace
   have hlifted := congrArg (fun candidate => addAttackerTrace <$> candidate)
     herased
-  simpa [addAttackerTrace, globalHighMonitoredMappedAdversaryImpl,
-    actionTracedStateImpl, globalHighDirectTracedMappedAdversaryImpl,
+  simpa [addAttackerTrace, globalMonitoredMappedAdversaryImpl,
+    actionTracedStateImpl, globalDirectTracedMappedAdversaryImpl,
     StateT.run_mk, Functor.map_map, Function.comp_def, simulateQ_bind,
     bind_map_left, List.append_assoc] using hlifted
 

@@ -16,7 +16,7 @@ open XmssSecurity.EUFCMA
 open Concrete CappedChain Deciding FirstLaneOracleSimulation
 
 def PublicFreshAccepted (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (result : Forgery × CappedChain.GlobalHighDirectTracedState) : Prop :=
+    (result : Forgery × CappedChain.GlobalDirectTracedState) : Prop :=
   ¬ SigningTranscript.ContainsRequest result.2.attackerTrace.toSigningLog result.1 ∧
     (Deciding.forgedEncoding result.2.causalState.cache key.secretKey.parameter result.1).isSome
 
@@ -29,7 +29,7 @@ def FreshPrefixFirstLaneEvent (key : CappedChain.ProgrammedGlobalChainKeygenView
 
 noncomputable def publicFreshPrefixProbeExecution (fuel : ℕ) (adversary : Adversary)
     (key : CappedChain.ProgrammedGlobalChainKeygenView) :
-    OracleComp CappedChain.GlobalFirstLaneWorld (Forgery × CappedChain.GlobalHighDirectTracedState) := do
+    OracleComp CappedChain.GlobalFirstLaneWorld (Forgery × CappedChain.GlobalDirectTracedState) := do
   let result ← FirstLaneOracleSimulation.enforceHazardBound fuel (Deciding.publicPrefixExecution adversary key)
   if PublicFreshAccepted key result then
     let _ ← Deciding.publicDecidingProbe result.1.epoch
@@ -42,8 +42,8 @@ noncomputable def publicFreshPrefixProbeExecution (fuel : ℕ) (adversary : Adve
 
 noncomputable def appendFreshPrefixProbe (fuel : ℕ) (base : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
-    (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex :=
+    (result : (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
+    (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex :=
   if PublicFreshAccepted key result.1 then
     Deciding.appendPrefixProbe base key (result.1, FirstLaneOracleSimulation.enforceHazardTrace fuel result.2)
   else (result.1, FirstLaneOracleSimulation.enforceHazardTrace fuel result.2)
@@ -69,7 +69,7 @@ theorem publicFreshPrefixProbeExecution_eager (fuel : ℕ) (adversary : Adversar
 
 theorem hazardCount_appendFreshPrefixProbe (fuel : ℕ) (base : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
+    (result : (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
     FirstLaneOracleSimulation.hazardCount (appendFreshPrefixProbe fuel base key result).2 =
       min fuel (FirstLaneOracleSimulation.hazardCount result.2) + if PublicFreshAccepted key result.1 then 1 else 0 := by
   unfold appendFreshPrefixProbe
@@ -78,17 +78,17 @@ theorem hazardCount_appendFreshPrefixProbe (fuel : ℕ) (base : CappedChain.Glob
 
 theorem hazardCount_appendFreshPrefixProbe_le (fuel : ℕ) (base : CappedChain.GlobalChainValueIndex → Digest)
     (key : CappedChain.ProgrammedGlobalChainKeygenView)
-    (result : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
+    (result : (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex) :
     FirstLaneOracleSimulation.hazardCount (appendFreshPrefixProbe fuel base key result).2 ≤ fuel + 1 := by
   rw [hazardCount_appendFreshPrefixProbe]
   split_ifs <;> omega
 
 def CoupledPrefixFreshAccepted
-    (result : Deciding.BaseHighKey × ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
+    (result : Deciding.BaseKey × ((Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
   PublicFreshAccepted result.1.1 result.2.1
 
 def CoupledFreshProbedHit (fuel : ℕ)
-    (result : Deciding.BaseHighKey × ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
+    (result : Deciding.BaseKey × ((Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) : Prop :=
   FirstLaneOracleSimulation.CombinedHit result.1.2 (appendFreshPrefixProbe fuel result.1.2 result.1.1 result.2).2
 
 theorem coupledFreshPrefixProbe_eq_map (fuel : ℕ) (adversary : Adversary) :
@@ -109,8 +109,8 @@ theorem expectedCoupledHazards_freshProbe_eq (fuel : ℕ) (adversary : Adversary
   classical
   unfold expectedCoupledHazards
   rw [coupledFreshPrefixProbe_eq_map, tsum_probOutput_map_mul]
-  have hweight (result : Deciding.BaseHighKey ×
-      ((Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) :
+  have hweight (result : Deciding.BaseKey ×
+      ((Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)) :
       ((min (fuel + 1) (FirstLaneOracleSimulation.hazardCount (appendFreshPrefixProbe fuel result.1.2 result.1.1 result.2).2) : ℕ) : ℝ≥0∞) =
         ((min fuel (FirstLaneOracleSimulation.hazardCount result.2.2) : ℕ) : ℝ≥0∞) + if CoupledPrefixFreshAccepted result then 1 else 0 := by
     rw [min_eq_right (hazardCount_appendFreshPrefixProbe_le fuel _ _ _),

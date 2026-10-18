@@ -65,11 +65,11 @@ def GlobalSigningMonitoredTracedStateRelation
   GlobalMonitoredTracedStateRelation left right
     (sourceSigningTracedStateProjection leftState) rightState
 
-theorem relTriple_programmed_globalHighMonitored_signingAction
+theorem relTriple_programmed_globalMonitored_signingAction
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
@@ -82,7 +82,7 @@ theorem relTriple_programmed_globalHighMonitored_signingAction
       ((sourceSigningTracedMappedAdversaryImpl left.publicKey
         (Concrete.materializePrecomputation left.cache left.secretKey)
           input).run leftState)
-      ((globalHighMonitoredMappedAdversaryImpl right input).run rightState)
+      ((globalMonitoredMappedAdversaryImpl right input).run rightState)
       (fun leftResult rightResult =>
         (leftResult.1 = rightResult.1 ∧
           GlobalSigningMonitoredTracedStateRelation left right
@@ -90,13 +90,13 @@ theorem relTriple_programmed_globalHighMonitored_signingAction
           rightResult.2.1.bad right.2) := by
   let enrich := sourceSigningTracedQueryResult input leftState
   let project := sourceSigningTracedStateProjection leftState
-  have hbase := relTriple_programmed_globalHighMonitored_action left right hrel
+  have hbase := relTriple_programmed_globalMonitored_action left right hrel
     hleftSupport hrightSupport project rightState hstate input
   have hlifted : RelTriple
       (enrich <$> (sourceDirectTracedMappedAdversaryImpl left.publicKey
         (Concrete.materializePrecomputation left.cache left.secretKey)
           input).run project)
-      (id <$> (globalHighMonitoredMappedAdversaryImpl right input).run
+      (id <$> (globalMonitoredMappedAdversaryImpl right input).run
         rightState)
       (fun leftResult rightResult =>
         (leftResult.1 = rightResult.1 ∧
@@ -149,7 +149,7 @@ theorem globalSigningMonitoredTracedStateRelation_initial
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen) :
@@ -314,11 +314,11 @@ theorem encodingActionTraceUpdate_eq_of_parameter_eq
     | none => rfl
     | some signature => rw [hparameter]
 
-theorem relTriple_programmed_globalHighMonitored_sourceExact_action
+theorem relTriple_programmed_globalMonitored_sourceExact_action
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
@@ -331,7 +331,7 @@ theorem relTriple_programmed_globalHighMonitored_sourceExact_action
       ((cappedBothTracedMappedAdversaryImpl left.publicKey
         (Concrete.materializePrecomputation left.cache left.secretKey)
           input).run leftState)
-      ((globalHighMonitoredMappedAdversaryImpl right input).run rightState)
+      ((globalMonitoredMappedAdversaryImpl right input).run rightState)
       (fun leftResult rightResult =>
         (leftResult.1 = rightResult.1 ∧
           GlobalSigningMonitoredTracedStateRelation left right
@@ -343,14 +343,14 @@ theorem relTriple_programmed_globalHighMonitored_sourceExact_action
         rightResult.2.1.bad right.2) := by
   let leftSecret :=
     Concrete.materializePrecomputation left.cache left.secretKey
-  have hbase := relTriple_programmed_globalHighMonitored_signingAction left
+  have hbase := relTriple_programmed_globalMonitored_signingAction left
     right hrel hleftSupport hrightSupport
     (sourceExactSigningProjection leftState) rightState hstate input
   have hlifted : RelTriple
       (sourceExactQueryResult leftSecret input leftState <$>
         (sourceSigningTracedMappedAdversaryImpl left.publicKey leftSecret
           input).run (sourceExactSigningProjection leftState))
-      (id <$> (globalHighMonitoredMappedAdversaryImpl right input).run
+      (id <$> (globalMonitoredMappedAdversaryImpl right input).run
         rightState)
       (fun leftResult rightResult =>
         (leftResult.1 = rightResult.1 ∧

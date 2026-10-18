@@ -10,17 +10,17 @@ namespace XmssSecurity.Generic.CappedChain
 
 variable [Code]
 
-theorem globalHighMonitoredAdversary_support_returnedCovered
+theorem globalMonitoredAdversary_support_returnedCovered
     (right : ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest))
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (result : α × GlobalMonitoredTracedState)
     (hresult : result ∈ support
-      ((simulateQ (globalHighMonitoredMappedAdversaryImpl right) computation).run
+      ((simulateQ (globalMonitoredMappedAdversaryImpl right) computation).run
         (⟨globalFilteredCausalKeygenState right.1, []⟩, []))) :
     GlobalMonitoredCausalStateCovered
       (GlobalReturnedChainValueCovered result.2.1.causal.cache right.1.secretKey
         result.2.2.toSigningLog) result.2.1 := by
-  apply simulate_globalHighMonitoredMappedAdversary_support_covered_of_final right computation
+  apply simulate_globalMonitoredMappedAdversary_support_covered_of_final right computation
     (⟨globalFilteredCausalKeygenState right.1, []⟩, [])
     (GlobalReturnedChainValueCovered result.2.1.causal.cache right.1.secretKey
       result.2.2.toSigningLog) result.2.1.causal.cache result.2.2
@@ -40,13 +40,13 @@ theorem globalFirstLaneAdversary_support_returnedCovered
     (keyView : ProgrammedGlobalChainKeygenView)
     (base : GlobalChainValueIndex → Digest)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (result : (α × GlobalHighDirectTracedState) ×
+    (result : (α × GlobalDirectTracedState) ×
       FirstLaneOracleSimulation.ActionTrace GlobalChainValueIndex)
     (hresult : result ∈ support
       ((simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base)
         ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl keyView)
           computation).run
-            (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState keyView)))).run)) :
+            (GlobalDirectTracedState.initial (globalFilteredCausalKeygenState keyView)))).run)) :
     GlobalCausalTraceRevealsCovered
       (GlobalReturnedChainValueCovered result.1.2.causalState.cache keyView.secretKey
         result.1.2.attackerTrace.toSigningLog) result.2.chainActions := by
@@ -55,7 +55,7 @@ theorem globalFirstLaneAdversary_support_returnedCovered
         (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl base)
           ((simulateQ (globalFirstLaneExactTracedMappedAdversaryImpl keyView)
             computation).run
-              (GlobalHighDirectTracedState.initial (globalFilteredCausalKeygenState keyView)))).run) := by
+              (GlobalDirectTracedState.initial (globalFilteredCausalKeygenState keyView)))).run) := by
     rw [support_map]
     exact ⟨result, hresult, rfl⟩
   rw [simulate_globalFirstLaneEagerTrace_chainProjection] at hmapped
@@ -63,21 +63,21 @@ theorem globalFirstLaneAdversary_support_returnedCovered
     (globalFirstLaneErase_exactTracedMappedAdversaryImpl keyView)] at hmapped
   let initial : GlobalMonitoredTracedState :=
     (⟨globalFilteredCausalKeygenState keyView, []⟩, [])
-  have hprojection := map_simulate_globalHighMonitored_adversary_exact keyView base
+  have hprojection := map_simulate_globalMonitored_adversary_exact keyView base
     computation initial
   simp only [initial, List.nil_append, Prod.eta] at hprojection
   change _ = id <$> _ at hprojection
   rw [id_map] at hprojection
-  simp only [GlobalHighDirectTracedState.initial, GlobalHighDirectTracedState.mk]
+  simp only [GlobalDirectTracedState.initial, GlobalDirectTracedState.mk]
     at hmapped hprojection
   rw [← hprojection, support_map] at hmapped
-  obtain ⟨highResult, hhighResult, heq⟩ := hmapped
-  have hcovered := (globalHighMonitoredAdversary_support_returnedCovered
-    (keyView, base) computation highResult hhighResult).2
+  obtain ⟨monitoredResult, hmonitoredResult, heq⟩ := hmapped
+  have hcovered := (globalMonitoredAdversary_support_returnedCovered
+    (keyView, base) computation monitoredResult hmonitoredResult).2
   have hcache := congrArg (fun output => output.1.2.causalState.cache) heq
   have htrace := congrArg (fun output => output.1.2.attackerTrace) heq
   have hchain := congrArg Prod.snd heq
-  dsimp only [GlobalHighDirectTracedState.causalState, GlobalHighDirectTracedState.attackerTrace]
+  dsimp only [GlobalDirectTracedState.causalState, GlobalDirectTracedState.attackerTrace]
     at hcache htrace hchain ⊢
   rw [← hcache, ← htrace, ← hchain]
   exact hcovered

@@ -19,12 +19,12 @@ open XmssSecurity.EUFCMA
 open Concrete CappedChain Deciding FirstLaneOracleSimulation
 
 theorem sourcePublic_freshAccepted_iff
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (source : Forgery × CappedChain.SourceExactTracedState)
-    (target : (Forgery × CappedChain.GlobalHighDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
+    (target : (Forgery × CappedChain.GlobalDirectTracedState) × FirstLaneOracleSimulation.ActionTrace CappedChain.GlobalChainValueIndex)
     (hforgery : source.1 = target.1.1)
     (hgood : CappedChain.SourceFirstLaneExactGoodStateRelation left right source.2 target.1.2 target.2) :
     SourcePrefixFreshAccepted left source ↔ PublicFreshAccepted right.1 target.1 := by
@@ -49,8 +49,8 @@ theorem sourcePublic_freshAccepted_iff
 
 theorem freshPrefix_acceptance_coupling_afterKeygen
     (adversary : Adversary) (D : ℕ) (hD : Direct.IsDirectQueryBound adversary D)
-    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseHighKey)
-    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (left : CappedChain.ProgrammedGlobalChainKeygenView) (right : Deciding.BaseKey)
+    (hkey : CappedChain.ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleft : left ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen)
     (hright : right.1 ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen) :
     RelTriple (Deciding.sourcePrefixExecution adversary left)
@@ -68,7 +68,7 @@ theorem freshPrefix_acceptance_coupling_afterKeygen
     (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl right.2)
       ((simulateQ (CappedChain.globalFirstLaneExactTracedMappedAdversaryImpl right.1)
         (adversary.main left.publicKey)).run
-          (CappedChain.GlobalHighDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
+          (CappedChain.GlobalDirectTracedState.initial (CappedChain.globalFilteredCausalKeygenState right.1)))).run := by
     unfold Deciding.publicPrefixExecution
     rw [hpk]
   rw [hrightProgram]
@@ -105,11 +105,11 @@ theorem freshPrefix_acceptance_coupling (adversary : Adversary) (D : ℕ)
           CoupledFreshProbedHit D target)) := by
   unfold Deciding.sourcePrefixProgram Deciding.coupledFirstLaneProgram
   apply relTriple_bind (relTriple_with_support
-    CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
+    CappedChain.relTriple_trajectoryProgrammedGlobalChainKeygen_withBase_stable)
   intro left right hkeys
   obtain ⟨hkey, hleft, hright⟩ := hkeys
   apply relTriple_bind (freshPrefix_acceptance_coupling_afterKeygen adversary D hD left right hkey hleft
-    (CappedChain.coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hright))
+    (CappedChain.coupledGlobalChainKeygenWithBaseFull_support_keyView right hright))
   intro source target hresult
   exact relTriple_pure_pure hresult
 

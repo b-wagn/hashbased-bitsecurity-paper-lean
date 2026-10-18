@@ -51,12 +51,12 @@ theorem sourcePrefixProgram_coupling (adversary : Adversary) (D : ℕ)
         CombinedHit right.1.2 (enforceHazardTrace (D + 1) right.2.2)) := by
   unfold sourcePrefixProgram coupledFirstLaneProgram
   apply relTriple_bind (relTriple_with_support
-    relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable)
+    relTriple_trajectoryProgrammedGlobalChainKeygen_withBase_stable)
   intro left right hkeys
   obtain ⟨hkey, hleftSupport, hrightSupport⟩ := hkeys
   apply relTriple_bind (prefixFirstLaneEvent_probability_le_enforcedHit_afterKeygen
     adversary D hD left right hkey hleftSupport
-      (coupledGlobalChainKeygenWithBaseHighFull_support_keyView right hrightSupport))
+      (coupledGlobalChainKeygenWithBaseFull_support_keyView right hrightSupport))
   intro leftResult rightResult hresult
   exact relTriple_pure_pure hresult
 

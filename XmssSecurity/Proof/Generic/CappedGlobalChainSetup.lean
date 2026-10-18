@@ -26,7 +26,7 @@ theorem relTriple_programmedGlobalChainTrajectoryMaterial_withBase
     globalChainTrajectoryMaterialTable globalChainTrajectoryMaterialBase
     (evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base parameter)
 
-noncomputable def coupledGlobalChainKeygenWithBaseHigh
+noncomputable def coupledGlobalChainKeygenWithBase
     (parameter : PublicParameter) :
     ProbComp (CoupledGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) := do
@@ -41,7 +41,7 @@ noncomputable def coupledGlobalChainKeygenWithBaseHigh
     cache := tree.2
   } : CoupledGlobalChainKeygenView), materialBase.2)
 
-def CoupledGlobalChainKeygenBaseHighRelation
+def CoupledGlobalChainKeygenBaseRelation
     (parameter : PublicParameter)
     (left : CoupledGlobalChainKeygenView)
     (right : CoupledGlobalChainKeygenView ×
@@ -68,14 +68,14 @@ theorem programmedGlobalChainTrajectoryMaterialWithBase_support_material
 
 set_option maxHeartbeats 3000000 in
 set_option maxRecDepth 1000000 in
-theorem relTriple_coupledGlobalChainKeygen_withBaseHigh
+theorem relTriple_coupledGlobalChainKeygen_withBase
     (parameter : PublicParameter) :
     RelTriple
       (coupledGlobalChainKeygenExperiment parameter)
-      (coupledGlobalChainKeygenWithBaseHigh parameter)
-      (CoupledGlobalChainKeygenBaseHighRelation parameter) := by
+      (coupledGlobalChainKeygenWithBase parameter)
+      (CoupledGlobalChainKeygenBaseRelation parameter) := by
   unfold coupledGlobalChainKeygenExperiment
-    coupledGlobalChainKeygenWithBaseHigh
+    coupledGlobalChainKeygenWithBase
   apply relTriple_bind (relTriple_with_support
     (relTriple_programmedGlobalChainTrajectoryMaterial_withBase parameter))
   intro leftMaterial rightMaterialBase hmaterial
@@ -121,30 +121,30 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 3000000
 set_option linter.constructorNameAsVariable false
 
-noncomputable def coupledGlobalChainKeygenWithBaseHighFull :
+noncomputable def coupledGlobalChainKeygenWithBaseFull :
     ProbComp (ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) := do
   let parameter ← Concrete.samplePublicParameter
-  let result ← coupledGlobalChainKeygenWithBaseHigh parameter
+  let result ← coupledGlobalChainKeygenWithBase parameter
   pure (result.1.toProgrammedView parameter, result.2)
 
-def ProgrammedGlobalChainKeygenBaseHighFullRelation
+def ProgrammedGlobalChainKeygenBaseFullRelation
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) : Prop :=
   ProgrammedGlobalChainKeygenFullCacheRelation left right ∧
     GlobalChainTableEdgesMatch left.cache left.secretKey.parameter left.table
 
-theorem relTriple_coupledGlobalChainKeygenWithBaseHighFull :
+theorem relTriple_coupledGlobalChainKeygenWithBaseFull :
     RelTriple coupledGlobalChainKeygen
-      coupledGlobalChainKeygenWithBaseHighFull
-      ProgrammedGlobalChainKeygenBaseHighFullRelation := by
-  unfold coupledGlobalChainKeygen coupledGlobalChainKeygenWithBaseHighFull
+      coupledGlobalChainKeygenWithBaseFull
+      ProgrammedGlobalChainKeygenBaseFullRelation := by
+  unfold coupledGlobalChainKeygen coupledGlobalChainKeygenWithBaseFull
   apply relTriple_bind (relTriple_refl Concrete.samplePublicParameter)
   intro leftParameter rightParameter hparameter
   subst rightParameter
   apply relTriple_bind
-    (relTriple_coupledGlobalChainKeygen_withBaseHigh leftParameter)
+    (relTriple_coupledGlobalChainKeygen_withBase leftParameter)
   intro leftView rightView hview
   apply relTriple_pure_pure
   refine ⟨?_, ?_⟩
@@ -160,19 +160,19 @@ theorem relTriple_coupledGlobalChainKeygenWithBaseHighFull :
       exact hview.1.1.2.2.2.2.2
   · exact hview.2
 
-theorem coupledGlobalChainKeygenWithBaseHighFull_support_keyView
+theorem coupledGlobalChainKeygenWithBaseFull_support_keyView
     (result : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
     (hresult : result ∈ support
-      coupledGlobalChainKeygenWithBaseHighFull) :
+      coupledGlobalChainKeygenWithBaseFull) :
     result.1 ∈ support trajectoryProgrammedGlobalChainKeygen := by
-  unfold coupledGlobalChainKeygenWithBaseHighFull at hresult
+  unfold coupledGlobalChainKeygenWithBaseFull at hresult
   rw [mem_support_bind_iff] at hresult
   obtain ⟨parameter, hparameter, hparameterBind⟩ := hresult
   rw [mem_support_bind_iff] at hparameterBind
   obtain ⟨viewBase, hviewBase, hpureView⟩ := hparameterBind
   simp only [support_pure, Set.mem_singleton_iff] at hpureView
-  unfold coupledGlobalChainKeygenWithBaseHigh at hviewBase
+  unfold coupledGlobalChainKeygenWithBase at hviewBase
   rw [mem_support_bind_iff] at hviewBase
   obtain ⟨materialBase, hmaterialBase, htreeBind⟩ := hviewBase
   rw [mem_support_bind_iff] at htreeBind
@@ -207,20 +207,20 @@ theorem coupledGlobalChainKeygenWithBaseHighFull_support_keyView
   exact (mem_support_iff_of_evalDist_eq
     evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed _).mp hcoupled
 
-def ProgrammedGlobalChainKeygenBaseHighStableRelation
+def ProgrammedGlobalChainKeygenBaseStableRelation
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest)) : Prop :=
   ProgrammedGlobalChainKeygenFullCacheStableRelation left right ∧
     GlobalChainTableEdgesMatch left.cache left.secretKey.parameter left.table
 
-theorem relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable :
+theorem relTriple_coupledGlobalChainKeygen_withBase_fullCacheStable :
     RelTriple coupledGlobalChainKeygen
-      coupledGlobalChainKeygenWithBaseHighFull
-      ProgrammedGlobalChainKeygenBaseHighStableRelation := by
+      coupledGlobalChainKeygenWithBaseFull
+      ProgrammedGlobalChainKeygenBaseStableRelation := by
   apply relTriple_post_mono
     (relTriple_with_support
-      relTriple_coupledGlobalChainKeygenWithBaseHighFull)
+      relTriple_coupledGlobalChainKeygenWithBaseFull)
   intro left right hrel
   obtain ⟨hbase, hleftCoupledSupport, hrightSupport⟩ := hrel
   have hleftSupport : left ∈ support
@@ -230,7 +230,7 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable :
         hleftCoupledSupport
   have hrightViewSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen :=
-    coupledGlobalChainKeygenWithBaseHighFull_support_keyView right
+    coupledGlobalChainKeygenWithBaseFull_support_keyView right
       hrightSupport
   have hleftKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
     left hleftSupport
@@ -257,13 +257,13 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable :
   rw [hparameter]
   exact hrightReplay
 
-theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable :
+theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBase_stable :
     RelTriple trajectoryProgrammedGlobalChainKeygen
-      coupledGlobalChainKeygenWithBaseHighFull
-      ProgrammedGlobalChainKeygenBaseHighStableRelation := by
+      coupledGlobalChainKeygenWithBaseFull
+      ProgrammedGlobalChainKeygenBaseStableRelation := by
   exact relTriple_of_evalDist_eq_left
     evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed.symm
-    relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable
+    relTriple_coupledGlobalChainKeygen_withBase_fullCacheStable
 
 
 
@@ -679,7 +679,7 @@ theorem programmedGlobal_filteredKeygen_stateRelation
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen) :
@@ -745,7 +745,7 @@ theorem programmedGlobal_filteredKeygen_stateRelation
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 2000000
 
-noncomputable def globalCausalRevealHashQueryFromHigh
+noncomputable def globalCausalRevealHashQuery
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) (index : GlobalChainValueIndex) :
     OracleComp (RevealProbeOracleSimulation.World GlobalChainValueIndex)
@@ -754,19 +754,19 @@ noncomputable def globalCausalRevealHashQueryFromHigh
   pure (value, globalFilteredCausalRevealResultState secretKey input state
     index value)
 
-theorem simulate_eagerTrace_globalCausalRevealHashQueryFromHigh
+theorem simulate_eagerTrace_globalCausalRevealHashQuery
     (table : GlobalChainValueIndex → Digest)
     (secretKey : SecretKey) (input : HashInput)
     (state : GlobalCausalHashState) (index : GlobalChainValueIndex) :
     (simulateQ (RevealProbeOracleSimulation.eagerTraceImpl table)
-      (globalCausalRevealHashQueryFromHigh secretKey input state
+      (globalCausalRevealHashQuery secretKey input state
         index)).run =
       pure ((table index,
         globalFilteredCausalRevealResultState secretKey input state index
           (table index)),
         [RevealProbeOracleSimulation.ObservedAction.reveal
           index (table index)]) := by
-  unfold globalCausalRevealHashQueryFromHigh
+  unfold globalCausalRevealHashQuery
   rw [simulateQ_bind, WriterT.run_bind',
     RevealProbeOracleSimulation.simulate_eagerTrace_revealQuery]
   simp
@@ -905,7 +905,7 @@ theorem relTriple_programmed_globalFilteredCausalSigningAttempt
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
@@ -1038,7 +1038,7 @@ theorem relTriple_programmed_globalFilteredCausalSignBoundedAttempts
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
@@ -1093,7 +1093,7 @@ theorem relTriple_programmed_globalFilteredCausalSigningQuery
     (left : ProgrammedGlobalChainKeygenView)
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
-    (hrel : ProgrammedGlobalChainKeygenBaseHighStableRelation left right)
+    (hrel : ProgrammedGlobalChainKeygenBaseStableRelation left right)
     (hleftSupport : left ∈ support trajectoryProgrammedGlobalChainKeygen)
     (hrightSupport : right.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen)
