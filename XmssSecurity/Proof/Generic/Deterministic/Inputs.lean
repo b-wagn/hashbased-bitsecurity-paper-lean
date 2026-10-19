@@ -31,9 +31,9 @@ theorem randomizerHashInput_ne_keygenHashInput (p₁ p₂ : PublicParameter)
   have := congrArg List.length h
   simp [randomizerHashInput, keygenHashInput, fieldBytes, length_bytesLE] at this
 
-/-- Every seed-derived input puts the complete seed in bytes 32 through 63. -/
+/-- Every seed-derived input puts the complete seed in bytes 25 through 56 (zero-based). -/
 def DerivationSeedHit (input : HashInput) (seed : MasterSeed) : Prop :=
-  (input.drop 32).take 32 = bytesLE 32 seed
+  (input.drop 25).take 32 = bytesLE 32 seed
 
 theorem derivationSeedHit_keygen (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     DerivationSeedHit (keygenHashInput parameter domain seed) seed := by

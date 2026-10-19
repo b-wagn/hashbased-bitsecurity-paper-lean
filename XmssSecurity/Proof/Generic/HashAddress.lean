@@ -8,10 +8,10 @@ namespace XmssSecurity.Generic
 
 variable [Code]
 
-/-- Inputs with the 32-byte tweak and public-parameter prefix for one concrete hash address. -/
+/-- Inputs with the 25-byte tweak and public-parameter prefix for one concrete hash address. -/
 def AtHashAddress (parameter : PublicParameter) (domain : HashDomain)
     (input : HashInput) : Prop :=
-  input.take 32 = tweakBytes domain ++ bytesLE 16 parameter
+  input.take 25 = tweakBytes domain ++ bytesLE 16 parameter
 
 noncomputable instance (parameter : PublicParameter) (domain : HashDomain) :
     DecidablePred (AtHashAddress parameter domain) :=
@@ -35,13 +35,13 @@ theorem atHashAddress_tweakableHashInput_iff (parameter : PublicParameter)
     AtHashAddress parameter targetDomain
       (tweakableHashInput parameter calledDomain payload) ↔
       calledDomain = targetDomain := by
-  have hprefix : (tweakBytes calledDomain ++ bytesLE 16 parameter).length = 32 := by
+  have hprefix : (tweakBytes calledDomain ++ bytesLE 16 parameter).length = 25 := by
     simp [tweakBytes]
   rw [AtHashAddress, tweakableHashInput,
-    List.take_append_of_le_length (by omega : 32 ≤
+    List.take_append_of_le_length (by omega : 25 ≤
       (tweakBytes calledDomain ++ bytesLE 16 parameter).length)]
   rw [List.take_of_length_le (by omega :
-    (tweakBytes calledDomain ++ bytesLE 16 parameter).length ≤ 32)]
+    (tweakBytes calledDomain ++ bytesLE 16 parameter).length ≤ 25)]
   exact (List.append_left_injective (bytesLE 16 parameter)).eq_iff.trans
     tweakBytes_injective.eq_iff
 

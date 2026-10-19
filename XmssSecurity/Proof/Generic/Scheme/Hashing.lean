@@ -7,7 +7,7 @@ The proofs work with this copy of the hash routines of the statement, for the co
 `Bridge.lean` proves that it computes the statement's algorithms.
 
 How XMSS calls the hash function: the serialization of hash inputs (little-endian byte strings
-and the 16-byte tweaks `enc(t, p, j)`), the hash domains, and the hash routines built on a
+and the 9-byte tweaks `enc(t, p, j)`), the hash domains, and the hash routines built on a
 single oracle query `oracleHash`: the tweakable hash `Th` and its uses for the message encoding,
 chain steps, leaves, and Merkle nodes, and the derivation of keys and randomizers from the master
 seed. The hash routines work in any monad with access to `HashSpec`.
@@ -33,14 +33,10 @@ structure TweakFields where
   leafIndex : BitVec 32
 deriving DecidableEq
 
-/-- The protocol domain separator. -/
-def protocolDomainSep : UInt8 := 0
-
-/-- The 16 tweak bytes `enc(t, p, j) = protocol_domain_sep || t || 0^16 || p || 0^32 || j`, each
-field serialized least significant byte first. -/
+/-- The 9 tweak bytes `enc(t, p, j) = t || LE32(p) || LE32(j)`.
+The one-byte tag separates the hash domains; there is no padding. -/
 def fieldBytes (fields : TweakFields) : List UInt8 :=
-  [protocolDomainSep] ++ bytesLE 1 fields.tag ++ [0, 0] ++ bytesLE 4 fields.position ++
-    List.replicate 4 0 ++ bytesLE 4 fields.leafIndex
+  bytesLE 1 fields.tag ++ bytesLE 4 fields.position ++ bytesLE 4 fields.leafIndex
 
 /-- Convert the three integer fields to their fixed widths. -/
 def tweakFields (tag position leafIndex : Nat) : TweakFields :=
@@ -61,7 +57,7 @@ def hashDomainFields : HashDomain → TweakFields
   | .merkle level node => tweakFields 3 (level.val + 1) node
   | .encoding leafIndex => tweakFields 4 0 leafIndex
 
-/-- The 16 tweak bytes of a hash domain. -/
+/-- The 9 tweak bytes of a hash domain. -/
 def tweakBytes (domain : HashDomain) : List UInt8 :=
   fieldBytes (hashDomainFields domain)
 

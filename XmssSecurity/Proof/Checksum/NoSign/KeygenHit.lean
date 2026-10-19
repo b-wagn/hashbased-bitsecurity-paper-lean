@@ -68,7 +68,7 @@ theorem probEvent_sampleSecret_apply (leafIndex : LeafIndex) (chain : Generic.Ch
 
 theorem eq_tweakableHashInput_of_atHashAddress (parameter : PublicParameter)
     (domain : Generic.HashDomain) (input : HashInput) (hinput : AtHashAddress parameter domain input) :
-    input = Generic.tweakableHashInput parameter domain (input.drop 32) := by
+    input = Generic.tweakableHashInput parameter domain (input.drop 25) := by
   unfold AtHashAddress at hinput
   unfold Generic.tweakableHashInput
   rw [← hinput, List.take_append_drop]

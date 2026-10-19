@@ -3,7 +3,7 @@
 
 Parameters shared by both encodings. `TargetSum.lean` and `Checksum.lean` fix the chain counts
 and signing attempts. Seeds have 256 bits; public parameters and randomizers have `digestBits`
-bits (`Types.lean`), and hash tweaks have 16 bytes (`Hashing.lean`).
+bits (`Types.lean`), and hash tweaks have 9 bytes (`Hashing.lean`).
 -/
 
 namespace XmssSecurity

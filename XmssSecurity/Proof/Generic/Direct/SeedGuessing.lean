@@ -23,27 +23,27 @@ variable [Code]
 
 /-- Inputs whose tweak tag byte is `0`, `5` or `7`: the tags of the seed derivations. -/
 def MaySeedHit (input : HashInput) : Prop :=
-  input[1]? = some 0 ∨ input[1]? = some 5 ∨ input[1]? = some 7
+  input[0]? = some 0 ∨ input[0]? = some 5 ∨ input[0]? = some 7
 
 instance : DecidablePred MaySeedHit := fun input =>
-  inferInstanceAs (Decidable (input[1]? = some 0 ∨ input[1]? = some 5 ∨ input[1]? = some 7))
+  inferInstanceAs (Decidable (input[0]? = some 0 ∨ input[0]? = some 5 ∨ input[0]? = some 7))
 
 theorem not_maySeedHit_tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (payload : HashInput) : ¬MaySeedHit (tweakableHashInput parameter domain payload) := by
   cases domain <;>
     simp [MaySeedHit, tweakableHashInput, tweakBytes, fieldBytes, hashDomainFields, tweakFields,
-      bytesLE, protocolDomainSep] <;> decide
+      bytesLE] <;> decide
 
 theorem maySeedHit_keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : MaySeedHit (keygenHashInput parameter domain seed) := by
   cases domain <;>
     simp [MaySeedHit, keygenHashInput, keygenDomainFields, fieldBytes, tweakFields,
-      bytesLE, protocolDomainSep]
+      bytesLE]
 
 theorem maySeedHit_randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
     (leafIndex : LeafIndex) (message : Message) (trial : BitVec 32) :
     MaySeedHit (randomizerHashInput parameter seed leafIndex message trial) := by
-  simp [MaySeedHit, randomizerHashInput, fieldBytes, bytesLE, protocolDomainSep]
+  simp [MaySeedHit, randomizerHashInput, fieldBytes, bytesLE]
 
 /-! ## Honest hash computations make no seed-shaped query -/
 

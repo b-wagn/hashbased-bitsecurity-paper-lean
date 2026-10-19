@@ -38,17 +38,14 @@ theorem bytesLE_injective (byteCount : Nat) : Function.Injective (bytesLE byteCo
   simpa [byte, BitVec.getLsbD_extractLsb', hmod, hposition] using hlocal
 
 @[simp]
-theorem length_fieldBytes (fields : TweakFields) : (fieldBytes fields).length = 16 := by
+theorem length_fieldBytes (fields : TweakFields) : (fieldBytes fields).length = 9 := by
   simp [fieldBytes]
 
 theorem fieldBytes_injective : Function.Injective fieldBytes := by
   intro left right heq
   simp only [fieldBytes] at heq
   obtain ⟨hfront, hleafIndexBytes⟩ := List.append_inj heq (by simp)
-  have hfields := List.append_left_injective (List.replicate 4 0) hfront
-  obtain ⟨hheader, hpositionBytes⟩ := List.append_inj hfields (by simp)
-  have htagPrefix := List.append_left_injective [0, 0] hheader
-  have htagBytes := List.append_right_injective [protocolDomainSep] htagPrefix
+  obtain ⟨htagBytes, hpositionBytes⟩ := List.append_inj hfront (by simp)
   have htag : left.tag = right.tag := bytesLE_injective 1 htagBytes
   have hposition : left.position = right.position := bytesLE_injective 4 hpositionBytes
   have hleafIndex : left.leafIndex = right.leafIndex := bytesLE_injective 4 hleafIndexBytes
