@@ -81,10 +81,12 @@ def keygenDomainFields : KeygenDomain → TweakFields
   | .parameter => tweakFields 5 0 0
   | .chain leafIndex chain => tweakFields 0 chain leafIndex
 
-/-- `tweak || P || S`; parameter derivation uses `P = 0`. -/
+/-- Parameter derivation uses `enc(5, 0, 0) || S`; chain derivation uses `enc(0, i, idx) || P || S`.
+The `parameter` argument is unused in the parameter-derivation domain. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : HashInput :=
-  fieldBytes (keygenDomainFields domain) ++ bytesLE 16 parameter ++ bytesLE 32 seed
+  fieldBytes (keygenDomainFields domain) ++
+    (match domain with | .parameter => [] | .chain .. => bytesLE 16 parameter) ++ bytesLE 32 seed
 
 /-! ## Hash routines -/
 

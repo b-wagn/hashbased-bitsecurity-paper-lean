@@ -42,8 +42,9 @@ The checksum `_exact` theorems cover every mode; `_signerRequests_bounds` record
 ## The two schemes
 
 Every scheme hash input starts with the 9-byte tweak `enc(t, p, j) = t ∥ LE32(p) ∥ LE32(j)`,
-followed by the 16-byte public parameter and the payload. The type tag `t` is one byte;
-`p` and `j` are 32-bit little-endian integers. No padding is used.
+where `t` is a one-byte type tag and `p`, `j` are 32-bit little-endian integers. The public
+parameter is derived as `P = H(enc(5, 0, 0) ∥ seed)`. All other scheme hash inputs place the
+16-byte public parameter between the tweak and the payload. No padding is used.
 
 The construction (`Statement/Scheme/Construction.lean`, `Xmss.lean`) is generic in the WOTS
 encoding (`WotsEncoding`: the number of chains, the partial decoder from 128-bit digests to

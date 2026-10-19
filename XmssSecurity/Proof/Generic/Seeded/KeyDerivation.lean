@@ -22,13 +22,13 @@ theorem keygenDomainFields_injective : Function.Injective keygenDomainFields := 
   exact ⟨fin_of_ofNat32_eq (by decide) hleafIndex,
     fin_of_ofNat32_eq (Code.numChains_lt.le.trans (by norm_num)) hchain⟩
 
-theorem keygenHashInput_injective {p₁ p₂ : PublicParameter} {d₁ d₂ : KeygenDomain}
+/-- A key-derivation input uniquely determines its domain and seed, even across public parameters. -/
+theorem keygenHashInput_domain_seed_eq {p₁ p₂ : PublicParameter} {d₁ d₂ : KeygenDomain}
     {s₁ s₂ : MasterSeed} (h : keygenHashInput p₁ d₁ s₁ = keygenHashInput p₂ d₂ s₂) :
-    p₁ = p₂ ∧ d₁ = d₂ ∧ s₁ = s₂ := by
+    d₁ = d₂ ∧ s₁ = s₂ := by
   unfold keygenHashInput at h
   obtain ⟨hprefix, hseed⟩ := List.append_inj' h (by simp)
-  obtain ⟨htweak, hparameter⟩ := List.append_inj' hprefix (by simp)
-  exact ⟨bytesLE_injective 16 hparameter,
-    keygenDomainFields_injective (fieldBytes_injective htweak), bytesLE_injective 32 hseed⟩
+  obtain ⟨htweak, _⟩ := List.append_inj hprefix (by simp)
+  exact ⟨keygenDomainFields_injective (fieldBytes_injective htweak), bytesLE_injective 32 hseed⟩
 
 end XmssSecurity.Generic

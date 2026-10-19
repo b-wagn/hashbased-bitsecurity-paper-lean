@@ -21,7 +21,7 @@ theorem chainInputs_injective (parameter : PublicParameter) (seed : MasterSeed)
     (leafIndex leafIndex' : LeafIndex) (chain chain' : ChainIndex)
     (h : chainInputs parameter seed leafIndex chain = chainInputs parameter seed leafIndex' chain') :
     leafIndex = leafIndex' ∧ chain = chain' :=
-  KeygenDomain.chain.inj (keygenHashInput_injective h).2.1
+  KeygenDomain.chain.inj (keygenHashInput_domain_seed_eq h).1
 
 def parameterCache (seed : MasterSeed) (output : Digest) : QueryCache HashSpec :=
   (∅ : QueryCache HashSpec).cacheQuery (keygenHashInput 0 .parameter seed) output
@@ -31,7 +31,7 @@ theorem parameterCache_chain_fresh (seed : MasterSeed) (output : Digest)
     parameterCache seed output (chainInputs parameter seed leafIndex chain) = none := by
   apply QueryCache.cacheQuery_of_ne
   intro h
-  have hdomain := (keygenHashInput_injective h).2.1
+  have hdomain := (keygenHashInput_domain_seed_eq h).1
   cases hdomain
 
 def derivationCache (seed : MasterSeed) (parameterOutput : Digest) (outputs : ChainSecrets) :

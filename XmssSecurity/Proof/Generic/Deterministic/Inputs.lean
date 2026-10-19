@@ -29,20 +29,24 @@ theorem randomizerHashInput_ne_keygenHashInput (p₁ p₂ : PublicParameter)
     randomizerHashInput p₁ s₁ leafIndex message trial ≠ keygenHashInput p₂ domain s₂ := by
   intro h
   have := congrArg List.length h
-  simp [randomizerHashInput, keygenHashInput, fieldBytes, length_bytesLE] at this
+  cases domain <;> simp [randomizerHashInput, keygenHashInput, fieldBytes, length_bytesLE] at this
 
-/-- Every seed-derived input puts the complete seed in bytes 25 through 56 (zero-based). -/
+/-- The tag fixes the seed offset: byte 9 for parameter derivation (tag 5), byte 25 otherwise.
+Thus each input names at most one complete seed. Offsets are zero-based. -/
 def DerivationSeedHit (input : HashInput) (seed : MasterSeed) : Prop :=
-  (input.drop 25).take 32 = bytesLE 32 seed
+  (input.drop (if input[0]? = some 5 then 9 else 25)).take 32 = bytesLE 32 seed
 
 theorem derivationSeedHit_keygen (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) :
     DerivationSeedHit (keygenHashInput parameter domain seed) seed := by
-  simp [DerivationSeedHit, keygenHashInput, fieldBytes, bytesLE]
+  cases domain <;>
+    simp [DerivationSeedHit, keygenHashInput, keygenDomainFields, tweakFields, fieldBytes, bytesLE,
+      show (0 : UInt8) ≠ 5 by decide]
 
 theorem derivationSeedHit_randomizer (parameter : PublicParameter) (seed : MasterSeed)
     (leafIndex : LeafIndex) (message : Message) (trial : BitVec 32) :
     DerivationSeedHit (randomizerHashInput parameter seed leafIndex message trial) seed := by
-  simp [DerivationSeedHit, randomizerHashInput, fieldBytes, bytesLE]
+  simp [DerivationSeedHit, randomizerHashInput, fieldBytes, bytesLE,
+    show (7 : UInt8) ≠ 5 by decide]
 
 theorem derivationSeedHit_unique {input : HashInput} {left right : MasterSeed}
     (hl : DerivationSeedHit input left) (hr : DerivationSeedHit input right) : left = right :=
