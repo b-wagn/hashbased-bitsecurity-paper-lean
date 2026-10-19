@@ -56,6 +56,35 @@ lemma notion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
   rfl
 
 /-- Bit security of the statement's game in mode `Z` is bit security of the per-mode notion. -/
+theorem hasClassicalSecurityBound_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (workFactor : ℝ≥0∞) :
+    (SUFCMA.lossyGame (PK := PK) (SK := SK)).HasClassicalSecurityBound scheme Z workFactor ↔
+      (notion (modeOf Z)).HasClassicalSecurityBound scheme workFactor := by
+  have hadv : ∀ adversary,
+      (SUFCMA.lossyGame (PK := PK) (SK := SK)).advantage scheme adversary =
+        (notion (modeOf Z)).advantage scheme adversary := by
+    intro adversary
+    simp only [SecurityGame.advantage, SecurityNotion.advantage,
+      notion_experiment_eq Z hZ scheme adversary, probEvent_map]
+    rfl
+  have hbound : ∀ adversary q,
+      (SUFCMA.lossyGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q ↔
+        (notion (modeOf Z)).HasQueryBound scheme adversary q := by
+    intro adversary q
+    simp only [SecurityGame.HasQueryBound, SecurityNotion.HasQueryBound,
+      notion_experiment_eq Z hZ scheme adversary, probEvent_eq_one_iff, probFailure_eq_zero,
+      true_and, support_map, Set.mem_image, forall_exists_index, and_imp,
+      forall_apply_eq_imp_iff₂]
+  constructor
+  · intro h q hq adversary hb
+    rw [← hadv]
+    exact h q hq adversary ((hbound adversary q).2 hb)
+  · intro h q hq adversary hb
+    rw [hadv]
+    exact h q hq adversary ((hbound adversary q).1 hb)
+
+
 theorem hasClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) :
@@ -115,6 +144,35 @@ lemma eufNotion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
 
 /-- Bit security of the statement's EUF-CMA game in mode `Z` is bit security of the per-mode
 notion. -/
+theorem eufHasClassicalSecurityBound_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (workFactor : ℝ≥0∞) :
+    (EUFCMA.lossyGame (PK := PK) (SK := SK)).HasClassicalSecurityBound scheme Z workFactor ↔
+      (EUFCMA.notion (modeOf Z)).HasClassicalSecurityBound scheme workFactor := by
+  have hadv : ∀ adversary,
+      (EUFCMA.lossyGame (PK := PK) (SK := SK)).advantage scheme adversary =
+        (EUFCMA.notion (modeOf Z)).advantage scheme adversary := by
+    intro adversary
+    simp only [SecurityGame.advantage, SecurityNotion.advantage,
+      eufNotion_experiment_eq Z hZ scheme adversary, probEvent_map]
+    rfl
+  have hbound : ∀ adversary q,
+      (EUFCMA.lossyGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q ↔
+        (EUFCMA.notion (modeOf Z)).HasQueryBound scheme adversary q := by
+    intro adversary q
+    simp only [SecurityGame.HasQueryBound, SecurityNotion.HasQueryBound,
+      eufNotion_experiment_eq Z hZ scheme adversary, probEvent_eq_one_iff, probFailure_eq_zero,
+      true_and, support_map, Set.mem_image, forall_exists_index, and_imp,
+      forall_apply_eq_imp_iff₂]
+  constructor
+  · intro h q hq adversary hb
+    rw [← hadv]
+    exact h q hq adversary ((hbound adversary q).2 hb)
+  · intro h q hq adversary hb
+    rw [hadv]
+    exact h q hq adversary ((hbound adversary q).1 hb)
+
+
 theorem eufHasClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ) :

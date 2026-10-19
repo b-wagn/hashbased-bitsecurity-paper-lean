@@ -3,7 +3,7 @@ import Mathlib.Data.BitVec
 
 namespace XmssSecurity.Checksum
 
-/-- An upper bound on the WOTS chain edges one verification walks: `v · (2^w - 1) = 322`. -/
+/-- An upper bound on the WOTS chain edges one verification walks: `v · (2^w - 1) = 525`. -/
 def verificationChainHashes : Nat := numChains * (chainLength - 1)
 
 namespace Checksum
@@ -15,7 +15,7 @@ def PointwiseLE (x y : Encoding) : Prop := ∀ i, x i ≤ y i
 def verificationWork (x : Encoding) : Nat :=
   ∑ i, (chainLength - 1 - (x i).val)
 
-/-- Every encoding makes the verifier walk at most `322` WOTS chain edges. -/
+/-- Every encoding makes the verifier walk at most `525` WOTS chain edges. -/
 theorem verificationWork_le (x : Encoding) : verificationWork x ≤ verificationChainHashes := by
   unfold verificationWork verificationChainHashes
   calc
@@ -59,7 +59,7 @@ theorem messagePart_encode (digest : Digest) : messagePart (encode digest) = mes
   funext i
   exact encode_messageChain digest i
 
-/-- The checksum is at most `len_1 · (2^w - 1) = 301`. -/
+/-- The checksum is at most `len_1 · (2^w - 1) = 480`. -/
 theorem checksum_le (digits : Fin messageDigits → Digit) :
     checksum digits ≤ messageDigits * (chainLength - 1) := by
   unfold checksum
@@ -94,19 +94,9 @@ theorem checksum_lt_pow (digits : Fin messageDigits → Digit) :
 
 /-! ### Validity -/
 
-theorem messageDigit_last_lt (digest : Digest) : (messageDigit digest lastMessageDigit).val < 4 := by
-  unfold messageDigit lastMessageDigit
-  change (BitVec.extractLsb' _ _ digest).toNat < 4
-  have hdigest := digest.isLt
-  simp only [winternitzBits, messageDigits, digestBits] at *
-  simp [BitVec.extractLsb'_toNat]
-  omega
-
 theorem encode_valid (digest : Digest) : Valid (encode digest) := by
-  refine ⟨?_, fun j => ?_⟩
-  · rw [encode_messageChain]
-    exact messageDigit_last_lt digest
-  · rw [encode_checksumChain, messagePart_encode]
+  intro j
+  rw [encode_checksumChain, messagePart_encode]
 
 theorem decodeDigest_eq_some_iff {digest : Digest} {x : Encoding} :
     decodeDigest digest = some x ↔ encode digest = x ∧ Valid x := by
@@ -128,13 +118,13 @@ theorem messageDigit_injective : Function.Injective messageDigit := by
   intro bit hbit
   have hbelow : bit < 128 := by simpa [digestBits] using hbit
   let digit : Fin messageDigits := ⟨bit / winternitzBits, by
-    change bit / 3 < 43
+    change bit / 4 < 32
     omega⟩
   let offsetBit := bit % winternitzBits
   have hoffsetBit : offsetBit < winternitzBits := Nat.mod_lt bit (by decide)
   have hoffset : winternitzBits * digit.val + offsetBit = bit := by
-    change 3 * (bit / 3) + bit % 3 = bit
-    have := Nat.mod_add_div bit 3
+    change 4 * (bit / 4) + bit % 4 = bit
+    have := Nat.mod_add_div bit 4
     omega
   have hextract :
       left.extractLsb' (winternitzBits * digit.val) winternitzBits =
@@ -168,7 +158,7 @@ theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y
   have hup : checksum (messagePart x) ≤ checksum (messagePart y) := by
     apply checksum_le_of_digits_le (checksum_lt_pow _) (checksum_lt_pow _)
     intro j
-    rw [← hx.2 j, ← hy.2 j]
+    rw [← hx j, ← hy j]
     exact hxy _
   have hcsum : checksum (messagePart x) = checksum (messagePart y) := le_antisymm hup hdown
   have hterms : ∀ i, (messagePart x i).val = (messagePart y i).val := by
@@ -188,7 +178,7 @@ theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y
   rcases chain_cases chain with ⟨i, rfl⟩ | ⟨j, rfl⟩
   · exact Fin.ext (hterms i)
   · have hparts : messagePart x = messagePart y := funext fun i => Fin.ext (hterms i)
-    rw [hx.2 j, hy.2 j, hparts]
+    rw [hx j, hy j, hparts]
 
 end Checksum
 

@@ -6,6 +6,7 @@ open scoped BigOperators
 
 set_option backward.isDefEq.respectTransparency false
 set_option maxRecDepth 1000
+set_option maxHeartbeats 1000000
 
 open XmssSecurity.Generic
 
@@ -32,6 +33,30 @@ def wordsSuccEquiv (radix length total : ℕ) :
   right_inv word := by
     rcases word with ⟨digit, tail, htotal⟩
     rfl
+
+/-- Complementing each hexadecimal digit identifies sums 330 and 150. -/
+theorem wordCount_complement_330 : wordCount 16 32 330 = wordCount 16 32 150 := by
+  let flip : (Fin 32 → Fin 16) → (Fin 32 → Fin 16) := fun x i =>
+    ⟨15 - (x i).val, by omega⟩
+  have hinvol : Function.Involutive flip := by
+    intro x
+    funext i
+    apply Fin.ext
+    have := (x i).isLt
+    change 15 - (15 - (x i).val) = (x i).val
+    omega
+  have hsum : ∀ x, (∑ i, (flip x i).val) = 480 - ∑ i, (x i).val := by
+    intro x
+    change (∑ i : Fin 32, (15 - (x i).val)) = _
+    rw [Finset.sum_tsub_distrib Finset.univ]
+    · norm_num
+    · intro i _; have := (x i).isLt; omega
+  unfold wordCount Words
+  apply Fintype.card_congr
+  exact Equiv.subtypeEquiv (⟨flip, flip, hinvol, hinvol⟩ : (Fin 32 → Fin 16) ≃ (Fin 32 → Fin 16)) (fun x => by
+    change (∑ i, (x i).val) = 330 ↔ (∑ i, (flip x i).val) = 150
+    rw [hsum]
+    omega)
 
 theorem wordCount_succ (radix length total : ℕ) :
     wordCount radix (length + 1) total =
@@ -90,7 +115,7 @@ theorem validDigest_encoding_valid (digest : Digest) (hdigest : Code.ValidDigest
     Valid (digestEncoding digest) := by
   obtain ⟨encoding, hencoding⟩ := hdigest
   have hview := decodeDigest_eq_some_iff.mp hencoding
-  have hdigits : digestEncoding digest = encoding := congrArg Prod.fst hview.1
+  have hdigits : digestEncoding digest = encoding := hview.1
   exact hdigits ▸ hview.2
 
 noncomputable def validDigestEquivEncoding : {digest : Digest // Code.ValidDigest digest} ≃
@@ -100,19 +125,13 @@ noncomputable def validDigestEquivEncoding : {digest : Digest // Code.ValidDiges
       constructor
       · intro left right heq
         apply Subtype.ext
-        apply digestView_injective
-        apply Prod.ext
-        · exact congrArg Subtype.val heq
-        · obtain ⟨leftEncoding, hleft⟩ := left.2
-          obtain ⟨rightEncoding, hright⟩ := right.2
-          have hleftPadding := congrArg Prod.snd (decodeDigest_eq_some_iff.mp hleft).1
-          have hrightPadding := congrArg Prod.snd (decodeDigest_eq_some_iff.mp hright).1
-          exact hleftPadding.trans hrightPadding.symm
+        apply digestEncoding_injective
+        exact congrArg Subtype.val heq
       · intro encoding
-        obtain ⟨digest, hdigest⟩ := TargetSum.digestView_surjective (encoding.1, 0)
+        obtain ⟨digest, hdigest⟩ := TargetSum.digestEncoding_surjective encoding.1
         refine ⟨⟨digest, encoding.1, decodeDigest_eq_some_iff.mpr ⟨hdigest, encoding.2⟩⟩, ?_⟩
         apply Subtype.ext
-        exact congrArg Prod.fst hdigest)
+        exact hdigest)
 
 theorem validDigests_card_eq_wordCount :
     Code.validDigests.card = wordCount chainLength numChains targetSum := by

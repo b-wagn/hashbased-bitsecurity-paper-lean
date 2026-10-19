@@ -165,7 +165,7 @@ theorem signedReplayFallbackRate_gt_127 :
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_mul, ENNReal.toReal_inv,
     ENNReal.toReal_div, ENNReal.toReal_natCast]
-  have hp : (11539185377238682781344003244544752 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤ 1 := by
+  have hp : (11898456692431601930588562618651728 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤ 1 := by
     norm_num [digestBits, ENNReal.div_le_iff]
   rw [ENNReal.toReal_sub_of_le hp ENNReal.one_ne_top]
   norm_num [digestBits, ENNReal.toReal_sub_of_le, ENNReal.toReal_inv, ENNReal.toReal_div]

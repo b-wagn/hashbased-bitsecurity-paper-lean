@@ -17,20 +17,20 @@ noncomputable def pathMutationProbability (steps : ℕ) : ℝ≥0∞ :=
   (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) *
     (1 - (1 - ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹) ^ steps)
 
-private theorem real_path_mutation_lower (steps : ℕ) (hsteps : steps ≤ 40) :
+private theorem real_path_mutation_lower (steps : ℕ) (hsteps : steps ≤ 48) :
     ((steps : ℝ) - 1) / (2 ^ digestBits : ℕ) ≤
       (1 - (1 : ℝ) / (2 ^ digestBits : ℕ)) *
         (1 - (1 - (1 : ℝ) / (2 ^ digestBits : ℕ)) ^ steps) := by
   let p : ℝ := 1 / (2 ^ digestBits : ℕ)
   have hp : 0 ≤ p := by positivity
   have hpone : p ≤ 1 := by norm_num [p, digestBits]
-  have hsmall : p ≤ 1 / 1600 := by norm_num [p, digestBits]
-  have hn : (steps : ℝ) ≤ 40 := by exact_mod_cast hsteps
+  have hsmall : p ≤ 1 / 2304 := by norm_num [p, digestBits]
+  have hn : (steps : ℝ) ≤ 48 := by exact_mod_cast hsteps
   have hnzero : (0 : ℝ) ≤ steps := by positivity
-  have hsq : (steps : ℝ) ^ 2 ≤ 1600 := by nlinarith
+  have hsq : (steps : ℝ) ^ 2 ≤ 2304 := by nlinarith
   have hquad : (steps : ℝ) ^ 2 * p ≤ 1 := by
     calc
-      _ ≤ 1600 * p := mul_le_mul_of_nonneg_right hsq hp
+      _ ≤ 2304 * p := mul_le_mul_of_nonneg_right hsq hp
       _ ≤ 1 := by linarith
   have hdenom : 0 < 1 + (steps : ℝ) * p := by positivity
   have hpow : (1 - p) ^ steps ≤ 1 / (1 + (steps : ℝ) * p) := by
@@ -55,7 +55,7 @@ private theorem real_path_mutation_lower (steps : ℕ) (hsteps : steps ≤ 40) :
 
 /-- Losing one collision opportunity is more than enough to account for the possibility
 of an unchanged starting value and all intersections between hit events. -/
-theorem pathMutationProbability_lower (steps : ℕ) (hsteps : steps ≤ 40) :
+theorem pathMutationProbability_lower (steps : ℕ) (hsteps : steps ≤ 48) :
     ((steps - 1 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
       pathMutationProbability steps := by
   by_cases hzero : steps = 0

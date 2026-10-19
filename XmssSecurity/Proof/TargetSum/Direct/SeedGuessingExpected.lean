@@ -15,6 +15,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Seeded
 
+variable [Code]
+
 open scoped Classical in
 theorem probOutput_stopBefore_derivationHit_le_expected {α : Type}
     (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :

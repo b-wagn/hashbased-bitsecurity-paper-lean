@@ -25,6 +25,8 @@ open OracleComp OracleSpec ENNReal
 
 open XmssSecurity.Generic
 
+attribute [local irreducible] XmssSecurity.TargetSum.decodeDigest
+
 namespace XmssSecurity.TargetSum.Correct
 
 set_option backward.isDefEq.respectTransparency false

@@ -11,6 +11,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Seeded
 
+variable [Code]
+
 theorem liftM_probComp_noSeed {α : Type} (computation : ProbComp α) :
     (liftM computation : OracleComp OracleWorld α).IsQueryBoundP (Seeded.hashBad MaySeedHit) 0 :=
   OracleComp.IsQueryBoundP.liftComp_subSpec

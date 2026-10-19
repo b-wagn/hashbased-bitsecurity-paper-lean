@@ -584,6 +584,44 @@ theorem randomOracle_run_map {α β : Type} (f : α → β)
 
 /-- Bit security in the lossy game gives bit security in the statement's game, in every
 counting mode and for every freshness condition. -/
+theorem hasClassicalSecurityBound_of_lossy
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (Z : Finset QueryKind) (workFactor : ℝ≥0∞)
+    (h : (lossyGameWith (PK := PK) (SK := SK) Fresh).HasClassicalSecurityBound scheme Z workFactor) :
+    (gameWith (PK := PK) (SK := SK) Fresh).HasClassicalSecurityBound scheme Z workFactor := by
+  intro q hq adversary hbound
+  let joint := RandomOracleModel.run
+    (jointRun (RandomOracleModel.hashCost Input Output) scheme adversary)
+  have hvalid : ∀ result ∈ support joint, SigningTranscript.Valid result.log := fun result hr =>
+    jointRun_valid _ scheme adversary result (support_simulateQ_run'_subset _ _ _ hr)
+  have hpaper : (gameWith (PK := PK) (SK := SK) Fresh).experiment scheme adversary =
+      (fun result => (decide (Fresh result.log result.forgery) &&
+        result.2.2.1, result.paperCounts)) <$> joint := by
+    show RandomOracleModel.run (experiment Fresh _ scheme adversary) = _
+    rw [experiment_eq_jointRun, randomOracle_run_map]
+  have hlossy : (lossyGameWith (PK := PK) (SK := SK) Fresh).experiment scheme
+      (filtered adversary) =
+      (fun result => (decide (SigningTranscript.Valid result.log ∧
+        Fresh result.log result.forgery) && result.2.2.1,
+        result.lossyCounts)) <$> joint := by
+    show RandomOracleModel.run (lossyExperimentWith Fresh _ scheme (filtered adversary)) = _
+    rw [lossyExperiment_filtered_eq_jointRun, randomOracle_run_map]
+  have hadv : (gameWith (PK := PK) (SK := SK) Fresh).advantage scheme adversary =
+      (lossyGameWith (PK := PK) (SK := SK) Fresh).advantage scheme (filtered adversary) := by
+    simp only [SecurityGame.advantage, hpaper, hlossy, probEvent_map]
+    refine probEvent_ext fun result hr => ?_
+    simp [Function.comp, hvalid result hr]
+  have hboundLossy : (lossyGameWith (PK := PK) (SK := SK) Fresh).HasQueryBound scheme Z
+      (filtered adversary) q := by
+    unfold SecurityGame.HasQueryBound at hbound ⊢
+    rw [hpaper, probEvent_map] at hbound
+    rw [hlossy, probEvent_map]
+    refine le_antisymm probEvent_le_one (hbound ▸ probEvent_mono fun result _ hr => ?_)
+    exact le_trans (Finset.sum_le_sum fun kind _ => result.lossyCounts_le kind) hr
+  rw [hadv]
+  exact h q hq _ hboundLossy
+
+
 theorem hasClassicalSecurityBits_of_lossy
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (Z : Finset QueryKind) (bits : ℕ)
@@ -646,6 +684,31 @@ variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Inp
 
 /-- Bit security in the statement's SUF-CMA game bounds every adversary of the per-mode notion
 that makes at most one signing request. The attacks of the proofs are such adversaries. -/
+theorem notion_oneRequest_bound_factor [DecidableEq Sig] (Z : Finset QueryKind)
+    (hZ : QueryKind.hash ∈ Z)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (workFactor : ℝ≥0∞)
+    (h : (SUFCMA.securityGame (PK := PK) (SK := SK)).HasClassicalSecurityBound scheme Z workFactor) :
+    ∀ q, 1 ≤ q → ∀ adversary, OneRequest adversary →
+      (notion (modeOf Z)).HasQueryBound scheme adversary q →
+      (notion (modeOf Z)).advantage scheme adversary ≤ q / workFactor := by
+  intro q hq adversary hone hbound
+  have hexp := securityGame_experiment_eq_lossy_of_oneRequest
+    (fun log forgery => ¬SigningTranscript.Contains log forgery) scheme adversary hone
+  have hadv : (SUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
+      (notion (modeOf Z)).advantage scheme adversary := by
+    simp only [SecurityGame.advantage, SecurityNotion.advantage, hexp]
+    simp only [SUFCMA.lossyGame, notion_experiment_eq Z hZ scheme adversary, probEvent_map]
+    rfl
+  have hbound' : (SUFCMA.securityGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q := by
+    simp only [SecurityGame.HasQueryBound, hexp]
+    simpa only [SecurityNotion.HasQueryBound, notion_experiment_eq Z hZ scheme adversary,
+      probEvent_eq_one_iff, probFailure_eq_zero, true_and, support_map, Set.mem_image,
+      forall_exists_index, and_imp, forall_apply_eq_imp_iff₂] using hbound
+  rw [← hadv]
+  exact h q hq adversary hbound'
+
+
 theorem notion_oneRequest_bound [DecidableEq Sig] (Z : Finset QueryKind)
     (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
@@ -671,6 +734,30 @@ theorem notion_oneRequest_bound [DecidableEq Sig] (Z : Finset QueryKind)
   exact h q hq adversary hbound'
 
 /-- The EUF-CMA counterpart of `notion_oneRequest_bound`. -/
+theorem eufNotion_oneRequest_bound_factor (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
+    (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
+    (workFactor : ℝ≥0∞)
+    (h : (EUFCMA.securityGame (PK := PK) (SK := SK)).HasClassicalSecurityBound scheme Z workFactor) :
+    ∀ q, 1 ≤ q → ∀ adversary, OneRequest adversary →
+      (EUFCMA.notion (modeOf Z)).HasQueryBound scheme adversary q →
+      (EUFCMA.notion (modeOf Z)).advantage scheme adversary ≤ q / workFactor := by
+  intro q hq adversary hone hbound
+  have hexp := securityGame_experiment_eq_lossy_of_oneRequest
+    (fun log forgery => ¬EUFCMA.SigningTranscript.ContainsRequest log forgery) scheme adversary hone
+  have hadv : (EUFCMA.securityGame (PK := PK) (SK := SK)).advantage scheme adversary =
+      (EUFCMA.notion (modeOf Z)).advantage scheme adversary := by
+    simp only [SecurityGame.advantage, SecurityNotion.advantage, hexp]
+    simp only [EUFCMA.lossyGame, eufNotion_experiment_eq Z hZ scheme adversary, probEvent_map]
+    rfl
+  have hbound' : (EUFCMA.securityGame (PK := PK) (SK := SK)).HasQueryBound scheme Z adversary q := by
+    simp only [SecurityGame.HasQueryBound, hexp]
+    simpa only [SecurityNotion.HasQueryBound, eufNotion_experiment_eq Z hZ scheme adversary,
+      probEvent_eq_one_iff, probFailure_eq_zero, true_and, support_map, Set.mem_image,
+      forall_exists_index, and_imp, forall_apply_eq_imp_iff₂] using hbound
+  rw [← hadv]
+  exact h q hq adversary hbound'
+
+
 theorem eufNotion_oneRequest_bound (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (bits : ℕ)

@@ -19,7 +19,7 @@ theorem validDigests_card : Code.validDigests.card = 2 ^ digestBits := by
   rw [huniv, Finset.card_univ]
   simp
 
-/-- The digits of a codeword sum to at most `len_1 · (2^w - 1) = 301`: the checksum digits sum to
+/-- The digits of a codeword sum to at most `len_1 · (2^w - 1) = 480`: the checksum digits sum to
 at most the checksum, which the message digits fall short of their maximum by. -/
 theorem sum_digits_le (encoding : Encoding) (hvalid : Valid encoding) :
     ∑ chain, (encoding chain).val ≤ messageDigits * (chainLength - 1) := by
@@ -29,10 +29,11 @@ theorem sum_digits_le (encoding : Encoding) (hvalid : Valid encoding) :
       ∑ i, (messagePart encoding i).val + ∑ j, (encoding (checksumChain j)).val := hsplit
   rw [hsplit']
   have hcheck : ∑ j, (encoding (checksumChain j)).val ≤ checksum (messagePart encoding) := by
-    simp only [hvalid.2]
+    unfold Valid at hvalid
+    simp only [hvalid]
     have hdigits : checksum (messagePart encoding) =
-        64 * (checksumDigit (checksum (messagePart encoding)) (0 : Fin 3)).val +
-          8 * (checksumDigit (checksum (messagePart encoding)) (1 : Fin 3)).val +
+        256 * (checksumDigit (checksum (messagePart encoding)) (0 : Fin 3)).val +
+          16 * (checksumDigit (checksum (messagePart encoding)) (1 : Fin 3)).val +
             (checksumDigit (checksum (messagePart encoding)) (2 : Fin 3)).val :=
       checksum_eq_digits (checksum (messagePart encoding)) (checksum_lt_pow _)
     change ∑ j : Fin 3, (checksumDigit (checksum (messagePart encoding)) j).val ≤ _

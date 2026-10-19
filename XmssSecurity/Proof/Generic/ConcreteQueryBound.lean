@@ -2,6 +2,8 @@ import XmssSecurity.Proof.Generic.HashAddress
 import XmssSecurity.Proof.Generic.IdealStatement
 import XmssSecurity.Proof.Generic.StatementLemmas
 
+set_option maxHeartbeats 800000
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Generic

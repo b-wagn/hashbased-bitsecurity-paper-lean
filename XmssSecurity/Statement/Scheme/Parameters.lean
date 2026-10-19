@@ -21,7 +21,7 @@ def treeHeight : Nat := 32
 def lifetime : Nat := 2 ^ treeHeight
 
 /-- `w`: the Winternitz chunk size in bits. -/
-def winternitzBits : Nat := 3
+def winternitzBits : Nat := 4
 
 /-- `2^w`: the number of values on a hash chain. -/
 def chainLength : Nat := 2 ^ winternitzBits

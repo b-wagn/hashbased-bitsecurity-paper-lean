@@ -162,7 +162,7 @@ theorem neighborVerificationContinuation_lower
     (message : Message) (position : ℕ) (output : Digest) (searchCache : QueryCache HashSpec)
     (hsearch : (some (position, output), searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache)) :
-    2 / 17 ≤ Pr[= true | neighborVerificationContinuation keyResult.1.1 request.epoch message
+    2 / 9 ≤ Pr[= true | neighborVerificationContinuation keyResult.1.1 request.epoch message
       original encoding (some (position, output)) searchCache] := by
   classical
   obtain ⟨_, _, hneighbor, hcached⟩ := Attack.findHash_success_cached _ _ _ _ _ _ _ _ hsearch
@@ -197,13 +197,13 @@ theorem neighborVerificationExperiment_lower
     (hreplay : original = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch original.randomness encoding)
     (message : Message) (hne : message ≠ request.message) :
-    (3 / 4 : ℝ≥0∞) * (2 / 17) ≤ Pr[= true | neighborVerificationExperiment keyResult.1.1 request.epoch message
+    (3 / 4 : ℝ≥0∞) * (2 / 9) ≤ Pr[= true | neighborVerificationExperiment keyResult.1.1 request.epoch message
       original encoding signCache] := by
   classical
   let search := (simulateQ randomOracle
     (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache
   calc
-    _ ≤ Pr[fun result => result.1 ≠ none | search] * (2 / 17) :=
+    _ ≤ Pr[fun result => result.1 ≠ none | search] * (2 / 9) :=
       mul_le_mul_left (le_of_lt (findEncodingNeighbor_success_after_signing keyResult hkey request
         (some original) signCache hsign message hne encoding hvalid)) _
     _ ≤ _ := by
@@ -242,10 +242,10 @@ theorem signedNeighborExperiment_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (request : SignRequest) (message : Message) (hne : message ≠ request.message) :
-    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
+    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 9)) ≤
       Pr[= true | signedNeighborExperiment keyResult request message] := by
   classical
-  let lower : ℝ≥0∞ := (3 / 4) * (2 / 17)
+  let lower : ℝ≥0∞ := (3 / 4) * (2 / 9)
   let signing := (simulateQ romImpl
     (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc

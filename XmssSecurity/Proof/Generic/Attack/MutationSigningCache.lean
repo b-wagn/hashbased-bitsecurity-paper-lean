@@ -105,8 +105,8 @@ theorem mutationReplayPath_probability_after_signing
         outcome.2.1 = keyResult.1.1.root |
       Rom.randomHashPath
         (mutationReplayInputs keyResult.2 keyResult.1.2 leafIndex chain encoding randomness)
-        0 (40 - (encoding chain).val) finalCache] =
-      pathMutationProbability (40 - (encoding chain).val) := by
+        0 (48 - (encoding chain).val) finalCache] =
+      pathMutationProbability (48 - (encoding chain).val) := by
   have hagree := mutationReplayInputs_preserved_by_signing keyResult.2 keyResult.1.2 leafIndex
     chain encoding randomness signingLeaf message result finalCache hsign
   have h := Rom.randomHashPath_distinct_hit_probability
@@ -164,7 +164,7 @@ theorem randomMutationRoot_eq_randomHashPath (parameter : PublicParameter) (leaf
     (endpoints : ChainIndex → Digest) (cache : QueryCache HashSpec) :
     randomMutationRoot parameter leafIndex chain digit signature endpoints cache =
       Rom.randomHashPath (mutationPathInput parameter leafIndex chain digit signature endpoints)
-        0 (40 - digit.val) cache := by
+        0 (48 - digit.val) cache := by
   unfold randomMutationRoot Rom.randomHashPath
   simp_rw [mutationRoot_eq_hashPath]
 
@@ -184,7 +184,7 @@ theorem mutationRoot_probability_after_successful_signing
         randomMutationRoot keyResult.1.2.parameter request.epoch chain (encoding chain) signature
           (CacheReplay.oneTimePublicKey keyResult.2 keyResult.1.2.parameter
             keyResult.1.2.chainStart request.epoch) finalCache] =
-        pathMutationProbability (40 - (encoding chain).val) := by
+        pathMutationProbability (48 - (encoding chain).val) := by
   obtain ⟨encoding, hdecode, hsignature⟩ := signing_success_replay_at_keygen keyResult hkey
     request signature finalCache hsign
   refine ⟨encoding, hdecode, hsignature, ?_⟩
@@ -195,7 +195,7 @@ theorem mutationRoot_probability_after_successful_signing
   change Pr[fun outcome => outcome.1 ≠ signature.chainValue chain ∧ outcome.2.1 = keyResult.1.1.root |
     Rom.randomHashPath (mutationPathInput keyResult.1.2.parameter request.epoch chain (encoding chain)
       signature (CacheReplay.oneTimePublicKey keyResult.2 keyResult.1.2.parameter
-        keyResult.1.2.chainStart request.epoch)) 0 (40 - (encoding chain).val) finalCache] = _
+        keyResult.1.2.chainStart request.epoch)) 0 (48 - (encoding chain).val) finalCache] = _
   conv_lhs => rw [hsignature]
   exact h
 

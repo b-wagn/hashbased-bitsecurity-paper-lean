@@ -15,6 +15,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Deciding
 
+variable [Code]
+
 open CappedChain FirstLaneOracleSimulation
 
 noncomputable def expectedCoupledHazards (fuel : ℕ)

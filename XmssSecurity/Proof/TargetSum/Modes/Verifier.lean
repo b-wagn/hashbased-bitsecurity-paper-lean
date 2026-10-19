@@ -15,7 +15,7 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Modes
 
-theorem verifierQueryBound_eq : Direct.verifierQueryBound = 133 := by decide
+theorem verifierQueryBound_eq : Direct.verifierQueryBound = 184 := by decide
 
 open XmssSecurity.Modes
 

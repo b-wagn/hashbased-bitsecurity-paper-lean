@@ -2,7 +2,10 @@ import XmssSecurity.Proof.Generic.ExactKeygenQueryCount
 import XmssSecurity.Proof.Generic.Direct.VerifierBound
 import XmssSecurity.Proof.TargetSum.Code
 import XmssSecurity.Proof.TargetSum.EncodingProbability
-/-! Every accepting verification uses exactly 133 hash queries. -/
+/-! Every accepting verification uses exactly 184 hash queries. -/
+
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
 
 open OracleComp OracleSpec
 

@@ -35,10 +35,23 @@ noncomputable def advantage (adversary : game.Adversary) : ℝ≥0∞ :=
 def HasQueryBound (Z : Finset Kind) (adversary : game.Adversary) (q : ℕ) : Prop :=
   Pr[fun result => ∑ kind ∈ Z, result.2 kind ≤ q | game.experiment scheme adversary] = 1
 
+/-- A work factor `K`: every adversary with budget `q ≥ 1` wins with probability at most `q / K`.
+This also expresses bounds between integer bit levels; the bit level is `log₂ K`. -/
+def HasClassicalSecurityBound (Z : Finset Kind) (workFactor : ℝ≥0∞) : Prop :=
+  ∀ q, 1 ≤ q → ∀ adversary, game.HasQueryBound scheme Z adversary q →
+    game.advantage scheme adversary ≤ q / workFactor
+
 /-- Every adversary with budget `q ≥ 1` wins with probability at most `q / 2^bits`. -/
 def HasClassicalSecurityBits (Z : Finset Kind) (bits : ℕ) : Prop :=
   ∀ q, 1 ≤ q → ∀ adversary, game.HasQueryBound scheme Z adversary q →
     game.advantage scheme adversary ≤ q / ((2 ^ bits : ℕ) : ℝ≥0∞)
+
+/-- A security proof and an attack whose work factors differ by less than a factor of two,
+i.e. less than one bit. The bounds need not be powers of two. -/
+def HasTightClassicalSecurityBounds (Z : Finset Kind) (lower upper : ℝ≥0∞) : Prop :=
+  0 < lower ∧ upper < 2 * lower ∧
+    game.HasClassicalSecurityBound scheme Z lower ∧
+      ¬game.HasClassicalSecurityBound scheme Z upper
 
 /-- Security at `bits`, but not at `bits + 1`. -/
 def HasExactClassicalSecurityBits (Z : Finset Kind) (bits : ℕ) : Prop :=

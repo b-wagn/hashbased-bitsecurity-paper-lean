@@ -81,7 +81,7 @@ theorem mutationPathInput_node (parameter : PublicParameter) (leafIndex : LeafIn
   simp [mutationPathInput, hchain, hleaf, hlevel]
 
 theorem mutationPath_length (digit : Digit) :
-    mutationChainSteps digit + 1 + treeHeight = 40 - digit.val := by
+    mutationChainSteps digit + 1 + treeHeight = 48 - digit.val := by
   have hdigit := digit.isLt
   norm_num [chainLength, winternitzBits] at hdigit
   norm_num [mutationChainSteps, chainLength, winternitzBits, treeHeight]
@@ -168,7 +168,7 @@ theorem mutationRoot_eq_hashPath (parameter : PublicParameter) (leafIndex : Leaf
     (endpoints : ChainIndex → Digest) (value : Digest) :
     mutationRoot parameter leafIndex chain digit signature endpoints value =
       Rom.hashPath (mutationPathInput parameter leafIndex chain digit signature endpoints)
-        0 (40 - digit.val) value := by
+        0 (48 - digit.val) value := by
   unfold mutationRoot recoverChain
   rw [← mutationPath_length, Rom.hashPath_append, Rom.hashPath_append, bind_assoc]
   simp only [Nat.zero_add]

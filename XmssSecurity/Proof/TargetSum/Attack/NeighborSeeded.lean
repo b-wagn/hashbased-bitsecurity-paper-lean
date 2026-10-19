@@ -70,13 +70,13 @@ theorem neighbor_seeded_advantage_eq_reference :
     _ = _ := by
       simpa only [memoAdversary_neighbor] using Seeded.evalDist_independentTableGame_memo neighborAdversary
 
-theorem neighbor_seeded_advantage_exceeds_five_sixtyfourths :
-    5 / 64 < forgeAdvantage Seeded.scheme neighborAdversary := by
+theorem neighbor_seeded_advantage_exceeds_five_thirtyseconds :
+    5 / 32 < forgeAdvantage Seeded.scheme neighborAdversary := by
   rw [neighbor_seeded_advantage_eq_reference]
-  exact neighbor_reference_advantage_exceeds_five_sixtyfourths
+  exact neighbor_reference_advantage_exceeds_five_thirtyseconds
 
-/-- info: 'XmssSecurity.TargetSum.Attack.neighbor_seeded_advantage_exceeds_five_sixtyfourths' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'XmssSecurity.TargetSum.Attack.neighbor_seeded_advantage_exceeds_five_thirtyseconds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms neighbor_seeded_advantage_exceeds_five_sixtyfourths
+#print axioms neighbor_seeded_advantage_exceeds_five_thirtyseconds
 
 end XmssSecurity.TargetSum.Attack

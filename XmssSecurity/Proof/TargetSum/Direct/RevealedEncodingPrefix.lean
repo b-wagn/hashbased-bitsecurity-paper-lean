@@ -9,6 +9,8 @@ open OracleComp OracleSpec
 
 set_option backward.isDefEq.respectTransparency false
 
+attribute [local irreducible] XmssSecurity.TargetSum.decodeDigest
+
 namespace XmssSecurity.TargetSum.Deciding
 
 open Concrete CappedChain Direct FirstLaneOracleSimulation

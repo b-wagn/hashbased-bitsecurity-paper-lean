@@ -107,7 +107,7 @@ theorem xmss_sign_queryBound (secretKey : Generic.Seeded.SecretKey) (leafIndex :
 theorem seededKeygenQueryBudget_le : seededKeygenQueryBudget ≤ 2 ^ 42 := by
   norm_num [seededKeygenQueryBudget, treeHashQueryCount, treeHeight, lifetime, numChains, chainLength, winternitzBits]
 
-def neighborEverythingBudget : ℕ := 2 ^ 124 + 2 ^ 122
+def neighborEverythingBudget : ℕ := 2 ^ 125 + 2 ^ 123
 
 theorem neighbor_total_budget_le :
     seededKeygenQueryBudget + (signingAttemptLimit * 2 + neighborDirectBudget) + Direct.verifierQueryBound + 1 ≤
@@ -120,7 +120,7 @@ theorem neighbor_total_budget_le :
     numChains, chainLength, winternitzBits, targetSum]
 
 theorem neighborEverythingBudget_ratio :
-    (neighborEverythingBudget : ℝ≥0∞) / ((2 ^ 128 : ℕ) : ℝ≥0∞) = 5 / 64 := by
+    (neighborEverythingBudget : ℝ≥0∞) / ((2 ^ 128 : ℕ) : ℝ≥0∞) = 5 / 32 := by
   apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
   norm_num [neighborEverythingBudget, ENNReal.toReal_div]
 

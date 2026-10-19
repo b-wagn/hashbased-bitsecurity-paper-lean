@@ -13,6 +13,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum
 
+variable [Code]
+
 theorem keygenStructuralTargetInput_of_maySeedHit (secretKey : Generic.SecretKey) (cache : QueryCache HashSpec)
     (input : HashInput) (hseed : MaySeedHit input) : keygenStructuralTargetInput secretKey cache input = input := by
   have hchain : CappedSuffix.keygenChainTargetInput secretKey cache input = input := by

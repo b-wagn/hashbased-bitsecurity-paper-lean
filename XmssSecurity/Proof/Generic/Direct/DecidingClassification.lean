@@ -4,7 +4,7 @@ import XmssSecurity.Proof.Generic.Direct.DecidingOrientation
 # Deterministic classification on the deciding path
 
 The structural alternative is restricted to one chain, the forged leaf, and its authentication
-path. This restriction is what allows the verifier's contribution to be bounded by forty queries.
+path. This restriction is what allows the verifier's contribution to be bounded by 48 queries.
 -/
 
 open OracleComp OracleSpec
@@ -116,10 +116,9 @@ theorem encoding_event_of_all_trivial (cache : QueryCache HashSpec) (outcome : G
       (CacheView.decodeDigest_of_decodedEncoding hsignedDecode)
       (CacheView.decodeDigest_of_decodedEncoding hforgedDecode)
 
-/-- A structural collision lying on the selected chain or above its leaf. -/
-def DecidingStructuralCollision (cache : QueryCache HashSpec) (outcome : GameOutcome)
-    (encoding : Encoding) : Prop :=
-  let chain := decidingChain cache outcome.secretKey outcome.signingLog outcome.forgery encoding
+/-- A structural collision on a specified chain, its leaf, or its authentication path. -/
+def PathStructuralCollision (cache : QueryCache HashSpec) (outcome : GameOutcome)
+    (encoding : Encoding) (chain : ChainIndex) : Prop :=
   let step := fun c => CacheView.chainStep cache outcome.secretKey.parameter outcome.forgery.epoch c
   let endpoints := XmssSecurity.Generic.recoveredEndpoints step encoding outcome.forgery.signature.chainValue
   let honest := CacheReplay.oneTimePublicKey cache outcome.secretKey.parameter
@@ -135,6 +134,50 @@ def DecidingStructuralCollision (cache : QueryCache HashSpec) (outcome : GameOut
       (signaturePath (CacheReplay.signWithEncoding cache outcome.secretKey outcome.forgery.epoch
         outcome.forgery.signature.randomness encoding))
       (leafHash endpoints) (leafHash honest)
+
+/-- A structural collision lying on the deciding chain or above its leaf. -/
+def DecidingStructuralCollision (cache : QueryCache HashSpec) (outcome : GameOutcome)
+    (encoding : Encoding) : Prop :=
+  PathStructuralCollision cache outcome encoding
+    (decidingChain cache outcome.secretKey outcome.signingLog outcome.forgery encoding)
+
+/-- Any chosen chain of an accepting forgery either starts at the honest value or gives a
+structural collision on that chain's path. The chain need not be the deciding chain. -/
+theorem verified_outcome_path_classification (cache : QueryCache HashSpec)
+    (outcome : GameOutcome) (hconsistent : ConcreteOutcomeConsistent cache outcome)
+    (hverified : outcome.verified = true) (chain : ChainIndex) :
+    ∃ encoding, forgedEncoding cache outcome.secretKey.parameter outcome.forgery = some encoding ∧
+      (outcome.forgery.signature.chainValue chain =
+          honestChainValue cache outcome.secretKey outcome.forgery.epoch chain (encoding chain) ∨
+        PathStructuralCollision cache outcome encoding chain) := by
+  have hverify : Concrete.verifyFromCache cache outcome.publicKey outcome.forgery.epoch
+      outcome.forgery.message outcome.forgery.signature = true := by
+    rw [← hconsistent.verification]
+    exact hverified
+  rw [hconsistent.key] at hverify
+  obtain ⟨encoding, hdecode, hroot⟩ := (Concrete.verifyFromCache_eq_true_iff cache _ _ _ _).mp hverify
+  have hhonestRoot := CacheReplay.authenticationPath_ascends_to_root cache outcome.secretKey
+    outcome.forgery.epoch outcome.forgery.signature.randomness encoding
+  simp only [CacheReplay.publicKeyFromCache] at hdecode hroot
+  refine ⟨encoding, hdecode, ?_⟩
+  rcases Merkle.sameXmssPath_or_hasCollision _ _ _ _ _ (hroot.trans hhonestRoot.symm) with
+    ⟨hleaf, _⟩ | hmerkle
+  · rcases Wots.eq_or_hasLeafCollision _ _ _ hleaf with hendpoints | hleafCollision
+    · have hend := congrFun hendpoints chain
+      change Wots.recoverChain
+          (CacheView.chainStep cache outcome.secretKey.parameter outcome.forgery.epoch chain)
+          (encoding chain) (outcome.forgery.signature.chainValue chain) =
+        Wots.publicChain
+          (CacheView.chainStep cache outcome.secretKey.parameter outcome.forgery.epoch chain)
+          (outcome.secretKey.chainStart outcome.forgery.epoch chain) at hend
+      rw [← Wots.recover_signChain_eq_publicChain
+        (CacheView.chainStep cache outcome.secretKey.parameter outcome.forgery.epoch chain)
+        (encoding chain) (outcome.secretKey.chainStart outcome.forgery.epoch chain)] at hend
+      rcases Wots.eq_or_hasStepCollision _ _ _ _ _ hend with hvalue | hcollision
+      · exact Or.inl hvalue
+      · exact Or.inr (Or.inl hcollision)
+    · exact Or.inr (Or.inr (Or.inl hleafCollision))
+  · exact Or.inr (Or.inr (Or.inr hmerkle))
 
 /-- Every consistent winning forgery has an encoding event, a hidden deciding value, or a
 structural collision on the deciding path. -/

@@ -11,6 +11,8 @@ set_option backward.isDefEq.respectTransparency false
 
 namespace XmssSecurity.TargetSum
 
+variable [Generic.Code]
+
 theorem expectedSimulatedQueryCount_eq_counted
     {ι : Type} {spec : OracleSpec ι} {α state : Type}
     (implementation : QueryImpl spec (StateT state ProbComp))

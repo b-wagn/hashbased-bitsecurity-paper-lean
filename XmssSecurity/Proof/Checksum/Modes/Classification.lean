@@ -7,12 +7,9 @@ import XmssSecurity.Proof.Checksum.EncodingProbability
 /-!
 # A basis for the exact classification
 
-The exact bit security of a counting mode is `127` if it charges key generation or verification,
-and otherwise `124` if it charges the signer and the signing requests, `123` if it charges the
-signer only, and `122` if it charges neither. Five security proofs in the minimal modes of the four
-levels and four attacks in their maximal modes cover all sixteen modes, by monotonicity in the mode
-(`Lattice.lean`). Standard unforgeability inherits the five security proofs from strong
-unforgeability.
+All modes have exact integer levels: 127 when key generation or verification is charged,
+124 when signer hashes and requests are charged, 123 for signer hashes alone, and 122 otherwise.
+Standard unforgeability inherits the security proofs from strong unforgeability.
 -/
 
 open XmssSecurity.Generic
@@ -25,8 +22,7 @@ open SUFCMA
 /-- The exact bit security of a counting mode. -/
 def exactLevel (mode : CountingMode) : ℕ :=
   if mode.keygen || mode.verifier then 127
-  else if mode.signer && mode.requests then 124
-  else if mode.signer then 123
+  else if mode.signer then (if mode.requests then 124 else 123)
   else 122
 
 /-- The strong classification from five security proofs and four attacks. -/

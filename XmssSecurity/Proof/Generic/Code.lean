@@ -22,7 +22,7 @@ class Code where
   numChains : Nat
   numChains_pos : 0 < numChains
   /-- Chain tweaks carry `2^w · i + step` in 32 bits. -/
-  numChains_lt : numChains < 2 ^ 29
+  numChains_lt : numChains < 2 ^ 28
   /-- The partial decoder from digests to codewords. -/
   decodeDigest : Digest → Option (Fin numChains → Digit)
   /-- Membership in the code. -/

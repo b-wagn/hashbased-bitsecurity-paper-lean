@@ -17,8 +17,8 @@ namespace XmssSecurity.Checksum.Attack
 
 
 theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : Code.Valid encoding) :
-    1493 ≤ (∑ chain, (40 - (encoding chain).val - 1)) := by
-  have heq : ∀ chain, 40 - (encoding chain).val - 1 = 39 - (encoding chain).val := by
+    1165 ≤ (∑ chain, (48 - (encoding chain).val - 1)) := by
+  have heq : ∀ chain, 48 - (encoding chain).val - 1 = 47 - (encoding chain).val := by
     intro chain
     omega
   simp_rw [heq]
@@ -34,15 +34,15 @@ theorem sum_mutatedChainWork_sub_one (encoding : Encoding) (hvalid : Code.Valid 
 
 /-- The chain is chosen uniformly, without a hash query to learn the encoding. -/
 theorem sum_pathMutationProbability_lower (encoding : Encoding) (hvalid : Code.Valid encoding) :
-    1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
-      ∑ chain, Attack.pathMutationProbability (40 - (encoding chain).val) := by
+    1165 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤
+      ∑ chain, Attack.pathMutationProbability (48 - (encoding chain).val) := by
   calc
-    _ ≤ (∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞)) /
+    _ ≤ (∑ chain, ((48 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞)) /
         ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
       rw [← Nat.cast_sum]
       gcongr
       exact_mod_cast sum_mutatedChainWork_sub_one encoding hvalid
-    _ = ∑ chain, ((40 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞) /
+    _ = ∑ chain, ((48 - (encoding chain).val - 1 : ℕ) : ℝ≥0∞) /
         ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by simp only [div_eq_mul_inv, Finset.sum_mul]
     _ ≤ _ := Finset.sum_le_sum fun chain _ => Attack.pathMutationProbability_lower _ (Nat.sub_le _ _)
 
@@ -66,7 +66,7 @@ theorem uniformChainVerification_probability
       (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
     ∃ encoding, Code.Valid encoding ∧
       Pr[= true | uniformChainVerification keyResult.1.1 request signature finalCache] =
-        (∑ chain, Attack.pathMutationProbability (40 - (encoding chain).val)) / numChains := by
+        (∑ chain, Attack.pathMutationProbability (48 - (encoding chain).val)) / numChains := by
   obtain ⟨encoding, hdecode, hprob⟩ := Attack.mutationVerification_probability_after_successful_signing
     keyResult hkey request signature finalCache hsign
   refine ⟨encoding, (Concrete.CacheView.decodedEncoding_valid hdecode), ?_⟩
@@ -84,7 +84,7 @@ theorem uniformChainVerification_lower
     (request : SignRequest) (signature : Generic.Signature) (finalCache : QueryCache HashSpec)
     (hsign : (some signature, finalCache) ∈ support ((simulateQ romImpl
       (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2)) :
-    (1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains ≤
+    (1165 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains ≤
       Pr[= true | uniformChainVerification keyResult.1.1 request signature finalCache] := by
   obtain ⟨encoding, hvalid, heq⟩ := uniformChainVerification_probability keyResult hkey
     request signature finalCache hsign
@@ -105,10 +105,10 @@ theorem signedMutationExperiment_probability_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (request : SignRequest) :
-    (127 / 128 : ℝ≥0∞) * ((1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
+    (127 / 128 : ℝ≥0∞) * ((1165 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains) ≤
       Pr[= true | signedMutationExperiment keyResult request] := by
   classical
-  let lower : ℝ≥0∞ := (1493 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains
+  let lower : ℝ≥0∞ := (1165 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) / numChains
   let signing := (simulateQ romImpl
     (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc

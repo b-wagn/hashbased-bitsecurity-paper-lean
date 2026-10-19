@@ -19,6 +19,8 @@ set_option backward.isDefEq.respectTransparency false
 
 open XmssSecurity.Generic
 
+attribute [local irreducible] XmssSecurity.TargetSum.decodeDigest
+
 namespace XmssSecurity.TargetSum.Direct.Collision
 
 variable {q : ℕ} {secretKey : Generic.SecretKey}

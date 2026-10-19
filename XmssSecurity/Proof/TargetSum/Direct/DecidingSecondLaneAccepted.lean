@@ -63,7 +63,7 @@ theorem decidingSecondLane_afterKeygen_le_expected_accepted (adversary : Adversa
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         Pr[fun result => HasAcceptedEncoding keyResult.1.2.parameter result.2 |
           (simulateQ romImpl (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2] *
-            ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
+            ((48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
   classical
   let event : GameOutcome × QueryCache HashSpec → Prop := fun execution =>
     execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
@@ -75,7 +75,7 @@ theorem decidingSecondLane_afterKeygen_le_expected_accepted (adversary : Adversa
     fun result => HasAcceptedEncoding keyResult.1.2.parameter result.2
   let adversaryRun := (simulateQ romImpl
     (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2
-  let rate := (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
+  let rate := (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
   have hpointwise : ∀ result ∈ support adversaryRun,
       Pr[event | (simulateQ romImpl
         (Deciding.verificationPhase keyResult.1.1 keyResult.1.2 result.1)).run result.2] ≤

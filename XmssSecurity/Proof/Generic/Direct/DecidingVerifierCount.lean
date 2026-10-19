@@ -5,10 +5,10 @@ import XmssSecurity.Proof.Generic.Direct.Structural
 /-!
 # The verifier's queries on the deciding path
 
-One verification at leaf index `idx*` makes at most `decidingQueryBound = 7 + 1 + 32 = 40` hash
+One verification at leaf index `idx*` makes at most `decidingQueryBound = 15 + 1 + 32 = 48` hash
 queries whose input is a deciding input for `idx*` and a fixed chain `i0`, whatever the oracle
 answers: the encoding hash is never a deciding input (encoding domain); the chain walk of chain
-`i0` has at most `chainLength - 1 = 7` steps and the walks of the other chains query only inputs
+`i0` has at most `chainLength - 1 = 15` steps and the walks of the other chains query only inputs
 of their own chain domain; the leaf hash is one query; the `32` Merkle levels are `32` queries.
 The bound is stated syntactically (`IsQueryBoundP`) for an arbitrary predicate implying
 `IsDecidingInput`, lifted to the random-oracle world for the predicate "moved by
@@ -25,11 +25,11 @@ open Concrete
 
 set_option backward.isDefEq.respectTransparency false
 
-/-- The deciding queries of one verification: `7` chain steps of the deciding chain, the leaf
+/-- The deciding queries of one verification: `15` chain steps of the deciding chain, the leaf
 hash, and the `32` Merkle levels. -/
 def decidingQueryBound : ℕ := (chainLength - 1) + 1 + treeHeight
 
-theorem decidingQueryBound_eq : decidingQueryBound = 40 := by decide
+theorem decidingQueryBound_eq : decidingQueryBound = 48 := by decide
 
 /-! ## Which tweakable-hash inputs are deciding -/
 
@@ -163,6 +163,56 @@ variable (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainInd
 
 include hp
 
+/-- Retain the forged digit when counting the selected chain's remaining steps. -/
+theorem recoverChain_isQueryBoundP_deciding_remaining (c : ChainIndex) (digit : Digit)
+    (value : Digest) :
+    (Concrete.recoverChain parameter leafIndex c digit value :
+      OracleComp HashSpec Digest).IsQueryBoundP p
+      (if c = chain then chainLength - 1 - digit.val else 0) := by
+  unfold Concrete.recoverChain
+  by_cases hc : c = chain
+  · rw [if_pos hc]
+    exact chainWalk_isQueryBoundP_steps p _ _ _ _ _ _
+  · rw [if_neg hc]
+    exact chainWalk_isQueryBoundP_zero p _ _ _ _ _ _ fun step value h =>
+      not_isDecidingInput_chain_ne parameter leafIndex chain leafIndex c step _ hc (hp _ h)
+
+theorem recoverEndpoints_isQueryBoundP_deciding_remaining (encoding : Encoding)
+    (signature : Signature) :
+    (Concrete.recoverEndpoints parameter leafIndex encoding signature :
+      OracleComp HashSpec (ChainIndex → Digest)).IsQueryBoundP p
+      (chainLength - 1 - (encoding chain).val) := by
+  unfold Concrete.recoverEndpoints
+  have hsum := Direct.sequenceFin_isQueryBoundP
+    (fun c => (Concrete.recoverChain parameter leafIndex c (encoding c) (signature.chainValue c) :
+      OracleComp HashSpec Digest))
+    (fun c => if c = chain then chainLength - 1 - (encoding c).val else 0) p
+    (fun c => recoverChain_isQueryBoundP_deciding_remaining parameter leafIndex chain p hp c _ _)
+  simpa [Finset.sum_ite_eq'] using hsum
+
+/-- After decoding, the selected verification path costs `48 - digit`, including its leaf and
+Merkle path. This bound applies to any chosen chain. -/
+theorem verify_after_decode_isQueryBoundP_deciding_remaining (publicKey : PublicKey)
+    (hparam : publicKey.parameter = parameter) (encoding : Encoding) (signature : Signature) :
+    (do
+      let endpoints ← Concrete.recoverEndpoints publicKey.parameter leafIndex encoding signature
+      let leaf ← Concrete.leafHash publicKey.parameter leafIndex endpoints
+      Concrete.verifyAfterLeaf publicKey leafIndex signature leaf :
+        OracleComp HashSpec Bool).IsQueryBoundP p
+          (decidingQueryBound - (encoding chain).val) := by
+  have hdigit := (encoding chain).isLt
+  have hsplit : decidingQueryBound - (encoding chain).val =
+      (chainLength - 1 - (encoding chain).val) + (1 + treeHeight) := by
+    unfold decidingQueryBound
+    omega
+  rw [hsplit]
+  refine OracleComp.isQueryBoundP_bind ?_ fun endpoints _ =>
+    OracleComp.isQueryBoundP_bind (tweakableHash_isQueryBoundP_one p _ _ _) fun leaf _ =>
+      verifyAfterLeaf_isQueryBoundP_treeHeight p _ _ _ _
+  rw [hparam]
+  exact recoverEndpoints_isQueryBoundP_deciding_remaining parameter leafIndex chain p hp
+    encoding signature
+
 /-- The walk of chain `c` makes at most `chainLength - 1` deciding queries if `c` is the deciding
 chain and none otherwise. -/
 theorem recoverChain_isQueryBoundP_deciding (c : ChainIndex) (digit : Digit) (value : Digest) :
@@ -187,7 +237,7 @@ theorem recoverEndpoints_isQueryBoundP_deciding (encoding : Encoding) (signature
     (fun c => recoverChain_isQueryBoundP_deciding parameter leafIndex chain p hp c _ _)
   simpa [Finset.sum_ite_eq'] using hsum
 
-/-- One verification makes at most `decidingQueryBound = 40` queries satisfying a predicate that
+/-- One verification makes at most `decidingQueryBound = 48` queries satisfying a predicate that
 implies `IsDecidingInput parameter leafIndex chain`, on every branch. -/
 theorem verify_isQueryBoundP_of_imp_isDecidingInput (publicKey : PublicKey)
     (hparam : publicKey.parameter = parameter) (message : Message) (signature : Signature) :
@@ -219,7 +269,7 @@ end Deciding
 /-! ## The verifier -/
 
 open Classical in
-/-- One verification makes at most `decidingQueryBound = 40` hash queries whose input is moved by
+/-- One verification makes at most `decidingQueryBound = 48` hash queries whose input is moved by
 `decidingTargetInput secretKey cache leafIndex chain`, on every branch. -/
 theorem verify_isQueryBoundP_decidingTargetInput (secretKey : SecretKey)
     (cache : QueryCache HashSpec) (publicKey : PublicKey)

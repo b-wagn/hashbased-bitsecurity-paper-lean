@@ -38,6 +38,11 @@ noncomputable def advantage (adversary : notion.Adversary) : ℝ≥0∞ :=
 def HasQueryBound (adversary : notion.Adversary) (q : ℕ) : Prop :=
   ∀ result ∈ support (notion.experiment scheme adversary), result.2 ≤ q
 
+/-- Security at an arbitrary work factor. -/
+def HasClassicalSecurityBound (workFactor : ℝ≥0∞) : Prop :=
+  ∀ q, 1 ≤ q → ∀ adversary, notion.HasQueryBound scheme adversary q →
+    notion.advantage scheme adversary ≤ q / workFactor
+
 /-- `bits` bits of classical security: every adversary with a query bound `q ≥ 1` wins with
 probability at most `q / 2^bits`. -/
 def HasClassicalSecurityBits (bits : ℕ) : Prop :=

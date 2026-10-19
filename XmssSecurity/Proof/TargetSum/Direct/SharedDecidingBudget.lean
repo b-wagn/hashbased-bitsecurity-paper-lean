@@ -29,29 +29,29 @@ theorem prehit_add_decidingSecondLane_le (adversary : Adversary) (D : ℕ)
         execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
           ¬ Deciding.DecidingChainValueRevealed execution.2 execution.1 |
         detailedGameWithCache Concrete.scheme adversary] ≤
-      ((D + 40 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+      ((D + 48 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   refine (add_le_add (winningEncodingPrehit_probability_le_prehitRate adversary D hsmall
     (isEncodingQueryBound_of_direct hD))
     (Deciding.decidingSecondLane_probability_le_expected adversary hcached)).trans ?_
   calc
     _ ≤ Direct.expectedDirectEncodingQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         (Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-          (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
+          (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
       apply add_le_add _ le_rfl
       rw [div_eq_mul_inv, mul_comm]
       exact mul_le_mul' le_rfl prehitRate_le_digest_inverse
     _ = (Direct.expectedDirectEncodingQueries adversary + Direct.expectedDirectStructuralQueries adversary) /
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+        (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
       rw [ENNReal.add_div, add_assoc]
     _ ≤ (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+        (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
       gcongr
       exact Direct.expectedDirectEncodingQueries_add_structural_le adversary D hD
     _ = _ := by rw [Nat.cast_add, ENNReal.add_div]; rfl
 
 noncomputable def sharedDecidingLoss (D : ℕ) : ℝ≥0∞ :=
-  ((2 * D + 43 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
+  ((2 * D + 51 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
     D / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
 /-- A linear direct-query loss with no additional encoding-query coefficient. -/
@@ -76,7 +76,7 @@ theorem seeded_forgeAdvantage_le_sharedDecidingLoss (adversary : Adversary) (D :
   refine (add_le_add hlanes le_rfl).trans_eq ?_
   unfold sharedDecidingLoss
   rw [← ENNReal.add_div, ← Nat.cast_add]
-  have hsum : (D + 2) + (D + 1 + 40) = 2 * D + 43 := by omega
+  have hsum : (D + 2) + (D + 1 + 48) = 2 * D + 51 := by omega
   rw [hsum]
 
 end XmssSecurity.TargetSum.Direct

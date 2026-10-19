@@ -184,15 +184,15 @@ theorem signedNeighborExperiment_le_referenceRest
 theorem neighbor_referenceRest_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤
+    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 9)) ≤
       Pr[= true | (simulateQ romImpl
         (Seeded.gameRest Concrete.scheme neighborAdversary keyResult.1.1 keyResult.1.2)).run' keyResult.2] :=
   (signedNeighborExperiment_lower keyResult hkey neighborRequest neighborMessage neighborMessage_ne_request).trans
     (signedNeighborExperiment_le_referenceRest keyResult hkey)
 
 theorem neighbor_reference_advantage_lower :
-    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 17)) ≤ forgeAdvantage Concrete.scheme neighborAdversary := by
-  let lower : ℝ≥0∞ := (31 / 32) * ((3 / 4) * (2 / 17))
+    (31 / 32 : ℝ≥0∞) * ((3 / 4) * (2 / 9)) ≤ forgeAdvantage Concrete.scheme neighborAdversary := by
+  let lower : ℝ≥0∞ := (31 / 32) * ((3 / 4) * (2 / 9))
   let keys := (simulateQ romImpl Concrete.scheme.keygen).run ∅
   have hmass : ∑' keyResult, Pr[= keyResult | keys] = 1 := tsum_probOutput_eq_one' (by simp)
   unfold forgeAdvantage gameCore
@@ -210,8 +210,8 @@ theorem neighbor_reference_advantage_lower :
         rw [hzero]
         simp
 
-theorem neighbor_reference_advantage_exceeds_five_sixtyfourths :
-    5 / 64 < forgeAdvantage Concrete.scheme neighborAdversary := by
+theorem neighbor_reference_advantage_exceeds_five_thirtyseconds :
+    5 / 32 < forgeAdvantage Concrete.scheme neighborAdversary := by
   apply lt_of_lt_of_le _ neighbor_reference_advantage_lower
   apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_div]
@@ -220,8 +220,8 @@ theorem neighbor_reference_advantage_exceeds_five_sixtyfourths :
 #guard_msgs (whitespace := lax) in
 #print axioms neighborAfterEncoding_probability_ge_experiment
 
-/-- info: 'XmssSecurity.TargetSum.Attack.neighbor_reference_advantage_exceeds_five_sixtyfourths' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'XmssSecurity.TargetSum.Attack.neighbor_reference_advantage_exceeds_five_thirtyseconds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms neighbor_reference_advantage_exceeds_five_sixtyfourths
+#print axioms neighbor_reference_advantage_exceeds_five_thirtyseconds
 
 end XmssSecurity.TargetSum.Attack

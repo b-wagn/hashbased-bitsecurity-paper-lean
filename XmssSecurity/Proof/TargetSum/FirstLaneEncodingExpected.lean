@@ -13,6 +13,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.CappedEncodingMonitor
 
+variable [Code]
+
 inductive RiskState where
   | active (state : EncodingMonitor.State)
   | disabled
@@ -92,6 +94,8 @@ theorem RiskState.run_active_hit_iff (state : EncodingMonitor.State) (actions : 
 end XmssSecurity.TargetSum.CappedEncodingMonitor
 
 namespace XmssSecurity.TargetSum.FirstLaneOracleSimulation
+
+variable [Code]
 
 open CappedEncodingMonitor
 

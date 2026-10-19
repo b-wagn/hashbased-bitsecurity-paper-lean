@@ -227,7 +227,7 @@ theorem mutationVerification_probability_after_successful_signing
         request.epoch (request.message, signature.randomness) = some encoding ∧
       ∀ chain, Pr[fun outcome => outcome.1 ≠ signature.chainValue chain ∧ outcome.2.1 = true |
         randomMutationVerification keyResult.1.1 request.epoch request.message signature chain finalCache] =
-        pathMutationProbability (40 - (encoding chain).val) := by
+        pathMutationProbability (48 - (encoding chain).val) := by
   obtain ⟨encoding, hdecode, hsignature, hroot⟩ := mutationRoot_probability_after_successful_signing
     keyResult hkey request signature finalCache hsign
   have hle := xmssRom_cache_le _ keyResult.2 (some signature, finalCache) hsign

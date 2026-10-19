@@ -1,22 +1,15 @@
 import XmssSecurity.Proof.Checksum.Modes.Keygen
 import XmssSecurity.Proof.Generic.Modes.Projection
-import XmssSecurity.Proof.Checksum.NoSign.ThreeBudget
+import XmssSecurity.Proof.Checksum.NoSign.ExactThreeBudget
 import XmssSecurity.Proof.Checksum.Code
 import XmssSecurity.Proof.Checksum.EncodingProbability
 
 /-!
 # Security when the signer's hash calls are charged
 
-`123` bits when the signer is charged, and `124` bits when the signer and the signing requests are
-charged. A signing request costs the signer two hash calls, so the adversary's own hash queries
-are at most its budget `q`, and the direct-query loss `(2q + 43) / 2^128` of
-`Direct.sharedDecidingLoss` is below `q / 2^123` for `q ≥ 2` and below `q / 2^124` for `q ≥ 4`.
-
-The smaller budgets, where the adversary can afford at most one signature, use `Proof/NoSign/`:
-below the cost of a request the adversary never signs and wins with probability at most
-`(2q + 2) / 2^128 + q / 2^256` (`NoSign.signer_small_advantage_le`), and at the budget `3` of one
-request with the requests charged, at most `45 / 2^128 + 3 / 2^256`
-(`NoSign.signerRequests_three_advantage_le`).
+The checksum scheme has 123 bits when signer hashes are charged, and 124 when requests are
+also charged. Large budgets use the shared deciding-path bound; small budgets use the unsigned
+bound or the exact three-query argument in `NoSign/ExactThreeBudget.lean`.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -37,8 +30,8 @@ theorem signer_direct_hasQueryBound (requests : Bool) (adversary : Security.Stat
   (notion_direct_hasQueryBound_iff Generic.xmss adversary q).1
     (hasQueryBound_of_le (by simp [CountingMode.Le, CountingMode.direct]) Generic.xmss adversary q hbound)
 
-/-- The direct-query loss with `q` direct queries, `(2q + 43) / 2^128 + q / 2^256`, is below
-`q / 2^bits` when `2q + 44 ≤ 2^(128 - bits) q` and `q ≤ 2^128`; stated for the two levels used. -/
+/-- The direct-query loss with `q` direct queries, `(2q + 51) / 2^128 + q / 2^256`, is below
+`q / 2^bits` when `2q + 52 ≤ 2^(128 - bits) q` and `q ≤ 2^128`; stated for the two levels used. -/
 theorem sharedDecidingLoss_le_123 (q : ℕ) (hlarge : 2 ≤ q) (hq : q ≤ 2 ^ 128) :
     Direct.sharedDecidingLoss q ≤ (q : ℝ≥0∞) / ((2 ^ 123 : ℕ) : ℝ≥0∞) := by
   have hlarge' : (2 : ℝ) ≤ q := by exact_mod_cast hlarge
@@ -118,21 +111,43 @@ theorem sufCmaSigner_123 :
   · exact signer_advantage_le_of_loss false 123 (by norm_num) adversary q hbound
       (sharedDecidingLoss_le_123 q (by omega))
 
-theorem sufCmaSignerRequests_124 :
-    (SUFCMA.notion ⟨false, true, false, true⟩).HasClassicalSecurityBits Generic.xmss 124 := by
-  intro q hq adversary hbound
+/-- The 124-bit bound already holds at every positive budget except `3`. -/
+theorem signerRequests_advantage_le_124_of_ne_three
+    (q : ℕ) (hq : 1 ≤ q) (hthree : q ≠ 3) (adversary : Security.StatementAdversary)
+    (hbound : (SUFCMA.notion ⟨false, true, false, true⟩).HasQueryBound
+      Generic.xmss adversary q) :
+    (SUFCMA.notion ⟨false, true, false, true⟩).advantage Generic.xmss adversary ≤
+      (q : ℝ≥0∞) / ((2 ^ 124 : ℕ) : ℝ≥0∞) := by
   by_cases hsmall : q ≤ 2
   · exact (NoSign.signer_small_advantage_le true adversary q (by simp; omega) hbound).trans
       (noSignLoss_le q 124 hq le_rfl)
-  by_cases hthree : q = 3
-  · subst hthree
-    refine (NoSign.signerRequests_three_advantage_le adversary hbound).trans ?_
-    unfold NoSign.digestInverse
-    apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-    simp (disch := finiteness) only [ENNReal.toReal_add, ENNReal.toReal_div, ENNReal.toReal_mul,
-      ENNReal.toReal_inv, ENNReal.toReal_natCast]
-    norm_num [digestBits]
   · exact signer_advantage_le_of_loss true 124 (by norm_num) adversary q hbound
       (sharedDecidingLoss_le_124 q (by omega))
+
+/-- Every other positive budget is already covered, so budget `3` suffices for 124 bits. -/
+theorem sufCmaSignerRequests_124_iff_three :
+    (SUFCMA.notion ⟨false, true, false, true⟩).HasClassicalSecurityBits Generic.xmss 124 ↔
+      ∀ adversary : Security.StatementAdversary,
+        (SUFCMA.notion ⟨false, true, false, true⟩).HasQueryBound Generic.xmss adversary 3 →
+          (SUFCMA.notion ⟨false, true, false, true⟩).advantage Generic.xmss adversary ≤
+            48 * NoSign.digestInverse := by
+  have hthreshold : ((3 : ℕ) : ℝ≥0∞) / ((2 ^ 124 : ℕ) : ℝ≥0∞) =
+      48 * NoSign.digestInverse := by
+    unfold NoSign.digestInverse
+    apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
+    norm_num [digestBits, ENNReal.toReal_div, ENNReal.toReal_mul, ENNReal.toReal_inv]
+  constructor
+  · intro h adversary hbound
+    simpa only [hthreshold] using h 3 (by norm_num) adversary hbound
+  · intro h q hq adversary hbound
+    by_cases hthree : q = 3
+    · subst q
+      simpa only [hthreshold] using h adversary hbound
+    · exact signerRequests_advantage_le_124_of_ne_three q hq hthree adversary hbound
+
+/-- Charging signer hashes and requests gives 124 bits for every positive budget. -/
+theorem sufCmaSignerRequests_124 :
+    (SUFCMA.notion ⟨false, true, false, true⟩).HasClassicalSecurityBits Generic.xmss 124 :=
+  sufCmaSignerRequests_124_iff_three.mpr NoSign.signerRequests_three_advantage_le
 
 end XmssSecurity.Checksum.Modes

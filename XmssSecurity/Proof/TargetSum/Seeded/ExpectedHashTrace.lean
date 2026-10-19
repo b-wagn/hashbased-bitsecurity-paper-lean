@@ -14,6 +14,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Seeded
 
+variable [Code]
+
 theorem traceHashes_filter_length {α : Type} (selected : HashInput → Prop) [DecidablePred selected]
     (computation : OracleComp OracleWorld α) :
     (fun result => (result.1, (result.2.filter (fun input => decide (selected input))).length)) <$>

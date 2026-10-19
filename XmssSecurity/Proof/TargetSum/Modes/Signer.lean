@@ -25,7 +25,7 @@ theorem signer_seeded_loss_le_terminal_credit (adversary : Security.StatementAdv
         ((2 + TargetSum.acceptanceProbability) *
           (Direct.expectedDirectEncodingQueries (Seeded.memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (Seeded.memoAdversary (Security.embed adversary))) +
-          2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability *
+          2 * TargetSum.acceptanceProbability + 48 * TargetSum.acceptanceProbability *
             forgedEncodingFreshProbability (Seeded.memoAdversary (Security.embed adversary))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   have hfirst := decidingFirstLane_probability_le_terminal_credit
@@ -49,7 +49,7 @@ theorem signer_advantage_le_terminal_credit (adversary : Security.StatementAdver
         ((2 + TargetSum.acceptanceProbability) *
           (Direct.expectedDirectEncodingQueries (Seeded.memoAdversary (Security.embed adversary)) +
             expectedSourceSignerHashes (Seeded.memoAdversary (Security.embed adversary))) +
-          2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability *
+          2 * TargetSum.acceptanceProbability + 48 * TargetSum.acceptanceProbability *
             forgedEncodingFreshProbability (Seeded.memoAdversary (Security.embed adversary))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
@@ -61,11 +61,11 @@ theorem terminal_allowance_le_one (adversary : Adversary)
       (1 / 128 : ℝ≥0∞)) :
     (2 + TargetSum.acceptanceProbability) *
         (Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) +
-      2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability *
+      2 * TargetSum.acceptanceProbability + 48 * TargetSum.acceptanceProbability *
         forgedEncodingFreshProbability adversary ≤ 1 := by
   calc
     _ ≤ (2 + TargetSum.acceptanceProbability) * (1 / 128 : ℝ≥0∞) +
-        2 * TargetSum.acceptanceProbability + 40 * TargetSum.acceptanceProbability * 1 :=
+        2 * TargetSum.acceptanceProbability + 48 * TargetSum.acceptanceProbability * 1 :=
       add_le_add (add_le_add (mul_le_mul' le_rfl hcredit) le_rfl)
         (mul_le_mul' le_rfl (forgedEncodingFreshProbability_le_one adversary))
     _ ≤ _ := by

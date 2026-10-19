@@ -13,6 +13,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.FirstLaneOracleSimulation
 
+variable [Code]
+
 variable {Index : Type} [Fintype Index] [DecidableEq Index]
 
 noncomputable local instance : SampleableType (Index → Digest) :=

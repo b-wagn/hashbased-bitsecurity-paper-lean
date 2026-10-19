@@ -3,7 +3,7 @@ import XmssSecurity.Proof.TargetSum.Code
 import XmssSecurity.Proof.TargetSum.EncodingProbability
 
 /-! The standard second-lane bound: direct structural queries pay for prefix
-collisions; direct encoding queries pay for the forty-query verification allowance. -/
+collisions; direct encoding queries pay for the 48-query verification allowance. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -36,7 +36,7 @@ theorem decidingSecondLane_afterKeygen_le_expected_accepted (adversary : Adversa
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         Pr[fun result => HasFreshAcceptedEncodingInLog keyResult.1.2.parameter result.2 result.1.2 |
           (simulateQ romImpl (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2] *
-            ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
+            ((48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
   classical
   let event : GameOutcome × QueryCache HashSpec → Prop := fun execution =>
     standardWon execution.1 = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
@@ -48,7 +48,7 @@ theorem decidingSecondLane_afterKeygen_le_expected_accepted (adversary : Adversa
     fun result => HasFreshAcceptedEncodingInLog keyResult.1.2.parameter result.2 result.1.2
   let adversaryRun := (simulateQ romImpl
     (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2
-  let rate := (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
+  let rate := (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
   have hpointwise : ∀ result ∈ support adversaryRun,
       Pr[event | (simulateQ romImpl
         (Deciding.verificationPhase keyResult.1.1 keyResult.1.2 result.1)).run result.2] ≤
@@ -119,7 +119,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding (adversary : Adversar
       detailedGameWithCache Concrete.scheme adversary] ≤
       Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
         Direct.expectedDirectEncodingQueries adversary *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
+          (TargetSum.acceptanceProbability * ((48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by
   unfold detailedGameWithCache detailedGameCore
   simp only [Deciding.detailedGameAfterKeygen_eq_phases]
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
@@ -133,7 +133,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding (adversary : Adversar
       (Direct.IsDirectEncodingQuery keyResult.1.2.parameter)
       (adversary.main keyResult.1.1) keyResult.2
   let rate := TargetSum.acceptanceProbability *
-    ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
+    ((48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞))
   calc
     _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
         (structural keyResult / ((2 ^ digestBits : ℕ) : ℝ≥0∞) + encoding keyResult * rate) := by
@@ -151,7 +151,7 @@ theorem decidingSecondLane_probability_le_expectedEncoding (adversary : Adversar
           (Concrete.precomputedKeygen_cache_none_encodingInput keyResult hkey)
         calc
           _ ≤ (TargetSum.acceptanceProbability * encoding keyResult) *
-              ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := mul_le_mul' haccepted le_rfl
+              ((48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := mul_le_mul' haccepted le_rfl
           _ = encoding keyResult * rate := by dsimp only [rate]; ac_rfl
       · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul, zero_mul]
     _ = _ := by

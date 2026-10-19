@@ -157,7 +157,7 @@ theorem neighbor_everything_attack : ¬(SUFCMA.notion SUFCMA.CountingMode.everyt
   have hbound := hsecure neighborEverythingBudget (by norm_num [neighborEverythingBudget])
     neighborSufCmaAdversary neighbor_everything_queryBound
   rw [neighbor_everything_advantage, neighborEverythingBudget_ratio] at hbound
-  exact (not_lt_of_ge hbound) neighbor_seeded_advantage_exceeds_five_sixtyfourths
+  exact (not_lt_of_ge hbound) neighbor_seeded_advantage_exceeds_five_thirtyseconds
 
 /-- info: 'XmssSecurity.TargetSum.Attack.neighbor_everything_queryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -19,9 +19,14 @@ sets the flag `v` ends in a cache where some request's trials all failed
 (`experiment_flag_signingFails`). `SigningFailure.lean` bounds the probability of such a cache.
 -/
 
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
+
 open OracleComp OracleSpec ENNReal
 
 open XmssSecurity.Generic
+
+attribute [local irreducible] XmssSecurity.TargetSum.decodeDigest
 
 namespace XmssSecurity.TargetSum.Correct
 

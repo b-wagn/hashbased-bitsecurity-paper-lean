@@ -1,6 +1,9 @@
 import XmssSecurity.Proof.Generic.KeygenCache
 import XmssSecurity.Proof.Generic.StatementLemmas
 
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
+
 open OracleComp OracleSpec
 
 namespace XmssSecurity.Generic.CappedChain

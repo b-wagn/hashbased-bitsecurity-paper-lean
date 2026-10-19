@@ -15,9 +15,9 @@ oracles, cache `C_k → C_v`) and the *verification phase* (the verifier, cache 
 winning run without encoding event and without a revealed deciding chain value, either the
 adversary phase exhibits a fresh structural collision with the key-generation cache (charged to the
 adversary's `D` direct hash queries) or the verification phase exhibits a fresh collision on the
-deciding path (charged to the verifier's at most `40` moved queries).
+deciding path (charged to the verifier's at most `48` moved queries).
 
-`decidingSecondLane_probability_le` assembles the bound `(D + 40) / 2^128` from the orientation,
+`decidingSecondLane_probability_le` assembles the bound `(D + 48) / 2^128` from the orientation,
 cached-encoding, and verifier-count hypotheses. `decidingSecondLane_probability_le_direct`
 discharges these hypotheses, including the extra query used to cache the forged encoding.
 -/
@@ -142,14 +142,14 @@ theorem decidingSecondLane_afterKeygen_le (adversary : Adversary) (D : ℕ)
         expectedSimulatedQueryCount romImpl
           (Rom.IsRelevantHashQuery fun input =>
             decidingTargetInput keyResult.1.2 keyResult.2 leafIndex chain input ≠ input)
-          (Concrete.scheme.verify keyResult.1.1 leafIndex message signature) initialCache ≤ 40) :
+          (Concrete.scheme.verify keyResult.1.1 leafIndex message signature) initialCache ≤ 48) :
     Pr[fun execution : GameOutcome × QueryCache HashSpec =>
         execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
           ¬ DecidingChainValueRevealed execution.2 execution.1 |
       (simulateQ romImpl (adversaryPhase adversary keyResult.1.1 keyResult.1.2 >>=
         verificationPhase keyResult.1.1 keyResult.1.2)).run keyResult.2] ≤
       (D : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+        (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   classical
   let event : GameOutcome × QueryCache HashSpec → Prop := fun execution =>
     execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
@@ -163,7 +163,7 @@ theorem decidingSecondLane_afterKeygen_le (adversary : Adversary) (D : ℕ)
       Pr[event | (simulateQ romImpl
           (verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
         (if collision prefixResult then 1 else 0) +
-          (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+          (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
     intro prefixResult hprefix
     by_cases hcollision : collision prefixResult
     · rw [if_pos hcollision]
@@ -193,7 +193,7 @@ theorem decidingSecondLane_afterKeygen_le (adversary : Adversary) (D : ℕ)
           (verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
       ∑' prefixResult, Pr[= prefixResult | adversaryRun] *
         ((if collision prefixResult then 1 else 0) +
-          (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
+          (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
       apply ENNReal.tsum_le_tsum
       intro prefixResult
       by_cases hprefix : prefixResult ∈ support adversaryRun
@@ -203,7 +203,7 @@ theorem decidingSecondLane_afterKeygen_le (adversary : Adversary) (D : ℕ)
     _ = (∑' prefixResult, Pr[= prefixResult | adversaryRun] *
           (if collision prefixResult then 1 else 0)) +
         ∑' prefixResult, Pr[= prefixResult | adversaryRun] *
-          ((40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
+          ((48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) := by
       rw [← ENNReal.tsum_add]
       apply tsum_congr
       intro prefixResult
@@ -234,7 +234,7 @@ theorem decidingSecondLane_afterKeygen_le (adversary : Adversary) (D : ℕ)
 /-! ## The second-lane bound -/
 
 /-- The second lane: a winning run without encoding event and without a revealed deciding chain
-value has probability at most `(D + 40) / 2^128`, given the orientation and the verifier count. -/
+value has probability at most `(D + 48) / 2^128`, given the orientation and the verifier count. -/
 theorem decidingSecondLane_probability_le (adversary : Adversary) (D : ℕ)
     (hD : Direct.IsDirectQueryBound adversary D)
     (hcached : ∀ keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅),
@@ -269,12 +269,12 @@ theorem decidingSecondLane_probability_le (adversary : Adversary) (D : ℕ)
         expectedSimulatedQueryCount romImpl
           (Rom.IsRelevantHashQuery fun input =>
             decidingTargetInput secretKey cache leafIndex chain input ≠ input)
-          (Concrete.scheme.verify publicKey leafIndex message signature) initialCache ≤ 40) :
+          (Concrete.scheme.verify publicKey leafIndex message signature) initialCache ≤ 48) :
     Pr[fun execution : GameOutcome × QueryCache HashSpec =>
         execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
           ¬ DecidingChainValueRevealed execution.2 execution.1 |
       detailedGameWithCache Concrete.scheme adversary] ≤
-      ((D + 40 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+      ((D + 48 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   unfold detailedGameWithCache detailedGameCore
   simp only [detailedGameAfterKeygen_eq_phases]
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum, Nat.cast_add, ENNReal.add_div]
@@ -297,7 +297,7 @@ theorem decidingSecondLane_probability_le_direct (adversary : Adversary) (D : �
         execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
           ¬ DecidingChainValueRevealed execution.2 execution.1 |
       detailedGameWithCache Concrete.scheme adversary] ≤
-      ((D + 41 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
+      ((D + 49 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) := by
   have hbound := decidingSecondLane_probability_le (Direct.withForgedEncodingQuery adversary)
     (D + 1) (Direct.withForgedEncodingQuery_isDirectQueryBound adversary D hD)
     (by

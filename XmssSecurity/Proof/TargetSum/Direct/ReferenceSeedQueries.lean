@@ -14,6 +14,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Direct
 
+variable [Code]
+
 private theorem expectedSeedQueries_eq_zero {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (hzero : computation.IsQueryBoundP (Seeded.hashBad MaySeedHit) 0) :
     expectedSimulatedQueryCount romImpl (Seeded.hashBad MaySeedHit) computation cache = 0 := by

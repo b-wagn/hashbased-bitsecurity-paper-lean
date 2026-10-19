@@ -3,8 +3,13 @@ import XmssSecurity.Proof.Generic.CappedChain.CausalSigningKeygenCoupling
 import XmssSecurity.Proof.Generic.TreeCacheVocabulary
 import XmssSecurity.Proof.Generic.StatementLemmas
 
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
+
 open OracleComp OracleSpec
 open OracleComp.ProgramLogic.Relational
+
+attribute [local irreducible] XmssSecurity.chainLength
 
 namespace XmssSecurity.Generic.CappedChain
 

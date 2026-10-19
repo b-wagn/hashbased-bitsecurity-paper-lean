@@ -102,26 +102,23 @@ end witnesses
 
 /-- A structural collision extracted from a supported forgery has its query cached and is fresh
 relative to key generation. -/
-theorem structuralCollision_afterKeygen_witness (adversary : Adversary)
+theorem pathStructuralCollision_afterKeygen_witness (adversary : Adversary)
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkeygen : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (execution : GameOutcome × QueryCache HashSpec)
     (hafter : execution ∈ support ((simulateQ romImpl
       (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1 keyResult.1.2)).run keyResult.2))
-    (encoding : Encoding) (hverified : execution.1.verified = true)
+    (encoding : Encoding) (chain : ChainIndex) (hverified : execution.1.verified = true)
     (hdecode : forgedEncoding execution.2 execution.1.secretKey.parameter execution.1.forgery =
       some encoding)
-    (hcollision : DecidingStructuralCollision execution.2 execution.1 encoding) :
+    (hcollision : PathStructuralCollision execution.2 execution.1 encoding chain) :
     DecidingCollisionWitness keyResult.1.2 keyResult.2 execution.2 execution.1.forgery.epoch
-      (decidingChain execution.2 execution.1.secretKey execution.1.signingLog
-        execution.1.forgery encoding) := by
+      chain := by
   have hgame := CappedLeaf.afterKeygen_execution_mem_detailedGame adversary keyResult hkeygen
     execution hafter
   have hkeys := CappedLeaf.detailedGameAfterKeygen_keys_eq adversary keyResult.1.1 keyResult.1.2
     keyResult.2 execution hafter
   have hle := xmssRom_cache_le _ keyResult.2 execution hafter
-  let chain := decidingChain execution.2 execution.1.secretKey execution.1.signingLog
-    execution.1.forgery encoding
   rcases hcollision with hchain | hleaf | ⟨level, hmerkle⟩
   · obtain ⟨offset, hoffset, hne, heq⟩ := hchain
     change offset < chainLength - 1 - (encoding chain).val at hoffset
@@ -182,6 +179,73 @@ theorem structuralCollision_afterKeygen_witness (adversary : Adversary)
     rw [hkeys.2] at hcached hne heq hhonest
     exact decidingWitness_of_merkle_collision keyResult hkeygen execution.2 hle
       execution.1.forgery.epoch chain level _ _ _ _ output hcached hne heq hhonest
+
+/-- Specialize the structural witness to the usual deciding chain. -/
+theorem structuralCollision_afterKeygen_witness (adversary : Adversary)
+    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
+    (hkeygen : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (execution : GameOutcome × QueryCache HashSpec)
+    (hafter : execution ∈ support ((simulateQ romImpl
+      (detailedGameAfterKeygen Concrete.scheme adversary keyResult.1.1 keyResult.1.2)).run keyResult.2))
+    (encoding : Encoding) (hverified : execution.1.verified = true)
+    (hdecode : forgedEncoding execution.2 execution.1.secretKey.parameter execution.1.forgery =
+      some encoding)
+    (hcollision : DecidingStructuralCollision execution.2 execution.1 encoding) :
+    DecidingCollisionWitness keyResult.1.2 keyResult.2 execution.2 execution.1.forgery.epoch
+      (decidingChain execution.2 execution.1.secretKey execution.1.signingLog
+        execution.1.forgery encoding) :=
+  pathStructuralCollision_afterKeygen_witness adversary keyResult hkeygen execution hafter encoding
+    _ hverified hdecode hcollision
+
+/-- A selected chain whose forged starting value is not honest forces a fresh path collision.
+Both the chain and its encoding are fixed in the prefix. -/
+theorem path_afterKeygen_orientation (adversary : Adversary)
+    (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
+    (hkeygen : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
+    (prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec)
+    (hprefix : prefixResult ∈ support ((simulateQ romImpl
+      (adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run keyResult.2))
+    (encoding : Encoding) (chain : ChainIndex)
+    (hdecode : forgedEncoding prefixResult.2 keyResult.1.2.parameter prefixResult.1.1 = some encoding)
+    (hvalue : prefixResult.1.1.signature.chainValue chain ≠
+      honestChainValue prefixResult.2 keyResult.1.2 prefixResult.1.1.epoch chain (encoding chain))
+    (execution : GameOutcome × QueryCache HashSpec)
+    (hafter : execution ∈ support ((simulateQ romImpl
+      (verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2))
+    (hverified : execution.1.verified = true)
+    (hprefixCollision : ¬ Rom.AdaptiveFreshDigestCollisionWith keyResult.2 prefixResult.2
+      (keygenStructuralTargetInput keyResult.1.2 keyResult.2)) :
+    Rom.AdaptiveFreshDigestCollisionWith prefixResult.2 execution.2
+      (decidingTargetInput keyResult.1.2 keyResult.2 prefixResult.1.1.epoch chain) := by
+  have hfull := afterKeygen_of_phases adversary keyResult.1.1 keyResult.1.2 keyResult.2
+    prefixResult hprefix execution hafter
+  have hgame := CappedLeaf.afterKeygen_execution_mem_detailedGame adversary keyResult hkeygen
+    execution hfull
+  have hfields := verificationPhase_support _ _ _ _ _ hafter
+  have hfirst := xmssRom_cache_le _ keyResult.2 prefixResult hprefix
+  have hsecond := xmssRom_cache_le _ prefixResult.2 execution hafter
+  obtain ⟨output, hcached⟩ := Concrete.CacheView.encodingInput_cached_of_decode_some prefixResult.2
+    keyResult.1.2.parameter prefixResult.1.1.epoch prefixResult.1.1.message
+    prefixResult.1.1.signature.randomness encoding hdecode
+  have hdecoded : forgedEncoding execution.2 execution.1.secretKey.parameter execution.1.forgery =
+      some encoding := by
+    rw [hfields.2.1, hfields.2.2.1,
+      ← forgedEncoding_eq_of_cache_le _ _ hsecond _ _ (by rw [hcached]; simp)]
+    exact hdecode
+  obtain ⟨actual, hactual, hpath⟩ := verified_outcome_path_classification execution.2 execution.1
+    (capped_detailed_execution_consistent adversary execution hgame) hverified chain
+  have heq : actual = encoding := Option.some.inj (hactual.symm.trans hdecoded)
+  subst actual
+  rcases hpath with hhonest | hcollision
+  · rw [hfields.2.1, hfields.2.2.1] at hhonest
+    rw [← honestChainValue_eq_of_keygen_cache_le keyResult hkeygen prefixResult.2 execution.2
+      hfirst (hfirst.trans hsecond)] at hhonest
+    exact (hvalue hhonest).elim
+  · have hwitness := pathStructuralCollision_afterKeygen_witness adversary keyResult hkeygen
+      execution hfull encoding chain hverified hdecoded hcollision
+    rw [hfields.2.2.1] at hwitness
+    exact decidingCollision_of_witness keyResult.1.2 keyResult.2 prefixResult.2 execution.2
+      hfirst hsecond _ chain hwitness hprefixCollision
 
 /-- A winning execution outside the first lane and outside adversary-phase structural collisions
 has a fresh collision during verification, on the path selected before verification. -/

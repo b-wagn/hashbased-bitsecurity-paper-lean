@@ -1,15 +1,16 @@
 # Security of XMSS in the random-oracle model, in Lean 4
 
-Machine-checked security statements and proofs for the XMSS instance of Ethereum's
-post-quantum consensus, in Lean 4 using [VCVio](https://github.com/Verified-zkEVM/VCVio), with
-two one-time signatures: WOTS with the target-sum encoding of the instance, and WOTS with a
+Machine-checked security statements and proofs for a concrete XMSS family with 128-bit hashes,
+32 Merkle levels, and four-bit Winternitz digits, in Lean 4 using [VCVio](https://github.com/Verified-zkEVM/VCVio), with
+two one-time signatures: WOTS with a target-sum encoding, and WOTS with a
 checksum, as in SLH-DSA (FIPS 205). The development started from the 127-bit SUF-CMA proof in
 [leanEthereum/leanVM](https://github.com/leanEthereum/leanVM/tree/main/formal/xmss) and
 separates *what is claimed* from *why it holds*.
 
-The library proves the exact classical bit security of both schemes for **all 16 counting modes
-that charge the adversary's own hash queries**, under both strong (SUF-CMA) and standard
-(EUF-CMA) unforgeability. Each classification is one theorem, in
+The library gives security proofs and attacks less than one bit apart for both schemes in
+**all 16 counting modes that charge the adversary's own hash queries**, under both strong
+(SUF-CMA) and standard (EUF-CMA) unforgeability. All 64 combinations have exact integer
+classifications. The public theorems are in
 `XmssSecurity/Statement/StrongUnforgeabilityTheorems.lean` and
 `XmssSecurity/Statement/UnforgeabilityTheorems.lean`. As in the manuscript, the signing oracle
 records the first request and answer at each epoch, even if signing fails; later requests at that
@@ -33,7 +34,10 @@ sixteen modes with `q_H ∈ Z`.
 | `{q_H, q_S, q_Sig}` | 127 | 127 | 124 | 124 |
 | `Z` contains `q_Gen` or `q_Ver` (12 modes) | 127 | 127 | 127 | 127 |
 
-Every entry is an exact level: `b` bits hold and `b + 1` bits do not.
+Every entry is an exact integer level: `b` bits hold and `b + 1` bits do not. In the checksum
+mode charging both signer hashes and signing requests, the tighter bounds are 124 bits of
+security and an attack below `log₂(3 · 2^128 / 32) ≈ 124.5850` bits: a gap below 0.585 bits.
+The checksum `_exact` theorems cover every mode; `_signerRequests_bounds` records this tighter gap.
 
 ## The two schemes
 
@@ -41,17 +45,17 @@ The construction (`Statement/Scheme/Construction.lean`, `Xmss.lean`) is generic 
 encoding (`WotsEncoding`: the number of chains, the partial decoder from 128-bit digests to
 codewords, and the number of randomizer trials of the signer). The two encodings are:
 
-* `xmssTargetSum` (`Statement/Scheme/TargetSum.lean`): a digest is read as `v = 42` digits of
-  `w = 3` bits and decodes when its two padding bits are clear and the digits sum to `T = 195`.
+* `xmssTargetSum` (`Statement/Scheme/TargetSum.lean`): a digest is read as `v = 32` digits of
+  `w = 4` bits and decodes when the digits sum to `T = 330`. All 128 bits are used.
   The signer tries up to `2^32` randomizers, each costing two hash calls, until a digest decodes.
-* `xmssChecksum` (`Statement/Scheme/Checksum.lean`): a digest is read as `len_1 = 43` digits of
-  `w = 3` bits, followed by the `len_2 = 3` base-8 digits of the checksum `Σ (7 - x_i)`, for
-  `v = 46` chains. Every digest encodes, so the signer makes a single attempt and costs two hash
+* `xmssChecksum` (`Statement/Scheme/Checksum.lean`): a digest is read as `len_1 = 32` digits of
+  `w = 4` bits, followed by the `len_2 = 3` base-16 digits of the checksum `Σ (15 - x_i)`, for
+  `v = 35` chains. Every digest encodes, so the signer makes a single attempt and costs two hash
   calls (the randomizer and the encoding).
 
 The levels differ in two places. With the checksum, the signer is cheap, so charging it does not
 make the 122-bit attack (replace one chain value of a signature by a random value) expensive:
-the attack costs `2` or `3` and the levels are 123 and 124. With the target sum, a standard
+the attack costs `2` or `3`. The two modes have exact integer levels 123 and 124. With the target sum, a standard
 forgery needs a fresh digest that decodes, which costs the adversary a hash query or a lucky
 verification, hence 126 and 127; with the checksum, a signature for one message already answers
 half of a forgery for any other message, and the standard levels equal the strong ones.
@@ -68,8 +72,11 @@ sign must forge the honest top sibling of the Merkle tree, which it never sees, 
 top query collide with the root, so it wins with probability at most
 `(2q + 2) / 2^128 + q / 2^256` (the last term covers guessing the master seed). With the signer
 and the requests charged and `q = 3`, the adversary signs once without hashing or hashes without
-signing; the two cases are weighted by the probability of signing, for at most
-`45 / 2^128 + 3 / 2^256`.
+signing. Keeping these branch probabilities in the bound gives exactly `48 / 2^128`, including
+the seed-reduction loss (`Proof/Checksum/NoSign/ExactThreeBudget.lean`). On signed executions,
+reusing the encoding costs at most the 48-query deciding path; a fresh encoding uses the first
+differing four-bit message digit and a bound on the average remaining path. Unsigned executions
+leave enough slack to absorb seed guessing.
 
 ## Correctness
 
@@ -93,7 +100,7 @@ tuples gives the bound (`Proof/TargetSum/CorrectnessError.lean`).
 
 ## Layout
 
-* `Statement/`: definitions and six main theorems. To review the claims, start with
+* `Statement/`: definitions and eight main theorems. To review the claims, start with
   `BitSecurity.lean`, then `Security/` for the games, `Scheme/` for the construction, and
   `*Theorems.lean` for the results. Only the theorem files import the proof layer.
 * `Proof/Common/`: proofs that do not depend on the scheme (counting modes, query counting). The
@@ -120,6 +127,7 @@ implementation and cannot replace an audit.
 |---|---|
 | `xmssTargetSum_sufCma_exact`, `xmssChecksum_sufCma_exact` | `Statement/StrongUnforgeabilityTheorems.lean` |
 | `xmssTargetSum_eufCma_exact`, `xmssChecksum_eufCma_exact` | `Statement/UnforgeabilityTheorems.lean` |
+| `xmssChecksum_sufCma_signerRequests_bounds`, `xmssChecksum_eufCma_signerRequests_bounds` | The two unforgeability theorem files |
 | `xmssTargetSum_correct`, `xmssChecksum_correct` | `Statement/CorrectnessTheorems.lean` |
 
 The adversary is probabilistic, adaptive, and unbounded in time and memory. Each counting mode
@@ -136,7 +144,7 @@ lake build          # strong and standard security proofs, attacks, and axiom gu
 Toolchain: Lean `v4.31.0`; VCVio pinned to `cbd4144` in `lakefile.toml`.
 
 `lake build` builds the single `XmssSecurity` library. Its root module imports the three theorem
-files, so the four classifications, including the matching attacks, and the correctness theorems
+files, so the classifications, the sub-bit bounds, their matching attacks, and the correctness theorems
 are checked in the same build.
 To check that the statement layer imports the proof layer only through the theorem files, run
 `scripts/check_statement_imports.sh`.

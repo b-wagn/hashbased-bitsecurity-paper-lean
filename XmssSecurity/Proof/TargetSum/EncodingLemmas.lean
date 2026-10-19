@@ -14,7 +14,7 @@ def PointwiseLE (x y : Encoding) : Prop := ∀ i, x i ≤ y i
 def verificationWork (x : Encoding) : Nat :=
   ∑ i, (chainLength - 1 - (x i).val)
 
-/-- Every valid encoding makes the verifier walk exactly 99 WOTS chain edges. -/
+/-- Every valid encoding makes the verifier walk exactly 150 WOTS chain edges. -/
 theorem verificationWork_eq (x : Encoding) (hx : Valid x) :
     verificationWork x = verificationChainHashes := by
   unfold Valid sum at hx
@@ -25,160 +25,58 @@ theorem verificationWork_eq (x : Encoding) (hx : Valid x) :
   · intro i _
     exact Nat.le_pred_of_lt (x i).isLt
 
-/-! The encoding-view decomposition of a digest: the 42 three-bit digits together with the two padding bits 63 and 127, packed as a `Fin 4`. The statement's `decodeDigest` tests the padding bits directly; `decodeDigest_eq_decodeView` below restates it through this view. -/
-
-/-- The two unused digest bits accompany the 42 three-bit digits. -/
-abbrev EncodingView := Encoding × Fin 4
-
-def digestPadding (digest : Digest) : Fin 4 :=
-  ⟨(if digest.getLsbD 63 then 1 else 0) +
-    (if digest.getLsbD 127 then 2 else 0), by
-      cases digest.getLsbD 63 <;> cases digest.getLsbD 127 <;> simp⟩
-
-/-- The little-endian digest layout: 21 digits, one padding bit, 21 digits, and one padding bit. -/
-def digestView (digest : Digest) : EncodingView :=
-  (digestEncoding digest, digestPadding digest)
-
-def ValidView (view : EncodingView) : Prop :=
-  view.2 = 0 ∧ Valid view.1
-
-noncomputable def decodeView (view : EncodingView) : Option Encoding := by
-  classical
-  exact if ValidView view then some view.1 else none
-
-theorem digestPadding_eq_zero_iff {digest : Digest} :
-    digestPadding digest = 0 ↔
-      digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false := by
-  cases h63 : digest.getLsbD 63 <;> cases h127 : digest.getLsbD 127 <;>
-    simp [digestPadding, h63, h127, Fin.ext_iff]
-
-theorem decodeDigest_eq_decodeView (digest : Digest) :
-    decodeDigest digest = decodeView (digestView digest) := by
-  classical
-  unfold decodeDigest decodeView
-  refine if_congr ?_ rfl rfl
-  simp only [ValidView, digestView, digestPadding_eq_zero_iff, and_assoc]
-
-theorem digestPadding_eq_iff {left right : Digest} :
-    digestPadding left = digestPadding right ↔
-      left.getLsbD 63 = right.getLsbD 63 ∧
-      left.getLsbD 127 = right.getLsbD 127 := by
-  generalize hl0 : left.getLsbD 63 = leftLow
-  generalize hl1 : left.getLsbD 127 = leftHigh
-  generalize hr0 : right.getLsbD 63 = rightLow
-  generalize hr1 : right.getLsbD 127 = rightHigh
-  cases leftLow <;> cases leftHigh <;> cases rightLow <;> cases rightHigh <;>
-    simp [digestPadding, hl0, hl1, hr0, hr1]
-
-theorem digestView_injective : Function.Injective digestView := by
-  intro left right hview
-  have hencoding : digestEncoding left = digestEncoding right :=
-    congrArg Prod.fst hview
-  have hpadding : digestPadding left = digestPadding right :=
-    congrArg Prod.snd hview
-  have hpaddingBits := digestPadding_eq_iff.mp hpadding
+/-- All 128 digest bits are partitioned into the 32 four-bit digits. -/
+theorem digestEncoding_injective : Function.Injective digestEncoding := by
+  intro left right hencoding
   apply BitVec.eq_of_getLsbD_eq
   intro bit hbit
-  have hbelow128 : bit < 128 := by simpa [digestBits] using hbit
-  by_cases heq63 : bit = 63
-  · simpa [heq63] using hpaddingBits.1
-  by_cases heq127 : bit = 127
-  · simpa [heq127] using hpaddingBits.2
-  by_cases hlow : bit < 63
-  · let chain : ChainIndex := ⟨bit / winternitzBits, by
-      change bit / 3 < 42
-      omega⟩
-    let offsetBit := bit % winternitzBits
-    have hoffsetBit : offsetBit < winternitzBits := by
-      exact Nat.mod_lt bit (by decide)
-    have hoffset : digitOffset chain + offsetBit = bit := by
-      unfold digitOffset
-      change 3 * (bit / 3) + (if bit / 3 < 21 then 0 else 1) + bit % 3 = bit
-      rw [if_pos (by omega)]
-      have hdiv := Nat.mod_add_div bit 3
-      omega
-    have hextract :
-        left.extractLsb' (digitOffset chain) winternitzBits =
-          right.extractLsb' (digitOffset chain) winternitzBits := by
-      apply BitVec.toFin_injective
-      exact congrFun hencoding chain
-    have hlocalBit := congrArg (fun value => value.getLsbD offsetBit) hextract
-    simpa [BitVec.getLsbD_extractLsb', hoffsetBit, hoffset] using hlocalBit
-  · have hge64 : 64 ≤ bit := by omega
-    have hbelow127 : bit < 127 := by omega
-    let shifted := bit - 64
-    let chain : ChainIndex := ⟨digitsPerHalf + shifted / winternitzBits, by
-      change 21 + (bit - 64) / 3 < 42
-      omega⟩
-    let offsetBit := shifted % winternitzBits
-    have hoffsetBit : offsetBit < winternitzBits := by
-      exact Nat.mod_lt shifted (by decide)
-    have hoffset : digitOffset chain + offsetBit = bit := by
-      unfold digitOffset
-      change 3 * (21 + (bit - 64) / 3) +
-        (if 21 + (bit - 64) / 3 < 21 then 0 else 1) + (bit - 64) % 3 = bit
-      rw [if_neg (by omega)]
-      have hdiv := Nat.mod_add_div (bit - 64) 3
-      omega
-    have hextract :
-        left.extractLsb' (digitOffset chain) winternitzBits =
-          right.extractLsb' (digitOffset chain) winternitzBits := by
-      apply BitVec.toFin_injective
-      exact congrFun hencoding chain
-    have hlocalBit := congrArg (fun value => value.getLsbD offsetBit) hextract
-    simpa [BitVec.getLsbD_extractLsb', hoffsetBit, hoffset] using hlocalBit
-
-theorem decodeView_eq_some_iff {view : EncodingView} {x : Encoding} :
-    decodeView view = some x ↔ view = (x, 0) ∧ Valid x := by
-  classical
-  rcases view with ⟨digits, padding⟩
-  simp only [decodeView, ValidView]
-  split <;> rename_i hview
-  · simp only [Option.some.injEq, Prod.mk.injEq]
-    constructor
-    · intro hdigits
-      subst x
-      exact ⟨⟨rfl, hview.1⟩, hview.2⟩
-    · exact fun h => h.1.1
-  · simp only [Prod.mk.injEq]
-    constructor
-    · intro heq
-      cases heq
-    · rintro ⟨⟨hdigits, hpadding⟩, hvalid⟩
-      exfalso
-      apply hview
-      refine ⟨hpadding, ?_⟩
-      exact hdigits.symm ▸ hvalid
+  have hbelow : bit < 128 := by simpa [digestBits] using hbit
+  let chain : ChainIndex := ⟨bit / winternitzBits, by
+    change bit / 4 < 32
+    omega⟩
+  let offsetBit := bit % winternitzBits
+  have hoffsetBit : offsetBit < winternitzBits := Nat.mod_lt bit (by decide)
+  have hoffset : digitOffset chain + offsetBit = bit := by
+    change 4 * (bit / 4) + bit % 4 = bit
+    have := Nat.mod_add_div bit 4
+    omega
+  have hextract :
+      left.extractLsb' (digitOffset chain) winternitzBits =
+        right.extractLsb' (digitOffset chain) winternitzBits := by
+    apply BitVec.toFin_injective
+    exact congrFun hencoding chain
+  have hlocalBit := congrArg (fun value => value.getLsbD offsetBit) hextract
+  simpa [BitVec.getLsbD_extractLsb', hoffsetBit, hoffset] using hlocalBit
 
 theorem decodeDigest_eq_some_iff {digest : Digest} {x : Encoding} :
-    decodeDigest digest = some x ↔ digestView digest = (x, 0) ∧ Valid x := by
-  rw [decodeDigest_eq_decodeView]
-  exact decodeView_eq_some_iff
+    decodeDigest digest = some x ↔ digestEncoding digest = x ∧ Valid x := by
+  unfold decodeDigest
+  split <;> rename_i hvalid
+  · simp only [Option.some.injEq]
+    exact ⟨fun h => ⟨h, h ▸ hvalid⟩, And.left⟩
+  · constructor
+    · intro h; cases h
+    · rintro ⟨h, hx⟩
+      exact (hvalid (h.symm ▸ hx)).elim
 
 theorem decodeDigest_zero_eq_none : decodeDigest (0 : Digest) = none := by
-  cases hdecode : decodeDigest (0 : Digest) with
-  | none => rfl
-  | some encoding =>
-      exfalso
-      have hview := decodeDigest_eq_some_iff.mp hdecode
-      have hencoding : digestEncoding (0 : Digest) = encoding :=
-        congrArg Prod.fst hview.1
-      rw [← hencoding] at hview
-      have hsum : sum (digestEncoding (0 : Digest)) = 0 := by
-        unfold sum
-        apply Finset.sum_eq_zero
-        intro chain _
-        simp [digestEncoding]
-      unfold Valid at hview
-      rw [hsum] at hview
-      exact (by decide : (0 : Nat) ≠ targetSum) hview.2
+  have hsum : sum (digestEncoding (0 : Digest)) = 0 := by
+    unfold sum
+    apply Finset.sum_eq_zero
+    intro chain _
+    simp [digestEncoding]
+  unfold decodeDigest
+  rw [if_neg]
+  change sum (digestEncoding (0 : Digest)) ≠ targetSum
+  rw [hsum]
+  decide
 
-/-- A valid target-sum encoding and zero padding determine one exact 128-bit digest. -/
+/-- Each encoding determines one exact 128-bit digest. -/
 theorem digest_eq_of_decodeDigest_eq_some {left right : Digest} {x : Encoding}
     (hleft : decodeDigest left = some x) (hright : decodeDigest right = some x) :
-  left = right := by
-  apply digestView_injective
-  rw [(decodeDigest_eq_some_iff.mp hleft).1, (decodeDigest_eq_some_iff.mp hright).1]
+    left = right :=
+  digestEncoding_injective ((decodeDigest_eq_some_iff.mp hleft).1.trans
+    (decodeDigest_eq_some_iff.mp hright).1.symm)
 
 theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y)
     (hxy : PointwiseLE x y) : x = y := by
@@ -197,9 +95,7 @@ theorem eq_of_pointwiseLE_of_valid {x y : Encoding} (hx : Valid x) (hy : Valid y
   exact (Nat.ne_of_lt hsum) (hx.trans hy.symm)
 
 def exampleValidEncoding : Encoding := fun chain =>
-  if chain.val < 27 then ⟨7, by decide⟩
-  else if chain.val = 27 then ⟨6, by decide⟩
-  else ⟨0, by decide⟩
+  if chain.val < 22 then ⟨15, by decide⟩ else ⟨0, by decide⟩
 
 theorem exampleValidEncoding_valid : Valid exampleValidEncoding := by
   unfold Valid sum
@@ -207,16 +103,16 @@ theorem exampleValidEncoding_valid : Valid exampleValidEncoding := by
   norm_num [exampleValidEncoding, targetSum, numChains, chainLength,
     Finset.sum_range_succ]
 
-theorem card_digest_eq_card_encodingView :
-    Fintype.card Digest = Fintype.card EncodingView := by
-  simp [digestBits, EncodingView, numChains, chainLength, winternitzBits]
+theorem card_digest_eq_card_encoding :
+    Fintype.card Digest = Fintype.card Encoding := by
+  simp [digestBits, numChains, chainLength, winternitzBits]
 
-theorem digestView_surjective : Function.Surjective digestView :=
-  ((Fintype.bijective_iff_injective_and_card digestView).2
-    ⟨digestView_injective, card_digest_eq_card_encodingView⟩).2
+theorem digestEncoding_surjective : Function.Surjective digestEncoding :=
+  ((Fintype.bijective_iff_injective_and_card digestEncoding).2
+    ⟨digestEncoding_injective, card_digest_eq_card_encoding⟩).2
 
 theorem exists_decodes : ∃ digest x, decodeDigest digest = some x := by
-  obtain ⟨digest, hdigest⟩ := digestView_surjective (exampleValidEncoding, 0)
+  obtain ⟨digest, hdigest⟩ := digestEncoding_surjective exampleValidEncoding
   exact ⟨digest, exampleValidEncoding, decodeDigest_eq_some_iff.mpr
     ⟨hdigest, exampleValidEncoding_valid⟩⟩
 

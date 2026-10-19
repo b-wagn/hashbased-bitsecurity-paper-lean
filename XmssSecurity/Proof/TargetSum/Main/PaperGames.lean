@@ -87,7 +87,7 @@ theorem paper_neighbor_everything_attack :
   have hbound := hsecure neighborEverythingBudget (by norm_num [neighborEverythingBudget])
     neighborSufCmaAdversary neighbor_oneRequest neighbor_everything_queryBound
   rw [neighbor_everything_advantage, neighborEverythingBudget_ratio] at hbound
-  exact (not_lt_of_ge hbound) neighbor_seeded_advantage_exceeds_five_sixtyfourths
+  exact (not_lt_of_ge hbound) neighbor_seeded_advantage_exceeds_five_thirtyseconds
 
 theorem paper_replay_direct_attack :
     ¬(EUFCMA.securityGame (PK := PublicKey) (SK := Generic.Seeded.SecretKey)).HasClassicalSecurityBits
@@ -109,7 +109,7 @@ theorem paper_neighbor_euf_everything_attack :
   have hbound := hsecure neighborEverythingBudget (by norm_num [neighborEverythingBudget])
     neighborSufCmaAdversary neighbor_oneRequest neighbor_euf_everything_queryBound
   rw [neighbor_euf_everything_advantage, neighborEverythingBudget_ratio] at hbound
-  exact (not_lt_of_ge hbound) neighbor_seeded_advantage_exceeds_five_sixtyfourths
+  exact (not_lt_of_ge hbound) neighbor_seeded_advantage_exceeds_five_thirtyseconds
 
 end XmssSecurity.TargetSum.Attack
 

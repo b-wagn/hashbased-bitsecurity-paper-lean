@@ -14,6 +14,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum
 
+variable [Code]
+
 namespace CappedEncodingMonitor
 
 noncomputable def observedRisk : Option (EncodingMonitor.State × Bool) → ℝ≥0∞

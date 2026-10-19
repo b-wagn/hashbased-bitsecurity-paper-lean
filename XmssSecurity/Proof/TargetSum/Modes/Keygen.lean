@@ -130,16 +130,16 @@ theorem keygenQueryCount_le_queryBound (adversary : Security.StatementAdversary)
   dsimp only at h
   omega
 
-theorem twentyTwo_le_seededKeygenQueryCount : 22 ≤ seededKeygenQueryCount := by
+theorem twentySix_le_seededKeygenQueryCount : 26 ≤ seededKeygenQueryCount := by
   have h := treeHashQueryCount_base_le treeHeight
   norm_num [numChains, chainLength, winternitzBits] at h
   unfold seededKeygenQueryCount
   omega
 
-theorem sharedDecidingLoss_le_127_of_gap (D q : ℕ) (hgap : D + 22 ≤ q)
+theorem sharedDecidingLoss_le_127_of_gap (D q : ℕ) (hgap : D + 26 ≤ q)
     (hsmall : q ≤ 2 ^ 127) :
     Direct.sharedDecidingLoss D ≤ (q : ℝ≥0∞) / ((2 ^ 127 : ℕ) : ℝ≥0∞) := by
-  have hgap' : (D : ℝ) + 22 ≤ q := by exact_mod_cast hgap
+  have hgap' : (D : ℝ) + 26 ≤ q := by exact_mod_cast hgap
   have hsmall' : (q : ℝ) ≤ 2 ^ 127 := by exact_mod_cast hsmall
   unfold Direct.sharedDecidingLoss
   apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
@@ -166,9 +166,9 @@ theorem sufCmaKeygen_127 :
       Security.forgeAdvantage_prune_eq adversary (q - seededKeygenQueryCount) hdirect]
     refine (Direct.seeded_forgeAdvantage_le_sharedDecidingLoss _ _
       (Direct.pruneAdversary_isDirectQueryBound _ (Security.embed adversary))
-        (by have := twentyTwo_le_seededKeygenQueryCount; omega)).trans
+        (by have := twentySix_le_seededKeygenQueryCount; omega)).trans
         (sharedDecidingLoss_le_127_of_gap _ q ?_ (by omega))
-    have := twentyTwo_le_seededKeygenQueryCount
+    have := twentySix_le_seededKeygenQueryCount
     omega
 
 end Modes

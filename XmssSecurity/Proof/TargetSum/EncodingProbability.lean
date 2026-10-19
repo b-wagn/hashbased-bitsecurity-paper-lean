@@ -15,12 +15,12 @@ open XmssSecurity.Generic
 namespace XmssSecurity.TargetSum.TargetSum
 
 theorem validDigests_card_exact :
-    Code.validDigests.card = 11539185377238682781344003244544752 := by
+    Code.validDigests.card = 11898456692431601930588562618651728 := by
   rw [validDigests_card_eq_wordCount]
-  exact wordCount_eight_fortyTwo_195
+  exact wordCount_sixteen_thirtyTwo_330
 
 noncomputable def acceptanceProbability : ℝ≥0∞ :=
-  11539185377238682781344003244544752 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
+  11898456692431601930588562618651728 / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
 
 theorem probEvent_validDigest_uniform :
     Pr[Code.ValidDigest | $ᵗ Digest] = acceptanceProbability := by

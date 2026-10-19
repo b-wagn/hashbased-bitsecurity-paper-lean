@@ -898,7 +898,7 @@ theorem globalMonitoredBaseMappedAdversaryImpl_support_cache_le
         right.2 right.1 request state.causal raw hraw).1
 
 set_option maxRecDepth 100000 in
-theorem globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final
+theorem globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final_if_hash
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
     (input : (OracleWorld + SigningSpec).Domain)
@@ -906,7 +906,8 @@ theorem globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final
     (covered : Set GlobalChainValueIndex)
     (finalCache : QueryCache HashSpec)
     (hcovered : GlobalMonitoredCausalStateCovered covered state)
-    (hforward : GlobalChainValueIndicesForwardClosed covered)
+    (hforward : (∃ hashInput, input = .inl (.inr hashInput)) →
+      GlobalChainValueIndicesForwardClosed covered)
     (result : (OracleWorld + SigningSpec).Range input ×
       GlobalMonitoredCausalState)
     (hcacheLe : result.2.causal.cache ≤ finalCache)
@@ -937,7 +938,7 @@ theorem globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final
     intro raw hraw
     exact
       simulate_eagerTrace_globalCausalAttackerHashQuery_support_covered
-        right.2 right.1.secretKey hashInput state.causal covered hcovered.1 hforward
+        right.2 right.1.secretKey hashInput state.causal covered hcovered.1 (hforward ⟨hashInput, rfl⟩)
             raw hraw
   · unfold globalMonitoredBaseMappedAdversaryImpl at hresult
     rw [monitorGlobalCausalTrace_run, support_map] at hresult
@@ -955,6 +956,24 @@ theorem globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final
             · exact hdecode)
           hraw
     exact ⟨hrawCovered.1, hcovered.2.append hrawCovered.2⟩
+
+theorem globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final
+    (right : ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest))
+    (input : (OracleWorld + SigningSpec).Domain) (state : GlobalMonitoredCausalState)
+    (covered : Set GlobalChainValueIndex) (finalCache : QueryCache HashSpec)
+    (hcovered : GlobalMonitoredCausalStateCovered covered state)
+    (hforward : GlobalChainValueIndicesForwardClosed covered)
+    (result : (OracleWorld + SigningSpec).Range input × GlobalMonitoredCausalState)
+    (hcacheLe : result.2.causal.cache ≤ finalCache)
+    (hdirect : ∀ request signature encoding chain,
+      AttackerAction.sign request (some signature) ∈ attackerActionFragment input result.1 →
+      Concrete.CacheView.decodedEncoding finalCache right.1.secretKey.parameter request.epoch
+        (request.message, signature.randomness) = some encoding →
+      (chain, request.epoch, encoding chain) ∈ covered)
+    (hresult : result ∈ support ((globalMonitoredBaseMappedAdversaryImpl right input).run state)) :
+    GlobalMonitoredCausalStateCovered covered result.2 :=
+  globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final_if_hash right input state covered
+    finalCache hcovered (fun _ => hforward) result hcacheLe hdirect hresult
 
 theorem globalMonitoredMappedAdversaryImpl_support_cache_le
     (right : ProgrammedGlobalChainKeygenView ×
@@ -981,7 +1000,7 @@ theorem globalMonitoredMappedAdversaryImpl_support_cache_le
     input state.1 baseResult hbaseResult
 
 set_option maxRecDepth 100000 in
-theorem globalMonitoredMappedAdversaryImpl_support_covered_of_final
+theorem globalMonitoredMappedAdversaryImpl_support_covered_of_final_if_hash
     (right : ProgrammedGlobalChainKeygenView ×
       (GlobalChainValueIndex → Digest))
     (input : (OracleWorld + SigningSpec).Domain)
@@ -989,7 +1008,8 @@ theorem globalMonitoredMappedAdversaryImpl_support_covered_of_final
     (covered : Set GlobalChainValueIndex)
     (finalCache : QueryCache HashSpec)
     (hcovered : GlobalMonitoredCausalStateCovered covered state.1)
-    (hforward : GlobalChainValueIndicesForwardClosed covered)
+    (hforward : (∃ hashInput, input = .inl (.inr hashInput)) →
+      GlobalChainValueIndicesForwardClosed covered)
     (result : (OracleWorld + SigningSpec).Range input ×
       GlobalMonitoredTracedState)
     (hcacheLe : result.2.1.causal.cache ≤ finalCache)
@@ -1013,13 +1033,31 @@ theorem globalMonitoredMappedAdversaryImpl_support_covered_of_final
   obtain ⟨baseResult, hbaseResult, hfinal⟩ := hresult
   simp only [support_pure, Set.mem_singleton_iff] at hfinal
   subst result
-  apply globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final
+  apply globalMonitoredBaseMappedAdversaryImpl_support_covered_of_final_if_hash
     right input state.1 covered finalCache hcovered hforward baseResult hcacheLe
   · intro request signature encoding chain haction hdecode
     apply hdirect request signature encoding chain
     · exact List.mem_append_right state.2 haction
     · exact hdecode
   · exact hbaseResult
+
+theorem globalMonitoredMappedAdversaryImpl_support_covered_of_final
+    (right : ProgrammedGlobalChainKeygenView × (GlobalChainValueIndex → Digest))
+    (input : (OracleWorld + SigningSpec).Domain) (state : GlobalMonitoredTracedState)
+    (covered : Set GlobalChainValueIndex) (finalCache : QueryCache HashSpec)
+    (hcovered : GlobalMonitoredCausalStateCovered covered state.1)
+    (hforward : GlobalChainValueIndicesForwardClosed covered)
+    (result : (OracleWorld + SigningSpec).Range input × GlobalMonitoredTracedState)
+    (hcacheLe : result.2.1.causal.cache ≤ finalCache)
+    (hdirect : ∀ request signature encoding chain,
+      AttackerAction.sign request (some signature) ∈ result.2.2 →
+      Concrete.CacheView.decodedEncoding finalCache right.1.secretKey.parameter request.epoch
+        (request.message, signature.randomness) = some encoding →
+      (chain, request.epoch, encoding chain) ∈ covered)
+    (hresult : result ∈ support ((globalMonitoredMappedAdversaryImpl right input).run state)) :
+    GlobalMonitoredCausalStateCovered covered result.2.1 :=
+  globalMonitoredMappedAdversaryImpl_support_covered_of_final_if_hash right input state covered
+    finalCache hcovered (fun _ => hforward) result hcacheLe hdirect hresult
 
 theorem globalMonitoredMappedAdversaryImpl_preserves_cache_extension
     (right : ProgrammedGlobalChainKeygenView ×

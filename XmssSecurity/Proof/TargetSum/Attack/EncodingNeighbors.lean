@@ -25,7 +25,7 @@ abbrev DigitTransfer (encoding : Encoding) :=
     {upper : ChainIndex // (encoding upper).val + 1 < chainLength ∧ upper ≠ lower.1}
 
 theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : Code.Valid encoding) :
-    28 ≤ Fintype.card (DecreasingChain encoding) := by
+    22 ≤ Fintype.card (DecreasingChain encoding) := by
   let indices := Finset.univ.filter fun chain => 0 < (encoding chain).val
   have hsum : ∑ chain ∈ indices, (encoding chain).val = targetSum := by
     rw [Finset.sum_filter]
@@ -34,9 +34,9 @@ theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : Code.Valid en
         (encoding chain).val := by intro chain; split_ifs <;> omega
     simp_rw [heq]
     exact hvalid
-  have hle : ∑ chain ∈ indices, (encoding chain).val ≤ indices.card * 7 := by
+  have hle : ∑ chain ∈ indices, (encoding chain).val ≤ indices.card * 15 := by
     calc
-      _ ≤ ∑ _chain ∈ indices, 7 := Finset.sum_le_sum fun chain _ => by
+      _ ≤ ∑ _chain ∈ indices, 15 := Finset.sum_le_sum fun chain _ => by
         have h := (encoding chain).isLt
         norm_num [chainLength, winternitzBits] at h
         omega
@@ -48,12 +48,12 @@ theorem decreasingChain_card_lower (encoding : Encoding) (hvalid : Code.Valid en
   omega
 
 theorem increasingChain_card_lower (encoding : Encoding) (hvalid : Code.Valid encoding) :
-    15 ≤ Fintype.card (IncreasingChain encoding) := by
+    10 ≤ Fintype.card (IncreasingChain encoding) := by
   let indices := Finset.univ.filter fun chain => (encoding chain).val + 1 < chainLength
-  have hsum : ∑ chain ∈ indices, (7 - (encoding chain).val) = 99 := by
+  have hsum : ∑ chain ∈ indices, (15 - (encoding chain).val) = 150 := by
     rw [Finset.sum_filter]
-    have heq : ∀ chain, (if (encoding chain).val + 1 < chainLength then 7 - (encoding chain).val else 0) =
-        7 - (encoding chain).val := by
+    have heq : ∀ chain, (if (encoding chain).val + 1 < chainLength then 15 - (encoding chain).val else 0) =
+        15 - (encoding chain).val := by
       intro chain
       have h := (encoding chain).isLt
       norm_num [chainLength, winternitzBits] at h ⊢
@@ -61,9 +61,9 @@ theorem increasingChain_card_lower (encoding : Encoding) (hvalid : Code.Valid en
     simp_rw [heq]
     simpa [TargetSum.verificationWork, verificationChainHashes, chainLength, winternitzBits,
       numChains, targetSum] using TargetSum.verificationWork_eq encoding hvalid
-  have hle : ∑ chain ∈ indices, (7 - (encoding chain).val) ≤ indices.card * 7 := by
+  have hle : ∑ chain ∈ indices, (15 - (encoding chain).val) ≤ indices.card * 15 := by
     calc
-      _ ≤ ∑ _chain ∈ indices, 7 := Finset.sum_le_sum fun chain _ => Nat.sub_le _ _
+      _ ≤ ∑ _chain ∈ indices, 15 := Finset.sum_le_sum fun chain _ => Nat.sub_le _ _
       _ = _ := by simp
   rw [hsum] at hle
   have hcard : Fintype.card (IncreasingChain encoding) = indices.card := by
@@ -71,11 +71,11 @@ theorem increasingChain_card_lower (encoding : Encoding) (hvalid : Code.Valid en
   omega
 
 theorem digitTransfer_card_lower (encoding : Encoding) (hvalid : Code.Valid encoding) :
-    392 ≤ Fintype.card (DigitTransfer encoding) := by
+    198 ≤ Fintype.card (DigitTransfer encoding) := by
   have hdecrease := decreasingChain_card_lower encoding hvalid
   have hincrease := increasingChain_card_lower encoding hvalid
   have hchoices : ∀ lower : DecreasingChain encoding,
-      14 ≤ Fintype.card {upper : ChainIndex //
+      9 ≤ Fintype.card {upper : ChainIndex //
         (encoding upper).val + 1 < chainLength ∧ upper ≠ lower.1} := by
     intro lower
     let indices := Finset.univ.filter fun chain => (encoding chain).val + 1 < chainLength
@@ -93,8 +93,8 @@ theorem digitTransfer_card_lower (encoding : Encoding) (hvalid : Code.Valid enco
     omega
   rw [Fintype.card_sigma]
   calc
-    392 ≤ Fintype.card (DecreasingChain encoding) * 14 := by omega
-    _ = ∑ _lower : DecreasingChain encoding, 14 := by simp
+    198 ≤ Fintype.card (DecreasingChain encoding) * 9 := by omega
+    _ = ∑ _lower : DecreasingChain encoding, 9 := by simp
     _ ≤ _ := Finset.sum_le_sum fun lower _ => hchoices lower
 
 def transferEncoding (encoding : Encoding) (transfer : DigitTransfer encoding) : Encoding :=
@@ -183,19 +183,19 @@ theorem transferEncoding_injective (encoding : Encoding) : Function.Injective (t
   subst rightUpper
   rfl
 
-/-- The unique digest containing the encoding and zero padding bits. -/
+/-- The unique digest containing the encoding and all 128 bits. -/
 noncomputable def digestOfEncoding (encoding : Encoding) : Digest :=
-  Classical.choose (TargetSum.digestView_surjective (encoding, 0))
+  Classical.choose (TargetSum.digestEncoding_surjective encoding)
 
 theorem digestOfEncoding_view (encoding : Encoding) :
-    TargetSum.digestView (digestOfEncoding encoding) = (encoding, 0) :=
-  Classical.choose_spec (TargetSum.digestView_surjective (encoding, 0))
+    digestEncoding (digestOfEncoding encoding) = encoding :=
+  Classical.choose_spec (TargetSum.digestEncoding_surjective encoding)
 
 theorem digestOfEncoding_injective : Function.Injective digestOfEncoding := by
   intro left right heq
-  have hview := congrArg TargetSum.digestView heq
+  have hview := congrArg digestEncoding heq
   rw [digestOfEncoding_view, digestOfEncoding_view] at hview
-  exact congrArg Prod.fst hview
+  exact hview
 
 theorem digestOfEncoding_decode (encoding : Encoding) (hvalid : Code.Valid encoding) :
     Code.decodeDigest (digestOfEncoding encoding) = some encoding :=
@@ -214,7 +214,7 @@ theorem neighborDigests_card (encoding : Encoding) :
   exact Finset.card_univ
 
 theorem neighborDigests_card_lower (encoding : Encoding) (hvalid : Code.Valid encoding) :
-    392 ≤ (neighborDigests encoding).card := by
+    198 ≤ (neighborDigests encoding).card := by
   rw [neighborDigests_card]
   exact digitTransfer_card_lower encoding hvalid
 

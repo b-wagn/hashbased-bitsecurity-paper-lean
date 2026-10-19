@@ -1,3 +1,4 @@
+import XmssSecurity.Proof.Checksum.Attack.NeighborSigning
 import XmssSecurity.Proof.Checksum.Attack.NeighborVerification
 import XmssSecurity.Proof.Checksum.Code
 import XmssSecurity.Proof.Checksum.EncodingProbability
@@ -188,11 +189,11 @@ theorem neighborVerificationExperiment_lower
     (request : SignRequest) (original : Generic.Signature) (signCache : QueryCache HashSpec)
     (hsign : (some original, signCache) ∈ support ((simulateQ romImpl
       (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2))
-    (encoding : Encoding) (hvalid : Code.Valid encoding)
+    (encoding : Encoding) (hvalid : Code.Valid encoding) (hgood : GoodEncoding encoding)
     (hreplay : original = Concrete.CacheReplay.signWithEncoding keyResult.2 keyResult.1.2
       request.epoch original.randomness encoding)
     (message : Message) (hne : message ≠ request.message) :
-    (6 / 7 : ℝ≥0∞) * (2 / 5) ≤ Pr[= true | neighborVerificationExperiment keyResult.1.1 request.epoch message
+    (5 / 6 : ℝ≥0∞) * (2 / 5) ≤ Pr[= true | neighborVerificationExperiment keyResult.1.1 request.epoch message
       original encoding signCache] := by
   classical
   let search := (simulateQ randomOracle
@@ -200,7 +201,7 @@ theorem neighborVerificationExperiment_lower
   calc
     _ ≤ Pr[fun result => result.1 ≠ none | search] * (2 / 5) :=
       mul_le_mul_left (le_of_lt (findEncodingNeighbor_success_after_signing keyResult hkey request
-        (some original) signCache hsign message hne encoding hvalid)) _
+        (some original) signCache hsign message hne encoding hvalid hgood)) _
     _ ≤ _ := by
       rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
       unfold neighborVerificationExperiment
@@ -237,16 +238,15 @@ theorem signedNeighborExperiment_lower
     (keyResult : (PublicKey × Generic.SecretKey) × QueryCache HashSpec)
     (hkey : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅))
     (request : SignRequest) (message : Message) (hne : message ≠ request.message) :
-    (127 / 128 : ℝ≥0∞) * ((6 / 7) * (2 / 5)) ≤
+    (127 / 128 : ℝ≥0∞) * ((5 / 6) * (2 / 5)) ≤
       Pr[= true | signedNeighborExperiment keyResult request message] := by
   classical
-  let lower : ℝ≥0∞ := (6 / 7) * (2 / 5)
+  let lower : ℝ≥0∞ := (5 / 6) * (2 / 5)
   let signing := (simulateQ romImpl
     (Concrete.precomputedCappedSign keyResult.1.2 request.epoch request.message)).run keyResult.2
   calc
-    _ ≤ Pr[fun result => result.1 ≠ none | signing] * lower :=
-      mul_le_mul_left (le_of_lt (Concrete.precomputedCappedSign_success_after_keygen keyResult hkey
-        request.epoch request.message)) _
+    _ ≤ Pr[GoodSigningResult keyResult.1.2.parameter request | signing] * lower :=
+      mul_le_mul' (goodSigningResult_lower keyResult hkey request) le_rfl
     _ ≤ _ := by
       rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right]
       unfold signedNeighborExperiment
@@ -254,16 +254,22 @@ theorem signedNeighborExperiment_lower
       apply ENNReal.tsum_le_tsum
       rintro ⟨answer, signCache⟩
       by_cases hmem : (answer, signCache) ∈ support signing
-      · cases answer with
-        | none => simp
-        | some original =>
-            obtain ⟨encoding, hdecode, hreplay⟩ := Attack.signing_success_replay_at_keygen keyResult hkey
-              request original signCache hmem
-            simp only [ne_eq, Option.some_ne_none, not_false_eq_true, if_true, hdecode]
-            exact mul_le_mul_right (neighborVerificationExperiment_lower keyResult hkey request original
-              signCache hmem encoding (Concrete.CacheView.decodedEncoding_valid hdecode) hreplay message hne) _
+      · by_cases hgood : GoodSigningResult keyResult.1.2.parameter request (answer, signCache)
+        · rw [if_pos hgood]
+          cases answer with
+          | none => exact (False.elim hgood)
+          | some original =>
+              obtain ⟨encoding, hdecode, hreplay⟩ := Attack.signing_success_replay_at_keygen keyResult hkey
+                request original signCache hmem
+              have hg : GoodEncoding encoding := by
+                simpa [GoodSigningResult, hdecode] using hgood
+              simp only [hdecode]
+              exact mul_le_mul_right (neighborVerificationExperiment_lower keyResult hkey request original
+                signCache hmem encoding (Concrete.CacheView.decodedEncoding_valid hdecode) hg hreplay message hne) _
+        · simp only [if_neg hgood, zero_mul, zero_le]
       · have hzero := probOutput_eq_zero_of_not_mem_support hmem
-        change _ ≤ Pr[= (answer, signCache) | signing] * _
+        change (if _ then Pr[= (answer, signCache) | signing] else 0) * _ ≤
+          Pr[= (answer, signCache) | signing] * _
         rw [hzero]
         simp
 

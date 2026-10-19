@@ -6,6 +6,9 @@ import XmssSecurity.Proof.Common.RandomOraclePresampling
 import XmssSecurity.Proof.Generic.HiddenValue
 import XmssSecurity.Proof.Common.UniformFiniteTable
 
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
+
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic
 open OracleComp.ProgramLogic.Relational

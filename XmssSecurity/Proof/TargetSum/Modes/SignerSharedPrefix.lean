@@ -35,7 +35,7 @@ theorem signer_seeded_loss_le_shared_prefix (adversary : Security.StatementAdver
         (TargetSum.acceptanceProbability *
           (2 * (Direct.expectedDirectEncodingQueries (Seeded.memoAdversary (Security.embed adversary)) +
               expectedSourceSignerHashes (Seeded.memoAdversary (Security.embed adversary))) + 1 +
-            40 * forgedEncodingFreshProbability (Seeded.memoAdversary (Security.embed adversary)))) /
+            48 * forgedEncodingFreshProbability (Seeded.memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   have hfirst := decidingFirstLane_probability_le_shared_prefix
     (Seeded.memoAdversary (Security.embed adversary)) q
@@ -58,7 +58,7 @@ theorem signer_advantage_le_shared_prefix (adversary : Security.StatementAdversa
         (TargetSum.acceptanceProbability *
           (2 * (Direct.expectedDirectEncodingQueries (Seeded.memoAdversary (Security.embed adversary)) +
               expectedSourceSignerHashes (Seeded.memoAdversary (Security.embed adversary))) + 1 +
-            40 * forgedEncodingFreshProbability (Seeded.memoAdversary (Security.embed adversary)))) /
+            48 * forgedEncodingFreshProbability (Seeded.memoAdversary (Security.embed adversary)))) /
               ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   rw [advantage_eq_of_mode _ SUFCMA.CountingMode.direct,
     notion_direct_advantage_eq, Security.notionDirect_advantage_eq]
@@ -69,7 +69,7 @@ theorem mixed_probe_allowance_le_encodingReserve (adversary : Adversary)
       Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) :
     TargetSum.acceptanceProbability *
       (2 * (Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary) + 1 +
-        40 * forgedEncodingFreshProbability adversary) ≤ sourceEncodingReserve adversary := by
+        48 * forgedEncodingFreshProbability adversary) ≤ sourceEncodingReserve adversary := by
   let credit := Direct.expectedDirectEncodingQueries adversary + expectedSourceSignerHashes adversary
   have hunit : (1 : ℝ≥0∞) ≤ 128 * credit := by
     calc
@@ -77,21 +77,21 @@ theorem mixed_probe_allowance_le_encodingReserve (adversary : Adversary)
         rw [one_div]
         exact (ENNReal.mul_inv_cancel (by norm_num) (by finiteness)).symm
       _ ≤ _ := mul_le_mul' le_rfl hcredit
-  have hcount : 2 * credit + 1 + 40 * forgedEncodingFreshProbability adversary ≤ 5250 * credit := by
+  have hcount : 2 * credit + 1 + 48 * forgedEncodingFreshProbability adversary ≤ 6274 * credit := by
     calc
-      _ ≤ 2 * credit + 1 + 40 * 1 :=
+      _ ≤ 2 * credit + 1 + 48 * 1 :=
         add_le_add le_rfl (mul_le_mul' le_rfl (forgedEncodingFreshProbability_le_one adversary))
-      _ = 2 * credit + 41 := by ring
-      _ ≤ 2 * credit + 41 * (128 * credit) :=
-        add_le_add le_rfl (by simpa using mul_le_mul' (le_refl (41 : ℝ≥0∞)) hunit)
+      _ = 2 * credit + 49 := by ring
+      _ ≤ 2 * credit + 49 * (128 * credit) :=
+        add_le_add le_rfl (by simpa using mul_le_mul' (le_refl (49 : ℝ≥0∞)) hunit)
       _ = _ := by ring
-  have hrate : TargetSum.acceptanceProbability * 5250 ≤ (3 / 8 : ℝ≥0∞) := by
+  have hrate : TargetSum.acceptanceProbability * 6274 ≤ (3 / 8 : ℝ≥0∞) := by
     unfold TargetSum.acceptanceProbability
     apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
     norm_num [ENNReal.toReal_mul, ENNReal.toReal_div, digestBits]
   calc
-    _ ≤ TargetSum.acceptanceProbability * (5250 * credit) := mul_le_mul' le_rfl hcount
-    _ = (TargetSum.acceptanceProbability * 5250) * credit := (mul_assoc _ _ _).symm
+    _ ≤ TargetSum.acceptanceProbability * (6274 * credit) := mul_le_mul' le_rfl hcount
+    _ = (TargetSum.acceptanceProbability * 6274) * credit := (mul_assoc _ _ _).symm
     _ ≤ (3 / 8 : ℝ≥0∞) * credit := mul_le_mul' hrate le_rfl
 
 theorem signer_advantage_127_of_encoding_credit (adversary : Security.StatementAdversary) (q : Nat)

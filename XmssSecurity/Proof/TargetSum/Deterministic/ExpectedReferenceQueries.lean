@@ -14,6 +14,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Seeded
 
+variable [Code]
+
 attribute [local irreducible] Seeded.gameAfterSecrets
 
 theorem evalDist_referenceOutputs_withState {State : Type}

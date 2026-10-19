@@ -14,6 +14,8 @@ open XmssSecurity.Generic
 
 namespace XmssSecurity.TargetSum.Seeded
 
+variable [Code]
+
 noncomputable def selectedCostHash (selected : HashInput → Prop) [DecidablePred selected] :
     QueryImpl HashSpec (StateT Seeded.CostState ProbComp) := fun input state => do
   let result ← (randomOracle input).run state.1

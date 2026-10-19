@@ -13,11 +13,16 @@ accepting a cached input with a partner and `w` for one without, by the epoch's 
 (`raceBound_le_leafPotential`).
 -/
 
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
+
 open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
 open XmssSecurity.Generic
+
+attribute [local irreducible] XmssSecurity.TargetSum.decodeDigest
 
 namespace XmssSecurity.TargetSum.Direct.Collision
 

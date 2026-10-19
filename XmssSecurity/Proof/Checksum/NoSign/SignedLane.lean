@@ -1,7 +1,7 @@
 import XmssSecurity.Proof.Generic.Direct.DecidingSecondLaneExpected
 import XmssSecurity.Proof.Checksum.Code
 import XmssSecurity.Proof.Checksum.EncodingProbability
-/-! The deciding-path collision on the executions with a signing request: the forty
+/-! The deciding-path collision on the executions with a signing request: the 48
 verification queries along the deciding path are charged with the probability that the
 adversary signs. -/
 
@@ -46,7 +46,7 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
         expectedSimulatedQueryCount romImpl
           (Rom.IsRelevantHashQuery fun input =>
             Deciding.decidingTargetInput keyResult.1.2 keyResult.2 leafIndex chain input ≠ input)
-          (Concrete.scheme.verify keyResult.1.1 leafIndex message signature) initialCache ≤ 40) :
+          (Concrete.scheme.verify keyResult.1.1 leafIndex message signature) initialCache ≤ 48) :
     Pr[fun execution : GameOutcome × QueryCache HashSpec =>
         execution.1.won = true ∧ ¬ OutcomeBadEventOccurs execution.2 execution.1 .encoding ∧
           ¬ Deciding.DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ [] |
@@ -57,7 +57,7 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
           keygenStructuralTargetInput keyResult.1.2 keyResult.2 input ≠ input)
         (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2) keyResult.2 /
           ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
+        (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
           Pr[fun prefixResult : (Forgery × QueryLog SigningSpec) × QueryCache HashSpec =>
               prefixResult.1.2 ≠ [] |
             (simulateQ romImpl (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
@@ -75,7 +75,7 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
       Pr[event | (simulateQ romImpl
           (Deciding.verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
         (if collision prefixResult then 1 else 0) +
-          (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
+          (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
             (if prefixResult.1.2 ≠ [] then 1 else 0) := by
     intro prefixResult hprefix
     by_cases hsigned : prefixResult.1.2 ≠ []
@@ -121,7 +121,7 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
           (Deciding.verificationPhase keyResult.1.1 keyResult.1.2 prefixResult.1)).run prefixResult.2] ≤
       ∑' prefixResult, Pr[= prefixResult | adversaryRun] *
         ((if collision prefixResult then 1 else 0) +
-          (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
+          (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
             (if prefixResult.1.2 ≠ [] then 1 else 0)) := by
       apply ENNReal.tsum_le_tsum
       intro prefixResult
@@ -131,7 +131,7 @@ theorem decidingSecondLane_signed_afterKeygen_le_expected (adversary : Adversary
       · rw [probOutput_eq_zero_of_not_mem_support hprefix, zero_mul, zero_mul]
     _ = (∑' prefixResult, Pr[= prefixResult | adversaryRun] *
           (if collision prefixResult then 1 else 0)) +
-        (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
+        (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) *
           ∑' prefixResult, Pr[= prefixResult | adversaryRun] *
             (if prefixResult.1.2 ≠ [] then 1 else 0) := by
       rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
@@ -159,7 +159,7 @@ noncomputable def signedProbability (adversary : Adversary) : ℝ≥0∞ :=
       (simulateQ romImpl (Deciding.adversaryPhase adversary keyResult.1.1 keyResult.1.2)).run
         keyResult.2]
 
-/-- The second lane on the executions with a request: the forty queries along the deciding path
+/-- The second lane on the executions with a request: the 48 queries along the deciding path
 are charged only with the probability of signing. -/
 theorem decidingSecondLane_signed_probability_le_expected (adversary : Adversary)
     (hcached : ∀ keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅),
@@ -174,7 +174,7 @@ theorem decidingSecondLane_signed_probability_le_expected (adversary : Adversary
           ¬ Deciding.DecidingChainValueRevealed execution.2 execution.1 ∧ execution.1.signingLog ≠ [] |
       detailedGameWithCache Concrete.scheme adversary] ≤
       Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signedProbability adversary := by
+        (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signedProbability adversary := by
   unfold detailedGameWithCache detailedGameCore
   simp only [Deciding.detailedGameAfterKeygen_eq_phases]
   rw [simulateQ_bind, StateT.run_bind, probEvent_bind_eq_tsum]
@@ -191,7 +191,7 @@ theorem decidingSecondLane_signed_probability_le_expected (adversary : Adversary
   calc
     _ ≤ ∑' keyResult, Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
         (count keyResult / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-          (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signed keyResult) := by
+          (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signed keyResult) := by
       apply ENNReal.tsum_le_tsum
       intro keyResult
       by_cases hkeygen : keyResult ∈ support
@@ -213,7 +213,7 @@ theorem decidingSecondLane_signed_probability_le_expected (adversary : Adversary
         exact hbound
       · simp [probOutput_eq_zero_of_not_mem_support hkeygen]
     _ = Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
-        (40 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signedProbability adversary := by
+        (48 : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) * signedProbability adversary := by
       simp_rw [mul_add]
       rw [ENNReal.tsum_add]
       congr 1

@@ -15,7 +15,7 @@ namespace XmssSecurity.Checksum.Direct
 noncomputable def decidingPrefixLoss (D : ℕ) : ℝ≥0∞ :=
   ((D + 2 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞) +
     ((signingAttemptLimit : ℝ≥0∞) * ((D + 1 : ℕ) : ℝ≥0∞) * ((2 ^ digestBits : ℕ) : ℝ≥0∞)⁻¹ +
-      ((D + 42 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) +
+      ((D + 50 : ℕ) : ℝ≥0∞) / ((2 ^ digestBits : ℕ) : ℝ≥0∞)) +
     D / ((2 ^ 256 : ℕ) : ℝ≥0∞)
 
 theorem seeded_forgeAdvantage_le_decidingPrefixLoss (adversary : Adversary) (D : ℕ)

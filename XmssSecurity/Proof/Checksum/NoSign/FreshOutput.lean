@@ -15,6 +15,9 @@ with probability at most `2^-128`: a tree node (`probEvent_rootTree_treeNode_le`
 chain value (`probEvent_rootTree_chainValue_le`), as replayed from the final key-generation cache.
 -/
 
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
+
 open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false

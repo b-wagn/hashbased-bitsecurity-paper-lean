@@ -15,7 +15,7 @@ noncomputable def sourceEncodingReserve (adversary : Adversary) : ℝ≥0∞ :=
 
 theorem source_encoding_rate_add_reserve_le :
     prehitRate + TargetSum.acceptanceProbability *
-        ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
+        ((48 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
         (3 / 8 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) ≤
       ((2 ^ digestBits : Nat) : ℝ≥0∞)⁻¹ := by
   unfold prehitRate TargetSum.acceptanceProbability
@@ -24,7 +24,7 @@ theorem source_encoding_rate_add_reserve_le :
   norm_num [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_div, digestBits]
 
 theorem source_signer_rate_add_reserve_le :
-    TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
+    TargetSum.acceptanceProbability * ((48 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
       (3 / 8 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) ≤
         (2 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   unfold TargetSum.acceptanceProbability
@@ -46,12 +46,12 @@ theorem sourceSecondaryLoss_add_encodingReserve_le (adversary : Adversary) :
   calc
     _ = Direct.expectedDirectEncodingQueries adversary *
           (prehitRate + TargetSum.acceptanceProbability *
-            ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
+            ((48 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
             (3 / 8 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
         Direct.expectedDirectStructuralQueries adversary / ((2 ^ digestBits : Nat) : ℝ≥0∞) +
         expectedDirectSeedQueries adversary / ((2 ^ 256 : Nat) : ℝ≥0∞) +
         expectedSourceSignerHashes adversary *
-          (TargetSum.acceptanceProbability * ((40 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
+          (TargetSum.acceptanceProbability * ((48 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) +
             (3 / 8 : ℝ≥0∞) / ((2 ^ digestBits : Nat) : ℝ≥0∞)) := by
       simp only [div_eq_mul_inv]
       ring

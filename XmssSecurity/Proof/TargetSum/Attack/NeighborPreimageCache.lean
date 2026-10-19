@@ -123,7 +123,7 @@ theorem randomDigestPreimage_success_after_neighborSearch
     (hsearch : (answer, searchCache) ∈ support ((simulateQ randomOracle
       (findEncodingNeighbor keyResult.1.2.parameter request.epoch message encoding)).run signCache))
     (lower : DecreasingChain encoding) :
-    2 / 17 ≤ Pr[fun result => result.2.1 ≠ none |
+    2 / 9 ≤ Pr[fun result => result.2.1 ≠ none |
       randomDigestPreimage (Concrete.CacheView.chainInput keyResult.1.2.parameter request.epoch lower.1
         (predecessorStep encoding lower)) (signature.chainValue lower.1) searchCache] := by
   obtain ⟨genuine, hhit, hfresh⟩ := predecessorCache_after_neighborSearch keyResult hkey request

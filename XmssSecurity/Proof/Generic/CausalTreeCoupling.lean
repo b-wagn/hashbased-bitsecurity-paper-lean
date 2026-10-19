@@ -4,6 +4,9 @@ import XmssSecurity.Proof.Generic.MerkleQueryPresence
 import XmssSecurity.Proof.Generic.StatementLemmas
 import XmssSecurity.Proof.Generic.CausalKeygenCoupling
 
+set_option maxHeartbeats 800000
+set_option linter.constructorNameAsVariable false
+
 open OracleComp OracleSpec ENNReal
 open OracleComp.ProgramLogic.Relational
 

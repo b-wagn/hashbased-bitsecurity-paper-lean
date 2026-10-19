@@ -16,7 +16,7 @@ namespace XmssSecurity.TargetSum.Attack
 
 open Concrete
 
-def neighborSearchSteps : ℕ := 2 ^ 121
+def neighborSearchSteps : ℕ := 2 ^ 122
 
 def neighborSearchInput (parameter : PublicParameter) (leafIndex : LeafIndex) (message : Message)
     (position : ℕ) : HashInput :=
@@ -44,7 +44,7 @@ noncomputable def neighborAcceptanceProbability (encoding : Encoding) : ℝ≥0�
   (neighborDigests encoding).card / ((2 ^ digestBits : ℕ) : ℝ≥0∞)
 
 theorem neighborAcceptanceProbability_lower (encoding : Encoding) (hvalid : Code.Valid encoding) :
-    392 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤ neighborAcceptanceProbability encoding := by
+    198 / ((2 ^ digestBits : ℕ) : ℝ≥0∞) ≤ neighborAcceptanceProbability encoding := by
   apply ENNReal.div_le_div_right
   exact_mod_cast neighborDigests_card_lower encoding hvalid
 
@@ -58,7 +58,7 @@ theorem neighbor_rejection_power_lt_quarter (encoding : Encoding) (hvalid : Code
   calc
     _ ≤ 1 / (1 + neighborSearchSteps * neighborAcceptanceProbability encoding) :=
       Code.rejection_power_le _ (neighborAcceptanceProbability_le_one encoding) _
-    _ ≤ 1 / (1 + neighborSearchSteps * (392 / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by gcongr
+    _ ≤ 1 / (1 + neighborSearchSteps * (198 / ((2 ^ digestBits : ℕ) : ℝ≥0∞))) := by gcongr
     _ < 1 / 4 := by
       apply (ENNReal.toReal_lt_toReal (by finiteness) (by finiteness)).mp
       rw [ENNReal.toReal_div, ENNReal.toReal_add (by finiteness) (by finiteness)]
