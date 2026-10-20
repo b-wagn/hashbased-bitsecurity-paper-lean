@@ -51,7 +51,11 @@ theorem sourcePrefix_stopped_event_eq (adversary : Adversary) (q : ℕ)
     (CappedChain.cappedBothTracedMappedAdversaryImpl key.publicKey (Concrete.materializePrecomputation key.cache key.secretKey))
     (activity key.secretKey.parameter) (activity_charged key.secretKey.parameter)
     (fun state : CappedChain.SourceExactTracedState => traceActive key.secretKey.parameter state.2)
-    (sourceExact_activity_step key.publicKey (Concrete.materializePrecomputation key.cache key.secretKey))
+    (by
+      intro input state result hresult
+      simpa only [Concrete.materializePrecomputation_parameter] using
+        sourceExact_activity_step key.publicKey (Concrete.materializePrecomputation key.cache key.secretKey)
+          input state result hresult)
     event hgate stoppedFallback (adversary.main key.publicKey) q ((((key.cache, []), []), []))
     (hbound key.publicKey)
   simpa only [Deciding.sourcePrefixExecution, stoppedAdversary, hparameter,

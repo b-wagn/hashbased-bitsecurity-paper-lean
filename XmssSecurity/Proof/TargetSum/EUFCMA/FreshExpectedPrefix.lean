@@ -26,10 +26,12 @@ theorem sourcePrefix_freshAccepted_probability_le_expected (adversary : Adversar
         (Direct.IsDirectEncodingQuery key.secretKey.parameter) (adversary.main key.publicKey) key.cache := by
   have hbound := probEvent_freshAccepted_le_expected_directEncoding key.publicKey
     (Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) (key.cache, [])
-    (no_freshAcceptedEncoding_of_no_encodingInputs _ _ _
-      (Concrete.keygen_cache_none_encodingInput key.keyResult
-        (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)))
-  rw [expected_directEncoding_forget_trace] at hbound
+    (by
+      rw [Concrete.materializePrecomputation_parameter]
+      exact no_freshAcceptedEncoding_of_no_encodingInputs _ _ _
+        (Concrete.keygen_cache_none_encodingInput key.keyResult
+          (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)))
+  rw [expected_directEncoding_forget_trace, Concrete.materializePrecomputation_parameter] at hbound
   rw [← CappedChain.cappedBothTracedMappedAdversaryImpl_actionProjection key.publicKey
     (Concrete.materializePrecomputation key.cache key.secretKey)
     (adversary.main key.publicKey) ((key.cache, []), []) [], probEvent_map] at hbound
@@ -62,8 +64,10 @@ theorem sourcePrefixProgram_freshAccepted_probability_le_expected (adversary : A
   intro key
   by_cases hkey : key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen
   · simp only [bind_pure_comp, probEvent_map, Function.comp_def]
-    simpa only [credit, Concrete.materializeCachedKeyResult, CappedChain.ProgrammedGlobalChainKeygenView.keyResult,
-      Concrete.materializePrecomputation, Generic.Concrete.precomputedSecretKey, mul_comm, mul_left_comm, mul_assoc] using mul_le_mul'
+    simpa only [credit, Concrete.materializeCachedKeyResult_publicKey,
+      Concrete.materializeCachedKeyResult_secretKey, Concrete.materializeCachedKeyResult_cache,
+      CappedChain.ProgrammedGlobalChainKeygenView.keyResult, Concrete.materializePrecomputation_parameter,
+      mul_comm, mul_left_comm, mul_assoc] using mul_le_mul'
       (le_refl (Pr[= key | CappedChain.trajectoryProgrammedGlobalChainKeygen]))
       (sourcePrefix_freshAccepted_probability_le_expected adversary key hkey)
   · rw [probOutput_eq_zero_of_not_mem_support hkey, zero_mul, zero_mul, mul_zero]

@@ -130,6 +130,19 @@ theorem Concrete.keygen_signWithEncoding_run_eq_pure
       largerCache hle leafIndex]
   simp [Concrete.CacheReplay.signWithEncoding]
 
+private theorem replaySignature_eq_of_components (cache : QueryCache HashSpec)
+    (left right : SecretKey) (hp : left.parameter = right.parameter)
+    (hs : left.chainStart = right.chainStart) (leafIndex : LeafIndex)
+    (randomness : Randomness) (encoding : Encoding) :
+    Concrete.CacheReplay.signWithEncoding cache left leafIndex randomness encoding =
+      Concrete.CacheReplay.signWithEncoding cache right leafIndex randomness encoding := by
+  unfold Concrete.CacheReplay.signWithEncoding
+  refine congrArg₂ (XmssSecurity.Signature.mk randomness) ?_ ?_
+  · funext chain
+    simp only [Concrete.CacheReplay.signedChainValues, hp, hs]
+  · funext level
+    simp only [Concrete.CacheReplay.authenticationPath, hp, hs]
+
 theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkeyResult : keyResult ∈ support
@@ -150,10 +163,10 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
     Concrete.oldKeygen_support_materializedPrecomputedKeygen keyResult hkeyResult
   have hconsistent := Concrete.precomputedKeygen_support_consistent
     (Concrete.materializeCachedKeyResult keyResult) hmaterialized
+  dsimp only [Concrete.materializeCachedKeyResult] at hconsistent
   unfold Concrete.precomputedSignAttempt Concrete.signAttempt
   rw [simulateQ_bind, StateT.run_bind, simulateQ_bind, StateT.run_bind]
-  simp only [Concrete.materializePrecomputation,
-    Concrete.precomputedSecretKey]
+  simp only [Concrete.materializePrecomputation_parameter]
   apply evalDist_bind_congr
   intro digestResult hdigestResult
   have hdigestLe := Concrete.CacheReplay.randomOracle_cache_le
@@ -172,14 +185,15 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
     simp only [Functor.map]
     have hsignature := hconsistent digestResult.2 (hle.trans hdigestLe)
       leafIndex randomness encoding
-    change Concrete.precomputedSignWithEncoding
+    have hsignature' : Concrete.precomputedSignWithEncoding
       (Concrete.materializePrecomputation keyResult.2 keyResult.1.2)
         leafIndex randomness encoding =
       Concrete.CacheReplay.signWithEncoding digestResult.2 keyResult.1.2
-        leafIndex randomness encoding at hsignature
-    simp only [Concrete.materializePrecomputation,
-      Concrete.precomputedSecretKey] at hsignature
-    rw [hsignature]
+        leafIndex randomness encoding :=
+      hsignature.trans (replaySignature_eq_of_components _ _ _
+        (Concrete.materializePrecomputation_parameter _ _)
+        (Concrete.materializePrecomputation_chainStart _ _) _ _ _)
+    rw [hsignature']
     rfl
 
 set_option linter.constructorNameAsVariable false in

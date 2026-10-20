@@ -113,7 +113,7 @@ theorem Concrete.precomputedKeygen_support_consistent
   intro largerCache hle leafIndex randomness encoding
   rw [hsecretKey] at hold hstable ⊢
   unfold Concrete.precomputedSignWithEncoding Concrete.CacheReplay.signWithEncoding
-  congr 1
+  refine congrArg₂ (XmssSecurity.Signature.mk randomness) ?_ ?_
   · rw [Concrete.CacheReplay.precomputedSignedChainValues_eq]
     funext chain
     exact Concrete.keygen_chainWalk_eq_of_cache_le

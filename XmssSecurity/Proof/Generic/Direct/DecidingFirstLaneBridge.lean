@@ -104,6 +104,7 @@ theorem sourceFirstLaneEvent_implies_prefixEvent (adversary : Adversary)
       (materializePrecomputation key.cache key.secretKey) prefixResult.1 prefixResult.2.1.1.1
       verified.2 prefixResult.2.1.2 = prefixResult.2.1.2 := by
     unfold appendVerificationEncodingObservation
+    rw [materializePrecomputation_parameter]
     exact if_neg hcached
   rcases hevent with hencoding | ⟨hwin, hrevealed⟩
   · have hhit := cappedExactEncodingBranch_implies_monitorHit adversary _ hencodingSupport hencoding

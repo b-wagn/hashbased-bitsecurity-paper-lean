@@ -73,6 +73,8 @@ theorem fresh_signed_verification_probability_le (adversary : Generic.Adversary)
           (trajectoryProgrammedGlobalChainKeygen_support_keyResult before.1 hkey)
       have hphase := sourcePrefixExecution_phase_support adversary before.1 before.2 hprefix
       have hparameter := keygen_publicKey_parameter_eq keyResult hkeygen
+      have hstoredParameter : keyResult.1.2.parameter = before.1.secretKey.parameter :=
+        Concrete.materializePrecomputation_parameter before.1.cache before.1.secretKey
       let signed := referenceDigest before.2.2.1.1.1 before.1.secretKey.parameter
         before.2.2.2.toSigningLog before.2.1.epoch
       have hbound := fresh_verification_probability_le adversary hzero keyResult hkeygen
@@ -80,7 +82,7 @@ theorem fresh_signed_verification_probability_le (adversary : Generic.Adversary)
         (by
           change before.2.2.1.1.1 (Direct.forgeryEncodingInput keyResult.1.1 before.2.1) = none
           unfold Direct.forgeryEncodingInput
-          rw [hparameter]
+          rw [hparameter, hstoredParameter]
           exact hfresh.1) signed
       refine hbound.trans (le_of_eq ?_)
       congr 1

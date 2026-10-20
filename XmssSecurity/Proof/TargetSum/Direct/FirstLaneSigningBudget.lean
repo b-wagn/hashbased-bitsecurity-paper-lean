@@ -60,6 +60,8 @@ theorem firstLane_signing_charge_bounds {α : Type}
       result.1.2.attackerTrace.encodingInputCount right.1.secretKey.parameter) ≤ limit) ∧
     observableFirstLaneCharge right.1.secretKey.parameter result.1.2 (history ++ result.2) ≤ limit := by
   let secretKey := Concrete.materializePrecomputation left.cache left.secretKey
+  have hstoredParameter : secretKey.parameter = left.secretKey.parameter :=
+    Concrete.materializePrecomputation_parameter left.cache left.secretKey
   have hparameter := CappedChain.programmedGlobal_secretKey_parameter_eq left right hrel hleftSupport hrightSupport
   obtain ⟨monitor, _hobserved, _hagrees, _hrevealed, hcausal, _hretained⟩ := hstate.1.1
   obtain ⟨base, hbase, hresultEq⟩ := CappedChain.globalExactTracedLift_eager_support_decompose right.2 right.1
@@ -68,7 +70,8 @@ theorem firstLane_signing_charge_bounds {α : Type}
     hleftSupport hrightSupport leftState rightState.causalState hcausal request base hbase
   have hcharge := (hbudget.query_step source hsource).1
   have hsourceEncoding := countedSourceImpl_encodingBudget secretKey (.inr request) leftState
-    hencoding source hsource
+    (by rw [hstoredParameter]; exact hencoding) source hsource
+  rw [hstoredParameter] at hsourceEncoding
   have hcacheEq := encodingInputCount_eq_of_globalSigning_agree left.secretKey.parameter
     source.2.counts.cache base.1.2.cache hagrees
   have hfinalCache : result.1.2.causalState.cache = base.1.2.cache := by

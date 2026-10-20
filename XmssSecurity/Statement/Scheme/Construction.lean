@@ -141,8 +141,9 @@ end Concrete
 
 /-! ### Key generation: the stored chain values and tree nodes
 
-Key generation logs the hashes used to compute the root. Replaying this log fills the secret
-key's chain and tree tables without further oracle queries. -/
+Key generation logs the hashes used to compute the root, then materializes the chain and tree
+vectors from the recorded answers before returning the secret key. This makes no further oracle
+queries. Signing only indexes the stored vectors. -/
 
 /-- Enter a query log into a cache, in order. -/
 def extendHashCacheWithLog (initialCache : QueryCache HashSpec) :
@@ -163,17 +164,18 @@ variable {v : Nat}
 def replayHash (cache : QueryCache HashSpec) : QueryImpl HashSpec Id :=
   fun input => (cache input).getD 0
 
-/-- Compute the stored chain values and Merkle nodes by replaying the key-generation query log. -/
+/-- Materialize the chain values and Merkle nodes into vectors during key generation.
+Replay is used only to fill the vectors; the resulting key stores digests, not replay functions. -/
 def precomputedSecretKey (parameter : PublicParameter)
     (secret : LeafIndex → Fin v → Digest) (cache : QueryCache HashSpec) :
     SecretKey v where
   parameter := parameter
   chainStart := secret
-  chainValue := fun leafIndex chain digit =>
+  chainValues := Vector.ofFn fun leafIndex => Vector.ofFn fun chain => Vector.ofFn fun digit =>
     evalWithAnswerFn (replayHash cache)
       (chainWalk parameter leafIndex chain 0 digit.val (secret leafIndex chain) :
         OracleComp HashSpec Digest)
-  treeValue := fun height node =>
+  treeValues := Vector.ofFn fun height => Vector.ofFn fun node =>
     evalWithAnswerFn (replayHash cache)
       (treeNode parameter secret height.val node : OracleComp HashSpec Digest)
 

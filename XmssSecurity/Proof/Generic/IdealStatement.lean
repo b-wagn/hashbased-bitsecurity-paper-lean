@@ -45,7 +45,8 @@ noncomputable def samplePublicParameter : ProbComp PublicParameter :=
 noncomputable def sampleSecret : ProbComp (LeafIndex → ChainIndex → Digest) :=
   $ᵗ (LeafIndex → ChainIndex → Digest)
 
-/-- `Gen`: sample the parameter and the secrets, compute the root through the oracle, and store every chain value and node as the replay of that computation. -/
+/-- `Gen`: sample the parameter and secrets, compute the root through the oracle, and materialize
+every chain value and node in the secret key's vectors using the recorded answers. -/
 noncomputable def precomputedKeygen :
     OracleComp OracleWorld (PublicKey × SecretKey) := do
   let parameter ← liftM samplePublicParameter

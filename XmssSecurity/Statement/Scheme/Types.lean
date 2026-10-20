@@ -53,13 +53,23 @@ structure PublicKey where
   parameter : PublicParameter
 deriving DecidableEq
 
-/-- Cached chain starts, chain values and Merkle nodes of `v` chains per leaf, together with the
-public parameter. -/
+/-- The public parameter, chain starts, and materialized vectors of all chain values and Merkle
+nodes. The vectors contain digests, so signing reads stored values without replaying key generation.
+Tree rows use the common node-index type; only nodes below `2^(h - level)` are used. -/
 structure SecretKey (v : Nat) where
   parameter : PublicParameter
   chainStart : LeafIndex → Fin v → Digest
-  chainValue : LeafIndex → Fin v → Digit → Digest
-  treeValue : MerkleHeight → MerkleNode → Digest
+  chainValues : Vector (Vector (Vector Digest chainLength) v) lifetime
+  treeValues : Vector (Vector Digest lifetime) (treeHeight + 1)
+
+/-- Read the stored value `c_{idx,i,d}`. -/
+def SecretKey.chainValue (key : SecretKey v) (leafIndex : LeafIndex) (chain : Fin v)
+    (digit : Digit) : Digest :=
+  key.chainValues[leafIndex.val][chain.val][digit.val]
+
+/-- Read the stored Merkle node `X_{level,node}`. -/
+def SecretKey.treeValue (key : SecretKey v) (height : MerkleHeight) (node : MerkleNode) : Digest :=
+  key.treeValues[height.val][node.val]
 
 /-- `sigma = (rho, sigma_OTS, path_ep)`: the encoding randomness, the `v` chain values and the `h`
 authentication nodes. -/

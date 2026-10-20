@@ -86,14 +86,60 @@ theorem withQueryLog_cache_projection {alpha : Type}
 
 namespace Concrete
 
+theorem precomputedSecretKey_parameter (parameter : PublicParameter)
+    (secret : LeafIndex → ChainIndex → Digest) (cache : QueryCache HashSpec) :
+    (precomputedSecretKey parameter secret cache).parameter = parameter := rfl
+
+theorem precomputedSecretKey_chainStart (parameter : PublicParameter)
+    (secret : LeafIndex → ChainIndex → Digest) (cache : QueryCache HashSpec) :
+    (precomputedSecretKey parameter secret cache).chainStart = secret := rfl
+
 def materializePrecomputation (cache : QueryCache HashSpec)
     (secretKey : SecretKey) : SecretKey :=
   precomputedSecretKey secretKey.parameter secretKey.chainStart cache
+
+theorem materializePrecomputation_parameter (cache : QueryCache HashSpec) (secretKey : SecretKey) :
+    (materializePrecomputation cache secretKey).parameter = secretKey.parameter :=
+  precomputedSecretKey_parameter ..
+
+theorem materializePrecomputation_chainStart (cache : QueryCache HashSpec) (secretKey : SecretKey) :
+    (materializePrecomputation cache secretKey).chainStart = secretKey.chainStart :=
+  precomputedSecretKey_chainStart ..
 
 def materializeCachedKeyResult
     (result : (PublicKey × SecretKey) × QueryCache HashSpec) :
     (PublicKey × SecretKey) × QueryCache HashSpec :=
   ((result.1.1, materializePrecomputation result.2 result.1.2), result.2)
+
+private theorem cachedResult_publicKey (publicKey : PublicKey) (secretKey : SecretKey)
+    (cache : QueryCache HashSpec) :
+    (((publicKey, secretKey), cache) : (PublicKey × SecretKey) × QueryCache HashSpec).1.1 =
+      publicKey := rfl
+
+private theorem cachedResult_secretKey (publicKey : PublicKey) (secretKey : SecretKey)
+    (cache : QueryCache HashSpec) :
+    (((publicKey, secretKey), cache) : (PublicKey × SecretKey) × QueryCache HashSpec).1.2 =
+      secretKey := rfl
+
+private theorem cachedResult_cache (publicKey : PublicKey) (secretKey : SecretKey)
+    (cache : QueryCache HashSpec) :
+    (((publicKey, secretKey), cache) : (PublicKey × SecretKey) × QueryCache HashSpec).2 = cache := rfl
+
+-- Project through an opaque lemma to avoid reducing the materialized vectors during unification.
+theorem materializeCachedKeyResult_publicKey
+    (result : (PublicKey × SecretKey) × QueryCache HashSpec) :
+    (materializeCachedKeyResult result).1.1 = result.1.1 :=
+  cachedResult_publicKey result.1.1 (materializePrecomputation result.2 result.1.2) result.2
+
+theorem materializeCachedKeyResult_secretKey
+    (result : (PublicKey × SecretKey) × QueryCache HashSpec) :
+    (materializeCachedKeyResult result).1.2 = materializePrecomputation result.2 result.1.2 :=
+  cachedResult_secretKey result.1.1 (materializePrecomputation result.2 result.1.2) result.2
+
+theorem materializeCachedKeyResult_cache
+    (result : (PublicKey × SecretKey) × QueryCache HashSpec) :
+    (materializeCachedKeyResult result).2 = result.2 :=
+  cachedResult_cache result.1.1 (materializePrecomputation result.2 result.1.2) result.2
 
 theorem precomputedKeygen_support_secretKey_uses_finalCache
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)

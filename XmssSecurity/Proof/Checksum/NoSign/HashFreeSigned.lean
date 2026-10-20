@@ -63,8 +63,14 @@ theorem source_signed_verification_le_branches (adversary : Generic.Adversary)
         Concrete.oldKeygen_support_materializedPrecomputedKeygen before.1.keyResult
           (trajectoryProgrammedGlobalChainKeygen_support_keyResult before.1 hkey)
       have hphase := sourcePrefixExecution_phase_support adversary before.1 before.2 hprefix
+      have hparameter : keyResult.1.2.parameter = before.1.secretKey.parameter :=
+        Concrete.materializePrecomputation_parameter before.1.cache before.1.secretKey
+      have hcached : before.2.2.1.1.1 (Concrete.CacheView.encodingInput keyResult.1.2.parameter
+          before.2.1.epoch (before.2.1.message, before.2.1.signature.randomness)) ≠ none := by
+        rw [hparameter]
+        exact hfresh
       have hreuses := zeroHash_cached_encoding_reuses adversary hzero keyResult hkeygen
-        ((before.2.1, before.2.2.2.toSigningLog), before.2.2.1.1.1) hphase hgood.2 hfresh
+        ((before.2.1, before.2.2.2.toSigningLog), before.2.2.1.1.1) hphase hgood.2 hcached
       have hcollision := zeroHash_prefix_no_structural_collision adversary hzero keyResult.1.1
         keyResult.1.2 keyResult.2 ((before.2.1, before.2.2.2.toSigningLog), before.2.2.1.1.1) hphase
       refine (probEvent_mono fun _ _ h => h.1).trans ?_
@@ -73,7 +79,7 @@ theorem source_signed_verification_le_branches (adversary : Generic.Adversary)
           (before.2.1, before.2.2.2.toSigningLog))).run before.2.2.1.1.1] ≤ _
       simpa only [div_eq_mul_inv] using reused_verification_probability_le adversary keyResult
         hkeygen ((before.2.1, before.2.2.2.toSigningLog), before.2.2.1.1.1) hphase
-        hreuses.2 hreuses.1 hfresh hcollision
+        hreuses.2 hreuses.1 hcached hcollision
   · have hzeroProb : Pr[fun result : GameOutcome × QueryCache HashSpec =>
         result.1.won = true ∧ result.1.signingLog ≠ [] | sourcePrefixVerification before] = 0 := by
       apply probEvent_eq_zero

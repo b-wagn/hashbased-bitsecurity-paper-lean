@@ -105,7 +105,9 @@ theorem relTriple_countedSource_limitedPrefix_of_related {α : Type}
             ((history ++ headRight.2).encodingActions.length : ℝ≥0∞) := by
           simpa only [FirstLaneOracleSimulation.ActionTrace.encodingActions_append, List.length_append, Nat.cast_add] using hnextCache
         have hnextEncoding := countedSourceImpl_encodingBudget
-          (Concrete.materializePrecomputation left.cache left.secretKey) input leftState hencoding headLeft hleft
+          (Concrete.materializePrecomputation left.cache left.secretKey) input leftState
+          (by rw [Concrete.materializePrecomputation_parameter]; exact hencoding) headLeft hleft
+        rw [Concrete.materializePrecomputation_parameter] at hnextEncoding
         have hnextTrace : headLeft.2.counts.direct = headLeft.2.attackerTrace.hashInputs.length := by
           rw [countedSourceImpl_direct_eq _ input leftState headLeft hleft,
             countedSourceImpl_hashInputs_update _ input leftState headLeft hleft, hsourceTrace]

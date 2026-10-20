@@ -10,7 +10,9 @@ variable [Code]
 def SecretKey.withoutPrecomputation
     (parameter : PublicParameter) (chainStart : LeafIndex → ChainIndex → Digest) :
     SecretKey :=
-  ⟨parameter, chainStart, fun _ _ _ => 0, fun _ _ => 0⟩
+  ⟨parameter, chainStart,
+    Vector.replicate lifetime (Vector.replicate Code.numChains (Vector.replicate chainLength 0)),
+    Vector.replicate (treeHeight + 1) (Vector.replicate lifetime 0)⟩
 
 namespace Concrete
 

@@ -5,7 +5,9 @@ import XmssSecurity.Proof.Generic.Code
 /-!
 Proof-side mirrors of the sealed statement definitions, and rewrite lemmas restating them so proofs can unfold them without unsealing.
 
-The statement stores the precomputed secret key as `evalWithAnswerFn (replayHash cache)` runs of its own oracle algorithms. `Wots.walk`, `CacheView`, and `CacheReplay` are the equivalent first-order forms of those replays that the proof works with; `Proof.CacheReplayEval` bridges the two.
+The statement materializes the secret key's vectors from `evalWithAnswerFn (replayHash cache)`
+during key generation. `Wots.walk`, `CacheView`, and `CacheReplay` describe the same stored values
+as functions for the proofs; `Proof.CacheReplayEval` proves that vector lookups agree with them.
 -/
 
 open OracleComp OracleSpec

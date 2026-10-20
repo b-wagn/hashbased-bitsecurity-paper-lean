@@ -36,10 +36,14 @@ theorem sourceFinish_firstLane_forgedEncoding_some
     key.secretKey.parameter prefixResult.1 hcached]
   rcases hevent with hencoding | ⟨_hwin, hrevealed⟩
   · obtain ⟨encoding, hdecode⟩ := hencoding.1.forgery_decode
-    change Deciding.forgedEncoding verified.2 key.secretKey.parameter prefixResult.1 = some encoding at hdecode
+    change Deciding.forgedEncoding verified.2
+      (materializePrecomputation key.cache key.secretKey).parameter prefixResult.1 = some encoding at hdecode
+    rw [materializePrecomputation_parameter] at hdecode
     simp [hdecode]
   · obtain ⟨encoding, hdecode, _⟩ := hrevealed
-    change Deciding.forgedEncoding verified.2 key.secretKey.parameter prefixResult.1 = some encoding at hdecode
+    change Deciding.forgedEncoding verified.2
+      (materializePrecomputation key.cache key.secretKey).parameter prefixResult.1 = some encoding at hdecode
+    rw [materializePrecomputation_parameter] at hdecode
     simp [hdecode]
 
 theorem sourceFirstLaneEvent_implies_acceptedPrefixEvent (adversary : Adversary)

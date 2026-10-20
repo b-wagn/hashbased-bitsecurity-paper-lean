@@ -95,8 +95,10 @@ theorem sourcePrefixProgram_encodingActivity_probability_le (adversary : Adversa
   intro key
   apply mul_le_mul' le_rfl
   simp only [bind_pure_comp, probEvent_map, Function.comp_def, SourcePrefixEncoded]
-  simpa only [credit, Concrete.materializeCachedKeyResult, CappedChain.ProgrammedGlobalChainKeygenView.keyResult,
-    Concrete.materializePrecomputation, Generic.Concrete.precomputedSecretKey, sourceCountedPrefixExecution, CountedSourceState.toSource]
+  simpa only [credit, Concrete.materializeCachedKeyResult_publicKey,
+    Concrete.materializeCachedKeyResult_secretKey, Concrete.materializeCachedKeyResult_cache,
+    CappedChain.ProgrammedGlobalChainKeygenView.keyResult, Concrete.materializePrecomputation_parameter,
+    sourceCountedPrefixExecution, CountedSourceState.toSource]
     using countedSource_encodingActivity_probability_le key.publicKey
       (Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
 

@@ -24,8 +24,10 @@ theorem countedSource_encodingBudget_after_trajectory {α : Type}
       (countedSourceImpl (Concrete.materializePrecomputation key.cache key.secretKey))
       computation).run (CountedSourceState.initial key.cache))) :
     CountedSourceEncodingBudget key.secretKey.parameter result.2 := by
+  rw [← Concrete.materializePrecomputation_parameter key.cache key.secretKey]
   apply countedSource_encodingBudget (Concrete.materializePrecomputation key.cache key.secretKey)
     computation _ _ result hresult
+  rw [Concrete.materializePrecomputation_parameter]
   change cachedEncodingInputCount key.cache key.secretKey.parameter ≤ _
   have hzero := cachedEncodingInputCount_eq_zero_of_no_encodingInputs key.cache key.secretKey.parameter
     (Concrete.keygen_cache_none_encodingInput key.keyResult

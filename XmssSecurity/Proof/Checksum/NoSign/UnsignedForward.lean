@@ -167,7 +167,14 @@ theorem hiddenSibling_unsigned_guard_le (adversary : Adversary) :
             (simulateQ romImpl (body keyResult.1.1)).run keyResult.2] := by
       conv_lhs => arg 1; ext keyResult; arg 1; rw [probOutput_congr rfl hdist]
       rw [tsum_probOutput_map_mul]
-      rfl
+      refine tsum_congr fun keyResult => ?_
+      refine congrArg₂ (fun (p q : ℝ≥0∞) => p * q) rfl ?_
+      simp only [Concrete.materializeCachedKeyResult_publicKey,
+        Concrete.materializeCachedKeyResult_cache, Concrete.materializeCachedKeyResult_secretKey]
+      apply probEvent_congr' _ rfl
+      intro result _
+      simp only [HiddenSiblingGuessed,
+        Concrete.materializePrecomputation_parameter, Concrete.materializePrecomputation_chainStart]
     _ ≤ _ := by
       simpa only [idealProgramSize_forwardMarked, body, unsignedRate] using
         hiddenSibling_program_guard_le body Prod.fst (fun result => result.2 = 0)

@@ -154,7 +154,9 @@ theorem eval_treeNode (cache : QueryCache HashSpec)
       simp only [evalWithAnswerFn_bind, ih, treeNode_succ_eq]
       split <;> simp_all
 
-/-! The statement stores the precomputed secret key as `evalWithAnswerFn (replayHash cache)` runs of its own oracle algorithms; `answerFn` is the same answer function, so the `eval_*` lemmas above give the first-order `CacheView`/`CacheReplay` forms of the stored tables. -/
+/-! Key generation materializes the secret key's vectors using `evalWithAnswerFn (replayHash cache)`.
+The `eval_*` lemmas and `Vector.getElem_ofFn` identify each stored digest with its
+`CacheView`/`CacheReplay` value. -/
 
 theorem answerFn_eq_replayHash (cache : QueryCache HashSpec) :
     answerFn cache = Concrete.replayHash cache := rfl
@@ -186,16 +188,18 @@ theorem precomputedSecretKey_chainValue (parameter : PublicParameter)
     (leafIndex : LeafIndex) (chain : ChainIndex) (digit : Digit) :
     (Concrete.precomputedSecretKey parameter secret cache).chainValue leafIndex chain digit =
       Wots.walk (CacheView.chainStep cache parameter leafIndex chain) 0 digit.val
-        (secret leafIndex chain) :=
-  eval_replayHash_chainWalk cache parameter leafIndex chain 0 digit.val (secret leafIndex chain)
+        (secret leafIndex chain) := by
+  simpa [XmssSecurity.SecretKey.chainValue, Concrete.precomputedSecretKey] using
+    eval_replayHash_chainWalk cache parameter leafIndex chain 0 digit.val (secret leafIndex chain)
 
 @[simp]
 theorem precomputedSecretKey_treeValue (parameter : PublicParameter)
     (secret : LeafIndex → ChainIndex → Digest) (cache : QueryCache HashSpec)
     (height : MerkleHeight) (node : MerkleNode) :
     (Concrete.precomputedSecretKey parameter secret cache).treeValue height node =
-      treeNode cache parameter secret height.val node :=
-  eval_replayHash_treeNode cache parameter secret height.val node
+      treeNode cache parameter secret height.val node := by
+  simpa [XmssSecurity.SecretKey.treeValue, Concrete.precomputedSecretKey] using
+    eval_replayHash_treeNode cache parameter secret height.val node
 
 def signedChainValues (cache : QueryCache HashSpec) (secretKey : SecretKey)
     (leafIndex : LeafIndex) (encoding : Encoding) : ChainIndex → Digest :=

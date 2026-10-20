@@ -66,10 +66,12 @@ theorem hiddenSibling_scheme_le (adversary : Adversary) (D : ℕ)
               keyResult.1.2)).run keyResult.2] := by
       rw [tsum_probOutput_map_mul]
       refine tsum_congr fun keyResult => ?_
-      congr 1
+      refine congrArg₂ (fun (p q : ℝ≥0∞) => p * q) rfl ?_
       simp only [adversaryPhase_eq_of_noSign adversary hno, simulateQ_map, StateT.run_map,
-        probEvent_map]
-      rfl
+        probEvent_map, Concrete.materializeCachedKeyResult_publicKey,
+        Concrete.materializeCachedKeyResult_cache, Concrete.materializeCachedKeyResult_secretKey,
+        HiddenSiblingGuessed,
+        Concrete.materializePrecomputation_parameter, Concrete.materializePrecomputation_chainStart]
     _ ≤ _ := hiddenSibling_le adversary D hD hno
 
 /-- An adversary without signing requests and with `D` direct hash queries forges with

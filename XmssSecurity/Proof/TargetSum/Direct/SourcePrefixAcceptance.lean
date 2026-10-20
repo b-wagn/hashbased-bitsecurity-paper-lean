@@ -107,7 +107,11 @@ theorem sourceCountedPrefix_accepted_probability_le (adversary : Adversary) :
       intro key
       by_cases hkey : key ∈ support CappedChain.trajectoryProgrammedGlobalChainKeygen
       · apply mul_le_mul' le_rfl
-        simp only [bind_pure_comp, probEvent_map]
+        simp only [bind_pure_comp, probEvent_map, Function.comp_def, SourceCountedPrefixAccepted,
+          sourceCountedPrefixExecution, credit, Concrete.materializeCachedKeyResult_publicKey,
+          Concrete.materializeCachedKeyResult_secretKey, Concrete.materializeCachedKeyResult_cache,
+          CappedChain.ProgrammedGlobalChainKeygenView.keyResult, Concrete.materializePrecomputation_parameter]
+        rw [← Concrete.materializePrecomputation_parameter key.cache key.secretKey]
         apply countedSource_accepted_probability_le key.publicKey
           (Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
         apply Concrete.precomputedKeygen_no_acceptedEncoding (Concrete.materializeCachedKeyResult key.keyResult)

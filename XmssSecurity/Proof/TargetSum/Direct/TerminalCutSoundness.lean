@@ -103,7 +103,10 @@ theorem rejectingLastNonencoding_source_noAccepted {α : Type}
   have hcache : ¬HasAcceptedEncoding left.secretKey.parameter source.counts.cache := by
     rw [hasAcceptedEncoding_iff_of_comparableCaches _ _ _ hcausal.1]
     simpa only [hparameter] using hrejecting
-  apply hbudget.noAcceptedEncoding_after_last_nonencoding (by omega) hcache _ result hresult
+  rw [← Concrete.materializePrecomputation_parameter left.cache left.secretKey]
+  apply hbudget.noAcceptedEncoding_after_last_nonencoding (by omega)
+    (by rw [Concrete.materializePrecomputation_parameter]; exact hcache) _ result hresult
+  rw [Concrete.materializePrecomputation_parameter]
   change ¬CappedEncodingMonitor.IsEncodingHashQuery left.secretKey.parameter (.inr hashInput)
   rw [← hparameter]
   exact hinput

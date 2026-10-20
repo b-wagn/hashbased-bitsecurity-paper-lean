@@ -150,10 +150,9 @@ end Concrete
 
 /-! ### Key generation: the stored chain values and tree nodes
 
-Key generation computes the Merkle root through the oracle while logging its hash queries. The
-secret key stores every chain value and Merkle node; they are read off that log: the chain and
-tree computations are re-run with each hash query answered from the logged values
-(`precomputedSecretKey`), so no further oracle query is made. -/
+Key generation computes the Merkle root through the oracle while logging its hash queries, then
+materializes every chain value and Merkle node into vectors before returning. The recorded answers
+fill the vectors without further oracle queries; signing only indexes the stored digests. -/
 
 /-- Enter a query log into a cache, in order. -/
 def extendHashCacheWithLog (initialCache : QueryCache HashSpec) :
@@ -172,17 +171,18 @@ namespace Concrete
 def replayHash (cache : QueryCache HashSpec) : QueryImpl HashSpec Id :=
   fun input => (cache input).getD 0
 
-/-- Compute the stored chain values and Merkle nodes by replaying the key-generation query log. -/
+/-- Materialize the chain values and Merkle nodes into vectors during key generation.
+Replay is used only to fill the vectors; the resulting key stores digests, not replay functions. -/
 def precomputedSecretKey (parameter : PublicParameter)
     (secret : LeafIndex → ChainIndex → Digest) (cache : QueryCache HashSpec) :
     SecretKey where
   parameter := parameter
   chainStart := secret
-  chainValue := fun leafIndex chain digit =>
+  chainValues := Vector.ofFn fun leafIndex => Vector.ofFn fun chain => Vector.ofFn fun digit =>
     evalWithAnswerFn (replayHash cache)
       (chainWalk parameter leafIndex chain 0 digit.val (secret leafIndex chain) :
         OracleComp HashSpec Digest)
-  treeValue := fun height node =>
+  treeValues := Vector.ofFn fun height => Vector.ofFn fun node =>
     evalWithAnswerFn (replayHash cache)
       (treeNode parameter secret height.val node : OracleComp HashSpec Digest)
 

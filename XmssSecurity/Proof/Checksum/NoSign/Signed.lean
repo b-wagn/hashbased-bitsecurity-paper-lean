@@ -200,7 +200,10 @@ theorem tsum_scheme_keygen_publicKey (value : PublicKey → ℝ≥0∞) :
       ∑' keyResult, Pr[= keyResult | Concrete.materializeCachedKeyResult <$>
         (simulateQ romImpl Concrete.keygen).run ∅] * value keyResult.1.1 from
     tsum_congr fun keyResult => by rw [probOutput_congr rfl hdist], tsum_probOutput_map_mul]
-  rfl
+  refine tsum_congr fun keyResult => ?_
+  exact congrArg (fun publicKey =>
+    Pr[= keyResult | (simulateQ romImpl Concrete.keygen).run ∅] * value publicKey)
+    (Concrete.materializeCachedKeyResult_publicKey keyResult)
 
 /-! ## The hidden sibling on the executions without a request -/
 
@@ -362,7 +365,14 @@ theorem hiddenSibling_unsigned_le (adversary : Adversary) :
                 HiddenSiblingGuessed keyResult.2 keyResult.1.2 result.1 |
               (simulateQ romImpl (forwardPhase adversary keyResult.1.1)).run keyResult.2] from
         tsum_congr fun keyResult => by rw [probOutput_congr rfl hdist], tsum_probOutput_map_mul]
-      rfl
+      refine tsum_congr fun keyResult => ?_
+      refine congrArg₂ (fun (p q : ℝ≥0∞) => p * q) rfl ?_
+      simp only [Concrete.materializeCachedKeyResult_publicKey,
+        Concrete.materializeCachedKeyResult_cache, Concrete.materializeCachedKeyResult_secretKey]
+      apply probEvent_congr' _ rfl
+      intro result _
+      simp only [HiddenSiblingGuessed,
+        Concrete.materializePrecomputation_parameter, Concrete.materializePrecomputation_chainStart]
     _ ≤ _ := hiddenSibling_forward_le adversary
 
 end XmssSecurity.Checksum.NoSign

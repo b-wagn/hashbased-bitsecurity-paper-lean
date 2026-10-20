@@ -60,6 +60,7 @@ theorem sourcePrefixFinish_fresh_encoding_probability_le (adversary : Adversary)
   unfold Deciding.verificationPhase at h
   rw [simulateQ_bind, StateT.run_bind] at h
   simp only [simulateQ_pure, StateT.run_pure, bind_pure_comp, probEvent_map] at h
+  rw [Concrete.materializePrecomputation_parameter] at h
   rw [Deciding.sourcePrefixFinish, probEvent_map]
   exact h
 

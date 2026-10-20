@@ -31,8 +31,11 @@ theorem sourcePrefix_freshAccepted_probability_le (adversary : Adversary)
       TargetSum.acceptanceProbability * (D : ℝ≥0∞) := by
   have hbound := probEvent_freshAccepted_le_direct_budget key.publicKey
     (Concrete.materializePrecomputation key.cache key.secretKey) (adversary.main key.publicKey) key.cache
-    (Concrete.keygen_cache_none_encodingInput key.keyResult
-      (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)) D (hD key.publicKey)
+    (by
+      rw [Concrete.materializePrecomputation_parameter]
+      exact Concrete.keygen_cache_none_encodingInput key.keyResult
+        (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)) D (hD key.publicKey)
+  rw [Concrete.materializePrecomputation_parameter] at hbound
   rw [← CappedChain.cappedBothTracedMappedAdversaryImpl_actionProjection key.publicKey
     (Concrete.materializePrecomputation key.cache key.secretKey)
     (adversary.main key.publicKey) ((key.cache, []), []) [], probEvent_map] at hbound

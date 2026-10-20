@@ -43,7 +43,9 @@ theorem keyView_honestChainValue_eq_table (key : ProgrammedGlobalChainKeygenView
   rw [hstable]
   have htable := congrFun (trajectoryProgrammedGlobalChainKeygen_support_table key hkey)
     (chain, leaf, digit)
-  exact htable
+  simpa only [honestChainValue, materializePrecomputation_parameter,
+    materializePrecomputation_chainStart, globalKeygenChainValueTable,
+    CappedChain.keygenChainValueTable, Wots.signChain] using htable
 
 theorem prefixFirstLaneEvent_of_winning_revealed (adversary : Adversary)
     (key : ProgrammedGlobalChainKeygenView)
@@ -60,6 +62,8 @@ theorem prefixFirstLaneEvent_of_winning_revealed (adversary : Adversary)
     (hrevealed : DecidingChainValueRevealed execution.2 execution.1) :
     PrefixFirstLaneEvent key prefixResult := by
   let keyResult := materializeCachedKeyResult key.keyResult
+  have hparameter : keyResult.1.2.parameter = key.secretKey.parameter :=
+    materializePrecomputation_parameter key.cache key.secretKey
   have hkeygen : keyResult ∈ support ((simulateQ romImpl Concrete.scheme.keygen).run ∅) :=
     Concrete.oldKeygen_support_materializedPrecomputedKeygen key.keyResult
       (trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)
@@ -76,7 +80,7 @@ theorem prefixFirstLaneEvent_of_winning_revealed (adversary : Adversary)
   have hdecodePrefix : forgedEncoding prefixResult.2.1.1.1 key.secretKey.parameter prefixResult.1 =
       some encoding := by
     rw [forgedEncoding_eq_of_cache_le _ _ hsecond _ _ hcached]
-    simpa only [hsk, hforgery, materializePrecomputation, precomputedSecretKey] using hdecode
+    simpa only [hsk, hforgery, materializePrecomputation_parameter] using hdecode
   have hprefixEncoding : prefixProbeEncoding prefixResult.2.1.1.1 key.secretKey.parameter prefixResult.1 =
       encoding := by simp only [prefixProbeEncoding, hdecodePrefix, Option.getD_some]
   have hchosen : (prefixProbeResult key.table prefixResult.2.1.1.1 key.secretKey.parameter
@@ -86,18 +90,18 @@ theorem prefixFirstLaneEvent_of_winning_revealed (adversary : Adversary)
     have hselected := decidingSearchResult_eq_decidingChain key.table prefixResult.2.1.1.1
       (materializePrecomputation key.cache key.secretKey) prefixResult.2.2.toSigningLog prefixResult.1 encoding
       (fun chain => keyView_honestChainValue_eq_table key hkey _ hfirst _ chain _)
+    simp only [materializePrecomputation_parameter] at hselected
     have hstable := outcomeDecidingChain_prefix_eq_final adversary keyResult hkeygen
-      ((prefixResult.1, prefixResult.2.2.toSigningLog), prefixResult.2.1.1.1) hphase hcached execution hafter
+      ((prefixResult.1, prefixResult.2.2.toSigningLog), prefixResult.2.1.1.1) hphase
+      (by rw [hparameter]; exact hcached) execution hafter
     have hprefixChain := outcomeDecidingChain_eq prefixResult.2.1.1.1
       (⟨keyResult.1.1, keyResult.1.2, prefixResult.1, prefixResult.2.2.toSigningLog, false⟩ : GameOutcome)
-      encoding hdecodePrefix
+      encoding (by dsimp only; rw [hparameter]; exact hdecodePrefix)
     exact hselected.trans (hprefixChain.symm.trans hstable)
   have hsigned := signedEncoding_eq_of_cache_le _ _ hsecond keyResult.1.2
     prefixResult.2.2.toSigningLog (adversaryPhase_signingLog_consistent adversary keyResult hkeygen
       ((prefixResult.1, prefixResult.2.2.toSigningLog), prefixResult.2.1.1.1) hphase) prefixResult.1.epoch
-  change signedEncoding prefixResult.2.1.1.1 key.secretKey.parameter prefixResult.2.2.toSigningLog
-    prefixResult.1.epoch = signedEncoding execution.2 key.secretKey.parameter
-      prefixResult.2.2.toSigningLog prefixResult.1.epoch at hsigned
+  rw [hparameter] at hsigned
   have hchain : outcomeDecidingChain execution.2 execution.1 =
       decidingChain execution.2 execution.1.secretKey execution.1.signingLog execution.1.forgery
         encoding := outcomeDecidingChain_eq _ _ encoding hdecode
@@ -108,9 +112,7 @@ theorem prefixFirstLaneEvent_of_winning_revealed (adversary : Adversary)
     rintro ⟨signed, hsignedPrefix, hle⟩
     have hsignedFinal : signedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.signingLog execution.1.forgery.epoch = some signed := by
-      rw [hsk, hlog, hforgery]
-      change signedEncoding execution.2 key.secretKey.parameter prefixResult.2.2.toSigningLog
-        prefixResult.1.epoch = some signed
+      rw [hsk, hlog, hforgery, materializePrecomputation_parameter]
       rw [← hsigned]
       exact hsignedPrefix
     exact (not_lt_of_ge hle) (hbelow signed hsignedFinal)
@@ -126,6 +128,6 @@ theorem prefixFirstLaneEvent_of_winning_revealed (adversary : Adversary)
     rw [XmssSecurity.Generic.mem_returnedChainValueIndices_iff]
     change (_, _) ∈ ReturnedChainValueCovered _ _ _ _ at hmemFinal
     rw [returnedChainValueCovered_iff] at hmemFinal
-    simpa only [hsk, hlog, hforgery, materializePrecomputation, precomputedSecretKey] using hmemFinal
+    simpa only [hsk, hlog, hforgery, materializePrecomputation_parameter] using hmemFinal
 
 end XmssSecurity.Generic.Deciding

@@ -38,7 +38,9 @@ theorem sourcePrefix_fresh_encoding_unqueried (adversary : Adversary)
     exact ⟨result, hresult, rfl⟩
   have hcache := freshEncodingCache_execution key.publicKey
     (Concrete.materializePrecomputation key.cache key.secretKey) key.cache
-    (adversary.main key.publicKey) _ hprojection result.1 hfresh hunqueried
+    (adversary.main key.publicKey) _ hprojection result.1 hfresh
+    (by simpa only [Concrete.materializePrecomputation_parameter] using hunqueried)
+  rw [Concrete.materializePrecomputation_parameter] at hcache
   exact hcache.trans (Concrete.keygen_cache_none_encodingInput key.keyResult
     (CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey) _ _)
 

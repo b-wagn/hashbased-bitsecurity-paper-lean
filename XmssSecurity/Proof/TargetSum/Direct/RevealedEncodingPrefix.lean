@@ -43,6 +43,8 @@ theorem revealedEncodingPrefixEvent_of_winning_revealed (adversary : Generic.Adv
       some encoding) :
     RevealedEncodingPrefixEvent key prefixResult encoding := by
   let keyResult := Generic.Concrete.materializeCachedKeyResult key.keyResult
+  have hparameter : keyResult.1.2.parameter = key.secretKey.parameter :=
+    Generic.Concrete.materializePrecomputation_parameter key.cache key.secretKey
   have hkeygen : keyResult ∈ support ((simulateQ Generic.romImpl Generic.Concrete.scheme.keygen).run ∅) :=
     Generic.Concrete.oldKeygen_support_materializedPrecomputedKeygen key.keyResult
       (Generic.CappedChain.trajectoryProgrammedGlobalChainKeygen_support_keyResult key hkey)
@@ -61,18 +63,18 @@ theorem revealedEncodingPrefixEvent_of_winning_revealed (adversary : Generic.Adv
   have hsigned := Generic.Deciding.signedEncoding_eq_of_cache_le _ _ hsecond keyResult.1.2
     prefixResult.2.2.toSigningLog (Generic.Deciding.adversaryPhase_signingLog_consistent adversary keyResult hkeygen
       ((prefixResult.1, prefixResult.2.2.toSigningLog), prefixResult.2.1.1.1) hphase) prefixResult.1.epoch
-  change Generic.Deciding.signedEncoding prefixResult.2.1.1.1 key.secretKey.parameter prefixResult.2.2.toSigningLog
-    prefixResult.1.epoch = Generic.Deciding.signedEncoding execution.2 key.secretKey.parameter
-      prefixResult.2.2.toSigningLog prefixResult.1.epoch at hsigned
+  rw [hparameter] at hsigned
   have hchain := Generic.Deciding.outcomeDecidingChain_eq execution.2 execution.1 encoding hdecode
   have hchosen : (Generic.Deciding.decidingProbeResult key.table prefixResult.1.epoch
       (Generic.Deciding.signedEncoding prefixResult.2.1.1.1 key.secretKey.parameter prefixResult.2.2.toSigningLog
         prefixResult.1.epoch) encoding prefixResult.1.signature.chainValue).1 =
       Generic.Deciding.outcomeDecidingChain execution.2 execution.1 := by
     rw [hsigned, hchain, hsk, hlog, hforgery]
-    exact Generic.Deciding.decidingSearchResult_eq_decidingChain key.table execution.2
+    have hselected := Generic.Deciding.decidingSearchResult_eq_decidingChain key.table execution.2
       (Generic.Concrete.materializePrecomputation key.cache key.secretKey) prefixResult.2.2.toSigningLog prefixResult.1 encoding
       (fun chain => Generic.Deciding.keyView_honestChainValue_eq_table key hkey _ (hfirst.trans hsecond) _ chain _)
+    rw [Generic.Concrete.materializePrecomputation_parameter] at hselected
+    exact hselected
   change Generic.SigningTranscript.Valid _ ∧ _ ∧ _ ∧ _
   refine ⟨?_, ?_, ?_, ?_⟩
   · rw [← hlog]
@@ -81,9 +83,7 @@ theorem revealedEncodingPrefixEvent_of_winning_revealed (adversary : Generic.Adv
     rintro ⟨signed, hsignedPrefix, hle⟩
     have hsignedFinal : Generic.Deciding.signedEncoding execution.2 execution.1.secretKey.parameter
         execution.1.signingLog execution.1.forgery.epoch = some signed := by
-      rw [hsk, hlog, hforgery]
-      change Generic.Deciding.signedEncoding execution.2 key.secretKey.parameter prefixResult.2.2.toSigningLog
-        prefixResult.1.epoch = some signed
+      rw [hsk, hlog, hforgery, Generic.Concrete.materializePrecomputation_parameter]
       rw [← hsigned]
       exact hsignedPrefix
     exact (not_lt_of_ge hle) (hbelow signed hsignedFinal)
@@ -99,7 +99,7 @@ theorem revealedEncodingPrefixEvent_of_winning_revealed (adversary : Generic.Adv
     rw [Generic.mem_returnedChainValueIndices_iff]
     change (_, _) ∈ Generic.CappedChain.ReturnedChainValueCovered _ _ _ _ at hmemFinal
     rw [Generic.CappedChain.returnedChainValueCovered_iff] at hmemFinal
-    simpa only [hsk, hlog, hforgery, Generic.Concrete.materializePrecomputation, Generic.Concrete.precomputedSecretKey] using hmemFinal
+    simpa only [hsk, hlog, hforgery, Generic.Concrete.materializePrecomputation_parameter] using hmemFinal
 
 theorem sourcePrefixFinishAfterHash_revealed_implies_prefixEvent (adversary : Generic.Adversary)
     (key : Generic.CappedChain.ProgrammedGlobalChainKeygenView)
@@ -137,8 +137,10 @@ theorem sourcePrefixFinishAfterHash_revealed_implies_prefixEvent (adversary : Ge
   change key.publicKey.parameter = key.secretKey.parameter at hparameter
   have hdecode : Generic.Deciding.forgedEncoding verified.2 outcome.secretKey.parameter outcome.forgery =
       some (TargetSum.acceptedHashEncoding output) := by
-    change Generic.Concrete.CacheView.decodedEncoding verified.2 key.secretKey.parameter
+    change Generic.Concrete.CacheView.decodedEncoding verified.2
+      (Generic.Concrete.materializePrecomputation key.cache key.secretKey).parameter
       prefixResult.1.epoch (prefixResult.1.message, prefixResult.1.signature.randomness) = _
+    rw [Generic.Concrete.materializePrecomputation_parameter]
     change verified.2 (Generic.Concrete.CacheView.encodingInput key.publicKey.parameter prefixResult.1.epoch
       (prefixResult.1.message, prefixResult.1.signature.randomness)) = some output.1 at houtput
     rw [hparameter] at houtput

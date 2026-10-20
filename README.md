@@ -58,6 +58,11 @@ codewords, and the number of randomizer trials of the signer). The two encodings
   `v = 35` chains. Every digest encodes, so the signer makes a single attempt and costs two hash
   calls (the randomizer and the encoding).
 
+The secret key contains the seed, public parameter, chain starts, and finite vectors of all
+chain values and Merkle nodes. Key generation fills these vectors from its recorded hash answers
+before returning. Signing reads the stored digests by index; it does not replay chains or trees.
+Materializing the vectors makes no additional oracle queries.
+
 The levels differ in two places. With the checksum, the signer is cheap, so charging it does not
 make the 122-bit attack (replace one chain value of a signature by a random value) expensive:
 the attack costs `2` or `3`. The two modes have exact integer levels 123 and 124. With the target sum, a standard
