@@ -9,16 +9,18 @@ import XmssSecurity.Proof.Checksum.Scheme.Bridge
 /-!
 # Correctness of XMSS: the theorems
 
-Correctness error is at most `2^-64864` for target sum and zero for checksum.
+Correctness error is at most `2^-256` for target sum and zero for checksum.
 The experiment in `Security/Correctness.lean` allows adaptive requests and unlimited hash queries.
 -/
 
 namespace XmssSecurity
 
-/-- XMSS with the target-sum encoding has correctness error at most `2^-64864`. -/
-theorem xmssTargetSum_correct : Correctness.HasCorrectnessError xmssTargetSum (1 / 2 ^ 64864) := by
+/-- XMSS with the target-sum encoding has correctness error at most `2^-256`. -/
+theorem xmssTargetSum_correct : Correctness.HasCorrectnessError xmssTargetSum (1 / 2 ^ 256) := by
   rw [TargetSum.xmssTargetSum_eq]
-  exact TargetSum.Correct.correctnessError_le
+  intro q adversary hbound
+  refine (TargetSum.Correct.correctnessError_le q adversary hbound).trans ?_
+  gcongr <;> norm_num
 
 /-- info: 'XmssSecurity.xmssTargetSum_correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -99,14 +99,15 @@ setting the failure flag. The correctness error is at most `δ` if every adversa
 
 `xmssChecksum_correct` (`Statement/CorrectnessTheorems.lean`) proves that the checksum scheme has
 correctness error `0`. `xmssTargetSum_correct` proves that the target-sum scheme has correctness
-error at most `2^-64864`. With the target sum, a signature that the signer returns verifies, and
+error at most `2^-256`. With the target sum, a signature that the signer returns verifies, and
 signing fails when all `2^32` randomizers give digests that do not decode. The adversary's hash
 queries are unlimited, so it may learn the master seed and search for a bad message. The proof
 therefore fixes a public parameter, master seed, epoch, and message, and bounds the probability
 that the final oracle answers show all trials of that request failing by
 `(1 - p + 2^32 / 2^128)^(2^32) ≤ 2^-(2^16)`, where `p > 2^-15` is the probability that a uniform
 digest decodes (`Proof/TargetSum/SigningFailure.lean`). A union bound over the `2^672` such
-tuples gives the bound (`Proof/TargetSum/CorrectnessError.lean`).
+tuples gives a stronger internal estimate, from which the stated bound follows
+(`Proof/TargetSum/CorrectnessError.lean`).
 
 ## Layout
 
