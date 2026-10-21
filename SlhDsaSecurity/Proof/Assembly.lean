@@ -180,4 +180,52 @@ theorem cap_defect_within_slack {defect : ℝ≥0∞} (messageQueries : Nat)
     rw [defect_eq]
     exact ENNReal.div_le_div_right (Nat.cast_le.mpr (by omega)) _
 
+/-! ## The dichotomy, read off the weighted counter
+
+The answer side is charged `weighted / 2 ^ 129`, against an allowance of `2 q / 2 ^ 129`. The
+room left is `(2 q - weighted) / 2 ^ 129`, and the load-cap defect has to come out of it.
+
+What makes this work without a second counter is that the same quantity bounds the number of
+message-class queries. Writing `s` and `m` for the structural and message counts, the weights
+are `2` and `1`, so `weighted = 2 s + m` while the total is `s + m ≤ q`; hence
+
+    m ≤ 2 q - weighted.
+
+So the case split can be made on `2 q - weighted`, which the instrumented run produces
+directly:
+
+* `2 q - weighted ≥ 16` — the room is at least `16 / 2 ^ 129 = 2 ^ -125`, twice the `2 ^ -126`
+  defect, so the concentration bound is affordable;
+* `2 q - weighted < 16` — then `m < 16`, fewer than sixteen disclosures, and
+  `ForsCoverageTerm.moment_le_of_few_digests` gives the cap outright with no defect to pay.
+-/
+
+/-- **The message count is bounded by the room left in the weighted budget.** -/
+theorem messageCount_le_slack (structural message queries : Nat)
+    (htotal : structural + message ≤ queries) :
+    message ≤ 2 * queries - (2 * structural + message) := by omega
+
+/-- Either there is room for the defect, or there were too few disclosures to need one. -/
+theorem slack_or_few (weighted message queries : Nat)
+    (hbound : message ≤ 2 * queries - weighted) :
+    16 ≤ 2 * queries - weighted ∨ message < 16 := by omega
+
+/-- The allowance, in the units the weighted charge produces. -/
+theorem target_eq_half (queries : Nat) :
+    (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) =
+      ((2 * queries : Nat) : ℝ≥0∞) / ((2 ^ 129 : Nat) : ℝ≥0∞) := by
+  rw [show ((2 ^ 129 : Nat) : ℝ≥0∞) = 2 * ((2 ^ 128 : Nat) : ℝ≥0∞) from by push_cast; ring,
+    show ((2 * queries : Nat) : ℝ≥0∞) = 2 * (queries : ℝ≥0∞) from by push_cast; ring,
+    ENNReal.mul_div_mul_left _ _ (by norm_num) (by norm_num)]
+
+/-- **With room, the charge and the defect together stay inside the allowance.** -/
+theorem weighted_add_defect_le (weighted queries : Nat)
+    (hslack : 16 ≤ 2 * queries - weighted) (hle : weighted ≤ 2 * queries) :
+    (weighted : ℝ≥0∞) / ((2 ^ 129 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) ≤
+      (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [defect_eq, ENNReal.div_add_div_same, ← Nat.cast_add, target_eq_half]
+  refine ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _
+  omega
+
 end SlhDsaSecurity.Assembly

@@ -2638,3 +2638,11 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_badWithinClasses_whole_game_le' d
 /-- info: 'SlhDsaSecurity.WeightedCharge.weightedGrowth_le_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WeightedCharge.weightedGrowth_le_count
+
+/-- info: 'SlhDsaSecurity.Assembly.messageCount_le_slack' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.messageCount_le_slack
+
+/-- info: 'SlhDsaSecurity.Assembly.weighted_add_defect_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.weighted_add_defect_le
