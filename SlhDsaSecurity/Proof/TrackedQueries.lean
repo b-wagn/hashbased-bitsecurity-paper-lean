@@ -75,4 +75,75 @@ theorem card_le_count {α : Type} (computation : OracleComp OracleWorld α)
       rw [hstate]
       exact le_trans (Finset.card_insert_le _ _) (Nat.succ_le_succ hstart)
 
+/-! ## The exact comparison, over this oracle
+
+`BlindComparison.prob_touched_eq` is stated over the flag-carrying oracle. The same statement
+and the same proof hold here, with "the flag is set" replaced by "the queried set meets `S`",
+and that is the form the input half needs — because the set is what the blind bound consumes.
+
+The two cases are unchanged. At a query inside `S` both runs add that input, so both have met
+`S` whatever happens next; at a query outside it the two caches agree at that very input, so
+the answer distribution is the same and the agreement survives. -/
+
+/-- The queried set has met `S`. -/
+def Meets (S : Bytes → Prop) (state : State) : Prop := ∃ input ∈ state.2.1, S input
+
+/-- The queried set only grows. -/
+theorem subset_of_run {α : Type} (computation : OracleComp OracleWorld α)
+    (initial : State) (result : α × State)
+    (hmem : result ∈ support ((simulateQ tracked computation).run initial)) :
+    initial.2.1 ⊆ result.2.2.1 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing initial result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine subset_trans ?_ (ih step.1 step.2 result hrest)
+    rcases queried with coin | input
+    · have hsame : step.2 = initial := by
+        have hform : ∃ value, (value, initial) = step := by
+          simpa [tracked, StateT.run] using hstep
+        obtain ⟨value, hpair⟩ := hform
+        exact (congrArg Prod.snd hpair).symm
+      rw [hsame]
+    · have hcopy := hstep
+      simp only [tracked, StateT.run] at hcopy
+      rw [mem_support_bind_iff] at hcopy
+      obtain ⟨inner, -, hinner⟩ := hcopy
+      rw [support_pure, Set.mem_singleton_iff] at hinner
+      rw [congrArg Prod.snd hinner]
+      exact Finset.subset_insert _ _
+
+/-- Having met `S`, the run has met it. -/
+theorem meets_persists {α : Type} (S : Bytes → Prop) (computation : OracleComp OracleWorld α)
+    (initial : State) (result : α × State)
+    (hmem : result ∈ support ((simulateQ tracked computation).run initial))
+    (hmeets : Meets S initial) : Meets S result.2 := by
+  obtain ⟨input, hinput, hS⟩ := hmeets
+  exact ⟨input, subset_of_run computation initial result hmem hinput, hS⟩
+
+/-- The tracked oracle never fails. -/
+theorem tracked_neverFails {α : Type} (computation : OracleComp OracleWorld α)
+    (initial : State) :
+    Pr[⊥ | (simulateQ tracked computation).run initial] = 0 := by
+  induction computation using OracleComp.inductionOn generalizing initial with
+  | pure value => rw [simulateQ_pure, StateT.run_pure]; simp
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, probFailure_bind_eq_add_tsum]
+    have hstepFails : Pr[⊥ | (tracked queried).run initial] = 0 := by
+      rcases queried with coin | input <;> simp [tracked, StateT.run]
+    rw [hstepFails, zero_add]
+    simp [ih]
+
+/-- Once `S` has been met the event is certain. -/
+theorem meets_one {α : Type} (S : Bytes → Prop) (computation : OracleComp OracleWorld α)
+    (initial : State) (hmeets : Meets S initial) :
+    Pr[fun result : α × State => Meets S result.2 |
+      (simulateQ tracked computation).run initial] = 1 :=
+  probEvent_eq_one ⟨tracked_neverFails computation initial,
+    fun result hmem => meets_persists S computation initial result hmem hmeets⟩
+
 end SlhDsaSecurity.TrackedQueries
