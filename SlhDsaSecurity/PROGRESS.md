@@ -714,3 +714,47 @@ last is more than wiring.
    with no machinery behind it, and it was flagged as open in this file before any of the
    present work began.
 
+## The coupling: machinery exists, and what it demands
+
+The claim above that the until-first-hit coupling has "no machinery behind it" is wrong.
+VCVio has `VCVio/StateSeparating/IdenticalUntilBad.lean`, whose
+`QueryImpl.Stateful.advantage_le_expectedQuerySlack_plus_probEvent_bad` is exactly the
+game-hop: two stateful handlers over a state `σ × Bool`, the Boolean being the bad flag,
+with
+
+    advantage ≤ expectedQuerySlack + Pr[bad fired]
+
+under a per-step total-variation hypothesis and a query bound `IsQueryBoundP`. Taking the
+blind handler for `h₁`, a `querySlack` of `2 ^ -128` and a bad flag that never fires gives
+`q / 2 ^ 128` — the input-side half, exactly.
+
+**The structural requirement is the real finding.** The per-step hypothesis is
+
+    ∀ t s, tvDist ((h₀ t).run (s, false)) ((h₁ t).run (s, false)) ≤ querySlack s
+
+and it is quantified over *every* state `s`. If the secret seed lives in `s`, this is false
+pointwise: for the one `t` that is the seed-derived input of that particular `s`, the real
+handler returns the honest value and the blind handler returns a fresh one, so the distance
+is `1`, not `2 ^ -128`. Averaging over the seed is what makes the bound true, and this
+hypothesis does not average.
+
+So the theorem applies only to handlers whose state does **not** contain the seed — the seed
+must be sampled *lazily, inside the step*, at which point the step's own sampling supplies
+the `2 ^ -128` honestly and the hypothesis holds as stated. The chain is therefore three
+steps, not one:
+
+1. the real experiment (seed sampled eagerly at key generation) equals the same experiment
+   with the seed sampled lazily at first use — a deferred-sampling equality in the style of
+   `CanonicalGraph.Programming.warmup_seed_uniform`, which already performs exactly this move
+   for the warmup;
+2. the lazy-seed handler and the blind handler satisfy the per-step bound at `2 ^ -128`, so
+   `advantage_le_expectedQuerySlack_plus_probEvent_bad` separates them by `q / 2 ^ 128`;
+3. in the blind game the seed is independent of the transcript by construction, so
+   `BlindKey.mixture_hit_le_expected` with `expectedGuesses_le_of_cap` closes it.
+
+Step 3 is done, twice. Step 2 is an application of an existing theorem once the handlers are
+written. Step 1 is the one that still needs proving, and it is a narrower obligation than
+"the coupling": not an induction over the adversary's execution carrying an independence
+invariant, but a single commutation of one uniform sample past a computation that consumes it
+only as query-input bytes.
+
