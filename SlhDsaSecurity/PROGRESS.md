@@ -801,3 +801,35 @@ query they answer identically and recurse. That is the next concrete step, and u
 identical-until-bad hop it does not require a per-step bound quantified over states the eager
 seed makes unreachable.
 
+## Presampling: proved for the verifier's world, blocked for the game's
+
+`Proof/Presample.lean` establishes, over `OracleComp HashSpec`:
+
+* `evalDist_prepend_fresh` — filling one empty cache entry with a uniform value does not change
+  the law of what follows;
+* `evalDist_prefill` — the same for a duplicate-free list of empty inputs;
+* `evalDist_prepend_evaluate` — the same for an adaptive traversal, whose next input is chosen
+  using the value just drawn. This is the form the honest parties' queries actually take, since
+  a node's byte input is built from its children's cells.
+
+With `GraphFreshSampling.evalDist_evaluate_eq_uniform_program` these fix the honest cells ahead
+of the adversary, which is what every charge is parameterised by.
+
+**They are not yet available in the game's oracle world.** The experiment runs in
+`OracleComp OracleWorld`, which is `unifSpec + HashSpec`: hash calls and coin flips together.
+Mathematically the lift is routine — a coin flip does not touch the hash cache, so it commutes
+with the prepended draw exactly as a hash query at a different input does, and that is the only
+new case.
+
+The obstruction is mechanical and worth recording precisely, because it cost a session's turn
+and will recur. In the sum world a hash query's answer has type `OracleWorld.Range (Sum.inr t)`,
+while the `randomOracle` lemmas and the cache are phrased at `HashSpec.Range t`. The two are
+definitionally equal but not syntactically so, and `simp` normalises the goal and the rewriting
+hypotheses into *different* ones of the two, after which neither `rw` nor `simp only` can make
+progress. Type ascriptions on the hypotheses do not fix it, because the mismatch is introduced
+by the binder that `evalDist_bind_congr_left` opens, not by the hypothesis.
+
+The fix is to phrase the whole induction at one of the two forms and insert the coercion once,
+at the boundary, rather than letting `simp` choose per subgoal — or to prove a `Range`
+normalisation lemma first and rewrite with it before anything else. Neither was attempted.
+
