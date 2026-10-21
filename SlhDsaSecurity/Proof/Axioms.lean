@@ -33,6 +33,7 @@ import SlhDsaSecurity.Proof.Extraction.Merkle
 import SlhDsaSecurity.Proof.Extraction.Wots
 import SlhDsaSecurity.Proof.Extraction.Fors
 import SlhDsaSecurity.Proof.Extraction.Hypertree
+import SlhDsaSecurity.Proof.Extraction.WotsPreimage
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -358,3 +359,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.Hypertree.layer_canonical_or_collision
+
+/-- info: 'SlhDsaSecurity.Extraction.WotsPreimage.exists_preimage_witness' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.WotsPreimage.exists_preimage_witness
