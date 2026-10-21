@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.FaultCharge
+import SlhDsaSecurity.Proof.VerifierProbes
 import SlhDsaSecurity.Proof.ForsBranch
 import SlhDsaSecurity.Proof.WarmedSplit
 import SlhDsaSecurity.Proof.WarmedCharges
@@ -3001,3 +3002,79 @@ info: 'SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_top_fault' de
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_top_fault
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.simulateQ_messageDigest' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.simulateQ_messageDigest
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.queriesUnder_verify_fors' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.queriesUnder_verify_fors
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.queriesUnder_verify_hypertree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.queriesUnder_verify_hypertree
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.cached_hypertree_probe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.cached_hypertree_probe
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.fors_pathInput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.fors_pathInput
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.fors_eq_trees_bind_compression' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.fors_eq_trees_bind_compression
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.simulateQ_forsTreeRoot' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.simulateQ_forsTreeRoot
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.simulateQ_forsTrees' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.simulateQ_forsTrees
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.queriesUnder_fors_tree' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.queriesUnder_fors_tree
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.queriesUnder_fors_compression' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.queriesUnder_fors_compression
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.queriesUnder_fors_leaf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.queriesUnder_fors_leaf
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.queriesUnder_fors_path' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.queriesUnder_fors_path
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.cached_fors_compression_probe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.cached_fors_compression_probe
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.cached_fors_path_probe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.cached_fors_path_probe
+
+/-- info: 'SlhDsaSecurity.VerifierProbes.cached_fors_leaf_probe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.cached_fors_leaf_probe
+
+/--
+info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_residue_of_verified' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.deviatingCollision_or_residue_of_verified
+
+/--
+info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified
