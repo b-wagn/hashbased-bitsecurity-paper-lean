@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.RecordedBudget
 import SlhDsaSecurity.Proof.HonestGrowth
+import SlhDsaSecurity.Proof.GraphStakes
 import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.SensitiveQuery
 import SlhDsaSecurity.Proof.LazyBridge
@@ -4060,3 +4061,39 @@ info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq_of_commute' depends on
 /-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four
+
+/-- info: 'SlhDsaSecurity.GraphStakes.SensitiveNode.ext' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.SensitiveNode.ext
+
+/-- info: 'SlhDsaSecurity.GraphStakes.inputOf_eq_canonicalInput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.inputOf_eq_canonicalInput
+
+/-- info: 'SlhDsaSecurity.GraphStakes.inputOf_inj' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.inputOf_inj
+
+/-- info: 'SlhDsaSecurity.GraphStakes.locate_inputOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.locate_inputOf
+
+/-- info: 'SlhDsaSecurity.GraphStakes.closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.closed
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_unavailable_of_obtainable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_unavailable_of_obtainable
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_obtainable_wotsPosition' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_obtainable_wotsPosition
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitiveNode_parent' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitiveNode_parent
+
+/-- info: 'SlhDsaSecurity.GraphStakes.honestRevealed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.honestRevealed_le

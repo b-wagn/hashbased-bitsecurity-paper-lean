@@ -19,7 +19,9 @@ remembering how the total splits between the phases.
 How much key generation takes is not computed exactly, and does not need to be: the defects sum
 to less than `2 ^ -125`, so four units at `2 ^ -127` apiece already cover them. Four is read off
 the Merkle recursion — each level above the leaves ends in one compression call and the subtree
-has nine of them, with at least one more in the WOTS public key at the bottom.
+has nine of them, with at least one more in the WOTS public key at the bottom. The induction
+behind it, `succ_le_count_merkleNode`, in fact gives `subtreeHeight + 1`; the statement is left
+at four because four is what the defects need.
 -/
 
 open OracleComp OracleSpec
