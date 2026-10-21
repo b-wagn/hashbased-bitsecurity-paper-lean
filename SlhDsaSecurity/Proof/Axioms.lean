@@ -3624,3 +3624,15 @@ info: 'SlhDsaSecurity.CoverageTail.forsAddress_eq_of_parse_instance_eq' depends 
 /-- info: 'SlhDsaSecurity.CoverageTail.parse_leaves_eq' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageTail.parse_leaves_eq
+
+/-- info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_allowances' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_allowances
+
+/--
+info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_warmed_halves'' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_warmed_halves'

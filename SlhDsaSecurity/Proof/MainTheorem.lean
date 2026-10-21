@@ -128,4 +128,70 @@ theorem totalSecurityBits_of_warmed_halves
         add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
     _ = (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := Assembly.half_add_half q
 
+/-! ## The halves with their own allowances
+
+`totalSecurityBits_of_warmed_halves` splits the target down the middle, `q / 2 ^ 128` each.
+That is the shape the two halves take when nothing is lost, and it has no room for the small
+defects the real charges carry: `2 ^ -141` from the coverage tape's load cap, `2 ^ -126` from
+the cap itself, and whatever discharging `HashSeparation.Possible` eventually costs.
+
+The room exists, but not in the arithmetic — it is in the query count. Every hash call in the
+game is charged to `q`, key generation's included, and after the graph is walked the honest
+phase adds nothing to the cache and can buy nothing on either side. So each half is really
+bounded by something below `q / 2 ^ 128`, and the difference pays for the defects.
+
+Rather than fix a shape for that now, the theorem below takes the two allowances as functions
+of `q` and asks only that they sum to the target. Where they come from — a count subtracted, a
+class separated, a defect parked — is then entirely the business of `Assembly`, which already
+has the arithmetic for it. -/
+
+/-- **The target, from any two allowances that sum to it.** -/
+theorem totalSecurityBits_of_allowances
+    (answerBad inputBad :
+      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × (Outcome × Nat)) ×
+        QueryCache HashSpec → Prop)
+    (answerBound inputBound : Nat → ℝ≥0∞)
+    (hsum : ∀ q : Nat, 1 ≤ q →
+      answerBound q + inputBound q ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞))
+    (hsplit : ∀ (adversary : Adversary),
+      ∀ result ∈ support (WarmedGame.warmedRun adversary),
+      Wins .strong result.1.2.1 → answerBad result ∨ inputBad result)
+    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[answerBad | WarmedGame.warmedRun adversary] ≤ answerBound q)
+    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[inputBad | WarmedGame.warmedRun adversary] ≤ inputBound q) :
+    HasTotalSecurityBits .strong 127 := by
+  intro q hq adversary hbudget
+  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1),
+    WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
+  calc Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary]
+      ≤ Pr[fun result => answerBad result ∨ inputBad result |
+          WarmedGame.warmedRun adversary] :=
+        probEvent_mono (fun result hmem hwin => hsplit adversary result hmem hwin)
+    _ ≤ Pr[answerBad | WarmedGame.warmedRun adversary] +
+          Pr[inputBad | WarmedGame.warmedRun adversary] := probEvent_or_le _ _ _
+    _ ≤ answerBound q + inputBound q :=
+        add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
+    _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := hsum q hq
+
+/-- The even split is the instance with both allowances at half the target. -/
+theorem totalSecurityBits_of_warmed_halves'
+    (answerBad inputBad :
+      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × (Outcome × Nat)) ×
+        QueryCache HashSpec → Prop)
+    (hsplit : ∀ (adversary : Adversary),
+      ∀ result ∈ support (WarmedGame.warmedRun adversary),
+      Wins .strong result.1.2.1 → answerBad result ∨ inputBad result)
+    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[answerBad | WarmedGame.warmedRun adversary] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[inputBad | WarmedGame.warmedRun adversary] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    HasTotalSecurityBits .strong 127 :=
+  totalSecurityBits_of_allowances answerBad inputBad
+    (fun q => (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (fun q => (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (fun q _ => le_of_eq (Assembly.half_add_half q)) hsplit hanswer hinput
+
 end SlhDsaSecurity.MainTheorem
