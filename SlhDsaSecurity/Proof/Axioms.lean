@@ -54,9 +54,9 @@ import SlhDsaSecurity.Proof.SeedDeferral
 import SlhDsaSecurity.Proof.QueryCached
 import SlhDsaSecurity.Proof.ClassBudget
 import SlhDsaSecurity.Proof.CacheReplay
-import SlhDsaSecurity.Proof.ChainDeviation
 import SlhDsaSecurity.Proof.MerkleCharge
 import SlhDsaSecurity.Proof.ForsCharge
+import SlhDsaSecurity.Proof.WotsCharge
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -707,10 +707,6 @@ info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_array' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_array
 
-/-- info: 'SlhDsaSecurity.ChainDeviation.fold_eq_honest' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChainDeviation.fold_eq_honest
-
 /-- info: 'SlhDsaSecurity.CacheReplay.tweakable_replayQuery' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.tweakable_replayQuery
@@ -730,3 +726,7 @@ info: 'SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision
+
+/-- info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_chainCollision' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WotsCharge.deviatingCollision_of_chainCollision
