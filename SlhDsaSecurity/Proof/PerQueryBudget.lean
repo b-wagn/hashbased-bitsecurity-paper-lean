@@ -78,4 +78,41 @@ theorem union_bound_is_weaker (queries : Nat) (hqueries : 0 < queries) :
   simp only [secretGuessRate, structuralRate, forsCoverageRate, targetRate]
   omega
 
+/-! ## Why the existing 127-bit results do not transfer
+
+The secret-guessing rate is the only one that depends on the seed length, and it is what
+decides the whole question.
+
+`SLH-DSA-128s` sets `n = 16`, so `SK.seed` and `SK.prf` are 128-bit and a guess costs
+`2 ^ -128`, rate `2`. Added to the structural rate `2` that is already the entire target, so
+the FORS term — however sharp its cap — pushes the union past `4`.
+
+The 127-bit theorems that already exist use **256-bit** seeds: the leanVM `lean_sphincs`
+scheme and the XMSS development in this repository both do. There a seed guess costs
+`2 ^ -256`, which is negligible at this scale, so the union is `2 + 1 = 3`, inside the target,
+and a per-query union bound suffices. That is precisely the term those proofs never had to
+pay, and it is why their structure does not carry over to standard `SLH-DSA-128s`.
+
+So the obstruction is a parameter fact about the standard scheme, not a gap in the
+machinery here. -/
+
+/-- Secret-guessing rate as a function of the seed length, in units of `2 ^ -129`: a `b`-bit
+secret is guessed at rate `2 ^ -b`, i.e. `2 ^ (129 - b)` units. Lengths past `129` bits cost
+less than one unit, so they are recorded as `0`; at `b = 256` the true rate is `2 ^ -256`,
+which is below this granularity by a factor `2 ^ 127`. -/
+def seedGuessRateOfBits (bits : Nat) : Nat := if bits ≤ 128 then 2 ^ (129 - bits) else 0
+
+theorem seedGuessRate_128 : seedGuessRateOfBits 128 = secretGuessRate := by decide
+
+theorem seedGuessRate_256 : seedGuessRateOfBits 256 = 0 := by decide
+
+/-- **With 128-bit seeds the union bound cannot reach the target.** -/
+theorem union_exceeds_target_of_128 :
+    targetRate < seedGuessRateOfBits 128 + structuralRate + forsCoverageRate := by decide
+
+/-- **With 256-bit seeds it can.** This is the regime of the existing 127-bit theorems, and
+the reason their argument does not transfer to `SLH-DSA-128s`. -/
+theorem union_within_target_of_256 :
+    seedGuessRateOfBits 256 + structuralRate + forsCoverageRate ≤ targetRate := by decide
+
 end SlhDsaSecurity.PerQueryBudget

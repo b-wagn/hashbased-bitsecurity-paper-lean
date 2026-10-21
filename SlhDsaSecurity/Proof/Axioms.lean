@@ -584,3 +584,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.PerQueryBudget.split_within_target' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PerQueryBudget.split_within_target
+
+/-- info: 'SlhDsaSecurity.PerQueryBudget.union_exceeds_target_of_128' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PerQueryBudget.union_exceeds_target_of_128
+
+/-- info: 'SlhDsaSecurity.PerQueryBudget.union_within_target_of_256' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PerQueryBudget.union_within_target_of_256
