@@ -64,6 +64,7 @@ import SlhDsaSecurity.Proof.WotsEntry
 import SlhDsaSecurity.Proof.HypertreeDispatch
 import SlhDsaSecurity.Proof.InputCoupling
 import SlhDsaSecurity.Proof.ForsDispatch
+import SlhDsaSecurity.Proof.BlindComparison
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -2551,3 +2552,9 @@ info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision
+
+/-! Kernel dependency checks for the blind comparison. -/
+
+/-- info: 'SlhDsaSecurity.BlindComparison.flag_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindComparison.flag_one
