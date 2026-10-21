@@ -99,4 +99,51 @@ theorem value_eq_cellsOfOutputs (publicSeed secretSeed : Digest)
   rw [hcache]
   rfl
 
+/-! ## Unfolding an acceptance
+
+`verify_eq_replay` says the game's verdict is the replayed verifier's. This takes that verdict
+apart: a `true` from `Scheme.verify` means the request framed, the signature parsed, and the
+hypertree verified against the FORS key recovered from the signature — which is exactly the
+shape `HypertreeDispatch.cases_of_accepted` consumes.
+
+Both steps are case analysis on the `Option`s in `Scheme.verify`, with no hashing involved:
+an invalid context or a malformed signature is rejected before any oracle call, so there is
+nothing to charge and nothing to extract. -/
+
+variable [HasQuery HashSpec Id]
+
+/-- An acceptance frames, parses, and passes the internal verifier. -/
+theorem verifyInternal_of_verify (pk : PublicKey) (request : Message) (signature : Bytes)
+    (haccept : Scheme.verify (m := Id) pk request signature = true) :
+    ∃ (message : Bytes) (parsed : Signature),
+      request.frame = some message ∧ Signature.fromBytes? signature = some parsed ∧
+        Scheme.verifyInternal (m := Id) pk message parsed = true := by
+  unfold Scheme.verify at haccept
+  cases hframe : request.frame with
+  | none => rw [hframe] at haccept; exact absurd haccept (by simp)
+  | some message =>
+    rw [hframe] at haccept
+    cases hparsed : Signature.fromBytes? signature with
+    | none => rw [hparsed] at haccept; exact absurd haccept (by simp)
+    | some parsed =>
+      rw [hparsed] at haccept
+      exact ⟨message, parsed, rfl, rfl, haccept⟩
+
+/-- The internal verifier's acceptance is a hypertree acceptance at the recovered FORS key. -/
+theorem hypertree_of_verifyInternal (pk : PublicKey) (message : Bytes) (parsed : Signature)
+    (haccept : Scheme.verifyInternal (m := Id) pk message parsed = true) :
+    SlhDsaSecurity.Hypertree.verify (m := Id)
+        (SlhDsaSecurity.Fors.publicKeyFromSignature (m := Id) parsed.fors
+          (MessageDigest.forsIndices
+            (Hashing.messageDigest (m := Id) parsed.randomizer pk message))
+          pk.seed
+          (Scheme.forsAddress
+            (Hashing.messageDigest (m := Id) parsed.randomizer pk message)))
+        parsed.hypertree pk
+        (MessageDigest.treeIndex
+          (Hashing.messageDigest (m := Id) parsed.randomizer pk message))
+        (MessageDigest.leafIndex
+          (Hashing.messageDigest (m := Id) parsed.randomizer pk message)).toFin = true :=
+  haccept
+
 end SlhDsaSecurity.GameBridge
