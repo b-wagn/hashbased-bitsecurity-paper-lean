@@ -812,3 +812,7 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.CacheReplay.replayFold_step_eq_tweakable' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.replayFold_step_eq_tweakable
+
+/-- info: 'SlhDsaSecurity.CacheReplay.foldl_finRange_take' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.foldl_finRange_take

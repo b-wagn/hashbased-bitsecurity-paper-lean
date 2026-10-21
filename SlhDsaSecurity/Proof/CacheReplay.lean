@@ -375,4 +375,21 @@ theorem replayFold_step_eq_tweakable (cache : QueryCache HashSpec) (publicSeed :
       @Hashing.tweakable Id _ (replayQuery cache) publicSeed address payload := by
   simp [Hashing.tweakable, Hashing.shortHash, Hashing.hash, replayQuery, replay, Functor.map]
 
+/-! ## Matching the two folds' index types
+
+`queriesUnder_foldlM_get` arrives at a value folded over `(List.finRange n).take k`, whose
+elements are `Fin n`, while `Extraction.BinaryPath.value` recurses on a bare `Nat` height and
+`value_eq_fold` folds over `List.finRange k`, whose elements are `Fin k`. The two lists carry
+different types but the same indices, and every step here uses only `Fin.val`, so the folds
+agree once both are pushed through to `List.range`. -/
+
+theorem foldl_finRange_take {α : Type} (n k : Nat) (hk : k ≤ n) (step : α → Nat → α)
+    (init : α) :
+    (((List.finRange n).take k).foldl (fun value j => step value j.val) init) =
+      ((List.finRange k).foldl (fun value j => step value j.val) init) := by
+  rw [← List.foldl_map (f := Fin.val) (g := step),
+    ← List.foldl_map (f := Fin.val) (g := step), List.map_take,
+    List.map_coe_finRange_eq_range, List.map_coe_finRange_eq_range, List.take_range,
+    Nat.min_eq_left hk]
+
 end SlhDsaSecurity.CacheReplay
