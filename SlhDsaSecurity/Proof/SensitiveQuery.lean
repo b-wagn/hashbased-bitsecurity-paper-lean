@@ -24,6 +24,11 @@ Three things give that rate, and they are the three fields of `Stakes`.
 * **The cell is one coordinate of a uniform table.** `stake` names it, and `coordinate_uniform`
   says a single coordinate of a uniform table of cells is a uniform cell.
 
+A fourth condition is needed and is not probabilistic: availability must be **closed under
+the structure**, a node all of whose children are available having an available cell. Without
+it the charge is false outright — `Closed` and the section around it give the node shape that
+breaks it, and `not_unavailable_of_obtainable` is what the condition buys.
+
 Availability is a predicate on the run's own state — in the experiment, the signing log — and
 is read at the state the query was made in, not at the end of the run. That is what separates
 this from a comparison against a region stripped in advance: the set of unavailable cells
@@ -108,6 +113,56 @@ theorem sensitive_initial (stakes : Stakes Node Index)
     (hsensitive : Sensitive stakes unavailable table state candidate) :
     Sensitive stakes (fun _ => initial) table state candidate :=
   sensitive_mono stakes hinitial table state candidate hsensitive
+
+/-! ## Availability has to be closed under the structure
+
+The charge is false without one more condition, and it is not about probability. Suppose a
+node `c` is *not* sensitive — every cell its canonical input mentions is available — but its
+own cell is unavailable. A run may then query `c` legitimately, read `c`'s cell off the
+answer, and from then on form the canonical input of the node above `c`, whose unavailable
+child is exactly that cell. That node is sensitive for the whole run, and the run queries it
+whenever it likes: the probability is one, not `2 ^ -128`, and no bound of the form
+`queries / 2 ^ 128` can hold.
+
+So availability must be closed under the structure: a node all of whose children are available
+has an available cell. That is the force of counting as available "anything the public
+structure derives from the disclosed cells". Under it, nothing unavailable is obtainable, which
+is what makes a sensitive query the *first* place a run can reach an unavailable cell. -/
+
+/-- The structure the closure condition speaks about: the cell a node's answer determines, and
+the cells its canonical input mentions. -/
+structure Graph (Node Index : Type) where
+  /-- The cell a node's answer determines. -/
+  cellOf : Node → Index
+  /-- The cells a node's canonical input mentions. -/
+  children : Node → Index → Prop
+
+/-- **Availability is closed under the structure.** A node all of whose children's cells are
+available has an available cell. -/
+def Closed (graph : Graph Node Index) (unavailable : State → Index → Prop) : Prop :=
+  ∀ (state : State) (node : Node),
+    (∀ index, graph.children node index → ¬ unavailable state index) →
+      ¬ unavailable state (graph.cellOf node)
+
+/-- The cells a run can compute from those it holds: a node's own cell once every cell its
+canonical input mentions is in hand. -/
+inductive Obtainable (graph : Graph Node Index) (known : Index → Prop) : Index → Prop
+  | base {index : Index} (hknown : known index) : Obtainable graph known index
+  | step {node : Node}
+      (hchildren : ∀ index, graph.children node index → Obtainable graph known index) :
+      Obtainable graph known (graph.cellOf node)
+
+/-- **Nothing unavailable is obtainable.** Under closure, the cells a run can compute from the
+available ones are themselves available, so the only way to an unavailable cell is a sensitive
+query. -/
+theorem not_unavailable_of_obtainable (graph : Graph Node Index)
+    (unavailable : State → Index → Prop) (hclosed : Closed graph unavailable) (state : State)
+    {index : Index}
+    (hobtain : Obtainable graph (fun other => ¬ unavailable state other) index) :
+    ¬ unavailable state index := by
+  induction hobtain with
+  | base hknown => exact hknown
+  | step _ ih => exact hclosed state _ ih
 
 /-! ## One coordinate of a uniform table
 

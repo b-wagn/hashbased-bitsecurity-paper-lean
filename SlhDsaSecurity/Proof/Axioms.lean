@@ -3665,3 +3665,7 @@ info: 'SlhDsaSecurity.CoverageTail.forsAddress_eq_of_parse_instance_eq' depends 
 /-- info: 'SlhDsaSecurity.SensitiveQuery.prob_probes_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SensitiveQuery.prob_probes_sensitive_le
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.not_unavailable_of_obtainable' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.not_unavailable_of_obtainable
