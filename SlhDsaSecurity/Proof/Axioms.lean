@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.SplitCharged
+import SlhDsaSecurity.Proof.WotsResidueReduction
 import SlhDsaSecurity.Proof.StripCached
 import SlhDsaSecurity.Proof.VerifierProbes
 import SlhDsaSecurity.Proof.HonestProbes
@@ -3449,3 +3450,31 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 /-- info: 'SlhDsaSecurity.WarmedCharges.value_replay_eq_walk_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WarmedCharges.value_replay_eq_walk_cells
+
+/--
+info: 'SlhDsaSecurity.WotsResidueReduction.holds_early_chain_value_of_residue' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WotsResidueReduction.holds_early_chain_value_of_residue
+
+/-- info: 'SlhDsaSecurity.WotsResidueReduction.layerAt_eq' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WotsResidueReduction.layerAt_eq
+
+/-- info: 'SlhDsaSecurity.WotsResidueReduction.treeAt_le' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WotsResidueReduction.treeAt_le
+
+/--
+info: 'SlhDsaSecurity.WotsResidueReduction.exists_held_value_of_residue' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WotsResidueReduction.exists_held_value_of_residue
+
+/-- info: 'SlhDsaSecurity.WotsResidueReduction.heldValue_eq_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WotsResidueReduction.heldValue_eq_cell
