@@ -88,4 +88,42 @@ theorem evalDist_prepend_fresh {α : Type} (computation : OracleComp HashSpec α
         simp only [uniformSampleImpl, bind_map_left, map_eq_bind_pure_comp, Function.comp_def,
           bind_assoc, pure_bind, cacheQuery_comm cache hsame]
 
+/-! ## Pre-sampling a whole table
+
+Iterating the step over a duplicate-free list of inputs that are all still empty: the entire
+table may be drawn before the run instead of during it. `CanonicalGraph.Programming.order` is
+such a list — it is `Nodup` by `order_nodup` — so this is what fixes the honest cells ahead of
+the adversary, which is what every charge is parameterised by. -/
+
+/-- Draw a uniform value for each input in turn and write it into the cache. -/
+noncomputable def prefill : List Bytes → QueryCache HashSpec → ProbComp (QueryCache HashSpec)
+  | [], cache => pure cache
+  | target :: rest, cache => do
+      let value ← ($ᵗ HashOutput : ProbComp HashOutput)
+      prefill rest (cache.cacheQuery target value)
+
+/-- **A whole table of unused entries may be pre-sampled.** -/
+theorem evalDist_prefill {α : Type} (computation : OracleComp HashSpec α) :
+    ∀ (targets : List Bytes) (cache : QueryCache HashSpec), targets.Nodup →
+      (∀ target ∈ targets, cache target = none) →
+      𝒟[Prod.fst <$> (simulateQ randomOracle computation).run cache] =
+        𝒟[(do
+          let filled ← prefill targets cache
+          Prod.fst <$> (simulateQ randomOracle computation).run filled)] := by
+  intro targets
+  induction targets with
+  | nil => intro cache _ _; rw [prefill, pure_bind]
+  | cons target rest ih =>
+    intro cache hnodup hfresh
+    have hnotMem : target ∉ rest := (List.nodup_cons.mp hnodup).1
+    have hrest : rest.Nodup := (List.nodup_cons.mp hnodup).2
+    rw [prefill, bind_assoc]
+    refine (evalDist_prepend_fresh computation cache target
+      (hfresh target (by simp))).trans ?_
+    refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ (fun value => ?_)
+    refine ih (cache.cacheQuery target value) hrest (fun probe hprobe => ?_)
+    have hne : probe ≠ target := fun hsame => hnotMem (hsame ▸ hprobe)
+    rw [QueryCache.cacheQuery_of_ne cache value hne]
+    exact hfresh probe (by simp [hprobe])
+
 end SlhDsaSecurity.Presample
