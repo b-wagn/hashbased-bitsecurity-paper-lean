@@ -58,6 +58,7 @@ import SlhDsaSecurity.Proof.MerkleCharge
 import SlhDsaSecurity.Proof.ForsCharge
 import SlhDsaSecurity.Proof.WotsCharge
 import SlhDsaSecurity.Proof.ForsLeafCharge
+import SlhDsaSecurity.Proof.ForsDispatch
 import SlhDsaSecurity.Proof.CanonicalCells
 import SlhDsaSecurity.Proof.PathEntry
 import SlhDsaSecurity.Proof.WotsEntry
@@ -850,3 +851,59 @@ info: 'SlhDsaSecurity.MerkleCharge.deviatingCollision_of_pathBranch' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.MerkleCharge.deviatingCollision_of_pathBranch
+
+/-- info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pair' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pair
+
+/--
+info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pathCollision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pathCollision
+
+/-- info: 'SlhDsaSecurity.ForsDispatch.value_forsChild' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.value_forsChild
+
+/--
+info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pathCollision_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pathCollision_canonical
+
+/--
+info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pathBranch' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pathBranch
+
+/-- info: 'SlhDsaSecurity.ForsDispatch.ForsCollision' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.ForsCollision
+
+/--
+info: 'SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_secrets' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_secrets
+
+/-- info: 'SlhDsaSecurity.ForsDispatch.leafIndex_div_lt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.leafIndex_div_lt
+
+/--
+info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision
