@@ -4303,3 +4303,11 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.StalledRun.evalDist_stalled_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.StalledRun.evalDist_stalled_congr
+
+/-- info: 'SlhDsaSecurity.HonestMessage.signLayers_get' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.signLayers_get
+
+/-- info: 'SlhDsaSecurity.HonestMessage.signLayers_wots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.signLayers_wots
