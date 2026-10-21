@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.HonestMessage
 import SlhDsaSecurity.Proof.DrawnTable
 import SlhDsaSecurity.Proof.TableBlind
 import SlhDsaSecurity.Proof.RecordedBudget
@@ -4048,13 +4049,7 @@ info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq_of_commute' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestGrowth.one_le_count_tweakable
 
-/-- info: 'SlhDsaSecurity.HonestGrowth.succ_le_count_merkleNode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestGrowth.succ_le_count_merkleNode
 
-/-- info: 'SlhDsaSecurity.HonestGrowth.four_le_count_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestGrowth.four_le_count_keygen
 
 /-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -4155,3 +4150,135 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_bound
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.pow_le_count_merkleNode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.pow_le_count_merkleNode
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.pow_le_count_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.pow_le_count_keygen
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_keygen
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four
+
+/-- info: 'SlhDsaSecurity.GraphStakes.SensitiveNode.ext' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.SensitiveNode.ext
+
+/-- info: 'SlhDsaSecurity.GraphStakes.inputOf_eq_canonicalInput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.inputOf_eq_canonicalInput
+
+/-- info: 'SlhDsaSecurity.GraphStakes.inputOf_inj' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.inputOf_inj
+
+/-- info: 'SlhDsaSecurity.GraphStakes.locate_inputOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.locate_inputOf
+
+/-- info: 'SlhDsaSecurity.GraphStakes.closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.closed
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_unavailable_of_obtainable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_unavailable_of_obtainable
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_obtainable_wotsPosition' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_obtainable_wotsPosition
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitiveNode_parent' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitiveNode_parent
+
+/-- info: 'SlhDsaSecurity.GraphStakes.honestRevealed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.honestRevealed_le
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_obtainable_forsPrf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_obtainable_forsPrf
+
+/-- info: 'SlhDsaSecurity.GraphStakes.forsIndex_val' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.forsIndex_val
+
+/--
+info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_list_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_list_sensitive_le
+
+/-- info: 'SlhDsaSecurity.DrawnTable.missRun_length' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.missRun_length
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_missRun_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_missRun_sensitive_le
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_mixture_missRun_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_mixture_missRun_sensitive_le
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_pow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_pow
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitive_inputOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitive_inputOf
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitive_wotsClaim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitive_wotsClaim
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitive_forsClaim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitive_forsClaim
+
+/-- info: 'SlhDsaSecurity.GraphStakes.claimedCount' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.claimedCount
+
+/-- info: 'SlhDsaSecurity.GraphStakes.length_claimedCandidates' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.length_claimedCandidates
+
+/-- info: 'SlhDsaSecurity.HonestMessage.treeAt_succ_add_leafAt' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.treeAt_succ_add_leafAt
+
+/-- info: 'SlhDsaSecurity.HonestMessage.revealedAt_succ' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.revealedAt_succ
+
+/-- info: 'SlhDsaSecurity.HonestMessage.honestMessage_succ' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.honestMessage_succ
+
+/-- info: 'SlhDsaSecurity.HonestMessage.honestMessage_eq_revealedAt' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.honestMessage_eq_revealedAt
+
+/-- info: 'SlhDsaSecurity.HonestMessage.honestRevealed_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.honestRevealed_eq
