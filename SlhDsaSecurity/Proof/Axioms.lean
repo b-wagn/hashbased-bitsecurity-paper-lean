@@ -752,3 +752,7 @@ info: 'SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision_cano
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision_canonical
+
+/-- info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_chainCollision_canonical' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WotsCharge.deviatingCollision_of_chainCollision_canonical
