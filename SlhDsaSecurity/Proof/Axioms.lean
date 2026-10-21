@@ -61,6 +61,7 @@ import SlhDsaSecurity.Proof.ForsLeafCharge
 import SlhDsaSecurity.Proof.CanonicalCells
 import SlhDsaSecurity.Proof.PathEntry
 import SlhDsaSecurity.Proof.WotsEntry
+import SlhDsaSecurity.Proof.HypertreeDispatch
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -858,3 +859,7 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision_cano
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision_canonical
+
+/-- info: 'SlhDsaSecurity.HypertreeDispatch.cases_of_hypertreeFault' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HypertreeDispatch.cases_of_hypertreeFault
