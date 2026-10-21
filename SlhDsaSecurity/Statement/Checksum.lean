@@ -1,5 +1,4 @@
-import SlhDsaSecurity.Statement.Parameters
-import Mathlib.Data.BitVec
+import SlhDsaSecurity.Statement.Types
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 
 /-!
@@ -12,7 +11,6 @@ append the three base-16 digits of the unshifted checksum, most significant firs
 
 namespace SlhDsaSecurity
 
-abbrev Digest := BitVec (8 * n)
 abbrev Digit := Fin w
 abbrev MessageDigits := Fin messageDigits → Digit
 abbrev Encoding := Fin chains → Digit

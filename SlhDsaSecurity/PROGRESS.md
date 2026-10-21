@@ -1,6 +1,6 @@
 # SLH-DSA-128s: proof status
 
-**Preparatory arithmetic only. The 127-bit security theorem is not established.**
+**Construction definitions and preparatory proofs. The 127-bit security theorem is not established.**
 
 The intended experiment is deterministic, pure SLH-DSA-128s with at most
 2^64 signing requests. Work counts direct adversary hash calls and every hash
@@ -52,6 +52,15 @@ security hypothesis or numerical security certificate has been assumed.
 `Proof/Checksum.lean` proves the WOTS chain-step range 45–510, including both
 endpoints. Relating this arithmetic to the oracle trace remains to be done.
 All existing XMSS definitions and proofs are unchanged.
+
+`Statement/{Types,Address,Hashing}.lean` now defines the standard key fields,
+32-byte addresses, SHAKE input concatenations, shared 30-byte oracle, short-output
+truncation, and pure-message framing. `Proof/Hashing.lean` proves injectivity of
+the byte serialization, addresses, each hash-input format, and successful framing.
+Different structural address types give different inputs. The exact overlap
+between message hashing and message randomization is also proved; it is not an
+attack or a claim that the security target is impossible. The complete signing
+and verification algorithms and their experiment remain to be implemented.
 
 ## FORS components
 
