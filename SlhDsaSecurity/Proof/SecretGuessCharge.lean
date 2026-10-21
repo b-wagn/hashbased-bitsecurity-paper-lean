@@ -73,4 +73,54 @@ theorem prob_either_secret_guessed_le (inputs : Finset Bytes) (guessOf : Bytes �
   refine le_trans (prob_secret_guessed_le (inputs.filter isSeedFormat) guessOf) ?_
   exact ENNReal.div_le_div_right (Nat.cast_le.mpr (Finset.card_filter_le _ _)) _
 
+/-! ## The form the coupling must deliver
+
+`prob_secret_guessed_le` fixes the guessed inputs and then samples the secret. In the
+experiment the seed is sampled first, so using it needs a step that moves the sampling to the
+end — legitimate because, by `CanonicalGraph.Programming.warmup_seed_uniform`, the secret seed
+is one coordinate of a uniform cell table, and every answer the adversary sees is an oracle
+value that is uniform whatever the seed is. The statement below is the shape that step has to
+produce: a run that yields the inputs it has queried, with the secret drawn afterwards.
+
+Stating it this way keeps the obligation visible instead of hidden in a side condition. What
+is *not* proved here is that the experiment can be rewritten in this order; that is the
+until-first-hit coupling, whose abstract form is `BlindKey.hit_probability_le`. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- A run that has queried at most `limit` inputs guesses a secret drawn afterwards with
+probability at most `limit / 2 ^ 128`. -/
+theorem prob_run_guesses_secret_le {α : Type}
+    (run : ProbComp (α × Finset Bytes)) (guessOf : Bytes → Digest) (limit : Nat)
+    (hlimit : ∀ result ∈ support run, (result.2).card ≤ limit) :
+    Pr[fun pair : (α × Finset Bytes) × Digest =>
+        ∃ input ∈ pair.1.2, guessOf input = pair.2 |
+      (do
+        let result ← run
+        let secret ← ($ᵗ Digest : ProbComp Digest)
+        pure (result, secret))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [probEvent_bind_eq_tsum]
+  calc ∑' result, Pr[= result | run] *
+        Pr[fun pair : (α × Finset Bytes) × Digest =>
+            ∃ input ∈ pair.1.2, guessOf input = pair.2 |
+          (do
+            let secret ← ($ᵗ Digest : ProbComp Digest)
+            pure (result, secret))]
+      ≤ ∑' result, Pr[= result | run] * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        refine ENNReal.tsum_le_tsum fun result => ?_
+        by_cases hmem : result ∈ support run
+        · refine mul_le_mul' le_rfl ?_
+          rw [bind_pure_comp, probEvent_map]
+          refine le_trans (prob_secret_guessed_le (result.2) guessOf) ?_
+          exact ENNReal.div_le_div_right (Nat.cast_le.mpr (hlimit result hmem)) _
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+          simp
+    _ = (∑' result, Pr[= result | run]) * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        ENNReal.tsum_mul_right
+    _ ≤ 1 * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        mul_le_mul' tsum_probOutput_le_one le_rfl
+    _ = _ := one_mul _
+
 end SlhDsaSecurity.SecretGuessCharge

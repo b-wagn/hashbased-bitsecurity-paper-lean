@@ -627,3 +627,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.ClassCharge.prob_badWithinClasses_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassCharge.prob_badWithinClasses_le
+
+/-- info: 'SlhDsaSecurity.SecretGuessCharge.prob_run_guesses_secret_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SecretGuessCharge.prob_run_guesses_secret_le
