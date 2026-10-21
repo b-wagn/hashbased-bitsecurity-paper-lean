@@ -239,4 +239,35 @@ theorem prob_meets_eq {α : Type} (S : Bytes → Prop) [DecidablePred S]
           exact tsum_congr fun answer =>
             congrArg _ (ih answer _ _ _ _ (hagree.cacheQuery input answer))
 
+/-! ## Transferring the whole experiment to the blind one
+
+`prob_meets_eq` compares two runs at a fixed `S`. In the experiment `S` is the set of
+seed-bearing inputs, which depends on the seed, and so does the real cache — but the blind
+cache does not. Averaging the comparison over the seed therefore moves the whole experiment to
+the blind one, at no cost, and on that side the run no longer involves the seed at all. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The real experiment and the blind one meet the seed-bearing inputs equally often.** -/
+theorem prob_meets_real_eq_blind {α : Type} (computation : OracleComp OracleWorld α)
+    (realCache : Digest → QueryCache HashSpec) (blindCache : QueryCache HashSpec)
+    (seedInput : Digest → Bytes → Prop) [inst : ∀ secret, DecidablePred (seedInput secret)]
+    (hagree : ∀ secret,
+      BlindComparison.AgreeOff (seedInput secret) (realCache secret) blindCache) :
+    Pr[fun pair : Digest × (α × State) => Meets (seedInput pair.1) pair.2.2 |
+        (do
+          let secret ← ($ᵗ Digest : ProbComp Digest)
+          let result ← (simulateQ tracked computation).run (realCache secret, ∅, 0)
+          pure (secret, result))] =
+      Pr[fun pair : Digest × (α × State) => Meets (seedInput pair.1) pair.2.2 |
+        (do
+          let secret ← ($ᵗ Digest : ProbComp Digest)
+          let result ← (simulateQ tracked computation).run (blindCache, ∅, 0)
+          pure (secret, result))] := by
+  classical
+  rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+  refine tsum_congr fun secret => congrArg _ ?_
+  simp only [bind_pure_comp, probEvent_map]
+  exact prob_meets_eq (seedInput secret) computation (realCache secret) blindCache ∅ 0
+    (hagree secret)
+
 end SlhDsaSecurity.TrackedQueries
