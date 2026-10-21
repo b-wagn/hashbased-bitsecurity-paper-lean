@@ -105,7 +105,19 @@ with the corresponding byte-input cache. This preserves full 240-bit answers.
 `Proof/Extraction/` proves deterministic collision extraction from WOTS and
 XMSS verification. Recovering the genuine public key with changed signature
 values gives a collision at a specific chain, compression, or authentication
-path call. These witnesses still need the joint adaptive probability argument.
+path call. `Proof/Extraction/Fors.lean` adds the FORS half: recovering a single
+FORS tree root gives either the canonical secret leaf and twelve siblings or a
+path collision, and recovering the FORS public key gives either every canonical
+tree root or a root-compression collision. `Proof/Extraction/Hypertree.lean`
+composes the Merkle and WOTS extractions into one layer step: a forged XMSS
+layer recovering the canonical subtree root either equals, for its incoming
+message, the canonical WOTS signature and all nine authentication siblings, or
+collides at a layer hash call. Chaining the seven layers top-down threads each
+recovered root as the next layer's WOTS message; the canonical branch only forces
+`xsig.wots = Wots.sign message`, so propagating canonicity to the layer below
+additionally requires the checksum-antichain WOTS preimage argument
+(`Proof/ChecksumAntichain.lean`) and its ROM probability charge. These witnesses
+still need the joint adaptive probability argument.
 
 ## FORS components
 
