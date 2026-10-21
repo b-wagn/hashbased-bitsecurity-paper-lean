@@ -669,3 +669,48 @@ The budget closes at `4` exactly, with the `2 ^ -165` separation defect and the 
 load-cap defect both far below the slack at every `q ≥ 569` — and `q ≥ 569` is automatic,
 since an accepted forgery forces that many charged verifier calls.
 
+## State of the first-principles proof
+
+Everything below is proved, unconditionally, with no `sorry` and axiom-guarded.
+
+| piece | lemma |
+| --- | --- |
+| per-query-class rates sum to the target | `PerQueryBudget.classRate_le_target`, `total_le_target` |
+| answer side, structural and FORS charged as one predicate at rate `max` | `CombinedCharge.prob_combinedBad_le`, `prob_combinedBad_within_le` |
+| the charge with the growth budget split by class | `ClassCharge.prob_badWithinClasses_le` |
+| input side, secret guessing | `SecretGuessCharge.prob_secret_guessed_le`, `prob_run_guesses_secret_le` |
+| assembly, with the defects in the message-class slack | `Assembly.le_target_of_classes` |
+
+Underneath them: the partial-random-function invariant
+(`GrowthCharge.cache_value_persists`, `prob_cache_values_le`, `prob_cache_values_mem_le'`),
+the linear charge (`prob_badWithin_le`), the structural targets (`CanonicalTarget`), the
+whole-game structural term (`WholeGameStructural`), the FORS transport onto a uniform
+disclosure tape (`FreshDigest.prob_tape_event_le`), the counter machinery (`GrowthBudget`),
+and the complete structural extraction (`Extraction.*`, through the seven-layer
+`HypertreeChain`).
+
+**What is not done** is the instantiation at the experiment. Four items, of which only the
+last is more than wiring.
+
+1. `hsplit`: an accepted forgery implies a combined answer-side event or a secret hit. The
+   structural half is the `Extraction` chain, which is complete; the FORS half and the secret
+   half need connecting to it.
+2. Discharge `hseparated` from `HashSeparation.prob_possible_le`, and the load cap by the
+   dichotomy `qm ≥ 16` (slack `2 ^ -125` covers `2 ^ -126 + 2 ^ -165`) versus `qm < 16`
+   (at most fifteen disclosures, so `∑ i loads i ^ 14 ≤ 15 ^ 14 < 2 ^ 55` and the cap is
+   deterministic).
+3. Identify the experiment's structural- and message-class query counts with the two budgets
+   of `ClassCharge.prob_badWithinClasses_le`.
+4. **The until-first-hit coupling.** `SecretGuessCharge.prob_run_guesses_secret_le` needs the
+   secret sampled *after* the run; the experiment samples it first. In VCVio's vocabulary the
+   obligation is a `DeferredSampling.Factorizes` statement: the experiment factorizes through
+   a tape in which the seed is drawn last. It is true for the usual reason — before the first
+   canonical query every answer the adversary sees is a fresh uniform value, so its view is
+   independent of the cells, and `CanonicalGraph.Programming.warmup_seed_uniform` already
+   exhibits the seed as one coordinate of a uniform cell table — and the commuting step is
+   `DeferredSampling.evalDist_bind_comm`. What is missing is the induction carrying "no hit
+   yet implies the view is independent of the cells" along the adversary's execution.
+   `BlindKey.hit_probability_le` is the abstract target. This is the one piece of the argument
+   with no machinery behind it, and it was flagged as open in this file before any of the
+   present work began.
+
