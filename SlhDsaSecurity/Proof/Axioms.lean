@@ -556,8 +556,6 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshDigest.fresh_messageDigest_instance_uniform
 
-/-- info: 'SlhDsaSecurity.FreshDigest.instanceAssignment_uniform' depends on axioms: [propext,
- Classical.choice,
- Quot.sound] -/
+/-- info: 'SlhDsaSecurity.FreshDigest.instanceAssignment_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshDigest.instanceAssignment_uniform
