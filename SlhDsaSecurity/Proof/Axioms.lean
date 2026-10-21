@@ -880,3 +880,23 @@ info: 'SlhDsaSecurity.MerkleCharge.deviatingCollision_of_pathBranch' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.InputCoupling.advantage_le
 
+/--
+info: 'SlhDsaSecurity.InputCoupling.chargedStep_of_probEvent_bad_step_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.chargedStep_of_probEvent_bad_step_le
+
+/-- info: 'SlhDsaSecurity.InputCoupling.probEvent_bad_step_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.probEvent_bad_step_le
+
+/-- info: 'SlhDsaSecurity.InputCoupling.probEvent_bad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.probEvent_bad_le
+
+/-- info: 'SlhDsaSecurity.InputCoupling.advantage_le_two_mul' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.advantage_le_two_mul
+

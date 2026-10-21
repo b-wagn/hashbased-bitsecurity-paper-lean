@@ -229,4 +229,109 @@ theorem advantage_le (inputOf : Digest → Index → Bytes) (locate : Bytes → 
   gcongr
   exact le_of_eq (by rw [mul_one_div])
 
+
+/-! ## The bad-flag mass
+
+The identical-until-bad theorem leaves `Pr[bad]` as an unbounded remainder. For this handler it
+is bounded by the same rate, because the flag can only be raised by the seed drawn inside the
+step matching the input the adversary just named. `probEvent_bad_simulateQ_run_le_expectedQuerySlack`
+accumulates that per-step mass over the run. -/
+
+private lemma tsum_prod_bool_split {A B : Type} (g : A × B × Bool → ℝ≥0∞) :
+    (∑' z : A × B × Bool, g z) =
+      (∑' w : A × B, g (w.1, w.2, false)) + ∑' w : A × B, g (w.1, w.2, true) := by
+  have e : (∑' z : A × B × Bool, g z) = ∑' z : (A × B) × Bool, g (z.1.1, z.1.2, z.2) :=
+    ((Equiv.tsum_eq (Equiv.prodAssoc A B Bool) g).symm.trans rfl)
+  rw [e, ENNReal.tsum_prod', ← ENNReal.tsum_add]
+  exact tsum_congr fun w => tsum_bool _
+
+/-- **A per-step bad-mass bound gives the charged-step hypothesis.** This is the generic shape
+`probEvent_bad_simulateQ_run_le_expectedQuerySlack` asks for: the flag mass after a step and its
+continuation splits into the mass the step itself raises — at most `ε` — and the mass the
+continuation raises from the surviving good states. -/
+theorem chargedStep_of_probEvent_bad_step_le {ι : Type} {spec : OracleSpec ι} {σ γ : Type}
+    (impl : QueryImpl spec (StateT (σ × Bool) ProbComp)) (ε : ℝ≥0∞)
+    (t : spec.Domain) (s : σ)
+    (hstep : Pr[fun z : spec.Range t × σ × Bool => z.2.2 = true | (impl t).run (s, false)] ≤ ε)
+    (k : spec.Range t × σ × Bool → ProbComp (γ × σ × Bool)) :
+    Pr[fun z : γ × σ × Bool => z.2.2 = true | (impl t).run (s, false) >>= k] ≤
+      ε + ∑' z : spec.Range t × σ,
+        Pr[= (z.1, z.2, false) | (impl t).run (s, false)] *
+          Pr[fun w : γ × σ × Bool => w.2.2 = true | k (z.1, z.2, false)] := by
+  classical
+  rw [probEvent_bind_eq_tsum,
+    tsum_prod_bool_split (fun z : spec.Range t × σ × Bool =>
+      Pr[= z | (impl t).run (s, false)] *
+        Pr[fun w : γ × σ × Bool => w.2.2 = true | k z]),
+    add_comm]
+  refine add_le_add ?_ le_rfl
+  refine le_trans (ENNReal.tsum_le_tsum fun w => mul_le_mul' le_rfl probEvent_le_one) ?_
+  refine le_trans (le_of_eq ?_) hstep
+  rw [probEvent_eq_tsum_ite,
+    tsum_prod_bool_split (fun z : spec.Range t × σ × Bool =>
+      if z.2.2 = true then Pr[= z | (impl t).run (s, false)] else 0)]
+  simp
+
+/-- **The per-step bad mass of the real handler.** Only a seed-derived input raises the flag, and
+the seed is drawn inside the step, so the mass is the one charged by `prob_honest_key_le`. -/
+theorem probEvent_bad_step_le (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (candidate : Bytes) (s : State Index) :
+    Pr[fun z : HashOutput × State Index × Bool => z.2.2 = true |
+        (real inputOf locate candidate).run (s, false)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  refine le_trans (le_of_eq ?_) (probEvent_seedDerived_le inputOf locate hlocate hinj candidate)
+  rw [real_step_eq, probEvent_bind_eq_tsum, probEvent_eq_tsum_ite]
+  refine tsum_congr fun secret => ?_
+  by_cases hsd : SeedDerived inputOf locate secret candidate
+  · simp [hsd]
+  · rw [if_neg hsd, if_neg hsd, mul_eq_zero]
+    refine Or.inr (probEvent_eq_zero fun z hz hbad => ?_)
+    simp only [blind, StateT.run, StateT.mk, support_bind, support_pure, Set.mem_iUnion,
+      Set.mem_singleton_iff] at hz
+    obtain ⟨w, -, hz⟩ := hz
+    subst hz
+    exact Bool.noConfusion hbad
+
+/-- **The bad flag is raised with probability at most `q / 2 ^ 128`.** -/
+theorem probEvent_bad_le (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (s_init : State Index) (A : OracleComp HashSpec Bool) {queryBudget : ℕ}
+    (h_bound : OracleComp.IsQueryBoundP A (fun _ : Bytes => True) queryBudget) :
+    Pr[fun z : Bool × State Index × Bool => z.2.2 = true |
+        (simulateQ (real inputOf locate) A).run (s_init, false)] ≤
+      queryBudget / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  have hmain := OracleComp.ProgramLogic.Relational.probEvent_bad_simulateQ_run_le_expectedQuerySlack
+    (γ := Bool) (real inputOf locate) (fun _ : Bytes => True)
+    (fun _ : State Index => (1 : ℝ≥0∞)) (1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (fun candidate s _ k =>
+      chargedStep_of_probEvent_bad_step_le (real inputOf locate) _ candidate s
+        (probEvent_bad_step_le inputOf locate hlocate hinj candidate s) k |>.trans_eq
+          (by rw [one_mul]))
+    (fun _ _ huncharged _ => absurd trivial huncharged)
+    A h_bound s_init
+  refine hmain.trans ?_
+  simp only [one_mul]
+  refine (OracleComp.ProgramLogic.Relational.expectedQuerySlack_const_le_queryBudget_mul (real inputOf locate)
+    (fun _ : Bytes => True) (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) A h_bound (s_init, false)).trans ?_
+  exact le_of_eq (by rw [mul_one_div])
+
+/-- **The separation.** Against the blind handler, the lazily-seeded handler is
+`2 q / 2 ^ 128`-indistinguishable: `q / 2 ^ 128` of query slack and `q / 2 ^ 128` of bad mass. -/
+theorem advantage_le_two_mul (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (s_init : State Index) (A : OracleComp HashSpec Bool) {queryBudget : ℕ}
+    (h_bound : OracleComp.IsQueryBoundP A (fun _ : Bytes => True) queryBudget) :
+    ENNReal.ofReal
+        ((real inputOf locate).advantage (s_init, false) blind (s_init, false) A)
+      ≤ 2 * queryBudget / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_trans (advantage_le inputOf locate hlocate hinj s_init A h_bound) ?_
+  refine le_trans (add_le_add le_rfl
+    (probEvent_bad_le inputOf locate hlocate hinj s_init A h_bound)) ?_
+  rw [← ENNReal.add_div, ← two_mul]
+
 end SlhDsaSecurity.InputCoupling
