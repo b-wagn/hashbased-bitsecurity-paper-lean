@@ -92,6 +92,21 @@ the instrumented counters. The original almost-sure budget therefore holds
 from every cache supported by that preparation. It does not transfer that budget
 to arbitrary hybrid caches.
 
+`Proof/CanonicalGraph/` represents the standard structural computations by a
+finite graph with strictly decreasing child ranks and injective addresses.
+Its evaluated cells are the actual WOTS, FORS and Merkle values. A parser using
+only public inputs identifies the parent and proposed child values, and all
+graph addresses satisfy the proved separation bounds.
+`Proof/GraphFreshSampling.lean` and `CanonicalGraph/Programming.lean` prove the
+exact law of computing this graph in the shared oracle: independent uniform
+128-bit cells, including the secret seed, and independent 112-bit suffixes,
+with the corresponding byte-input cache. This preserves full 240-bit answers.
+
+`Proof/Extraction/` proves deterministic collision extraction from WOTS and
+XMSS verification. Recovering the genuine public key with changed signature
+values gives a collision at a specific chain, compression, or authentication
+path call. These witnesses still need the joint adaptive probability argument.
+
 ## FORS components
 
 `Proof/ForsCoverage.lean` proves the exact coverage probability of an independent

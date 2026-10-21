@@ -25,6 +25,12 @@ import SlhDsaSecurity.Proof.ForsDisclosurePrefix
 import SlhDsaSecurity.Proof.ForsLeaveOneOut
 import SlhDsaSecurity.Proof.ForsConcentrationSharper
 import SlhDsaSecurity.Proof.ROMPresampling
+import SlhDsaSecurity.Proof.CanonicalGraph.Correspondence
+import SlhDsaSecurity.Proof.CanonicalGraph.Parsing
+import SlhDsaSecurity.Proof.CanonicalGraph.Separation
+import SlhDsaSecurity.Proof.CanonicalGraph.Programming
+import SlhDsaSecurity.Proof.Extraction.Merkle
+import SlhDsaSecurity.Proof.Extraction.Wots
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -261,3 +267,47 @@ import SlhDsaSecurity.Proof.ROMPresampling
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ROMPresampling.security_budget_after_preparation
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.value_unique' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.value_unique
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.wots_sign_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.wots_sign_cells
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.fors_publicKey_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.fors_publicKey_cell
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.blindProbe_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.blindProbe_canonical
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.StructuralNode.address_withinBounds' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.StructuralNode.address_withinBounds
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.Programming.warmup_seed_uniform' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.Programming.warmup_seed_uniform
+
+/-- info: 'SlhDsaSecurity.Extraction.BinaryPath.canonical_or_collision' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.BinaryPath.canonical_or_collision
+
+/-- info: 'SlhDsaSecurity.Extraction.Merkle.root_eq_canonical_or_collision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.Merkle.root_eq_canonical_or_collision
+
+/-- info: 'SlhDsaSecurity.Extraction.Wots.publicKey_eq_canonical_or_collision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.Wots.publicKey_eq_canonical_or_collision
