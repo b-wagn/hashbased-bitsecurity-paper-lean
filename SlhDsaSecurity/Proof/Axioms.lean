@@ -2857,3 +2857,15 @@ info: 'SlhDsaSecurity.WarmedCharges.prob_deviatingCollision_tail_le' depends on 
 /-- info: 'SlhDsaSecurity.CachedRun.eq_of_mem_support_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CachedRun.eq_of_mem_support_of_cached
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.not_messageInput_canonical' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.not_messageInput_canonical
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.cleanBad_walk_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.cleanBad_walk_cache
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.prob_combinedBad_tail_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.prob_combinedBad_tail_le
