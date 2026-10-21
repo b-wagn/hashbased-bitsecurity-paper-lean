@@ -194,4 +194,27 @@ theorem totalSecurityBits_of_warmed_halves'
     (fun q => (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
     (fun q _ => le_of_eq (Assembly.half_add_half q)) hsplit hanswer hinput
 
+/-! ## The loosest entry point
+
+`totalSecurityBits_of_allowances` still asks for two *predicates on the warmed run*, and that
+is more than the halves can give. The input half's event — a query at a sensitive input — is
+not visible in the warmed run's result at all: the walk installed every canonical entry, so
+such a query changes nothing in the cache, and it is only observable under the instrumentation
+`RecordedQueries` adds. The two halves are therefore bounded in different presentations of the
+same game, linked by the transfers already proved.
+
+So the top-level statement should ask for nothing but a bound on the winning event itself,
+leaving every split, presentation and transfer below it. That is this. -/
+
+/-- **The target, from any bound on the winning event that stays under it.** -/
+theorem totalSecurityBits_of_bound (bound : Nat → ℝ≥0∞)
+    (hsum : ∀ q : Nat, 1 ≤ q → bound q ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞))
+    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary] ≤ bound q) :
+    HasTotalSecurityBits .strong 127 := by
+  intro q hq adversary hbudget
+  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1),
+    WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
+  exact le_trans (hbound q adversary hq hbudget) (hsum q hq)
+
 end SlhDsaSecurity.MainTheorem
