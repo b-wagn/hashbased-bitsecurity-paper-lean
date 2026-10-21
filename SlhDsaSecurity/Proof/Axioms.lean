@@ -47,6 +47,7 @@ import SlhDsaSecurity.Proof.WholeGameStructural
 import SlhDsaSecurity.Proof.ForsCoverageTerm
 import SlhDsaSecurity.Proof.Assembly
 import SlhDsaSecurity.Proof.CollisionToDeviating
+import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -524,3 +525,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.CollisionToDeviating.exists_deviating_child' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CollisionToDeviating.exists_deviating_child
+
+/-- info: 'SlhDsaSecurity.DigestInputDistinct.messageInput_injective_of_frame' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestInputDistinct.messageInput_injective_of_frame
