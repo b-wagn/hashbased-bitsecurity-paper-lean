@@ -65,6 +65,7 @@ import SlhDsaSecurity.Proof.HypertreeDispatch
 import SlhDsaSecurity.Proof.InputCoupling
 import SlhDsaSecurity.Proof.ForsDispatch
 import SlhDsaSecurity.Proof.BlindComparison
+import SlhDsaSecurity.Proof.WeightedCharge
 import SlhDsaSecurity.Proof.Presample
 import SlhDsaSecurity.Proof.GameBridge
 import SlhDsaSecurity.Proof.MainTheorem
@@ -2629,3 +2630,7 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_badWithinClasses_whole_game_le' d
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WholeGameStructural.prob_badWithinClasses_whole_game_le
+
+/-- info: 'SlhDsaSecurity.WeightedCharge.prob_badWeighted_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WeightedCharge.prob_badWeighted_le
