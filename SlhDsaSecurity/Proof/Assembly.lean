@@ -106,4 +106,45 @@ theorem le_target_of_halves {advantage answerSide inputSide : ℝ≥0∞} (queri
     advantage ≤ (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
   hsplit.trans ((add_le_add hanswer hinput).trans_eq (half_add_half queries))
 
+/-! ## Where the defects live: the message-class slack
+
+`le_target_of_halves` meets the target with equality, so the defects incurred in discharging
+the charges' hypotheses — the `2 ^ -126` load cap and the `2 ^ -165` format separation — have
+nowhere to go. They are accommodated by charging the answer side *per class* instead of at its
+maximum. In units of `2 ^ -129`, writing `qs` and `qm` for the structural- and message-class
+query counts:
+
+| | cost |
+| --- | --- |
+| target | `4 qs + 4 qm` |
+| answer side | `2 qs + 1 qm` — rate `2` structurally, only `1` on a message input |
+| input side | `2 qs + 2 qm` — a secret guess is available in either class |
+| room left | `1 qm` |
+
+So the message class carries exactly one unit of slack per query, and that is where the
+defects are charged. It suffices: with `qm ≥ 16` the slack is `2 ^ -125`, which dominates
+`2 ^ -126 + 2 ^ -165`; and with `qm < 16` there are at most fifteen disclosures, so
+`∑ i loads i ^ 14 ≤ 15 ^ 14 < 2 ^ 55`, far under the `2 ^ 102` cap, which therefore holds
+deterministically and incurs no defect at all.
+-/
+
+/-- **The per-class assembly.** Charging the answer side at its true per-class rate leaves one
+unit of room per message-class query, and the three terms still meet the target exactly. -/
+theorem le_target_of_classes {advantage answerSide inputSide defect : ℝ≥0∞}
+    (structuralQueries messageQueries : Nat)
+    (hsplit : advantage ≤ answerSide + inputSide + defect)
+    (hanswer : answerSide ≤
+      ((2 * structuralQueries + messageQueries : Nat) : ℝ≥0∞) / ((2 ^ 129 : Nat) : ℝ≥0∞))
+    (hinput : inputSide ≤
+      ((2 * (structuralQueries + messageQueries) : Nat) : ℝ≥0∞) / ((2 ^ 129 : Nat) : ℝ≥0∞))
+    (hdefect : defect ≤ ((messageQueries : Nat) : ℝ≥0∞) / ((2 ^ 129 : Nat) : ℝ≥0∞)) :
+    advantage ≤
+      ((structuralQueries + messageQueries : Nat) : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+  refine hsplit.trans ?_
+  refine le_trans (add_le_add (add_le_add hanswer hinput) hdefect) ?_
+  rw [ENNReal.div_add_div_same, ENNReal.div_add_div_same, target_eq,
+    ← Nat.cast_add, ← Nat.cast_add]
+  refine ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _
+  omega
+
 end SlhDsaSecurity.Assembly

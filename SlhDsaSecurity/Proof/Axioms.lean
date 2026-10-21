@@ -618,3 +618,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.Assembly.le_target_of_halves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.le_target_of_halves
+
+/-- info: 'SlhDsaSecurity.Assembly.le_target_of_classes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.le_target_of_classes
