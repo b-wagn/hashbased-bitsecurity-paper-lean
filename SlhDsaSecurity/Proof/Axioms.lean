@@ -51,6 +51,7 @@ import SlhDsaSecurity.Proof.CombinedCharge
 import SlhDsaSecurity.Proof.SecretGuessCharge
 import SlhDsaSecurity.Proof.ClassCharge
 import SlhDsaSecurity.Proof.SeedDeferral
+import SlhDsaSecurity.Proof.QueryCached
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -660,3 +661,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_tree_pair' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_tree_pair
+
+/-- info: 'SlhDsaSecurity.QueryCached.cached_of_hash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.QueryCached.cached_of_hash
+
+/-- info: 'SlhDsaSecurity.QueryCached.answer_cached_of_hash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.QueryCached.answer_cached_of_hash
