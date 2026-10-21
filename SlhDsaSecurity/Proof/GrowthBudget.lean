@@ -68,6 +68,22 @@ theorem countAllHashes_query_bind {α : Type} (queried : OracleWorld.Domain)
     QueryImpl.withAddCost, QueryImpl.withCost]
   simp [Functor.map_map, map_bind, bind_map_left]
 
+/-- The total count is additive over sequencing: the count of `c >>= f` splits into the
+count of `c` and the count of the continuation. -/
+theorem countAllHashes_bind {α β : Type} (computation : OracleComp OracleWorld α)
+    (continuation : α → OracleComp OracleWorld β) :
+    countAllHashes (computation >>= continuation) =
+      (countAllHashes computation >>= fun first =>
+        countAllHashes (continuation first.1) >>= fun second =>
+          (pure (second.1, first.2 + second.2) :
+            OracleComp OracleWorld (β × Nat))) := by
+  induction computation using OracleComp.inductionOn with
+  | pure value => simp [countAllHashes_pure]
+  | query_bind queried next ih =>
+    rw [bind_assoc, countAllHashes_query_bind, countAllHashes_query_bind]
+    simp only [ih]
+    simp [map_bind, bind_map_left, bind_assoc, Nat.add_assoc]
+
 /-- Every new cache entry is created by a hash query, so growth never exceeds the count. -/
 theorem growth_le_count {α : Type} (computation : OracleComp OracleWorld α)
     (initialCache : QueryCache HashSpec) (result : (α × Nat) × QueryCache HashSpec)
