@@ -145,4 +145,59 @@ theorem fresh_messageDigest_instance_uniform (randomizer : Digest) (pk : PublicK
   rw [hrun]
   exact instanceOf_uniform
 
+/-! ## Many coordinates at once
+
+The load cap is a statement about the joint instance assignment of all signed requests, so
+the per-answer pushforward has to be applied coordinatewise. It does preserve uniformity:
+`MessageDigest.split` exhibits a thirty-byte answer as its parsed view together with the nine
+bits the parser ignores, and the view is itself the instance together with the fourteen leaf
+indices. Reassociating, a uniform answer is a uniform instance together with an independent
+uniform remainder, and applying that coordinatewise turns a uniform assignment of answers
+into a uniform assignment of instances.
+-/
+
+/-- Everything in a thirty-byte answer other than its FORS instance. -/
+abbrev Remainder :=
+  (MessageDigest.ForsTree → MessageDigest.ForsLeaf) × (BitVec 2 × BitVec 7)
+
+/-- A thirty-byte answer as its instance together with the remainder. -/
+def splitInstance (output : HashOutput) : MessageDigest.Instance × Remainder :=
+  (instanceOf output, ((MessageDigest.parse output).2, (MessageDigest.split output).2))
+
+theorem splitInstance_bijective : Function.Bijective splitInstance := by
+  have hreassoc : Function.Bijective
+      (fun pair : MessageDigest.View × (BitVec 2 × BitVec 7) =>
+        (pair.1.1, (pair.1.2, pair.2)) : _ → MessageDigest.Instance × Remainder) := by
+    refine ⟨fun left right hequal => ?_, fun target => ⟨((target.1, target.2.1), target.2.2), rfl⟩⟩
+    obtain ⟨hfirst, hrest⟩ := Prod.mk.injEq _ _ _ _ |>.mp hequal
+    obtain ⟨hsecond, hbits⟩ := Prod.mk.injEq _ _ _ _ |>.mp hrest
+    exact Prod.ext (Prod.ext hfirst hsecond) hbits
+  exact hreassoc.comp MessageDigest.split_bijective
+
+/-- Coordinatewise, a uniform assignment of answers has a uniform assignment of instances. -/
+theorem instanceAssignment_uniform (ι : Type) [Fintype ι] [DecidableEq ι] :
+    𝒟[(fun assignment index => instanceOf (assignment index)) <$>
+        ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput))] =
+      𝒟[($ᵗ (ι → MessageDigest.Instance) :
+        ProbComp (ι → MessageDigest.Instance))] := by
+  classical
+  let coordinate : HashOutput ≃ MessageDigest.Instance × Remainder :=
+    Equiv.ofBijective splitInstance splitInstance_bijective
+  let regroup : (ι → HashOutput) ≃
+      (ι → MessageDigest.Instance) × (ι → Remainder) :=
+    (Equiv.piCongrRight (fun _ => coordinate)).trans
+      (Equiv.arrowProdEquivProdArrow ι (fun _ => MessageDigest.Instance) (fun _ => Remainder))
+  have hmap : (fun assignment : ι → HashOutput => fun index => instanceOf (assignment index))
+        <$> ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput)) =
+      Prod.fst <$> (regroup <$> ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput))) := by
+    rw [Functor.map_map]
+    rfl
+  have hinner : 𝒟[regroup <$> ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput))] =
+      𝒟[($ᵗ ((ι → MessageDigest.Instance) × (ι → Remainder)) :
+        ProbComp ((ι → MessageDigest.Instance) × (ι → Remainder)))] :=
+    evalDist_map_bijective_uniform_cross (α := (ι → HashOutput))
+      (β := ((ι → MessageDigest.Instance) × (ι → Remainder))) regroup regroup.bijective
+  rw [hmap, evalDist_map, hinner, ← evalDist_map]
+  exact evalDist_map_fst_uniformSample_prod
+
 end SlhDsaSecurity.FreshDigest
