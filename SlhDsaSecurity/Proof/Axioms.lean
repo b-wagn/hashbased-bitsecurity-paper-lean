@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.WarmProbes
+import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.ChargedProbe
 import SlhDsaSecurity.Proof.RedrawCell
@@ -4615,3 +4616,28 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 /-- info: 'SlhDsaSecurity.ChargedProbe.prob_charged_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.prob_charged_stalled_eq
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.mem_signedAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.mem_signedAt
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.signedAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.signedAt_mono
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.availableAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.availableAt_mono
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.availableAt_closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.availableAt_closed
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.lazyProgram_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.lazyProgram_persists
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.lazyProgram_run_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.lazyProgram_run_persists
+
