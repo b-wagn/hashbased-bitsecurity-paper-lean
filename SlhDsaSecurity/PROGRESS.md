@@ -453,3 +453,44 @@ The remaining work for `hcap` is therefore the iid-uniformity transfer — that 
 the distinct signed digest inputs are jointly uniform in the actual lazily-sampled oracle,
 in the form `ForsConcentrationSharper` consumes — not a freshness or key-guessing argument.
 
+## What `hcap` actually needs: a partial-random-function invariant
+
+`Proof/DigestInputDistinct.lean` proves what the message layer owes: distinct signing
+requests have distinct `H_msg` inputs (`messageInput_ne_of_request_ne`), and the digest-input
+family is byte-input separated for *every* assignment of randomizers to requests and states
+(`separated_messageInput`), so the oracle-determined randomizers never have to be pinned down.
+
+That is necessary but **not** sufficient, and it is worth recording why, because three
+plausible routes all fail:
+
+1. *The table route.* `GraphFreshSampling.evalDist_evaluate_eq_uniform_program` samples a
+   complete output table `$ᵗ (Index → HashOutput)` and so requires `[Fintype Index]`. Indexing
+   by `Message` is what makes `Separated` true — distinct indices *are* distinct messages — but
+   `Message` contains `Bytes` and is infinite, so there is no such table. Re-indexing by
+   `Fin N` instead restores finiteness but destroys `Separated`, since the adaptive choice may
+   put the same message at two positions.
+2. *The lazy route.* `GraphFreshSampling.evaluate_eq_sample` needs no `Fintype`, but it
+   requires `FreshFor`: the starting cache must hold no entry at any digest input, for any
+   state. The adversary may prequery a digest input, so this fails in the experiment.
+3. *The freshness route.* Recovering `FreshFor` by arguing the adversary cannot have
+   prequeried a signer's input costs a `BlindKey`-style `SK.prf` guess, `q / 2 ^ 128 =
+   2q / 2 ^ 129`, which exceeds the `q / 2 ^ 129` of slack left after the structural and FORS
+   terms. Even if provable it would break the budget.
+
+The reason the obstruction is structural: with an infinite input domain there is no "sample
+the whole random function in advance" computation, so the usual lazy/eager equivalence is not
+available off the shelf, while the lazy formulations all want freshness at the inputs of
+interest — which adaptive prequeries deny.
+
+What is actually needed is an invariant of the lazily-built cache: *along any run started
+from the empty cache, the cache is a partial uniform random function* — so that for any set
+of pairwise distinct inputs, the answers recorded at them are jointly uniform regardless of
+**when** each was sampled or **which party** queried it. Given that invariant, applied to the
+distinct signed digest inputs supplied by `messageInput_ne_of_request_ne`, the FORS instances
+are iid uniform and `ForsConcentrationSharper` bounds the load-cap failure by `2 ^ -126`,
+with no freshness and no key guessing.
+
+This invariant is the remaining content of `hcap`. It is a genuine probabilistic lemma about
+the shared oracle, not an instantiation of the existing fresh-sampling results, and it is
+what `ROMPresampling` would have to be extended to provide.
+
