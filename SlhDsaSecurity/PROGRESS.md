@@ -127,8 +127,17 @@ on which the forged value is a strict chain-ancestor (preimage) of the honestly
 revealed value. Its probability is charged separately in the ROM; no one-wayness
 is assumed.
 
-Seven-layer chaining (the structural capstone, not yet in Lean) is a reverse
-induction on `Hypertree.rootFromSignature`'s `remaining` argument. The recursion
+`Proof/Extraction/HypertreeChain.lean` now carries out the seven-layer chaining.
+`rootFromSignature_fault_or_canonical` is the reverse induction below;
+`verify_fault_or_fors_canonical` specialises it to the actual honest-key verifier:
+a forged hypertree signature accepted against an honestly generated key either
+contains a concrete structural fault at some layer (a `LayerCollision`, or a WOTS
+signature on a message differing from the honest threaded input, which yields a
+chain preimage witness) or its recovered FORS public key equals the honest FORS
+public key fed into the hypertree. `honestFold_eq` discharges the honest fold to
+the keygen root. Only the ROM probability charge for each concrete fault remains.
+
+The reverse induction on `Hypertree.rootFromSignature`'s `remaining` argument. The recursion
 peels the bottom layer first and threads each recovered root up as the next
 layer's WOTS message, but a layer's recovered root is message-dependent, so only
 the top layer's output is pinned (to `pk.root`). The induction therefore carries
