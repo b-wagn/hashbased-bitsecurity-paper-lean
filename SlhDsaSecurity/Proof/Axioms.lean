@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.StripCached
 import SlhDsaSecurity.Proof.VerifierProbes
 import SlhDsaSecurity.Proof.HonestProbes
 import SlhDsaSecurity.Proof.FaultCharge
@@ -3423,3 +3424,11 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified
+
+/-- info: 'SlhDsaSecurity.StripCached.run_simulateQ_strip' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StripCached.run_simulateQ_strip
+
+/-- info: 'SlhDsaSecurity.StripCached.queriesUnder_strip_none' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StripCached.queriesUnder_strip_none
