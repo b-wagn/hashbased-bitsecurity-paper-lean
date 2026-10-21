@@ -4475,3 +4475,27 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.ChargedProbe.prob_list_sensitive_le_of_sum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.prob_list_sensitive_le_of_sum
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.chargedBy_iff' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.chargedBy_iff
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.targets_of_chargedBy' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.targets_of_chargedBy
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_cell_entry_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_cell_entry_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_cell_list_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_cell_list_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_run_cell_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_run_cell_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_run_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_run_sensitive_le

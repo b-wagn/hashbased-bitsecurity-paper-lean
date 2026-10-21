@@ -237,6 +237,215 @@ theorem prob_list_sensitive_le_of_sum (stakes : Stakes Node CanonicalGraph.Node)
         rw [← Nat.cast_sum]
         exact Nat.cast_le.mpr (sum_targets_length_le stakes unavailable probes)
 
+
+/-! ## The charge against one cell, with that cell alone drawn
+
+Being charged against a given cell reads the table at that one coordinate and nowhere else, so
+the charge can be stated against a single uniform cell rather than a whole uniform table. That
+is what lets it be applied to a run which is blind to that coordinate but not to the others:
+the coordinate may be drawn after the run, and the weight is then the expected number of probes
+aiming at it. -/
+
+/-- A probe charged against a cell, as a condition on that cell alone. -/
+def ChargedBy (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (cell : Cell) (entry : Bytes × QueryCache HashSpec) : Prop :=
+  ∃ node : Node, stakes.stake node = index ∧ unavailable entry.2 index ∧
+    stakes.inputOf node cell = entry.1
+
+/-- It is being charged, with the cell read off the table. -/
+theorem chargedBy_iff (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec) :
+    ChargedBy stakes unavailable index (cells index) entry ↔
+      SensitiveAt stakes unavailable cells entry.2 entry.1 index := Iff.rfl
+
+/-- A probe charged by a cell aims at it. -/
+theorem targets_of_chargedBy (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (cell : Cell) (entry : Bytes × QueryCache HashSpec)
+    (hcharged : ChargedBy stakes unavailable index cell entry) :
+    Targets stakes unavailable index entry := by
+  obtain ⟨node, hstake, hunavailable, hinput⟩ := hcharged
+  exact ⟨node, hstake, hunavailable, by rw [← hinput, stakes.locate_inputOf]⟩
+
+open scoped Classical in
+/-- **One probe, one cell.** At most one value of the cell charges a given probe, so a uniform
+cell charges it with the probability of a single guess. -/
+theorem prob_cell_entry_le (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec) :
+    Pr[fun cell : Cell => ChargedBy stakes unavailable index cell entry |
+      ($ᵗ Cell : ProbComp Cell)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  by_cases hwitness : ∃ cell : Cell, ChargedBy stakes unavailable index cell entry
+  · obtain ⟨value, node, hstake, hunavailable, hinput⟩ := hwitness
+    refine le_of_le_of_eq (probEvent_mono (q := fun cell : Cell => value = cell) ?_) ?_
+    · rintro cell - ⟨other, -, -, hotherInput⟩
+      have hsame : other = node := by
+        have hleft : stakes.locate entry.1 = some other := by
+          rw [← hotherInput, stakes.locate_inputOf]
+        have hright : stakes.locate entry.1 = some node := by
+          rw [← hinput, stakes.locate_inputOf]
+        exact Option.some.inj (hleft.symm.trans hright)
+      subst hsame
+      exact stakes.inputOf_injective other (hinput.trans hotherInput.symm)
+    · exact SecretGuessCharge.prob_single_guess value
+  · refine le_of_eq_of_le (b := 0) (probEvent_eq_zero fun cell _ hbad => ?_) (by simp)
+    exact hwitness ⟨cell, hbad⟩
+
+open scoped Classical in
+/-- **The charge against one cell at a fixed record**, with that cell alone drawn. -/
+theorem prob_cell_list_le (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (probes : List (Bytes × QueryCache HashSpec)) :
+    Pr[fun cell : Cell => ∃ entry ∈ probes, ChargedBy stakes unavailable index cell entry |
+      ($ᵗ Cell : ProbComp Cell)] ≤
+      (probes.filter (fun entry => decide (Targets stakes unavailable index entry))).length /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  refine le_trans (probEvent_mono (q := fun cell : Cell =>
+    ∃ entry ∈ (probes.filter
+        (fun other => decide (Targets stakes unavailable index other))).toFinset,
+      ChargedBy stakes unavailable index cell entry) ?_) ?_
+  · rintro cell - ⟨entry, hentry, hcharged⟩
+    refine ⟨entry, List.mem_toFinset.mpr (List.mem_filter.mpr ⟨hentry, ?_⟩), hcharged⟩
+    simpa using targets_of_chargedBy stakes unavailable index cell entry hcharged
+  refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
+  calc ∑ entry ∈ (probes.filter
+        (fun other => decide (Targets stakes unavailable index other))).toFinset,
+        Pr[fun cell : Cell => ChargedBy stakes unavailable index cell entry |
+          ($ᵗ Cell : ProbComp Cell)]
+      ≤ ∑ _entry ∈ (probes.filter
+          (fun other => decide (Targets stakes unavailable index other))).toFinset,
+          1 / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        Finset.sum_le_sum fun entry _ => prob_cell_entry_le stakes unavailable index entry
+    _ = (probes.filter
+          (fun other => decide (Targets stakes unavailable index other))).toFinset.card *
+          (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        rw [Finset.sum_const, nsmul_eq_mul]
+    _ ≤ ((probes.filter
+          (fun other => decide (Targets stakes unavailable index other))).length : ℝ≥0∞) *
+          (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        refine mul_le_mul' (Nat.cast_le.mpr ?_) le_rfl
+        exact (probes.filter
+          (fun other => decide (Targets stakes unavailable index other))).toFinset_card_le
+    _ = _ := by rw [mul_one_div]
+
+/-! ## The weight becomes an expectation
+
+With the cell drawn after the run, the fixed-record bound averages: the charge against one cell
+is the expected number of probes aiming at it, over `2 ^ 128`. Nothing about the run is assumed
+except that it does not draw the cell. -/
+
+open scoped Classical in
+/-- The number of probes a record aims at a given cell. -/
+noncomputable def aiming (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (probes : List (Bytes × QueryCache HashSpec)) : Nat :=
+  (probes.filter (fun entry => decide (Targets stakes unavailable index entry))).length
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The charge against one cell, over a run that does not draw it.** -/
+theorem prob_run_cell_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (run : ProbComp γ)
+    (record : γ → List (Bytes × QueryCache HashSpec)) :
+    Pr[fun pair : γ × Cell =>
+        ∃ entry ∈ record pair.1, ChargedBy stakes unavailable index pair.2 entry |
+      (do
+        let result ← run
+        let cell ← ($ᵗ Cell : ProbComp Cell)
+        pure (result, cell))] ≤
+      (∑' result, Pr[= result | run] *
+        ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [probEvent_bind_eq_tsum]
+  calc ∑' result, Pr[= result | run] *
+        Pr[fun pair : γ × Cell =>
+            ∃ entry ∈ record pair.1, ChargedBy stakes unavailable index pair.2 entry |
+          (do
+            let cell ← ($ᵗ Cell : ProbComp Cell)
+            pure (result, cell))]
+      ≤ ∑' result, Pr[= result | run] *
+          (((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        refine ENNReal.tsum_le_tsum fun result => ?_
+        by_cases hmem : result ∈ support run
+        · refine mul_le_mul' le_rfl ?_
+          rw [bind_pure_comp, probEvent_map]
+          exact prob_cell_list_le stakes unavailable index (record result)
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+          simp
+    _ = _ := by
+        simp only [div_eq_mul_inv, ← mul_assoc]
+        rw [ENNReal.tsum_mul_right]
+
+
+set_option maxHeartbeats 1000000 in
+set_option maxRecDepth 1000000 in
+open scoped Classical in
+/-- **The charge over all the cells.** Each cell's charge is weighted by the probes aiming at
+it, and those weights add to the number of probes, so the whole run costs one unit per probe
+rather than one per cell per probe. The exchange of the sum over cells with the expectation
+over runs is carried out through `tsum_fintype` and `ENNReal.tsum_comm` rather than left to the
+index type being finite, since it is the step at which a factor of the number of cells would
+hide. -/
+theorem prob_run_sensitive_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
+    ∑ index : CanonicalGraph.Node,
+        Pr[fun pair : γ × Cell =>
+            ∃ entry ∈ record pair.1, ChargedBy stakes unavailable index pair.2 entry |
+          (do
+            let result ← run
+            let cell ← ($ᵗ Cell : ProbComp Cell)
+            pure (result, cell))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_trans (Finset.sum_le_sum fun index _ =>
+    prob_run_cell_le stakes unavailable index run record) ?_
+  calc ∑ index : CanonicalGraph.Node,
+        (∑' result, Pr[= result | run] *
+          ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞)
+      = (∑ index : CanonicalGraph.Node, ∑' result, Pr[= result | run] *
+          ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        simp only [div_eq_mul_inv, ← Finset.sum_mul]
+    _ = (∑' result, ∑ index : CanonicalGraph.Node, Pr[= result | run] *
+          ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        have hswap : ∀ nodes : Finset CanonicalGraph.Node,
+            ∑ index ∈ nodes, ∑' result, Pr[= result | run] *
+                ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞) =
+              ∑' result, ∑ index ∈ nodes, Pr[= result | run] *
+                ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞) := by
+          intro nodes
+          refine Finset.induction_on nodes ?_ ?_
+          · simp
+          · intro head rest hhead ih
+            rw [Finset.sum_insert hhead, ih, ← ENNReal.tsum_add]
+            exact tsum_congr fun result => by rw [Finset.sum_insert hhead]
+        refine congrArg (fun total => total / ((2 ^ 128 : Nat) : ℝ≥0∞)) ?_
+        exact hswap Finset.univ
+    _ ≤ (∑' result, Pr[= result | run] * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        refine ENNReal.div_le_div_right (ENNReal.tsum_le_tsum fun result => ?_) _
+        rw [← Finset.mul_sum]
+        by_cases hmem : result ∈ support run
+        · refine mul_le_mul' le_rfl ?_
+          rw [← Nat.cast_sum]
+          refine Nat.cast_le.mpr (le_trans ?_ (hlimit result hmem))
+          exact sum_targets_length_le stakes unavailable (record result)
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+    _ ≤ (1 * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        refine ENNReal.div_le_div_right ?_ _
+        rw [ENNReal.tsum_mul_right]
+        exact mul_le_mul' tsum_probOutput_le_one le_rfl
+    _ = _ := by rw [one_mul]
+
 /-! ## The flag -/
 
 /-- The probe a query makes, if it makes one. -/
