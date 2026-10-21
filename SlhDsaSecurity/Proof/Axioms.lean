@@ -37,6 +37,7 @@ import SlhDsaSecurity.Proof.Extraction.WotsPreimage
 import SlhDsaSecurity.Proof.Extraction.HypertreeChain
 import SlhDsaSecurity.Proof.CollisionCharge
 import SlhDsaSecurity.Proof.FreshHitBound
+import SlhDsaSecurity.Proof.FramingLeak
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -406,3 +407,13 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.FreshHitBound.prob_hit_const_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshHitBound.prob_hit_const_le
+
+/-- info: 'SlhDsaSecurity.FramingLeak.randomizer_eq_truncate_messageDigest' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FramingLeak.randomizer_eq_truncate_messageDigest
+
+/-- info: 'SlhDsaSecurity.FramingLeak.exists_legal_request_leaking_digest' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FramingLeak.exists_legal_request_leaking_digest
