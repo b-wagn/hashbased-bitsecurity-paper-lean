@@ -401,4 +401,36 @@ theorem evalDist_prepend_warmup_after {α γ : Type} (sample : ProbComp γ)
   simpa only [simulateQ_bind, StateT.run_bind, map_bind] using
     evalDist_prepend_warmup (rest value) (publicSeed value) (secretSeed value)
 
+/-! ## The world traversal is the lifted one
+
+`worldEvaluate` was written in the experiment's monad so the prepend lemma could be stated
+there. It is the same computation as `GraphFreshSampling.evaluate`, lifted — each step's query
+is the hash query routed through the sum — and `rom` simulates a right-lifted computation
+through `randomOracle` alone.
+
+So everything already proved about the warmup in the hash-only world transfers: in particular
+`CanonicalGraph.Programming.warmup_uniform`, which gives the traversal's exact law as a uniform
+table and a programmed cache. That is what turns the prepended warmup into *fixed cells*. -/
+
+theorem worldEvaluate_eq_liftM {State Index : Type} (input : Index → State → Bytes)
+    (step : Index → State → HashOutput → State) (nodes : List Index) (state : State) :
+    worldEvaluate input step nodes state =
+      liftM (GraphFreshSampling.evaluate input step nodes state) := by
+  induction nodes generalizing state with
+  | nil => rfl
+  | cons node rest ih =>
+    rw [worldEvaluate, GraphFreshSampling.evaluate, liftM_bind]
+    exact congrArg (Bind.bind _) (funext fun output => ih (step node state output))
+
+/-- The warmup's run in the game's world is its run in the hash-only world. -/
+theorem run_worldWarmup (publicSeed secretSeed : Digest) (cache : QueryCache HashSpec) :
+    (simulateQ KeygenUniform.rom (worldWarmup publicSeed secretSeed)).run cache =
+      (simulateQ randomOracle
+        (CanonicalGraph.Programming.warmup publicSeed secretSeed)).run cache := by
+  rw [worldWarmup, worldEvaluate_eq_liftM,
+    show KeygenUniform.rom = unifFwdImpl HashSpec + (randomOracle :
+      QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) from rfl,
+    QueryImpl.simulateQ_add_liftM_right]
+  rfl
+
 end SlhDsaSecurity.Presample
