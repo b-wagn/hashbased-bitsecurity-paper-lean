@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.DrawnTable
+import SlhDsaSecurity.Proof.TableBlind
 import SlhDsaSecurity.Proof.RecordedBudget
 import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.GraphStakes
@@ -4134,3 +4135,19 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le
+
+/-- info: 'SlhDsaSecurity.TableBlind.evalDist_bind_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableBlind.evalDist_bind_congr
+
+/-- info: 'SlhDsaSecurity.TableBlind.evalDist_run_congr_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableBlind.evalDist_run_congr_of_step
+
+/-- info: 'SlhDsaSecurity.TableBlind.probEvent_run_congr_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableBlind.probEvent_run_congr_of_step
+
+/-- info: 'SlhDsaSecurity.TableBlind.prob_blind_run_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableBlind.prob_blind_run_sensitive_le
