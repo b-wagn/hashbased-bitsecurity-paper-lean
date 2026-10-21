@@ -14,9 +14,12 @@ oracle's `H_msg` inputs depend on the messages the adversary chooses and on the 
 it never sees, so the coordinates of the tape are selected adaptively during the run.
 
 This file supplies the adaptive transport. The run is instrumented so that it records, in
-query order, the answer to every query that both misses the cache and whose input passes a
-test `keep` — in the experiment, "the input is in `H_msg` format". The recorded list is the
-tape, and the content of the file is that it is distributed as a uniform tape:
+query order, the input and answer of every query that both misses the cache and whose input
+passes a test `keep` — in the experiment, "the input is in `H_msg` format". The recorded
+answers are the tape; the inputs ride along because the leave-one-out charge needs two
+coordinates to be *distinct*, and distinct inputs are what a game supplies
+(`recordCovered_of_witnesses`, `mem_record_of_cache`). The content of the file is that the
+recorded answers are distributed as a uniform tape:
 
 * `prob_prefix_le` is the lazy-sampling invariant — any *fixed* word of length `k` is a
   prefix of the recorded list with probability at most `|HashOutput| ^ (-k)`. It is the
@@ -60,8 +63,34 @@ namespace SlhDsaSecurity.DigestTape
 
 /-! ## The recording oracle -/
 
-/-- The cache together with the answers recorded so far, in query order. -/
-abbrev RecordState := QueryCache HashSpec × List HashOutput
+/-- A recording: the inputs queried and the answers they drew, in query order. The input is
+carried because the leave-one-out charge needs two coordinates of the tape to be *distinct*,
+and distinct inputs are what the game supplies. -/
+abbrev Record := List (Bytes × HashOutput)
+
+/-- The cache together with the recording so far. -/
+abbrev RecordState := QueryCache HashSpec × Record
+
+/-- The answers of a recording, forgetting the inputs. This is the tape. -/
+def answers (record : Record) : List HashOutput := record.map Prod.snd
+
+@[simp] theorem answers_nil : answers [] = [] := rfl
+
+@[simp] theorem answers_append (left right : Record) :
+    answers (left ++ right) = answers left ++ answers right := List.map_append
+
+@[simp] theorem answers_length (record : Record) : (answers record).length = record.length :=
+  List.length_map _
+
+@[simp] theorem answers_singleton (entry : Bytes × HashOutput) :
+    answers [entry] = [entry.2] := rfl
+
+theorem answers_getElem (record : Record) (i : Nat) (hi : i < (answers record).length) :
+    (answers record)[i] = (record[i]'(by simpa using hi)).2 := List.getElem_map _
+
+/-- A prefix of a recording has a prefix of its answers. -/
+theorem answers_prefix {left right : Record} (hprefix : left <+: right) :
+    answers left <+: answers right := hprefix.map _
 
 open scoped Classical in
 /-- The shared random oracle, recording the answer of every *fresh* query whose input passes
@@ -77,7 +106,8 @@ noncomputable def recorder (keep : Bytes → Prop) :
     | Sum.inr input => do
         let step ← (randomOracle input).run state.1
         pure (step.1, (step.2,
-          if keep input ∧ state.1 input = none then state.2 ++ [step.1] else state.2))
+          if keep input ∧ state.1 input = none then state.2 ++ [(input, step.1)]
+          else state.2))
 
 open scoped Classical in
 /-- On a private uniform sample the recording oracle draws and leaves the state alone. -/
@@ -92,7 +122,8 @@ theorem recorder_run_inr (keep : Bytes → Prop) (input : Bytes) (state : Record
     ((recorder keep) (Sum.inr input)).run state =
       (randomOracle input).run state.1 >>= fun step =>
         (pure (step.1, (step.2,
-          if keep input ∧ state.1 input = none then state.2 ++ [step.1] else state.2)) :
+          if keep input ∧ state.1 input = none then state.2 ++ [(input, step.1)]
+          else state.2)) :
           ProbComp _) := rfl
 
 /-- The shared oracle on a private uniform sample. -/
@@ -169,7 +200,7 @@ theorem recorder_eq_rom {α : Type} (keep : Bytes → Prop)
       rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
       exact tsum_congr fun step => by
         rw [ih step.1 (step.2, if keep input ∧ state.1 input = none
-          then state.2 ++ [step.1] else state.2)]
+          then state.2 ++ [(input, step.1)] else state.2)]
 
 /-- The same statement for the run started with an empty recording. -/
 theorem probEvent_recordedRun {α : Type} (keep : Bytes → Prop)
@@ -181,6 +212,42 @@ theorem probEvent_recordedRun {α : Type} (keep : Bytes → Prop)
   recorder_eq_rom keep computation (cache, []) event
 
 /-! ## The recording only grows -/
+
+/-- Every recorded run is a run: dropping the recording lands in the support of the plain run
+of the shared oracle. This is the support-level companion of `recorder_eq_rom`, and it is what
+lets a fact proved about the game — a budget, a cache shape — be used under the
+instrumentation. -/
+theorem mem_support_rom {α : Type} (keep : Bytes → Prop)
+    (computation : OracleComp OracleWorld α) (state : RecordState) (result : α × RecordState)
+    (hmem : result ∈ support ((simulateQ (recorder keep) computation).run state)) :
+    (result.1, result.2.1) ∈ support ((simulateQ KeygenUniform.rom computation).run state.1) := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff, hmem]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
+    refine ⟨(step.1, step.2.1), ?_, ih step.1 step.2 result hrest⟩
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, hvalue, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [rom_run_inl, mem_support_bind_iff]
+      refine ⟨value, hvalue, ?_⟩
+      rw [support_pure, Set.mem_singleton_iff, hpure]
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [rom_run_inr]
+      have hshape : (step.1, step.2.1) = inner := by
+        rw [hpure]
+        rfl
+      rw [hshape]
+      exact hinner
+
 
 /-- Recorded answers are appended, never changed: the starting record is a prefix of the
 final one. -/
@@ -328,7 +395,7 @@ theorem record_length_le_growth {α : Type} (keep : Bytes → Prop)
         have hcacheStep : step.2.1 = state.1.cacheQuery input answer := by
           rw [hpure, ← hinnerCache]
         have hrecStep : step.2.2 =
-            if keep input then state.2 ++ [answer] else state.2 := by
+            if keep input then state.2 ++ [(input, answer)] else state.2 := by
           rw [hpure, ← hinnerAnswer]
           simp [hcached]
         by_cases hkeep : keep input
@@ -350,6 +417,124 @@ theorem record_length_le_growth {α : Type} (keep : Bytes → Prop)
           have hstep' := ih step.1 step.2 limit result hrest hnext
           rw [hrecStep, if_neg hkeep] at hstep'
           exact hstep'
+
+/-- An installed answer persists verbatim along a recorded run. -/
+theorem recorder_cache_value_persists {α : Type} (keep : Bytes → Prop)
+    (computation : OracleComp OracleWorld α) (state : RecordState) (result : α × RecordState)
+    (hmem : result ∈ support ((simulateQ (recorder keep) computation).run state))
+    (input : Bytes) (answer : HashOutput) (hentry : state.1 input = some answer) :
+    result.2.1 input = some answer := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hentry
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | queried
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact hentry
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      cases hqueried : state.1 queried with
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hqueried, support_map] at hinner
+        obtain ⟨sampled, -, hpair⟩ := hinner
+        have hmid : inner.2 = state.1.cacheQuery queried sampled :=
+          (Prod.ext_iff.mp hpair).2.symm
+        show inner.2 input = some answer
+        rw [hmid]
+        have hne : input ≠ queried := by
+          intro hsame
+          rw [hsame, hqueried] at hentry
+          simp at hentry
+        rw [QueryCache.cacheQuery_of_ne state.1 sampled hne]
+        exact hentry
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hqueried, support_pure,
+          Set.mem_singleton_iff] at hinner
+        show inner.2 input = some answer
+        rw [hinner]
+        exact hentry
+
+/-- **Every class answer the run installed was recorded.** An input of the class that was
+absent from the starting cache and is present at the end was answered by a fresh draw, and
+that draw is in the recording with the very input that asked for it. -/
+theorem mem_record_of_cache {α : Type} (keep : Bytes → Prop)
+    (computation : OracleComp OracleWorld α) (state : RecordState) (result : α × RecordState)
+    (hmem : result ∈ support ((simulateQ (recorder keep) computation).run state))
+    (input : Bytes) (answer : HashOutput) (hkeep : keep input)
+    (hfresh : state.1 input = none) (hfinal : result.2.1 input = some answer) :
+    (input, answer) ∈ result.2.2 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at hfinal
+    rw [hfresh] at hfinal
+    simp at hfinal
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | queried
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      have hsame : step.2 = state := congrArg Prod.snd hpure
+      refine ih step.1 step.2 result hrest ?_ hfinal
+      rw [hsame]
+      exact hfresh
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      cases hqueried : state.1 queried with
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hqueried, support_pure,
+          Set.mem_singleton_iff] at hinner
+        have hstate : step.2 = state := by
+          rw [hpure, hinner]
+          refine Prod.ext rfl ?_
+          exact if_neg (by rw [hqueried]; simp)
+        refine ih step.1 step.2 result hrest ?_ hfinal
+        rw [hstate]
+        exact hfresh
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hqueried, support_map] at hinner
+        obtain ⟨sampled, -, hpair⟩ := hinner
+        have hinnerCache : inner.2 = state.1.cacheQuery queried sampled :=
+          (Prod.ext_iff.mp hpair).2.symm
+        have hinnerAnswer : inner.1 = sampled := (Prod.ext_iff.mp hpair).1.symm
+        have hcacheStep : step.2.1 = state.1.cacheQuery queried sampled := by
+          rw [hpure, ← hinnerCache]
+        by_cases hsame : input = queried
+        · subst hsame
+          have hstepEntry : step.2.1 input = some sampled := by
+            rw [hcacheStep, QueryCache.cacheQuery_self]
+          have hpersist : result.2.1 input = some sampled :=
+            recorder_cache_value_persists keep (next step.1) step.2 result hrest input sampled
+              hstepEntry
+          have hvalue : sampled = answer := by
+            rw [hpersist] at hfinal
+            exact Option.some.inj hfinal
+          have hrecStep : step.2.2 = state.2 ++ [(input, sampled)] := by
+            rw [hpure, ← hinnerAnswer]
+            exact if_pos ⟨hkeep, hfresh⟩
+          have hgrow : step.2.2 <+: result.2.2 :=
+            record_prefix keep (next step.1) step.2 result hrest
+          refine hgrow.subset ?_
+          rw [hrecStep, hvalue]
+          simp
+        · refine ih step.1 step.2 result hrest ?_ hfinal
+          rw [hcacheStep, QueryCache.cacheQuery_of_ne state.1 sampled hsame]
+          exact hfresh
 
 /-! ## The lazy-sampling invariant
 
@@ -424,7 +609,7 @@ theorem prob_prefix_le {α : Type} (keep : Bytes → Prop)
     (computation : OracleComp OracleWorld α) (trials : Nat) (state : RecordState)
     (target : List HashOutput) :
     Pr[fun result : (α × RecordState) × List HashOutput =>
-        state.2 ++ target <+: result.1.2.2 ++ result.2 |
+        answers state.2 ++ target <+: answers result.1.2.2 ++ result.2 |
       paddedFrom keep computation state trials] ≤
       (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ target.length := by
   classical
@@ -436,7 +621,7 @@ theorem prob_prefix_le {α : Type} (keep : Bytes → Prop)
     rw [hrun, bind_pure_comp, probEvent_map]
     refine le_trans (le_of_eq ?_) (prob_padding_prefix_le trials target)
     refine probEvent_congr' (fun pad _ => ?_) rfl
-    exact List.prefix_append_right_inj state.2
+    exact List.prefix_append_right_inj (answers state.2)
   | query_bind queried next ih =>
     rw [paddedFrom_bind, simulateQ_spec_query]
     rcases queried with coin | input
@@ -446,7 +631,7 @@ theorem prob_prefix_le {α : Type} (keep : Bytes → Prop)
       calc ∑' value : OracleWorld.Range (Sum.inl coin),
             Pr[= value | ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _)] *
               Pr[fun result : (α × RecordState) × List HashOutput =>
-                  state.2 ++ target <+: result.1.2.2 ++ result.2 |
+                  answers state.2 ++ target <+: answers result.1.2.2 ++ result.2 |
                 paddedFrom keep (next value) state trials]
           ≤ ∑' value : OracleWorld.Range (Sum.inl coin),
               Pr[= value | ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _)] *
@@ -486,9 +671,9 @@ theorem prob_prefix_le {α : Type} (keep : Bytes → Prop)
             rw [probEvent_bind_eq_tsum]
             have hinner : ∀ answer : HashOutput,
                 Pr[fun result : (α × RecordState) × List HashOutput =>
-                    state.2 ++ head :: tail <+: result.1.2.2 ++ result.2 |
+                    answers state.2 ++ head :: tail <+: answers result.1.2.2 ++ result.2 |
                   paddedFrom keep (next answer)
-                    (state.1.cacheQuery input answer, state.2 ++ [answer]) trials] ≤
+                    (state.1.cacheQuery input answer, state.2 ++ [(input, answer)]) trials] ≤
                   (if answer = head then
                     (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ tail.length else 0) := by
               intro answer
@@ -497,28 +682,33 @@ theorem prob_prefix_le {α : Type} (keep : Bytes → Prop)
                 rw [if_pos rfl]
                 refine le_of_le_of_eq
                   (le_of_eq_of_le ?_
-                    (ih answer (state.1.cacheQuery input answer, state.2 ++ [answer]) tail))
+                    (ih answer (state.1.cacheQuery input answer,
+                      state.2 ++ [(input, answer)]) tail))
                   rfl
                 refine probEvent_congr' (fun result _ => ?_) rfl
-                rw [List.append_assoc]
+                rw [answers_append, answers_singleton, List.append_assoc]
                 rfl
               · rw [if_neg hhead]
                 refine le_of_eq (probEvent_eq_zero fun result hresult hprefix => ?_)
-                have hgrown : state.2 ++ [answer] <+: result.1.2.2 :=
+                have hgrown : state.2 ++ [(input, answer)] <+: result.1.2.2 :=
                   record_prefix_padded keep (next answer)
-                    (state.1.cacheQuery input answer, state.2 ++ [answer]) trials result hresult
-                have hboth : state.2 ++ [answer] <+: state.2 ++ head :: tail := by
+                    (state.1.cacheQuery input answer, state.2 ++ [(input, answer)]) trials
+                    result hresult
+                have hgrownAnswers : answers state.2 ++ [answer] <+: answers result.1.2.2 := by
+                  simpa using answers_prefix hgrown
+                have hboth :
+                    answers state.2 ++ [answer] <+: answers state.2 ++ head :: tail := by
                   refine List.prefix_of_prefix_length_le
-                    (hgrown.trans (List.prefix_append _ _)) hprefix ?_
+                    (hgrownAnswers.trans (List.prefix_append _ _)) hprefix ?_
                   simp
                 exact hhead (by
-                  have := (List.prefix_append_right_inj state.2).mp hboth
+                  have := (List.prefix_append_right_inj (answers state.2)).mp hboth
                   simpa using (List.cons_prefix_cons.mp this).1)
             calc ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
                   Pr[fun result : (α × RecordState) × List HashOutput =>
-                      state.2 ++ head :: tail <+: result.1.2.2 ++ result.2 |
+                      answers state.2 ++ head :: tail <+: answers result.1.2.2 ++ result.2 |
                     paddedFrom keep (next answer)
-                      (state.1.cacheQuery input answer, state.2 ++ [answer]) trials]
+                      (state.1.cacheQuery input answer, state.2 ++ [(input, answer)]) trials]
                 ≤ ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
                     (if answer = head then
                       (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ tail.length else 0) :=
@@ -534,7 +724,7 @@ theorem prob_prefix_le {α : Type} (keep : Bytes → Prop)
           rw [probEvent_bind_eq_tsum]
           calc ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
                 Pr[fun result : (α × RecordState) × List HashOutput =>
-                    state.2 ++ target <+: result.1.2.2 ++ result.2 |
+                    answers state.2 ++ target <+: answers result.1.2.2 ++ result.2 |
                   paddedFrom keep (next answer)
                     (state.1.cacheQuery input answer, state.2) trials]
               ≤ ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
@@ -637,21 +827,21 @@ theorem prob_tape_mem_le {α : Type} (keep : Bytes → Prop)
     (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) (trials : Nat)
     (bad : Finset (Fin trials → HashOutput)) :
     Pr[fun result : (α × RecordState) × List HashOutput =>
-        ∃ word ∈ bad, List.ofFn word <+: result.1.2.2 ++ result.2 |
+        ∃ word ∈ bad, List.ofFn word <+: answers result.1.2.2 ++ result.2 |
       paddedFrom keep computation (cache, []) trials] ≤
       bad.card * (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ trials := by
   classical
   refine le_trans (probEvent_exists_finset_le_sum bad _ _) ?_
   calc ∑ word ∈ bad,
         Pr[fun result : (α × RecordState) × List HashOutput =>
-            List.ofFn word <+: result.1.2.2 ++ result.2 |
+            List.ofFn word <+: answers result.1.2.2 ++ result.2 |
           paddedFrom keep computation (cache, []) trials]
       ≤ ∑ _word ∈ bad, (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ trials := by
         refine Finset.sum_le_sum fun word _ => ?_
         have hlen : (List.ofFn word).length = trials := List.length_ofFn
         refine le_of_le_of_eq (le_of_eq_of_le ?_
           (prob_prefix_le keep computation trials (cache, []) (List.ofFn word))) ?_
-        · exact probEvent_congr' (fun _ _ => by rw [List.nil_append]) rfl
+        · exact probEvent_congr' (fun _ _ => by simp) rfl
         · rw [hlen]
     _ = bad.card * (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ trials := by
         rw [Finset.sum_const, nsmul_eq_mul]
@@ -667,7 +857,7 @@ theorem prob_tape_event_le {α : Type} (keep : Bytes → Prop)
     Pr[fun result : (α × RecordState) × List HashOutput =>
         ∃ word : Fin trials → HashOutput,
           tapeBad (fun i => MessageDigest.parse (word i)) ∧
-            List.ofFn word <+: result.1.2.2 ++ result.2 |
+            List.ofFn word <+: answers result.1.2.2 ++ result.2 |
       paddedFrom keep computation (cache, []) trials] ≤
       Pr[tapeBad | ($ᵗ (ForsDisclosureTape.Tape trials) :
         ProbComp (ForsDisclosureTape.Tape trials))] := by
@@ -677,7 +867,7 @@ theorem prob_tape_event_le {α : Type} (keep : Bytes → Prop)
   have hevent : Pr[fun result : (α × RecordState) × List HashOutput =>
       ∃ word : Fin trials → HashOutput,
         tapeBad (fun i => MessageDigest.parse (word i)) ∧
-          List.ofFn word <+: result.1.2.2 ++ result.2 |
+          List.ofFn word <+: answers result.1.2.2 ++ result.2 |
     paddedFrom keep computation (cache, []) trials] ≤
       bad.card * (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ trials := by
     refine le_trans (probEvent_mono ?_) (prob_tape_mem_le keep computation cache trials bad)
@@ -760,28 +950,63 @@ disclosures, a covered recording stays covered inside any longer word extending 
 record's coverage event is charged by the full tape's. -/
 
 /-- The parsed FORS views of a recorded list, as a tape of its own length. -/
-def recordTape (record : List HashOutput) : ForsDisclosureTape.Tape record.length :=
-  fun i => MessageDigest.parse record[i.val]
+def recordTape (record : Record) : ForsDisclosureTape.Tape record.length :=
+  fun i => MessageDigest.parse (record[i.val]).2
 
 /-- Some recorded digest has its fourteen FORS leaves all disclosed by the other recorded
 digests. -/
-def RecordCovered (record : List HashOutput) : Prop := TapeCovered (recordTape record)
+def RecordCovered (record : Record) : Prop := TapeCovered (recordTape record)
+
+/-- **Coverage from witnesses.** A distinguished recorded entry whose fourteen FORS leaves are
+each matched, at the same FORS instance, by a recorded entry queried at a *different* input is
+covered by the rest of the recording. Distinct inputs are what the game supplies, and distinct
+entries are what the leave-one-out charge needs; the two meet here because the recording
+carries the input beside the answer. -/
+theorem recordCovered_of_witnesses (record : Record) (target : Bytes) (answer : HashOutput)
+    (htarget : (target, answer) ∈ record)
+    (hothers : ∀ tree : MessageDigest.ForsTree, ∃ other : Bytes × HashOutput,
+      other ∈ record ∧ other.1 ≠ target ∧
+        (MessageDigest.parse other.2).1 = (MessageDigest.parse answer).1 ∧
+        (MessageDigest.parse other.2).2 tree = (MessageDigest.parse answer).2 tree) :
+    RecordCovered record := by
+  classical
+  obtain ⟨j, hj, hjvalue⟩ := List.getElem_of_mem htarget
+  refine ⟨⟨j, hj⟩, fun tree => ?_⟩
+  obtain ⟨other, hmem, hne, hinstance, hleaf⟩ := hothers tree
+  obtain ⟨k, hk, hkvalue⟩ := List.getElem_of_mem hmem
+  have htargetView : recordTape record ⟨j, hj⟩ = MessageDigest.parse answer := by
+    show MessageDigest.parse (record[j]).2 = _
+    rw [hjvalue]
+  have hotherView : recordTape record ⟨k, hk⟩ = MessageDigest.parse other.2 := by
+    show MessageDigest.parse (record[k]).2 = _
+    rw [hkvalue]
+  have hindex : (⟨k, hk⟩ : Fin record.length) ≠ ⟨j, hj⟩ := by
+    intro hsame
+    have hval : k = j := congrArg Fin.val hsame
+    subst hval
+    exact hne (congrArg Prod.fst (hkvalue.symm.trans hjvalue))
+  simp only [ForsDisclosureTape.disclosuresExcept, Finset.mem_image, Finset.mem_filter,
+    Finset.mem_univ, true_and]
+  exact ⟨⟨k, hk⟩, ⟨hindex, by rw [hotherView, htargetView]; exact hinstance⟩,
+    by rw [hotherView, htargetView]; exact hleaf⟩
 
 /-- Coverage within a recording persists in any word that extends it. -/
-theorem tapeCovered_of_prefix {trials : Nat} (record : List HashOutput)
-    (word : Fin trials → HashOutput) (hpre : record <+: List.ofFn word)
+theorem tapeCovered_of_prefix {trials : Nat} (record : Record)
+    (word : Fin trials → HashOutput) (hpre : answers record <+: List.ofFn word)
     (hcov : RecordCovered record) :
     TapeCovered (fun i => MessageDigest.parse (word i)) := by
   classical
   have hlen : record.length ≤ trials := by
-    have := hpre.length_le
-    rwa [List.length_ofFn] at this
+    have hle := hpre.length_le
+    rw [List.length_ofFn, answers_length] at hle
+    exact hle
   have hget : ∀ i : Fin record.length,
-      word ⟨i.val, lt_of_lt_of_le i.isLt hlen⟩ = record[i.val] := by
+      word ⟨i.val, lt_of_lt_of_le i.isLt hlen⟩ = (record[i.val]).2 := by
     intro i
-    have hstep := hpre.getElem i.isLt
+    have hlt : i.val < (answers record).length := by simp [i.isLt]
+    have hstep := hpre.getElem hlt
     rw [List.getElem_ofFn] at hstep
-    exact hstep.symm
+    rw [← hstep, answers_getElem]
   have hview : ∀ i : Fin record.length,
       MessageDigest.parse (word ⟨i.val, lt_of_lt_of_le i.isLt hlen⟩) = recordTape record i := by
     intro i
@@ -842,7 +1067,7 @@ theorem prob_recordCovered_le {α : Type} (keep : Bytes → Prop)
     (le_trans (prob_tape_event_le keep computation cache trials TapeCovered)
       (prob_tapeCovered_le trials htrials))
   rintro result hmem ⟨hlen, hcov⟩
-  set whole : List HashOutput := result.1.2.2 ++ result.2 with hwhole
+  set whole : List HashOutput := answers result.1.2.2 ++ result.2 with hwhole
   have hpad : result.2.length = trials :=
     padded_length keep computation (cache, []) trials result hmem
   have hbig : trials ≤ whole.length := by
@@ -861,7 +1086,7 @@ theorem prob_recordCovered_le {α : Type} (keep : Bytes → Prop)
   refine List.prefix_of_prefix_length_le (l₃ := whole) ?_ hwholePrefix ?_
   · rw [hwhole]
     exact List.prefix_append _ _
-  · rw [List.length_ofFn]
+  · rw [List.length_ofFn, answers_length]
     exact hlen
 
 /-- **The charge in the growth-budget form.** The tape length is supplied by the same

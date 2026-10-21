@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.WotsResidueReduction
 import SlhDsaSecurity.Proof.DigestTape
 import SlhDsaSecurity.Proof.SplitCharged
@@ -3583,3 +3584,43 @@ info: 'SlhDsaSecurity.WotsResidueReduction.exists_held_value_of_residue' depends
 /-- info: 'SlhDsaSecurity.WotsResidueReduction.heldValue_eq_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WotsResidueReduction.heldValue_eq_cell
+
+/-- info: 'SlhDsaSecurity.CoverageTail.cacheCovered_of_forgeryCovered' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.cacheCovered_of_forgeryCovered
+
+/-- info: 'SlhDsaSecurity.CoverageTail.walk_cache_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.walk_cache_fresh
+
+/-- info: 'SlhDsaSecurity.CoverageTail.recordCovered_of_cacheCovered' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.recordCovered_of_cacheCovered
+
+/-- info: 'SlhDsaSecurity.CoverageTail.prob_cacheCovered_tail_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.prob_cacheCovered_tail_le
+
+/-- info: 'SlhDsaSecurity.CoverageTail.prob_coverage_tail_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.prob_coverage_tail_le
+
+/-- info: 'SlhDsaSecurity.CoverageTail.prob_coverage_tail_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.prob_coverage_tail_le_of_budget
+
+/-- info: 'SlhDsaSecurity.CoverageTail.parse_instance_eq_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.parse_instance_eq_iff
+
+/--
+info: 'SlhDsaSecurity.CoverageTail.forsAddress_eq_of_parse_instance_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.forsAddress_eq_of_parse_instance_eq
+
+/-- info: 'SlhDsaSecurity.CoverageTail.parse_leaves_eq' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.parse_leaves_eq
