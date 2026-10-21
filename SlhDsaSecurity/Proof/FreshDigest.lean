@@ -261,4 +261,94 @@ theorem prob_instance_event_le {α : Type} (computation : OracleComp OracleWorld
   exact le_of_eq (probEvent_congr' (fun _ _ => Iff.rfl)
     (instanceAssignment_uniform (↥pinned)))
 
+/-! ## Landing on the disclosure tape
+
+`ForsDisclosureTape.Tape requests` is `Fin requests → View`, and the disclosure results are
+stated as `probEvent`s over a uniform tape — `ForsDisclosureTape.bad_load_probability_sharper`
+for the load cap, and `ForsLeaveOneOut.independent_tape_coverage_le_sharper` for the whole
+leave-one-out coverage bound. Transporting to full parsed *views* rather than only to
+instances therefore lands exactly on those statements, and reuses them both.
+
+The pushforward is the same argument as for instances, one step shorter: `MessageDigest.split`
+already exhibits an answer as its view together with the nine ignored bits.
+-/
+
+/-- Coordinatewise, a uniform assignment of answers has a uniform assignment of parsed views. -/
+theorem viewAssignment_uniform (ι : Type) [Fintype ι] [DecidableEq ι] :
+    𝒟[(fun assignment index => MessageDigest.parse (assignment index)) <$>
+        ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput))] =
+      𝒟[($ᵗ (ι → MessageDigest.View) : ProbComp (ι → MessageDigest.View))] := by
+  classical
+  let coordinate : HashOutput ≃ MessageDigest.View × (BitVec 2 × BitVec 7) :=
+    Equiv.ofBijective MessageDigest.split MessageDigest.split_bijective
+  let regroup : (ι → HashOutput) ≃
+      (ι → MessageDigest.View) × (ι → BitVec 2 × BitVec 7) :=
+    (Equiv.piCongrRight (fun _ => coordinate)).trans
+      (Equiv.arrowProdEquivProdArrow ι (fun _ => MessageDigest.View)
+        (fun _ => BitVec 2 × BitVec 7))
+  have hmap : (fun assignment : ι → HashOutput =>
+        fun index => MessageDigest.parse (assignment index))
+        <$> ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput)) =
+      Prod.fst <$> (regroup <$> ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput))) := by
+    rw [Functor.map_map]
+    rfl
+  have hinner : 𝒟[regroup <$> ($ᵗ (ι → HashOutput) : ProbComp (ι → HashOutput))] =
+      𝒟[($ᵗ ((ι → MessageDigest.View) × (ι → BitVec 2 × BitVec 7)) :
+        ProbComp ((ι → MessageDigest.View) × (ι → BitVec 2 × BitVec 7)))] :=
+    evalDist_map_bijective_uniform_cross (α := (ι → HashOutput))
+      (β := ((ι → MessageDigest.View) × (ι → BitVec 2 × BitVec 7))) regroup regroup.bijective
+  rw [hmap, evalDist_map, hinner, ← evalDist_map]
+  exact evalDist_map_fst_uniformSample_prod
+
+open scoped Classical in
+/-- Any event about the parsed views recorded at a finite set of pinned inputs is bounded by
+its probability under a uniform assignment of views — that is, under a uniform disclosure
+tape once the index is reindexed to `Fin`. -/
+theorem prob_view_event_le {α : Type} (computation : OracleComp OracleWorld α)
+    (pinned : Finset Bytes) (cache : QueryCache HashSpec)
+    (hfresh : ∀ x ∈ pinned, cache x = none)
+    (viewBad : (↥pinned → MessageDigest.View) → Prop) :
+    Pr[fun result : α × QueryCache HashSpec =>
+        ∃ assignment : ↥pinned → HashOutput,
+          viewBad (fun x => MessageDigest.parse (assignment x)) ∧
+            ∀ x : ↥pinned, result.2 x.val = some (assignment x) |
+      (simulateQ KeygenUniform.rom computation).run cache] ≤
+      Pr[viewBad |
+        ($ᵗ (↥pinned → MessageDigest.View) :
+          ProbComp (↥pinned → MessageDigest.View))] := by
+  classical
+  set bad : Finset (↥pinned → HashOutput) :=
+    Finset.univ.filter
+      (fun assignment => viewBad (fun x => MessageDigest.parse (assignment x))) with hbad
+  have hcharge := GrowthCharge.prob_cache_values_mem_le' computation pinned cache hfresh bad
+  have hevent : Pr[fun result : α × QueryCache HashSpec =>
+      ∃ assignment : ↥pinned → HashOutput,
+        viewBad (fun x => MessageDigest.parse (assignment x)) ∧
+          ∀ x : ↥pinned, result.2 x.val = some (assignment x) |
+    (simulateQ KeygenUniform.rom computation).run cache] ≤
+      bad.card * (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card := by
+    refine le_trans (probEvent_mono ?_) hcharge
+    intro result _ hexists
+    obtain ⟨assignment, hview, hvalues⟩ := hexists
+    exact ⟨assignment, by simp [hbad, hview], hvalues⟩
+  refine hevent.trans ?_
+  have hcardFun : Fintype.card (↥pinned → HashOutput) =
+      (Fintype.card HashOutput) ^ pinned.card := by
+    rw [Fintype.card_fun, Fintype.card_coe]
+  have hcount : (bad.card : ℝ≥0∞) *
+      (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card =
+      Pr[fun assignment : ↥pinned → HashOutput =>
+        viewBad (fun x => MessageDigest.parse (assignment x)) |
+          ($ᵗ (↥pinned → HashOutput) : ProbComp (↥pinned → HashOutput))] := by
+    rw [probEvent_uniformSample, hcardFun]
+    push_cast
+    rw [one_div, ← ENNReal.inv_pow, mul_comm, ← ENNReal.div_eq_inv_mul]
+  rw [hcount]
+  rw [show (fun assignment : ↥pinned → HashOutput =>
+      viewBad (fun x => MessageDigest.parse (assignment x))) =
+    viewBad ∘ (fun assignment index => MessageDigest.parse (assignment index)) from rfl,
+    ← probEvent_map]
+  exact le_of_eq (probEvent_congr' (fun _ _ => Iff.rfl)
+    (viewAssignment_uniform (↥pinned)))
+
 end SlhDsaSecurity.FreshDigest
