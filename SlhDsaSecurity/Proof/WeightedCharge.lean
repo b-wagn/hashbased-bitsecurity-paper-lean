@@ -239,6 +239,38 @@ theorem prob_badWeighted_le {α : Type} (computation : OracleComp OracleWorld α
               hrest input (by rw [QueryCache.cacheQuery_self]; simp)
           exact hroom (hbadEvent.2.pos hcached hpresent)
 
+/-! ## The coarse bound, from the plain counter
+
+A weighted budget can also be read off the *plain* count, at the cost of the slack. If every
+weight is at most `bound`, then a run whose cache grew by at most `limit` entries has weighted
+growth at most `bound * limit` — so the existing `countAllHashes` instrumentation already
+supports the charge at budget `2 q`, which is exactly the answer side's allowance.
+
+That is enough when there is no defect to pay, which by the dichotomy is precisely the branch
+where fewer than sixteen digests were signed. The other branch needs the finer bound
+`weighted = 2 q - m`, and so needs the message count as well as the total: one instrumentation
+carrying both. -/
+
+theorem weightedGrowth_of_growth {weight : Bytes → Nat} {bound : Nat}
+    (hweight : ∀ input, weight input ≤ bound)
+    {initial final : QueryCache HashSpec} {limit : Nat}
+    (hgrowth : GrowthAtMost initial final limit) :
+    WeightedGrowthAtMost weight initial final (bound * limit) := by
+  intro inputs hnodup hmembers
+  have hlength : inputs.length ≤ limit := hgrowth inputs hnodup hmembers
+  have hsum : (inputs.map weight).sum ≤ bound * inputs.length := by
+    induction inputs with
+    | nil => simp
+    | cons input rest ih =>
+      simp only [List.map_cons, List.sum_cons, List.length_cons]
+      have hhead := hweight input
+      have htail : (rest.map weight).sum ≤ bound * rest.length := by
+        refine ih (List.nodup_cons.mp hnodup).2 (fun probe hprobe => hmembers probe (by simp [hprobe]))
+          ((hgrowth rest (List.nodup_cons.mp hnodup).2
+            (fun probe hprobe => hmembers probe (by simp [hprobe]))))
+      nlinarith [hhead, htail]
+  exact hsum.trans (Nat.mul_le_mul_left bound hlength)
+
 /-! ## The weighted counter
 
 The charge above consumes a budget; this is the instrumentation that produces one. Each hash
