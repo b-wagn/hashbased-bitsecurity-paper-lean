@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.GrowthCharge
+import SlhDsaSecurity.Statement.Security
 
 /-!
 # One weighted budget instead of per-class limits
@@ -71,6 +72,35 @@ theorem WeightedGrowthAtMost.cacheQuery {weight : Bytes → Nat}
         have hentry := (hmembers i hi).1
         rwa [QueryCache.cacheQuery_of_ne initial answer (hne i hi)] at hentry
   simp only [List.map_cons, List.sum_cons] at hextended
+  omega
+
+/-- Undoing an installation gives back that entry's weight. -/
+theorem WeightedGrowthAtMost.add_of_cacheQuery {weight : Bytes → Nat}
+    {initial final : QueryCache HashSpec} {budget : Nat}
+    {input : Bytes} {answer : HashOutput}
+    (hgrowth : WeightedGrowthAtMost weight (initial.cacheQuery input answer) final budget) :
+    WeightedGrowthAtMost weight initial final (budget + weight input) := by
+  classical
+  intro inputs hnodup hmembers
+  have hrest : ((inputs.erase input).map weight).sum ≤ budget := by
+    refine hgrowth (inputs.erase input) (hnodup.erase input) fun probe hprobe => ?_
+    have hmem : probe ∈ inputs := List.mem_of_mem_erase hprobe
+    have hne : probe ≠ input := by
+      intro hsame
+      subst hsame
+      exact (hnodup.not_mem_erase) hprobe
+    refine ⟨?_, (hmembers probe hmem).2⟩
+    rw [QueryCache.cacheQuery_of_ne initial answer hne]
+    exact (hmembers probe hmem).1
+  have hsplit : (inputs.map weight).sum ≤
+      ((inputs.erase input).map weight).sum + weight input := by
+    by_cases hpresent : input ∈ inputs
+    · have hperm : inputs.Perm (input :: inputs.erase input) :=
+        (List.perm_cons_erase hpresent)
+      rw [hperm.map weight |>.sum_eq, List.map_cons, List.sum_cons]
+      omega
+    · rw [List.erase_of_not_mem hpresent]
+      omega
   omega
 
 /-- The event, with the weighted budget. -/
@@ -208,5 +238,111 @@ theorem prob_badWeighted_le {α : Type} (computation : OracleComp OracleWorld α
             cache_mono (next answer) (initialCache.cacheQuery input answer) result.2 result.1
               hrest input (by rw [QueryCache.cacheQuery_self]; simp)
           exact hroom (hbadEvent.2.pos hcached hpresent)
+
+/-! ## The weighted counter
+
+The charge above consumes a budget; this is the instrumentation that produces one. Each hash
+call costs its input's weight and a coin flip costs nothing, so a run's weighted count is
+exactly what `prob_badWeighted_le` can be given — and, unlike a pair of class counts, it is a
+single number the game emits.
+
+`weightedGrowth_le_count` is the bridge: weighted growth never exceeds the weighted count.
+With the budget hypothesis bounding that count, the charge applies to the whole game. -/
+
+/-- A hash call costs its input's weight; coin flips are free. -/
+def weightedCost (weight : Bytes → Nat) : OracleWorld.Domain → Nat :=
+  fun queried => match queried with
+    | Sum.inl _ => 0
+    | Sum.inr input => weight input
+
+/-- The run instrumented with the weighted counter. -/
+def countWeighted (weight : Bytes → Nat) {α : Type} (computation : OracleComp OracleWorld α) :
+    OracleComp OracleWorld (α × Nat) :=
+  (fun result => (result.1, Multiplicative.toAdd result.2)) <$>
+    (simulateQ (addCostOracle (weightedCost weight)) computation).run
+
+@[simp] theorem countWeighted_pure (weight : Bytes → Nat) {α : Type} (value : α) :
+    countWeighted weight (pure value : OracleComp OracleWorld α) = pure (value, 0) := by
+  simp [countWeighted]
+
+theorem countWeighted_query_bind (weight : Bytes → Nat) {α : Type}
+    (queried : OracleWorld.Domain)
+    (next : OracleWorld.Range queried → OracleComp OracleWorld α) :
+    countWeighted weight (liftM (OracleWorld.query queried) >>= next) =
+      liftM (OracleWorld.query queried) >>= fun answer =>
+        (fun result => (result.1, weightedCost weight queried + result.2)) <$>
+          countWeighted weight (next answer) := by
+  simp only [countWeighted, simulateQ_bind, simulateQ_spec_query, addCostOracle,
+    QueryImpl.withAddCost, QueryImpl.withCost]
+  simp [Functor.map_map, map_bind, bind_map_left]
+
+/-- **Weighted growth is bounded by the weighted count.** -/
+theorem weightedGrowth_le_count (weight : Bytes → Nat) {α : Type}
+    (computation : OracleComp OracleWorld α) (initialCache : QueryCache HashSpec)
+    (result : (α × Nat) × QueryCache HashSpec)
+    (hmem : result ∈
+      support ((simulateQ KeygenUniform.rom (countWeighted weight computation)).run
+        initialCache)) :
+    WeightedGrowthAtMost weight initialCache result.2 result.1.2 := by
+  induction computation using OracleComp.inductionOn generalizing initialCache result with
+  | pure value =>
+    rw [countWeighted_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hmem
+    subst hmem
+    intro inputs _ hmembers
+    cases inputs with
+    | nil => simp
+    | cons input rest =>
+      obtain ⟨hnone, hsome⟩ := hmembers input (by simp)
+      exact absurd hnone hsome
+  | query_bind queried next ih =>
+    rw [countWeighted_query_bind, simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      mem_support_bind_iff] at hmem
+    obtain ⟨⟨answer, middleCache⟩, hquery, hrest⟩ := hmem
+    rw [simulateQ_map, StateT.run_map, support_map] at hrest
+    obtain ⟨inner, hinner, heq⟩ := hrest
+    have hgrowth := ih answer middleCache inner hinner
+    have hfinal : result.2 = inner.2 := by rw [← heq]
+    have hcount : result.1.2 = weightedCost weight queried + inner.1.2 := by rw [← heq]
+    rcases queried with coin | input
+    · have hcache : middleCache = initialCache := by
+        symm
+        have hform : ∃ coinValue, (coinValue, initialCache) = (answer, middleCache) := by
+          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl]
+            using hquery
+        obtain ⟨coinValue, hpair⟩ := hform
+        exact congrArg Prod.snd hpair
+      rw [hfinal, hcount, weightedCost]
+      rw [hcache] at hgrowth
+      simpa using hgrowth
+    · have hmiddle : middleCache = initialCache.cacheQuery input answer ∨
+          middleCache = initialCache := by
+        cases hcached : initialCache input with
+        | some cached =>
+          right
+          have hrun : (KeygenUniform.rom (Sum.inr input)).run initialCache =
+              (pure (cached, initialCache) :
+                ProbComp (HashOutput × QueryCache HashSpec)) := by
+            change (randomOracle input).run initialCache = _
+            rw [QueryImpl.withCaching_run_some _ hcached]
+          rw [hrun, support_pure, Set.mem_singleton_iff] at hquery
+          exact congrArg Prod.snd hquery
+        | none =>
+          left
+          have hrun : (KeygenUniform.rom (Sum.inr input)).run initialCache =
+              (fun value => (value, initialCache.cacheQuery input value)) <$>
+                ($ᵗ HashOutput : ProbComp HashOutput) := by
+            change (randomOracle input).run initialCache = _
+            rw [QueryImpl.withCaching_run_none _ hcached]
+            simp [uniformSampleImpl]
+          rw [hrun, support_map] at hquery
+          obtain ⟨value, -, hpair⟩ := hquery
+          have hvalue : value = answer := congrArg Prod.fst hpair
+          rw [← hvalue]
+          exact (congrArg Prod.snd hpair).symm
+      rw [hfinal, hcount, weightedCost]
+      rcases hmiddle with hshape | hshape <;> rw [hshape] at hgrowth
+      · exact (WeightedGrowthAtMost.add_of_cacheQuery hgrowth).mono (by omega)
+      · exact hgrowth.mono (by omega)
 
 end SlhDsaSecurity.WeightedCharge
