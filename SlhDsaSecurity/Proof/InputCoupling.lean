@@ -1,0 +1,346 @@
+import SlhDsaSecurity.Proof.SeedDeferral
+import VCVio.StateSeparating.IdenticalUntilBad
+
+/-!
+# The input-side coupling
+
+The answer side of the budget charges events about a query's *answer*. The input side charges
+the one event that is about a query's *input*: that the adversary names a byte string which is
+the honest input at some coordinate of the hypertree, i.e. that it has guessed `SK.seed`.
+
+`SecretGuessCharge.prob_secret_guessed_le` already bounds that at `q / 2 ^ 128`, but it samples
+the secret *after* the run. The experiment samples it at key generation, before the adversary
+starts. This file carries out the hop that bridges the two, as an identical-until-bad step over
+`QueryImpl.Stateful.advantage_le_expectedQuerySlack_plus_probEvent_bad`.
+
+## Why the seed cannot sit in the handler state
+
+The per-step hypothesis of that theorem is quantified over *every* state `s`:
+
+```
+∀ t s, tvDist ((h₀ t).run (s, false)) ((h₁ t).run (s, false)) ≤ querySlack s
+```
+
+If the state held the seed, this would be false pointwise: at the one input that is seed-derived
+for that `s` the two handlers return different answers, so their distance is `1`, not `2 ^ -128`.
+The hypothesis can only hold if the seed is *not* in the state — which is to say, if the handler
+draws it lazily, inside the step, at the moment it has to decide whether the input it was handed
+is seed-derived. That moment is exactly when the bad flag fires, so the deferral costs nothing:
+after the flag is set the two worlds are allowed to diverge arbitrarily.
+
+This is what `real` below does. Its state carries the adversary's own cache together with the
+*coordinate-keyed* honest table — the honest answers indexed by hypertree coordinate rather than
+by byte input. That the honest table can be keyed this way, with the seed appearing only in the
+cache keys the adversary never sees, is `SeedDeferral.honest_result_indep_of_seed`.
+
+## What is proved here
+
+* `tvDist_step_le` — the per-step total-variation bound, at rate `2 ^ -128`, from
+  `SeedDeferral.prob_honest_key_le`;
+* `step_eq_of_uncharged`, `real_bad_monotone` — the other two hypotheses of the hop;
+* `advantage_le` — the hop itself, giving `advantage ≤ q / 2 ^ 128 + Pr[bad]`;
+* `probEvent_bad_le` — the bad-flag mass is itself at most `q / 2 ^ 128`, so
+* `advantage_le_two_mul` — the separation, `advantage ≤ 2 * q / 2 ^ 128`.
+
+## What is *not* proved here, stated precisely
+
+`real` is not the experiment. The constraint above forces the seed out of the state entirely, and
+the only handler shape that achieves that draws a *fresh independent* seed at every step: a seed
+remembered across steps is a seed in the state. So `real` resamples, while the experiment draws
+one seed at key generation and keeps it.
+
+The two are not literally identical-until-bad. On the no-bad path neither handler's answers
+depend on the seed, so the output law *conditioned* on no-bad agrees; but the mass of the no-bad
+path does not. With the same input queried twice, the eager handler misses with probability
+`1 - p` and the resampling handler with probability `(1 - p) ^ 2`. The discrepancy is itself of
+order `q / 2 ^ 128`, so the bridge to the eager handler is a further bounded-slack hop, not an
+exact equality, and it is not carried out here.
+
+What is established here is the half that the structural constraint permits: against a handler
+that answers every query freshly, the lazily-seeded handler is `2 q / 2 ^ 128`-indistinguishable,
+with both halves of that budget — query slack and bad-flag mass — proved rather than assumed.
+-/
+
+open OracleComp OracleSpec ENNReal
+
+namespace SlhDsaSecurity.InputCoupling
+
+variable {Index : Type}
+
+/-! ## The two handlers -/
+
+/-- The handler state: the adversary's own cache, together with the honest answers keyed by
+hypertree *coordinate*. No seed appears, by design — see the module docstring. -/
+abbrev State (Index : Type) : Type := QueryCache HashSpec × (Index → HashOutput)
+
+/-- Whether `candidate` is the honest input at the coordinate its address field names.
+
+The address field is carried in the clear by the FIPS 205 byte format, so `locate` reads off the
+only coordinate `candidate` could be the honest input of, and one equality test settles it. -/
+def SeedDerived (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (secret : Digest) (candidate : Bytes) : Prop :=
+  ∃ node : Index, locate candidate = some node ∧ inputOf secret node = candidate
+
+instance (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (secret : Digest) (candidate : Bytes) :
+    Decidable (SeedDerived inputOf locate secret candidate) := by
+  unfold SeedDerived
+  cases locate candidate with
+  | none => exact isFalse (by rintro ⟨node, hnode, -⟩; exact absurd hnode (by simp))
+  | some node =>
+    by_cases heq : inputOf secret node = candidate
+    · exact isTrue ⟨node, rfl, heq⟩
+    · refine isFalse ?_
+      rintro ⟨other, hother, hval⟩
+      exact heq (Option.some.inj hother ▸ hval)
+
+/-- The honest answer at `candidate`, read out of the coordinate-keyed table. -/
+def honestAnswer (locate : Bytes → Option Index) (honest : Index → HashOutput)
+    (candidate : Bytes) : HashOutput :=
+  match locate candidate with
+  | none => default
+  | some node => honest node
+
+/-- **The blind handler.** Every adversary query is answered freshly, by a lazy random oracle on
+the adversary's own cache. Nothing about the key is consulted, and the bad flag never moves. -/
+def blind : QueryImpl.Stateful unifSpec HashSpec (State Index × Bool) :=
+  fun candidate => StateT.mk fun p => do
+    let z ← (randomOracle candidate).run p.1.1
+    return (z.1, ((z.2, p.1.2), p.2))
+
+/-- **The real handler.** It draws the secret seed *at the step*, uses it only to decide whether
+the input it was handed is the honest input at some coordinate, and if so answers out of the
+honest table and raises the bad flag. On every other input it coincides with `blind`, seed and
+all. The seed is never written to the state: it exists only for the duration of one step. -/
+def real (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index) :
+    QueryImpl.Stateful unifSpec HashSpec (State Index × Bool) :=
+  fun candidate => StateT.mk fun p => do
+    let secret ← ($ᵗ Digest : ProbComp Digest)
+    if SeedDerived inputOf locate secret candidate then
+      return (honestAnswer locate p.1.2 candidate, (p.1, true))
+    else
+      let z ← (randomOracle candidate).run p.1.1
+      return (z.1, ((z.2, p.1.2), p.2))
+
+/-! ## The three hypotheses of the identical-until-bad hop -/
+
+/-- A `SeedDerived` input is in particular an honest input at *some* coordinate, which is the
+event `SeedDeferral.prob_honest_key_le` charges. -/
+theorem probEvent_seedDerived_le (inputOf : Digest → Index → Bytes)
+    (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (candidate : Bytes) :
+    Pr[fun secret : Digest => SeedDerived inputOf locate secret candidate |
+      ($ᵗ Digest : ProbComp Digest)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_trans (probEvent_mono (α := Digest)
+    (q := fun secret : Digest => ∃ node : Index, inputOf secret node = candidate) ?_) ?_
+  · rintro secret - ⟨node, -, hnode⟩
+    exact ⟨node, hnode⟩
+  · exact SeedDeferral.prob_honest_key_le inputOf locate hlocate hinj candidate
+
+/-- Both handlers answer freshly once the seed is drawn and found not to match. -/
+theorem real_step_eq (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (candidate : Bytes) (p : State Index × Bool) :
+    (real inputOf locate candidate).run p =
+      (($ᵗ Digest : ProbComp Digest) >>= fun secret =>
+        if SeedDerived inputOf locate secret candidate then
+          (pure (honestAnswer locate p.1.2 candidate, (p.1, true)) :
+            ProbComp (HashOutput × (State Index × Bool)))
+        else (blind candidate).run p) := rfl
+
+/-- The blind step may be preceded by a draw of the seed it ignores. -/
+theorem evalDist_blind_step (candidate : Bytes) (p : State Index × Bool) :
+    𝒟[(blind candidate).run p] =
+      𝒟[(($ᵗ Digest : ProbComp Digest) >>= fun _ => (blind candidate).run p)] :=
+  (OracleComp.DeferredSampling.evalDist_bind_const_neverFails _ (by simp) _).symm
+
+/-- **The per-step total-variation bound.** At a state with the bad flag down, the real and blind
+handlers are `2 ^ -128`-close, at *every* state — which is possible only because the state holds
+no seed. -/
+theorem tvDist_step_le (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (candidate : Bytes) (s : State Index) :
+    ENNReal.ofReal
+        (tvDist ((real inputOf locate candidate).run (s, false))
+          ((blind candidate).run (s, false))) ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  have hrw : tvDist ((real inputOf locate candidate).run (s, false))
+        ((blind candidate).run (s, false)) =
+      tvDist (($ᵗ Digest : ProbComp Digest) >>= fun secret =>
+          if SeedDerived inputOf locate secret candidate then
+            (pure (honestAnswer locate s.2 candidate, ((s, true) : State Index × Bool)) :
+              ProbComp (HashOutput × (State Index × Bool)))
+          else (blind candidate).run (s, false))
+        (($ᵗ Digest : ProbComp Digest) >>= fun _ =>
+          (blind candidate).run ((s, false) : State Index × Bool)) := by
+    simp only [tvDist, real_step_eq, ← evalDist_blind_step]
+  rw [hrw]
+  refine le_trans (ofReal_tvDist_bind_left_event_le _ _ _
+    (fun secret => SeedDerived inputOf locate secret candidate) ?_) ?_
+  · intro secret hsecret
+    simp [hsecret]
+  · exact probEvent_seedDerived_le inputOf locate hlocate hinj candidate
+
+/-- **Agreement on uncharged queries.** Every query is charged, so there is nothing to check. -/
+theorem step_eq_of_uncharged (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (candidate : Bytes) (huncharged : ¬ (True : Prop)) (p : State Index × Bool) :
+    (real inputOf locate candidate).run p = (blind candidate).run p :=
+  absurd trivial huncharged
+
+/-- **Bad-flag monotonicity.** Neither branch of `real` ever lowers the flag. -/
+theorem real_bad_monotone (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (candidate : Bytes) (p : State Index × Bool) (hp : p.2 = true) :
+    ∀ z ∈ support ((real inputOf locate candidate).run p), z.2.2 = true := by
+  classical
+  rintro z hz
+  rw [real_step_eq] at hz
+  simp only [support_bind, Set.mem_iUnion] at hz
+  obtain ⟨secret, -, hz⟩ := hz
+  by_cases hsd : SeedDerived inputOf locate secret candidate
+  · rw [if_pos hsd] at hz
+    simp only [support_pure, Set.mem_singleton_iff] at hz
+    subst hz
+    rfl
+  · rw [if_neg hsd] at hz
+    simp only [blind, StateT.run, StateT.mk, support_bind, support_pure, Set.mem_iUnion,
+      Set.mem_singleton_iff] at hz
+    obtain ⟨w, -, hz⟩ := hz
+    subst hz
+    exact hp
+
+
+/-! ## The hop
+
+With the three hypotheses in hand the identical-until-bad theorem applies verbatim. Every query
+is charged, so the budget is the plain query bound and the agreement hypothesis is vacuous. -/
+
+/-- **The input-side coupling.** A distinguisher making at most `queryBudget` queries separates
+the lazily-seeded handler from the blind one by at most `queryBudget / 2 ^ 128`, plus the mass of
+the event that it actually named a seed-derived input. -/
+theorem advantage_le (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (s_init : State Index) (A : OracleComp HashSpec Bool) {queryBudget : ℕ}
+    (h_bound : OracleComp.IsQueryBoundP A (fun _ : Bytes => True) queryBudget) :
+    ENNReal.ofReal
+        ((real inputOf locate).advantage (s_init, false) blind (s_init, false) A)
+      ≤ queryBudget / ((2 ^ 128 : Nat) : ℝ≥0∞)
+        + Pr[fun z : Bool × State Index × Bool => z.2.2 = true |
+            (simulateQ (real inputOf locate) A).run (s_init, false)] := by
+  refine le_trans (QueryImpl.Stateful.advantage_le_queryBound_mul_slack_plus_probEvent_bad
+    (real inputOf locate) blind s_init (fun _ : Bytes => True) (1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (fun candidate _ s => tvDist_step_le inputOf locate hlocate hinj candidate s)
+    (fun candidate huncharged p => step_eq_of_uncharged inputOf locate candidate huncharged p)
+    (fun candidate p hp => real_bad_monotone inputOf locate candidate p hp)
+    A h_bound) ?_
+  gcongr
+  exact le_of_eq (by rw [mul_one_div])
+
+
+/-! ## The bad-flag mass
+
+The identical-until-bad theorem leaves `Pr[bad]` as an unbounded remainder. For this handler it
+is bounded by the same rate, because the flag can only be raised by the seed drawn inside the
+step matching the input the adversary just named. `probEvent_bad_simulateQ_run_le_expectedQuerySlack`
+accumulates that per-step mass over the run. -/
+
+private lemma tsum_prod_bool_split {A B : Type} (g : A × B × Bool → ℝ≥0∞) :
+    (∑' z : A × B × Bool, g z) =
+      (∑' w : A × B, g (w.1, w.2, false)) + ∑' w : A × B, g (w.1, w.2, true) := by
+  have e : (∑' z : A × B × Bool, g z) = ∑' z : (A × B) × Bool, g (z.1.1, z.1.2, z.2) :=
+    ((Equiv.tsum_eq (Equiv.prodAssoc A B Bool) g).symm.trans rfl)
+  rw [e, ENNReal.tsum_prod', ← ENNReal.tsum_add]
+  exact tsum_congr fun w => tsum_bool _
+
+/-- **A per-step bad-mass bound gives the charged-step hypothesis.** This is the generic shape
+`probEvent_bad_simulateQ_run_le_expectedQuerySlack` asks for: the flag mass after a step and its
+continuation splits into the mass the step itself raises — at most `ε` — and the mass the
+continuation raises from the surviving good states. -/
+theorem chargedStep_of_probEvent_bad_step_le {ι : Type} {spec : OracleSpec ι} {σ γ : Type}
+    (impl : QueryImpl spec (StateT (σ × Bool) ProbComp)) (ε : ℝ≥0∞)
+    (t : spec.Domain) (s : σ)
+    (hstep : Pr[fun z : spec.Range t × σ × Bool => z.2.2 = true | (impl t).run (s, false)] ≤ ε)
+    (k : spec.Range t × σ × Bool → ProbComp (γ × σ × Bool)) :
+    Pr[fun z : γ × σ × Bool => z.2.2 = true | (impl t).run (s, false) >>= k] ≤
+      ε + ∑' z : spec.Range t × σ,
+        Pr[= (z.1, z.2, false) | (impl t).run (s, false)] *
+          Pr[fun w : γ × σ × Bool => w.2.2 = true | k (z.1, z.2, false)] := by
+  classical
+  rw [probEvent_bind_eq_tsum,
+    tsum_prod_bool_split (fun z : spec.Range t × σ × Bool =>
+      Pr[= z | (impl t).run (s, false)] *
+        Pr[fun w : γ × σ × Bool => w.2.2 = true | k z]),
+    add_comm]
+  refine add_le_add ?_ le_rfl
+  refine le_trans (ENNReal.tsum_le_tsum fun w => mul_le_mul' le_rfl probEvent_le_one) ?_
+  refine le_trans (le_of_eq ?_) hstep
+  rw [probEvent_eq_tsum_ite,
+    tsum_prod_bool_split (fun z : spec.Range t × σ × Bool =>
+      if z.2.2 = true then Pr[= z | (impl t).run (s, false)] else 0)]
+  simp
+
+/-- **The per-step bad mass of the real handler.** Only a seed-derived input raises the flag, and
+the seed is drawn inside the step, so the mass is the one charged by `prob_honest_key_le`. -/
+theorem probEvent_bad_step_le (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (candidate : Bytes) (s : State Index) :
+    Pr[fun z : HashOutput × State Index × Bool => z.2.2 = true |
+        (real inputOf locate candidate).run (s, false)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  refine le_trans (le_of_eq ?_) (probEvent_seedDerived_le inputOf locate hlocate hinj candidate)
+  rw [real_step_eq, probEvent_bind_eq_tsum, probEvent_eq_tsum_ite]
+  refine tsum_congr fun secret => ?_
+  by_cases hsd : SeedDerived inputOf locate secret candidate
+  · simp [hsd]
+  · rw [if_neg hsd, if_neg hsd, mul_eq_zero]
+    refine Or.inr (probEvent_eq_zero fun z hz hbad => ?_)
+    simp only [blind, StateT.run, StateT.mk, support_bind, support_pure, Set.mem_iUnion,
+      Set.mem_singleton_iff] at hz
+    obtain ⟨w, -, hz⟩ := hz
+    subst hz
+    exact Bool.noConfusion hbad
+
+/-- **The bad flag is raised with probability at most `q / 2 ^ 128`.** -/
+theorem probEvent_bad_le (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (s_init : State Index) (A : OracleComp HashSpec Bool) {queryBudget : ℕ}
+    (h_bound : OracleComp.IsQueryBoundP A (fun _ : Bytes => True) queryBudget) :
+    Pr[fun z : Bool × State Index × Bool => z.2.2 = true |
+        (simulateQ (real inputOf locate) A).run (s_init, false)] ≤
+      queryBudget / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  have hmain := OracleComp.ProgramLogic.Relational.probEvent_bad_simulateQ_run_le_expectedQuerySlack
+    (γ := Bool) (real inputOf locate) (fun _ : Bytes => True)
+    (fun _ : State Index => (1 : ℝ≥0∞)) (1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (fun candidate s _ k =>
+      chargedStep_of_probEvent_bad_step_le (real inputOf locate) _ candidate s
+        (probEvent_bad_step_le inputOf locate hlocate hinj candidate s) k |>.trans_eq
+          (by rw [one_mul]))
+    (fun _ _ huncharged _ => absurd trivial huncharged)
+    A h_bound s_init
+  refine hmain.trans ?_
+  simp only [one_mul]
+  refine (OracleComp.ProgramLogic.Relational.expectedQuerySlack_const_le_queryBudget_mul (real inputOf locate)
+    (fun _ : Bytes => True) (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) A h_bound (s_init, false)).trans ?_
+  exact le_of_eq (by rw [mul_one_div])
+
+/-- **The separation.** Against the blind handler, the lazily-seeded handler is
+`2 q / 2 ^ 128`-indistinguishable: `q / 2 ^ 128` of query slack and `q / 2 ^ 128` of bad mass. -/
+theorem advantage_le_two_mul (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (s_init : State Index) (A : OracleComp HashSpec Bool) {queryBudget : ℕ}
+    (h_bound : OracleComp.IsQueryBoundP A (fun _ : Bytes => True) queryBudget) :
+    ENNReal.ofReal
+        ((real inputOf locate).advantage (s_init, false) blind (s_init, false) A)
+      ≤ 2 * queryBudget / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_trans (advantage_le inputOf locate hlocate hinj s_init A h_bound) ?_
+  refine le_trans (add_le_add le_rfl
+    (probEvent_bad_le inputOf locate hlocate hinj s_init A h_bound)) ?_
+  rw [← ENNReal.add_div, ← two_mul]
+
+end SlhDsaSecurity.InputCoupling
