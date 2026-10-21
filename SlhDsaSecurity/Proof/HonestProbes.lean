@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.CachedRun
 import SlhDsaSecurity.Proof.CanonicalGraph.Correspondence
 import SlhDsaSecurity.Proof.CanonicalGraph.Programming
 import SlhDsaSecurity.Proof.Correctness.Naturality
+import SlhDsaSecurity.Proof.KeygenFresh
 
 /-!
 # The honest parties ask nothing new
@@ -32,6 +33,10 @@ computation. Signing consults exactly two further inputs, and both are message-d
 randomizer `PRF_msg(SK.prf, PK.seed, M)` and the message digest `H_msg(R, PK, M)`. Those the
 walk cannot have installed, since the message is the adversary's, so they are named
 explicitly rather than claimed cached.
+
+Everything is stated for the hash-only monad, where `CacheReplay.QueriesUnder` lives; the last
+section carries it to the game's own monad, where the honest parties are lifts of these very
+computations.
 -/
 
 open OracleComp OracleSpec
@@ -1398,5 +1403,45 @@ theorem run_keygenInternal_eq_pure (publicSeed secretSeed prfSeed : Digest)
         ProbComp ((SecretKey × PublicKey) × QueryCache HashSpec)) := by
   rw [CachedRun.run_eq_pure_of_cached _ _
     (keygenInternal_probes_cached publicSeed secretSeed prfSeed outputs), keygenInternal_replay]
+
+/-! ## In the game's monad
+
+The game's honest phase runs in `OracleComp OracleWorld`, which carries the coin oracle
+alongside the hash. Key generation and signing flip no coins, so each is the lift of the
+hash-only computation the statements above are about, and `KeygenUniform.rom` answers a
+right-lifted computation through `randomOracle` alone. -/
+
+theorem keygenInternal_lift (secretSeed prfSeed publicSeed : Digest) :
+    (Scheme.keygenInternal (m := OracleComp OracleWorld) secretSeed prfSeed publicSeed) =
+      OracleComp.liftComp
+        (Scheme.keygenInternal (m := OracleComp HashSpec) secretSeed prfSeed publicSeed)
+        OracleWorld :=
+  (Correctness.Naturality.keygenInternal_simulate
+    (fun input => query (spec := HashSpec) input : QueryImpl HashSpec (OracleComp OracleWorld))
+    (fun _ => rfl) secretSeed prfSeed publicSeed).symm
+
+theorem signInternal_lift (sk : SecretKey) (message : Bytes) :
+    (Scheme.signInternal (m := OracleComp OracleWorld) sk message) =
+      OracleComp.liftComp (Scheme.signInternal (m := OracleComp HashSpec) sk message)
+        OracleWorld :=
+  (Correctness.Naturality.signInternal_simulate
+    (fun input => query (spec := HashSpec) input : QueryImpl HashSpec (OracleComp OracleWorld))
+    (fun _ => rfl) sk message).symm
+
+/-- **Key generation in the game's monad, run from the walk's cache, is a pure computation.** -/
+theorem run_keygenInternal_world_eq_pure (publicSeed secretSeed prfSeed : Digest)
+    (outputs : Programming.Outputs) :
+    (simulateQ KeygenUniform.rom
+        (Scheme.keygenInternal (m := OracleComp OracleWorld) secretSeed prfSeed publicSeed)).run
+        (warmCache publicSeed secretSeed outputs) =
+      (pure (@Scheme.keygenInternal Id _
+          (replayQuery (warmCache publicSeed secretSeed outputs)) secretSeed prfSeed publicSeed,
+        warmCache publicSeed secretSeed outputs) :
+        ProbComp ((SecretKey × PublicKey) × QueryCache HashSpec)) := by
+  rw [keygenInternal_lift,
+    show KeygenUniform.rom = unifFwdImpl HashSpec +
+      (randomOracle : QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) from rfl,
+    QueryImpl.simulateQ_add_liftComp_right]
+  exact run_keygenInternal_eq_pure publicSeed secretSeed prfSeed outputs
 
 end SlhDsaSecurity.HonestProbes

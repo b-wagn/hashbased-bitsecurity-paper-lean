@@ -3178,3 +3178,19 @@ info: 'SlhDsaSecurity.HonestProbes.probes_merkle_publicKeyFromSignature' depends
 /-- info: 'SlhDsaSecurity.HonestProbes.run_keygenInternal_eq_pure' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestProbes.run_keygenInternal_eq_pure
+
+/-- info: 'SlhDsaSecurity.HonestProbes.keygenInternal_lift' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.keygenInternal_lift
+
+/-- info: 'SlhDsaSecurity.HonestProbes.signInternal_lift' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.signInternal_lift
+
+/--
+info: 'SlhDsaSecurity.HonestProbes.run_keygenInternal_world_eq_pure' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.run_keygenInternal_world_eq_pure
