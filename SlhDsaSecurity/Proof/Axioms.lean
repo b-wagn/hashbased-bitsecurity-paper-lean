@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.WarmProbes
 import SlhDsaSecurity.Proof.ClaimedProbes
@@ -4574,3 +4575,11 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 /-- info: 'SlhDsaSecurity.WarmProbes.length_record_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WarmProbes.length_record_le_of_budget
+
+/-- info: 'SlhDsaSecurity.SensitiveWarm.canonical_of_sensitive' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveWarm.canonical_of_sensitive
+
+/-- info: 'SlhDsaSecurity.SensitiveWarm.warmCache_ne_none_of_sensitive' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveWarm.warmCache_ne_none_of_sensitive
