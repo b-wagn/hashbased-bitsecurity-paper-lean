@@ -666,8 +666,8 @@ theorem flagged_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Nod
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
   exact hmono state.1.1 inner.2.1
-    (@CacheAvailability.lazyProgram_persists (CacheReplay.replayQuery ∅) publicSeed availableAt
-      table queried state.1 inner hinner)
+    (CacheAvailability.lazyProgram_persists publicSeed availableAt table queried state.1 inner
+      hinner)
     index hstate
 
 open scoped Classical in
@@ -800,8 +800,8 @@ theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.No
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
   exact hmono state.1.1 inner.2.1
-    (@CacheAvailability.lazyProgram_persists (CacheReplay.replayQuery ∅) publicSeed availableAt
-      table queried state.1 inner hinner)
+    (CacheAvailability.lazyProgram_persists publicSeed availableAt table queried state.1 inner
+      hinner)
     index hstate
 
 open scoped Classical in

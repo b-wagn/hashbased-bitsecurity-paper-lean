@@ -160,6 +160,7 @@ query either reads the cache, leaving it alone, or writes an input the cache had
 
 open OpenCache LazyBudget
 
+omit [HasQuery HashSpec Id] in
 /-- The hash half of the step, at the clean type. -/
 theorem lazyProgram_hash_persists (publicSeed : Digest)
     (available : QueryCache HashSpec → Node → Prop) (table : Cells × Padding) (input : Bytes)
@@ -195,6 +196,7 @@ theorem lazyProgram_hash_persists (publicSeed : Digest)
       rw [show inner.2 = state.1.cacheQuery input answer from by rw [← heq]]
       exact persists_cacheQuery state.1 input answer hcached
 
+omit [HasQuery HashSpec Id] in
 /-- **A step of the lazy handler keeps every cache entry.** -/
 theorem lazyProgram_persists (publicSeed : Digest)
     (available : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
