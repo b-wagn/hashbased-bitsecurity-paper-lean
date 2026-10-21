@@ -756,3 +756,11 @@ info: 'SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision_cano
 /-- info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_chainCollision_canonical' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WotsCharge.deviatingCollision_of_chainCollision_canonical
+
+/-- info: 'SlhDsaSecurity.MerkleCharge.canonicalPair_fst' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MerkleCharge.canonicalPair_fst
+
+/-- info: 'SlhDsaSecurity.MerkleCharge.canonicalPair_snd' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MerkleCharge.canonicalPair_snd

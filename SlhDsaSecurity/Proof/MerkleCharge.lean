@@ -30,6 +30,47 @@ namespace SlhDsaSecurity.MerkleCharge
 
 open CanonicalGraph Extraction
 
+/-! ## The canonical pair is the pair of graph children
+
+The one place the Merkle case needs arithmetic rather than unfolding. `BinaryPath` names a
+path position by an index and a height and reaches the sibling by `xor … 1`, ordering the two
+so the one on the path keeps its side; the canonical graph names the two children of a node
+directly as `2 * i` and `2 * i + 1`. The two descriptions agree, and the proof is the parity
+split: at an even position the node is the left child and its sibling the right, at an odd
+position the other way round, and in both cases `2 * (index / 2 ^ (height + 1))` is the left
+child's index.
+-/
+
+theorem canonicalPair_fst (nodes : Nat → Nat → Digest) (index height : Nat) :
+    (BinaryPath.canonicalPair nodes index height).1 =
+      nodes height (2 * (index / 2 ^ (height + 1))) := by
+  have hhalf : index / 2 ^ (height + 1) = (index / 2 ^ height) / 2 :=
+    Correctness.div_pow_succ index height
+  by_cases heven : index / 2 ^ height % 2 = 0
+  · simp only [BinaryPath.canonicalPair, BinaryPath.ordered, if_pos heven]
+    congr 1
+    omega
+  · have hxor : Nat.xor (index / 2 ^ height) 1 = index / 2 ^ height - 1 :=
+      Nat.xor_one_of_odd (Nat.odd_iff.mpr (by omega))
+    simp only [BinaryPath.canonicalPair, BinaryPath.ordered, if_neg heven, hxor]
+    congr 1
+    omega
+
+theorem canonicalPair_snd (nodes : Nat → Nat → Digest) (index height : Nat) :
+    (BinaryPath.canonicalPair nodes index height).2 =
+      nodes height (2 * (index / 2 ^ (height + 1)) + 1) := by
+  have hhalf : index / 2 ^ (height + 1) = (index / 2 ^ height) / 2 :=
+    Correctness.div_pow_succ index height
+  by_cases heven : index / 2 ^ height % 2 = 0
+  · have hxor : Nat.xor (index / 2 ^ height) 1 = index / 2 ^ height + 1 :=
+      Nat.xor_one_of_even (Nat.even_iff.mpr heven)
+    simp only [BinaryPath.canonicalPair, BinaryPath.ordered, if_pos heven, hxor]
+    congr 1
+    omega
+  · simp only [BinaryPath.canonicalPair, BinaryPath.ordered, if_neg heven]
+    congr 1
+    omega
+
 /-- **A path collision is a charged structural event.** -/
 theorem deviatingCollision_of_pathCollision {α : Type} (publicSeed : Digest) (cells : Cells)
     (cache : QueryCache HashSpec) (address : Address) (nodes : Nat → Nat → Digest)
