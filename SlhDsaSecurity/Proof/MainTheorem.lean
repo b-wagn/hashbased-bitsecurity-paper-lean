@@ -1,6 +1,6 @@
 import SlhDsaSecurity.Proof.Assembly
 import SlhDsaSecurity.Statement.Security
-import SlhDsaSecurity.Proof.KeygenFresh
+import SlhDsaSecurity.Proof.WholeGameStructural
 
 /-!
 # The target, reduced to its two halves
@@ -69,16 +69,12 @@ The two are the same experiment, so an event about the value alone has the same 
 either way. `probEvent_runAll` is that, and it is what lets the three obligations of
 `totalSecurityBits_of_halves` be discharged against the charges rather than restated. -/
 
-/-- The cache-keeping form of the all-queries-counted run. -/
-noncomputable def runAllWithCache (adversary : Adversary) :
-    ProbComp ((Outcome × Nat) × QueryCache HashSpec) :=
-  (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run ∅
-
-/-- **An event about the value alone does not see the cache.** -/
+/-- **An event about the value alone does not see the cache.** The cache-keeping run is
+`WholeGameStructural.instrumentedRun`; this says the projection costs nothing. -/
 theorem probEvent_runAll (adversary : Adversary) (event : Outcome × Nat → Prop) :
     Pr[event | runAll adversary] =
-      Pr[fun result => event result.1 | runAllWithCache adversary] := by
-  rw [runAll, XmssSecurity.RandomOracleModel.run, runAllWithCache,
+      Pr[fun result => event result.1 | WholeGameStructural.instrumentedRun adversary] := by
+  rw [runAll, XmssSecurity.RandomOracleModel.run, WholeGameStructural.instrumentedRun,
     show (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run' ∅ =
       Prod.fst <$> (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run ∅
       from rfl, probEvent_map]
