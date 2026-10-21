@@ -408,3 +408,48 @@ growth).
   uniform parsed FORS view, and the signer's randomizer is uniform when its `PRF_msg` input
   is uncached). The adaptive, prequeried and cross-request-correlated cases remain.
 
+## The two remaining inputs, and how `hcap` avoids a freshness argument
+
+`Proof/Assembly.lean`'s `le_target_of_terms` reduces the 127-bit bound to three inputs. The
+structural term (`WholeGameStructural`, `2q / 2 ^ 129`) and the FORS term
+(`ForsCoverageTerm.prob_coverage_within_le_of_family`, `q / 2 ^ 129`) are proved. Two remain.
+
+**`hsplit`: an accepted forgery is a structural collision or a coverage event.** Laborious
+but mechanical. The chain is already proved end to end — `Extraction.Hypertree`'s layer
+extraction and `HypertreeChain.verify_fault_or_fors_canonical`, then `Extraction.Fors`'s
+decomposition down to `recoveredLeaf_canonical_secret_or_collision` — and
+`Proof/CollisionToDeviating.lean` now supplies the byte-level bridge: a two-child structural
+node's `childBytes` encoding is literally `BinaryPath.pairBytes`, so the extraction's byte
+inputs and the charge's canonical inputs agree on the nose. What remains is naming the
+parent node and candidate cells for each of the collision shapes, via
+`CanonicalGraph.Correspondence`.
+
+**`hcap`: the actual disclosures satisfy the load cap except with probability `2 ^ -126`.**
+This needs *no freshness argument*, which is worth stating because the obvious route is both
+harder and too expensive.
+
+The tempting route is to argue that each signing request's `H_msg` input is uncached, so its
+digest is fresh. That requires the adversary not to have prequeried
+`SK.prf ‖ PK.seed ‖ M'`, i.e. not to have guessed `SK.prf`, costing a `BlindKey`-style
+`q / 2 ^ 128 = 2q / 2 ^ 129` term. The slack after the structural and FORS terms is only
+`q / 2 ^ 129`, so that route **breaks the budget**.
+
+It is also unnecessary. The load cap depends only on the *distribution of the FORS instances*
+`MessageDigest.treeIndex ++ leafIndex` of the signed digests, and a digest is a uniform
+oracle answer whichever party queries its input first — a prequery by the adversary does not
+bias it. So the instances are uniform regardless of freshness. What is needed instead is only
+that the signed messages' digest inputs are *pairwise distinct*, which is immediate from
+injectivity of `Hashing.messageInput` in its message component (`Proof/Hashing.lean`), since
+distinct requests give distinct framed messages. Distinct inputs in the shared random oracle
+have independent uniform answers, so the instances of the at most `2 ^ 64` distinct signed
+messages are iid uniform, and `ForsConcentrationSharper` bounds the probability that
+`∑ i loads i ^ 14` exceeds `2 ^ 102` by `2 ^ -126`.
+
+Repeated requests need no separate treatment: a repeat has the same digest input, hence the
+same digest and the same fourteen disclosed leaves, so it does not enlarge the disclosure
+sets even though it is charged.
+
+The remaining work for `hcap` is therefore the iid-uniformity transfer — that the answers at
+the distinct signed digest inputs are jointly uniform in the actual lazily-sampled oracle,
+in the form `ForsConcentrationSharper` consumes — not a freshness or key-guessing argument.
+
