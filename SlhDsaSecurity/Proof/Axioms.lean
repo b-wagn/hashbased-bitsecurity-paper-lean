@@ -744,3 +744,11 @@ info: 'SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.ForsLeafCharge.deviatingCollision_of_leafCollision_canonical' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsLeafCharge.deviatingCollision_of_leafCollision_canonical
+
+/--
+info: 'SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision_canonical

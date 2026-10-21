@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.CacheReplay
 import SlhDsaSecurity.Proof.Extraction.Fors
+import SlhDsaSecurity.Proof.CanonicalCells
 
 /-!
 # A FORS root-compression collision, charged
@@ -65,5 +66,43 @@ theorem deviatingCollision_of_compressionCollision {α : Type} (publicSeed : Dig
   · -- The shared hash value is the parent's honest cell, read out of the cache.
     rw [hparentCell, ← hjoins]
     exact (CacheReplay.shortHash_replayQuery cache _ output (haddress ▸ hentry)).symm
+
+/-! ## Without the bookkeeping
+
+As at the leaf, every hypothesis is discharged by the graph's own definitions. The compression
+node's children are the fourteen `forsTree` nodes at full height, given by `List.ofFn`; the
+map is injective because the constructor is and `Fin.val` determines the index; its address is
+`Extraction.Fors.rootAddress` by definition; the children's honest cells are
+`Extraction.Fors.canonicalRoots` by definition; and the parent-cell equation is
+`CanonicalCells.parentCell_tweakable`. -/
+
+/-- **A FORS root-compression collision is charged, unconditionally.** -/
+theorem deviatingCollision_of_compressionCollision_canonical {α : Type}
+    (secretSeed publicSeed : Digest) (cache : QueryCache HashSpec) (key : ForsKey)
+    (actualRoots : Fin forsTrees → Digest)
+    (hcollision : @Extraction.Fors.CompressionCollision (CacheReplay.replayQuery cache)
+      actualRoots (@Extraction.Fors.canonicalRoots (CacheReplay.replayQuery cache)
+        secretSeed publicSeed key.address) publicSeed key.address)
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hcache : result.2 = cache)
+    (hentry : cache (Hashing.tweakableInput publicSeed
+      (StructuralNode.forsRoots key).address (digestArrayBytes actualRoots)) = some output) :
+    StructuralTerm.DeviatingCollision publicSeed
+      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
+  refine deviatingCollision_of_compressionCollision publicSeed
+    (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) cache (.forsRoots key)
+    (fun tree : Fin forsTrees =>
+      .structural (.forsTree key ⟨forsHeight, by omega⟩ ⟨tree.val, by simp [tree.isLt]⟩))
+    actualRoots _ key.address rfl ?_ rfl (fun _ => rfl) ?_ hcollision result output
+    hcache hentry
+  · -- Distinct trees name distinct nodes.
+    intro left right hsame
+    have hval := congrArg (fun node : Node => match node with
+      | .structural (.forsTree _ _ idx) => idx.val
+      | _ => 0) hsame
+    exact Fin.ext (by simpa using hval)
+  · rw [CanonicalCells.parentCell_tweakable cache secretSeed publicSeed]
+    simp [StructuralNode.children, childBytes_ofFn, value, structuralValue,
+      Hashing.tweakable, StructuralNode.address, Extraction.Fors.rootAddress]
 
 end SlhDsaSecurity.ForsCharge
