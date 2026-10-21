@@ -34,6 +34,7 @@ import SlhDsaSecurity.Proof.Extraction.Wots
 import SlhDsaSecurity.Proof.Extraction.Fors
 import SlhDsaSecurity.Proof.Extraction.Hypertree
 import SlhDsaSecurity.Proof.Extraction.WotsPreimage
+import SlhDsaSecurity.Proof.Extraction.HypertreeChain
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -365,3 +366,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.WotsPreimage.exists_preimage_witness
+
+/-- info: 'SlhDsaSecurity.Extraction.HypertreeChain.rootFromSignature_fault_or_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.rootFromSignature_fault_or_canonical
