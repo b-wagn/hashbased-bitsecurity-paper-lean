@@ -185,4 +185,32 @@ theorem publicKey_canonical_decomposition (secretSeed publicSeed : Digest) (addr
       (congrFun hroots i)
   · exact Or.inl hcomp
 
+/-- A collision at a FORS leaf compression: the forged secret and the honest secret are
+distinct but hash to the same leaf under the same leaf address. -/
+def LeafCollision (secretSeed publicSeed : Digest) (address : Address) (index : Nat)
+    (forgedSecret : Digest) : Prop :=
+  let honestSecret := SlhDsaSecurity.Fors.secret (m := Id) secretSeed publicSeed address index
+  forgedSecret ≠ honestSecret ∧
+    Hashing.tweakable (m := Id) publicSeed (SlhDsaSecurity.Fors.nodeAddress address 0 index)
+        (bytesBE n forgedSecret) =
+      Hashing.tweakable (m := Id) publicSeed (SlhDsaSecurity.Fors.nodeAddress address 0 index)
+        (bytesBE n honestSecret)
+
+/-- If a FORS tree's recovered leaf equals the canonical leaf, then either the revealed
+secret equals the honest secret — so the selected FORS position was disclosed, the FORS
+coverage event — or there is a concrete collision at that leaf's compression call. No
+collision resistance is assumed. -/
+theorem recoveredLeaf_canonical_secret_or_collision (secretSeed publicSeed : Digest)
+    (address : Address) (indices : SlhDsaSecurity.Fors.Indices) (signature : ForsSignature)
+    (i : Fin forsTrees)
+    (hleaf : recoveredLeaf signature indices publicSeed address i =
+      SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed address 0 (leafIndex indices i)) :
+    (signature i).secret =
+        SlhDsaSecurity.Fors.secret (m := Id) secretSeed publicSeed address (leafIndex indices i) ∨
+      LeafCollision secretSeed publicSeed address (leafIndex indices i) (signature i).secret := by
+  by_cases hsecret : (signature i).secret =
+      SlhDsaSecurity.Fors.secret (m := Id) secretSeed publicSeed address (leafIndex indices i)
+  · exact Or.inl hsecret
+  · exact Or.inr ⟨hsecret, hleaf⟩
+
 end SlhDsaSecurity.Extraction.Fors

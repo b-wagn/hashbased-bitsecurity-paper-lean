@@ -384,3 +384,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.Fors.publicKey_canonical_decomposition
+
+/-- info: 'SlhDsaSecurity.Extraction.Fors.recoveredLeaf_canonical_secret_or_collision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.Fors.recoveredLeaf_canonical_secret_or_collision
