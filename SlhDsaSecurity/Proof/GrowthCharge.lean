@@ -112,6 +112,168 @@ theorem GrowthAtMost.cacheQuery {initial final : QueryCache HashSpec} {limit : N
   simp only [List.length_cons] at hextended
   omega
 
+/-! ## The general charge
+
+The charge does not depend on the bad event being "the answer truncates to a target": all it
+needs is that each individual fresh answer is bad for its own input with probability at most
+`p`. Stating it that way lets the same lemma carry both the structural term (bad = the answer
+truncates to the canonical cell of the queried node) and the FORS coverage term (bad = the
+answer parses to a digest whose fourteen FORS positions are all already disclosed).
+-/
+
+/-- Some cached answer is bad for its own input. -/
+def Bad {α : Type} (bad : Bytes → HashOutput → Prop) :
+    α × QueryCache HashSpec → Prop := fun result =>
+  ∃ input output, result.2 input = some output ∧ bad input output
+
+/-- The cache holds no answer that is bad for its own input. -/
+def CleanBad (bad : Bytes → HashOutput → Prop) (cache : QueryCache HashSpec) : Prop :=
+  ∀ input output, cache input = some output → ¬ bad input output
+
+theorem CleanBad.cacheQuery {bad : Bytes → HashOutput → Prop} {cache : QueryCache HashSpec}
+    (hclean : CleanBad bad cache) {input : Bytes} {output : HashOutput}
+    (hmiss : ¬ bad input output) : CleanBad bad (cache.cacheQuery input output) := by
+  intro queried answer hanswer
+  by_cases heq : queried = input
+  · subst heq
+    rw [QueryCache.cacheQuery_self] at hanswer
+    cases hanswer
+    exact hmiss
+  · rw [QueryCache.cacheQuery_of_ne cache output heq] at hanswer
+    exact hclean queried answer hanswer
+
+def BadWithin {α : Type} (bad : Bytes → HashOutput → Prop)
+    (initialCache : QueryCache HashSpec) (limit : Nat) :
+    α × QueryCache HashSpec → Prop := fun result =>
+  Bad bad result ∧ GrowthAtMost initialCache result.2 limit
+
+set_option maxHeartbeats 1000000 in
+/-- **The general linear charge.** If each fresh answer is bad for its own input with
+probability at most `p`, then a run whose cache grows by at most `limit` ends with a bad
+cached answer with probability at most `limit * p`. -/
+theorem prob_badWithin_le {α : Type} (computation : OracleComp OracleWorld α)
+    (bad : Bytes → HashOutput → Prop) (p : ℝ≥0∞) (limit : Nat)
+    (initialCache : QueryCache HashSpec)
+    (hbad : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ p)
+    (hclean : CleanBad bad initialCache) :
+    Pr[BadWithin bad initialCache limit |
+      (simulateQ KeygenUniform.rom computation).run initialCache] ≤ limit * p := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing limit initialCache with
+  | pure value =>
+    refine le_of_eq_of_le (b := 0) ?_ (by simp)
+    rw [simulateQ_pure, StateT.run_pure]
+    refine probEvent_eq_zero fun result hresult hhit => ?_
+    rw [support_pure, Set.mem_singleton_iff] at hresult
+    subst hresult
+    obtain ⟨⟨input, output, hanswer, hbadness⟩, _⟩ := hhit
+    exact hclean input output hanswer hbadness
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    rcases queried with coin | input
+    · rw [probEvent_bind_eq_tsum]
+      have hstep : ∀ step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run initialCache),
+          step.2 = initialCache := by
+        intro step hstep
+        have hform : ∃ coinValue, (coinValue, initialCache) = step := by
+          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+        obtain ⟨coinValue, rfl⟩ := hform
+        rfl
+      calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *
+            Pr[BadWithin bad initialCache limit |
+              (simulateQ KeygenUniform.rom (next step.1)).run step.2]
+          ≤ ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *
+              (limit * p) := by
+            refine ENNReal.tsum_le_tsum fun step => ?_
+            by_cases hmem : step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run initialCache)
+            · refine mul_le_mul' le_rfl ?_
+              rw [hstep step hmem]
+              exact ih step.1 limit initialCache hclean
+            · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+              simp
+        _ = (∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache]) *
+              (limit * p) := ENNReal.tsum_mul_right
+        _ ≤ 1 * (limit * p) := mul_le_mul' tsum_probOutput_le_one le_rfl
+        _ = _ := one_mul _
+    · cases hcached : initialCache input with
+      | some cached =>
+        have hrun : (KeygenUniform.rom (Sum.inr input)).run initialCache =
+            (pure (cached, initialCache) :
+              ProbComp (HashOutput × QueryCache HashSpec)) := by
+          change (randomOracle input).run initialCache = _
+          rw [QueryImpl.withCaching_run_some _ hcached]
+        rw [hrun, pure_bind]
+        exact ih cached limit initialCache hclean
+      | none =>
+        have hrun : (KeygenUniform.rom (Sum.inr input)).run initialCache =
+            (fun answer => (answer, initialCache.cacheQuery input answer)) <$>
+              ($ᵗ HashOutput : ProbComp HashOutput) := by
+          change (randomOracle input).run initialCache = _
+          rw [QueryImpl.withCaching_run_none _ hcached]
+          simp [uniformSampleImpl]
+        rw [hrun]
+        show Pr[BadWithin bad initialCache limit |
+          (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
+            (simulateQ KeygenUniform.rom (next answer)).run
+              (initialCache.cacheQuery input answer))] ≤ _
+        cases limit with
+        | zero =>
+          refine le_of_eq_of_le (b := 0) ?_ (by simp)
+          refine probEvent_eq_zero fun result hresult hhit => ?_
+          rw [mem_support_bind_iff] at hresult
+          obtain ⟨answer, _, hrest⟩ := hresult
+          have hpresent : result.2 input ≠ none :=
+            cache_mono (next answer) (initialCache.cacheQuery input answer) result.2 result.1
+              hrest input (by rw [QueryCache.cacheQuery_self]; simp)
+          exact absurd (hhit.2.pos hcached hpresent) (by omega)
+        | succ remaining =>
+          rw [probEvent_bind_eq_tsum]
+          have hpointwise : ∀ answer : HashOutput,
+              Pr[BadWithin bad initialCache (remaining + 1) |
+                  (simulateQ KeygenUniform.rom (next answer)).run
+                    (initialCache.cacheQuery input answer)] ≤
+                (if bad input answer then 1 else 0) + (remaining : ℝ≥0∞) * p := by
+            intro answer
+            by_cases hbadness : bad input answer
+            · rw [if_pos hbadness]
+              exact le_add_right probEvent_le_one
+            · rw [if_neg hbadness, zero_add]
+              refine le_trans (probEvent_mono ?_)
+                (ih answer remaining (initialCache.cacheQuery input answer)
+                  (hclean.cacheQuery hbadness))
+              intro result hresult hhit
+              refine ⟨hhit.1, ?_⟩
+              have hpresent : result.2 input ≠ none :=
+                cache_mono (next answer) (initialCache.cacheQuery input answer) result.2
+                  result.1 hresult input
+                  (by rw [QueryCache.cacheQuery_self]; simp)
+              simpa using hhit.2.cacheQuery hcached hpresent
+          calc ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                Pr[BadWithin bad initialCache (remaining + 1) |
+                  (simulateQ KeygenUniform.rom (next answer)).run
+                    (initialCache.cacheQuery input answer)]
+              ≤ ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  ((if bad input answer then 1 else 0) + (remaining : ℝ≥0∞) * p) :=
+                ENNReal.tsum_le_tsum fun answer => mul_le_mul' le_rfl (hpointwise answer)
+            _ = (∑' answer : HashOutput, (if bad input answer then
+                    Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] else 0)) +
+                  (∑' answer : HashOutput,
+                      Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)]) *
+                    ((remaining : ℝ≥0∞) * p) := by
+                rw [← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
+                refine tsum_congr fun answer => ?_
+                rw [mul_add]
+                by_cases hbadness : bad input answer <;> simp [hbadness]
+            _ ≤ p + 1 * ((remaining : ℝ≥0∞) * p) := by
+                refine add_le_add ?_ (mul_le_mul' tsum_probOutput_le_one le_rfl)
+                rw [← probEvent_eq_tsum_ite]
+                exact hbad input
+            _ = ((remaining + 1 : Nat) : ℝ≥0∞) * p := by
+                rw [one_mul]
+                push_cast
+                ring
+
 /-- The event charged by cache growth. -/
 def HitWithin {α : Type} (targetOf : Bytes → Option Digest)
     (initialCache : QueryCache HashSpec) (limit : Nat) :
