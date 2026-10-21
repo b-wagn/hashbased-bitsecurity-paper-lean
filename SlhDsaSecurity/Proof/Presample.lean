@@ -464,4 +464,29 @@ theorem countAllHashes_liftM_probComp {γ : Type} (sample : ProbComp γ) :
     simp only [ih, Security.hashCost, XmssSecurity.RandomOracleModel.hashCost,
       map_eq_bind_pure_comp, Function.comp_def, bind_assoc, pure_bind, Nat.zero_add]
 
+/-- The counter passes through a purely-sampling prefix untouched. -/
+theorem countAllHashes_liftM_bind {α γ : Type} (sample : ProbComp γ)
+    (rest : γ → OracleComp OracleWorld α) :
+    Security.countAllHashes ((liftM sample : OracleComp OracleWorld γ) >>= rest) =
+      (liftM sample : OracleComp OracleWorld γ) >>= fun value =>
+        Security.countAllHashes (rest value) := by
+  rw [GrowthBudget.countAllHashes_bind, countAllHashes_liftM_probComp]
+  simp only [map_eq_bind_pure_comp, Function.comp_def, bind_assoc, pure_bind, Nat.zero_add]
+  exact congrArg (Bind.bind _) (funext fun value => by simp)
+
+/-- **The experiment, warmed.** Inserting the warmup after the seeds leaves the law of the
+counted run's value unchanged — the warmup is outside the counter, so it costs nothing, and
+the seeds are coin queries, so pulling them out of the counter costs nothing either. -/
+theorem evalDist_counted_warmed {α γ : Type} (sample : ProbComp γ)
+    (rest : γ → OracleComp OracleWorld α) (publicSeed secretSeed : γ → Digest) :
+    𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom
+        (Security.countAllHashes ((liftM sample : OracleComp OracleWorld γ) >>= rest))).run ∅] =
+      𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom
+        ((liftM sample : OracleComp OracleWorld γ) >>= fun value =>
+          worldWarmup (publicSeed value) (secretSeed value) >>= fun _ =>
+            Security.countAllHashes (rest value))).run ∅] := by
+  rw [countAllHashes_liftM_bind]
+  exact evalDist_prepend_warmup_after sample
+    (fun value => Security.countAllHashes (rest value)) publicSeed secretSeed
+
 end SlhDsaSecurity.Presample
