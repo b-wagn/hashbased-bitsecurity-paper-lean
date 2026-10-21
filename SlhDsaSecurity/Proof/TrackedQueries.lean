@@ -310,4 +310,55 @@ theorem prob_meets_blind_le {α Index : Type} (computation : OracleComp OracleWo
     rw [← hpair]
     exact hcard inner hinner
 
+/-! ## The input half
+
+Composing the two: the real experiment meets a seed-bearing input exactly as often as the
+blind one, and the blind one at most once per query. Nothing is lost between them, which is
+what a budget met with equality requires — and the reason this route was taken over the
+identical-until-bad hop, which could not avoid paying `Θ(q / 2 ^ 128)` for the same step. -/
+
+/-- The inputs that carry a given secret. -/
+def SeedInputOf {Index : Type} (inputOf : Digest → Index → Bytes) (secret : Digest)
+    (input : Bytes) : Prop := ∃ node : Index, inputOf secret node = input
+
+set_option maxHeartbeats 1000000 in
+/-- **The input half.** The real experiment meets a seed-bearing input at most once per
+charged query. -/
+theorem prob_meets_real_le {α Index : Type} (computation : OracleComp OracleWorld α)
+    (realCache : Digest → QueryCache HashSpec) (blindCache : QueryCache HashSpec)
+    (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    [inst : ∀ secret, DecidablePred (SeedInputOf inputOf secret)]
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective fun secret : Digest => inputOf secret node)
+    (hagree : ∀ secret,
+      BlindComparison.AgreeOff (SeedInputOf inputOf secret) (realCache secret) blindCache)
+    (limit : Nat)
+    (hcard : ∀ result ∈ support ((simulateQ tracked computation).run (blindCache, ∅, 0)),
+      result.2.2.1.card ≤ limit) :
+    Pr[fun pair : Digest × (α × State) => Meets (SeedInputOf inputOf pair.1) pair.2.2 |
+        (do
+          let secret ← ($ᵗ Digest : ProbComp Digest)
+          let result ← (simulateQ tracked computation).run (realCache secret, ∅, 0)
+          pure (secret, result))] ≤
+      (limit : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [prob_meets_real_eq_blind computation realCache blindCache
+    (SeedInputOf inputOf) hagree]
+  have hcomm : 𝒟[(do
+        let secret ← ($ᵗ Digest : ProbComp Digest)
+        let result ← (simulateQ tracked computation).run (blindCache, ∅, 0)
+        pure (secret, result))] =
+      𝒟[(do
+        let result ← (simulateQ tracked computation).run (blindCache, ∅, 0)
+        let secret ← ($ᵗ Digest : ProbComp Digest)
+        pure (secret, result))] :=
+    OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
+  rw [probEvent_congr' (fun _ _ => Iff.rfl) hcomm]
+  refine le_trans (le_of_eq ?_)
+    (prob_meets_blind_le computation blindCache inputOf locate hlocate hinj limit hcard)
+  rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+  refine tsum_congr fun result => congrArg _ ?_
+  simp only [bind_pure_comp, probEvent_map]
+  rfl
+
 end SlhDsaSecurity.TrackedQueries
