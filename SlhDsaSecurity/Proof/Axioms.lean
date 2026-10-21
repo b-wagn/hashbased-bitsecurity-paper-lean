@@ -65,6 +65,7 @@ import SlhDsaSecurity.Proof.HypertreeDispatch
 import SlhDsaSecurity.Proof.InputCoupling
 import SlhDsaSecurity.Proof.ForsDispatch
 import SlhDsaSecurity.Proof.BlindComparison
+import SlhDsaSecurity.Proof.Presample
 import SlhDsaSecurity.Proof.GameBridge
 import SlhDsaSecurity.Proof.MainTheorem
 import SlhDsaSecurity.Proof.CollisionToDeviating
@@ -2600,3 +2601,7 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_combinedBad_whole_game_le' depend
 /-- info: 'SlhDsaSecurity.GameBridge.value_eq_cellsOfOutputs' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GameBridge.value_eq_cellsOfOutputs
+
+/-- info: 'SlhDsaSecurity.Presample.evalDist_prepend_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Presample.evalDist_prepend_fresh
