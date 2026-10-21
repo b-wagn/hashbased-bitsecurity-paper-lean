@@ -815,21 +815,24 @@ seed makes unreachable.
 With `GraphFreshSampling.evalDist_evaluate_eq_uniform_program` these fix the honest cells ahead
 of the adversary, which is what every charge is parameterised by.
 
-**They are not yet available in the game's oracle world.** The experiment runs in
-`OracleComp OracleWorld`, which is `unifSpec + HashSpec`: hash calls and coin flips together.
-Mathematically the lift is routine — a coin flip does not touch the hash cache, so it commutes
-with the prepended draw exactly as a hash query at a different input does, and that is the only
-new case.
+**They are now available in the game's oracle world too**, as
+`evalDist_prepend_fresh_world`: the experiment runs in `OracleComp OracleWorld`, which is
+`unifSpec + HashSpec`, and a coin flip does not touch the hash cache, so it commutes with the
+prepended draw exactly as a hash query at a different input does.
 
-The obstruction is mechanical and worth recording precisely, because it cost a session's turn
-and will recur. In the sum world a hash query's answer has type `OracleWorld.Range (Sum.inr t)`,
-while the `randomOracle` lemmas and the cache are phrased at `HashSpec.Range t`. The two are
-definitionally equal but not syntactically so, and `simp` normalises the goal and the rewriting
-hypotheses into *different* ones of the two, after which neither `rw` nor `simp only` can make
-progress. Type ascriptions on the hypotheses do not fix it, because the mismatch is introduced
-by the binder that `evalDist_bind_congr_left` opens, not by the hypothesis.
+Getting there cost two sessions' turns to a misdiagnosis, which is worth recording accurately
+rather than as first written. The failures all mentioned a mismatch between
+`OracleWorld.Range (Sum.inr t)` and `HashSpec.Range t`, and this note previously recorded that
+as the obstruction — a `simp` normalisation problem between two `rfl`-equal types, to be fixed
+by coercing once at a boundary. That was wrong, and type ascriptions and requantifying at each
+type in turn all failed because they addressed a symptom.
 
-The fix is to phrase the whole induction at one of the two forms and insert the coercion once,
-at the boundary, rather than letting `simp` choose per subgoal — or to prove a `Range`
-normalisation lemma first and rewrite with it before anything else. Neither was attempted.
+The actual cause: the prepended draw puts the right-hand side under a binder, and `rw` does not
+rewrite under binders. Unfolding the query step with `rw` therefore rewrote only the left-hand
+side, and every later step failed on a `Range` mismatch that was really just the side that had
+never been unfolded. Replacing that single `rw` with `simp only`, which does go under binders,
+removed the entire difficulty; the final branch then closed by `rfl`.
+
+The transferable lesson is not about `Range` at all: when several independent-looking failures
+share a symptom, look for one upstream cause instead of fixing each occurrence.
 
