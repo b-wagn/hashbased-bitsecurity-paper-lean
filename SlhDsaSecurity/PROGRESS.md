@@ -758,3 +758,46 @@ written. Step 1 is the one that still needs proving, and it is a narrower obliga
 invariant, but a single commutation of one uniform sample past a computation that consumes it
 only as query-input bytes.
 
+## The input side: why the identical-until-bad route only gets halfway
+
+`Proof/InputCoupling.lean` carries out the hop over VCVio's
+`QueryImpl.Stateful.advantage_le_expectedQuerySlack_plus_probEvent_bad`, with all three of its
+hypotheses proved and the bad-flag mass bounded, giving `2 q / 2 ^ 128` between a lazily-seeded
+handler and a blind one. It does not finish the input side, and the reason is structural rather
+than a gap in the execution.
+
+That theorem's per-step hypothesis is quantified over *every* handler state:
+
+    ∀ t s, tvDist ((h₀ t).run (s, false)) ((h₁ t).run (s, false)) ≤ querySlack s
+
+A seed remembered across steps is a seed in the state, and with the seed in the state the
+hypothesis is false pointwise — at the one input that is seed-derived for that `s` the two
+handlers differ with distance `1`. So the only handler shape satisfying it draws a *fresh*
+seed at every step. That handler is not the experiment, and the two are not identical-until-bad:
+conditioned on no bad event their output laws agree, but the mass of the no-bad path does not.
+With one input queried twice the eager handler misses with probability `1 - p` and the
+resampling one with `(1 - p) ^ 2`.
+
+### The route that does close it
+
+The bound wanted is `Pr[the adversary queries a seed-derived input] ≤ q / 2 ^ 128` in the eager
+game. Approximating the eager game by the resampling one is the wrong move; the right one is an
+*exact* comparison against a blind game, because the event is prefix-determined.
+
+1. **Blind game.** Answer the adversary from a cache that does not carry the honest entries at
+   seed-derived keys. There the adversary's view is literally seed-independent — the honest
+   results it sees are seed-independent as *computations*, which is
+   `SeedDeferral.honest_result_indep_of_seed`, and its own answers are fresh — so
+   `SecretGuessCharge.prob_run_guesses_secret_le` applies directly and gives `q / 2 ^ 128`.
+
+2. **Exactness, not slack.** The real and blind games produce identical transcripts until the
+   first seed-derived query. "Some query is seed-derived" is determined by the transcript up to
+   that first occurrence, on which the two games agree, so the two assign it the *same*
+   probability. No `ε` is lost, which is what makes this fit a budget that is met with equality.
+
+The work this needs is an induction showing the two handlers agree on the has-a-hit-occurred bit:
+at a query that is seed-derived both games register the hit whatever the answer, and at any other
+query they answer identically and recurse. That is the next concrete step, and unlike the
+identical-until-bad hop it does not require a per-step bound quantified over states the eager
+seed makes unreachable.
+
