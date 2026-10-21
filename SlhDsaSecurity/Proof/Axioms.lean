@@ -38,6 +38,7 @@ import SlhDsaSecurity.Proof.Extraction.HypertreeChain
 import SlhDsaSecurity.Proof.CollisionCharge
 import SlhDsaSecurity.Proof.FreshHitBound
 import SlhDsaSecurity.Proof.FramingLeak
+import SlhDsaSecurity.Proof.CanonicalTarget
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -417,3 +418,15 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FramingLeak.exists_legal_request_leaking_digest
+
+/-- info: 'SlhDsaSecurity.CanonicalTarget.canonicalTarget_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalTarget.canonicalTarget_canonical
+
+/-- info: 'SlhDsaSecurity.CanonicalTarget.clean_of_canonical_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalTarget.clean_of_canonical_cache
+
+/-- info: 'SlhDsaSecurity.CanonicalTarget.hit_of_deviating_collision' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalTarget.hit_of_deviating_collision
