@@ -2706,3 +2706,7 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_badWeighted_whole_game_le' depend
 /-- info: 'SlhDsaSecurity.GameBridge.cases_of_replayed_accept' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GameBridge.cases_of_replayed_accept
+
+/-- info: 'SlhDsaSecurity.BlindComparison.agreeOff_cacheFrom_empty' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindComparison.agreeOff_cacheFrom_empty

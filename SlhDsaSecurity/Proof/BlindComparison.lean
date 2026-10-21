@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.CacheReplay
+import SlhDsaSecurity.Proof.CanonicalGraph.Programming
 
 /-!
 # Two caches that agree off a set touch that set equally often
@@ -186,5 +187,46 @@ theorem prob_touched_eq {α : Type} (S : Bytes → Prop) [DecidablePred S]
         rw [bind_map_left, bind_map_left, probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
         exact tsum_congr fun answer =>
           congrArg _ (ih answer _ _ _ (hagree.cacheQuery input answer))
+
+/-! ## The programmed cache against the blind one
+
+Presampling leaves the run holding `CanonicalGraph.Programming.cacheFrom`: the honest answers,
+written at the canonical inputs and nowhere else. The blind cache is the empty one. They
+therefore agree everywhere off the canonical inputs, which is exactly the hypothesis
+`prob_touched_eq` wants — so the real game and the blind game meet a seed-derived key with the
+same probability, and `SeedDeferral.prob_run_meets_honest_key_le` finishes on the blind side.
+
+Nothing is lost in the comparison, which matters because the input half is allotted exactly
+`q / 2 ^ 128` and the budget is met with equality. -/
+
+/-- The inputs the programmed cache writes: the canonical ones. -/
+def IsCanonicalInput (publicSeed : Digest) (cells : CanonicalGraph.Cells) (input : Bytes) :
+    Prop :=
+  ∃ parent : CanonicalGraph.StructuralNode,
+    input = CanonicalGraph.canonicalInput publicSeed cells parent
+
+/-- **Programming writes only at canonical inputs**, so the result agrees with whatever cache
+it started from everywhere else. -/
+theorem agreeOff_cacheFrom (publicSeed : Digest) (cells : CanonicalGraph.Cells)
+    (outputs : CanonicalGraph.Programming.Outputs) :
+    ∀ (parents : List CanonicalGraph.StructuralNode) (cache : QueryCache HashSpec),
+      AgreeOff (IsCanonicalInput publicSeed cells)
+        (CanonicalGraph.Programming.cacheFrom publicSeed cells outputs parents cache) cache := by
+  intro parents
+  induction parents with
+  | nil => intro cache input _; rfl
+  | cons parent parents ih =>
+    intro cache input hinput
+    rw [CanonicalGraph.Programming.cacheFrom, ih _ input hinput]
+    exact QueryCache.cacheQuery_of_ne cache (outputs parent)
+      (fun hsame => hinput ⟨parent, hsame⟩)
+
+/-- **The programmed cache agrees with the empty one off the canonical inputs.** -/
+theorem agreeOff_cacheFrom_empty (publicSeed : Digest) (cells : CanonicalGraph.Cells)
+    (outputs : CanonicalGraph.Programming.Outputs)
+    (parents : List CanonicalGraph.StructuralNode) :
+    AgreeOff (IsCanonicalInput publicSeed cells)
+      (CanonicalGraph.Programming.cacheFrom publicSeed cells outputs parents ∅) ∅ :=
+  agreeOff_cacheFrom publicSeed cells outputs parents ∅
 
 end SlhDsaSecurity.BlindComparison
