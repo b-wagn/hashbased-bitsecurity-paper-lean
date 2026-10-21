@@ -211,4 +211,131 @@ theorem prob_joint_sensitive_le {γ Aux : Type} (stakes : Stakes Target Canonica
   obtain ⟨aux, -, hrun⟩ := hrest
   exact hlimit cells aux result hrun
 
+
+/-! ## The charge against one cell, at the game's handler
+
+The three pieces meet here. Stalling at the cell leaves the chance of a charge against it
+alone; the stalled run does not read that cell, so it may be drawn after; and the weight the
+drawn cell costs is the number of probes aiming at it, which stalling also leaves alone. -/
+
+open OpenCache ChargedProbe
+
+set_option maxHeartbeats 1000000 in
+set_option maxRecDepth 1000000 in
+open scoped Classical in
+/-- **The charge against one cell.** -/
+theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt cache child) →
+        availableAt cache (.structural parent))
+    (hmono : ∀ (left right : QueryCache HashSpec),
+      (∀ probe, left probe ≠ none → right probe ≠ none) →
+        ∀ node, availableAt left node → availableAt right node)
+    (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
+    Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
+        ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
+          (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+      (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+          computation).run state
+        pure (result, cells index))] ≤
+      (∑' z : α × (HandlerState × Bool),
+        Pr[= z | (do
+          let cells ← ($ᵗ Cells : ProbComp Cells)
+          let pad ← ($ᵗ Padding : ProbComp Padding)
+          (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+            computation).run state)] *
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
+            Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  -- Stalling at the cell leaves the chance of a charge against it alone.
+  have hstall : Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
+      ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
+        (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+    (do
+      let cells ← ($ᵗ Cells : ProbComp Cells)
+      let pad ← ($ᵗ Padding : ProbComp Padding)
+      let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+        computation).run state
+      pure (result, cells index))] =
+      Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
+          ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
+            (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+        (do
+          let cells ← ($ᵗ Cells : ProbComp Cells)
+          let pad ← ($ᵗ Padding : ProbComp Padding)
+          let result ← (simulateQ (StalledRun.stalled
+            (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+            (fun inner => availableAt inner.1 index) stall) computation).run state
+          pure (result, cells index))] := by
+    rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+    refine tsum_congr fun cells => congrArg _ ?_
+    rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+    refine tsum_congr fun pad => congrArg _ ?_
+    rw [bind_pure_comp, probEvent_map, bind_pure_comp, probEvent_map]
+    exact prob_charged_stalled_eq publicSeed availableAt hmono stakes index (cells, pad) stall
+      computation state
+  -- The stalled run does not read that cell, so it may be drawn after.
+  have hredraw : 𝒟[do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (StalledRun.stalled
+          (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+          (fun inner => availableAt inner.1 index) stall) computation).run state
+        pure (result, cells index)] =
+      𝒟[do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (StalledRun.stalled
+          (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+          (fun inner => availableAt inner.1 index) stall) computation).run state
+        let cell ← ($ᵗ Cell : ProbComp Cell)
+        pure (result, cell)] := by
+    refine evalDist_redraw_coordinate index ($ᵗ Padding : ProbComp Padding) _ ?_
+    intro cells other pad hagree
+    exact evalDist_stalled_lazyProgram_congr publicSeed availableAt hclosed index
+      (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall computation state
+  rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
+  -- The drawn cell costs the probes aiming at it, and stalling leaves their number alone.
+  have hassoc : (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (StalledRun.stalled
+          (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+          (fun inner => availableAt inner.1 index) stall) computation).run state
+        let cell ← ($ᵗ Cell : ProbComp Cell)
+        pure (result, cell)) =
+      (do
+        let result ← (do
+          let cells ← ($ᵗ Cells : ProbComp Cells)
+          let pad ← ($ᵗ Padding : ProbComp Padding)
+          (simulateQ (StalledRun.stalled
+            (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+            (fun inner => availableAt inner.1 index) stall) computation).run state)
+        let cell ← ($ᵗ Cell : ProbComp Cell)
+        pure (result, cell)) := by
+    simp only [bind_assoc]
+  rw [hassoc]
+  refine le_trans (prob_run_cell_le stakes
+    (fun cache node => ¬ availableAt cache node) index
+    (do
+      let cells ← ($ᵗ Cells : ProbComp Cells)
+      let pad ← ($ᵗ Padding : ProbComp Padding)
+      (simulateQ (StalledRun.stalled
+        (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+        (fun inner => availableAt inner.1 index) stall) computation).run state)
+    (fun z => z.2.1.2.1)) ?_
+  refine ENNReal.div_le_div_right (le_of_eq ?_) _
+  rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
+  refine tsum_congr fun cells => congrArg _ ?_
+  rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
+  refine tsum_congr fun pad => congrArg _ ?_
+  exact (expected_aiming_stalled_eq publicSeed availableAt hmono stakes index (cells, pad)
+    stall computation state).symm
+
 end SlhDsaSecurity.RedrawCell
