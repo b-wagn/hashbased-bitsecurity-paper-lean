@@ -65,6 +65,7 @@ import SlhDsaSecurity.Proof.HypertreeDispatch
 import SlhDsaSecurity.Proof.InputCoupling
 import SlhDsaSecurity.Proof.ForsDispatch
 import SlhDsaSecurity.Proof.BlindComparison
+import SlhDsaSecurity.Proof.MainTheorem
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -2566,3 +2567,9 @@ info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends 
 /-- info: 'SlhDsaSecurity.SeedDeferral.prob_run_meets_honest_key_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedDeferral.prob_run_meets_honest_key_le
+
+/-! The target, reduced to its two halves. -/
+
+/-- info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_halves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_halves
