@@ -4455,3 +4455,23 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.AdversaryQueries.work_add_keygen_le_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AdversaryQueries.work_add_keygen_le_total
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.targets_of_sensitiveAt' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.targets_of_sensitiveAt
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.targets_unique' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.targets_unique
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sum_targets_length_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sum_targets_length_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_list_sensitiveAt_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_list_sensitiveAt_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_list_sensitive_le_of_sum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_list_sensitive_le_of_sum
