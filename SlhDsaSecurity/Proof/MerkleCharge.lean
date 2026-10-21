@@ -199,4 +199,51 @@ theorem deviatingCollision_of_pathCollision_canonical {α : Type}
   · rw [@value_merkleChild (CacheReplay.replayQuery cache), canonicalPair_snd, hindex]
     simp
 
+/-! ## The path branch of a layer collision
+
+`LayerCollision`'s first disjunct, as the extraction produces it: a height below `subtreeHeight`
+and a `BinaryPath.Collision` on the authentication path, with the nodes being the honest Merkle
+nodes of this layer's tree and the leaf the WOTS public key recovered from the signature.
+
+Everything the canonical lemma needs is definitional here. The nodes satisfy the Merkle
+recursion because that is how `Merkle.node` is defined; the combination is the tweakable hash
+at this tree's address; and the node the collision sits at is the one whose index is the path
+index divided by the height's power of two, which is how `Fin` is built below. -/
+
+/-- **The path branch of a layer collision is charged.** -/
+theorem deviatingCollision_of_pathBranch {α : Type} (secretSeed publicSeed : Digest)
+    (cache : QueryCache HashSpec) (location : Tree) (leafIndex : Nat)
+    (hleafIndex : leafIndex < 2 ^ subtreeHeight) (leaf : Digest) (siblings : Nat → Digest)
+    (pathHeight : Fin subtreeHeight)
+    (hcollision : BinaryPath.Collision
+      (@SlhDsaSecurity.Merkle.node Id _ (CacheReplay.replayQuery cache) secretSeed publicSeed
+        location.address)
+      (fun height nodeIndex left right =>
+        @Hashing.tweakable Id _ (CacheReplay.replayQuery cache) publicSeed
+          (SlhDsaSecurity.Merkle.nodeAddress location.address height nodeIndex)
+          (BinaryPath.pairBytes (left, right)))
+      leafIndex leaf siblings pathHeight.val)
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hcache : result.2 = cache)
+    (hbound : leafIndex / 2 ^ (pathHeight.val + 1) < 2 ^ (subtreeHeight - (pathHeight.val + 1)))
+    (hentry : cache (Hashing.tweakableInput publicSeed
+        (StructuralNode.tree location pathHeight
+          ⟨leafIndex / 2 ^ (pathHeight.val + 1), hbound⟩).address
+        (BinaryPath.pairBytes
+          (BinaryPath.ordered leafIndex pathHeight.val
+            (BinaryPath.value
+              (fun height nodeIndex left right =>
+                @Hashing.tweakable Id _ (CacheReplay.replayQuery cache) publicSeed
+                  (SlhDsaSecurity.Merkle.nodeAddress location.address height nodeIndex)
+                  (BinaryPath.pairBytes (left, right)))
+              leafIndex leaf siblings pathHeight.val)
+            (siblings pathHeight.val)))) = some output) :
+    StructuralTerm.DeviatingCollision publicSeed
+      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
+  refine deviatingCollision_of_pathCollision_canonical secretSeed publicSeed cache location
+    leafIndex pathHeight ⟨leafIndex / 2 ^ (pathHeight.val + 1), hbound⟩ leaf siblings _
+    (fun _ _ _ _ => rfl) (fun _ _ => rfl) rfl ?_ result output hcache ?_
+  · exact hcollision
+  · exact hentry
+
 end SlhDsaSecurity.MerkleCharge
