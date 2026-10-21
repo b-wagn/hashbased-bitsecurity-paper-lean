@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.CoverageRouted
+import SlhDsaSecurity.Proof.CanonicalSignature
 import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.WarmProbes
@@ -4766,4 +4767,16 @@ info: 'SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature' depends
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature
+
+/-- info: 'SlhDsaSecurity.CanonicalSignature.eq_signInternal' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSignature.eq_signInternal
+
+/-- info: 'SlhDsaSecurity.CanonicalSignature.signature_eq_toBytes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSignature.signature_eq_toBytes
+
+/-- info: 'SlhDsaSecurity.CanonicalSignature.not_fresh_of_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSignature.not_fresh_of_canonical
 
