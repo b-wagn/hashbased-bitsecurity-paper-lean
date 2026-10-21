@@ -46,6 +46,7 @@ import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.WholeGameStructural
 import SlhDsaSecurity.Proof.ForsCoverageTerm
 import SlhDsaSecurity.Proof.Assembly
+import SlhDsaSecurity.Proof.PerQueryBudget
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -575,3 +576,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.FreshDigest.prob_tape_event_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshDigest.prob_tape_event_le
+
+/-- info: 'SlhDsaSecurity.PerQueryBudget.union_exceeds_target' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PerQueryBudget.union_exceeds_target
+
+/-- info: 'SlhDsaSecurity.PerQueryBudget.split_within_target' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PerQueryBudget.split_within_target
