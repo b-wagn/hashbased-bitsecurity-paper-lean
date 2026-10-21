@@ -1,3 +1,5 @@
+import SlhDsaSecurity.Proof.CacheAvailability
+import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.WarmProbes
@@ -4631,3 +4633,51 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 /-- info: 'SlhDsaSecurity.RedrawCell.prob_sensitive_run_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.prob_sensitive_run_le
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.mem_signedAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.mem_signedAt
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.signedAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.signedAt_mono
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.availableAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.availableAt_mono
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.availableAt_closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.availableAt_closed
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.lazyProgram_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.lazyProgram_persists
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.lazyProgram_run_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.lazyProgram_run_persists
+
+/-- info: 'SlhDsaSecurity.SplitRouted.deviatingCollision_at_walk_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRouted.deviatingCollision_at_walk_cells
+
+/-- info: 'SlhDsaSecurity.SplitRouted.honestForsKey_eq_value' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRouted.honestForsKey_eq_value
+
+/-- info: 'SlhDsaSecurity.SplitRouted.honestMessage_zero' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRouted.honestMessage_zero
+
+/-- info: 'SlhDsaSecurity.SplitRouted.honestRevealed_eq_revealedAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRouted.honestRevealed_eq_revealedAt
+
+/-- info: 'SlhDsaSecurity.SplitRouted.sensitive_of_residue' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRouted.sensitive_of_residue
+
+/-- info: 'SlhDsaSecurity.SplitRouted.signed_or_sensitive_of_secrets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRouted.signed_or_sensitive_of_secrets
