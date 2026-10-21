@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.CombinedCharge
+import SlhDsaSecurity.Proof.ClassCharge
 
 /-!
 # The structural term for the whole game
@@ -102,5 +103,44 @@ theorem prob_combinedBad_whole_game_le (adversary : Adversary) (q : Nat)
   exact ⟨hbad, GrowthBudget.GrowthAtMost.mono
     (GrowthBudget.growth_le_count (experiment adversary) ∅ result hmem)
     (count_le_of_budget hbudget hmem)⟩
+
+/-! ## The answer side, charged per class
+
+`prob_combinedBad_whole_game_le` charges both answer-side clauses as one predicate, at the
+maximum rate. That keeps the answer side inside `q / 2 ^ 128`, but it leaves nothing over:
+`2 q / 2 ^ 129` is exactly the allowance, and the load-cap defect has nowhere to go.
+
+Charging per class recovers the room. A structural-class query can buy a structural hit, rate
+`2`; a message-class query can buy coverage, rate `1`. Their sum `2 qs + qm` is below the
+allowance `2 (qs + qm)` by exactly `qm`, which is the slack
+`Assembly.cap_defect_within_slack` spends on the `2 ^ -126` defect. It is also the form the
+coverage half must take, since that half goes through the leave-one-out tape rather than a
+fixed disclosure set.
+
+The class counts are taken as hypotheses here. Deriving them needs the game instrumented with
+`ClassBudget.countClass` rather than the plain total counter, which is a separate step. -/
+
+/-- **The answer side for the whole game, charged per class.** -/
+theorem prob_badWithinClasses_whole_game_le (adversary : Adversary)
+    (bad : Bytes → HashOutput → Prop) (inClass : Bytes → Prop)
+    (insideRate outsideRate : ℝ≥0∞) (insideLimit outsideLimit : Nat)
+    (hinside : ∀ input, inClass input →
+      Pr[fun answer : HashOutput => bad input answer |
+        ($ᵗ HashOutput : ProbComp HashOutput)] ≤ insideRate)
+    (houtside : ∀ input, ¬ inClass input →
+      Pr[fun answer : HashOutput => bad input answer |
+        ($ᵗ HashOutput : ProbComp HashOutput)] ≤ outsideRate)
+    (hclean : GrowthCharge.CleanBad bad ∅)
+    (hcounts : ∀ result ∈ support (instrumentedRun adversary),
+      ClassCharge.GrowthAtMostOn inClass ∅ result.2 insideLimit ∧
+        ClassCharge.GrowthAtMostOn (fun input => ¬ inClass input) ∅ result.2 outsideLimit) :
+    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        GrowthCharge.Bad bad result | instrumentedRun adversary] ≤
+      insideLimit * insideRate + outsideLimit * outsideRate := by
+  refine le_trans (probEvent_mono ?_)
+    (ClassCharge.prob_badWithinClasses_le (countAllHashes (experiment adversary))
+      bad inClass insideRate outsideRate insideLimit outsideLimit ∅ hinside houtside hclean)
+  intro result hmem hbad
+  exact ⟨hbad, (hcounts result hmem).1, (hcounts result hmem).2⟩
 
 end SlhDsaSecurity.WholeGameStructural
