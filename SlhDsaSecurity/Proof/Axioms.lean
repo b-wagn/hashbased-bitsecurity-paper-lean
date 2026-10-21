@@ -51,6 +51,7 @@ import SlhDsaSecurity.Proof.CombinedCharge
 import SlhDsaSecurity.Proof.SecretGuessCharge
 import SlhDsaSecurity.Proof.ClassCharge
 import SlhDsaSecurity.Proof.SeedDeferral
+import SlhDsaSecurity.Proof.InputCoupling
 import SlhDsaSecurity.Proof.QueryCached
 import SlhDsaSecurity.Proof.ClassBudget
 import SlhDsaSecurity.Proof.CacheReplay
@@ -850,3 +851,32 @@ info: 'SlhDsaSecurity.MerkleCharge.deviatingCollision_of_pathBranch' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.MerkleCharge.deviatingCollision_of_pathBranch
+
+/-- info: 'SlhDsaSecurity.InputCoupling.probEvent_seedDerived_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.probEvent_seedDerived_le
+
+/-- info: 'SlhDsaSecurity.InputCoupling.real_step_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.real_step_eq
+
+/-- info: 'SlhDsaSecurity.InputCoupling.evalDist_blind_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.evalDist_blind_step
+
+/-- info: 'SlhDsaSecurity.InputCoupling.tvDist_step_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.tvDist_step_le
+
+/-- info: 'SlhDsaSecurity.InputCoupling.step_eq_of_uncharged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.step_eq_of_uncharged
+
+/-- info: 'SlhDsaSecurity.InputCoupling.real_bad_monotone' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.real_bad_monotone
+
+/-- info: 'SlhDsaSecurity.InputCoupling.advantage_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputCoupling.advantage_le
+
