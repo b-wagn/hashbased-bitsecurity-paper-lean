@@ -2654,3 +2654,11 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_badWithinClasses_whole_game_le' d
 /-- info: 'SlhDsaSecurity.WeightedCharge.jointGrowth_le_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WeightedCharge.jointGrowth_le_count
+
+/--
+info: 'SlhDsaSecurity.WholeGameStructural.prob_badWeighted_whole_game_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WholeGameStructural.prob_badWeighted_whole_game_le

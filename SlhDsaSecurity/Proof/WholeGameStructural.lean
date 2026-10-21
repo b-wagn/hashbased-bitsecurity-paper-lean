@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.CombinedCharge
 import SlhDsaSecurity.Proof.ClassCharge
+import SlhDsaSecurity.Proof.WeightedCharge
 
 /-!
 # The structural term for the whole game
@@ -142,5 +143,38 @@ theorem prob_badWithinClasses_whole_game_le (adversary : Adversary)
       bad inClass insideRate outsideRate insideLimit outsideLimit ∅ hinside houtside hclean)
   intro result hmem hbad
   exact ⟨hbad, (hcounts result hmem).1, (hcounts result hmem).2⟩
+
+/-! ## The answer side, charged by weight
+
+The weighted charge is the form the game can feed: one budget, read off one counter. At
+weights `2` on a structural-class input and `1` on a message-class one, in units of `2 ^ -129`,
+the answer side costs `weighted / 2 ^ 129`.
+
+The budget comes for free from the existing instrumentation. Every weight is at most `2`, so
+`WeightedCharge.weightedGrowth_of_growth` turns the plain growth bound into a weighted one at
+`2 q` — exactly the answer side's allowance. That is the whole accounting on the branch of the
+dichotomy where no defect is owed; the other branch needs the finer count, which
+`WeightedCharge.jointGrowth_le_count` now supplies. -/
+
+/-- **The answer side for the whole game, charged by weight.** -/
+theorem prob_badWeighted_whole_game_le (adversary : Adversary) (q : Nat)
+    (bad : Bytes → HashOutput → Prop) (weight : Bytes → Nat) (rate : ℝ≥0∞)
+    (hweight : ∀ input, weight input ≤ 2)
+    (hbad : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ weight input * rate)
+    (hclean : GrowthCharge.CleanBad bad ∅)
+    (hbudget : HasTotalBudget adversary q) :
+    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        GrowthCharge.Bad bad result | instrumentedRun adversary] ≤
+      ((2 * q : Nat) : ℝ≥0∞) * rate := by
+  refine le_trans (probEvent_mono ?_)
+    (WeightedCharge.prob_badWeighted_le (countAllHashes (experiment adversary))
+      bad weight rate (2 * q) ∅ hbad hclean)
+  intro result hmem hbad'
+  refine ⟨hbad', ?_⟩
+  exact WeightedCharge.weightedGrowth_of_growth hweight
+    (GrowthBudget.GrowthAtMost.mono
+      (GrowthBudget.growth_le_count (experiment adversary) ∅ result hmem)
+      (count_le_of_budget hbudget hmem))
 
 end SlhDsaSecurity.WholeGameStructural
