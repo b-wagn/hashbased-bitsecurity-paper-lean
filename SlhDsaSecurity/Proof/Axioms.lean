@@ -31,6 +31,7 @@ import SlhDsaSecurity.Proof.CanonicalGraph.Separation
 import SlhDsaSecurity.Proof.CanonicalGraph.Programming
 import SlhDsaSecurity.Proof.Extraction.Merkle
 import SlhDsaSecurity.Proof.Extraction.Wots
+import SlhDsaSecurity.Proof.Extraction.Fors
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -338,3 +339,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.EligibilityCertificate.coeff_eq_digit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.EligibilityCertificate.coeff_eq_digit
+
+/-- info: 'SlhDsaSecurity.Extraction.Fors.root_eq_canonical_or_collision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.Fors.root_eq_canonical_or_collision

@@ -1,0 +1,105 @@
+import SlhDsaSecurity.Proof.Extraction.BinaryPath
+import SlhDsaSecurity.Proof.Correctness.Fors
+
+/-! Extraction from the actual FORS verifier, one tree at a time.
+
+Recovering the genuine root of a single FORS tree with changed authentication data
+contains a collision at one of that tree's own hash calls. Otherwise the recovered
+secret leaf and all twelve siblings are exactly the genuine canonical values. This
+mirrors `Extraction.Merkle.root_eq_canonical_or_collision` for the FORS trees. The
+collision witness keeps the path position, so it names a concrete queried input. -/
+
+open OracleComp OracleSpec
+
+namespace SlhDsaSecurity.Extraction.Fors
+
+set_option backward.isDefEq.respectTransparency false
+
+variable [HasQuery HashSpec Id]
+
+/-- The global node index of the selected leaf in FORS tree `i`. -/
+def leafIndex (indices : SlhDsaSecurity.Fors.Indices) (i : Fin forsTrees) : Nat :=
+  i.val * 2 ^ forsHeight + (indices i).val
+
+/-- The twelve authentication siblings of FORS tree `i`, padded past the tree height. -/
+def siblings (signature : ForsSignature) (i : Fin forsTrees) (height : Nat) : Digest :=
+  if h : height < forsHeight then (signature i).authentication ⟨height, h⟩ else 0
+
+/-- The recovered leaf of FORS tree `i`: the compression of the revealed secret. -/
+def recoveredLeaf (signature : ForsSignature) (indices : SlhDsaSecurity.Fors.Indices)
+    (publicSeed : Digest) (address : Address) (i : Fin forsTrees) : Digest :=
+  Hashing.tweakable (m := Id) publicSeed
+    (SlhDsaSecurity.Fors.nodeAddress address 0 (leafIndex indices i))
+    (bytesBE n (signature i).secret)
+
+/-- The recovered root of FORS tree `i`, exactly as computed inside Algorithm 17
+before the fourteen roots are compressed. -/
+def recoveredRoot (signature : ForsSignature) (indices : SlhDsaSecurity.Fors.Indices)
+    (publicSeed : Digest) (address : Address) (i : Fin forsTrees) : Digest :=
+  (List.finRange forsHeight).foldl (fun value j =>
+    let payload := if (indices i).val / 2 ^ j.val % 2 = 0 then
+      bytesBE n value ++ bytesBE n ((signature i).authentication j)
+      else bytesBE n ((signature i).authentication j) ++ bytesBE n value
+    Hashing.tweakable (m := Id) publicSeed
+      (SlhDsaSecurity.Fors.nodeAddress address (j.val + 1)
+        (leafIndex indices i / 2 ^ (j.val + 1))) payload)
+    (recoveredLeaf signature indices publicSeed address i)
+
+set_option maxRecDepth 10000 in
+/-- Reaching the genuine FORS tree root with changed authentication data gives a
+collision on this verifier path. Otherwise its recovered secret leaf and all twelve
+siblings are exactly the genuine values. -/
+theorem root_eq_canonical_or_collision (secretSeed publicSeed : Digest)
+    (address : Address) (indices : SlhDsaSecurity.Fors.Indices) (signature : ForsSignature)
+    (i : Fin forsTrees)
+    (hroot : recoveredRoot signature indices publicSeed address i =
+      SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed address forsHeight i.val) :
+    let nodes : Nat → Nat → Digest :=
+      SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed address
+    let combine : Nat → Nat → Digest → Digest → Digest := fun height nodeIndex left right =>
+      Hashing.tweakable (m := Id) publicSeed
+        (SlhDsaSecurity.Fors.nodeAddress address height nodeIndex)
+        (BinaryPath.pairBytes (left, right))
+    let leaf : Digest := recoveredLeaf signature indices publicSeed address i
+    (leaf = nodes 0 (leafIndex indices i) ∧ ∀ j, (signature i).authentication j =
+      nodes j.val (Nat.xor (leafIndex indices i / 2 ^ j.val) 1)) ∨
+    ∃ j < forsHeight,
+      BinaryPath.Collision nodes combine (leafIndex indices i) leaf (siblings signature i) j := by
+  dsimp only
+  set index := leafIndex indices i with hindex
+  let nodes : Nat → Nat → Digest :=
+    SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed address
+  let combine : Nat → Nat → Digest → Digest → Digest := fun height nodeIndex left right =>
+    Hashing.tweakable (m := Id) publicSeed
+      (SlhDsaSecurity.Fors.nodeAddress address height nodeIndex)
+      (BinaryPath.pairBytes (left, right))
+  let leaf : Digest := recoveredLeaf signature indices publicSeed address i
+  -- The verifier fold equals the generic binary-path value function.
+  have hfold : BinaryPath.value combine index leaf (siblings signature i) forsHeight =
+      recoveredRoot signature indices publicSeed address i := by
+    rw [BinaryPath.value_eq_fold]
+    simp only [recoveredRoot, ← hindex]
+    congr 1
+    funext current j
+    have hj := j.isLt
+    have hparity : index / 2 ^ j.val % 2 = (indices i).val / 2 ^ j.val % 2 := by
+      have heven := SlhDsaSecurity.Correctness.offset_even i.val forsHeight j.val hj
+      rw [hindex, leafIndex,
+        SlhDsaSecurity.Correctness.offset_div_pow _ _ _ _ (Nat.le_of_lt hj)]
+      simp [Nat.add_mod, heven]
+    simp only [siblings, dif_pos hj, BinaryPath.ordered, hparity]
+    split <;> rfl
+  -- The canonical FORS node recurrence matches the `combine` operation.
+  have hpath := BinaryPath.canonical_or_collision nodes combine (fun _ _ => rfl)
+    index leaf (siblings signature i) forsHeight (by
+      rw [hfold, hroot]
+      congr 1
+      rw [hindex, leafIndex,
+        SlhDsaSecurity.Correctness.offset_div_pow _ _ _ _ (Nat.le_refl _),
+        Nat.sub_self, pow_zero, Nat.mul_one, Nat.div_eq_of_lt (indices i).isLt, Nat.add_zero])
+  rcases hpath with ⟨hleaf, hsiblings⟩ | hcollision
+  · refine Or.inl ⟨hleaf, fun j => ?_⟩
+    simpa only [siblings, dif_pos j.isLt] using hsiblings j.val j.isLt
+  · exact Or.inr hcollision
+
+end SlhDsaSecurity.Extraction.Fors
