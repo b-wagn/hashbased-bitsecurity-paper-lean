@@ -392,4 +392,23 @@ theorem prfInput_injective (publicSeed : Digest) (node : CanonicalGraph.Structur
   intro left right heq
   exact bytesBE_injective n (Hashing.tweakableInput_injective heq).2.2
 
+open scoped Classical in
+/-- Which node a seed-bearing input belongs to. Well defined because the address field pins
+the node, which is `prfInput_node_eq`. -/
+noncomputable def locateNode (publicSeed : Digest) (input : Bytes) :
+    Option CanonicalGraph.StructuralNode :=
+  if h : ∃ node : CanonicalGraph.StructuralNode, ∃ secret : Digest,
+      input = prfInput publicSeed secret node then some h.choose else none
+
+/-- **`locateNode` recovers the node.** This is the `hlocate` hypothesis of the input half. -/
+theorem locateNode_prfInput (publicSeed secret : Digest)
+    (node : CanonicalGraph.StructuralNode) :
+    locateNode publicSeed (prfInput publicSeed secret node) = some node := by
+  classical
+  have hexists : ∃ node' : CanonicalGraph.StructuralNode, ∃ secret' : Digest,
+      prfInput publicSeed secret node = prfInput publicSeed secret' node' := ⟨node, secret, rfl⟩
+  rw [locateNode, dif_pos hexists]
+  obtain ⟨secret', hsecret'⟩ := hexists.choose_spec
+  exact congrArg some (prfInput_node_eq publicSeed secret secret' hsecret').symm
+
 end SlhDsaSecurity.TrackedQueries
