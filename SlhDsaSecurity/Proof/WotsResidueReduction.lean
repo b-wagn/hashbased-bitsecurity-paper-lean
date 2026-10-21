@@ -23,7 +23,9 @@ that address, and the disclosed position is the digit of the message that key si
 existentially quantified except the chain index, and that is pinned by the equation it appears in.
 
 Two readings follow. `exists_held_value_of_residue` names the layer explicitly, through
-accumulators that follow the recursion step for step. `heldValue_eq_cell` reads the held value as
+accumulators that follow the recursion step for step, and names the message that layer signs
+rather than quantifying it: the witness the recursion produces *is* `forgedAt`, which is what
+lets the position a claimed chain value sits at be computed from the forgery. `heldValue_eq_cell` reads the held value as
 a cell of the canonical graph, which is the vocabulary the charge indexes by: the forgery holds
 `wotsPosition key chainIndex (Checksum.encode forged chainIndex)`, a node strictly below the one
 the honest signature revealed.
@@ -97,7 +99,7 @@ theorem holds_early_chain_value_of_residue (secretSeed publicSeed : Digest) :
 
 /-! ## Naming the layer the residue reaches
 
-The recursion above is faithful but implicit about *which* layer it stopped at. These four
+The recursion above is faithful but implicit about *which* layer it stopped at. These five
 accumulators follow the step exactly — each is the previous one applied to the arguments the
 recursion passes on — so flattening the predicate to an explicit layer index is definitional.
 Their closed forms are recorded below for the two cases a caller needs: the layer rises by one
@@ -129,6 +131,21 @@ def revealedAt (secretSeed publicSeed expectedInput : Digest) (layer tree : Nat)
       (Extraction.HypertreeChain.honestNode secretSeed publicSeed layer tree) (layer + 1)
       (tree / 2 ^ subtreeHeight) i
 
+/-- The message the forgery's key at the layer reached after `i` steps signs: the root its own
+lower layers recover. Unlike `revealedAt` this follows the forgery rather than the seeds, and it
+is the accumulator the residue's recursion threads — which is what lets the position a claimed
+chain value sits at be named rather than quantified. -/
+def forgedAt (publicSeed : Digest) :
+    (remaining : Nat) → (Fin remaining → XmssSignature) → (layer tree : Nat) →
+      SlhDsaSecurity.Hypertree.LeafIndex → Digest → Nat → Digest
+  | 0, _, _, _, _, message, _ => message
+  | _ + 1, _, _, _, _, message, 0 => message
+  | remaining + 1, signatures, layer, tree, leaf, message, i + 1 =>
+      forgedAt publicSeed remaining (fun j => signatures j.succ) (layer + 1)
+        (tree / 2 ^ subtreeHeight) (SlhDsaSecurity.Hypertree.nextLeaf tree)
+        (SlhDsaSecurity.Merkle.publicKeyFromSignature (m := Id) leaf (signatures 0) message
+          publicSeed (SlhDsaSecurity.Hypertree.address layer tree)) i
+
 omit [HasQuery HashSpec Id] in
 theorem layerAt_eq (layer : Nat) : ∀ i : Nat, layerAt layer i = layer + i := by
   intro i
@@ -149,11 +166,15 @@ theorem exists_held_value_of_residue (secretSeed publicSeed : Digest) :
       (leaf : SlhDsaSecurity.Hypertree.LeafIndex) (message expectedInput : Digest),
       HoldsEarlyChainValue secretSeed publicSeed remaining signatures layer tree leaf message
           expectedInput →
-        ∃ (i : Fin remaining) (chainIndex : Fin chains) (forged : Digest),
+        ∃ (i : Fin remaining) (chainIndex : Fin chains),
           (signatures i).wots chainIndex =
               heldValue secretSeed publicSeed (layerAt layer i.val) (treeAt tree i.val)
-                (leafAt leaf tree i.val) forged chainIndex ∧
-            (Checksum.encode forged chainIndex).val <
+                (leafAt leaf tree i.val)
+                (forgedAt publicSeed remaining signatures layer tree leaf message i.val)
+                chainIndex ∧
+            (Checksum.encode
+              (forgedAt publicSeed remaining signatures layer tree leaf message i.val)
+              chainIndex).val <
               (Checksum.encode
                 (revealedAt secretSeed publicSeed expectedInput layer tree i.val)
                 chainIndex).val := by
@@ -163,9 +184,9 @@ theorem exists_held_value_of_residue (secretSeed publicSeed : Digest) :
   | succ remaining ih =>
     intro signatures layer tree leaf message expectedInput hholds
     rcases hholds with ⟨chainIndex, hvalue, hdigit⟩ | hrest
-    · exact ⟨0, chainIndex, message, hvalue, hdigit⟩
-    · obtain ⟨i, chainIndex, forged, hvalue, hdigit⟩ := ih _ _ _ _ _ _ hrest
-      exact ⟨i.succ, chainIndex, forged, hvalue, hdigit⟩
+    · exact ⟨0, chainIndex, hvalue, hdigit⟩
+    · obtain ⟨i, chainIndex, hvalue, hdigit⟩ := ih _ _ _ _ _ _ hrest
+      exact ⟨i.succ, chainIndex, hvalue, hdigit⟩
 
 /-! ## The held value is a canonical cell
 

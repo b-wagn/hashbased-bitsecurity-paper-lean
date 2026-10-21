@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.ChargedProbe
 import SlhDsaSecurity.Proof.AddressBounds
 import SlhDsaSecurity.Proof.OpenCache
@@ -4406,3 +4407,51 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.Assembly.le_target_of_counts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.le_target_of_counts
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.clampStep_val' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.clampStep_val
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.forgedStep_val' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.forgedStep_val
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.sensitive_forgedClaim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.sensitive_forgedClaim
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_tail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_tail
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_recorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_recorded
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_add_keygen_le_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_add_keygen_le_total

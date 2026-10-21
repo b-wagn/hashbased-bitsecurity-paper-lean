@@ -237,19 +237,28 @@ theorem work_le_count_countQueries (kind : QueryKind) (hkind : kind ≠ .signing
 
 /-! ## The charged work of the whole game -/
 
+attribute [local irreducible] Scheme.keygenInternal Scheme.verify Scheme.sign
+  Security.signingOracle Security.countQueries
+
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
-/-- **The work the game charges never exceeds the hash calls the game makes.** Key generation
-and the signer hash without being charged, and signing requests are charged on a counter the
-work budget does not read, so the inequality can be strict. -/
-theorem work_le_total (adversary : Adversary) (sds : Digest × Digest × Digest)
+/-- **The work the game charges, plus what key generation spent, never exceeds the hash calls
+the game makes.** Key generation and the signer hash without being charged, and signing requests
+are charged on a counter the work budget does not read, so the inequality can be strict — and
+key generation's own spend is recovered rather than discarded, which is the room the charges'
+defects and the forgery's claimed cells need. -/
+theorem work_add_keygen_le_total (adversary : Adversary) (sds : Digest × Digest × Digest)
     (cache : QueryCache HashSpec) (result : (Outcome × Nat) × QueryCache HashSpec)
     (hmem : result ∈ support ((simulateQ KeygenUniform.rom
       (countAllHashes (WarmedGame.afterSeeds adversary sds))).run cache)) :
-    result.1.1.counts.work ≤ result.1.2 := by
+    ∃ (keygenCount : Nat) (keys : SecretKey × PublicKey) (keyCache : QueryCache HashSpec),
+      ((keys, keygenCount), keyCache) ∈ support ((simulateQ KeygenUniform.rom
+        (countAllHashes (Scheme.keygenInternal sds.1 sds.2.1 sds.2.2))).run cache) ∧
+        result.1.1.counts.work + keygenCount ≤ result.1.2 := by
   unfold WarmedGame.afterSeeds at hmem
-  obtain ⟨⟨sk, pk⟩, keyCache, keyCount, advTotal, -, hrest1, hsplit1⟩ :=
+  obtain ⟨⟨sk, pk⟩, keyCache, keyCount, advTotal, hkeys, hrest1, hsplit1⟩ :=
     mem_support_counted_bind_count _ _ cache result hmem
+  refine ⟨keyCount, (sk, pk), keyCache, hkeys, ?_⟩
   obtain ⟨⟨⟨forgery, adversaryCounts⟩, signed⟩, advCache, advCount, verifyTotal, hadv, hrest2,
     hsplit2⟩ := mem_support_counted_bind_count _ _ keyCache _ hrest1
   obtain ⟨⟨verified, verifierCounts⟩, verifyCache, verifyCount, tailTotal, hverify, hrest3,
@@ -266,8 +275,21 @@ theorem work_le_total (adversary : Adversary) (sds : Digest × Digest × Digest)
   have htail := congrArg (fun z : (Outcome × Nat) × QueryCache HashSpec => z.1.2) hrest3
   simp only at hvalue htail hsplit2 hsplit3
   rw [hvalue]
-  show (Multiplicative.toAdd adversaryCounts + verifierCounts).work ≤ result.1.2
+  show (Multiplicative.toAdd adversaryCounts + verifierCounts).work + keyCount ≤ result.1.2
   rw [work_add, hsplit1, hsplit2, hsplit3, htail]
+  omega
+
+
+attribute [local irreducible] WarmedGame.afterSeeds
+
+/-- **The work the game charges never exceeds the hash calls the game makes.** -/
+theorem work_le_total (adversary : Adversary) (sds : Digest × Digest × Digest)
+    (cache : QueryCache HashSpec) (result : (Outcome × Nat) × QueryCache HashSpec)
+    (hmem : result ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes (WarmedGame.afterSeeds adversary sds))).run cache)) :
+    result.1.1.counts.work ≤ result.1.2 := by
+  obtain ⟨keygenCount, -, -, -, hbound⟩ :=
+    work_add_keygen_le_total adversary sds cache result hmem
   omega
 
 end SlhDsaSecurity.AdversaryQueries
