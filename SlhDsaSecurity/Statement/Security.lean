@@ -111,4 +111,37 @@ def HasSecurityBits (notion : Notion) (bits : Nat) : Prop :=
   ∀ q, 1 ≤ q → ∀ adversary, HasBudget adversary q →
     advantage notion adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
 
+/-! ## Counting every hash call in the game
+
+The verifier-counted experiment above leaves key generation and signing free. The
+statements below instead charge **every** hash call made anywhere in the game — key
+generation, signing, the adversary's direct calls, and final verification — matching the
+all-hashes accounting of the leanVM `lean_sphincs` statement. Signing requests are still
+capped separately at `signingLimit`, including repetitions and failures.
+-/
+
+/-- Charge one unit for every hash call in the whole computation. -/
+def countAllHashes {α : Type} (computation : OracleComp OracleWorld α) :
+    OracleComp OracleWorld (α × Nat) :=
+  (fun result => (result.1, Multiplicative.toAdd result.2)) <$>
+    (simulateQ (addCostOracle hashCost) computation).run
+
+/-- The same experiment, instrumented with the total hash count. -/
+noncomputable def runAll (adversary : Adversary) : ProbComp (Outcome × Nat) :=
+  XmssSecurity.RandomOracleModel.run (countAllHashes (experiment adversary))
+
+/-- At most `2 ^ 64` signing requests and at most `q` hash calls in total, jointly with
+probability one. Key-generation and signing hashes are charged here. -/
+def HasTotalBudget (adversary : Adversary) (q : Nat) : Prop :=
+  Pr[fun result => result.1.counts .signing ≤ signingLimit ∧ result.2 ≤ q |
+    runAll adversary] = 1
+
+noncomputable def totalAdvantage (notion : Notion) (adversary : Adversary) : ℝ≥0∞ :=
+  Pr[fun result => Wins notion result.1 | runAll adversary]
+
+/-- The all-queries-counted bit-security statement. -/
+def HasTotalSecurityBits (notion : Notion) (bits : Nat) : Prop :=
+  ∀ q, 1 ≤ q → ∀ adversary, HasTotalBudget adversary q →
+    totalAdvantage notion adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
+
 end SlhDsaSecurity.Security
