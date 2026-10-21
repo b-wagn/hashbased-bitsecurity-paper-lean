@@ -53,8 +53,12 @@ endpoints. `Proof/VerificationQueries.lean` connects this arithmetic to every
 verifier trace: WOTS verification uses 46–511 calls, FORS uses exactly 183,
 and a parsed signature with a valid message frame uses 569–3824 calls.
 These bounds survive any stateful oracle implementation and initial cache;
-repeated inputs are charged. Connecting the instrumentation directly to the
-experiment's `Outcome.counts` remains to be done.
+repeated inputs are charged. `Proof/{VerifierNaturality,VerificationBudget}.lean`
+connects them to the experiment's actual `Outcome.counts`: every accepted outcome
+has work at least 569, and either forgery advantage is zero for q < 569.
+`Proof/ChecksumAntichain.lean` proves that every different WOTS message requires
+an earlier value on at least one chain; advancing all chains cannot change the
+message.
 All existing XMSS definitions and proofs are unchanged.
 
 `Statement/{Types,Address,Hashing}.lean` now defines the standard key fields,

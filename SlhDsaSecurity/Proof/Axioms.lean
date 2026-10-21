@@ -11,6 +11,8 @@ import SlhDsaSecurity.Proof.PartialDigest
 import SlhDsaSecurity.Proof.ForsConcentrationOccupancy
 import SlhDsaSecurity.Proof.VerificationQueries
 import SlhDsaSecurity.Proof.KeygenUniform
+import SlhDsaSecurity.Proof.VerificationBudget
+import SlhDsaSecurity.Proof.ChecksumAntichain
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -171,3 +173,17 @@ import SlhDsaSecurity.Proof.KeygenUniform
 /-- info: 'SlhDsaSecurity.KeygenUniform.keygen_prob_possible_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.KeygenUniform.keygen_prob_possible_le
+
+/-- info: 'SlhDsaSecurity.VerificationBudget.accepted_outcome_work' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerificationBudget.accepted_outcome_work
+
+/-- info: 'SlhDsaSecurity.VerificationBudget.advantage_eq_zero_of_small_budget' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerificationBudget.advantage_eq_zero_of_small_budget
+
+/-- info: 'SlhDsaSecurity.Checksum.exists_decreased_digit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Checksum.exists_decreased_digit
