@@ -278,4 +278,41 @@ theorem queriesUnder_tweakable {α : Type} (cache : QueryCache HashSpec) (public
       (Hashing.tweakableInput publicSeed address payload) :=
   queriesUnder_shortHash cache _ next
 
+/-! ## Peeling a fold
+
+The closure lemmas above make each individual peel possible, but a verification step deep in a
+fold needs the running value at that point, which under `replay` is determined. These two
+lemmas are that walk: the head step consults its input at the fold's current value, and a step
+in the tail is reached by advancing the value to the truncation of the replayed answer.
+
+The truncation is where `shortHash` shows through: a tweakable call hashes and then keeps the
+first sixteen bytes, so the value the fold carries forward is `Hashing.truncate` of the raw
+oracle answer, not the answer itself. -/
+
+theorem queriesUnder_foldlM_head {ι : Type} (cache : QueryCache HashSpec)
+    (inputOf : Digest → ι → Bytes) (x : ι) (xs : List ι) (init : Digest) :
+    QueriesUnder cache
+      ((x :: xs).foldlM (m := OracleComp HashSpec)
+        (fun value i => Hashing.shortHash (inputOf value i)) init)
+      (inputOf init x) := by
+  rw [List.foldlM_cons]
+  exact queriesUnder_shortHash cache (inputOf init x) _
+
+theorem queriesUnder_foldlM_tail {ι : Type} (cache : QueryCache HashSpec)
+    (inputOf : Digest → ι → Bytes) (x : ι) (xs : List ι) (init : Digest) (probe : Bytes)
+    (hquery : QueriesUnder cache
+      (xs.foldlM (m := OracleComp HashSpec)
+        (fun value i => Hashing.shortHash (inputOf value i))
+        (Hashing.truncate (replay cache (inputOf init x)))) probe) :
+    QueriesUnder cache
+      ((x :: xs).foldlM (m := OracleComp HashSpec)
+        (fun value i => Hashing.shortHash (inputOf value i)) init) probe := by
+  rw [List.foldlM_cons,
+    show (Hashing.shortHash (m := OracleComp HashSpec) (inputOf init x)) >>=
+        (fun value => xs.foldlM (fun v i => Hashing.shortHash (inputOf v i)) value) =
+      (Hashing.hash (m := OracleComp HashSpec) (inputOf init x)) >>=
+        (fun answer => xs.foldlM (fun v i => Hashing.shortHash (inputOf v i))
+          (Hashing.truncate answer)) from by simp [Hashing.shortHash, bind_assoc]]
+  exact QueriesUnder.tail (inputOf init x) probe _ hquery
+
 end SlhDsaSecurity.CacheReplay

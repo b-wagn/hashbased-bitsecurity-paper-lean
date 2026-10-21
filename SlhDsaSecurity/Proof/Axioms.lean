@@ -792,3 +792,11 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.CacheReplay.queriesUnder_tweakable' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.queriesUnder_tweakable
+
+/-- info: 'SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_head' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_head
+
+/-- info: 'SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_tail' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_tail
