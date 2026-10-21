@@ -147,4 +147,37 @@ theorem le_target_of_classes {advantage answerSide inputSide defect : ℝ≥0∞
   refine ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _
   omega
 
+/-! ## The cap defect fits the slack, in both branches
+
+`le_target_of_classes` leaves one unit of room per message-class query for the defects, and
+the load cap is the expensive one. Both branches of the dichotomy are now available:
+
+* `qm ≥ 16` — `ForsLeaveOneOut.independent_tape_coverage_le_sharper` bounds the coverage
+  event by `1 / 2 ^ 126 + expectedUses / 2 ^ 129`, the first term being the cap defect;
+* `qm < 16` — `ForsCoverageTerm.moment_le_of_few_digests` establishes the cap outright, at
+  fewer than sixteen disclosures, so there is no defect at all.
+
+The lemma below is the join: in either branch the defect is within `qm / 2 ^ 129`. The
+threshold is what makes it work — `1 / 2 ^ 126` is `8 / 2 ^ 129`, and sixteen message-class
+queries buy `16 / 2 ^ 129`, twice what is needed. -/
+
+theorem defect_eq :
+    (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) =
+      ((8 : Nat) : ℝ≥0∞) / ((2 ^ 129 : Nat) : ℝ≥0∞) := by
+  rw [show ((2 ^ 129 : Nat) : ℝ≥0∞) = 8 * ((2 ^ 126 : Nat) : ℝ≥0∞) from by push_cast; ring,
+    show ((8 : Nat) : ℝ≥0∞) = 8 * 1 from by norm_num,
+    ENNReal.mul_div_mul_left _ _ (by norm_num) (by norm_num)]
+
+/-- **The load-cap defect fits the message-class slack.** -/
+theorem cap_defect_within_slack {defect : ℝ≥0∞} (messageQueries : Nat)
+    (hsmall : messageQueries < 16 → defect = 0)
+    (hlarge : 16 ≤ messageQueries → defect ≤ (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)) :
+    defect ≤ (messageQueries : ℝ≥0∞) / ((2 ^ 129 : Nat) : ℝ≥0∞) := by
+  rcases lt_or_ge messageQueries 16 with hcase | hcase
+  · rw [hsmall hcase]
+    exact zero_le
+  · refine (hlarge hcase).trans ?_
+    rw [defect_eq]
+    exact ENNReal.div_le_div_right (Nat.cast_le.mpr (by omega)) _
+
 end SlhDsaSecurity.Assembly

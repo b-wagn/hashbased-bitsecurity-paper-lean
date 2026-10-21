@@ -677,3 +677,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.ForsCoverageTerm.moment_le_of_few_digests' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCoverageTerm.moment_le_of_few_digests
+
+/-- info: 'SlhDsaSecurity.Assembly.cap_defect_within_slack' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.cap_defect_within_slack
