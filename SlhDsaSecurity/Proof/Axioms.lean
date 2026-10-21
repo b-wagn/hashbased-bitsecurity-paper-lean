@@ -2617,3 +2617,7 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_combinedBad_whole_game_le' depend
 /-- info: 'SlhDsaSecurity.Presample.evalDist_prepend_fresh_world' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Presample.evalDist_prepend_fresh_world
+
+/-- info: 'SlhDsaSecurity.Presample.evalDist_prepend_worldEvaluate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Presample.evalDist_prepend_worldEvaluate

@@ -263,4 +263,68 @@ theorem evalDist_prepend_fresh_world {α : Type} (computation : OracleComp Oracl
             bind_map_left, cacheQuery_comm cache hsame]
           rfl
 
+/-! ## Prepending a traversal, in the game's world
+
+The honest parties' queries form an adaptive traversal: each node's byte input is built from
+its children's cells, so it depends on answers given earlier. `worldEvaluate` is that traversal
+in the experiment's own monad, and prepending it is free for the same reason prepending one
+entry is — each query lands on an input still empty — with the induction peeling one query at
+a time because the next input is chosen using the value just drawn. -/
+
+/-- The graph traversal, in the experiment's oracle world. -/
+noncomputable def worldEvaluate {State Index : Type} (input : Index → State → Bytes)
+    (step : Index → State → HashOutput → State) :
+    List Index → State → OracleComp OracleWorld State
+  | [], state => pure state
+  | node :: nodes, state => do
+      let output ← (query (spec := OracleWorld) (Sum.inr (input node state)) :
+        OracleComp OracleWorld HashOutput)
+      worldEvaluate input step nodes (step node state output)
+
+theorem evalDist_prepend_worldEvaluate {α State Index : Type}
+    (computation : OracleComp OracleWorld α) (input : Index → State → Bytes)
+    (step : Index → State → HashOutput → State)
+    (hseparated : GraphFreshSampling.Separated input) :
+    ∀ (nodes : List Index) (state : State) (cache : QueryCache HashSpec), nodes.Nodup →
+      GraphFreshSampling.FreshFor input nodes cache →
+      𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom computation).run cache] =
+        𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom
+          (worldEvaluate input step nodes state >>= fun _ => computation)).run cache] := by
+  intro nodes
+  induction nodes with
+  | nil =>
+    intro state cache _ _
+    rw [worldEvaluate, pure_bind]
+  | cons node rest ih =>
+    intro state cache hnodup hfresh
+    have hnotMem : node ∉ rest := (List.nodup_cons.mp hnodup).1
+    have hrest : rest.Nodup := (List.nodup_cons.mp hnodup).2
+    have hhead : cache (input node state) = none := hfresh node (by simp) state
+    refine (evalDist_prepend_fresh_world computation cache (input node state) hhead).trans ?_
+    have hstep : ∀ value : HashOutput,
+        𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom computation).run
+            (cache.cacheQuery (input node state) value)] =
+          𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom
+            (worldEvaluate input step rest (step node state value) >>=
+              fun _ => computation)).run (cache.cacheQuery (input node state) value)] := by
+      intro value
+      refine ih (step node state value) (cache.cacheQuery (input node state) value) hrest ?_
+      intro other hother otherState
+      rw [QueryCache.cacheQuery_of_ne cache value
+        (hseparated other node (fun hsame => hnotMem (hsame ▸ hother)) otherState state)]
+      exact hfresh other (by simp [hother]) otherState
+    refine (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ hstep).trans ?_
+    have hmiss : (KeygenUniform.rom (Sum.inr (input node state))).run cache =
+        (fun value => (value, cache.cacheQuery (input node state) value)) <$>
+          ($ᵗ (OracleWorld.Range (Sum.inr (input node state))) : ProbComp _) := by
+      change (randomOracle (input node state)).run cache = _
+      rw [QueryImpl.withCaching_run_none _ hhead]
+      simp [uniformSampleImpl]
+    have hsim : simulateQ KeygenUniform.rom
+        (query (spec := OracleWorld) (Sum.inr (input node state))) =
+        KeygenUniform.rom (Sum.inr (input node state)) := by simp
+    simp only [worldEvaluate, bind_assoc, simulateQ_bind, hsim,
+      StateT.run_bind, map_bind, hmiss, bind_map_left]
+    rfl
+
 end SlhDsaSecurity.Presample
