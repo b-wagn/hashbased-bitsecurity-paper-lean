@@ -1121,3 +1121,40 @@ So the input half is `q / 2 ^ 128` exactly, and the ingredients are the ones alr
 `StripCached` to keep the honest phase out of the region, `TrackedQueries.prob_meets_real_eq_blind`
 for the exact comparison, and `SeedDeferral.prob_any_honest_key_le` generalised from one secret
 to a family — each query still putting only one coordinate at stake.
+
+## The adaptive digest tape, and what it did not need
+
+The coverage half's missing step — exhibiting the game's `H_msg` answers as a uniform tape when
+the inputs are adaptively chosen — is proved. `DigestTape.prob_romEvent_le` bounds any event
+witnessed by recorded digests at `1 / 2 ^ 141 + limit / 2 ^ 128`, where `limit` is growth at
+*message-class inputs only*, so instantiating at the `H_msg` format gives `qm / 2 ^ 128` rather
+than `q / 2 ^ 128`. That is the budget's allowance exactly.
+
+The move that unlocks it: `GrowthCharge.prob_cache_values_le` pins coordinates by naming their
+*inputs*, which cannot be done when the signer's inputs follow the adversary's messages. The
+recording pins them by **position in query order** instead — `prob_prefix_le`, a lazy-sampling
+invariant saying that any word fixed in advance is a prefix of the recording with probability
+at most `|HashOutput| ^ -length`. Nothing has to be named in advance, and the instrumentation
+is invisible (`recorder_eq_rom`).
+
+Two corrections to what this file said before:
+
+* The `DeferredSampling.Factorizes` obligation recorded under "What is not done" is about the
+  *input* side — the until-first-hit seed deferral — not about coverage. For coverage it would
+  have been strictly stronger than needed: `ForsLeaveOneOut.independent_tape_coverage_le` is
+  already an inequality about a uniform tape, so the one-sided "no event is likelier on the
+  recording than on a uniform tape" is the whole requirement, and the prefix invariant gives it
+  directly.
+* The mixture form `independent_tape_mixture_coverage_le` is not needed either. At the constant
+  policy every coordinate is selected, `expectedUses = trials`, and the bound is already what
+  the budget allows; the mixture would only be needed to get *below* `trials`.
+
+A run may record fewer than `trials` answers, so the tape is completed with an independent
+uniform pad drawn afterwards. That is sound upward because coverage is monotone in the
+disclosures — `tapeCovered_of_prefix`.
+
+What is left on this half is wiring, none of it probabilistic: instantiate `keep` at the
+`H_msg` format (`DigestInputDistinct` separates it from the structural format), witness the
+coverage event by recorded rather than pre-existing answers (the warm cache is purely
+canonical, so no `H_msg` entry predates the tail), and feed the message-class growth from the
+budget.
