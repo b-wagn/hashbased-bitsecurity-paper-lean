@@ -229,4 +229,60 @@ theorem agreeOff_cacheFrom_empty (publicSeed : Digest) (cells : CanonicalGraph.C
       (CanonicalGraph.Programming.cacheFrom publicSeed cells outputs parents ∅) ∅ :=
   agreeOff_cacheFrom publicSeed cells outputs parents ∅
 
+/-! ## Which canonical inputs actually carry the seed
+
+The input half charges guessing `SK.seed`, and `SeedDeferral.prob_honest_key_le` gets its
+`2 ^ -128` from the byte input determining the seed — which needs the seed to appear in that
+input *in the clear*. That is true at exactly two kinds of node.
+
+`secretSeed_mem_children_iff`: a structural node has the secret seed among its children
+precisely when it is a `wotsPrf` or a `forsPrf`. Every other node's canonical input is built
+from its children's *cells*, which are fresh oracle answers, not the seed.
+
+So the two halves of the budget divide along this line, and the division is forced rather than
+chosen. Querying a PRF node's canonical input means guessing the seed — the input side.
+Querying any other canonical input means reproducing that node's children, which is a
+structural hit — the answer side, already charged there. Taking the input half's set to be
+*all* canonical inputs would ask `prob_honest_key_le` for an injectivity that fails above the
+PRF layer, where the input determines the children's cells rather than the seed. -/
+
+theorem secretSeed_mem_children_iff (parent : CanonicalGraph.StructuralNode) :
+    (CanonicalGraph.Node.secretSeed ∈ parent.children) ↔
+      ((∃ key chain, parent = .wotsPrf key chain) ∨
+        (∃ key index, parent = .forsPrf key index)) := by
+  cases parent with
+  | wotsPrf key chain =>
+    exact ⟨fun _ => Or.inl ⟨key, chain, rfl⟩,
+      fun _ => by simp [CanonicalGraph.StructuralNode.children]⟩
+  | forsPrf key index =>
+    exact ⟨fun _ => Or.inr ⟨key, index, rfl⟩,
+      fun _ => by simp [CanonicalGraph.StructuralNode.children]⟩
+  | wotsHash key chain step =>
+    refine ⟨fun hmem => ?_, fun hcase => ?_⟩
+    · simp only [CanonicalGraph.StructuralNode.children] at hmem
+      split at hmem <;> simp at hmem
+    · rcases hcase with ⟨_, _, h⟩ | ⟨_, _, h⟩ <;> exact absurd h (by simp)
+  | wotsPk key =>
+    refine ⟨fun hmem => ?_, fun hcase => ?_⟩
+    · simp only [CanonicalGraph.StructuralNode.children, List.mem_ofFn] at hmem
+      obtain ⟨_, h⟩ := hmem
+      exact absurd h (by simp)
+    · rcases hcase with ⟨_, _, h⟩ | ⟨_, _, h⟩ <;> exact absurd h (by simp)
+  | tree location height index =>
+    refine ⟨fun hmem => ?_, fun hcase => ?_⟩
+    · simp only [CanonicalGraph.StructuralNode.children] at hmem
+      simp at hmem
+    · rcases hcase with ⟨_, _, h⟩ | ⟨_, _, h⟩ <;> exact absurd h (by simp)
+  | forsTree key height index =>
+    refine ⟨fun hmem => ?_, fun hcase => ?_⟩
+    · simp only [CanonicalGraph.StructuralNode.children] at hmem
+      split at hmem <;> simp at hmem
+    · rcases hcase with ⟨_, _, h⟩ | ⟨_, _, h⟩ <;> exact absurd h (by simp)
+  | forsRoots key =>
+    refine ⟨fun hmem => ?_, fun hcase => ?_⟩
+    · simp only [CanonicalGraph.StructuralNode.children, List.mem_ofFn] at hmem
+      obtain ⟨_, h⟩ := hmem
+      exact absurd h (by simp)
+    · rcases hcase with ⟨_, _, h⟩ | ⟨_, _, h⟩ <;> exact absurd h (by simp)
+
 end SlhDsaSecurity.BlindComparison
