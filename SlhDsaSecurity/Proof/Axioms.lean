@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.ChargedProbe
 import SlhDsaSecurity.Proof.AddressBounds
 import SlhDsaSecurity.Proof.OpenCache
 import SlhDsaSecurity.Proof.StalledRun
@@ -4353,3 +4354,47 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.withinBounds_structural' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.withinBounds_structural
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sensitive_iff_exists' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sensitive_iff_exists
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sensitiveAt_unique' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sensitiveAt_unique
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.flagged_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.flagged_run
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.lazyProgram_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.lazyProgram_step_inl
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.lazyProgram_step_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.lazyProgram_step_inr
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.lazyProgram_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.lazyProgram_neverFails
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.lazyProgram_cache_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.lazyProgram_cache_mono
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.flagged_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.flagged_neverFails
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.flagged_frozen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.flagged_frozen
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.flagged_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.flagged_quiet
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.flag_iff_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.flag_iff_record
