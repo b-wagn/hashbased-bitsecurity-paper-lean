@@ -3787,3 +3787,11 @@ info: 'SlhDsaSecurity.AdversaryQueries.mem_support_counted_bind_count' depends o
 /-- info: 'SlhDsaSecurity.AdversaryQueries.work_le_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AdversaryQueries.work_le_total
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.available_of_alwaysAvailable' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.available_of_alwaysAvailable
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.singleton_children_of_sensitive' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.singleton_children_of_sensitive

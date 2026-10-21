@@ -89,4 +89,68 @@ theorem children_alwaysAvailable_or_singleton (parent : StructuralNode) :
     obtain ⟨tree, rfl⟩ := hchild
     exact True.intro
 
+/-! ## Availability, and the corollary the rate rests on
+
+`AlwaysAvailable` is the part that does not depend on the run. The rest does: a WOTS chain
+value is available once the signature on that key reveals its chain at or below that position,
+and a FORS secret once some signing request selected it.
+
+Both are left abstract here — the revealed digit as a function of key and chain, the signed
+positions as a function of FORS key — because only one property of them matters for the rate,
+and it is the obvious one: a digit never exceeds `w - 1`, so a chain's endpoint is always
+available. Whoever instantiates supplies the honest message each WOTS key signs and the signing
+log; nothing below needs to know what they are.
+
+What comes out is the corollary the charge consumes: a *sensitive* node — one with a child the
+signatures do not make available — has exactly one child, so a query at its address puts
+exactly one cell at stake. -/
+
+variable (revealed : WotsKey → Fin chains → Nat)
+    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+
+/-- The cells the signatures issued so far make available. -/
+def Available : Node → Prop
+  | .secretSeed => False
+  | .structural (.wotsPrf key chain) => revealed key chain = 0
+  | .structural (.wotsHash key chain step) => revealed key chain ≤ step.val + 1
+  | .structural (.forsPrf key index) => index ∈ signed key
+  | .structural (.wotsPk _) => True
+  | .structural (.tree _ _ _) => True
+  | .structural (.forsTree _ _ _) => True
+  | .structural (.forsRoots _) => True
+
+/-- A node the signatures leave a child of unavailable. -/
+def Sensitive (parent : StructuralNode) : Prop :=
+  ∃ child ∈ parent.children, ¬ Available revealed signed child
+
+/-- An unprotected cell is available, whatever the signatures were — the only thing the rate
+needs of the revealed digits being that a digit never exceeds `w - 1`. -/
+theorem available_of_alwaysAvailable (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
+    {child : Node} (halways : AlwaysAvailable child) : Available revealed signed child := by
+  cases child with
+  | secretSeed => exact halways.elim
+  | structural parent =>
+    cases parent with
+    | wotsPrf key chain => exact halways.elim
+    | wotsHash key chain step =>
+      show revealed key chain ≤ step.val + 1
+      rw [show step.val = w - 2 from halways]
+      exact le_trans (hrevealed key chain) (by omega)
+    | forsPrf key index => exact halways.elim
+    | wotsPk key => exact True.intro
+    | tree location height index => exact True.intro
+    | forsTree key height index => exact True.intro
+    | forsRoots key => exact True.intro
+
+/-- **A sensitive node has exactly one child.** So its canonical input puts exactly one cell at
+stake, and a query matching it costs a single `2 ^ -128`. -/
+theorem singleton_children_of_sensitive (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
+    {parent : StructuralNode} (hsensitive : Sensitive revealed signed parent) :
+    ∃ child : Node, parent.children = [child] := by
+  rcases children_alwaysAvailable_or_singleton parent with halways | hsingle
+  · obtain ⟨child, hchild, hunavailable⟩ := hsensitive
+    exact absurd (available_of_alwaysAvailable revealed signed hrevealed (halways child hchild))
+      hunavailable
+  · exact hsingle
+
 end SlhDsaSecurity.CanonicalGraph
