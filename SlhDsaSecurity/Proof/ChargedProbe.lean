@@ -826,4 +826,97 @@ theorem expected_aiming_stalled_eq {α : Type}
         (withFlag_aiming_quiet publicSeed availableAt stakes index table queried p hp z hz))
     computation state
 
+
+/-! ## The charge itself does not notice the stall
+
+A charge needs the cell unavailable, so none can arise after the stall. "Some recorded probe is
+charged against this cell" is therefore as frozen-insensitive as the count is, and
+`StalledRun.expectation_stalled_eq` applies to its indicator directly. The flag the stalled
+comparison was built around is not needed for it: the event is already a function of the
+record, which the handler carries. -/
+
+open scoped Classical in
+/-- Once the cell is released nothing more is charged against it. -/
+theorem withFlag_charged_quiet (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
+    (hstate : availableAt state.1.1 index)
+    (step : OracleWorld.Range queried × (HandlerState × Bool))
+    (hstep : step ∈ support (((withFlag (lazyProgram publicSeed availableAt table))
+      queried).run state)) :
+    ((∃ entry ∈ step.2.1.2.1, ChargedBy stakes (fun cache node => ¬ availableAt cache node)
+        index (table.1 index) entry) ↔
+      ∃ entry ∈ state.1.2.1, ChargedBy stakes (fun cache node => ¬ availableAt cache node)
+        index (table.1 index) entry) := by
+  classical
+  rw [withFlag_run, mem_support_bind_iff] at hstep
+  obtain ⟨inner, hinner, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+  show (∃ entry ∈ inner.2.2.1, _) ↔ _
+  rcases queried with coin | probe
+  · rw [lazyProgram_step_inl publicSeed availableAt table coin state.1 inner hinner]
+  · rw [lazyProgram_step_inr publicSeed availableAt table probe state.1 inner hinner]
+    have hnot : ¬ ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
+        (table.1 index) (probe, state.1.1) := by
+      rintro ⟨-, -, hunavailable, -⟩
+      exact hunavailable hstate
+    constructor
+    · rintro ⟨entry, hentry, hcharged⟩
+      rcases List.mem_append.mp hentry with hleft | hright
+      · exact ⟨entry, hleft, hcharged⟩
+      · rw [List.mem_singleton.mp hright] at hcharged
+        exact absurd hcharged hnot
+    · rintro ⟨entry, hentry, hcharged⟩
+      exact ⟨entry, List.mem_append.mpr (Or.inl hentry), hcharged⟩
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **Stalling does not change the chance of a charged probe.** -/
+theorem prob_charged_stalled_eq {α : Type}
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : QueryCache HashSpec),
+      (∀ probe, left probe ≠ none → right probe ≠ none) →
+        ∀ node, availableAt left node → availableAt right node)
+    (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
+    Pr[fun z : α × (HandlerState × Bool) =>
+        ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
+          (fun cache node => ¬ availableAt cache node) index (table.1 index) entry |
+      (simulateQ (withFlag (lazyProgram publicSeed availableAt table))
+        computation).run state] =
+      Pr[fun z : α × (HandlerState × Bool) =>
+          ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
+            (fun cache node => ¬ availableAt cache node) index (table.1 index) entry |
+        (simulateQ (StalledRun.stalled (withFlag (lazyProgram publicSeed availableAt table))
+          (fun inner => availableAt inner.1 index) stall) computation).run state] := by
+  classical
+  have hform : ∀ run : ProbComp (α × (HandlerState × Bool)),
+      Pr[fun z : α × (HandlerState × Bool) =>
+          ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
+            (fun cache node => ¬ availableAt cache node) index (table.1 index) entry | run] =
+        ∑' z : α × (HandlerState × Bool), Pr[= z | run] *
+          (if ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
+            (fun cache node => ¬ availableAt cache node) index (table.1 index) entry
+            then 1 else 0) := by
+    intro run
+    rw [probEvent_eq_tsum_ite]
+    refine tsum_congr fun z => ?_
+    by_cases hz : ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
+        (fun cache node => ¬ availableAt cache node) index (table.1 index) entry
+    · simp [hz]
+    · simp [hz]
+  rw [hform, hform]
+  exact StalledRun.expectation_stalled_eq (withFlag (lazyProgram publicSeed availableAt table))
+    (fun inner => availableAt inner.1 index) stall
+    (fun p => if ∃ entry ∈ p.1.2.1, ChargedBy stakes
+      (fun cache node => ¬ availableAt cache node) index (table.1 index) entry then 1 else 0)
+    (fun queried p => withFlag_neverFails publicSeed availableAt table queried p)
+    (fun queried p hp z hz =>
+      withFlag_frozen publicSeed availableAt hmono index table queried p hp z hz)
+    (fun queried p hp z hz => if_congr
+      (withFlag_charged_quiet publicSeed availableAt stakes index table queried p hp z hz)
+      rfl rfl) computation state
+
 end SlhDsaSecurity.ChargedProbe

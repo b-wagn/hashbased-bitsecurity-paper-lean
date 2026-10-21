@@ -4532,3 +4532,11 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.ChargedProbe.expected_aiming_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.expected_aiming_stalled_eq
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.withFlag_charged_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.withFlag_charged_quiet
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_charged_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_charged_stalled_eq
