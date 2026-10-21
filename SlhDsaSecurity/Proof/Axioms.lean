@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.StalledRun
 import SlhDsaSecurity.Proof.HonestMessage
+import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.DrawnTable
 import SlhDsaSecurity.Proof.TableBlind
 import SlhDsaSecurity.Proof.RecordedBudget
@@ -4311,3 +4312,15 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.HonestMessage.signLayers_wots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestMessage.signLayers_wots
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.clampStep_val' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.clampStep_val
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.forgedStep_val' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.forgedStep_val
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.sensitive_forgedClaim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.sensitive_forgedClaim
