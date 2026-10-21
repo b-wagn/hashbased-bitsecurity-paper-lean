@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.GraphStakes
+import SlhDsaSecurity.Proof.ClaimedProbes
 
 /-!
 # The budget, carried to the recorded game
@@ -182,7 +183,9 @@ theorem card_toFinset_append_le_of_budget {adversary : Adversary} {q : Nat}
         exact claimed.toFinset_card_le
 
 /-- **The record at the forgery's own claimed cells, in numbers.** Two hundred and fifty-nine
-claims against the five hundred and twelve key generation puts back. -/
+claims against the five hundred and twelve key generation puts back. The claims are not a
+parameter: the signature is parsed from the forgery and the digest replayed against the cache
+the run ends with, so the list is a function of the run's own result. -/
 theorem card_toFinset_claimed_le_of_budget [HasQuery HashSpec Id] {adversary : Adversary}
     {q : Nat} (hbudget : HasTotalBudget adversary q)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
@@ -190,14 +193,12 @@ theorem card_toFinset_claimed_le_of_budget [HasQuery HashSpec Id] {adversary : A
     {result : (Outcome × Multiset Bytes) × QueryCache HashSpec}
     (hresult : result ∈ support ((simulateQ KeygenUniform.rom
       (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2))
-    (forsKey : CanonicalGraph.ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
-    (signature : Signature) (keyAt : Fin layers → CanonicalGraph.WotsKey)
-    (stepAt : Fin layers → Fin chains → Fin (w - 1)) :
+    (pk : PublicKey) (message : Bytes) (parsed : Signature) :
     (Multiset.toFinset (result.1.2 +
-      ((GraphStakes.claimedCandidates walk.1.1.2.2 forsKey indices signature keyAt stepAt :
+      ((ClaimedProbes.claimedCandidatesOf walk.1.1.2.2 result.2 pk message parsed :
         List Bytes) : Multiset Bytes))).card ≤ (q - 2 ^ subtreeHeight) + 259 := by
   have hbound := card_toFinset_append_le_of_budget hbudget hwalk hresult
-    (GraphStakes.claimedCandidates walk.1.1.2.2 forsKey indices signature keyAt stepAt)
-  rwa [GraphStakes.length_claimedCandidates, GraphStakes.claimedCount] at hbound
+    (ClaimedProbes.claimedCandidatesOf walk.1.1.2.2 result.2 pk message parsed)
+  rwa [ClaimedProbes.length_claimedCandidatesOf] at hbound
 
 end SlhDsaSecurity.RecordedBudget

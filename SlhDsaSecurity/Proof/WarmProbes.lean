@@ -443,4 +443,45 @@ theorem length_warmProbes_le_of_budget {adversary : Adversary} {q : Nat}
   rw [length_warmProbes]
   omega
 
+/-! ## The record the half pays for
+
+The claims the forgery makes are not probes the run issued, so they are appended rather than
+counted: one entry per claimed cell, read at the cache the run ends with, which is the state at
+which every signature has been issued and so the state the extraction's unavailability is
+stated against. Their number is a constant, and it is paid out of what key generation spent. -/
+
+/-- One entry per cell the forgery claims, read at the cache the run ends with. -/
+def claimedEntries [HasQuery HashSpec Id] (publicSeed : Digest) (cache : QueryCache HashSpec)
+    (pk : PublicKey)
+    (message : Bytes) (parsed : Signature) : List (Bytes × QueryCache HashSpec) :=
+  (ClaimedProbes.claimedCandidatesOf publicSeed cache pk message parsed).map
+    fun input => (input, cache)
+
+theorem length_claimedEntries [HasQuery HashSpec Id] (publicSeed : Digest)
+    (cache : QueryCache HashSpec) (pk : PublicKey) (message : Bytes) (parsed : Signature) :
+    (claimedEntries publicSeed cache pk message parsed).length = 259 := by
+  rw [claimedEntries, List.length_map, ClaimedProbes.length_claimedCandidatesOf]
+
+/-- **The whole record the charge is handed fits the budget.** The probes the table answers cost
+the work the game charged, which the budget bounds by `q` less key generation's spend; the
+forgery's own claims cost their own number, which is a constant. -/
+theorem length_record_le_of_budget [HasQuery HashSpec Id] {adversary : Adversary} {q : Nat}
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk) (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (state : HandlerState) (hstate : state.1 = walk.2) (hstart : state.2.1 = [])
+    {result : Outcome × HandlerState}
+    (hresult : result ∈ support
+      ((simulateQ (lazyProgram publicSeed availableAt table)
+        (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run state))
+    (pk : PublicKey) (message : Bytes) (parsed : Signature) :
+    (warmProbes walk.2 result.2.2.1 ++
+      claimedEntries walk.1.1.2.2 result.2.1 pk message parsed).length ≤
+      (q - 2 ^ subtreeHeight) + 259 := by
+  have hbound := length_warmProbes_le_of_budget hbudget hwalk publicSeed availableAt table state
+    hstate hstart hresult
+  rw [List.length_append, length_claimedEntries]
+  omega
+
 end SlhDsaSecurity.WarmProbes

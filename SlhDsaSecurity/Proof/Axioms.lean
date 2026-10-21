@@ -4509,3 +4509,16 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 /-- info: 'SlhDsaSecurity.WarmProbes.length_warmProbes_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WarmProbes.length_warmProbes_le_of_budget
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.length_claimedCandidatesOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.length_claimedCandidatesOf
+
+/-- info: 'SlhDsaSecurity.WarmProbes.length_claimedEntries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.length_claimedEntries
+
+/-- info: 'SlhDsaSecurity.WarmProbes.length_record_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.length_record_le_of_budget
+
