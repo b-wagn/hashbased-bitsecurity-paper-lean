@@ -77,6 +77,7 @@ import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
+import SlhDsaSecurity.Proof.HonestProbes
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -2857,3 +2858,135 @@ info: 'SlhDsaSecurity.WarmedCharges.prob_deviatingCollision_tail_le' depends on 
 /-- info: 'SlhDsaSecurity.CachedRun.eq_of_mem_support_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CachedRun.eq_of_mem_support_of_cached
+
+/-- info: 'SlhDsaSecurity.HonestProbes.queriesUnder_shape' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.queriesUnder_shape
+
+/-- info: 'SlhDsaSecurity.HonestProbes.query_bind_injective' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.query_bind_injective
+
+/-- info: 'SlhDsaSecurity.HonestProbes.queriesUnder_query_bind_cases' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.queriesUnder_query_bind_cases
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_pure' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_pure
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_query_bind' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_query_bind
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_bind' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_bind
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_bind_replay' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_bind_replay
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_hash' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_hash
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_shortHash' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_shortHash
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_shortHash_self' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_shortHash_self
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_tweakable' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_tweakable
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_tweakable_self' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_tweakable_self
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_sequenceFin' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_sequenceFin
+
+/-- info: 'SlhDsaSecurity.HonestProbes.childBytes_singleton' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.childBytes_singleton
+
+/-- info: 'SlhDsaSecurity.HonestProbes.childBytes_pair' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.childBytes_pair
+
+/-- info: 'SlhDsaSecurity.HonestProbes.derive_replay' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.derive_replay
+
+/-- info: 'SlhDsaSecurity.HonestProbes.chain_replay' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.chain_replay
+
+/-- info: 'SlhDsaSecurity.HonestProbes.merkle_node_replay' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.merkle_node_replay
+
+/-- info: 'SlhDsaSecurity.HonestProbes.keygenInternal_replay' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.keygenInternal_replay
+
+/-- info: 'SlhDsaSecurity.HonestProbes.children_wotsHash' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.children_wotsHash
+
+/-- info: 'SlhDsaSecurity.HonestProbes.replayCells_wotsPosition' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.replayCells_wotsPosition
+
+/-- info: 'SlhDsaSecurity.HonestProbes.canonicalInput_wotsPrf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.canonicalInput_wotsPrf
+
+/-- info: 'SlhDsaSecurity.HonestProbes.canonicalInput_wotsHash' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.canonicalInput_wotsHash
+
+/-- info: 'SlhDsaSecurity.HonestProbes.canonicalInput_wotsPk' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.canonicalInput_wotsPk
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_chain' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_chain
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_wots_publicKey' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_wots_publicKey
+
+/-- info: 'SlhDsaSecurity.HonestProbes.canonicalInput_tree' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.canonicalInput_tree
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_merkle_node' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_merkle_node
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_keygenInternal' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_keygenInternal
+
+/-- info: 'SlhDsaSecurity.HonestProbes.replayCells_warmCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.replayCells_warmCache
+
+/-- info: 'SlhDsaSecurity.HonestProbes.warmCache_ne_none' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.warmCache_ne_none
+
+/-- info: 'SlhDsaSecurity.HonestProbes.keygenInternal_probes_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.keygenInternal_probes_cached
+
+/-- info: 'SlhDsaSecurity.HonestProbes.run_keygenInternal_eq_pure' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.run_keygenInternal_eq_pure
