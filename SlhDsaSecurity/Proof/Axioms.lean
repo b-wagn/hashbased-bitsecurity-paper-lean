@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.DrawnTable
 import SlhDsaSecurity.Proof.TableBlind
+import SlhDsaSecurity.Proof.StalledRun
 import SlhDsaSecurity.Proof.RecordedBudget
 import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.GraphStakes
@@ -4151,3 +4152,23 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.TableBlind.prob_blind_run_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TableBlind.prob_blind_run_sensitive_le
+
+/-- info: 'SlhDsaSecurity.StalledRun.stalled_run_of_frozen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.stalled_run_of_frozen
+
+/-- info: 'SlhDsaSecurity.StalledRun.stalled_run_of_not_frozen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.stalled_run_of_not_frozen
+
+/-- info: 'SlhDsaSecurity.StalledRun.probEvent_flag_frozen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.probEvent_flag_frozen
+
+/-- info: 'SlhDsaSecurity.StalledRun.probEvent_flag_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.probEvent_flag_stalled_eq
+
+/-- info: 'SlhDsaSecurity.StalledRun.evalDist_stalled_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.evalDist_stalled_congr
