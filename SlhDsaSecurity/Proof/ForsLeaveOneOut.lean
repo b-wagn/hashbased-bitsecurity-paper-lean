@@ -215,4 +215,20 @@ theorem independent_tape_mixture_coverage_le {Aux : Type}
       apply add_le_add _ le_rfl
       exact (mul_le_mul' tsum_probOutput_le_one le_rfl).trans_eq (one_mul _)
 
+
+/-! ## The statement's signing limit fits the tape bound
+
+`independent_tape_coverage_le_sharper` needs at most `5 * 2 ^ 62` trials. The experiment caps
+signing requests at `signingLimit = 2 ^ 64`, and every trial of the tape is one signing
+request, so the two are compatible — with room to spare, since `2 ^ 64` is four fifths of
+`5 * 2 ^ 62`.
+
+Worth checking rather than assuming: the tape bound comes from where the sixth-moment
+concentration argument stops working, and nothing forced it to sit above the parameter the
+statement actually uses. -/
+
+theorem signingLimit_le_tapeBound : signingLimit ≤ 5 * 2 ^ 62 := by
+  simp only [signingLimit]
+  norm_num
+
 end SlhDsaSecurity.ForsLeaveOneOut
