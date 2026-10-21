@@ -258,4 +258,53 @@ theorem deviatingCollision_of_chainBranch {α : Type} (secretSeed publicSeed mes
   rwa [@Extraction.WotsPreimage.sign_eq_chain (CacheReplay.replayQuery cache) message secretSeed
     publicSeed key.address chainIndex] at hcollision
 
+/-! ## The compression branch, without the bookkeeping
+
+The `wotsPk` node's children are the thirty-five chain tops at position `w - 1`, and its
+address is `Wots.publicKeyAddress`. Both are definitional, and the honest endpoints are the
+chain values there — which `Extraction.Wots.endpoints` of the canonical signature reproduces,
+advancing from the signed digit to the top being the same as advancing from the derived secret
+all the way, again by `Correctness.Wots.chain_add`. -/
+
+/-- **A WOTS public-key compression collision is charged, unconditionally.** -/
+theorem deviatingCollision_of_compressionCollision_canonical {α : Type}
+    (secretSeed publicSeed : Digest) (cache : QueryCache HashSpec) (key : WotsKey)
+    (actualEndpoints : Fin chains → Digest)
+    (hinputs : Hashing.tweakableInput publicSeed
+        (SlhDsaSecurity.Wots.publicKeyAddress key.address)
+        (digestArrayBytes actualEndpoints) ≠
+      Hashing.tweakableInput publicSeed
+        (SlhDsaSecurity.Wots.publicKeyAddress key.address)
+        (digestArrayBytes (fun chainIndex =>
+          @value (CacheReplay.replayQuery cache) secretSeed publicSeed
+            (.structural (.wotsHash key chainIndex ⟨w - 2, by decide⟩)))))
+    (hjoins : @Hashing.shortHash Id _ (CacheReplay.replayQuery cache)
+        (Hashing.tweakableInput publicSeed (SlhDsaSecurity.Wots.publicKeyAddress key.address)
+          (digestArrayBytes actualEndpoints)) =
+      @Hashing.shortHash Id _ (CacheReplay.replayQuery cache)
+        (Hashing.tweakableInput publicSeed (SlhDsaSecurity.Wots.publicKeyAddress key.address)
+          (digestArrayBytes (fun chainIndex =>
+            @value (CacheReplay.replayQuery cache) secretSeed publicSeed
+              (.structural (.wotsHash key chainIndex ⟨w - 2, by decide⟩))))))
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hcache : result.2 = cache)
+    (hentry : cache (Hashing.tweakableInput publicSeed (StructuralNode.wotsPk key).address
+      (digestArrayBytes actualEndpoints)) = some output) :
+    StructuralTerm.DeviatingCollision publicSeed
+      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
+  refine deviatingCollision_of_compressionCollision publicSeed
+    (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) cache (.wotsPk key)
+    (fun chainIndex : Fin chains => .structural (.wotsHash key chainIndex ⟨w - 2, by decide⟩))
+    actualEndpoints _ key.address rfl ?_ rfl (fun _ => rfl) ?_ hinputs hjoins result output
+    hcache hentry
+  · -- Distinct chains name distinct nodes.
+    intro left right hsame
+    have hval := congrArg (fun node : Node => match node with
+      | .structural (.wotsHash _ chainIndex _) => chainIndex.val
+      | _ => 0) hsame
+    exact Fin.ext (by simpa using hval)
+  · rw [CanonicalCells.parentCell_tweakable cache secretSeed publicSeed]
+    simp [StructuralNode.children, childBytes_ofFn, Hashing.tweakable,
+      StructuralNode.address, SlhDsaSecurity.Wots.publicKeyAddress]
+
 end SlhDsaSecurity.WotsCharge
