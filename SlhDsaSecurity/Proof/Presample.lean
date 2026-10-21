@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.CacheReplay
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 import SlhDsaSecurity.Proof.GraphFreshSampling
 import SlhDsaSecurity.Proof.CanonicalGraph.Programming
+import SlhDsaSecurity.Proof.GrowthBudget
 
 /-!
 # Pre-sampling an unused oracle entry is free
@@ -432,5 +433,35 @@ theorem run_worldWarmup (publicSeed secretSeed : Digest) (cache : QueryCache Has
       QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) from rfl,
     QueryImpl.simulateQ_add_liftM_right]
   rfl
+
+/-! ## The warmup must sit outside the counting
+
+A trap worth naming, because taking the obvious route would quietly break the budget. The
+warmup queries every structural node — around `2 ^ 26` of them — so inserting it *inside*
+`Security.countAllHashes` would charge all of those to `q`. The analysis needs the warmup; the
+accounting must not see it.
+
+So the warmup goes outside the counted computation. That in turn means the seeds, which the
+warmup needs, must be sampled outside it too — and they can be, because they are coin queries
+and `Security.hashCost` charges nothing for a coin. `countAllHashes_liftM_probComp` is that
+fact, and with `GrowthBudget.countAllHashes_bind` it lets the seed sampling be pulled out of
+the counter without changing a single count. -/
+
+/-- Counting a purely-sampling computation charges nothing. -/
+theorem countAllHashes_liftM_probComp {γ : Type} (sample : ProbComp γ) :
+    Security.countAllHashes (liftM sample : OracleComp OracleWorld γ) =
+      (fun value => (value, 0)) <$> (liftM sample : OracleComp OracleWorld γ) := by
+  induction sample using OracleComp.inductionOn with
+  | pure value => simp [GrowthBudget.countAllHashes_pure]
+  | query_bind coin next ih =>
+    have hlift : (liftM (liftM (OracleSpec.query coin) >>= next) :
+        OracleComp OracleWorld _) =
+        liftM (OracleWorld.query (Sum.inl coin)) >>= fun answer =>
+          (liftM (next answer) : OracleComp OracleWorld _) := by
+      rw [liftM_bind]
+      rfl
+    rw [hlift, GrowthBudget.countAllHashes_query_bind]
+    simp only [ih, Security.hashCost, XmssSecurity.RandomOracleModel.hashCost,
+      map_eq_bind_pure_comp, Function.comp_def, bind_assoc, pure_bind, Nat.zero_add]
 
 end SlhDsaSecurity.Presample
