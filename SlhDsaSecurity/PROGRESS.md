@@ -70,6 +70,14 @@ probability is at most `sum_i s_i^14 / 2^231`. In particular, the deterministic
 condition `sum_i s_i^14 <= 2^103` suffices for a bound of 2^-128. This result
 does not assert that an adaptive signing transcript satisfies the condition.
 
+`Statement/MessageDigest.lean` implements the standard 21/7/2-byte split.
+`Proof/MessageDigest.lean` proves joint uniformity of its 63-bit instance and
+fourteen 12-bit FORS indices when the full 240-bit answer is fresh and uniform.
+The proof retains the nine ignored bits to obtain a bijection; they have not
+been removed from the hash output. `fresh_digest_coverage` connects this parser
+to the exact coverage count. Freshness of an adaptively selected input remains
+a separate obligation.
+
 `Proof/ForsMoments.lean` checks Touchard-polynomial values through degree 84
 and a sixth-moment scalar inequality. The following concentration route still
 needs its probabilistic proof. Write B=2^63 and first consider 2B independent

@@ -1,4 +1,4 @@
-import SlhDsaSecurity.Statement.Parameters
+import SlhDsaSecurity.Proof.MessageDigest
 import VCVio.OracleComp.Constructions.SampleableType
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 
@@ -15,10 +15,10 @@ open OracleComp OracleSpec ENNReal
 
 namespace SlhDsaSecurity.ForsCoverage
 
-abbrev Instance := Fin (2 ^ totalHeight)
-abbrev Tree := Fin forsTrees
-abbrev Leaf := Fin (2 ^ forsHeight)
-abbrev View := Instance × (Tree → Leaf)
+abbrev Instance := MessageDigest.Instance
+abbrev Tree := MessageDigest.ForsTree
+abbrev Leaf := MessageDigest.ForsLeaf
+abbrev View := MessageDigest.View
 abbrev Disclosures := Instance → Tree → Finset Leaf
 
 def Covered (revealed : Disclosures) (view : View) : Prop :=
@@ -52,9 +52,22 @@ theorem fresh_coverage (revealed : Disclosures) :
         ((2 ^ 231 : Nat) : ℝ≥0∞) := by
   rw [probEvent_uniformSample, covered_card]
   have hcard : Fintype.card View = 2 ^ 231 := by
-    norm_num [View, Instance, Tree, Leaf, Fintype.card_prod, Fintype.card_fun,
+    norm_num [View, Instance, Tree, Leaf, MessageDigest.View, MessageDigest.Instance,
+      MessageDigest.ForsTree, MessageDigest.ForsLeaf, Fintype.card_prod, Fintype.card_fun,
       Fintype.card_fin, totalHeight, forsHeight, forsTrees]
   rw [hcard]
+
+/-- The same exact count for the standard parser applied to a fresh shared-oracle answer.
+This does not assert freshness for an adaptively selected or previously queried input. -/
+theorem fresh_digest_coverage (revealed : Disclosures) :
+    Pr[fun output => Covered revealed (MessageDigest.parse output) |
+        ($ᵗ HashOutput : ProbComp HashOutput)] =
+      ((∑ index : Instance, ∏ tree : Tree, (revealed index tree).card : Nat) : ℝ≥0∞) /
+        ((2 ^ 231 : Nat) : ℝ≥0∞) := by
+  rw [show (fun output => Covered revealed (MessageDigest.parse output)) =
+    Covered revealed ∘ MessageDigest.parse from rfl, ← probEvent_map]
+  rw [probEvent_congr' (fun _ _ => Iff.rfl) MessageDigest.evalDist_parse_uniform]
+  exact fresh_coverage revealed
 
 /-- A deterministic sufficient condition on all disclosures. Each tree reveals at most
 one new leaf per use of its FORS instance. The load bound itself is not assumed as security. -/
