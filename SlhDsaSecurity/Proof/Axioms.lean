@@ -13,6 +13,8 @@ import SlhDsaSecurity.Proof.VerificationQueries
 import SlhDsaSecurity.Proof.KeygenUniform
 import SlhDsaSecurity.Proof.VerificationBudget
 import SlhDsaSecurity.Proof.ChecksumAntichain
+import SlhDsaSecurity.Proof.ForsAdaptiveTargets
+import SlhDsaSecurity.Proof.FramingOverlap
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -187,3 +189,11 @@ import SlhDsaSecurity.Proof.ChecksumAntichain
 /-- info: 'SlhDsaSecurity.Checksum.exists_decreased_digit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Checksum.exists_decreased_digit
+
+/-- info: 'SlhDsaSecurity.ForsAdaptiveTargets.coverage_mixture_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsAdaptiveTargets.coverage_mixture_le
+
+/-- info: 'SlhDsaSecurity.FramingOverlap.keygen_zero_probability' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FramingOverlap.keygen_zero_probability

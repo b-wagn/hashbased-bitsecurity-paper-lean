@@ -111,12 +111,23 @@ independent uniform instance selections:
 `Pr[sum_i load_i^14 > 2^103] <= 2^-141`.
 The adaptive signing transcript remains a separate argument.
 
+`Proof/ForsAdaptiveTargets.lean` proves a bound for adaptive selection from an
+independent target tape. Decisions may depend on earlier targets and an arbitrary
+fixed full disclosure tape, including future disclosures. The bound charges the
+expected number of selected targets, plus one bad-load probability. This handles
+random allocation among query roles within that experiment; coupling the actual
+shared-oracle game to these independent tapes is still unproved.
+
 Even after that step, the ROM proof must handle signing whose digest was
 queried in advance, future disclosures, and overlaps between the specified
 SHAKE inputs. For example, at the internal-message level, H_msg with R=SK.prf
 has the same input as PRF_msg on PK.root concatenated with that message.
 The pure-message encoding also matters when analyzing such overlaps.
 A hybrid that simply declares these roles independent is insufficient.
+`Proof/FramingOverlap.lean` proves that an overlap with an actual pure-message
+randomizer call requires the public root's first byte to be zero. That restriction
+has probability exactly 1/256 under actual key generation; it is only a necessary
+condition for the overlap, not an attack probability or security bound.
 
 `Proof/HashSeparation.lean` proves a separation criterion for H_msg versus
 structural hashing: an overlap requires PK.seed concatenated with PK.root to
