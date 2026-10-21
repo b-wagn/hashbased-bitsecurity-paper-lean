@@ -59,6 +59,26 @@ theorem replayFold_eq_value (cache : QueryCache HashSpec) (publicSeed : Digest)
       (addressOf (j + 1) (index / 2 ^ (j + 1)))
       (BinaryPath.pairBytes (BinaryPath.ordered index j value (siblings j)))))) leaf
 
+/-- **The `step`-th call of the fold consults its input** at the running value the extraction's
+`BinaryPath.value` names. -/
+theorem queriesUnder_pathInput {height : Nat} (cache : QueryCache HashSpec)
+    (publicSeed : Digest) (addressOf : Nat → Nat → Address) (index : Nat) (leaf : Digest)
+    (siblings : Nat → Digest) (step : Fin height) :
+    QueriesUnder cache
+      ((List.finRange height).foldlM (m := OracleComp HashSpec)
+        (fun value j => Hashing.shortHash
+          (pathInput publicSeed addressOf index siblings value j)) leaf)
+      (pathInput publicSeed addressOf index siblings
+        (BinaryPath.value (pathCombine cache publicSeed addressOf) index leaf siblings step.val)
+        step) := by
+  have hlt : step.val < (List.finRange height).length := by simp [step.isLt]
+  have hquery := queriesUnder_foldlM_get cache
+    (pathInput (height := height) publicSeed addressOf index siblings)
+    (List.finRange height) leaf step.val hlt
+  rwa [show (List.finRange height)[step.val]'hlt = step from by apply Fin.ext; simp,
+    replayFold_eq_value cache publicSeed addressOf index leaf siblings height step.val
+      (le_of_lt step.isLt)] at hquery
+
 /-- **The step at any height leaves its input cached.** This is the hypothesis
 `MerkleCharge.deviatingCollision_of_pathCollision` takes as `hentry`, with the running value
 in the form the collision names it. -/
@@ -71,18 +91,8 @@ theorem pathInput_cached {height : Nat} (cache initialCache : QueryCache HashSpe
           (pathInput publicSeed addressOf index siblings value j)) leaf)).run initialCache)) :
     cache (pathInput publicSeed addressOf index siblings
       (BinaryPath.value (pathCombine cache publicSeed addressOf) index leaf siblings step.val)
-      step) ≠ none := by
-  have hlt : step.val < (List.finRange height).length := by simpa using step.isLt
-  have hquery := queriesUnder_foldlM_get cache
-    (pathInput (height := height) publicSeed addressOf index siblings)
-    (List.finRange height) leaf step.val hlt
-  rw [show (List.finRange height)[step.val]'hlt = step from by apply Fin.ext; simp,
-    replayFold_eq_value cache publicSeed addressOf index leaf siblings height step.val
-      (le_of_lt step.isLt)] at hquery
-  exact cached_of_queriesUnder
-    ((List.finRange height).foldlM (m := OracleComp HashSpec)
-      (fun value j => Hashing.shortHash
-        (pathInput publicSeed addressOf index siblings value j)) leaf)
-    initialCache cache result _ hquery hmem
+      step) ≠ none :=
+  cached_of_queriesUnder _ initialCache cache result _
+    (queriesUnder_pathInput cache publicSeed addressOf index leaf siblings step) hmem
 
 end SlhDsaSecurity.PathEntry

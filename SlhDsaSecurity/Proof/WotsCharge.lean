@@ -261,10 +261,13 @@ theorem deviatingCollision_of_chainBranch {α : Type} (secretSeed publicSeed mes
 /-! ## The compression branch, without the bookkeeping
 
 The `wotsPk` node's children are the thirty-five chain tops at position `w - 1`, and its
-address is `Wots.publicKeyAddress`. Both are definitional, and the honest endpoints are the
-chain values there — which `Extraction.Wots.endpoints` of the canonical signature reproduces,
-advancing from the signed digit to the top being the same as advancing from the derived secret
-all the way, again by `Correctness.Wots.chain_add`. -/
+address is `Wots.publicKeyAddress`. Both are definitional, so the lemma below states the honest
+side of the collision directly as those chain-top cells.
+
+The caller is left to say that `Extraction.Wots.endpoints` of the canonical signature reproduces
+them — advancing from the signed digit to the top being the same as advancing from the derived
+secret all the way, by `Correctness.Wots.chain_add`. That is
+`FaultCharge.endpoints_sign_eq_cells`; this lemma does not perform it. -/
 
 /-- **A WOTS public-key compression collision is charged, unconditionally.** -/
 theorem deviatingCollision_of_compressionCollision_canonical {α : Type}
