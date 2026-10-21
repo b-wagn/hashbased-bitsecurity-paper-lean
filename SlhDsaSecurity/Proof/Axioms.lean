@@ -2727,3 +2727,7 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_badWeighted_whole_game_le' depend
 /-- info: 'SlhDsaSecurity.TrackedQueries.meets_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TrackedQueries.meets_one
+
+/-- info: 'SlhDsaSecurity.TrackedQueries.prob_meets_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TrackedQueries.prob_meets_eq

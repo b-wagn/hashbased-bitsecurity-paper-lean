@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.GrowthCharge
+import SlhDsaSecurity.Proof.BlindComparison
 
 /-!
 # Carrying the queried set alongside the count
@@ -145,5 +146,97 @@ theorem meets_one {α : Type} (S : Bytes → Prop) (computation : OracleComp Ora
       (simulateQ tracked computation).run initial] = 1 :=
   probEvent_eq_one ⟨tracked_neverFails computation initial,
     fun result hmem => meets_persists S computation initial result hmem hmeets⟩
+
+set_option maxHeartbeats 1000000 in
+/-- **Two caches agreeing off `S` meet `S` with the same probability**, with the queried set
+carried so the blind bound can consume it. -/
+theorem prob_meets_eq {α : Type} (S : Bytes → Prop) [DecidablePred S]
+    (computation : OracleComp OracleWorld α) :
+    ∀ (left right : QueryCache HashSpec) (queried : Finset Bytes) (count : Nat),
+      BlindComparison.AgreeOff S left right →
+        Pr[fun result : α × State => Meets S result.2 |
+            (simulateQ tracked computation).run (left, queried, count)] =
+          Pr[fun result : α × State => Meets S result.2 |
+            (simulateQ tracked computation).run (right, queried, count)] := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro left right queried count _
+    simp [simulateQ_pure, StateT.run_pure, Meets]
+  | query_bind queried' next ih =>
+    intro left right queried count hagree
+    simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    rcases queried' with coin | input
+    · have hcoin : ∀ state : State, (tracked (Sum.inl coin)).run state =
+          (fun value => (value, state)) <$>
+            ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _) := fun _ => rfl
+      simp only [hcoin, bind_map_left, probEvent_bind_eq_tsum]
+      exact tsum_congr fun value =>
+        congrArg _ (ih value left right queried count hagree)
+    · have hstepShape : ∀ (cache : QueryCache HashSpec),
+          (tracked (Sum.inr input)).run (cache, queried, count) =
+            (randomOracle input).run cache >>= fun step =>
+              pure (step.1, (step.2, insert input queried, count + 1)) := fun _ => rfl
+      by_cases hmember : S input
+      · -- Inside `S`: both runs have met it, whatever follows.
+        have hone : ∀ cache : QueryCache HashSpec,
+            Pr[fun result : α × State => Meets S result.2 |
+              (tracked (Sum.inr input)).run (cache, queried, count) >>= fun step =>
+                (simulateQ tracked (next step.1)).run step.2] = 1 := by
+          intro cache
+          rw [probEvent_bind_eq_tsum]
+          have hterm : ∀ step ∈ support ((tracked (Sum.inr input)).run (cache, queried, count)),
+              Pr[fun result : α × State => Meets S result.2 |
+                (simulateQ tracked (next step.1)).run step.2] = 1 := by
+            intro step hstep
+            refine meets_one S (next step.1) step.2 ?_
+            have hcopy := hstep
+            rw [hstepShape cache, mem_support_bind_iff] at hcopy
+            obtain ⟨inner, -, hinner⟩ := hcopy
+            rw [support_pure, Set.mem_singleton_iff] at hinner
+            rw [congrArg Prod.snd hinner]
+            exact ⟨input, Finset.mem_insert_self _ _, hmember⟩
+          calc ∑' step, Pr[= step | (tracked (Sum.inr input)).run (cache, queried, count)] *
+                Pr[fun result : α × State => Meets S result.2 |
+                  (simulateQ tracked (next step.1)).run step.2]
+              = ∑' step, Pr[= step | (tracked (Sum.inr input)).run (cache, queried, count)] := by
+                refine tsum_congr fun step => ?_
+                by_cases hmem :
+                    step ∈ support ((tracked (Sum.inr input)).run (cache, queried, count))
+                · rw [hterm step hmem, mul_one]
+                · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+            _ = 1 := by
+                rw [← probFailure_add_tsum_probOutput
+                  ((tracked (Sum.inr input)).run (cache, queried, count))]
+                simp [hstepShape cache]
+        rw [hone left, hone right]
+      · -- Outside `S`: the caches agree at this very input.
+        have hsame : left input = right input := hagree input hmember
+        cases hlookup : left input with
+        | some cached =>
+          have hright : right input = some cached := by rw [← hsame, hlookup]
+          have hrun : ∀ cache : QueryCache HashSpec, cache input = some cached →
+              (tracked (Sum.inr input)).run (cache, queried, count) =
+                (pure (cached, (cache, insert input queried, count + 1)) :
+                  ProbComp (HashOutput × State)) := by
+            intro cache hcache
+            rw [hstepShape cache, QueryImpl.withCaching_run_some _ hcache, pure_bind]
+          rw [hrun left hlookup, hrun right hright, pure_bind, pure_bind]
+          exact ih cached left right _ _ hagree
+        | none =>
+          have hright : right input = none := by rw [← hsame, hlookup]
+          have hrun : ∀ cache : QueryCache HashSpec, cache input = none →
+              (tracked (Sum.inr input)).run (cache, queried, count) =
+                (fun answer => (answer, (cache.cacheQuery input answer,
+                  insert input queried, count + 1))) <$>
+                  ($ᵗ HashOutput : ProbComp HashOutput) := by
+            intro cache hcache
+            rw [hstepShape cache, QueryImpl.withCaching_run_none _ hcache]
+            simp only [uniformSampleImpl, map_eq_bind_pure_comp, Function.comp_def,
+              bind_assoc, pure_bind]
+          rw [hrun left hlookup, hrun right hright, bind_map_left, bind_map_left,
+            probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+          exact tsum_congr fun answer =>
+            congrArg _ (ih answer _ _ _ _ (hagree.cacheQuery input answer))
 
 end SlhDsaSecurity.TrackedQueries
