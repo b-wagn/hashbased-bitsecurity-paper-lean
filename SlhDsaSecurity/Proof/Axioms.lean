@@ -1,3 +1,5 @@
+import SlhDsaSecurity.Proof.RecordedBudget
+import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.SensitiveQuery
 import SlhDsaSecurity.Proof.LazyBridge
@@ -4006,3 +4008,55 @@ info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq_of_commute' depends on
 /-- info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LazyBridge.probEvent_flag_refine_le
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.map_countAllHashes' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.map_countAllHashes
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.mem_support_countAllHashes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.mem_support_countAllHashes
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.work_le_of_budget_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_le_of_budget_tail
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.work_le_of_budget_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_le_of_budget_recorded
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.card_toFinset_le_of_budget
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.walk_cache_eq_warmCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.walk_cache_eq_warmCache
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.hash_eq_liftM' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.hash_eq_liftM
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.count_query' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.count_query
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.one_le_count_tweakable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.one_le_count_tweakable
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.succ_le_count_merkleNode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.succ_le_count_merkleNode
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.four_le_count_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.four_le_count_keygen
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_keygen
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four
