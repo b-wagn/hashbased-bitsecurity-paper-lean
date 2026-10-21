@@ -213,6 +213,42 @@ theorem probEvent_recordedRun {α : Type} (keep : Bytes → Prop)
 
 /-! ## The recording only grows -/
 
+/-- Every recorded run is a run: dropping the recording lands in the support of the plain run
+of the shared oracle. This is the support-level companion of `recorder_eq_rom`, and it is what
+lets a fact proved about the game — a budget, a cache shape — be used under the
+instrumentation. -/
+theorem mem_support_rom {α : Type} (keep : Bytes → Prop)
+    (computation : OracleComp OracleWorld α) (state : RecordState) (result : α × RecordState)
+    (hmem : result ∈ support ((simulateQ (recorder keep) computation).run state)) :
+    (result.1, result.2.1) ∈ support ((simulateQ KeygenUniform.rom computation).run state.1) := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff, hmem]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
+    refine ⟨(step.1, step.2.1), ?_, ih step.1 step.2 result hrest⟩
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, hvalue, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [rom_run_inl, mem_support_bind_iff]
+      refine ⟨value, hvalue, ?_⟩
+      rw [support_pure, Set.mem_singleton_iff, hpure]
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [rom_run_inr]
+      have hshape : (step.1, step.2.1) = inner := by
+        rw [hpure]
+        rfl
+      rw [hshape]
+      exact hinner
+
+
 /-- Recorded answers are appended, never changed: the starting record is a prefix of the
 final one. -/
 theorem record_prefix {α : Type} (keep : Bytes → Prop)

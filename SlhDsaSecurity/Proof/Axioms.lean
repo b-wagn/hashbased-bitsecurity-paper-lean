@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.DigestTape
+import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.SplitCharged
 import SlhDsaSecurity.Proof.StripCached
 import SlhDsaSecurity.Proof.VerifierProbes
@@ -3590,3 +3591,35 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 /-- info: 'SlhDsaSecurity.DigestTape.recordCovered_of_witnesses' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.DigestTape.recordCovered_of_witnesses
+
+/-- info: 'SlhDsaSecurity.DigestTape.mem_support_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.mem_support_rom
+
+/-- info: 'SlhDsaSecurity.ClassCharge.GrowthAtMostOn.of_growthAtMost' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassCharge.GrowthAtMostOn.of_growthAtMost
+
+/-- info: 'SlhDsaSecurity.CoverageTail.cacheCovered_of_forgeryCovered' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.cacheCovered_of_forgeryCovered
+
+/-- info: 'SlhDsaSecurity.CoverageTail.walk_cache_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.walk_cache_fresh
+
+/-- info: 'SlhDsaSecurity.CoverageTail.recordCovered_of_cacheCovered' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.recordCovered_of_cacheCovered
+
+/-- info: 'SlhDsaSecurity.CoverageTail.prob_cacheCovered_tail_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.prob_cacheCovered_tail_le
+
+/-- info: 'SlhDsaSecurity.CoverageTail.prob_coverage_tail_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.prob_coverage_tail_le
+
+/-- info: 'SlhDsaSecurity.CoverageTail.prob_coverage_tail_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.prob_coverage_tail_le_of_budget

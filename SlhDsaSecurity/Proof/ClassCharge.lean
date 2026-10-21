@@ -37,6 +37,14 @@ theorem GrowthAtMostOn.mono {inClass : Bytes → Prop} {initial final : QueryCac
     (hle : limit ≤ limit') : GrowthAtMostOn inClass initial final limit' :=
   fun inputs hnodup hmembers => (hgrowth inputs hnodup hmembers).trans hle
 
+/-- A budget for all the growth is a budget for the growth of any one class. -/
+theorem GrowthAtMostOn.of_growthAtMost {inClass : Bytes → Prop}
+    {initial final : QueryCache HashSpec} {limit : Nat}
+    (hgrowth : GrowthAtMost initial final limit) :
+    GrowthAtMostOn inClass initial final limit :=
+  fun inputs hnodup hmembers =>
+    hgrowth inputs hnodup fun input hinput => (hmembers input hinput).2
+
 /-- An in-class entry installed mid-run consumes one unit of that class's budget. -/
 theorem GrowthAtMostOn.pos {inClass : Bytes → Prop} {initial final : QueryCache HashSpec}
     {limit : Nat} {input : Bytes} (hmember : inClass input)
