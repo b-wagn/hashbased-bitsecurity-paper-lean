@@ -119,6 +119,36 @@ additionally requires the checksum-antichain WOTS preimage argument
 (`Proof/ChecksumAntichain.lean`) and its ROM probability charge. These witnesses
 still need the joint adaptive probability argument.
 
+`Proof/Extraction/WotsPreimage.lean` supplies that transition witness: `chain_le`
+composes two chain segments, and `exists_preimage_witness` shows that when a
+layer's canonical branch forces `sig.wots = Wots.sign forged` for a message
+differing from the honestly signed one, the checksum antichain produces a chain
+on which the forged value is a strict chain-ancestor (preimage) of the honestly
+revealed value. Its probability is charged separately in the ROM; no one-wayness
+is assumed.
+
+Seven-layer chaining (the structural capstone, not yet in Lean) is a reverse
+induction on `Hypertree.rootFromSignature`'s `remaining` argument. The recursion
+peels the bottom layer first and threads each recovered root up as the next
+layer's WOTS message, but a layer's recovered root is message-dependent, so only
+the top layer's output is pinned (to `pk.root`). The induction therefore carries
+an explicit honest-input parameter `expectedInput`: the recursive (upper) call is
+given `expectedInput := Merkle.node secretSeed publicSeed (address layer tree)
+subtreeHeight 0`, the honest output of the layer just processed. The induction
+hypothesis, applied to the upper segment with output `pk.root`, yields either a
+fault in the upper layers or `root₀ = expectedInput = honestNode(layer)`; the
+latter lets `Extraction.Hypertree.layer_canonical_or_collision` fire at the bottom
+layer, giving a collision or `sig₀.wots = Wots.sign message`. Comparing `message`
+to `expectedInput` then gives either `message = expectedInput` or, via
+`WotsPreimage.exists_preimage_witness`, a WOTS preimage discrepancy at this layer.
+The base case `remaining = 0` returns the threaded message and closes against the
+hypothesis `pk.root = Merkle.node secretSeed publicSeed (address (layers - 1) 0)
+subtreeHeight 0` (honest keygen root). Threaded to the bottom, the fault-free
+branch forces the layer-0 message — the recovered FORS public key — to equal the
+honest FORS public key at the digest's `(tree, leaf)`, handing the FORS coverage
+argument its input. Each fault is a concrete, position-tagged collision or
+preimage witness whose ROM probability is charged in the adaptive assembly.
+
 ## FORS components
 
 `Proof/ForsCoverage.lean` proves the exact coverage probability of an independent
