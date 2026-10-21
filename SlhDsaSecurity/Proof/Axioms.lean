@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.RecordedQueries
+import SlhDsaSecurity.Proof.RecordedBudget
 import SlhDsaSecurity.Proof.SensitiveQuery
 import SlhDsaSecurity.Proof.AdversaryQueries
 import SlhDsaSecurity.Proof.SensitiveShape
@@ -3977,3 +3978,23 @@ info: 'SlhDsaSecurity.RecordedQueries.countQueries_eq_map_countRecorded' depends
 /-- info: 'SlhDsaSecurity.RecordedQueries.card_toFinset_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedQueries.card_toFinset_le
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.map_countAllHashes' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.map_countAllHashes
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.mem_support_countAllHashes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.mem_support_countAllHashes
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.work_le_of_budget_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_le_of_budget_tail
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.work_le_of_budget_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_le_of_budget_recorded
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.card_toFinset_le_of_budget
