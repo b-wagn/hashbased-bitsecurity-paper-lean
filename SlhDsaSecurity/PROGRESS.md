@@ -904,3 +904,38 @@ So what to build is a *weighted* growth charge — `prob_badWithin_le` with a pe
 and one budget, generalising both it and `prob_badWithinClasses_le` — together with the
 corresponding weighted instrumentation of the game. That is one induction, not two counters.
 
+## What `hinput` still needs: one instrumentation carrying the queried set
+
+Both halves of the input side are proved, and so is the hypothesis joining them:
+
+* `BlindComparison.prob_touched_eq` — two caches agreeing off `S` touch `S` with exactly the
+  same probability;
+* `BlindComparison.agreeOff_seedInputs` — the programmed cache and the blind one (programming
+  every node but the seed-bearing `wotsPrf` and `forsPrf`) agree off the seed-bearing inputs;
+* `SeedDeferral.prob_run_meets_honest_key_le` — a seed-independent run meets a seed-derived key
+  at most once per query.
+
+They do not yet compose, and the obstacle is an instrumentation mismatch rather than a missing
+argument. `prob_touched_eq` is stated over `BlindComparison.tagged`, which carries a Boolean
+flag; `prob_run_meets_honest_key_le` consumes a `Finset Bytes` of queried inputs. The flag is a
+function of that set — it is set exactly when the set meets `S` — but the set is not available
+from the flag.
+
+What closes it is an oracle carrying the queried set instead of the flag, with two facts about
+it:
+
+* the set is *secret-independent* on the blind side, since the blind cache carries no
+  seed-bearing entry and the oracle's answers therefore do not involve the seed — which is what
+  lets the secret be drawn after the run, as `prob_run_meets_honest_key_le` requires;
+* the set's cardinality is at most the charged query count. Note this does **not** follow from
+  cache growth: the blind cache starts with an entry at every non-PRF canonical input, so a
+  query answered from it enlarges the set without enlarging the cache. It is bounded by the
+  *counter*, every query being charged under all-queries accounting — so the instrumentation
+  has to carry the set and the count together, as `WeightedCharge.countJoint` does for the two
+  budgets.
+
+`prob_touched_eq` then needs restating over that oracle. Its proof carries across unchanged:
+the two cases are a query inside `S`, where both runs add the same input and the event is
+already decided, and a query outside it, where the caches agree at that input so the answer
+distribution is the same.
+
