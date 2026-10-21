@@ -592,3 +592,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.PerQueryBudget.union_within_target_of_256' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PerQueryBudget.union_within_target_of_256
+
+/-- info: 'SlhDsaSecurity.PerQueryBudget.classRate_le_target' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PerQueryBudget.classRate_le_target
+
+/-- info: 'SlhDsaSecurity.PerQueryBudget.total_le_target' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PerQueryBudget.total_le_target

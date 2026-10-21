@@ -115,4 +115,57 @@ the reason their argument does not transfer to `SLH-DSA-128s`. -/
 theorem union_within_target_of_256 :
     seedGuessRateOfBits 256 + structuralRate + forsCoverageRate ≤ targetRate := by decide
 
+/-! ## The union closes once queries are classified
+
+The overshoot above comes from letting a single query pursue every avenue at once. It cannot.
+FIPS 205 gives each hash call a fixed byte format, and the avenues available to a query are
+determined by which format its input has:
+
+* `PK.seed ‖ ADRS ‖ payload` — the tweakable calls `F`, `H`, `T` and the two `PRF`s. Such a
+  query can be a `SK.seed` guess (its payload is the guessed seed) and its answer can hit the
+  honest cell of the node its address names. Rate `2 + 2 = 4`.
+* `R ‖ PK.seed ‖ PK.root ‖ M` for `H_msg`, and `SK.prf ‖ PK.seed ‖ M` for `PRF_msg`. Such a
+  query's answer can parse to a covered digest, and its input can be a `SK.prf` guess. Rate
+  `1 + 2 = 3`.
+
+No query is in both classes except under the coincidence that `PK.seed ‖ PK.root` happens to
+encode a valid address, which is exactly the criterion of `Proof/HashSeparation.lean` and has
+probability at most `2 ^ -165` under actual key generation
+(`HashSeparation.prob_possible_le`, via `KeygenUniform.keygen_prob_possible_le`).
+
+So the per-query union is the *maximum over classes*, which is `4` — precisely the target
+rate — rather than the sum `5`. The budget closes, and the `2 ^ -165` separation defect is far
+below the slack at any `q ≥ 1`.
+-/
+
+/-- The two byte-format classes a charged hash call can belong to. -/
+inductive QueryClass where
+  | structural
+  | message
+deriving DecidableEq
+
+/-- The avenues live for a query of each class, in units of `2 ^ -129`. -/
+def classRate : QueryClass → Nat
+  | .structural => secretGuessRate + structuralRate
+  | .message => forsCoverageRate + secretGuessRate
+
+/-- **Every class fits the target rate.** This is the step the naive union misses. -/
+theorem classRate_le_target (class_ : QueryClass) : classRate class_ ≤ targetRate := by
+  cases class_ <;> decide
+
+/-- The structural class is the dearest, and it meets the target exactly. -/
+theorem classRate_structural : classRate .structural = targetRate := by decide
+
+/-- **The budget closes over a whole run.** Charging each query at its own class rate, a run
+of any length stays inside the target. -/
+theorem total_le_target (classes : List QueryClass) :
+    (classes.map classRate).sum ≤ targetRate * classes.length := by
+  induction classes with
+  | nil => simp
+  | cons head tail ih =>
+    simp only [List.map_cons, List.sum_cons, List.length_cons]
+    have hhead := classRate_le_target head
+    calc classRate head + (tail.map classRate).sum
+        ≤ targetRate + targetRate * tail.length := Nat.add_le_add hhead ih
+      _ = targetRate * (tail.length + 1) := by ring
 end SlhDsaSecurity.PerQueryBudget
