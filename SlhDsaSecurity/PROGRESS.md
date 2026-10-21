@@ -577,3 +577,46 @@ it is the only one not yet proved and the only one whose `2q / 2 ^ 129` coeffici
 loose: a guess is only useful if it is *verified*, and verification needs a signature whose
 randomizer is known, which may permit a sharper accounting than one guess per query.
 
+## The decisive question: the per-query union
+
+The two preceding sections went back and forth; this settles what the obstacle actually is.
+
+Every avenue is a *per-charged-query* event, so the right way to budget is by rate per query,
+in units of `2 ^ -129`:
+
+| avenue | rate | effect |
+| --- | --- | --- |
+| `SK.seed` guess — the query's input is the true secret seed | 2 | immediate forgery |
+| `SK.prf` guess — the query's input is the true PRF seed | 2 | enables load concentration |
+| structural hit — the query's answer truncates to an honest cell | 2 | collision / preimage |
+| FORS coverage at the sharper cap | 1 | few-time break |
+| naive union | **7** | |
+
+The target `q / 2 ^ 127` is `4q / 2 ^ 129`, i.e. rate **4**. So the naive union overshoots by
+`7/4`, which is what the previous section recorded as "the budget does not close".
+
+Two observations fix the shape of the remaining problem.
+
+*The overshoot is an artefact of the union bound, not of the scheme.* An adversary has `q`
+queries **in total** and must apportion them; it cannot spend the same query pursuing every
+avenue at full rate. Putting the whole budget on the single best avenue gives `2q / 2 ^ 129`,
+comfortably inside the target. So there is no attack here, and the target is not refuted.
+
+*But the slack is genuinely thin, because the secrets alone already cost the whole budget.*
+Two independent `128`-bit secrets contribute `2 + 2 = 4`, exactly the target rate. Hence a
+proof of 127 bits **cannot** charge the structural and FORS terms on top of the seed guesses:
+it must charge all four against one shared per-query budget, via a case analysis showing a
+single query cannot profitably pursue two avenues at once — e.g. a query whose input is a
+guessed secret is not simultaneously a useful structural probe.
+
+That joint per-query accounting is the real remaining content of the proof, and it is not
+something the current machinery does. `GrowthCharge.prob_badWithin_le` already charges one
+shared budget for an arbitrary bad predicate, so the structural and FORS events can be merged
+into a single predicate with rate `2 + 1 = 3`. What is missing is folding the two
+secret-guessing events — which are conditions on a query's *input* rather than its *answer* —
+into that same predicate, so that the total rate is bounded by `4` rather than `3 + 4 = 7`.
+
+Until that is done the assembly cannot be instantiated, regardless of how much of `hsplit` and
+`hcap` is finished, because `Assembly.le_target_of_terms` is fed terms that do not sum to the
+target.
+
