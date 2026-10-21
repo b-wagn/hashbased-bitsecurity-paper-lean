@@ -43,6 +43,7 @@ import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.FreshDigest
 import SlhDsaSecurity.Proof.GrowthBudget
+import SlhDsaSecurity.Proof.WholeGameStructural
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -470,3 +471,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.GrowthBudget.growth_le_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GrowthBudget.growth_le_count
+
+/-- info: 'SlhDsaSecurity.WholeGameStructural.prob_deviatingCollision_whole_game_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WholeGameStructural.prob_deviatingCollision_whole_game_le
