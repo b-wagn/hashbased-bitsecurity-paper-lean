@@ -345,3 +345,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.Fors.root_eq_canonical_or_collision
+
+/-- info: 'SlhDsaSecurity.Extraction.Fors.publicKey_eq_canonical_roots_or_collision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.Fors.publicKey_eq_canonical_roots_or_collision

@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.Extraction.BinaryPath
 import SlhDsaSecurity.Proof.Correctness.Fors
+import SlhDsaSecurity.Proof.Extraction.Wots
 
 /-! Extraction from the actual FORS verifier, one tree at a time.
 
@@ -101,5 +102,55 @@ theorem root_eq_canonical_or_collision (secretSeed publicSeed : Digest)
   · refine Or.inl ⟨hleaf, fun j => ?_⟩
     simpa only [siblings, dif_pos j.isLt] using hsiblings j.val j.isLt
   · exact Or.inr hcollision
+
+/-- The address of the final FORS root-compression call. -/
+def rootAddress (address : Address) : Address :=
+  { address.setTypeAndClear .forsRoots with keyPair := address.keyPair }
+
+/-- The canonical root of each of the fourteen FORS trees under the genuine seeds. -/
+def canonicalRoots (secretSeed publicSeed : Digest) (address : Address) :
+    Fin forsTrees → Digest := fun i =>
+  SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed address forsHeight i.val
+
+/-- Algorithm 17 compresses the fourteen per-tree recovered roots. -/
+theorem publicKeyFromSignature_eq (signature : ForsSignature)
+    (indices : SlhDsaSecurity.Fors.Indices) (publicSeed : Digest) (address : Address) :
+    SlhDsaSecurity.Fors.publicKeyFromSignature (m := Id) signature indices publicSeed address =
+      Hashing.tweakable (m := Id) publicSeed (rootAddress address)
+        (digestArrayBytes (recoveredRoot signature indices publicSeed address)) := by
+  simp only [SlhDsaSecurity.Fors.publicKeyFromSignature, Correctness.sequenceFin_id, bind,
+    Correctness.foldlM_id, rootAddress]
+  rfl
+
+/-- A collision at the final FORS root-compression call: two different root
+tuples whose full oracle inputs are distinct but compress identically. -/
+def CompressionCollision (actualRoots canonicalRoots : Fin forsTrees → Digest)
+    (publicSeed : Digest) (address : Address) : Prop :=
+  let actualInput := Hashing.tweakableInput publicSeed (rootAddress address)
+    (digestArrayBytes actualRoots)
+  let canonicalInput := Hashing.tweakableInput publicSeed (rootAddress address)
+    (digestArrayBytes canonicalRoots)
+  actualInput ≠ canonicalInput ∧
+    Hashing.shortHash (m := Id) actualInput = Hashing.shortHash (m := Id) canonicalInput
+
+/-- A FORS signature recovering the genuine FORS public key either reproduces every
+canonical tree root, or has a collision at its root-compression call. No collision
+resistance is assumed. -/
+theorem publicKey_eq_canonical_roots_or_collision (secretSeed publicSeed : Digest)
+    (address : Address) (indices : SlhDsaSecurity.Fors.Indices) (signature : ForsSignature)
+    (hpk : SlhDsaSecurity.Fors.publicKeyFromSignature (m := Id) signature indices publicSeed address =
+      Hashing.tweakable (m := Id) publicSeed (rootAddress address)
+        (digestArrayBytes (canonicalRoots secretSeed publicSeed address))) :
+    recoveredRoot signature indices publicSeed address =
+        canonicalRoots secretSeed publicSeed address ∨
+      CompressionCollision (recoveredRoot signature indices publicSeed address)
+        (canonicalRoots secretSeed publicSeed address) publicSeed address := by
+  rw [publicKeyFromSignature_eq] at hpk
+  by_cases hroots : recoveredRoot signature indices publicSeed address =
+      canonicalRoots secretSeed publicSeed address
+  · exact Or.inl hroots
+  · refine Or.inr ⟨fun hinput => hroots ?_, hpk⟩
+    exact SlhDsaSecurity.Extraction.Wots.digestArrayBytes_injective forsTrees
+      (Hashing.tweakableInput_injective hinput).2.2
 
 end SlhDsaSecurity.Extraction.Fors
