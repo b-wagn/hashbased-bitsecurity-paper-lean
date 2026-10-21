@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.RecordedBudget
 import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.SensitiveQuery
+import SlhDsaSecurity.Proof.DrawnTable
 import SlhDsaSecurity.Proof.LazyBridge
 import SlhDsaSecurity.Proof.AdversaryQueries
 import SlhDsaSecurity.Proof.SensitiveShape
@@ -4060,3 +4061,23 @@ info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq_of_commute' depends on
 /-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_four
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_list_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_list_sensitive_le
+
+/-- info: 'SlhDsaSecurity.DrawnTable.missRun_length' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.missRun_length
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_missRun_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_missRun_sensitive_le
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_mixture_missRun_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_mixture_missRun_sensitive_le
+
+/-- info: 'SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le
