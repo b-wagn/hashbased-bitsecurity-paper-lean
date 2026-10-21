@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.KeygenUniform
+import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.MessageDigest
 
 /-!
@@ -199,5 +200,65 @@ theorem instanceAssignment_uniform (ι : Type) [Fintype ι] [DecidableEq ι] :
       (β := ((ι → MessageDigest.Instance) × (ι → Remainder))) regroup regroup.bijective
   rw [hmap, evalDist_map, hinner, ← evalDist_map]
   exact evalDist_map_fst_uniformSample_prod
+
+/-! ## From the oracle to a uniform instance assignment
+
+Combining the charge with the pushforward: any event about the FORS instances of the answers
+recorded at a finite set of pinned inputs is bounded by its probability under a uniform
+instance assignment. The charge supplies the uniform counting measure over answer
+assignments, and `instanceAssignment_uniform` transports it to instances.
+
+This is the form the load cap is stated in, so it is the last step before
+`ForsConcentration.uniform_load_tail_sharper_of_le` applies.
+-/
+
+open scoped Classical in
+theorem prob_instance_event_le {α : Type} (computation : OracleComp OracleWorld α)
+    (pinned : Finset Bytes) (cache : QueryCache HashSpec)
+    (hfresh : ∀ x ∈ pinned, cache x = none)
+    (instanceBad : (↥pinned → MessageDigest.Instance) → Prop) :
+    Pr[fun result : α × QueryCache HashSpec =>
+        ∃ assignment : ↥pinned → HashOutput,
+          instanceBad (fun x => instanceOf (assignment x)) ∧
+            ∀ x : ↥pinned, result.2 x.val = some (assignment x) |
+      (simulateQ KeygenUniform.rom computation).run cache] ≤
+      Pr[instanceBad |
+        ($ᵗ (↥pinned → MessageDigest.Instance) :
+          ProbComp (↥pinned → MessageDigest.Instance))] := by
+  classical
+  set bad : Finset (↥pinned → HashOutput) :=
+    Finset.univ.filter (fun assignment => instanceBad (fun x => instanceOf (assignment x)))
+    with hbad
+  have hcharge := GrowthCharge.prob_cache_values_mem_le' computation pinned cache hfresh bad
+  have hevent : Pr[fun result : α × QueryCache HashSpec =>
+      ∃ assignment : ↥pinned → HashOutput,
+        instanceBad (fun x => instanceOf (assignment x)) ∧
+          ∀ x : ↥pinned, result.2 x.val = some (assignment x) |
+    (simulateQ KeygenUniform.rom computation).run cache] ≤
+      bad.card * (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card := by
+    refine le_trans (probEvent_mono ?_) hcharge
+    intro result _ hexists
+    obtain ⟨assignment, hinstance, hvalues⟩ := hexists
+    exact ⟨assignment, by simp [hbad, hinstance], hvalues⟩
+  refine hevent.trans ?_
+  -- The uniform counting measure over answer assignments, transported to instances.
+  have hcardFun : Fintype.card (↥pinned → HashOutput) =
+      (Fintype.card HashOutput) ^ pinned.card := by
+    rw [Fintype.card_fun, Fintype.card_coe]
+  have hcount : (bad.card : ℝ≥0∞) *
+      (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card =
+      Pr[fun assignment : ↥pinned → HashOutput =>
+        instanceBad (fun x => instanceOf (assignment x)) |
+          ($ᵗ (↥pinned → HashOutput) : ProbComp (↥pinned → HashOutput))] := by
+    rw [probEvent_uniformSample, hcardFun]
+    push_cast
+    rw [one_div, ← ENNReal.inv_pow, mul_comm, ← ENNReal.div_eq_inv_mul]
+  rw [hcount]
+  rw [show (fun assignment : ↥pinned → HashOutput =>
+      instanceBad (fun x => instanceOf (assignment x))) =
+    instanceBad ∘ (fun assignment index => instanceOf (assignment index)) from rfl,
+    ← probEvent_map]
+  exact le_of_eq (probEvent_congr' (fun _ _ => Iff.rfl)
+    (instanceAssignment_uniform (↥pinned)))
 
 end SlhDsaSecurity.FreshDigest
