@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.CacheReplay
+import SlhDsaSecurity.Proof.CanonicalCells
 
 /-!
 # A Merkle path collision, charged
@@ -131,5 +132,71 @@ theorem deviatingCollision_of_pathCollision {α : Type} (publicSeed : Digest) (c
   · -- and its answer truncates to the parent's honest cell.
     rw [hparentCell, ← hcanonical, ← hjoins]
     exact hactual.symm
+
+/-! ## Without the graph-side bookkeeping
+
+With `canonicalPair_fst` and `canonicalPair_snd` in hand, every hypothesis about *where the
+node sits* is discharged by the graph's definitions: a tree node's children are its two
+`merkleChild`s, its address is `Merkle.nodeAddress` at the height above, and the children's
+honest cells are the canonical pair. What a caller still supplies is the extraction's own
+content — that `combine` is the tweakable hash answered from this cache, that `nodes` satisfies
+the Merkle recursion, and that the path index names this node — all definitional where the
+layer is known. -/
+
+/-- **A Merkle path collision is charged, with the graph-side bookkeeping discharged.** -/
+theorem deviatingCollision_of_pathCollision_canonical {α : Type}
+    (secretSeed publicSeed : Digest) (cache : QueryCache HashSpec) (location : Tree)
+    (index : Nat) (parentHeight : Fin subtreeHeight)
+    (parentIndex : Fin (2 ^ (subtreeHeight - (parentHeight.val + 1))))
+    (leaf : Digest) (siblings : Nat → Digest)
+    (combine : Nat → Nat → Digest → Digest → Digest)
+    (hcombine : ∀ h i l r, combine h i l r =
+      @Hashing.tweakable Id _ (CacheReplay.replayQuery cache) publicSeed
+        (SlhDsaSecurity.Merkle.nodeAddress location.address h i)
+        (BinaryPath.pairBytes (l, r)))
+    (hnodes : ∀ h i,
+      @SlhDsaSecurity.Merkle.node Id _ (CacheReplay.replayQuery cache) secretSeed publicSeed
+          location.address (h + 1) i =
+        combine (h + 1) i
+          (@SlhDsaSecurity.Merkle.node Id _ (CacheReplay.replayQuery cache) secretSeed
+            publicSeed location.address h (2 * i))
+          (@SlhDsaSecurity.Merkle.node Id _ (CacheReplay.replayQuery cache) secretSeed
+            publicSeed location.address h (2 * i + 1)))
+    (hindex : parentIndex.val = index / 2 ^ (parentHeight.val + 1))
+    (hcollision : BinaryPath.Collision
+      (@SlhDsaSecurity.Merkle.node Id _ (CacheReplay.replayQuery cache) secretSeed publicSeed
+        location.address)
+      combine index leaf siblings parentHeight.val)
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hcache : result.2 = cache)
+    (hentry : cache (Hashing.tweakableInput publicSeed
+        (StructuralNode.tree location parentHeight parentIndex).address
+        (BinaryPath.pairBytes
+          (BinaryPath.ordered index parentHeight.val
+            (BinaryPath.value combine index leaf siblings parentHeight.val)
+            (siblings parentHeight.val)))) = some output) :
+    StructuralTerm.DeviatingCollision publicSeed
+      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
+  refine deviatingCollision_of_pathCollision publicSeed
+    (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) cache location.address
+    (@SlhDsaSecurity.Merkle.node Id _ (CacheReplay.replayQuery cache) secretSeed publicSeed
+      location.address)
+    index parentHeight.val leaf siblings location parentHeight parentIndex combine hcombine
+    hnodes ?_ rfl ?_ ?_ ?_ ?_ hcollision result output hcache hentry
+  · rw [StructuralNode.address, hindex]
+  · -- The two children are distinct nodes.
+    intro hsame
+    have hval := congrArg (fun node : Node => match node with
+      | .structural (.tree _ _ idx) => idx.val
+      | .structural (.wotsPk key) => key.leaf.val
+      | _ => 0) hsame
+    by_cases hzero : parentHeight.val = 0 <;>
+      simp [merkleChild, merkleNode, hzero] at hval
+  · simp only [value, structuralValue]
+    rw [hindex]
+  · rw [@value_merkleChild (CacheReplay.replayQuery cache), canonicalPair_fst, hindex]
+    simp
+  · rw [@value_merkleChild (CacheReplay.replayQuery cache), canonicalPair_snd, hindex]
+    simp
 
 end SlhDsaSecurity.MerkleCharge
