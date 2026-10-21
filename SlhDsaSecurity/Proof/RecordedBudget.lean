@@ -124,6 +124,22 @@ theorem work_add_pow_le_of_budget_tail {adversary : Adversary} {q : Nat}
   have htotal := WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult
   omega
 
+/-- The same at the stripped game, which is where a presentation with a table in its state runs:
+the recording is one more layer on top, and the work the outcome reports is the same either
+way. -/
+theorem work_add_pow_le_of_budget_stripped {adversary : Adversary} {q : Nat}
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : Outcome × QueryCache HashSpec}
+    (hresult : result ∈ support ((simulateQ KeygenUniform.rom
+      (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run walk.2)) :
+    result.1.counts.work + 2 ^ subtreeHeight ≤ q := by
+  rw [Averaging.support_eq_of_evalDist_eq (StrippedGame.evalDist_run_strippedAfterSeeds
+    adversary walk.1.1 walk.2 walk.2 (StrippedGame.Extends.refl walk.2))] at hresult
+  obtain ⟨count, hcounted⟩ := mem_support_countAllHashes _ walk.2 result hresult
+  exact work_add_pow_le_of_budget_tail hbudget hwalk hcounted
+
 /-- The same at the recorded game. -/
 theorem work_add_pow_le_of_budget_recorded {adversary : Adversary} {q : Nat}
     (hbudget : HasTotalBudget adversary q)
@@ -137,11 +153,7 @@ theorem work_add_pow_le_of_budget_recorded {adversary : Adversary} {q : Nat}
       (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run walk.2) := by
     rw [← RecordedQueries.map_recordedAfterSeeds, simulateQ_map, StateT.run_map, support_map]
     exact ⟨result, hresult, rfl⟩
-  rw [Averaging.support_eq_of_evalDist_eq (StrippedGame.evalDist_run_strippedAfterSeeds
-    adversary walk.1.1 walk.2 walk.2 (StrippedGame.Extends.refl walk.2))] at hstripped
-  obtain ⟨count, hcounted⟩ :=
-    mem_support_countAllHashes _ walk.2 (result.1.1, result.2) hstripped
-  exact work_add_pow_le_of_budget_tail hbudget hwalk hcounted
+  exact work_add_pow_le_of_budget_stripped hbudget hwalk hstripped
 
 /-- **The record, with the forgery's claimed cells appended, fits the budget.** The queries cost
 the work the game charged, which the budget bounds by `q` less key generation's spend; the claims

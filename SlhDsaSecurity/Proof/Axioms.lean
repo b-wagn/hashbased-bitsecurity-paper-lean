@@ -7,6 +7,7 @@ import SlhDsaSecurity.Proof.HonestMessage
 import SlhDsaSecurity.Proof.DrawnTable
 import SlhDsaSecurity.Proof.TableBlind
 import SlhDsaSecurity.Proof.RecordedBudget
+import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.GraphStakes
 import SlhDsaSecurity.Proof.RecordedQueries
@@ -4455,3 +4456,27 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.AdversaryQueries.work_add_keygen_le_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AdversaryQueries.work_add_keygen_le_total
+
+/-- info: 'SlhDsaSecurity.LazyBudget.mem_support_simulateQ_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.mem_support_simulateQ_of_step
+
+/-- info: 'SlhDsaSecurity.LazyBudget.lazyAnswer_mem_randomOracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.lazyAnswer_mem_randomOracle
+
+/-- info: 'SlhDsaSecurity.LazyBudget.mem_support_rom_of_lazy' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.mem_support_rom_of_lazy
+
+/-- info: 'SlhDsaSecurity.LazyBudget.work_add_pow_le_of_budget_lazy' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.work_add_pow_le_of_budget_lazy
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped
