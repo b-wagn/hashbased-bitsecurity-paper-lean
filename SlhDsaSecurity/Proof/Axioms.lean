@@ -4504,3 +4504,7 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.RedrawCell.evalDist_redraw_coordinate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.evalDist_redraw_coordinate
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_joint_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_joint_sensitive_le
