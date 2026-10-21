@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.OpenCache
+import SlhDsaSecurity.Proof.StalledRun
 
 /-!
 # Which cell a probe is charged against, and the flag that records it
@@ -716,5 +717,113 @@ theorem flag_iff_record {α : Type}
           Charged stakes (fun cache node => ¬ availableAt cache node) table.1 index entry
       rw [hrec, Bool.or_eq_true, decide_eq_true_eq, hhere, hstate]
       simp [or_comm]
+
+
+/-! ## The weight does not notice the stall
+
+The probes a record aims at a cell are all made while that cell is unavailable, so a run
+stalled at the moment it becomes available aims at it exactly as often as the unstalled one.
+That is frozen-insensitivity of the count, and `StalledRun.expectation_stalled_eq` turns it
+into equality of the expectations — which is what lets the per-cell weights be summed under one
+measure rather than under one measure per cell. -/
+
+open scoped Classical in
+/-- Carrying a flag it does not touch leaves the handler failure-free. -/
+theorem withFlag_neverFails (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
+    Pr[⊥ | ((withFlag (lazyProgram publicSeed availableAt table)) queried).run state] = 0 := by
+  rw [withFlag_run, probFailure_bind_eq_add_tsum,
+    lazyProgram_neverFails publicSeed availableAt table queried state.1]
+  simp
+
+open scoped Classical in
+/-- A released cell stays released, the flag being untouched. -/
+theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : QueryCache HashSpec),
+      (∀ probe, left probe ≠ none → right probe ≠ none) →
+        ∀ node, availableAt left node → availableAt right node)
+    (index : CanonicalGraph.Node) (table : Cells × Padding)
+    (queried : OracleWorld.Domain) (state : HandlerState × Bool)
+    (hstate : availableAt state.1.1 index)
+    (step : OracleWorld.Range queried × (HandlerState × Bool))
+    (hstep : step ∈ support (((withFlag (lazyProgram publicSeed availableAt table))
+      queried).run state)) : availableAt step.2.1.1 index := by
+  classical
+  rw [withFlag_run, mem_support_bind_iff] at hstep
+  obtain ⟨inner, hinner, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+  exact hmono state.1.1 inner.2.1
+    (fun probe hprobe =>
+      lazyProgram_cache_mono publicSeed availableAt table queried state.1 inner hinner probe
+        hprobe)
+    index hstate
+
+open scoped Classical in
+/-- **Once the cell is released nothing more aims at it**, so the count stands still. -/
+theorem withFlag_aiming_quiet (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
+    (hstate : availableAt state.1.1 index)
+    (step : OracleWorld.Range queried × (HandlerState × Bool))
+    (hstep : step ∈ support (((withFlag (lazyProgram publicSeed availableAt table))
+      queried).run state)) :
+    aiming stakes (fun cache node => ¬ availableAt cache node) index step.2.1.2.1 =
+      aiming stakes (fun cache node => ¬ availableAt cache node) index state.1.2.1 := by
+  classical
+  rw [withFlag_run, mem_support_bind_iff] at hstep
+  obtain ⟨inner, hinner, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+  show aiming stakes (fun cache node => ¬ availableAt cache node) index inner.2.2.1 = _
+  rcases queried with coin | probe
+  · rw [lazyProgram_step_inl publicSeed availableAt table coin state.1 inner hinner]
+  · rw [lazyProgram_step_inr publicSeed availableAt table probe state.1 inner hinner]
+    have hnot : ¬ Targets stakes (fun cache node => ¬ availableAt cache node) index
+        (probe, state.1.1) := by
+      rintro ⟨-, -, hunavailable, -⟩
+      exact hunavailable hstate
+    have hsingle : List.filter
+        (fun entry => decide (Targets stakes (fun cache node => ¬ availableAt cache node)
+          index entry)) [(probe, state.1.1)] = [] := by
+      rw [List.filter_cons_of_neg (by simpa using hnot), List.filter_nil]
+    simp only [aiming, List.filter_append, hsingle, List.append_nil]
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The expected number of probes aiming at a cell is the same stalled and unstalled.** The
+equality is between the real run and the run stalled at that same cell, and it holds because
+the count cannot change once the cell is released — not because of anything about the sum over
+cells. -/
+theorem expected_aiming_stalled_eq {α : Type}
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : QueryCache HashSpec),
+      (∀ probe, left probe ≠ none → right probe ≠ none) →
+        ∀ node, availableAt left node → availableAt right node)
+    (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
+    (∑' z : α × (HandlerState × Bool),
+        Pr[= z | (simulateQ (withFlag (lazyProgram publicSeed availableAt table))
+            computation).run state] *
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
+            Nat) : ℝ≥0∞)) =
+      ∑' z : α × (HandlerState × Bool),
+        Pr[= z | (simulateQ (StalledRun.stalled
+            (withFlag (lazyProgram publicSeed availableAt table))
+            (fun inner => availableAt inner.1 index) stall) computation).run state] *
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
+            Nat) : ℝ≥0∞) :=
+  StalledRun.expectation_stalled_eq (withFlag (lazyProgram publicSeed availableAt table))
+    (fun inner => availableAt inner.1 index) stall
+    (fun p => ((aiming stakes (fun cache node => ¬ availableAt cache node) index p.1.2.1 :
+      Nat) : ℝ≥0∞))
+    (fun queried p => withFlag_neverFails publicSeed availableAt table queried p)
+    (fun queried p hp z hz =>
+      withFlag_frozen publicSeed availableAt hmono index table queried p hp z hz)
+    (fun queried p hp z hz => by
+      exact_mod_cast congrArg (fun count : Nat => (count : ℝ≥0∞))
+        (withFlag_aiming_quiet publicSeed availableAt stakes index table queried p hp z hz))
+    computation state
 
 end SlhDsaSecurity.ChargedProbe
