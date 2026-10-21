@@ -52,3 +52,31 @@ security hypothesis or numerical security certificate has been assumed.
 `Proof/Checksum.lean` proves the WOTS chain-step range 45–510, including both
 endpoints. Relating this arithmetic to the oracle trace remains to be done.
 All existing XMSS definitions and proofs are unchanged.
+
+## FORS components
+
+`Proof/ForsCoverage.lean` proves the exact coverage probability of an independent
+uniform target. If `s_i` bounds the number of disclosures at instance i, the
+probability is at most `sum_i s_i^14 / 2^231`. In particular, the deterministic
+condition `sum_i s_i^14 <= 2^103` suffices for a bound of 2^-128. This result
+does not assert that an adaptive signing transcript satisfies the condition.
+
+`Proof/ForsMoments.lean` checks Touchard-polynomial values through degree 84
+and a sixth-moment scalar inequality. The following concentration route still
+needs its probabilistic proof. Write B=2^63 and first consider 2B independent
+uniform instance selections. Poissonizing to independent loads of mean 3
+would dominate this experiment with a factor at most 2: the total has mean
+3B and variance 3B, so Chebyshev bounds the probability of fewer than 2B
+selections by 3/B. For Y equal to one load raised to power 14, the checked
+polynomials bound its moments through order six. Centering Y and expanding
+the sixth moment of the sum leads to the four terms in
+`sixth_moment_scalar`, bounded by 2^-142 at threshold B*2^40. The resulting
+candidate load-tail bound is 2^-141. Neither the moment identities nor this
+coupling have yet been formalized here.
+
+Even after that step, the ROM proof must handle signing whose digest was
+queried in advance, future disclosures, and overlaps between the specified
+SHAKE inputs. For example, at the internal-message level, H_msg with R=SK.prf
+has the same input as PRF_msg on PK.root concatenated with that message.
+The pure-message encoding also matters when analyzing such overlaps.
+A hybrid that simply declares these roles independent is insufficient.
