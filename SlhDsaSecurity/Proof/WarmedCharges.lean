@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.WarmedGame
 import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.CombinedCharge
+import SlhDsaSecurity.Proof.TrackedQueries
 
 /-!
 # The charges, at the walk's own cells
@@ -162,5 +163,54 @@ theorem prob_combinedBad_tail_le (adversary : Adversary) (q : Nat) (pk : PublicK
   exact ⟨hbad, GrowthBudget.GrowthAtMost.mono
     (GrowthBudget.growth_le_count (afterSeeds adversary walk.1.1) walk.2 result hresult)
     (count_le_of_budget_tail hbudget hwalk hres)⟩
+
+/-! ## The blind cache at the walk
+
+The input half compares the run against the walk's cache with the same run against that cache
+*stripped* of its seed-bearing entries — the canonical inputs of the PRF nodes, which are the
+only places `SK.seed` appears in the clear. The two caches agree everywhere else, which is what
+makes the comparison exact rather than a hop: the probability of touching a stripped input is
+the same on both sides, and on the blind side the secret may be drawn after the run.
+
+Stripping is just dropping those nodes from the list the walk programs, so both caches are
+`cacheFrom` of the same cells and the same output table, over different node lists. -/
+
+open scoped Classical in
+/-- The walk's node list with the seed-bearing nodes removed. -/
+noncomputable def blindOrder : List StructuralNode :=
+  Programming.order.filter (fun parent => decide (¬ BlindComparison.IsPrfNode parent))
+
+open scoped Classical in
+theorem mem_blindOrder (parent : StructuralNode) :
+    parent ∈ blindOrder ↔ ¬ BlindComparison.IsPrfNode parent := by
+  rw [blindOrder, List.mem_filter, decide_eq_true_eq]
+  exact ⟨fun h => h.2, fun h => ⟨Programming.mem_order parent, h⟩⟩
+
+/-- The walk's cache with its seed-bearing entries removed. -/
+noncomputable def blindCache (publicSeed : Digest) (cells : Cells)
+    (outputs : Programming.Outputs) : QueryCache HashSpec :=
+  Programming.cacheFrom publicSeed cells outputs blindOrder ∅
+
+/-- **The walk's cache and its blind twin agree off the inputs carrying the secret.** -/
+theorem agreeOff_blindCache (publicSeed : Digest) (cells : Cells)
+    (outputs : Programming.Outputs) :
+    BlindComparison.AgreeOff
+      (TrackedQueries.SeedInputOf (TrackedQueries.prfInput publicSeed)
+        (cells CanonicalGraph.Node.secretSeed))
+      (Programming.cacheFrom publicSeed cells outputs Programming.order ∅)
+      (blindCache publicSeed cells outputs) :=
+  TrackedQueries.agreeOff_prfInputs publicSeed cells outputs Programming.order blindOrder
+    Programming.mem_order mem_blindOrder
+
+/-- The blind cache really is blind: it holds nothing at an input carrying the secret. -/
+theorem blindCache_seedInput_none (publicSeed : Digest) (cells : Cells)
+    (outputs : Programming.Outputs) (node : StructuralNode)
+    (hprf : BlindComparison.IsPrfNode node) :
+    blindCache publicSeed cells outputs
+      (TrackedQueries.prfInput publicSeed (cells CanonicalGraph.Node.secretSeed) node) = none := by
+  classical
+  rw [blindCache, ← TrackedQueries.canonicalInput_eq_prfInput publicSeed cells hprf,
+    Programming.cacheFrom_lookup, if_neg (fun hmem => (mem_blindOrder node).mp hmem hprf)]
+  rfl
 
 end SlhDsaSecurity.WarmedCharges
