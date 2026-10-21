@@ -1158,3 +1158,33 @@ What is left on this half is wiring, none of it probabilistic: instantiate `keep
 coverage event by recorded rather than pre-existing answers (the warm cache is purely
 canonical, so no `H_msg` entry predates the tail), and feed the message-class growth from the
 budget.
+
+## Correction: `forsLeaf` cannot be stripped wholesale
+
+The section above claims the secret region includes every `forsTree key ⟨0⟩ index` node — the
+FORS leaf hashes, whose only child is a FORS secret cell — and that stripping them wholesale
+makes the blind cache independent of those cells. The second half is right; the first half
+breaks the bound, and the error matters because it is the difference between the WOTS and FORS
+sides.
+
+A FORS secret that *was* disclosed is in the adversary's hands legitimately: it came in a
+signature. It may then query that leaf's canonical input — `PK.seed ‖ ADRS ‖ the secret` — and
+be perfectly entitled to the answer. If that entry is stripped, the blind run diverges there,
+so the comparison reports "bad" on an event the adversary reaches honestly, as often as it
+likes. The bound `q / 2 ^ 128` is then simply false; nothing is wrong with the proof technique,
+the region is wrong.
+
+So the region may contain only the *undisclosed* FORS secrets, and which those are follows the
+adversary's chosen messages. **The WOTS clause survives** — each hypertree WOTS key signs one
+deterministic message, so its revealed digit is fixed by the walk — but the FORS clause does
+not, and the claim that the whole region is fixed before the run was too strong.
+
+What the FORS case needs is a per-step argument: the first query at an undisclosed leaf's
+canonical input matches that leaf's cell with probability `2 ^ -128`, conditioned on a
+"not yet disclosed" predicate that the run so far determines. That is the same shape as
+`DigestTape.prob_prefix_le` — a lazy-sampling invariant indexed by query order rather than by
+inputs named in advance — which is now proved, so the pattern is available even though this
+instance is not written.
+
+The `wotsPrf` and `forsPrf` clauses are unaffected either way: their canonical inputs carry
+`SK.seed`, which no signature ever discloses, so they are secret unconditionally.
