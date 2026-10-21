@@ -4508,3 +4508,11 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.RedrawCell.prob_joint_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.prob_joint_sensitive_le
+
+/-- info: 'SlhDsaSecurity.StalledRun.expectation_frozen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.expectation_frozen
+
+/-- info: 'SlhDsaSecurity.StalledRun.expectation_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.expectation_stalled_eq
