@@ -115,9 +115,17 @@ set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
 set_option linter.constructorNameAsVariable false in
 open scoped Classical in
-/-- **A run that reads no cell it is charged against is charged one unit per probe.** The
-hypothesis is the congruence the stalled handler supplies: altering one cell leaves the run's
-law alone. -/
+/-- **A run that reads no cell it is charged against is charged one unit per probe.**
+
+Read the hypothesis carefully: `hcongr` asks for blindness at *every* cell of one and the same
+run. Any two cell tables differ at finitely many coordinates, so chaining it makes such a run
+independent of the table altogether. It is therefore the statement for a run that reads no cell
+at all, not for one that reads the available cells — a handler that reads those is blind to a
+given cell only while that cell is unavailable, which is blindness of a *different* run for
+each cell, the one stalled at that cell.
+
+Carrying the weighting across that difference needs the expected counts to be taken under the
+real run rather than under each stalled one, which is a further step and not this lemma. -/
 theorem prob_joint_sensitive_le {γ Aux : Type} (stakes : Stakes Target CanonicalGraph.Node)
     (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (auxiliary : ProbComp Aux) (run : Cells → Aux → ProbComp γ)
