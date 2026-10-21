@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.ChargedProbe
+import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.AddressBounds
 import SlhDsaSecurity.Proof.OpenCache
 import SlhDsaSecurity.Proof.StalledRun
@@ -4499,3 +4500,7 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.ChargedProbe.prob_run_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.prob_run_sensitive_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.evalDist_redraw_coordinate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.evalDist_redraw_coordinate
