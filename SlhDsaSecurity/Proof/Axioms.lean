@@ -35,6 +35,7 @@ import SlhDsaSecurity.Proof.Extraction.Fors
 import SlhDsaSecurity.Proof.Extraction.Hypertree
 import SlhDsaSecurity.Proof.Extraction.WotsPreimage
 import SlhDsaSecurity.Proof.Extraction.HypertreeChain
+import SlhDsaSecurity.Proof.CollisionCharge
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -388,3 +389,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.Extraction.Fors.recoveredLeaf_canonical_secret_or_collision' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.Fors.recoveredLeaf_canonical_secret_or_collision
+
+/-- info: 'SlhDsaSecurity.CollisionCharge.fresh_tweakable_prob_hit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CollisionCharge.fresh_tweakable_prob_hit
+
+/-- info: 'SlhDsaSecurity.CollisionCharge.fresh_tweakable_prob_mem_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CollisionCharge.fresh_tweakable_prob_mem_le
