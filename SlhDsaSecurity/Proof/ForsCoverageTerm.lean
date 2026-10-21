@@ -153,4 +153,51 @@ theorem prob_coverage_within_le_of_family {α : Type} (computation : OracleComp 
       (fun index tree => hload input index tree) hmoment input
   · rw [mul_one_div]
 
+/-! ## The cap holds outright when few digests were signed
+
+`prob_coveredAnswer_le_sharper` assumes the fourteenth-moment cap
+`∑ i, loads i ^ 14 ≤ 2 ^ 102`. Establishing it in general is a concentration argument and
+costs a defect of `2 ^ -126`, which the per-class assembly pays out of the message-class
+slack — and that slack is `qm / 2 ^ 129`, so it covers the defect only once `qm ≥ 16`.
+
+Below `qm = 16` the cap needs no argument at all. Each message-class query discloses the
+fourteen leaves of one digest, so with fewer than sixteen of them at most fifteen instances
+carry any load and none carries more than fifteen. Then
+
+    ∑ i, loads i ^ 14 ≤ 15 · 15 ^ 14 = 15 ^ 15 < 2 ^ 59 ,
+
+comfortably inside `2 ^ 102`. So the dichotomy closes: above the threshold the slack pays for
+the concentration bound, below it the cap is free. -/
+
+/-- **The cap is free when the load is supported on few instances.** -/
+theorem moment_le_of_small_support (loads : ForsCoverage.Instance → Nat)
+    (carriers : Finset ForsCoverage.Instance)
+    (hzero : ∀ index, index ∉ carriers → loads index = 0)
+    (hsmall : carriers.card ≤ 15) (hbound : ∀ index, loads index ≤ 15) :
+    ∑ index, loads index ^ 14 ≤ 2 ^ 102 := by
+  classical
+  have hrestrict : ∑ index, loads index ^ 14 = ∑ index ∈ carriers, loads index ^ 14 := by
+    refine (Finset.sum_subset (Finset.subset_univ carriers) ?_).symm
+    intro index _ hnot
+    rw [hzero index hnot]
+    simp
+  calc ∑ index, loads index ^ 14
+      = ∑ index ∈ carriers, loads index ^ 14 := hrestrict
+    _ ≤ ∑ _index ∈ carriers, 15 ^ 14 :=
+        Finset.sum_le_sum fun index _ => Nat.pow_le_pow_left (hbound index) 14
+    _ = carriers.card * 15 ^ 14 := by rw [Finset.sum_const, smul_eq_mul]
+    _ ≤ 15 * 15 ^ 14 := Nat.mul_le_mul_right _ hsmall
+    _ ≤ 2 ^ 102 := by norm_num
+
+/-- The same in the form the dichotomy uses: fewer than sixteen signed digests. -/
+theorem moment_le_of_few_digests (loads : ForsCoverage.Instance → Nat)
+    (carriers : Finset ForsCoverage.Instance) (messageQueries : Nat)
+    (hfew : messageQueries < 16)
+    (hzero : ∀ index, index ∉ carriers → loads index = 0)
+    (hsmall : carriers.card ≤ messageQueries)
+    (hbound : ∀ index, loads index ≤ messageQueries) :
+    ∑ index, loads index ^ 14 ≤ 2 ^ 102 :=
+  moment_le_of_small_support loads carriers hzero
+    (hsmall.trans (by omega)) (fun index => (hbound index).trans (by omega))
+
 end SlhDsaSecurity.ForsCoverageTerm
