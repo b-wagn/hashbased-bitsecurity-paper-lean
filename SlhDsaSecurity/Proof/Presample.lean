@@ -186,4 +186,81 @@ theorem evalDist_prepend_evaluate {α State Index : Type}
     simp only [uniformSampleImpl, bind_map_left, map_eq_bind_pure_comp, Function.comp_def,
       bind_assoc, pure_bind]
 
+/-! ## The same, in the game's oracle world
+
+The experiment is `OracleComp OracleWorld` — hash calls and coin flips together — so the step
+has to be available there too. A coin flip does not touch the hash cache, so it commutes with
+the prepended draw exactly as a hash query at a different input does; that is the only new
+case.
+
+One detail decides whether this goes through. The prepended draw puts the right-hand side
+under a binder, and `rw` does not rewrite under binders: unfolding the query step with `rw`
+rewrites only the left, after which the two sides no longer match and every later step fails
+on a `Range` mismatch that is really just the untouched side. Using `simp only` for that first
+unfolding, which does go under binders, removes the whole difficulty. -/
+
+theorem evalDist_prepend_fresh_world {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (cache : QueryCache HashSpec) (target : Bytes), cache target = none →
+      𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom computation).run cache] =
+        𝒟[(do
+          let value ← ($ᵗ HashOutput : ProbComp HashOutput)
+          Prod.fst <$> (simulateQ KeygenUniform.rom computation).run
+            (cache.cacheQuery target value))] := by
+  induction computation using OracleComp.inductionOn with
+  | pure result =>
+    intro cache target _
+    simp only [simulateQ_pure, StateT.run_pure, map_pure]
+    exact (OracleComp.DeferredSampling.evalDist_bind_const_neverFails _ (by simp) _).symm
+  | query_bind queried next ih =>
+    intro cache target hfresh
+    simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind]
+    rcases queried with coin | input
+    · have hcoin : ∀ probe : QueryCache HashSpec,
+          (KeygenUniform.rom (Sum.inl coin)).run probe =
+            (fun value => (value, probe)) <$>
+              ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _) := fun _ => rfl
+      simp only [hcoin, bind_map_left]
+      refine (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+        (fun value => ih value cache target hfresh)).trans ?_
+      exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
+    · have hmissAt : ∀ probe : QueryCache HashSpec, probe input = none →
+          (KeygenUniform.rom (Sum.inr input)).run probe =
+            (fun value => (value, probe.cacheQuery input value)) <$>
+              ($ᵗ (OracleWorld.Range (Sum.inr input)) : ProbComp _) := by
+        intro probe hprobe
+        change (randomOracle input).run probe = _
+        rw [QueryImpl.withCaching_run_none _ hprobe]
+        simp [uniformSampleImpl]
+      have hhitAt : ∀ (probe : QueryCache HashSpec)
+          (value : OracleWorld.Range (Sum.inr input)), probe input = some value →
+          (KeygenUniform.rom (Sum.inr input)).run probe = pure (value, probe) := by
+        intro probe value hprobe
+        change (randomOracle input).run probe = _
+        rw [QueryImpl.withCaching_run_some _ hprobe]
+      by_cases hsame : input = target
+      · subst hsame
+        simp only [hmissAt cache hfresh, bind_map_left]
+        refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ (fun value => ?_)
+        simp only [hhitAt (cache.cacheQuery input value) value
+          (QueryCache.cacheQuery_self cache input value), pure_bind]
+      · cases hlookup : cache input with
+        | some cached =>
+          simp only [hhitAt cache cached hlookup, pure_bind]
+          refine (ih cached cache target hfresh).trans
+            (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ (fun value => ?_))
+          simp only [hhitAt (cache.cacheQuery target value) cached
+            (by rw [QueryCache.cacheQuery_of_ne cache value hsame]; exact hlookup), pure_bind]
+        | none =>
+          simp only [hmissAt cache hlookup, bind_map_left]
+          refine (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+            (fun value => ih value (cache.cacheQuery input value) target
+              (by rw [QueryCache.cacheQuery_of_ne cache value (Ne.symm hsame)];
+                  exact hfresh))).trans ?_
+          refine (OracleComp.DeferredSampling.evalDist_bind_comm _ _ _).trans ?_
+          refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ (fun extra => ?_)
+          simp only [hmissAt (cache.cacheQuery target extra)
+            (by rw [QueryCache.cacheQuery_of_ne cache extra hsame]; exact hlookup),
+            bind_map_left, cacheQuery_comm cache hsame]
+          rfl
+
 end SlhDsaSecurity.Presample
