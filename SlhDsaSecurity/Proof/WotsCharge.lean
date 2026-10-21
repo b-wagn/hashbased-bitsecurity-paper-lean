@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.CacheReplay
 import SlhDsaSecurity.Proof.Extraction.Wots
+import SlhDsaSecurity.Proof.Extraction.WotsPreimage
 import SlhDsaSecurity.Proof.CanonicalCells
 import SlhDsaSecurity.Proof.CanonicalGraph.Correspondence
 
@@ -223,5 +224,38 @@ theorem deviatingCollision_of_chainCollision_canonical_at {α : Type}
   · simp [StructuralNode.address]
   · rw [CanonicalCells.parentCell_tweakable cache secretSeed publicSeed, hchildren,
       CollisionToDeviating.childBytes_single, hchild]
+
+/-! ## The chain branch of a layer collision
+
+`LayerCollision`'s third disjunct, spelled exactly as the extraction produces it: a chain
+index, an offset below the room left by the signed digit, and a collision whose honest side is
+the *signed* WOTS value. `Extraction.WotsPreimage.sign_eq_chain` rewrites that signed value as
+the chain from the derived secret, which is the form the charge takes. -/
+
+/-- **The chain branch of a layer collision is charged.** -/
+theorem deviatingCollision_of_chainBranch {α : Type} (secretSeed publicSeed message : Digest)
+    (cache : QueryCache HashSpec) (key : WotsKey) (chainIndex : Fin chains)
+    (forged : Digest) (offset : Nat)
+    (hoffset : offset < w - 1 - (Checksum.encode message chainIndex).val)
+    (hcollision : @Wots.ChainCollision (CacheReplay.replayQuery cache) publicSeed
+      { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val }
+      (Checksum.encode message chainIndex).val forged
+      (@SlhDsaSecurity.Wots.sign Id _ (CacheReplay.replayQuery cache) message secretSeed
+        publicSeed key.address chainIndex) offset)
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hcache : result.2 = cache)
+    (hposition : (Checksum.encode message chainIndex).val + offset < w - 1)
+    (hentry : cache (Hashing.tweakableInput publicSeed
+      (StructuralNode.wotsHash key chainIndex
+        ⟨(Checksum.encode message chainIndex).val + offset, hposition⟩).address
+      (bytesBE n (@SlhDsaSecurity.Wots.chain Id _ (CacheReplay.replayQuery cache) publicSeed
+        { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val }
+        (Checksum.encode message chainIndex).val offset forged))) = some output) :
+    StructuralTerm.DeviatingCollision publicSeed
+      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
+  refine deviatingCollision_of_chainCollision_canonical_at secretSeed publicSeed cache key
+    chainIndex _ offset hposition forged ?_ result output hcache hentry
+  rwa [@Extraction.WotsPreimage.sign_eq_chain (CacheReplay.replayQuery cache) message secretSeed
+    publicSeed key.address chainIndex] at hcollision
 
 end SlhDsaSecurity.WotsCharge
