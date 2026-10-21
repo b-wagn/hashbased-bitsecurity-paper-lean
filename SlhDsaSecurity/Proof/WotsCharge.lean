@@ -108,4 +108,57 @@ theorem deviatingCollision_of_chainCollision_canonical {α : Type}
       CollisionToDeviating.childBytes_single,
       @value_wotsPosition (CacheReplay.replayQuery cache) secretSeed publicSeed]
 
+/-! ## The fifth shape: WOTS public-key compression
+
+`LayerCollision` offers three ways for a layer to fault, and the middle one is a collision at
+the node that compresses the thirty-five chain endpoints into the WOTS public key. That is the
+array shape again — the same as FORS root compression, but over `chains` rather than
+`forsTrees`, and with the children being chain tops rather than tree roots.
+
+The honest children are the chain values at position `w - 1`, which
+`CanonicalGraph.value_wotsPosition` identifies, and the honest parent is the WOTS public key,
+which `CanonicalGraph.wots_publicKey_cell` identifies with the `wotsPk` cell. -/
+
+open scoped Classical in
+/-- **A WOTS public-key compression collision is a charged structural event.** -/
+theorem deviatingCollision_of_compressionCollision {α : Type} (publicSeed : Digest)
+    (cells : Cells) (cache : QueryCache HashSpec) (parent : StructuralNode)
+    (children : Fin chains → Node) (actualEndpoints canonicalEndpoints : Fin chains → Digest)
+    (address : Address)
+    (hchildren : parent.children = List.ofFn children)
+    (hinj : Function.Injective children)
+    (haddress : parent.address = SlhDsaSecurity.Wots.publicKeyAddress address)
+    (hchildCells : ∀ chainIndex, cells (children chainIndex) = canonicalEndpoints chainIndex)
+    (hparentCell : cells (.structural parent) =
+      @Hashing.shortHash Id _ (CacheReplay.replayQuery cache)
+        (Hashing.tweakableInput publicSeed (SlhDsaSecurity.Wots.publicKeyAddress address)
+          (digestArrayBytes canonicalEndpoints)))
+    (hinputs : Hashing.tweakableInput publicSeed
+        (SlhDsaSecurity.Wots.publicKeyAddress address) (digestArrayBytes actualEndpoints) ≠
+      Hashing.tweakableInput publicSeed
+        (SlhDsaSecurity.Wots.publicKeyAddress address) (digestArrayBytes canonicalEndpoints))
+    (hjoins : @Hashing.shortHash Id _ (CacheReplay.replayQuery cache)
+        (Hashing.tweakableInput publicSeed (SlhDsaSecurity.Wots.publicKeyAddress address)
+          (digestArrayBytes actualEndpoints)) =
+      @Hashing.shortHash Id _ (CacheReplay.replayQuery cache)
+        (Hashing.tweakableInput publicSeed (SlhDsaSecurity.Wots.publicKeyAddress address)
+          (digestArrayBytes canonicalEndpoints)))
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hcache : result.2 = cache)
+    (hentry : cache (Hashing.tweakableInput publicSeed parent.address
+      (digestArrayBytes actualEndpoints)) = some output) :
+    StructuralTerm.DeviatingCollision publicSeed cells result := by
+  have harrays : actualEndpoints ≠ canonicalEndpoints := by
+    intro hsame
+    exact hinputs (by rw [hsame])
+  obtain ⟨chainIndex, hchain⟩ := Function.ne_iff.mp harrays
+  refine CollisionToDeviating.deviatingCollision_of_array publicSeed cells parent children
+    actualEndpoints hchildren hinj ⟨chainIndex, ?_⟩ result output ?_ ?_
+  · rw [hchildCells chainIndex]
+    exact hchain
+  · rw [hcache]
+    exact hentry
+  · rw [hparentCell, ← hjoins]
+    exact (CacheReplay.shortHash_replayQuery cache _ output (haddress ▸ hentry)).symm
+
 end SlhDsaSecurity.WotsCharge
