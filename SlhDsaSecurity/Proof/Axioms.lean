@@ -669,3 +669,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.QueryCached.answer_cached_of_hash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.QueryCached.answer_cached_of_hash
+
+/-- info: 'SlhDsaSecurity.CombinedCharge.separated_of_not_possible' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CombinedCharge.separated_of_not_possible
