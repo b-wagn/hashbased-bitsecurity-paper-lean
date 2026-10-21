@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.AdversaryQueries
+import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.SensitiveShape
 import SlhDsaSecurity.Proof.StrippedGame
 import SlhDsaSecurity.Proof.CoverageTail
@@ -3787,3 +3788,123 @@ info: 'SlhDsaSecurity.AdversaryQueries.mem_support_counted_bind_count' depends o
 /-- info: 'SlhDsaSecurity.AdversaryQueries.work_le_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AdversaryQueries.work_le_total
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_simulateQ_map_writer' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_simulateQ_map_writer
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_withAddCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_withAddCost
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_withAddCost_map' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_withAddCost_map
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_recordOf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_recordOf
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.forget_one' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.forget_one
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.forget_mul' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.forget_mul
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_adversaryImpl_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_adversaryImpl_map
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.stateT_map_apply' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.stateT_map_apply
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_liftM_base' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_liftM_base
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_liftM_inner' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_liftM_inner
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_recordedSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_recordedSigningOracle
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_signingOracle_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_signingOracle_map
+
+/--
+info: 'SlhDsaSecurity.RecordedQueries.countQueries_eq_map_countRecorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.countQueries_eq_map_countRecorded
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.countQueries_verification_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.countQueries_verification_eq
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.map_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.map_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.faithful_adversaryCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.faithful_adversaryCost
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.faithful_verifierCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.faithful_verifierCost
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_toAdd_one' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_toAdd_one
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_writer_bind' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_writer_bind
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.run_recordedAdversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.run_recordedAdversaryImpl
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_eq_work_adversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_eq_work_adversaryImpl
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_eq_work_signingOracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_eq_work_signingOracle
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_eq_work_adversary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_eq_work_adversary
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.countRecorded_pure' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.countRecorded_pure
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.countRecorded_query_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.countRecorded_query_bind
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_eq_work_countRecorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_eq_work_countRecorded
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_eq_work' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_eq_work
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_toFinset_le_work' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_toFinset_le_work
+
+/-- info: 'SlhDsaSecurity.RecordedQueries.card_toFinset_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedQueries.card_toFinset_le
