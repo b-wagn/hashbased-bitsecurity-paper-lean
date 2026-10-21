@@ -61,28 +61,8 @@ open CacheReplay Extraction CanonicalGraph
 
 A layer's verification is one `Merkle.publicKeyFromSignature`: a WOTS recovery, then a fold up
 the authentication path. The three collision shapes sit at three places in it, and each needs its
-own descent — into the path fold, into the compression call that ends the WOTS recovery, and into
-one chain of that recovery. -/
-
-/-- **The path fold's `step`-th call consults its input at the extraction's running value.**
-The `QueriesUnder` half of `PathEntry.pathInput_cached`. -/
-theorem queriesUnder_pathInput {height : Nat} (cache : QueryCache HashSpec)
-    (publicSeed : Digest) (addressOf : Nat → Nat → Address) (index : Nat) (leaf : Digest)
-    (siblings : Nat → Digest) (step : Fin height) :
-    QueriesUnder cache
-      ((List.finRange height).foldlM (m := OracleComp HashSpec)
-        (fun value j => Hashing.shortHash
-          (PathEntry.pathInput publicSeed addressOf index siblings value j)) leaf)
-      (PathEntry.pathInput publicSeed addressOf index siblings
-        (BinaryPath.value (PathEntry.pathCombine cache publicSeed addressOf)
-          index leaf siblings step.val) step) := by
-  have hlt : step.val < (List.finRange height).length := by simp [step.isLt]
-  have hquery := queriesUnder_foldlM_get cache
-    (PathEntry.pathInput (height := height) publicSeed addressOf index siblings)
-    (List.finRange height) leaf step.val hlt
-  rwa [show (List.finRange height)[step.val]'hlt = step from by apply Fin.ext; simp,
-    PathEntry.replayFold_eq_value cache publicSeed addressOf index leaf siblings height step.val
-      (le_of_lt step.isLt)] at hquery
+own descent — into the path fold (`PathEntry.queriesUnder_pathInput`), into the compression call
+that ends the WOTS recovery, and into one chain of that recovery. -/
 
 /-- The verifier's Merkle recovery is the WOTS recovery followed by the path fold whose steps
 `PathEntry` names. -/
@@ -222,7 +202,7 @@ theorem queriesUnder_merkle_path (cache : QueryCache HashSpec)
         (SlhDsaSecurity.Merkle.wotsAddress address index.val) from
     @VerifierNaturality.wots_simulate Id Id.instMonad _ (CacheReplay.replay cache)
       (CacheReplay.replayQuery cache) (replay_agrees cache) _ _ _ _]
-  exact queriesUnder_pathInput cache publicSeed _ index.val _ _ step
+  exact PathEntry.queriesUnder_pathInput cache publicSeed _ index.val _ _ step
 
 /-! ## The honest endpoints are the graph's chain tops -/
 
