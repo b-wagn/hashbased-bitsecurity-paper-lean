@@ -53,6 +53,7 @@ import SlhDsaSecurity.Proof.ClassCharge
 import SlhDsaSecurity.Proof.SeedDeferral
 import SlhDsaSecurity.Proof.QueryCached
 import SlhDsaSecurity.Proof.ClassBudget
+import SlhDsaSecurity.Proof.CacheReplay
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -690,3 +691,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_single_child' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_single_child
+
+/-- info: 'SlhDsaSecurity.CacheReplay.run_eq_replay' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.run_eq_replay
