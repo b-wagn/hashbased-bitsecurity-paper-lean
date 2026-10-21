@@ -2,6 +2,8 @@ import SlhDsaSecurity.Proof.SensitiveQuery
 import SlhDsaSecurity.Proof.SensitiveShape
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.Extraction.HypertreeChain
+import SlhDsaSecurity.Proof.Extraction.Fors
+import SlhDsaSecurity.Proof.CacheReplay
 
 /-!
 # The canonical graph as a stakes structure
@@ -211,5 +213,62 @@ theorem honestRevealed_le (secretSeed publicSeed : Digest) :
   have := (Checksum.encode (honestMessage secretSeed publicSeed key) chain).isLt
   simp only [honestRevealed, w, winternitzBits] at this ⊢
   omega
+
+/-! ## The FORS disclosure is coverage or a sensitive query
+
+The split's third branch says the forgery holds the honest FORS secret at every position its
+digest selects. A FORS secret is available exactly when its index is in the signed set, so
+position by position there are only two possibilities: the signing log selected that index — the
+coverage event — or the cell is unavailable, and then by the closure it is not obtainable
+either, so the run reached it by a query at a sensitive node.
+
+Nothing here decides which; it is the honest statement of the fork, which is what the gap in
+`ForsLeafCharge`'s account was. -/
+
+omit [HasQuery HashSpec Id] in
+/-- **An unsigned FORS secret is not obtainable.** -/
+theorem not_obtainable_forsPrf (state : State) (key : ForsKey)
+    (index : Fin (forsTrees * 2 ^ forsHeight)) (hunsigned : index ∉ signedAt state key) :
+    ¬ Obtainable graph (fun other => ¬ unavailableAt revealed signedAt state other)
+      (.structural (.forsPrf key index)) := fun hobtain =>
+  hunsigned (not_unavailable_of_obtainable revealed signedAt state hobtain)
+
+/-- The position a FORS tree's selected leaf sits at, as a graph index. -/
+def forsIndex (indices : SlhDsaSecurity.Fors.Indices) (tree : Fin forsTrees) :
+    Fin (forsTrees * 2 ^ forsHeight) :=
+  ⟨Extraction.Fors.leafIndex indices tree, by
+    have htree := tree.isLt
+    have hleaf := (indices tree).isLt
+    have hstep : tree.val * 2 ^ forsHeight + (indices tree).val <
+        (tree.val + 1) * 2 ^ forsHeight := by
+      rw [Nat.succ_mul]
+      omega
+    exact lt_of_lt_of_le hstep (Nat.mul_le_mul_right _ htree)⟩
+
+omit [HasQuery HashSpec Id] in
+@[simp] theorem forsIndex_val (indices : SlhDsaSecurity.Fors.Indices) (tree : Fin forsTrees) :
+    (forsIndex indices tree).val = Extraction.Fors.leafIndex indices tree := rfl
+
+omit [HasQuery HashSpec Id] in
+/-- **The FORS disclosure, position by position: signed, or not obtainable.** -/
+theorem forsSecret_signed_or_not_obtainable (cache : QueryCache HashSpec)
+    (secretSeed : Digest) (key : ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
+    (signature : ForsSignature) (state : State)
+    (hsecrets : ∀ tree : Fin forsTrees, (signature tree).secret =
+      @SlhDsaSecurity.Fors.secret Id Id.instMonad (CacheReplay.replayQuery cache)
+        secretSeed publicSeed key.address (Extraction.Fors.leafIndex indices tree))
+    (tree : Fin forsTrees) :
+    (signature tree).secret =
+        @value (CacheReplay.replayQuery cache) secretSeed publicSeed
+          (.structural (.forsPrf key (forsIndex indices tree))) ∧
+      (forsIndex indices tree ∈ signedAt state key ∨
+        ¬ Obtainable graph (fun other => ¬ unavailableAt revealed signedAt state other)
+          (.structural (.forsPrf key (forsIndex indices tree)))) := by
+  classical
+  refine ⟨(hsecrets tree).trans (@fors_secret_cell (CacheReplay.replayQuery cache) secretSeed
+    publicSeed key (forsIndex indices tree)), ?_⟩
+  by_cases hsigned : forsIndex indices tree ∈ signedAt state key
+  · exact Or.inl hsigned
+  · exact Or.inr (not_obtainable_forsPrf revealed signedAt state key _ hsigned)
 
 end SlhDsaSecurity.GraphStakes

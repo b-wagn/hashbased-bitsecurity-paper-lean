@@ -4097,3 +4097,19 @@ info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq_of_commute' depends on
 /-- info: 'SlhDsaSecurity.GraphStakes.honestRevealed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GraphStakes.honestRevealed_le
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_obtainable_forsPrf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_obtainable_forsPrf
+
+/-- info: 'SlhDsaSecurity.GraphStakes.forsIndex_val' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.forsIndex_val
+
+/--
+info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable
