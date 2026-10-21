@@ -1358,3 +1358,34 @@ proved is about fresh forgeries, and this is the one step that uses what freshne
 `CoverageRouted.forgeryCovered_of_witnesses` closes the branch the moment the structural side
 rules out "the forgery's own input is the only witness", so everything else on that route is
 already proved.
+
+## `signedAt` was too generous, and what closing it costs
+
+Found while routing the replay case: availability read "some cached message-class digest selects
+this position". The adversary can pick a randomiser of its own, query `H_msg(R, PK, M)` itself,
+and thereby mark all fourteen of that digest's positions available with its own input as the
+only witness. Then the claim is not sensitive so the input half does not charge it, coverage
+does not fire because the only witness is the target, and the canonical-signature route misses
+because the randomiser is not the signer's — while the adversary still has to hold honest FORS
+secrets no signature disclosed, which is the event the charge exists for.
+
+The tightening: count a digest only when the signer's own randomiser entry is cached too — the
+entry at `randomizerInput SK.prf PK.seed M`, whose answer truncates to the randomiser the
+message input carries. The signer queries `PRF_msg` before `H_msg`, so every genuinely signed
+message has it; it is still a function of the cache and still monotone along `Persists`; and in
+the remaining witness-is-target case the randomiser is then the signer's, which is exactly the
+hypothesis the canonical-signature route was missing.
+
+**That moves the gate rather than removing it, and the gate has to be paid for.** The adversary
+can still manufacture the entry by querying `randomizerInput` with the real `SK.prf`, which the
+format carries in the clear, and such a query is not a canonical input so the sensitive-node
+charge does not see it. It is the one-secret case — `SeedDeferral.prob_run_guesses_secret_le`
+at `guessOf := the first n bytes as a Digest` — and the budget stays flat because the two
+events sit on disjoint classes: a canonical input begins with `PK.seed`, a `randomizerInput`
+carrying `SK.prf` begins with `SK.prf`, so each query falls in at most one and the two class
+counts add to the record length. The exception, `SK.prf = PK.seed`, costs one unit of `2 ^ -128`
+against the 760 units of margin, and joins the defect list.
+
+This is the second place where an over-approximation of availability was sound-looking and
+wrong — the first was stripping every FORS leaf. Both failed the same way: a predicate loose
+enough to be convenient let the adversary reach a protected cell without being charged.
