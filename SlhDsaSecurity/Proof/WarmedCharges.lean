@@ -213,4 +213,53 @@ theorem blindCache_seedInput_none (publicSeed : Digest) (cells : Cells)
     Programming.cacheFrom_lookup, if_neg (fun hmem => (mem_blindOrder node).mp hmem hprf)]
   rfl
 
+/-! ## The blind cache does not know the secret
+
+The point of stripping the PRF nodes, rather than relabelling them with a dummy seed: what is
+left mentions `SK.seed` nowhere. A non-PRF node's canonical input reads only its own children,
+and the secret-seed cell is not among them, so the whole blind cache is the same table for
+every secret. That is what lets the secret be drawn *after* the blind run, which is what
+`SeedDeferral.prob_run_meets_honest_key_le` requires and what a dummy-seed relabelling could
+never give — there the dummy is itself a seed the adversary may hunt for, and the comparison
+returns the same quantity it was meant to bound. -/
+
+/-- A non-PRF node's canonical input does not read the secret-seed cell. -/
+theorem canonicalInput_of_not_prf (publicSeed : Digest) (cells cells' : Cells)
+    (hstructural : ∀ parent : StructuralNode,
+      cells (CanonicalGraph.Node.structural parent) = cells' (.structural parent))
+    {parent : StructuralNode} (hprf : ¬ BlindComparison.IsPrfNode parent) :
+    canonicalInput publicSeed cells parent = canonicalInput publicSeed cells' parent := by
+  rw [canonicalInput, canonicalInput, CanonicalGraph.childBytes, CanonicalGraph.childBytes]
+  refine congrArg _ (congrArg _ (List.map_congr_left fun child hchild => ?_))
+  cases child with
+  | secretSeed => exact absurd hchild hprf
+  | structural inner => rw [hstructural inner]
+
+/-- **The blind cache is the same table for every secret.** -/
+theorem blindCache_indep_of_secret (publicSeed : Digest) (outputs : Programming.Outputs)
+    (secret secret' : Digest) :
+    blindCache publicSeed (Programming.cellsOfOutputs secret outputs) outputs =
+      blindCache publicSeed (Programming.cellsOfOutputs secret' outputs) outputs := by
+  have hstructural : ∀ parent : StructuralNode,
+      Programming.cellsOfOutputs secret outputs (CanonicalGraph.Node.structural parent) =
+        Programming.cellsOfOutputs secret' outputs (.structural parent) := fun _ => rfl
+  rw [blindCache, blindCache]
+  suffices hgeneral : ∀ (parents : List StructuralNode),
+      (∀ parent ∈ parents, ¬ BlindComparison.IsPrfNode parent) →
+      ∀ cache : QueryCache HashSpec,
+        Programming.cacheFrom publicSeed (Programming.cellsOfOutputs secret outputs) outputs
+            parents cache =
+          Programming.cacheFrom publicSeed (Programming.cellsOfOutputs secret' outputs) outputs
+            parents cache from
+    hgeneral blindOrder (fun parent hparent => (mem_blindOrder parent).mp hparent) ∅
+  intro parents
+  induction parents with
+  | nil => intro _ cache; rfl
+  | cons current parents ih =>
+    intro hnone cache
+    rw [Programming.cacheFrom, Programming.cacheFrom,
+      canonicalInput_of_not_prf publicSeed _ _ hstructural
+        (hnone current (List.mem_cons_self ..))]
+    exact ih (fun parent hparent => hnone parent (List.mem_cons_of_mem _ hparent)) _
+
 end SlhDsaSecurity.WarmedCharges

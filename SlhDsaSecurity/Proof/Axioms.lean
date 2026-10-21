@@ -3001,3 +3001,11 @@ info: 'SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_top_fault' de
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_top_fault
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.canonicalInput_of_not_prf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.canonicalInput_of_not_prf
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.blindCache_indep_of_secret' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.blindCache_indep_of_secret
