@@ -321,10 +321,34 @@ Four obligations remain, in increasing order of difficulty.
    the instrumented counter: `Security.HasBudget` says
    `Pr[counts.signing ≤ 2 ^ 64 ∧ counts.work ≤ q] = 1`. An arbitrary adversary meeting the
    counter bound need not meet a syntactic one, so `prob_hit_le` does not apply as stated.
-   `probEvent_eq_one_iff` turns `HasBudget` into a support-wise bound, so the fix is to
-   reprove the induction with the charged count carried in the simulation state rather than
-   as a syntactic side condition. This is bounded work of the same shape and size as the
-   existing proof, and it is the next thing to do.
+
+   VCVio's cost-to-query-bound bridge does **not** close this gap, and it is worth not
+   retrying it: `WorstCaseCostBound.toIsPerIndexQueryBound_unit` is stated only for
+   `CostModel.unit`, which charges *every* query one unit, whereas
+   `RandomOracleModel.hashCost` charges `.inl _ => 0`. The adversary may therefore make
+   unboundedly many free uniform-coin queries while keeping its hash count under `q`, so no
+   unit-cost worst-case bound holds and no finite per-index bound exists for the `unifSpec`
+   indices. A predicate-relative bridge (cost model = indicator of `HashQuery`) is not
+   provided by VCVio and would have to be proved, needing the full-support property of
+   uniform queries to decompose the support hypothesis at each query.
+
+   Two viable routes:
+   * *Custom instrumentation.* Carry the charged count in the simulation state, e.g. over
+     `StateT (QueryCache HashSpec × Nat)`, and reprove the induction with the budget
+     enforced by the event `Hit ∧ count ≤ q` rather than syntactically. The branch where
+     the budget is exhausted is killed by the event. Cost: the existing cache lemmas
+     (`QueryImpl.withCaching_run_none/some`) must be re-derived for the product state.
+   * *Cache growth, needing no new instrumentation.* Only a cache **miss** draws fresh
+     randomness, so only a miss can newly hit the target; the number of misses during the
+     charged phase is exactly the growth `|finalCache| - |initialCache|`, a function of the
+     observable final state, and it is bounded by the number of charged hash queries. So it
+     suffices to prove `Pr[Hit ∧ growth ≤ q] ≤ q / 2 ^ 128` by the same induction, with the
+     budget enforced by the event. This reuses every existing cache lemma unchanged and is
+     the preferred route; `XmssSecurity/Proof/.../CacheCardinality.lean` suggests the XMSS
+     development already uses cache cardinality this way. It requires running the charge
+     only on the adversary-plus-verifier phase, starting from the post-keygen/post-signing
+     cache, so that all growth in that phase is charged — which is exactly the
+     decomposition `ROMPresampling` was built to provide.
 2. **Assembling the structural term.** Combine `Extraction.*` (every fault witness),
    `CanonicalTarget.hit_of_deviating_collision` (each witness is a charged hit) and the
    counter-based charge from (1) into a single `q / 2 ^ 128` term for the whole game. This
