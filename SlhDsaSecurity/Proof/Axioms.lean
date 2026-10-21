@@ -4332,3 +4332,11 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.OpenCache.lazyProgram_step_congr_graph' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.OpenCache.lazyProgram_step_congr_graph
+
+/-- info: 'SlhDsaSecurity.OpenCache.withFlag_run' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.withFlag_run
+
+/-- info: 'SlhDsaSecurity.OpenCache.evalDist_stalled_lazyProgram_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.evalDist_stalled_lazyProgram_congr

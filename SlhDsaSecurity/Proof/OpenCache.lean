@@ -203,4 +203,46 @@ theorem lazyProgram_step_congr_graph (revealed : WotsKey → Fin chains → Nat)
       available_of_children_available revealed (signedAt cache) hchildren)
     index left right hagree queried state hindex
 
+
+/-! ## The stalled handler is blind to the cell it stalled on
+
+`StalledRun` wants a flag alongside the state, which this handler has no use for, so it is
+carried untouched. What comes out is the hypothesis-free form: stalled at the moment the cell
+becomes available, the handler's whole run has a law not mentioning that cell. -/
+
+/-- The handler with a flag alongside, which it does not touch. -/
+noncomputable def withFlag (impl : QueryImpl OracleWorld (StateT HandlerState ProbComp)) :
+    QueryImpl OracleWorld (StateT (HandlerState × Bool) ProbComp) :=
+  fun queried state => do
+    let step ← (impl queried).run state.1
+    pure (step.1, (step.2, state.2))
+
+theorem withFlag_run (impl : QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
+    ((withFlag impl) queried).run state =
+      (impl queried).run state.1 >>= fun step =>
+        (pure (step.1, (step.2, state.2)) : ProbComp _) := rfl
+
+/-- **The stalled run does not mention the cell it stalled on.** -/
+theorem evalDist_stalled_lazyProgram_congr {α : Type}
+    (availableAt : QueryCache HashSpec → Node → Prop)
+    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt cache child) →
+        availableAt cache (.structural parent))
+    (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (oa : OracleComp OracleWorld α) (state : HandlerState × Bool) :
+    𝒟[(simulateQ (StalledRun.stalled (withFlag (lazyProgram publicSeed availableAt left))
+          (fun inner => availableAt inner.1 index) stall) oa).run state] =
+      𝒟[(simulateQ (StalledRun.stalled (withFlag (lazyProgram publicSeed availableAt right))
+          (fun inner => availableAt inner.1 index) stall) oa).run state] :=
+  StalledRun.evalDist_stalled_congr
+    (fun table => withFlag (lazyProgram publicSeed availableAt table))
+    (fun inner => availableAt inner.1 index) stall (AgreeOff index)
+    (fun queried p first second hfirst hfrozen => by
+      rw [withFlag_run, withFlag_run,
+        lazyProgram_step_congr publicSeed availableAt hclosed index first second hfirst
+          queried p.1 hfrozen])
+    oa left right hagree state
+
 end SlhDsaSecurity.OpenCache
