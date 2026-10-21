@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.ForsBranch
 import SlhDsaSecurity.Proof.WarmedSplit
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.CachedRun
@@ -2915,3 +2916,7 @@ info: 'SlhDsaSecurity.WarmedSplit.keygenInternal_eq_replay_of_subset' depends on
 /-- info: 'SlhDsaSecurity.WarmedSplit.cases_of_win' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WarmedSplit.cases_of_win
+
+/-- info: 'SlhDsaSecurity.ForsBranch.deviatingCollision_or_secrets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsBranch.deviatingCollision_or_secrets
