@@ -55,4 +55,32 @@ theorem cases_of_hypertreeFault (secretSeed publicSeed : Digest) :
         hwitness.1, hwitness.2⟩
     · exact ih _ _ _ _ _ _ hrest
 
+/-! ## The top of the structural chain
+
+Composing the seven-layer soundness theorem with the flattening gives the statement the
+charge consumes directly: an accepted hypertree signature either carries the genuine FORS
+public key — in which case the forgery has to be explained on the FORS side, which is the
+business of `Extraction.Fors` — or it exhibits one of the two faults, and each of those is
+charged.
+
+Nothing in this step is probabilistic. It is the whole structural reduction of SLH-DSA
+verification to events a random oracle can be charged for, with no assumption of collision
+resistance or one-wayness anywhere: both are *conclusions* about the adversary's queries, not
+hypotheses about the hash. -/
+
+/-- **An accepted hypertree signature is canonical or faulty.** -/
+theorem cases_of_accepted (secretSeed publicSeed : Digest) (pk : PublicKey)
+    (tree : SlhDsaSecurity.Hypertree.TreeIndex) (leaf : SlhDsaSecurity.Hypertree.LeafIndex)
+    (forsKey honestForsKey : Digest) (signature : HypertreeSignature)
+    (hseed : pk.seed = publicSeed)
+    (hroot : pk.root = honestNode secretSeed publicSeed (layers - 1) 0)
+    (haccept : SlhDsaSecurity.Hypertree.verify (m := Id) forsKey signature pk tree leaf = true) :
+    forsKey = honestForsKey ∨
+      SomeLayerCollision secretSeed publicSeed ∨ SomeWotsWitness secretSeed publicSeed := by
+  rcases verify_fault_or_fors_canonical secretSeed publicSeed pk tree leaf forsKey honestForsKey
+    signature hseed hroot haccept with hcanonical | hfault
+  · exact Or.inl hcanonical
+  · exact Or.inr (cases_of_hypertreeFault secretSeed publicSeed layers signature 0 tree.toNat
+      leaf forsKey honestForsKey hfault)
+
 end SlhDsaSecurity.HypertreeDispatch
