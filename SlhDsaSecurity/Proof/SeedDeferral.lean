@@ -247,4 +247,54 @@ theorem prob_any_honest_key_le {Index : Type} (inputOf : Digest → Index → By
         rw [Finset.sum_const, nsmul_eq_mul]
     _ ≤ candidates.card / ((2 ^ 128 : Nat) : ℝ≥0∞) := le_of_eq (by rw [mul_one_div])
 
+/-! ## The blind side, closed
+
+In the blind game the adversary never sees a seed-derived cache entry, so its run — and hence
+the set of inputs it has queried — does not involve the seed at all. Drawing the seed after
+that run is then legitimate, and the chance that any queried input is seed-derived is at most
+one per query.
+
+Together with `BlindComparison.prob_touched_eq`, which says the real game touches the
+seed-derived keys with exactly the same probability as the blind one, this is the input half
+of the budget: `q / 2 ^ 128`, with no slack lost to the comparison. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **A seed-independent run meets a seed-derived key with probability at most one per
+query.** -/
+theorem prob_run_meets_honest_key_le {α Index : Type} (blindRun : ProbComp (α × Finset Bytes))
+    (inputOf : Digest → Index → Bytes) (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective fun secret : Digest => inputOf secret node)
+    (limit : Nat) (hlimit : ∀ result ∈ support blindRun, (result.2).card ≤ limit) :
+    Pr[fun pair : (α × Finset Bytes) × Digest =>
+        ∃ candidate ∈ pair.1.2, ∃ node : Index, inputOf pair.2 node = candidate |
+      (do
+        let result ← blindRun
+        let secret ← ($ᵗ Digest : ProbComp Digest)
+        pure (result, secret))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [probEvent_bind_eq_tsum]
+  calc ∑' result, Pr[= result | blindRun] *
+        Pr[fun pair : (α × Finset Bytes) × Digest =>
+            ∃ candidate ∈ pair.1.2, ∃ node : Index, inputOf pair.2 node = candidate |
+          (do
+            let secret ← ($ᵗ Digest : ProbComp Digest)
+            pure (result, secret))]
+      ≤ ∑' result, Pr[= result | blindRun] * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        refine ENNReal.tsum_le_tsum fun result => ?_
+        by_cases hmem : result ∈ support blindRun
+        · refine mul_le_mul' le_rfl ?_
+          rw [bind_pure_comp, probEvent_map]
+          refine le_trans (prob_any_honest_key_le inputOf locate hlocate hinj (result.2)) ?_
+          exact ENNReal.div_le_div_right (Nat.cast_le.mpr (hlimit result hmem)) _
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+          simp
+    _ = (∑' result, Pr[= result | blindRun]) * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        ENNReal.tsum_mul_right
+    _ ≤ 1 * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        mul_le_mul' tsum_probOutput_le_one le_rfl
+    _ = _ := one_mul _
+
 end SlhDsaSecurity.SeedDeferral
