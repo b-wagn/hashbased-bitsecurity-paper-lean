@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.CanonicalTarget
 import SlhDsaSecurity.Proof.Extraction.BinaryPath
+import SlhDsaSecurity.Proof.StructuralTerm
 
 /-!
 # Path collisions are deviating canonical-graph queries
@@ -19,6 +20,8 @@ two: a binary structural node has exactly two children, and the canonical graph'
 With this, mapping a path collision to a deviating query is a matter of naming the parent
 node and the candidate cells; the byte inputs already agree on the nose.
 -/
+
+open OracleComp OracleSpec
 
 namespace SlhDsaSecurity.CollisionToDeviating
 
@@ -69,5 +72,50 @@ theorem exists_deviating_child (cells : Cells) (left right : Node)
         exact hne (by rw [hleft, hright])
       simpa [hdistinct.symm] using hright
     · exact ⟨left, by simp, by simpa using hleft⟩
+
+/-! ## From a Merkle-layer collision to a charged structural event
+
+The extraction chain hands back a `LayerCollision`: the verifier recomputed a node and got the
+honest value although the two children it hashed were not the honest pair. The charge, on the
+other side, is stated about `StructuralTerm.DeviatingCollision` — a cache entry at the
+canonical input of a *deviating* candidate assignment whose answer truncates to the honest
+cell. The lemma below is the join.
+
+Only one thing has to be supplied beyond what the collision already says, and it is the reason
+this is a lemma rather than a rewrite: a cache entry. The collision is a statement about
+values the verifier computed; the charge is a statement about what is in the oracle cache. The
+bridge is that the verifier obtained the value by querying, so the entry is there — and that
+query is one of the `q` charged calls, which is exactly why the event is affordable at the
+structural rate. The hypothesis `hentry` is where a caller discharges that.
+-/
+
+/-- **A Merkle-layer collision is a charged structural event.** If the cache holds an answer at
+the tree node's input formed from a pair of child values that is not the honest pair, and that
+answer truncates to the node's honest cell, the run has produced a `DeviatingCollision`. -/
+theorem deviatingCollision_of_tree_pair {α : Type} (publicSeed : Digest) (cells : Cells)
+    (location : Tree) (height : Fin subtreeHeight)
+    (index : Fin (2 ^ (subtreeHeight - (height.val + 1))))
+    (actualLeft actualRight : Digest)
+    (hchildren : (StructuralNode.tree location height index).children =
+      [.structural (merkleChild location height index 0),
+        .structural (merkleChild location height index 1)])
+    (hdistinct : (Node.structural (merkleChild location height index 0)) ≠
+      .structural (merkleChild location height index 1))
+    (hne : (actualLeft, actualRight) ≠
+      (cells (.structural (merkleChild location height index 0)),
+        cells (.structural (merkleChild location height index 1))))
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hentry : result.2 (Hashing.tweakableInput publicSeed
+        (StructuralNode.tree location height index).address
+        (Extraction.BinaryPath.pairBytes (actualLeft, actualRight))) = some output)
+    (hcollision : Hashing.truncate output =
+      cells (.structural (.tree location height index))) :
+    StructuralTerm.DeviatingCollision publicSeed cells result := by
+  obtain ⟨candidates, hleft, hright, hdeviates⟩ :=
+    exists_deviating_child cells _ _ actualLeft actualRight hne hdistinct
+  refine ⟨candidates, .tree location height index, output, ?_, ?_, hcollision⟩
+  · obtain ⟨child, hmember, hdiffers⟩ := hdeviates
+    exact ⟨child, by rw [hchildren]; exact hmember, hdiffers⟩
+  · rwa [canonicalInput_tree publicSeed candidates location height index, hleft, hright]
 
 end SlhDsaSecurity.CollisionToDeviating

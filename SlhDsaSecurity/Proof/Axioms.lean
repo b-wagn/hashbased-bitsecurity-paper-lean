@@ -656,3 +656,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.SeedDeferral.prob_any_honest_key_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedDeferral.prob_any_honest_key_le
+
+/-- info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_tree_pair' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_tree_pair
