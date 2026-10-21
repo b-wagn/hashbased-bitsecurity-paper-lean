@@ -261,6 +261,174 @@ theorem prob_cache_value_le {α : Type} (computation : OracleComp OracleWorld α
               mul_le_mul' tsum_probOutput_le_one le_rfl
           _ = _ := one_mul _
 
+/-! ## Pinning many coordinates: the partial-random-function invariant
+
+Generalising `prob_cache_value_le` from one coordinate to a finite set gives the invariant
+the disclosure load cap needs: along any run started from a cache that is absent on a finite
+set of inputs, the answers eventually recorded at those inputs behave as independent uniform
+draws. Concretely, hitting one prescribed assignment costs `|HashOutput| ^ -|pinned|`.
+
+Summing over a set of assignments then bounds any event defined by the recorded answers, in
+particular "the FORS instances of the signed digests violate the load cap". The bound is an
+inequality rather than an exact law, which is what makes it robust: the adversary may fail,
+and distinct coordinates may be queried in any order and by either party.
+-/
+
+set_option maxHeartbeats 1000000 in
+theorem prob_cache_values_le {α : Type} (computation : OracleComp OracleWorld α)
+    (targets : Bytes → HashOutput) (pinned : Finset Bytes) (cache : QueryCache HashSpec)
+    (hfresh : ∀ x ∈ pinned, cache x = none) :
+    Pr[fun result : α × QueryCache HashSpec => ∀ x ∈ pinned, result.2 x = some (targets x) |
+      (simulateQ KeygenUniform.rom computation).run cache] ≤
+      (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing cache pinned with
+  | pure value =>
+    rcases Finset.eq_empty_or_nonempty pinned with rfl | ⟨witness, hwitness⟩
+    · simpa using probEvent_le_one
+    · refine le_of_eq_of_le (b := 0) ?_ (by simp)
+      rw [simulateQ_pure, StateT.run_pure]
+      refine probEvent_eq_zero fun result hresult hvalues => ?_
+      rw [support_pure, Set.mem_singleton_iff] at hresult
+      subst hresult
+      have hvalue : cache witness = some (targets witness) := hvalues witness hwitness
+      rw [hfresh witness hwitness] at hvalue
+      simp at hvalue
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    rcases queried with coin | queried
+    · rw [probEvent_bind_eq_tsum]
+      have hstep : ∀ step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run cache),
+          step.2 = cache := by
+        intro step hstep
+        have hform : ∃ coinValue, (coinValue, cache) = step := by
+          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+        obtain ⟨coinValue, rfl⟩ := hform
+        rfl
+      calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run cache] *
+            Pr[fun result : α × QueryCache HashSpec =>
+                ∀ x ∈ pinned, result.2 x = some (targets x) |
+              (simulateQ KeygenUniform.rom (next step.1)).run step.2]
+          ≤ ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run cache] *
+              ((1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card) := by
+            refine ENNReal.tsum_le_tsum fun step => ?_
+            by_cases hmem : step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run cache)
+            · refine mul_le_mul' le_rfl ?_
+              rw [hstep step hmem]
+              exact ih step.1 pinned cache hfresh
+            · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+              simp
+        _ = (∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run cache]) *
+              ((1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card) :=
+            ENNReal.tsum_mul_right
+        _ ≤ 1 * ((1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card) :=
+            mul_le_mul' tsum_probOutput_le_one le_rfl
+        _ = _ := one_mul _
+    · by_cases hmem : queried ∈ pinned
+      · -- The query is at a pinned coordinate, so it misses and fixes that answer.
+        have hcached : cache queried = none := hfresh queried hmem
+        have hrun : (KeygenUniform.rom (Sum.inr queried)).run cache =
+            (fun answer => (answer, cache.cacheQuery queried answer)) <$>
+              ($ᵗ HashOutput : ProbComp HashOutput) := by
+          change (randomOracle queried).run cache = _
+          rw [QueryImpl.withCaching_run_none _ hcached]
+          simp [uniformSampleImpl]
+        rw [hrun]
+        show Pr[fun result : α × QueryCache HashSpec =>
+            ∀ x ∈ pinned, result.2 x = some (targets x) |
+          (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
+            (simulateQ KeygenUniform.rom (next answer)).run
+              (cache.cacheQuery queried answer))] ≤ _
+        rw [probEvent_bind_eq_tsum]
+        have hcard : pinned.card = (pinned.erase queried).card + 1 := by
+          rw [Finset.card_erase_of_mem hmem]
+          have := Finset.card_pos.mpr ⟨queried, hmem⟩
+          omega
+        have hpointwise : ∀ answer : HashOutput,
+            Pr[fun result : α × QueryCache HashSpec =>
+                ∀ x ∈ pinned, result.2 x = some (targets x) |
+                (simulateQ KeygenUniform.rom (next answer)).run
+                  (cache.cacheQuery queried answer)] ≤
+              (if answer = targets queried then
+                (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ (pinned.erase queried).card
+                else 0) := by
+          intro answer
+          by_cases hanswer : answer = targets queried
+          · rw [if_pos hanswer]
+            refine le_trans (probEvent_mono ?_)
+              (ih answer (pinned.erase queried) (cache.cacheQuery queried answer) ?_)
+            · intro result _ hvalues x hx
+              exact hvalues x (Finset.mem_of_mem_erase hx)
+            · intro x hx
+              rw [QueryCache.cacheQuery_of_ne cache answer (Finset.ne_of_mem_erase hx)]
+              exact hfresh x (Finset.mem_of_mem_erase hx)
+          · rw [if_neg hanswer]
+            refine le_of_eq_of_le (b := 0) ?_ le_rfl
+            refine probEvent_eq_zero fun result hresult hvalues => ?_
+            have hpinnedValue : result.2 queried = some answer :=
+              cache_value_persists (next answer) (cache.cacheQuery queried answer) result.2
+                result.1 hresult queried answer (by rw [QueryCache.cacheQuery_self])
+            have hvalue := hvalues queried hmem
+            rw [hpinnedValue] at hvalue
+            exact hanswer (Option.some.inj hvalue)
+        calc ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+              Pr[fun result : α × QueryCache HashSpec =>
+                  ∀ x ∈ pinned, result.2 x = some (targets x) |
+                (simulateQ KeygenUniform.rom (next answer)).run
+                  (cache.cacheQuery queried answer)]
+            ≤ ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                (if answer = targets queried then
+                  (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ (pinned.erase queried).card
+                  else 0) :=
+              ENNReal.tsum_le_tsum fun answer => mul_le_mul' le_rfl (hpointwise answer)
+          _ = Pr[= targets queried | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ (pinned.erase queried).card := by
+              rw [tsum_eq_single (targets queried) (by intro other hother; simp [hother])]
+              simp
+          _ = _ := by
+              rw [probOutput_uniformSample, hcard, pow_succ]
+              rw [one_div]
+              ring
+      · -- A query at an unpinned coordinate leaves every pinned coordinate absent.
+        rw [probEvent_bind_eq_tsum]
+        have hstep : ∀ step ∈ support ((KeygenUniform.rom (Sum.inr queried)).run cache),
+            ∀ x ∈ pinned, step.2 x = none := by
+          intro step hstep x hx
+          change step ∈ support ((randomOracle queried).run cache) at hstep
+          have hne : x ≠ queried := fun hsame => hmem (hsame ▸ hx)
+          cases hqueried : cache queried with
+          | none =>
+            rw [QueryImpl.withCaching_run_none _ hqueried, support_map] at hstep
+            obtain ⟨sampled, _, hpair⟩ := hstep
+            have hmid : step.2 = cache.cacheQuery queried sampled :=
+              (Prod.ext_iff.mp hpair).2.symm
+            rw [hmid, QueryCache.cacheQuery_of_ne cache sampled hne]
+            exact hfresh x hx
+          | some cached =>
+            rw [QueryImpl.withCaching_run_some _ hqueried, support_pure,
+              Set.mem_singleton_iff] at hstep
+            have hmid : step.2 = cache := (Prod.ext_iff.mp hstep).2
+            rw [hmid]
+            exact hfresh x hx
+        calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inr queried)).run cache] *
+              Pr[fun result : α × QueryCache HashSpec =>
+                  ∀ x ∈ pinned, result.2 x = some (targets x) |
+                (simulateQ KeygenUniform.rom (next step.1)).run step.2]
+            ≤ ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inr queried)).run cache] *
+                ((1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card) := by
+              refine ENNReal.tsum_le_tsum fun step => ?_
+              by_cases hstepMem :
+                  step ∈ support ((KeygenUniform.rom (Sum.inr queried)).run cache)
+              · exact mul_le_mul' le_rfl (ih step.1 pinned step.2 (hstep step hstepMem))
+              · rw [probOutput_eq_zero_of_not_mem_support hstepMem, zero_mul]
+                simp
+          _ = (∑' step, Pr[= step | (KeygenUniform.rom (Sum.inr queried)).run cache]) *
+                ((1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card) :=
+              ENNReal.tsum_mul_right
+          _ ≤ 1 * ((1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card) :=
+              mul_le_mul' tsum_probOutput_le_one le_rfl
+          _ = _ := one_mul _
+
 /-- At most `limit` inputs were absent from `initial` and are present in `final`. Stated
 without a cardinality on the infinite input type. -/
 def GrowthAtMost (initial final : QueryCache HashSpec) (limit : Nat) : Prop :=

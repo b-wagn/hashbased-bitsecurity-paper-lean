@@ -541,3 +541,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.GrowthCharge.prob_cache_value_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GrowthCharge.prob_cache_value_le
+
+/-- info: 'SlhDsaSecurity.GrowthCharge.prob_cache_values_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GrowthCharge.prob_cache_values_le
