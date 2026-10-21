@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Statement.Security
+import SlhDsaSecurity.Proof.GrowthBudget
 
 /-!
 # One weighted budget instead of per-class limits
@@ -376,5 +377,129 @@ theorem weightedGrowth_le_count (weight : Bytes → Nat) {α : Type}
       rcases hmiddle with hshape | hshape <;> rw [hshape] at hgrowth
       · exact (WeightedGrowthAtMost.add_of_cacheQuery hgrowth).mono (by omega)
       · exact hgrowth.mono (by omega)
+
+/-! ## Both counts from one instrumentation
+
+The coarse bound reads a weighted budget off the plain count, but loses the slack. Recovering
+it needs the finer `weighted = 2 q - m`, which means knowing the message count as well as the
+total — and knowing them *of the same run*, since a probability-one bound on one
+instrumentation says nothing about another.
+
+`countJoint` carries both: each hash call costs one unit of the first component and its weight
+of the second, and a coin flip costs nothing in either. `jointGrowth_le_count` proves both
+bounds in a single induction, which is also why it is one theorem rather than two. -/
+
+/-- A hash call costs one plain unit and its own weight; coin flips are free in both. -/
+def jointCost (weight : Bytes → Nat) : OracleWorld.Domain → Nat × Nat :=
+  fun queried => match queried with
+    | Sum.inl _ => (0, 0)
+    | Sum.inr input => (1, weight input)
+
+/-- The run instrumented with both counters at once. -/
+def countJoint (weight : Bytes → Nat) {α : Type} (computation : OracleComp OracleWorld α) :
+    OracleComp OracleWorld (α × (Nat × Nat)) :=
+  (fun result => (result.1, Multiplicative.toAdd result.2)) <$>
+    (simulateQ (addCostOracle (jointCost weight)) computation).run
+
+@[simp] theorem countJoint_pure (weight : Bytes → Nat) {α : Type} (value : α) :
+    countJoint weight (pure value : OracleComp OracleWorld α) = pure (value, 0) := by
+  simp [countJoint]
+
+theorem countJoint_query_bind (weight : Bytes → Nat) {α : Type}
+    (queried : OracleWorld.Domain)
+    (next : OracleWorld.Range queried → OracleComp OracleWorld α) :
+    countJoint weight (liftM (OracleWorld.query queried) >>= next) =
+      liftM (OracleWorld.query queried) >>= fun answer =>
+        (fun result => (result.1, jointCost weight queried + result.2)) <$>
+          countJoint weight (next answer) := by
+  simp only [countJoint, simulateQ_bind, simulateQ_spec_query, addCostOracle,
+    QueryImpl.withAddCost, QueryImpl.withCost]
+  simp [Functor.map_map, map_bind, bind_map_left]
+
+/-- **Both growth bounds, from one run.** -/
+theorem jointGrowth_le_count (weight : Bytes → Nat) {α : Type}
+    (computation : OracleComp OracleWorld α) (initialCache : QueryCache HashSpec)
+    (result : (α × (Nat × Nat)) × QueryCache HashSpec)
+    (hmem : result ∈
+      support ((simulateQ KeygenUniform.rom (countJoint weight computation)).run
+        initialCache)) :
+    GrowthAtMost initialCache result.2 result.1.2.1 ∧
+      WeightedGrowthAtMost weight initialCache result.2 result.1.2.2 := by
+  induction computation using OracleComp.inductionOn generalizing initialCache result with
+  | pure value =>
+    rw [countJoint_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hmem
+    subst hmem
+    constructor <;>
+      · intro inputs _ hmembers
+        cases inputs with
+        | nil => simp
+        | cons input rest =>
+          obtain ⟨hnone, hsome⟩ := hmembers input (by simp)
+          exact absurd hnone hsome
+  | query_bind queried next ih =>
+    rw [countJoint_query_bind, simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      mem_support_bind_iff] at hmem
+    obtain ⟨⟨answer, middleCache⟩, hquery, hrest⟩ := hmem
+    rw [simulateQ_map, StateT.run_map, support_map] at hrest
+    obtain ⟨inner, hinner, heq⟩ := hrest
+    have hgrowth := ih answer middleCache inner hinner
+    have hfinal : result.2 = inner.2 := by rw [← heq]
+    have hplain : result.1.2.1 = (jointCost weight queried).1 + inner.1.2.1 := by
+      rw [← heq]; rfl
+    have hweighted : result.1.2.2 = (jointCost weight queried).2 + inner.1.2.2 := by
+      rw [← heq]; rfl
+    rcases queried with coin | input
+    · have hcache : middleCache = initialCache := by
+        symm
+        have hform : ∃ coinValue, (coinValue, initialCache) = (answer, middleCache) := by
+          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl]
+            using hquery
+        obtain ⟨coinValue, hpair⟩ := hform
+        exact congrArg Prod.snd hpair
+      rw [hcache] at hgrowth
+      refine ⟨?_, ?_⟩
+      · rw [hfinal, hplain]
+        simpa [jointCost] using hgrowth.1
+      · rw [hfinal, hweighted]
+        simpa [jointCost] using hgrowth.2
+    · have hmiddle : middleCache = initialCache.cacheQuery input answer ∨
+          middleCache = initialCache := by
+        cases hcached : initialCache input with
+        | some cached =>
+          right
+          have hrun : (KeygenUniform.rom (Sum.inr input)).run initialCache =
+              (pure (cached, initialCache) :
+                ProbComp (HashOutput × QueryCache HashSpec)) := by
+            change (randomOracle input).run initialCache = _
+            rw [QueryImpl.withCaching_run_some _ hcached]
+          rw [hrun, support_pure, Set.mem_singleton_iff] at hquery
+          exact congrArg Prod.snd hquery
+        | none =>
+          left
+          have hrun : (KeygenUniform.rom (Sum.inr input)).run initialCache =
+              (fun value => (value, initialCache.cacheQuery input value)) <$>
+                ($ᵗ HashOutput : ProbComp HashOutput) := by
+            change (randomOracle input).run initialCache = _
+            rw [QueryImpl.withCaching_run_none _ hcached]
+            simp [uniformSampleImpl]
+          rw [hrun, support_map] at hquery
+          obtain ⟨value, -, hpair⟩ := hquery
+          have hvalue : value = answer := congrArg Prod.fst hpair
+          rw [← hvalue]
+          exact (congrArg Prod.snd hpair).symm
+      rcases hmiddle with hshape | hshape <;> rw [hshape] at hgrowth
+      · refine ⟨?_, ?_⟩
+        · rw [hfinal, hplain]
+          exact GrowthBudget.GrowthAtMost.mono
+            (GrowthBudget.growth_of_cacheQuery hgrowth.1) (by simp [jointCost])
+        · rw [hfinal, hweighted]
+          exact WeightedGrowthAtMost.mono
+            (WeightedGrowthAtMost.add_of_cacheQuery hgrowth.2) (by simp [jointCost]; omega)
+      · refine ⟨?_, ?_⟩
+        · rw [hfinal, hplain]
+          exact GrowthBudget.GrowthAtMost.mono hgrowth.1 (by simp [jointCost])
+        · rw [hfinal, hweighted]
+          exact WeightedGrowthAtMost.mono hgrowth.2 (by simp [jointCost])
 
 end SlhDsaSecurity.WeightedCharge
