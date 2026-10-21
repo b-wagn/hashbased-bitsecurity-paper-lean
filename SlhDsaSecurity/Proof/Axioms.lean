@@ -2795,3 +2795,15 @@ info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_warmed_halves' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_warmed_halves
+
+/-- info: 'SlhDsaSecurity.Averaging.probEvent_bind_pair_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Averaging.probEvent_bind_pair_le
+
+/-- info: 'SlhDsaSecurity.WarmedGame.warmedRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedGame.warmedRun_eq
+
+/-- info: 'SlhDsaSecurity.WarmedGame.probEvent_le_of_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedGame.probEvent_le_of_tail

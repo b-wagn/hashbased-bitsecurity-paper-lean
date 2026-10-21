@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.Presample
 import SlhDsaSecurity.Proof.WholeGameStructural
+import SlhDsaSecurity.Proof.Averaging
 
 /-!
 # The game with its honest cells fixed first
@@ -125,5 +126,66 @@ theorem probEvent_warmed (adversary : Adversary) (event : Outcome × Nat → Pro
       event ∘ (fun result => result.1.2) from rfl,
     ← probEvent_map, ← probEvent_map]
   exact (probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_outcome adversary)).symm
+
+/-! ## Splitting the warmed run at the adversary
+
+The charges apply to what happens *after* the graph is walked, with the cells held fixed and
+the cache already carrying them. So the run is split in two: `graphWalk`, which draws the
+seeds and evaluates the canonical graph, and `tail`, which plays the counted game from the
+cache the walk left.
+
+`probEvent_le_of_tail` is then the only shape the halves need: a bound that holds after every
+walk holds for the run. The averaging is `Averaging.probEvent_bind_pair_le`; nothing else about
+the walk is used, which is the point — its output is an arbitrary fixed cell table from here
+on. -/
+
+/-- The seeds and the canonical graph's evaluation, with the cache they leave. -/
+noncomputable def graphWalk :
+    ProbComp (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :=
+  (simulateQ KeygenUniform.rom (do
+    let sds ← (liftM seeds : OracleComp OracleWorld _)
+    let cells ← Presample.worldWarmup sds.2.2 sds.1
+    pure (sds, cells))).run ∅
+
+/-- The counted game, played from what the walk left. -/
+noncomputable def tail (adversary : Adversary)
+    (start : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
+    ProbComp ((Outcome × Nat) × QueryCache HashSpec) :=
+  (simulateQ KeygenUniform.rom (countAllHashes (afterSeeds adversary start.1.1))).run start.2
+
+/-- **The warmed run is the walk, then the game.** -/
+theorem warmedRun_eq (adversary : Adversary) :
+    warmedRun adversary =
+      (fun pair => ((pair.1.1, pair.2.1), pair.2.2)) <$>
+        (do let walk ← graphWalk; let result ← tail adversary walk; pure (walk, result)) := by
+  have hsplit : (do
+      let sds ← (liftM seeds : OracleComp OracleWorld _)
+      let cells ← Presample.worldWarmup sds.2.2 sds.1
+      let counted ← countAllHashes (afterSeeds adversary sds)
+      pure ((sds, cells), counted)) =
+    ((do
+      let sds ← (liftM seeds : OracleComp OracleWorld _)
+      let cells ← Presample.worldWarmup sds.2.2 sds.1
+      pure (sds, cells)) :
+        OracleComp OracleWorld ((Digest × Digest × Digest) × Cells)) >>= fun walk =>
+        countAllHashes (afterSeeds adversary walk.1) >>= fun counted => pure (walk, counted) := by
+    simp [bind_assoc]
+  rw [warmedRun, hsplit, simulateQ_bind, StateT.run_bind, map_eq_bind_pure_comp, bind_assoc,
+    ← graphWalk]
+  apply bind_congr
+  intro walk
+  rw [simulateQ_bind, StateT.run_bind]
+  simp [tail, map_eq_bind_pure_comp, bind_assoc]
+
+/-- **A bound that holds after every walk holds for the warmed run.** -/
+theorem probEvent_le_of_tail (adversary : Adversary)
+    (event : (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) ×
+      QueryCache HashSpec → Prop) (bound : ℝ≥0∞)
+    (htail : ∀ walk ∈ support graphWalk,
+      Pr[fun result => event ((walk.1, result.1), result.2) | tail adversary walk] ≤ bound) :
+    Pr[event | warmedRun adversary] ≤ bound := by
+  rw [warmedRun_eq, probEvent_map]
+  exact Averaging.probEvent_bind_pair_le graphWalk (tail adversary)
+    (fun walk result => event ((walk.1, result.1), result.2)) bound htail
 
 end SlhDsaSecurity.WarmedGame
