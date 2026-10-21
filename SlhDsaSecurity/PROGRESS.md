@@ -836,3 +836,35 @@ removed the entire difficulty; the final branch then closed by `rfl`.
 The transferable lesson is not about `Range` at all: when several independent-looking failures
 share a symptom, look for one upstream cause instead of fixing each occurrence.
 
+## The coverage half of `hanswer` goes through the tape, not through `CombinedCharge`
+
+`CombinedCharge.prob_combinedBad_within_le` charges the structural and coverage clauses as one
+predicate, so their per-call rate is the maximum `2 ^ -128` rather than the sum. That was built
+to keep the answer side inside half the target, and the arithmetic is right. But its
+`revealed : ForsCoverage.Disclosures` is a *parameter*, fixed before the run — and in the
+experiment the disclosures are not fixed. They are whatever the signing oracle reveals, on
+messages the adversary chooses adaptively.
+
+Fixing `revealed` to the run's final disclosures is sound as an over-approximation — a query
+covered at the time is covered at the end — but it cannot be *applied*, because the charge
+needs the parameter before the run and the final disclosures are only known after it.
+
+The machinery for exactly this already exists and is what the coverage half should use:
+`ForsLeaveOneOut.independent_tape_coverage_le_sharper` samples the whole digest tape up front,
+which fixes the disclosures as a function of the tape, and lets an adaptive `Policy` select
+which trial to attack. Its bound, `1 / 2 ^ 126 + expectedUses / 2 ^ 129`, is already in the
+shape the budget wants: the first term is the load-cap defect that
+`Assembly.cap_defect_within_slack` pays out of the message-class slack, and the second is one
+unit per message-class query.
+
+So the answer side should be assembled per class rather than as one predicate:
+
+* structural clause, rate `2`, on structural-class queries — `ClassCharge` / `ClassBudget` with
+  `WholeGameStructural.prob_deviatingCollision_whole_game_le`;
+* coverage clause, rate `1`, on message-class queries — the tape.
+
+The two clauses live on disjoint query classes, so no query pays both, which is what made the
+maximum-rather-than-sum argument work in the first place. `CombinedCharge` reaches the same
+rate by a different route; it is not wrong, it is just not instantiable at an adaptive
+disclosure set.
+
