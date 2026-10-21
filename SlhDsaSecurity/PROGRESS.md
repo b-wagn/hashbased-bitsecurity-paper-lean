@@ -1227,3 +1227,43 @@ invariant indexed by position in query order, conditioned on a predicate the run
 determines. That technique is now proved in this development, for the digest tape; the input
 half needs the same shape with "the payload matches an unavailable cell" in place of "the next
 letter matches".
+
+## The sensitive-query charge, and the condition it cannot do without
+
+`SensitiveQuery.prob_probes_sensitive_le` charges the input half's event at `2 ^ -128` per
+query — the rate the budget needs, exactly, with no conditioning factor, because the cell table
+is drawn *after* the run so every candidate was fixed before its coordinate was.
+
+The specification this file gave for it was incomplete, and the lemma is false as it was
+stated. The missing condition: **availability must be closed under the structure** — a node all
+of whose children are available has an available cell. Without it, take a node that is not
+sensitive but whose own cell is unavailable; a run queries it outright, reads its cell off the
+answer, and can then form the canonical input of the node above it at will. That node is
+sensitive for the rest of the run, so a sensitive query happens with probability one.
+
+The condition holds here, and `CanonicalGraph.available_of_children_available` proves it by
+cases: every node with an unavailable cell has an unavailable child. `sensitive_of_not_available`
+is the form the charge consumes — a protected cell is reached only through a sensitive query.
+
+**What the charge still does not have.** It is stated for a run that does not consult the cell
+table, with the table deferred to the end; what the game offers is a run against a cache
+*programmed* from that table. Those differ by a step, and the step is not the blind comparison
+already in the tree: the region to strip is `{the canonical input of p : p sensitive now}`, and
+it **shrinks** as signatures release cells. `AgreeOff` is not preserved across a release — the
+real cache holds the newly-non-sensitive entry, the blind cache does not, and the input has
+just left the region — so `BlindComparison.prob_touched_eq`, which compares caches agreeing off
+a set fixed in advance, does not apply. Over-approximating to the initial region restores the
+invariant and destroys the bound; that is `sensitive_initial`, the `forsLeaf` failure recorded
+above, now a lemma rather than prose.
+
+The way to meet the hypothesis rather than prove the comparison: have the **signer** draw each
+released cell fresh at the moment of release. A cell a signature discloses is uniform in the
+view it is disclosed into, so this is a deferred-sampling rewriting of the signing oracle — the
+move `Programming.warmup_seed_uniform` already makes for the walk — and it leaves exactly the
+never-released cells for the deferred table. It is an obligation about the honest phase, not
+about the adversary, and it is much weaker than the until-first-hit coupling. The honest phase
+is being taken out of the experiment anyway (`StrippedGame`), so that is the shape to give it.
+
+Note this does not conflict with the walk. The two halves are bounded separately on the same
+game, so each may use its own presentation of it: the answer side needs the cells fixed before
+the adversary runs, the input side needs them deferred.
