@@ -6,6 +6,8 @@ import SlhDsaSecurity.Proof.ForsConcentration
 import SlhDsaSecurity.Proof.Hashing
 import SlhDsaSecurity.Proof.HashSeparation
 import SlhDsaSecurity.Proof.Security
+import SlhDsaSecurity.Proof.SignatureCanonical
+import SlhDsaSecurity.Proof.PartialDigest
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -132,3 +134,15 @@ import SlhDsaSecurity.Proof.Security
 /-- info: 'SlhDsaSecurity.ForsConcentration.poisson_load_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsConcentration.poisson_load_tail
+
+/-- info: 'SlhDsaSecurity.Signature.fromBytes_toBytes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Signature.fromBytes_toBytes
+
+/-- info: 'SlhDsaSecurity.Signature.toBytes_fromBytes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Signature.toBytes_fromBytes
+
+/-- info: 'SlhDsaSecurity.PartialDigest.coverage_le_256' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PartialDigest.coverage_le_256

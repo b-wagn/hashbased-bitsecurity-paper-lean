@@ -67,8 +67,10 @@ and decoder. `Statement/Security.lean` defines the adaptive experiment and the
 exact target proposition `HasSecurityBits .strong 127`. Every request counts,
 including repetitions and rejected contexts; honest hashes are uncharged and
 every direct or final-verifier hash call is charged. The lifetime and work bounds
-hold jointly with probability one. Signature codec roundtrips, correctness, and
-oracle-trace bounds still require proofs.
+hold jointly with probability one. `Proof/{Signature,SignatureCanonical}.lean`
+proves both codec roundtrips, including that every accepted byte string is the
+canonical encoding of its parsed value. Algorithm correctness and oracle-trace
+bounds still require proofs.
 
 ## FORS components
 
@@ -115,3 +117,10 @@ pair of 16-byte values satisfies this condition with probability at most
 key generation and algorithms remains to be proved. PRF_msg versus structural
 hashing is also proved disjoint whenever SK.prf differs from PK.seed. These
 results do not resolve the remaining H_msg/PRF_msg overlap.
+
+`Proof/PartialDigest.lean` proves that fixing the first 128 output bits leaves
+the instance and final three FORS indices jointly uniform in the remaining
+112 bits. For fixed disclosures with at most L leaves per tree and a fixed set
+of instances, coverage is at most `|instances| * L^3 / 2^99`; at L=256 this is
+`|instances| / 2^75`. Applying it to adaptive disclosures requires a freshness
+and independence argument that is not yet proved.
