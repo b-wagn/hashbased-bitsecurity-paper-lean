@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.KeygenUniform
 import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.MessageDigest
+import SlhDsaSecurity.Proof.ForsDisclosureTape
 
 /-!
 # A fresh message digest is uniform in the actual shared oracle
@@ -350,5 +351,46 @@ theorem prob_view_event_le {α : Type} (computation : OracleComp OracleWorld α)
     ← probEvent_map]
   exact le_of_eq (probEvent_congr' (fun _ _ => Iff.rfl)
     (viewAssignment_uniform (↥pinned)))
+
+/-! ## Reindexing to the tape
+
+`ForsDisclosureTape.Tape n` is indexed by `Fin n`, so the pinned inputs are reindexed through
+`Finset.equivFin`. Reindexing along a bijection preserves uniformity, so the bound lands on a
+uniform tape of exactly `pinned.card` entries, which is the form
+`ForsDisclosureTape.bad_load_probability_sharper` and
+`ForsLeaveOneOut.independent_tape_coverage_le_sharper` are stated in.
+-/
+
+open scoped Classical in
+/-- Any event about the recorded views, read along a reindexing of the pinned inputs to
+`Fin pinned.card`, is bounded by its probability under a uniform disclosure tape. -/
+theorem prob_tape_event_le {α : Type} (computation : OracleComp OracleWorld α)
+    (pinned : Finset Bytes) (cache : QueryCache HashSpec)
+    (hfresh : ∀ x ∈ pinned, cache x = none)
+    (tapeBad : ForsDisclosureTape.Tape pinned.card → Prop) :
+    Pr[fun result : α × QueryCache HashSpec =>
+        ∃ assignment : ↥pinned → HashOutput,
+          tapeBad (fun i => MessageDigest.parse (assignment (pinned.equivFin.symm i))) ∧
+            ∀ x : ↥pinned, result.2 x.val = some (assignment x) |
+      (simulateQ KeygenUniform.rom computation).run cache] ≤
+      Pr[tapeBad |
+        ($ᵗ (ForsDisclosureTape.Tape pinned.card) :
+          ProbComp (ForsDisclosureTape.Tape pinned.card))] := by
+  classical
+  refine le_trans (prob_view_event_le computation pinned cache hfresh
+    (fun views => tapeBad (fun i => views (pinned.equivFin.symm i)))) ?_
+  -- Reindexing along the bijection preserves uniformity.
+  let reindex : (↥pinned → MessageDigest.View) ≃ ForsDisclosureTape.Tape pinned.card :=
+    Equiv.arrowCongr pinned.equivFin (Equiv.refl MessageDigest.View)
+  have hreindex : 𝒟[reindex <$> ($ᵗ (↥pinned → MessageDigest.View) :
+        ProbComp (↥pinned → MessageDigest.View))] =
+      𝒟[($ᵗ (ForsDisclosureTape.Tape pinned.card) :
+        ProbComp (ForsDisclosureTape.Tape pinned.card))] :=
+    evalDist_map_bijective_uniform_cross (α := (↥pinned → MessageDigest.View))
+      (β := ForsDisclosureTape.Tape pinned.card) reindex reindex.bijective
+  have hrewrite : (fun views : ↥pinned → MessageDigest.View =>
+      tapeBad (fun i => views (pinned.equivFin.symm i))) = tapeBad ∘ reindex := rfl
+  rw [hrewrite, ← probEvent_map]
+  exact le_of_eq (probEvent_congr' (fun _ _ => Iff.rfl) hreindex)
 
 end SlhDsaSecurity.FreshDigest
