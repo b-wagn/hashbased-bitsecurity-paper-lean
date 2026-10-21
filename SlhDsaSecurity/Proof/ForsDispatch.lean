@@ -277,9 +277,74 @@ def ForsCollision (secretSeed publicSeed : Digest) (address : Address)
         Extraction.Fors.LeafCollision secretSeed publicSeed address
           (Extraction.Fors.leafIndex indices i) (signature i).secret
 
+/-! ## The FORS dichotomy
+
+The decomposition settles each tree in both of its parts — the recovered leaf and the twelve
+siblings — so a signature with no collision anywhere is the signature `Fors.sign` writes, not
+merely one whose secrets agree with it. Reading it that way is what lets a canonical FORS part
+be compared with the part a signing request returned. -/
+
+/-- The honest authentication index, as the extraction names it and as the signer computes it:
+the sibling of the selected leaf at that height, offset by the tree. -/
+theorem fors_auth_index (indices : SlhDsaSecurity.Fors.Indices) (i : Fin forsTrees)
+    (j : Fin forsHeight) :
+    Nat.xor (Extraction.Fors.leafIndex indices i / 2 ^ j.val) 1 =
+      i.val * 2 ^ (forsHeight - j.val) + Nat.xor ((indices i).val / 2 ^ j.val) 1 := by
+  rw [Extraction.Fors.leafIndex, Correctness.offset_div_pow _ _ _ _ (le_of_lt j.isLt),
+    Correctness.xor_add_even _ _ (Correctness.offset_even i.val forsHeight j.val j.isLt)]
+
+/-- The honest FORS signature, tree by tree. -/
+theorem sign_apply (indices : SlhDsaSecurity.Fors.Indices) (secretSeed publicSeed : Digest)
+    (address : Address) (i : Fin forsTrees) :
+    SlhDsaSecurity.Fors.sign (m := Id) indices secretSeed publicSeed address i =
+      { secret := SlhDsaSecurity.Fors.secret (m := Id) secretSeed publicSeed address
+          (Extraction.Fors.leafIndex indices i),
+        authentication := fun j => SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed
+          address j.val (Nat.xor (Extraction.Fors.leafIndex indices i / 2 ^ j.val) 1) } := by
+  simp only [SlhDsaSecurity.Fors.sign, Correctness.sequenceFin_id, bind, pure,
+    Extraction.Fors.leafIndex, ForsTreeSignature.mk.injEq, true_and]
+  funext j
+  rw [← fors_auth_index indices i j]
+  rfl
+
 /-- **The FORS dichotomy.** A FORS signature reaching the genuine FORS public key either
-contains one of the three collisions, or every one of its fourteen revealed secrets is the
-honest one — the FORS coverage event. No collision resistance is assumed. -/
+contains one of the three collisions, or it *is* the honest FORS signature at those indices —
+secrets and authentication paths alike. No collision resistance is assumed. -/
+theorem forsCollision_or_canonical_signature (secretSeed publicSeed : Digest) (address : Address)
+    (indices : SlhDsaSecurity.Fors.Indices) (signature : ForsSignature)
+    (hpk : SlhDsaSecurity.Fors.publicKeyFromSignature (m := Id) signature indices publicSeed
+        address =
+      Hashing.tweakable (m := Id) publicSeed (Extraction.Fors.rootAddress address)
+        (digestArrayBytes (Extraction.Fors.canonicalRoots secretSeed publicSeed address))) :
+    ForsCollision secretSeed publicSeed address indices signature ∨
+      signature = SlhDsaSecurity.Fors.sign (m := Id) indices secretSeed publicSeed address := by
+  classical
+  rcases Extraction.Fors.publicKey_canonical_decomposition secretSeed publicSeed address indices
+      signature hpk with hcomp | htrees
+  · exact Or.inl (Or.inl hcomp)
+  by_cases hcanonical : ∀ i : Fin forsTrees,
+      (signature i).secret = SlhDsaSecurity.Fors.secret (m := Id) secretSeed publicSeed address
+          (Extraction.Fors.leafIndex indices i) ∧
+        ∀ j, (signature i).authentication j =
+          SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed address j.val
+            (Nat.xor (Extraction.Fors.leafIndex indices i / 2 ^ j.val) 1)
+  · refine Or.inr (funext fun i => ?_)
+    obtain ⟨hsecret, hauth⟩ := hcanonical i
+    rw [sign_apply]
+    cases hsignature : signature i
+    rw [hsignature] at hsecret hauth
+    exact congrArg₂ ForsTreeSignature.mk hsecret (funext hauth)
+  · obtain ⟨i, hi⟩ := not_forall.mp hcanonical
+    have htree := htrees i
+    dsimp only at htree
+    rcases htree with ⟨hleaf, hauth⟩ | hpath
+    · rcases Extraction.Fors.recoveredLeaf_canonical_secret_or_collision secretSeed publicSeed
+        address indices signature i hleaf with hsecret | hleafCollision
+      · exact absurd ⟨hsecret, hauth⟩ hi
+      · exact Or.inl (Or.inr ⟨i, Or.inr hleafCollision⟩)
+    · exact Or.inl (Or.inr ⟨i, Or.inl hpath⟩)
+
+/-- The dichotomy, read only for the revealed secrets. -/
 theorem forsCollision_or_canonical_secrets (secretSeed publicSeed : Digest) (address : Address)
     (indices : SlhDsaSecurity.Fors.Indices) (signature : ForsSignature)
     (hpk : SlhDsaSecurity.Fors.publicKeyFromSignature (m := Id) signature indices publicSeed
@@ -289,24 +354,9 @@ theorem forsCollision_or_canonical_secrets (secretSeed publicSeed : Digest) (add
     ForsCollision secretSeed publicSeed address indices signature ∨
       ∀ i : Fin forsTrees, (signature i).secret =
         SlhDsaSecurity.Fors.secret (m := Id) secretSeed publicSeed address
-          (Extraction.Fors.leafIndex indices i) := by
-  classical
-  rcases Extraction.Fors.publicKey_canonical_decomposition secretSeed publicSeed address indices
-      signature hpk with hcomp | htrees
-  · exact Or.inl (Or.inl hcomp)
-  by_cases hsecrets : ∀ i : Fin forsTrees, (signature i).secret =
-      SlhDsaSecurity.Fors.secret (m := Id) secretSeed publicSeed address
-        (Extraction.Fors.leafIndex indices i)
-  · exact Or.inr hsecrets
-  · obtain ⟨i, hi⟩ := not_forall.mp hsecrets
-    have htree := htrees i
-    dsimp only at htree
-    rcases htree with ⟨hleaf, -⟩ | hpath
-    · rcases Extraction.Fors.recoveredLeaf_canonical_secret_or_collision secretSeed publicSeed
-        address indices signature i hleaf with hsecret | hleafCollision
-      · exact absurd hsecret hi
-      · exact Or.inl (Or.inr ⟨i, Or.inr hleafCollision⟩)
-    · exact Or.inl (Or.inr ⟨i, Or.inl hpath⟩)
+          (Extraction.Fors.leafIndex indices i) :=
+  (forsCollision_or_canonical_signature secretSeed publicSeed address indices signature hpk).imp
+    id fun hsign i => by rw [hsign, sign_apply]
 
 /-! ## The index bookkeeping that is discharged
 

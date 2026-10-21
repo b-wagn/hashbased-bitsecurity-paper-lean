@@ -4751,3 +4751,19 @@ info: 'SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_signed' dep
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_signed
 
+/-- info: 'SlhDsaSecurity.ForsDispatch.fors_auth_index' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.fors_auth_index
+
+/-- info: 'SlhDsaSecurity.ForsDispatch.sign_apply' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.sign_apply
+
+/--
+info: 'SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature
+
