@@ -311,3 +311,35 @@ Summary: 127 bits is not refuted and appears attainable, but only via the sharpe
 the 569-query verification floor, and a charged-work lower bound on the framing-leak
 recovery. Routing FORS through the plain `2 ^ -128` bound cannot work.
 
+## Remaining obligations for `HasSecurityBits .strong 127`
+
+The structural half is complete and the per-query charge is proved and bridged to it.
+Four obligations remain, in increasing order of difficulty.
+
+1. **Counter-based charge.** `FreshHitBound.prob_hit_le` takes a *syntactic* bound
+   `IsQueryBoundP HashQuery count`, but the experiment supplies an *almost-sure* bound on
+   the instrumented counter: `Security.HasBudget` says
+   `Pr[counts.signing ≤ 2 ^ 64 ∧ counts.work ≤ q] = 1`. An arbitrary adversary meeting the
+   counter bound need not meet a syntactic one, so `prob_hit_le` does not apply as stated.
+   `probEvent_eq_one_iff` turns `HasBudget` into a support-wise bound, so the fix is to
+   reprove the induction with the charged count carried in the simulation state rather than
+   as a syntactic side condition. This is bounded work of the same shape and size as the
+   existing proof, and it is the next thing to do.
+2. **Assembling the structural term.** Combine `Extraction.*` (every fault witness),
+   `CanonicalTarget.hit_of_deviating_collision` (each witness is a charged hit) and the
+   counter-based charge from (1) into a single `q / 2 ^ 128` term for the whole game. This
+   also needs the honest keygen and signing caches shown to consist only of canonical
+   queries, so `CanonicalTarget.clean_of_canonical_cache` applies.
+3. **FORS coverage in the real game.** Couple the shared oracle to the independent-tape
+   bounds. By the tightness budget above this *must* go through
+   `ForsConcentrationSharper` (`q / 2 ^ 129 + 2 ^ -126`); the plain `2 ^ -128` coverage
+   bound leaves no room and cannot close. `ROMPresampling`, `GraphFreshSampling` and
+   `CanonicalGraph.Programming` are the intended machinery.
+4. **Charged-work lower bound for the framing leak.** `Proof/FramingLeak.lean` shows the
+   leak is real and driven by free signing queries. Since the slack `(q - 8) / 2 ^ 129`
+   only reaches `2 ^ -72` at `q = 2 ^ 57`, the target survives this path only given a lower
+   bound on the *charged* work needed to recover `SK.prf` from the roughly `2 ^ 64`
+   published randomizers. This is a lower-bound argument about an adversary's cost, a
+   different shape from every other obligation here, and it has no counterpart in the XMSS
+   development.
+
