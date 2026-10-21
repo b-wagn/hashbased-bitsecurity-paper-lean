@@ -6,11 +6,11 @@ import XmssSecurity.Proof.TargetSum.EncodingProbability
 /-!
 # The correctness error of the target-sum scheme
 
-The correctness experiment sets its flag only if all `A_max` trials of some signing request fail
+The correctness experiment sets its flag only if all `K` trials of some signing request fail
 (`experiment_flag_signingFails`). A request is determined by the public parameter, the master
 seed, the epoch, and the message, so a union bound over these `2^672` tuples and the bound
-`2^-(2^16)` of `probEvent_signingFails_le` give the correctness error `2^-64864`
-(`correctnessError_le`).
+`2^-(2^16)` of `probEvent_signingFails_le` give the internal bound `2^-64864`
+(`correctnessError_le`). `correctnessError_paper` gives the paper's stated bound `2^-256`.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -61,5 +61,11 @@ theorem correctnessError_le : Correctness.HasCorrectnessError Generic.xmss (1 / 
       _ ≤ 1 / 2 ^ 64864 := advantage_le adversary
       _ = 1 / 2 ^ 64864 * 1 := (mul_one _).symm
       _ ≤ _ := by gcongr; exact_mod_cast hq
+
+/-- The paper's correctness bound, obtained from the stronger internal estimate. -/
+theorem correctnessError_paper : Correctness.HasCorrectnessError Generic.xmss (1 / 2 ^ 256) := by
+  intro q adversary hbound
+  refine (correctnessError_le q adversary hbound).trans ?_
+  gcongr <;> norm_num
 
 end XmssSecurity.TargetSum.Correct

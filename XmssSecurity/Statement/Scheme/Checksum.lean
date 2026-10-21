@@ -5,7 +5,7 @@ import XmssSecurity.Statement.Scheme.Xmss
 
 A digest gives 32 four-bit message digits, least significant first. Append the three
 base-16 digits of `Σ (15 - x_i)`, most significant first, giving 35 chains.
-This uses the WOTS checksum construction of FIPS 205 with this instance's message-digit layout. Every digest encodes, so signing needs one attempt.
+Every digest encodes, so signing needs one attempt (`K = 1`).
 -/
 
 namespace XmssSecurity

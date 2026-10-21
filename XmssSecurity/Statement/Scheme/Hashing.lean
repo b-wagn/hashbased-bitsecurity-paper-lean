@@ -59,7 +59,7 @@ def tweakableHashInput (parameter : PublicParameter) (domain : HashDomain)
     (message : HashInput) : HashInput :=
   tweakBytes domain ++ bytesLE 16 parameter ++ message
 
-/-- `tweak(7, trial, leafIndex) || P || S || m`. -/
+/-- `enc(7, a, ep) || P || seed || m`, the input for randomizer trial `a`. -/
 def randomizerHashInput (parameter : PublicParameter) (seed : MasterSeed)
     (leafIndex : LeafIndex) (message : Message) (trial : BitVec 32) : HashInput :=
   fieldBytes ⟨7#8, trial, BitVec.ofNat 32 leafIndex.val⟩ ++
@@ -75,7 +75,8 @@ def keygenDomainFields : KeygenDomain → TweakFields
   | .parameter => tweakFields 5 0 0
   | .chain leafIndex chain => tweakFields 0 chain leafIndex
 
-/-- Parameter derivation uses `enc(5, 0, 0) || S`; chain derivation uses `enc(0, i, idx) || P || S`.
+/-- Parameter derivation uses `enc(5, 0, 0) || seed`; chain derivation uses
+`enc(0, i, ep) || P || seed`.
 The `parameter` argument is unused in the parameter-derivation domain. -/
 def keygenHashInput (parameter : PublicParameter) (domain : KeygenDomain)
     (seed : MasterSeed) : HashInput :=
@@ -109,18 +110,18 @@ def tweakableHash
     (parameter : PublicParameter) (domain : HashDomain) (payload : HashInput) : m Digest :=
   oracleHash (tweakableHashInput parameter domain payload)
 
-/-- The message digest `D = Th(P, enc(4, 0, idx), m || rho)`, which the WOTS encoding
+/-- The message digest `D = H(enc(4, 0, ep) || P || m || ρ)`, which the WOTS encoding
 decodes. -/
 def encodingHash (parameter : PublicParameter) (leafIndex : LeafIndex)
     (message : Message) (randomness : Randomness) : m Digest :=
   tweakableHash parameter (.encoding leafIndex) (encodingPayload message randomness)
 
-/-- One chain step, from position `step` to `step + 1`, under `enc(1, 2^w i + step, idx)`. -/
+/-- One chain step, from position `step` to `step + 1`, under `enc(1, 2^w i + step, ep)`. -/
 def chainHash {v : Nat} (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : Fin v)
     (step : ChainStep) (value : Digest) : m Digest :=
   tweakableHash parameter (.chain leafIndex chain.val step) (bytesLE 16 value)
 
-/-- `X_{0,idx}`, the hash of the `v` public values. -/
+/-- `X_{0,ep}`, the hash of the `v` chain endpoints. -/
 def leafHash {v : Nat} (parameter : PublicParameter) (leafIndex : LeafIndex)
     (endpoints : Fin v → Digest) : m Digest :=
   tweakableHash parameter (.leaf leafIndex) (leafPayload endpoints)
@@ -134,12 +135,12 @@ end Concrete
 
 variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
 
-/-- Derive the public parameter as `H(enc(5, 0, 0) || S)` or a chain start as
-`H(enc(0, i, idx) || P || S)`. -/
+/-- Derive the public parameter as `H(enc(5, 0, 0) || seed)` or a chain start as
+`H(enc(0, i, ep) || P || seed)`. -/
 def deriveKey (parameter : PublicParameter) (domain : KeygenDomain) (seed : MasterSeed) : m Digest :=
   Concrete.oracleHash (keygenHashInput parameter domain seed)
 
-/-- Randomizer trial `a`: `ρ_a = H(enc(7, a, idx) ∥ P ∥ S ∥ m)`. -/
+/-- Randomizer trial `a`: `ρ_a = H(enc(7, a, ep) ∥ P ∥ seed ∥ m)`. -/
 def deriveRandomizer (parameter : PublicParameter) (seed : MasterSeed) (leafIndex : LeafIndex)
     (message : Message) (trial : BitVec 32) : m Randomness :=
   Concrete.oracleHash (randomizerHashInput parameter seed leafIndex message trial)

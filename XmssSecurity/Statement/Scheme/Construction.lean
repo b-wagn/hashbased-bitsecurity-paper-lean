@@ -35,7 +35,8 @@ variable {m : Type → Type} [Monad m] [HasQuery HashSpec m] {v : Nat}
 def signaturePath (signature : Signature v) (level : Nat) : Digest :=
   if hlevel : level < treeHeight then signature.authPath ⟨level, hlevel⟩ else 0
 
-/-- `Chain_{i,idx}(P, start, steps, value)`: the step onto position `start + steps + 1` carries tweak position `2^w * i + start + steps`. -/
+/-- `Chain(P, ep, i, start, start + steps, value)`: walk `steps` positions from `start`.
+The step from position `k` to `k + 1` uses tweak position `2^w * i + k`. -/
 def chainWalk (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : Fin v) :
     Nat → Nat → Digest → m Digest
   | _, 0, value => pure value
@@ -51,7 +52,7 @@ def recoverChain (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : 
     (digit : Digit) (value : Digest) : m Digest :=
   chainWalk parameter leafIndex chain digit.val (chainLength - 1 - digit.val) value
 
-/-- `pk'_{idx,i}` for every chain. -/
+/-- The verifier's recovered endpoint `pk'_i` for every chain. -/
 def recoverEndpoints (parameter : PublicParameter) (leafIndex : LeafIndex)
     (encoding : Encoding v) (signature : Signature v) :
     m (Fin v → Digest) :=
@@ -64,7 +65,7 @@ def nodeIndex (leafIndex : LeafIndex) (level : Nat) : MerkleNode :=
     have hle := Nat.div_le_self leafIndex.val (2 ^ (level + 1))
     exact hle.trans_lt leafIndex.isLt⟩
 
-/-- `Z_{level+1}` from `Z_level` and `A_level`, in the order bit `level` of the leaf index dictates. -/
+/-- `X'_{level+1}` from `X'_level` and `A_level`, ordered by bit `level` of the epoch. -/
 def authenticationNodeHash (parameter : PublicParameter) (leafIndex : LeafIndex)
     (level : Nat) (current sibling : Digest) : m Digest :=
   if hlevel : level < treeHeight then
@@ -75,7 +76,7 @@ def authenticationNodeHash (parameter : PublicParameter) (leafIndex : LeafIndex)
   else
     pure 0
 
-/-- `Z_levels`, folded up from the leaf `Z_0`. -/
+/-- `X'_levels`, folded up from the leaf `X'_0`. -/
 def authenticationRoot (parameter : PublicParameter) (leafIndex : LeafIndex)
     (signature : Signature v) : Nat → Digest → m Digest
   | 0, leaf => pure leaf
@@ -83,13 +84,13 @@ def authenticationRoot (parameter : PublicParameter) (leafIndex : LeafIndex)
       let current ← authenticationRoot parameter leafIndex signature levels leaf
       authenticationNodeHash parameter leafIndex levels current (signaturePath signature levels)
 
-/-- Accept exactly when `Z_h = root`. -/
+/-- Accept exactly when `X'_h = root`. -/
 def verifyAfterLeaf
     (publicKey : PublicKey) (leafIndex : LeafIndex) (signature : Signature v) (leaf : Digest) : m Bool := do
   let root ← authenticationRoot publicKey.parameter leafIndex signature treeHeight leaf
   return decide (root = publicKey.root)
 
-/-- `Ver(pk, idx, m, sigma)`: reject a digest that does not decode. -/
+/-- `Verify(pk, ep, m, σ)`: reject a digest that does not decode. -/
 def verify (E : WotsEncoding) (publicKey : PublicKey) (leafIndex : LeafIndex)
     (message : Message) (signature : Signature E.numChains) : m Bool := do
   let digest ← encodingHash publicKey.parameter leafIndex message signature.randomness
@@ -100,13 +101,13 @@ def verify (E : WotsEncoding) (publicKey : PublicKey) (leafIndex : LeafIndex)
 
 /-! ### Key generation: chains and tree -/
 
-/-- `pk_{idx,i} = Chain(P, 0, 2^w - 1, sk_{idx,i})` for every chain. -/
+/-- `pk_{ep,i} = Chain(P, ep, i, 0, 2^w - 1, sk_{ep,i})` for every chain. -/
 def oneTimePublicKey (parameter : PublicParameter) (secret : LeafIndex → Fin v → Digest)
     (leafIndex : LeafIndex) : m (Fin v → Digest) :=
   sequenceFin fun chain =>
     chainWalk parameter leafIndex chain 0 (chainLength - 1) (secret leafIndex chain)
 
-/-- `X_{0,idx}` from the secrets. -/
+/-- `X_{0,ep}` from the chain starts. -/
 def leafAt (parameter : PublicParameter) (secret : LeafIndex → Fin v → Digest)
     (leafIndex : LeafIndex) : m Digest := do
   let endpoints ← oneTimePublicKey parameter secret leafIndex
@@ -212,7 +213,7 @@ end Seeded
 
 namespace Concrete
 
-/-- `floor(idx / 2^level) xor 1`, the sibling on the path. -/
+/-- `floor(ep / 2^level) xor 1`, the sibling on the path. -/
 def authenticationPathNode (leafIndex : LeafIndex) (level : MerkleLevel) : MerkleNode :=
   merkleNodeOfNat (Nat.xor (leafIndex.val / 2 ^ level.val) 1)
 
@@ -248,7 +249,7 @@ def signFrom (E : WotsEncoding) (secretKey : SecretKey E.numChains) (leafIndex :
       | some signature => return some signature
       | none => signFrom E secretKey leafIndex message attempts (trial + 1)
 
-/-- `Sig(sk, idx, m)`: at most `A_max` randomizer trials, starting from trial `0`. -/
+/-- `Sign(sk, ep, m)`: at most `K` randomizer trials, starting from trial `0`. -/
 def sign (E : WotsEncoding) (secretKey : SecretKey E.numChains) (leafIndex : LeafIndex)
     (message : Message) : m (Option (Signature E.numChains)) :=
   signFrom E secretKey leafIndex message E.signingAttempts 0

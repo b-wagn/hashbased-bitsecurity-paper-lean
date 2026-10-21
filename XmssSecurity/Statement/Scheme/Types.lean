@@ -18,11 +18,11 @@ abbrev MasterSeed := BitVec 256
 
 abbrev Digest := BitVec digestBits
 abbrev Message := BitVec messageBits
-/-- The public parameter `P`, a hash output (`ℓ_p = n`). -/
+/-- The public parameter `P`, an `n`-bit hash output. -/
 abbrev PublicParameter := Digest
-/-- A randomizer `ρ`, a hash output (`ℓ_rnd = n`). -/
+/-- A randomizer `ρ`, an `n`-bit hash output. -/
 abbrev Randomness := Digest
-/-- `idx < L`. -/
+/-- An epoch `ep < L`. -/
 abbrev LeafIndex := Fin lifetime
 abbrev Digit := Fin chainLength
 /-- A chain step; the tweak carries `2^w * i + step`. -/
@@ -62,7 +62,7 @@ structure SecretKey (v : Nat) where
   chainValues : Vector (Vector (Vector Digest chainLength) v) lifetime
   treeValues : Vector (Vector Digest lifetime) (treeHeight + 1)
 
-/-- Read the stored value `c_{idx,i,d}`. -/
+/-- Read the stored value `c_{ep,i,d}`. -/
 def SecretKey.chainValue (key : SecretKey v) (leafIndex : LeafIndex) (chain : Fin v)
     (digit : Digit) : Digest :=
   key.chainValues[leafIndex.val][chain.val][digit.val]
@@ -71,8 +71,7 @@ def SecretKey.chainValue (key : SecretKey v) (leafIndex : LeafIndex) (chain : Fi
 def SecretKey.treeValue (key : SecretKey v) (height : MerkleHeight) (node : MerkleNode) : Digest :=
   key.treeValues[height.val][node.val]
 
-/-- `sigma = (rho, sigma_OTS, path_ep)`: the encoding randomness, the `v` chain values and the `h`
-authentication nodes. -/
+/-- `σ = (ρ, (σ_i), (A_ℓ))`: the randomizer, the `v` chain values and the `h` authentication nodes. -/
 structure Signature (v : Nat) where
   randomness : Randomness
   chainValue : Fin v → Digest

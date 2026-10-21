@@ -18,9 +18,7 @@ namespace XmssSecurity
 /-- XMSS with the target-sum encoding has correctness error at most `2^-256`. -/
 theorem xmssTargetSum_correct : Correctness.HasCorrectnessError xmssTargetSum (1 / 2 ^ 256) := by
   rw [TargetSum.xmssTargetSum_eq]
-  intro q adversary hbound
-  refine (TargetSum.Correct.correctnessError_le q adversary hbound).trans ?_
-  gcongr <;> norm_num
+  exact TargetSum.Correct.correctnessError_paper
 
 /-- info: 'XmssSecurity.xmssTargetSum_correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

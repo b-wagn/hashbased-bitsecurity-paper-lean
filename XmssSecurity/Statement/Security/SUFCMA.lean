@@ -74,9 +74,9 @@ inductive QueryKind where
   | hash
   /-- `q_Gen`: the hash queries of key generation. -/
   | keygen
-  /-- `q_Sig`: the hash queries of the signer, summed over all signing queries. -/
+  /-- `q_Sign`: the hash queries of the signer, summed over all signing queries. -/
   | signer
-  /-- `q_Ver`: the hash queries of the verification of the forgery. -/
+  /-- `q_Verify`: the hash queries of the verification of the forgery. -/
   | verifier
 deriving DecidableEq, Fintype, Repr
 

@@ -4,8 +4,9 @@ import XmssSecurity.Statement.Security.SUFCMA
 # Correctness
 
 Generate keys and let an adaptive adversary request signatures. A first request at an epoch
-sets a failure flag if signing fails or verification rejects. Repeated epochs return `none`
-without setting the flag. The experiment returns the flag and the number of signing requests.
+records and returns the signer's answer, and sets a failure flag if signing fails or verification
+rejects. Repeated epochs return `none` without running the signer or changing the record or flag.
+Every request is counted. The experiment returns the flag and the number of signing requests.
 
 Correctness error `δ` means failure probability at most `δ · q` for every adversary making at
 most `q` signing requests with probability one. Hash queries are unlimited.
@@ -27,7 +28,8 @@ structure Adversary {ι : Type} (spec : OracleSpec ι) (PK Msg Sig : Type) (L : 
 abbrev Run (spec : OracleSpec ι) (Msg Sig : Type) (L : ℕ) : Type → Type :=
   AddWriterT ℕ (StateT (QueryLog (SigningSpec Msg Sig L) × Bool) (OracleComp spec))
 
-/-- Count the request; for a fresh epoch, sign and flag failure or rejected verification. -/
+/-- Count every request. At a fresh epoch, record and return the answer and flag signing or
+verification failure. At a repeated epoch, return `none` without changing the record or flag. -/
 def signingOracle (scheme : EpochBasedSignature spec PK SK Msg Sig L) (pk : PK) (sk : SK) :
     QueryImpl (SigningSpec Msg Sig L) (Run spec Msg Sig L) :=
   fun request => do

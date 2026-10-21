@@ -7,7 +7,7 @@ import XmssSecurity.Proof.Common.EUFCMA.Modes
 The statement layer has one experiment per notion, returning a count per `QueryKind`, and a counting
 mode is a set `Z` of kinds whose counts are summed (`SecurityGame`). This file works with the
 variant `lossyGame` of the statement's game in which a repeated epoch loses (`LossyGames.lean`). The
-proofs use the per-mode formulation of `Proof/Legacy/PerModeNotions.lean`: one notion per
+proofs use the per-mode formulation of `Proof/Common/Legacy/PerModeNotions.lean`: one notion per
 `CountingMode`, whose experiment returns the single charged number. This file proves the two
 formulations equivalent for every set `Z` containing the adversary's own hash queries: the
 experiment of `lossyGame` is `gameDetailed` (by definition), and summing the kinds in `Z` is the
@@ -43,7 +43,7 @@ section strong
 variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Input]
   [SampleableType Output] [DecidableEq Msg] [DecidableEq Sig]
 
-/-- The per-mode experiment of `modeOf Z` is the statement's experiment with the counts of the
+/-- The per-mode experiment of `modeOf Z` is the lossy experiment with the counts of the
 kinds in `Z` summed. -/
 lemma notion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
@@ -55,7 +55,7 @@ lemma notion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
   simp only [sum_eq_weight Z hZ]
   rfl
 
-/-- Bit security of the statement's game in mode `Z` is bit security of the per-mode notion. -/
+/-- Bit security of the lossy game in mode `Z` is bit security of the per-mode notion. -/
 theorem hasClassicalSecurityBound_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
     (workFactor : ℝ≥0∞) :
@@ -113,7 +113,7 @@ theorem hasClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash
     rw [hadv]
     exact h q hq adversary ((hbound adversary q).1 hb)
 
-/-- Exact bit security of the statement's game in mode `Z` is exact bit security of the
+/-- Exact bit security of the lossy game in mode `Z` is exact bit security of the
 per-mode notion. -/
 theorem hasExactClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
@@ -130,7 +130,7 @@ section standard
 variable {PK SK Msg Sig : Type} {L : ℕ} {Input Output : Type} [DecidableEq Input]
   [SampleableType Output] [DecidableEq Msg]
 
-/-- The per-mode EUF-CMA experiment of `modeOf Z` is the statement's experiment with the counts
+/-- The per-mode EUF-CMA experiment of `modeOf Z` is the lossy experiment with the counts
 of the kinds in `Z` summed. -/
 lemma eufNotion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
@@ -142,7 +142,7 @@ lemma eufNotion_experiment_eq (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
   simp only [sum_eq_weight Z hZ]
   rfl
 
-/-- Bit security of the statement's EUF-CMA game in mode `Z` is bit security of the per-mode
+/-- Bit security of the lossy EUF-CMA game in mode `Z` is bit security of the per-mode
 notion. -/
 theorem eufHasClassicalSecurityBound_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)
@@ -201,7 +201,7 @@ theorem eufHasClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.h
     rw [hadv]
     exact h q hq adversary ((hbound adversary q).1 hb)
 
-/-- Exact bit security of the statement's EUF-CMA game in mode `Z` is exact bit security of the
+/-- Exact bit security of the lossy EUF-CMA game in mode `Z` is exact bit security of the
 per-mode notion. -/
 theorem eufHasExactClassicalSecurityBits_iff (Z : Finset QueryKind) (hZ : QueryKind.hash ∈ Z)
     (scheme : EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L)

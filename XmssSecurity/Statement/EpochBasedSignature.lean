@@ -18,9 +18,9 @@ structure EpochBasedSignature {ι : Type} (spec : OracleSpec ι) (PK SK Msg Sig 
     (L : ℕ) where
   /-- `Gen → (pk, sk)`. -/
   keygen : OracleComp spec (PK × SK)
-  /-- `Sig(sk, ep, m) → σ ∈ Σ ∪ {⊥}`; `none` is the failure symbol `⊥`. -/
+  /-- `Sign(sk, ep, m) → σ ∈ Σ ∪ {⊥}`; `none` is the failure symbol `⊥`. -/
   sign : SK → Fin L → Msg → OracleComp spec (Option Sig)
-  /-- `Ver(pk, ep, m, σ) → {0, 1}`. -/
+  /-- `Verify(pk, ep, m, σ) → {0, 1}`. -/
   verify : PK → Fin L → Msg → Sig → OracleComp spec Bool
 
 end XmssSecurity

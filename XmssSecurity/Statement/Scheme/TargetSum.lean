@@ -3,7 +3,8 @@ import XmssSecurity.Statement.Scheme.Xmss
 /-!
 # XMSS with the target-sum encoding
 
-A digest is read as 32 four-bit digits and decodes exactly when their sum is 330.
+A digest is read as 32 four-bit digits, least significant first, and decodes exactly when
+their sum is 330. All 128 bits are used.
 The signer tries at most `2^32` randomizers. `xmssTargetSum` is the resulting scheme.
 -/
 
@@ -17,7 +18,7 @@ def numChains : Nat := 32
 /-- `T`: the target sum. -/
 def targetSum : Nat := 330
 
-/-- `A_max`: the maximum number of randomizer trials per signature. -/
+/-- `K`: the maximum number of randomizer trials per signature. -/
 def signingAttemptLimit : Nat := 2 ^ 32
 
 abbrev ChainIndex := Fin numChains
