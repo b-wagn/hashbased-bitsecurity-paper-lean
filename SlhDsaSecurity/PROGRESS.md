@@ -1188,3 +1188,42 @@ instance is not written.
 
 The `wotsPrf` and `forsPrf` clauses are unaffected either way: their canonical inputs carry
 `SK.seed`, which no signature ever discloses, so they are secret unconditionally.
+
+## The input half, stated once and properly
+
+Putting the last two sections together, the input half is one event, not two, and it is this:
+
+> the adversary queries the canonical input of a node one of whose children's cells the
+> signatures issued so far do not make available.
+
+Call such a node **sensitive**. A cell is *available* when the signatures already issued let
+one compute it: a WOTS chain value at or above that key's revealed digit, a FORS secret at a
+signed position, and anything the public structure derives from those. Everything else — every
+`wotsPrf` and `forsPrf` cell, every chain value below the revealed digit, every unsigned FORS
+secret — is not.
+
+Three things make this the right statement.
+
+* **It is one event.** The seed guess and the chain-value guess are the same thing: a canonical
+  input is `PK.seed ‖ ADRS ‖ (its children's cells)`, and the address says which node, hence
+  which cell, is at stake. At a PRF node that cell is `SK.seed`; one step up a chain it is the
+  previous chain value. Charging them separately would double the input half and break the
+  budget; charging them as one costs `2 ^ -128` per query, two units, which is exactly what the
+  half allows.
+* **Every sensitive node has exactly one unavailable child**, so the rate really is `2 ^ -128`
+  and not a multiple of it. `wotsPk` and `forsRoots` collect endpoints and roots, which sit at
+  or above the revealed positions; tree nodes collect tree cells; `wotsHash`, `wotsPrf`,
+  `forsPrf` and the FORS leaves each have one.
+* **Availability depends on the signing log, not on the oracle transcript.** This is what makes
+  the argument tractable where "which cells has the adversary *obtained*" did not: the
+  predicate is decided by which messages were signed, so it is a function of the game's own
+  state rather than of the adversary's queries. It is still adaptive — the WOTS part is fixed
+  by the walk, the FORS part follows the adversary's messages — so the blind comparison with a
+  region chosen in advance covers only the WOTS and PRF clauses, and the FORS clause needs the
+  per-step form.
+
+The per-step form is the one `DigestTape.prob_prefix_le` demonstrates: a lazy-sampling
+invariant indexed by position in query order, conditioned on a predicate the run so far
+determines. That technique is now proved in this development, for the digest tape; the input
+half needs the same shape with "the payload matches an unavailable cell" in place of "the next
+letter matches".
