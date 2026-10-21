@@ -1267,3 +1267,54 @@ is being taken out of the experiment anyway (`StrippedGame`), so that is the sha
 Note this does not conflict with the walk. The two halves are bounded separately on the same
 game, so each may use its own presentation of it: the answer side needs the cells fixed before
 the adversary runs, the input side needs them deferred.
+
+## State of the proof, consolidated
+
+The table under "State of the first-principles proof" above is superseded. Everything listed
+here is proved, unconditionally, with no `sorry` and an axiom guard.
+
+**The game.** `WarmedGame` puts `Security.experiment` into `liftM seeds >>= rest`, inserts the
+canonical graph walk after the seeds, and splits the result into `graphWalk` and `tail`;
+`probEvent_warmed` transfers the winning event for free, the walk touching only the cache.
+`MainTheorem.totalSecurityBits_of_bound` is the target asking for nothing but a bound, since
+the two halves live in different presentations.
+
+**The split.** `SplitCharged.cases_of_win_charged`: an accepted forgery in the warmed tail is a
+deviating structural collision, a WOTS residue, or the honest FORS secrets at the positions its
+digest selects — every index bound to the forgery, no free existentials. Underneath:
+`WarmedSplit` (the game's run factored through its phases), `VerifierProbes` (every cache entry
+the charges ask for, reached from the verifier's own queries), `FaultCharge`, `ForsBranch`,
+`WotsResidueReduction`.
+
+**The answer side.** `WarmedCharges.prob_deviatingCollision_tail_le` and
+`prob_combinedBad_tail_le` at the walk's own cells; `CoverageTail.prob_coverage_tail_le` at
+`1 / 2 ^ 141 + qm / 2 ^ 128`, charged on the message class, resting on `DigestTape`'s
+adaptive recording.
+
+**The honest phase.** `HonestProbes`: key generation asks the warmed cache nothing new, signing
+asks only its two message inputs. `StripCached` and `StrippedGame` take it out of the
+experiment, leaving the adversary's oracle and the verifier untouched. `HonestGrowth`: it
+spends at least `2 ^ subtreeHeight = 512` of the budget while adding nothing to the cache,
+which is the slack the defects live in.
+
+**The instrumentation.** `RecordedQueries` records the adversary's and verifier's own queries
+with `card = counts.work` exactly and is invisible; `RecordedBudget` bounds that by `q`;
+`AdversaryQueries.work_le_total` is the unconditional `work ≤ total`.
+
+**The input half's charge.** `SensitiveQuery` charges a query at a node with an unavailable
+child at `2 ^ -128`, given closure; `DrawnTable` holds that rate against a table drawn before,
+during or after the run, by `missRun` — the probes made while every answer is "miss" are a
+determined list, so no conditioning appears. `SensitiveShape` supplies the two graph facts: a
+sensitive node has exactly one child, and availability is closed. `GraphStakes` instantiates it,
+with the forgery's `C = 259` claimed cells charged as candidates.
+
+**What is left**, none of it with unknown content:
+
+1. the lazy drawing handler, the flag-free/flagged split, and the composition through
+   `LazyBridge` / `TableBlind` / `StalledRun`;
+2. `revealed` pinned to the *signer's* digit rather than the fault's — required exactly, since
+   over-claiming puts the forgery outside the charged event and under-claiming makes
+   `q / 2 ^ 128` false;
+3. the position function from the forgery, and `claimedCandidates` wired into the record;
+4. the final arithmetic: `(q − 512 + 259) / 2 ^ 128` for the input half, `(q − 512) / 2 ^ 128`
+   plus `2 ^ -126 + 2 ^ -141` for the answer half, summing under `q / 2 ^ 127`.
