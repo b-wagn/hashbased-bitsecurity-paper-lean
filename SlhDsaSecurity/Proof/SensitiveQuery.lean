@@ -1,0 +1,345 @@
+import SlhDsaSecurity.Proof.SecretGuessCharge
+import SlhDsaSecurity.Proof.GrowthCharge
+
+/-!
+# Querying a node whose child's cell is unavailable
+
+The input half of the budget is one event, not two. A canonical input is
+`PK.seed ‖ ADRS ‖ (its children's cells)`, so a query at a node one of whose children's cells
+the run cannot yet compute is a guess at that cell — and it is the same event whether the cell
+is `SK.seed` at a `PRF` node, a WOTS chain value one step below the revealed digit, or an
+unsigned FORS secret. Call such a node **sensitive**. This file charges the event at one unit
+of `2 ^ -128` per query, with no multiple of it and no factor for the number of cells.
+
+Three things give that rate, and they are the three fields of `Stakes`.
+
+* **One cell at stake.** A sensitive node has exactly one unavailable child, so its canonical
+  input is a function of a *single* cell: `inputOf node cell`. With two unavailable children
+  the shape would take two cells and the statement below would not typecheck — which is where
+  that hypothesis is spent. (Two would only make the event rarer; one is what makes a single
+  coordinate the thing at stake.)
+* **The address determines the node.** A canonical input carries its address in the clear, so
+  `locate` reads the node off a candidate input before any cell is consulted. Hence a candidate
+  can be the input of at most one node, and the union is over queries rather than over nodes.
+* **The cell is one coordinate of a uniform table.** `stake` names it, and `coordinate_uniform`
+  says a single coordinate of a uniform table of cells is a uniform cell.
+
+Availability is a predicate on the run's own state — in the experiment, the signing log — and
+is read at the state the query was made in, not at the end of the run. That is what separates
+this from a comparison against a region stripped in advance: the set of unavailable cells
+shrinks as signatures are issued, and a cell released mid-run may be queried freely
+afterwards, so a region fixed before the run charges events the run reaches honestly.
+`unavailable_mono` records that the region only shrinks, which is why over-approximating to the
+initial one keeps the event but destroys the bound.
+
+`prob_record_sensitive_le` is the charge: a run that records its candidate inputs with the
+states they were issued in, and whose law does not involve the table, ever issues a sensitive
+one with probability at most `limit / 2 ^ 128`, where `limit` bounds the number of records.
+`prob_probes_sensitive_le` states it against a run of the shared oracle instrumented to record
+its hash queries, with the bound supplied by a charged query count.
+
+The table is drawn after the run, so the run must not consult it. That is the whole hypothesis
+and it is exactly met when the cells a signature releases are drawn at the moment of release —
+a released cell is uniform in the view it is released into, so the signer may draw it fresh —
+leaving the never-released cells for the deferred table. A run against a cache programmed from
+the whole table beforehand does not meet it, and comparing the two is a separate obligation: it
+is an identical-until-bad step whose region shrinks as cells are released, which
+`BlindComparison.prob_touched_eq` does not cover, since that compares caches agreeing off a set
+fixed before the run.
+-/
+
+open OracleComp OracleSpec ENNReal
+
+set_option backward.isDefEq.respectTransparency false
+
+namespace SlhDsaSecurity.SensitiveQuery
+
+/-- The value a graph cell carries: the bits a hash answer is truncated to. -/
+abbrev Cell := Digest
+
+/-- What the charge needs about the graph, and nothing else.
+
+`inputOf node cell` is the canonical input of `node` when its single unavailable child's cell
+takes the value `cell`; `locate` reads the node back off the address the input carries in the
+clear; `stake` names the cell that child contributes. -/
+structure Stakes (Node Index : Type) where
+  /-- The canonical input of a node, as a function of the one cell at stake. -/
+  inputOf : Node → Cell → Bytes
+  /-- The node a candidate input's address names, if any. -/
+  locate : Bytes → Option Node
+  /-- The cell a node's unavailable child contributes. -/
+  stake : Node → Index
+  /-- The address is carried in the clear, so it recovers the node. -/
+  locate_inputOf : ∀ node cell, locate (inputOf node cell) = some node
+  /-- The payload carries the cell in the clear, so the input determines it. -/
+  inputOf_injective : ∀ node, Function.Injective (inputOf node)
+
+variable {Node Index State : Type}
+
+/-- A candidate input is **sensitive** at a state when it is the canonical input of a node
+whose staked cell is unavailable there, that cell taking the value the table gives it. -/
+def Sensitive (stakes : Stakes Node Index) (unavailable : State → Index → Prop)
+    (table : Index → Cell) (state : State) (candidate : Bytes) : Prop :=
+  ∃ node : Node, unavailable state (stakes.stake node) ∧
+    stakes.inputOf node (table (stakes.stake node)) = candidate
+
+/-- Shrinking the unavailable set shrinks the sensitive inputs. Availability only grows along
+a run, so a query sensitive when it was made was sensitive at the start — the containment is
+sound, but the initial region is the whole secret region, which a run reaches honestly once
+its cells are released, so the *bound* does not survive the over-approximation. -/
+theorem sensitive_mono (stakes : Stakes Node Index)
+    {unavailable weaker : State → Index → Prop}
+    (hmono : ∀ state index, unavailable state index → weaker state index)
+    (table : Index → Cell) (state : State) (candidate : Bytes)
+    (hsensitive : Sensitive stakes unavailable table state candidate) :
+    Sensitive stakes weaker table state candidate := by
+  obtain ⟨node, hcell, hinput⟩ := hsensitive
+  exact ⟨node, hmono state _ hcell, hinput⟩
+
+/-- Availability only grows along a run, so a candidate sensitive when it was issued was
+sensitive against the region the run started with. The containment is sound; the bound is not
+inherited, because a cell released mid-run may be queried freely afterwards and the initial
+region charges that. This is why the region has to be read at the state the candidate was
+issued in rather than fixed in advance. -/
+theorem sensitive_initial (stakes : Stakes Node Index)
+    {unavailable : State → Index → Prop} {initial : Index → Prop}
+    (hinitial : ∀ state index, unavailable state index → initial index)
+    (table : Index → Cell) (state : State) (candidate : Bytes)
+    (hsensitive : Sensitive stakes unavailable table state candidate) :
+    Sensitive stakes (fun _ => initial) table state candidate :=
+  sensitive_mono stakes hinitial table state candidate hsensitive
+
+/-! ## One coordinate of a uniform table
+
+The whole rate is this: a candidate input names one node, the node names one cell, and that
+cell is one coordinate of the uniform table. -/
+
+variable [Fintype Index] [DecidableEq Index]
+
+open scoped Classical in
+/-- A single coordinate of a uniform table of cells is a uniform cell. -/
+theorem coordinate_uniform (index : Index) :
+    𝒟[(fun table : Index → Cell => table index) <$>
+        ($ᵗ (Index → Cell) : ProbComp (Index → Cell))] =
+      𝒟[($ᵗ Cell : ProbComp Cell)] := by
+  classical
+  let split : (Index → Cell) ≃ Cell × ({other // other ≠ index} → Cell) :=
+    Equiv.funSplitAt index Cell
+  have hmap : (fun table : Index → Cell => table index) <$>
+        ($ᵗ (Index → Cell) : ProbComp (Index → Cell)) =
+      Prod.fst <$> (split <$> ($ᵗ (Index → Cell) : ProbComp (Index → Cell))) := by
+    rw [Functor.map_map]
+    congr 1
+  have hinner : 𝒟[split <$> ($ᵗ (Index → Cell) : ProbComp (Index → Cell))] =
+      𝒟[($ᵗ (Cell × ({other // other ≠ index} → Cell)) :
+        ProbComp (Cell × ({other // other ≠ index} → Cell)))] :=
+    evalDist_map_bijective_uniform_cross (α := (Index → Cell))
+      (β := Cell × ({other // other ≠ index} → Cell)) split split.bijective
+  rw [hmap, evalDist_map, hinner, ← evalDist_map]
+  exact evalDist_map_fst_uniformSample_prod
+
+/-- A fixed coordinate of a uniform table takes a fixed value with probability `2 ^ -128`. -/
+theorem prob_coordinate_eq (index : Index) (value : Cell) :
+    Pr[fun table : Index → Cell => table index = value |
+      ($ᵗ (Index → Cell) : ProbComp (Index → Cell))] = 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [show (fun table : Index → Cell => table index = value) =
+    (fun cell : Cell => cell = value) ∘ (fun table : Index → Cell => table index) from rfl,
+    ← probEvent_map]
+  rw [probEvent_congr' (fun _ _ => Iff.rfl) (coordinate_uniform index)]
+  rw [show (fun cell : Cell => cell = value) = (fun cell : Cell => value = cell) from by
+    funext cell; exact propext ⟨Eq.symm, Eq.symm⟩]
+  exact SecretGuessCharge.prob_single_guess value
+
+/-! ## The per-candidate rate -/
+
+/-- **A candidate input is sensitive with probability at most `2 ^ -128`.** The address names
+the node before any cell is read, and the node names the one cell at stake, so a candidate is
+a guess at a single coordinate of the table. -/
+theorem prob_sensitive_le (stakes : Stakes Node Index)
+    (unavailable : State → Index → Prop) (state : State) (candidate : Bytes) :
+    Pr[fun table : Index → Cell => Sensitive stakes unavailable table state candidate |
+      ($ᵗ (Index → Cell) : ProbComp (Index → Cell))] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  cases hlocate : stakes.locate candidate with
+  | none =>
+    -- No address, so no node: the event is empty.
+    refine le_of_eq_of_le (b := 0) (probEvent_eq_zero fun table _ hbad => ?_) (by simp)
+    obtain ⟨node, -, hinput⟩ := hbad
+    rw [← hinput, stakes.locate_inputOf] at hlocate
+    simp at hlocate
+  | some node =>
+    -- The address names this node, and the input then determines its cell.
+    by_cases hpreimage : ∃ cell : Cell, stakes.inputOf node cell = candidate
+    · obtain ⟨value, hvalue⟩ := hpreimage
+      refine le_of_le_of_eq (probEvent_mono (q := fun table : Index → Cell =>
+        table (stakes.stake node) = value) ?_) (prob_coordinate_eq _ value)
+      rintro table - ⟨other, -, hinput⟩
+      have hsame : other = node := by
+        have hother : stakes.locate candidate = some other := by
+          rw [← hinput, stakes.locate_inputOf]
+        exact Option.some.inj (hother.symm.trans hlocate)
+      subst hsame
+      exact stakes.inputOf_injective other (hinput.trans hvalue.symm)
+    · refine le_of_eq_of_le (b := 0) (probEvent_eq_zero fun table _ hbad => ?_) (by simp)
+      obtain ⟨other, -, hinput⟩ := hbad
+      have hother : stakes.locate candidate = some other := by
+        rw [← hinput, stakes.locate_inputOf]
+      have hsame : other = node := Option.some.inj (hother.symm.trans hlocate)
+      subst hsame
+      exact hpreimage ⟨table (stakes.stake other), hinput⟩
+
+/-! ## The charge
+
+The table is drawn after the run, which is what makes the union bound exact: each recorded
+candidate was fixed before its coordinate was drawn, so each costs `2 ^ -128` and the whole run
+costs one unit per record, with no loss to the earlier candidates having been answered. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **A recorded run meets a sensitive input with probability at most one unit per record.** -/
+theorem prob_record_sensitive_le {γ : Type} (stakes : Stakes Node Index)
+    (unavailable : State → Index → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × State))
+    (limit : Nat) (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
+    Pr[fun pair : γ × (Index → Cell) =>
+        ∃ entry ∈ record pair.1, Sensitive stakes unavailable pair.2 entry.2 entry.1 |
+      (do
+        let result ← run
+        let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
+        pure (result, table))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [probEvent_bind_eq_tsum]
+  calc ∑' result, Pr[= result | run] *
+        Pr[fun pair : γ × (Index → Cell) =>
+            ∃ entry ∈ record pair.1, Sensitive stakes unavailable pair.2 entry.2 entry.1 |
+          (do
+            let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
+            pure (result, table))]
+      ≤ ∑' result, Pr[= result | run] * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        refine ENNReal.tsum_le_tsum fun result => ?_
+        by_cases hmem : result ∈ support run
+        · refine mul_le_mul' le_rfl ?_
+          rw [bind_pure_comp, probEvent_map]
+          refine le_trans (probEvent_mono (q := fun table : Index → Cell =>
+            ∃ entry ∈ (record result).toFinset,
+              Sensitive stakes unavailable table entry.2 entry.1) ?_) ?_
+          · rintro table - ⟨entry, hentry, hsensitive⟩
+            exact ⟨entry, List.mem_toFinset.mpr hentry, hsensitive⟩
+          refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
+          calc ∑ entry ∈ (record result).toFinset,
+                Pr[fun table : Index → Cell =>
+                    Sensitive stakes unavailable table entry.2 entry.1 |
+                  ($ᵗ (Index → Cell) : ProbComp (Index → Cell))]
+              ≤ ∑ _entry ∈ (record result).toFinset, 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+                Finset.sum_le_sum fun entry _ =>
+                  prob_sensitive_le stakes unavailable entry.2 entry.1
+            _ = (record result).toFinset.card * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+                rw [Finset.sum_const, nsmul_eq_mul]
+            _ ≤ (limit : ℝ≥0∞) * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+                refine mul_le_mul' (Nat.cast_le.mpr ?_) le_rfl
+                exact le_trans (record result).toFinset_card_le (hlimit result hmem)
+            _ = _ := by rw [mul_one_div]
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+          simp
+    _ = (∑' result, Pr[= result | run]) * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        ENNReal.tsum_mul_right
+    _ ≤ 1 * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        mul_le_mul' tsum_probOutput_le_one le_rfl
+    _ = _ := one_mul _
+
+
+/-! ## The run that issues the candidates
+
+The abstract charge takes the candidates and the states they were issued in as data. A run of
+the shared oracle supplies both: the candidates are its hash queries, and the state they were
+issued in is the cache at that moment, which is what the run so far has determined. The
+counter makes the number of candidates an observable of the run, so the bound is a parameter
+rather than a syntactic property of the computation.
+
+The instrumented oracle is the shared oracle itself — it consults no table, which is why the
+table may be drawn after it. Establishing that for the *programmed* cache of the experiment is
+the remaining step, and it is the comparison this file does not do. -/
+
+/-- The cache, the candidate inputs with the cache each was issued against, and the number of
+hash calls charged. -/
+abbrev ProbeState := QueryCache HashSpec × List (Bytes × QueryCache HashSpec) × Nat
+
+/-- The shared random oracle, recording every hash query with the cache it was issued
+against, and charging it. -/
+noncomputable def probes : QueryImpl OracleWorld (StateT ProbeState ProbComp) :=
+  fun queried state =>
+    match queried with
+    | Sum.inl coin => do
+        let value ← ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _)
+        pure (value, state)
+    | Sum.inr input => do
+        let step ← (randomOracle input).run state.1
+        pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1))
+
+/-- On a private uniform sample the probing oracle draws and leaves the state alone. -/
+theorem probes_run_inl (coin : unifSpec.Domain) (state : ProbeState) :
+    (probes (Sum.inl coin)).run state =
+      ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _) >>= fun value =>
+        (pure (value, state) : ProbComp _) := rfl
+
+/-- On a hash query the probing oracle is the shared oracle followed by the record. -/
+theorem probes_run_inr (input : Bytes) (state : ProbeState) :
+    (probes (Sum.inr input)).run state =
+      (randomOracle input).run state.1 >>= fun step =>
+        (pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
+          ProbComp _) := rfl
+
+/-- **The record is no longer than the charge.** Every recorded candidate is one charged hash
+call, so a budget on the count is a budget on the number of candidates. -/
+theorem length_le_count {α : Type} (computation : OracleComp OracleWorld α)
+    (initial : ProbeState) (result : α × ProbeState)
+    (hmem : result ∈ support ((simulateQ probes computation).run initial))
+    (hstart : initial.2.1.length ≤ initial.2.2) :
+    result.2.2.1.length ≤ result.2.2.2 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing initial result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hstart
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | input
+    · rw [probes_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [congrArg Prod.snd hpure]
+      exact hstart
+    · rw [probes_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      simp only [List.length_append, List.length_cons, List.length_nil]
+      omega
+
+/-- **The charge against a run of the shared oracle.** A run that charges at most `limit` hash
+calls ever issues a sensitive candidate with probability at most `limit / 2 ^ 128`, the table
+being drawn after the run. -/
+theorem prob_probes_sensitive_le {α : Type} (stakes : Stakes Node Index)
+    (unavailable : QueryCache HashSpec → Index → Prop)
+    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) (limit : Nat)
+    (hlimit : ∀ result ∈ support ((simulateQ probes computation).run (cache, [], 0)),
+      result.2.2.2 ≤ limit) :
+    Pr[fun pair : (α × ProbeState) × (Index → Cell) =>
+        ∃ entry ∈ pair.1.2.2.1, Sensitive stakes unavailable pair.2 entry.2 entry.1 |
+      (do
+        let result ← (simulateQ probes computation).run (cache, [], 0)
+        let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
+        pure (result, table))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_record_sensitive_le stakes unavailable
+    ((simulateQ probes computation).run (cache, [], 0)) (fun result => result.2.2.1) limit
+    fun result hmem =>
+      le_trans (length_le_count computation (cache, [], 0) result hmem (by simp))
+        (hlimit result hmem)
+
+end SlhDsaSecurity.SensitiveQuery
