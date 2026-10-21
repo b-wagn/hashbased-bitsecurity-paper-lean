@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.SensitiveQuery
+import SlhDsaSecurity.Proof.LazyBridge
 import SlhDsaSecurity.Proof.AdversaryQueries
 import SlhDsaSecurity.Proof.SensitiveShape
 import SlhDsaSecurity.Proof.StrippedGame
@@ -3977,3 +3978,19 @@ info: 'SlhDsaSecurity.RecordedQueries.countQueries_eq_map_countRecorded' depends
 /-- info: 'SlhDsaSecurity.RecordedQueries.card_toFinset_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedQueries.card_toFinset_le
+
+/-- info: 'SlhDsaSecurity.LazyBridge.evalDist_bind_congr_right' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBridge.evalDist_bind_congr_right
+
+/-- info: 'SlhDsaSecurity.LazyBridge.flag_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBridge.flag_one
+
+/-- info: 'SlhDsaSecurity.LazyBridge.bad_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBridge.bad_one
+
+/-- info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq
