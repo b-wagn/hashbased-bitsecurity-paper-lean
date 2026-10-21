@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.BlindComparison
+import SlhDsaSecurity.Proof.SeedDeferral
 
 /-!
 # Carrying the queried set alongside the count
@@ -19,7 +20,7 @@ So the oracle below carries both, and `card_le_count` is the invariant that make
 available.
 -/
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec ENNReal
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -269,5 +270,44 @@ theorem prob_meets_real_eq_blind {α : Type} (computation : OracleComp OracleWor
   simp only [bind_pure_comp, probEvent_map]
   exact prob_meets_eq (seedInput secret) computation (realCache secret) blindCache ∅ 0
     (hagree secret)
+
+/-! ## The blind side, bounded
+
+On the blind side the run does not involve the seed, so the seed may be drawn after it. That
+is what `SeedDeferral.prob_run_meets_honest_key_le` needs, and the queried set the tracked
+oracle carries is what it consumes. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The blind run meets a seed-bearing input at most once per query.** -/
+theorem prob_meets_blind_le {α Index : Type} (computation : OracleComp OracleWorld α)
+    (blindCache : QueryCache HashSpec) (inputOf : Digest → Index → Bytes)
+    (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective fun secret : Digest => inputOf secret node)
+    (limit : Nat)
+    (hcard : ∀ result ∈ support ((simulateQ tracked computation).run (blindCache, ∅, 0)),
+      result.2.2.1.card ≤ limit) :
+    Pr[fun pair : (α × State) × Digest =>
+        ∃ candidate ∈ pair.1.2.2.1, ∃ node : Index, inputOf pair.2 node = candidate |
+      (do
+        let result ← (simulateQ tracked computation).run (blindCache, ∅, 0)
+        let secret ← ($ᵗ Digest : ProbComp Digest)
+        pure (result, secret))] ≤
+      (limit : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  have hmapped := SeedDeferral.prob_run_meets_honest_key_le
+    ((fun result : α × State => (result, result.2.2.1)) <$>
+      (simulateQ tracked computation).run (blindCache, ∅, 0))
+    inputOf locate hlocate hinj limit ?_
+  · rw [probEvent_bind_eq_tsum]
+    rw [bind_map_left, probEvent_bind_eq_tsum] at hmapped
+    refine le_trans (le_of_eq (tsum_congr fun x => congrArg _ ?_)) hmapped
+    simp only [bind_pure_comp, probEvent_map]
+    rfl
+  · intro result hmem
+    rw [support_map] at hmem
+    obtain ⟨inner, hinner, hpair⟩ := hmem
+    rw [← hpair]
+    exact hcard inner hinner
 
 end SlhDsaSecurity.TrackedQueries
