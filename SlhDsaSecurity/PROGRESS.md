@@ -257,3 +257,57 @@ revealed digest; its distributional hypotheses still need an adaptive-game bridg
 uniform digest-view tape by conditioning on its instance assignments and
 reindexing its leaf coordinates. For at most 5·2^62 entries, the exceptional
 probability is at most 2^-141 + 2^-152.
+
+## Tightness budget for the 127-bit target
+
+Write the target as `q / 2 ^ 127 = 4q / 2 ^ 129`. The two unavoidable attack avenues are
+additive, and their sum decides whether the target is provable at all.
+
+* Structural faults. `Proof/FreshHitBound.lean` charges every extracted collision or
+  preimage witness at `q / 2 ^ 128 = 2q / 2 ^ 129`, and that charge is *tight*: a fresh
+  tweakable call hits a value fixed before it with probability exactly `2 ^ -128`
+  (`CollisionCharge.fresh_tweakable_prob_hit`).
+* FORS coverage. The plain bound `Proof/ForsCoverage.lean` gives `2 ^ -128` per fresh
+  digest, i.e. `2q / 2 ^ 129`. Added to the structural charge this is `4q / 2 ^ 129`,
+  exactly the target, leaving **no** room for any further term. The target is therefore
+  **not provable through the plain FORS bound**.
+* `Proof/ForsConcentrationSharper.lean` is what creates the slack: the smaller load cap
+  `2 ^ 102` gives `q / 2 ^ 129` plus an additive `2 ^ -126 = 8 / 2 ^ 129`. The provable sum
+  becomes `3q / 2 ^ 129 + 8 / 2 ^ 129`, leaving slack `(q - 8) / 2 ^ 129`.
+
+So the proof **must** route FORS through the sharper cap, and the remaining slack
+`(q - 8) / 2 ^ 129` must absorb every other term:
+
+| `q` | slack `(q - 8) / 2 ^ 129` |
+| --- | --- |
+| 569 | `2 ^ -119.9` |
+| `2 ^ 20` | `2 ^ -109` |
+| `2 ^ 57` | `2 ^ -72` |
+| `2 ^ 64` | `2 ^ -65` |
+| `2 ^ 81` | `2 ^ -48` |
+
+The additive constant `2 ^ -126` is harmless only because `Proof/VerificationBudget.lean`
+forces the advantage to zero for `q < 569`, so `q ≥ 569 > 8` always. The other recorded
+constants (`2 ^ -141` occupancy, `2 ^ -152` prefix, `2 ^ -165` hash separation) sit far
+below the slack at every `q ≥ 569`.
+
+The one term that is *not* obviously below the slack is the shared-oracle framing leak now
+proved in `Proof/FramingLeak.lean`. Its success is driven by **free** signing queries
+rather than by `q`: with probability `1/256` the public root starts with a zero byte, the
+`chainFrame` family becomes legal, and up to `2 ^ 64` uncharged signing requests each
+publish a randomizer that is a truncated message digest for the next message down. The
+calculation modelled in `Proof/SharedOracleArithmetic.lean` adds roughly `2 ^ -72` on top
+of the generic baseline. Because the slack reaches `2 ^ -72` only at `q = 2 ^ 57`, the
+target survives this path **only if** mounting it genuinely costs that many charged
+queries. It appears to: recovering `SK.prf` requires recognising which of the roughly
+`2 ^ 64` published randomizers equals it, and each candidate test is at least one charged
+hash call, so about `2 ^ 64` charged queries are needed, where the slack is `2 ^ -65` —
+roughly seven bits of margin. Closing this rigorously means proving a *charged-work lower
+bound* for the recovery step, not just its success probability. That is the remaining
+quantitative obligation, and `proposed_bound_exceeds_target` is a certificate about the
+proposed calculation, not a proof that any adversary achieves it.
+
+Summary: 127 bits is not refuted and appears attainable, but only via the sharper FORS cap,
+the 569-query verification floor, and a charged-work lower bound on the framing-leak
+recovery. Routing FORS through the plain `2 ^ -128` bound cannot work.
+
