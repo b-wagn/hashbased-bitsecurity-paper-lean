@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.CacheReplay
 import SlhDsaSecurity.Proof.VerifierNaturality
 import SlhDsaSecurity.Proof.Correctness.Naturality
 import SlhDsaSecurity.Proof.Extraction.HypertreeChain
+import SlhDsaSecurity.Proof.CanonicalGraph.Programming
 
 /-!
 # From the game's run to the extraction's `Id` statements
@@ -69,5 +70,33 @@ theorem keygen_publicKey (secretSeed prfSeed publicSeed : Digest)
         @SlhDsaSecurity.Extraction.HypertreeChain.honestNode (CacheReplay.replayQuery cache)
           secretSeed publicSeed (layers - 1) 0 :=
   ⟨rfl, rfl⟩
+
+/-! ## Identifying the cells the game produced
+
+Every charge is parameterised by the honest cells, and in the experiment those are whatever
+key generation and signing wrote into the oracle. `CanonicalGraph.Programming.value_eq_of_cache_agreement`
+says a cell table is *the* graph evaluation as soon as the cache agrees with it at the
+canonical inputs — which is exactly what a run that made those queries leaves behind.
+
+Read under `CacheReplay.replayQuery`, a hash call is a cache lookup, so the agreement
+hypothesis becomes a statement purely about the game's own cache. -/
+
+/-- **A cache carrying the canonical entries determines the graph's cells.** -/
+theorem value_eq_cellsOfOutputs (publicSeed secretSeed : Digest)
+    (outputs : CanonicalGraph.Programming.Outputs) (cache : QueryCache HashSpec)
+    (hagrees : ∀ (input : Bytes) (output : HashOutput),
+      CanonicalGraph.Programming.cacheFrom publicSeed
+          (CanonicalGraph.Programming.cellsOfOutputs secretSeed outputs) outputs
+          CanonicalGraph.Programming.order ∅ input = some output →
+        cache input = some output) :
+    @CanonicalGraph.value (CacheReplay.replayQuery cache) secretSeed publicSeed =
+      CanonicalGraph.Programming.cellsOfOutputs secretSeed outputs := by
+  refine @CanonicalGraph.Programming.value_eq_of_cache_agreement
+    (CacheReplay.replayQuery cache) publicSeed secretSeed outputs ?_
+  intro input output hentry
+  have hcache := hagrees input output hentry
+  show ((cache input).getD default : Id HashOutput) = output
+  rw [hcache]
+  rfl
 
 end SlhDsaSecurity.GameBridge
