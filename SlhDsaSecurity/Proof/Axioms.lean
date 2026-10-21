@@ -4047,13 +4047,13 @@ info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_refine_eq_of_commute' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestGrowth.one_le_count_tweakable
 
-/-- info: 'SlhDsaSecurity.HonestGrowth.succ_le_count_merkleNode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.HonestGrowth.pow_le_count_merkleNode' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.HonestGrowth.succ_le_count_merkleNode
+#print axioms SlhDsaSecurity.HonestGrowth.pow_le_count_merkleNode
 
-/-- info: 'SlhDsaSecurity.HonestGrowth.four_le_count_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.HonestGrowth.pow_le_count_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.HonestGrowth.four_le_count_keygen
+#print axioms SlhDsaSecurity.HonestGrowth.pow_le_count_keygen
 
 /-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -4134,3 +4134,7 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.DrawnTable.prob_table_first_sensitive_le
+
+/-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_pow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_pow
