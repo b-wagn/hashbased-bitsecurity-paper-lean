@@ -161,4 +161,67 @@ theorem deviatingCollision_of_compressionCollision {α : Type} (publicSeed : Dig
   · rw [hparentCell, ← hjoins]
     exact (CacheReplay.shortHash_replayQuery cache _ output (haddress ▸ hentry)).symm
 
+/-! ## The collision as the layer actually hands it over
+
+`Extraction.Hypertree.LayerCollision` reports a chain collision starting at the signed digit,
+with the honest side being the *signed* value rather than the chain's start — the adversary
+advances from where the signature left off. The canonical lemma above fixed the start at zero,
+which does not fit.
+
+This variant takes the collision at an arbitrary start, with the honest side the chain value
+there, and lands on the node at `start + offset`. The step that makes it work is
+`Correctness.Wots.chain_add`: advancing `offset` from the signed value is the same as
+advancing `start + offset` from the derived secret, so the honest side really is the cell at
+that position. -/
+
+/-- **A chain collision at the signed digit is charged, unconditionally.** -/
+theorem deviatingCollision_of_chainCollision_canonical_at {α : Type}
+    (secretSeed publicSeed : Digest) (cache : QueryCache HashSpec) (key : WotsKey)
+    (chainIndex : Fin chains) (start offset : Nat) (hposition : start + offset < w - 1)
+    (actual : Digest)
+    (hcollision : @Wots.ChainCollision (CacheReplay.replayQuery cache) publicSeed
+      { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } start actual
+      (@SlhDsaSecurity.Wots.chain Id _ (CacheReplay.replayQuery cache) publicSeed
+        { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } 0 start
+        (@Hashing.derive Id _ (CacheReplay.replayQuery cache) publicSeed secretSeed
+          (SlhDsaSecurity.Wots.secretAddress key.address chainIndex))) offset)
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hcache : result.2 = cache)
+    (hentry : cache (Hashing.tweakableInput publicSeed
+      (StructuralNode.wotsHash key chainIndex ⟨start + offset, hposition⟩).address
+      (bytesBE n (@SlhDsaSecurity.Wots.chain Id _ (CacheReplay.replayQuery cache) publicSeed
+        { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } start offset
+        actual))) = some output) :
+    StructuralTerm.DeviatingCollision publicSeed
+      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
+  have hinw : start + offset < w := by have := hposition; omega
+  have hchildren : (StructuralNode.wotsHash key chainIndex ⟨start + offset, hposition⟩).children =
+      [.structural (wotsPosition key chainIndex ⟨start + offset, hinw⟩)] := by
+    by_cases hzero : start + offset = 0 <;>
+      simp only [wotsPosition, StructuralNode.children] <;> split <;> simp_all
+  have hchild : @value (CacheReplay.replayQuery cache) secretSeed publicSeed
+        (.structural (wotsPosition key chainIndex ⟨start + offset, hinw⟩)) =
+      @SlhDsaSecurity.Wots.chain Id _ (CacheReplay.replayQuery cache) publicSeed
+        { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } start offset
+        (@SlhDsaSecurity.Wots.chain Id _ (CacheReplay.replayQuery cache) publicSeed
+          { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } 0 start
+          (@Hashing.derive Id _ (CacheReplay.replayQuery cache) publicSeed secretSeed
+            (SlhDsaSecurity.Wots.secretAddress key.address chainIndex))) := by
+    rw [@value_wotsPosition (CacheReplay.replayQuery cache)]
+    have hadd := @Correctness.Wots.chain_add (CacheReplay.replayQuery cache) publicSeed
+      { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } 0 start offset
+      (@Hashing.derive Id _ (CacheReplay.replayQuery cache) publicSeed secretSeed
+        (SlhDsaSecurity.Wots.secretAddress key.address chainIndex))
+    rw [Nat.zero_add] at hadd
+    exact hadd
+  refine deviatingCollision_of_chainCollision publicSeed
+    (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) cache
+    (.wotsHash key chainIndex ⟨start + offset, hposition⟩)
+    (.structural (wotsPosition key chainIndex ⟨start + offset, hinw⟩))
+    { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } start offset
+    actual _ hchildren ?_ hchild ?_ hcollision result output hcache hentry
+  · simp [StructuralNode.address]
+  · rw [CanonicalCells.parentCell_tweakable cache secretSeed publicSeed, hchildren,
+      CollisionToDeviating.childBytes_single, hchild]
+
 end SlhDsaSecurity.WotsCharge
