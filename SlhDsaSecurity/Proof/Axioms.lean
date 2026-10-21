@@ -48,6 +48,7 @@ import SlhDsaSecurity.Proof.ForsCoverageTerm
 import SlhDsaSecurity.Proof.Assembly
 import SlhDsaSecurity.Proof.PerQueryBudget
 import SlhDsaSecurity.Proof.CombinedCharge
+import SlhDsaSecurity.Proof.SecretGuessCharge
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -609,3 +610,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.CombinedCharge.prob_combinedBad_within_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CombinedCharge.prob_combinedBad_within_le
+
+/-- info: 'SlhDsaSecurity.SecretGuessCharge.prob_secret_guessed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SecretGuessCharge.prob_secret_guessed_le
