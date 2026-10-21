@@ -46,6 +46,7 @@ import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.WholeGameStructural
 import SlhDsaSecurity.Proof.ForsCoverageTerm
 import SlhDsaSecurity.Proof.Assembly
+import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -515,3 +516,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.Assembly.le_target_of_terms' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.le_target_of_terms
+
+/-- info: 'SlhDsaSecurity.CollisionToDeviating.canonicalInput_tree' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CollisionToDeviating.canonicalInput_tree
+
+/-- info: 'SlhDsaSecurity.CollisionToDeviating.exists_deviating_child' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CollisionToDeviating.exists_deviating_child
