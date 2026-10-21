@@ -30,8 +30,17 @@ charge.
 
 The event is stated twice. `CacheCovered` is the whole coverage event — *some* message-class
 cached digest is covered by the others — and is what the tape charges directly.
-`ForgeryCovered` names the forgery's own digest as the covered one, which is the form the FORS
-branch of the split consumes.
+`ForgeryCovered` names the forgery's own digest as the covered one.
+
+Both are statements about *disclosure*: the covering digests are themselves cached answers at
+message-class inputs, so the honest FORS secrets at the forgery's fourteen positions are
+secrets some other message digest also selects. That is weaker than the FORS branch's
+conclusion that the forgery *holds* those secrets, which a run could also reach by querying
+the secret-bearing `PRF` input directly — an input-side event, charged elsewhere.
+`parse_instance_eq_iff` and `parse_leaves_eq` check that the two coordinates the event names
+are the coordinates the FORS branch names: the parsed instance packs exactly the tree and leaf
+indices `Scheme.forsAddress` is built from, and the parsed leaves are the digits
+`Extraction.Fors.leafIndex` reads.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -83,6 +92,58 @@ theorem cacheCovered_of_forgeryCovered (pk : PublicKey)
     CacheCovered pk result := by
   obtain ⟨message, parsed, answer, -, -, hentry, hcovered⟩ := hcovered
   exact ⟨_, answer, ⟨parsed.randomizer, message, rfl⟩, hentry, hcovered⟩
+
+/-! ## The coordinates are the game's
+
+`CoveredAt` names a FORS position by the parsed digest's instance and its leaf at one tree.
+Those are the same two coordinates the game names: the instance packs the tree and leaf
+indices `Scheme.forsAddress` is built from, and the leaf at a tree is literally the digit
+`Extraction.Fors.leafIndex` reads. Checking this is what makes the event the FORS branch's
+event rather than a near neighbour of it. -/
+
+/-- The parsed FORS instance is the packed pair of tree and leaf indices. -/
+theorem parse_instance_eq_iff (left right : HashOutput) :
+    (MessageDigest.parse left).1 = (MessageDigest.parse right).1 ↔
+      (MessageDigest.treeIndex left = MessageDigest.treeIndex right ∧
+        MessageDigest.leafIndex left = MessageDigest.leafIndex right) := by
+  constructor
+  · intro h
+    have happend : MessageDigest.treeIndex left ++ MessageDigest.leafIndex left =
+        MessageDigest.treeIndex right ++ MessageDigest.leafIndex right :=
+      BitVec.toFin_injective h
+    refine ⟨?_, ?_⟩
+    · apply BitVec.eq_of_getLsbD_eq
+      intro bit _
+      have hb : (MessageDigest.treeIndex left ++ MessageDigest.leafIndex left).getLsbD
+            (bit + subtreeHeight) =
+          (MessageDigest.treeIndex right ++ MessageDigest.leafIndex right).getLsbD
+            (bit + subtreeHeight) := by rw [happend]
+      rw [BitVec.getLsbD_append, BitVec.getLsbD_append,
+        if_neg (Nat.not_lt.mpr (Nat.le_add_left subtreeHeight bit)),
+        if_neg (Nat.not_lt.mpr (Nat.le_add_left subtreeHeight bit)),
+        Nat.add_sub_cancel] at hb
+      exact hb
+    · apply BitVec.eq_of_getLsbD_eq
+      intro bit hbit
+      have hb : (MessageDigest.treeIndex left ++ MessageDigest.leafIndex left).getLsbD bit =
+          (MessageDigest.treeIndex right ++ MessageDigest.leafIndex right).getLsbD bit := by
+        rw [happend]
+      rw [BitVec.getLsbD_append, BitVec.getLsbD_append, if_pos hbit, if_pos hbit] at hb
+      exact hb
+  · rintro ⟨htree, hleaf⟩
+    simp [MessageDigest.parse, htree, hleaf]
+
+/-- Digests with the same parsed instance select the same FORS key pair, so the honest FORS
+secrets they open are the secrets of one and the same tree. -/
+theorem forsAddress_eq_of_parse_instance_eq (left right : HashOutput)
+    (hinstance : (MessageDigest.parse left).1 = (MessageDigest.parse right).1) :
+    Scheme.forsAddress left = Scheme.forsAddress right := by
+  obtain ⟨htree, hleaf⟩ := (parse_instance_eq_iff left right).mp hinstance
+  rw [Scheme.forsAddress, Scheme.forsAddress, htree, hleaf]
+
+/-- The parsed leaves are the fourteen FORS digits the extraction reads. -/
+theorem parse_leaves_eq (output : HashOutput) :
+    (MessageDigest.parse output).2 = MessageDigest.forsIndices output := rfl
 
 /-! ## No message input predates the tail
 

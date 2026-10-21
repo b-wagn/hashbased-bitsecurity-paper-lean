@@ -3623,3 +3623,19 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 /-- info: 'SlhDsaSecurity.CoverageTail.prob_coverage_tail_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageTail.prob_coverage_tail_le_of_budget
+
+/-- info: 'SlhDsaSecurity.CoverageTail.parse_instance_eq_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.parse_instance_eq_iff
+
+/--
+info: 'SlhDsaSecurity.CoverageTail.forsAddress_eq_of_parse_instance_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.forsAddress_eq_of_parse_instance_eq
+
+/-- info: 'SlhDsaSecurity.CoverageTail.parse_leaves_eq' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageTail.parse_leaves_eq
