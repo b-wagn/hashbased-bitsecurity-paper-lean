@@ -1,5 +1,7 @@
 import SlhDsaSecurity.Proof.OpenCache
 import SlhDsaSecurity.Proof.StalledRun
+import SlhDsaSecurity.Proof.CacheAvailability
+import SlhDsaSecurity.Proof.LazyBridge
 
 /-!
 # Which cell a probe is charged against, and the flag that records it
@@ -650,9 +652,8 @@ open scoped Classical in
 /-- **A released cell stays released.** Availability grows with the cache, and the cache only
 grows, so a state where the cell is available is followed by states where it is. -/
 theorem flagged_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -665,9 +666,8 @@ theorem flagged_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Nod
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
   exact hmono state.1.1 inner.2.1
-    (fun probe hprobe =>
-      lazyProgram_cache_mono publicSeed availableAt table queried state.1 inner hinner probe
-        hprobe)
+    (@CacheAvailability.lazyProgram_persists (CacheReplay.replayQuery ∅) publicSeed availableAt
+      table queried state.1 inner hinner)
     index hstate
 
 open scoped Classical in
@@ -786,9 +786,8 @@ theorem withFlag_neverFails (availableAt : QueryCache HashSpec → CanonicalGrap
 open scoped Classical in
 /-- A released cell stays released, the flag being untouched. -/
 theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (index : CanonicalGraph.Node) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -801,9 +800,8 @@ theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.No
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
   exact hmono state.1.1 inner.2.1
-    (fun probe hprobe =>
-      lazyProgram_cache_mono publicSeed availableAt table queried state.1 inner hinner probe
-        hprobe)
+    (@CacheAvailability.lazyProgram_persists (CacheReplay.replayQuery ∅) publicSeed availableAt
+      table queried state.1 inner hinner)
     index hstate
 
 open scoped Classical in
@@ -844,9 +842,8 @@ the count cannot change once the cell is released — not because of anything ab
 cells. -/
 theorem expected_aiming_stalled_eq {α : Type}
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
@@ -922,9 +919,8 @@ open scoped Classical in
 /-- **Stalling does not change the chance of a charged probe.** -/
 theorem prob_charged_stalled_eq {α : Type}
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
@@ -965,5 +961,129 @@ theorem prob_charged_stalled_eq {α : Type}
     (fun queried p hp z hz => if_congr
       (withFlag_charged_quiet publicSeed availableAt stakes index table queried p hp z hz)
       rfl rfl) computation state
+
+
+/-! ## The lazy presentation against the eager one
+
+The handler at *total* availability answers every canonical input: it is the eager programmed
+cache, read on demand. The handler at the real availability answers only what a run may
+legitimately compute. They differ at exactly the canonical inputs of the sensitive nodes, so
+flagging those compares them with no slack.
+
+The flag lives only here. Neither handler reads it, and the charge itself stays flag-free. -/
+
+/-- The query is at the canonical input of a node the signatures leave a child of
+unavailable. -/
+def SensitiveQueryAt (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (state : HandlerState) (queried : OracleWorld.Domain) : Prop :=
+  ∃ input, probeOf queried = some input ∧
+    ∃ parent : StructuralNode, (∃ child ∈ parent.children, ¬ availableAt state.1 child) ∧
+      canonicalInput publicSeed cells parent = input
+
+open scoped Classical in
+/-- The handler at a chosen availability, with a flag set at a sensitive query. -/
+noncomputable def sensitiveFlagged
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) :
+    QueryImpl OracleWorld (StateT (HandlerState × Bool) ProbComp) :=
+  fun queried state => do
+    let step ← ((lazyProgram publicSeed lenient table) queried).run state.1
+    pure (step.1, (step.2, state.2 ||
+      decide (SensitiveQueryAt publicSeed availableAt table.1 state.1 queried)))
+
+open scoped Classical in
+theorem sensitiveFlagged_run
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
+    ((sensitiveFlagged publicSeed availableAt lenient table) queried).run state =
+      ((lazyProgram publicSeed lenient table) queried).run state.1 >>= fun step =>
+        (pure (step.1, (step.2, state.2 ||
+          decide (SensitiveQueryAt publicSeed availableAt table.1 state.1 queried))) :
+          ProbComp _) := rfl
+
+open scoped Classical in
+theorem sensitiveFlagged_neverFails
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
+    Pr[⊥ | ((sensitiveFlagged publicSeed availableAt lenient table) queried).run state] = 0 := by
+  rw [sensitiveFlagged_run, probFailure_bind_eq_add_tsum,
+    lazyProgram_neverFails publicSeed lenient table queried state.1]
+  simp
+
+open scoped Classical in
+theorem sensitiveFlagged_sticky
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (inner : HandlerState)
+    (step : OracleWorld.Range queried × (HandlerState × Bool))
+    (hstep : step ∈ support (((sensitiveFlagged publicSeed availableAt lenient table)
+      queried).run (inner, true))) : step.2.2 = true := by
+  classical
+  rw [sensitiveFlagged_run, mem_support_bind_iff] at hstep
+  obtain ⟨value, -, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+  simp
+
+open scoped Classical in
+theorem sensitiveFlagged_fires
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (inner : HandlerState)
+    (flag : Bool) (hbad : SensitiveQueryAt publicSeed availableAt table.1 inner queried)
+    (step : OracleWorld.Range queried × (HandlerState × Bool))
+    (hstep : step ∈ support (((sensitiveFlagged publicSeed availableAt lenient table)
+      queried).run (inner, flag))) : step.2.2 = true := by
+  classical
+  rw [sensitiveFlagged_run, mem_support_bind_iff] at hstep
+  obtain ⟨value, -, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+  simp [hbad]
+
+open scoped Classical in
+/-- **Off the sensitive inputs the two availabilities give the same step.** -/
+theorem sensitiveFlagged_agree
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
+    (hnot : ¬ SensitiveQueryAt publicSeed availableAt table.1 state.1 queried) :
+    ((sensitiveFlagged publicSeed availableAt (fun _ _ => True) table) queried).run state =
+      ((sensitiveFlagged publicSeed availableAt availableAt table) queried).run state := by
+  classical
+  rw [sensitiveFlagged_run, sensitiveFlagged_run,
+    lazyProgram_step_congr_available publicSeed (fun _ _ => True) availableAt table queried
+      state.1 ?_]
+  intro input hinput parent hparent
+  refine ⟨fun _ child hchild => ?_, fun _ _ _ => trivial⟩
+  by_contra hunavailable
+  exact hnot ⟨input, by rw [hinput]; rfl, parent, ⟨child, hchild, hunavailable⟩, hparent⟩
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The lazy presentation and the eager one flag a sensitive query equally often.** -/
+theorem probEvent_sensitiveFlagged_eq {α : Type}
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (computation : OracleComp OracleWorld α)
+    (state : HandlerState × Bool) :
+    Pr[fun z : α × (HandlerState × Bool) => z.2.2 = true |
+      (simulateQ (sensitiveFlagged publicSeed availableAt (fun _ _ => True) table)
+        computation).run state] =
+      Pr[fun z : α × (HandlerState × Bool) => z.2.2 = true |
+        (simulateQ (sensitiveFlagged publicSeed availableAt availableAt table)
+          computation).run state] := by
+  classical
+  refine LazyBridge.probEvent_flag_two_handlers_eq _ _
+    (fun inner queried => SensitiveQueryAt publicSeed availableAt table.1 inner queried)
+    (fun queried p => sensitiveFlagged_neverFails publicSeed availableAt _ table queried p)
+    (fun queried p => sensitiveFlagged_neverFails publicSeed availableAt _ table queried p)
+    (fun queried inner z hz => sensitiveFlagged_sticky publicSeed availableAt _ table queried
+      inner z hz)
+    (fun queried inner z hz => sensitiveFlagged_sticky publicSeed availableAt _ table queried
+      inner z hz)
+    (fun queried inner flag hbad z hz => sensitiveFlagged_fires publicSeed availableAt _ table
+      queried inner flag hbad z hz)
+    (fun queried inner flag hbad z hz => sensitiveFlagged_fires publicSeed availableAt _ table
+      queried inner flag hbad z hz)
+    (fun queried p hnot => ?_) computation state
+  rw [sensitiveFlagged_agree publicSeed availableAt table queried p hnot]
 
 end SlhDsaSecurity.ChargedProbe
