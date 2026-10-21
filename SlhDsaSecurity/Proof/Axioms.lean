@@ -50,6 +50,7 @@ import SlhDsaSecurity.Proof.PerQueryBudget
 import SlhDsaSecurity.Proof.CombinedCharge
 import SlhDsaSecurity.Proof.SecretGuessCharge
 import SlhDsaSecurity.Proof.ClassCharge
+import SlhDsaSecurity.Proof.SeedDeferral
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -631,3 +632,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.SecretGuessCharge.prob_run_guesses_secret_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SecretGuessCharge.prob_run_guesses_secret_le
+
+/-- info: 'SlhDsaSecurity.SeedDeferral.seed_query_comm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedDeferral.seed_query_comm
+
+/-- info: 'SlhDsaSecurity.SeedDeferral.transcript_indep_of_seed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedDeferral.transcript_indep_of_seed
