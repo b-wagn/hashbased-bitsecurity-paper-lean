@@ -316,39 +316,27 @@ recovery. Routing FORS through the plain `2 ^ -128` bound cannot work.
 The structural half is complete and the per-query charge is proved and bridged to it.
 Four obligations remain, in increasing order of difficulty.
 
-1. **Counter-based charge.** `FreshHitBound.prob_hit_le` takes a *syntactic* bound
-   `IsQueryBoundP HashQuery count`, but the experiment supplies an *almost-sure* bound on
-   the instrumented counter: `Security.HasBudget` says
-   `Pr[counts.signing ≤ 2 ^ 64 ∧ counts.work ≤ q] = 1`. An arbitrary adversary meeting the
-   counter bound need not meet a syntactic one, so `prob_hit_le` does not apply as stated.
+1. **Counter-based charge — done.** `Proof/GrowthCharge.lean` proves `prob_hitWithin_le`:
 
-   VCVio's cost-to-query-bound bridge does **not** close this gap, and it is worth not
-   retrying it: `WorstCaseCostBound.toIsPerIndexQueryBound_unit` is stated only for
-   `CostModel.unit`, which charges *every* query one unit, whereas
-   `RandomOracleModel.hashCost` charges `.inl _ => 0`. The adversary may therefore make
-   unboundedly many free uniform-coin queries while keeping its hash count under `q`, so no
-   unit-cost worst-case bound holds and no finite per-index bound exists for the `unifSpec`
-   indices. A predicate-relative bridge (cost model = indicator of `HashQuery`) is not
-   provided by VCVio and would have to be proved, needing the full-support property of
-   uniform queries to decompose the support hypothesis at each query.
+       Pr[Hit targetOf ∧ GrowthAtMost initialCache finalCache limit] ≤ limit / 2 ^ 128
 
-   Two viable routes:
-   * *Custom instrumentation.* Carry the charged count in the simulation state, e.g. over
-     `StateT (QueryCache HashSpec × Nat)`, and reprove the induction with the budget
-     enforced by the event `Hit ∧ count ≤ q` rather than syntactically. The branch where
-     the budget is exhausted is killed by the event. Cost: the existing cache lemmas
-     (`QueryImpl.withCaching_run_none/some`) must be re-derived for the product state.
-   * *Cache growth, needing no new instrumentation.* Only a cache **miss** draws fresh
-     randomness, so only a miss can newly hit the target; the number of misses during the
-     charged phase is exactly the growth `|finalCache| - |initialCache|`, a function of the
-     observable final state, and it is bounded by the number of charged hash queries. So it
-     suffices to prove `Pr[Hit ∧ growth ≤ q] ≤ q / 2 ^ 128` by the same induction, with the
-     budget enforced by the event. This reuses every existing cache lemma unchanged and is
-     the preferred route; `XmssSecurity/Proof/.../CacheCardinality.lean` suggests the XMSS
-     development already uses cache cardinality this way. It requires running the charge
-     only on the adversary-plus-verifier phase, starting from the post-keygen/post-signing
-     cache, so that all growth in that phase is charged — which is exactly the
-     decomposition `ROMPresampling` was built to provide.
+   with the budget enforced by the *event* instead of by a syntactic query bound, so the
+   mismatch with `Security.HasBudget` is gone and no new instrumentation was needed. Only a
+   cache miss draws fresh randomness, so only a miss can newly hit; the miss count is
+   exactly the cache growth, a function of the observable final state. `cache_mono` shows
+   entries are never removed or overwritten; `GrowthAtMost` states growth without a
+   cardinality on the infinite input type, as a bound on duplicate-free lists of newly
+   present inputs. Replays are uncharged here, which is sound for an upper bound because a
+   replay cannot create a new hit, and the experiment charges them, so its budget dominates
+   the growth.
+
+   Note for whoever continues: VCVio's cost-to-query-bound bridge does **not** help here
+   and should not be retried. `WorstCaseCostBound.toIsPerIndexQueryBound_unit` is stated
+   only for `CostModel.unit`, which charges every query one unit, while
+   `RandomOracleModel.hashCost` charges `.inl _ => 0`. An adversary may make unboundedly
+   many free uniform-coin queries while keeping its hash count under `q`, so no unit-cost
+   worst-case bound and no finite per-index bound for the `unifSpec` indices exist.
+
 2. **Assembling the structural term.** Combine `Extraction.*` (every fault witness),
    `CanonicalTarget.hit_of_deviating_collision` (each witness is a charged hit) and the
    counter-based charge from (1) into a single `q / 2 ^ 128` term for the whole game. This
