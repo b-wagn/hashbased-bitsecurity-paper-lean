@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Statement.Security
+import SlhDsaSecurity.Proof.VerificationBudget
 
 /-!
 # Cache growth is dominated by the total hash count
@@ -83,6 +84,32 @@ theorem countAllHashes_bind {α β : Type} (computation : OracleComp OracleWorld
     rw [bind_assoc, countAllHashes_query_bind, countAllHashes_query_bind]
     simp only [ih]
     simp [map_bind, bind_map_left, bind_assoc, Nat.add_assoc]
+
+/-- The `Nat` total count is exactly the `kind` component of the `Counts` counter driven by
+the same per-query cost. Every bound already proved about `countQueries` therefore transfers
+to the all-queries-counted total. -/
+theorem countAllHashes_eq_component {α : Type} (kind : QueryKind)
+    (computation : OracleComp OracleWorld α) :
+    (fun result : α × Counts => (result.1, result.2 kind)) <$>
+        countQueries (fun input => Counts.single kind (hashCost input)) computation =
+      countAllHashes computation := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    rw [VerificationBudget.countQueries_pure, countAllHashes_pure, map_pure]
+    rfl
+  | query_bind queried next ih =>
+    rw [VerificationBudget.countQueries_bind, VerificationBudget.countQueries_query,
+      countAllHashes_query_bind]
+    simp only [map_bind, bind_assoc, pure_bind]
+    refine congrArg (fun continuation => liftM (OracleWorld.query queried) >>= continuation) ?_
+    funext answer
+    rw [← ih answer]
+    simp only [map_bind, bind_map_left, Functor.map_map]
+    refine congrArg (fun step => countQueries
+      (fun input => Counts.single kind (hashCost input)) (next answer) >>= step) ?_
+    funext inner
+    simp [map_pure, Counts.single, Pi.add_apply, Pi.single_eq_same, Function.comp_def]
+    rfl
 
 /-- Every new cache entry is created by a hash query, so growth never exceeds the count. -/
 theorem growth_le_count {α : Type} (computation : OracleComp OracleWorld α)

@@ -481,3 +481,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.GrowthBudget.countAllHashes_bind' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GrowthBudget.countAllHashes_bind
+
+/-- info: 'SlhDsaSecurity.GrowthBudget.countAllHashes_eq_component' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GrowthBudget.countAllHashes_eq_component
