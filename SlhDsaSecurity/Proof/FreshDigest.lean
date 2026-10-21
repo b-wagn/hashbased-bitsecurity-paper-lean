@@ -99,4 +99,50 @@ theorem fresh_messageDigest_parse_uniform (randomizer : Digest) (pk : PublicKey)
   rw [hrun]
   exact MessageDigest.evalDist_parse_uniform
 
+/-! ## The FORS instance of a fresh answer
+
+The disclosure load cap is a statement about the FORS *instances* of the signed digests:
+`ForsConcentration.uniform_load_tail_sharper_of_le` bounds, for iid uniform instance draws
+into the `2 ^ 63` instances, the probability that `∑ i loads i ^ 14` exceeds `2 ^ 102`.
+
+Connecting the oracle to that statement needs the pushforward `HashOutput → View → Instance`.
+The first step is `MessageDigest.evalDist_parse_uniform`; the second is projection of a
+uniform pair onto its first component. Composing them, the instance of a uniform thirty-byte
+answer is uniform on the `2 ^ 63` FORS instances.
+-/
+
+/-- The FORS instance a thirty-byte answer parses to. -/
+def instanceOf (output : HashOutput) : MessageDigest.Instance :=
+  (MessageDigest.parse output).1
+
+/-- A uniform answer has a uniform FORS instance. -/
+theorem instanceOf_uniform :
+    𝒟[instanceOf <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+      𝒟[($ᵗ MessageDigest.Instance : ProbComp MessageDigest.Instance)] := by
+  have hmap : instanceOf <$> ($ᵗ HashOutput : ProbComp HashOutput) =
+      Prod.fst <$> (MessageDigest.parse <$> ($ᵗ HashOutput : ProbComp HashOutput)) := by
+    rw [Functor.map_map]
+    rfl
+  rw [hmap, evalDist_map, MessageDigest.evalDist_parse_uniform, ← evalDist_map]
+  exact evalDist_map_fst_uniformSample_prod
+
+/-- A fresh `H_msg` call therefore has a uniform FORS instance. This is the per-call input to
+the load cap; the cap itself needs the joint law across the signed requests, which
+`GrowthCharge.prob_cache_values_mem_le` supplies. -/
+theorem fresh_messageDigest_instance_uniform (randomizer : Digest) (pk : PublicKey)
+    (message : Bytes) (cache : QueryCache HashSpec)
+    (hfresh : cache (Hashing.messageInput randomizer pk message) = none) :
+    𝒟[instanceOf <$> (simulateQ KeygenUniform.rom
+        (Hashing.messageDigest randomizer pk message :
+          OracleComp OracleWorld HashOutput)).run' cache] =
+      𝒟[($ᵗ MessageDigest.Instance : ProbComp MessageDigest.Instance)] := by
+  have hrun : (simulateQ KeygenUniform.rom
+      (Hashing.messageDigest randomizer pk message :
+        OracleComp OracleWorld HashOutput)).run' cache =
+      ($ᵗ HashOutput : ProbComp HashOutput) := by
+    unfold Hashing.messageDigest
+    exact fresh_hash_uniform _ cache hfresh
+  rw [hrun]
+  exact instanceOf_uniform
+
 end SlhDsaSecurity.FreshDigest
