@@ -58,6 +58,7 @@ import SlhDsaSecurity.Proof.MerkleCharge
 import SlhDsaSecurity.Proof.ForsCharge
 import SlhDsaSecurity.Proof.WotsCharge
 import SlhDsaSecurity.Proof.ForsLeafCharge
+import SlhDsaSecurity.Proof.CanonicalCells
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -735,3 +736,7 @@ info: 'SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.ForsLeafCharge.deviatingCollision_of_leafCollision' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsLeafCharge.deviatingCollision_of_leafCollision
+
+/-- info: 'SlhDsaSecurity.CanonicalCells.parentCell_eq_truncate' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalCells.parentCell_eq_truncate
