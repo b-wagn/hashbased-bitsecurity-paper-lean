@@ -26,37 +26,13 @@ open Extraction.HypertreeChain
 
 variable [HasQuery HashSpec Id]
 
-/-- A layer collision somewhere in the segment. -/
-def SomeLayerCollision (secretSeed publicSeed : Digest) : Prop :=
-  ∃ (message : Digest) (layer tree : Nat) (leaf : SlhDsaSecurity.Hypertree.LeafIndex)
-    (signature : XmssSignature),
-    Extraction.Hypertree.LayerCollision secretSeed publicSeed message layer tree leaf signature
-
-/-- A layer whose WOTS signature is the honest signature of the wrong message. -/
-def SomeWotsWitness (secretSeed publicSeed : Digest) : Prop :=
-  ∃ (message expected : Digest) (layer tree : Nat)
-    (leaf : SlhDsaSecurity.Hypertree.LeafIndex) (signature : XmssSignature),
-    signature.wots = SlhDsaSecurity.Wots.sign (m := Id) message secretSeed publicSeed
-        (Extraction.Hypertree.wotsAddress layer tree leaf) ∧ message ≠ expected
-
-/-- **The seven-layer fault flattens to one of the two cases.** -/
-theorem cases_of_hypertreeFault (secretSeed publicSeed : Digest) :
-    ∀ (remaining : Nat) (signatures : Fin remaining → XmssSignature) (layer tree : Nat)
-      (leaf : SlhDsaSecurity.Hypertree.LeafIndex) (message expectedInput : Digest),
-      HypertreeFault secretSeed publicSeed remaining signatures layer tree leaf message
-        expectedInput →
-        SomeLayerCollision secretSeed publicSeed ∨ SomeWotsWitness secretSeed publicSeed := by
-  intro remaining
-  induction remaining with
-  | zero => intro _ _ _ _ _ _ hfault; exact hfault.elim
-  | succ remaining ih =>
-    intro signatures layer tree leaf message expectedInput hfault
-    unfold HypertreeFault at hfault
-    rcases hfault with hcollision | hwitness | hrest
-    · exact Or.inl ⟨message, layer, tree, leaf, signatures 0, hcollision⟩
-    · exact Or.inr ⟨message, expectedInput, layer, tree, leaf, signatures 0,
-        hwitness.1, hwitness.2⟩
-    · exact ih _ _ _ _ _ _ hrest
+/-! The flattened predicates this file used to export — "some layer collides", "some layer
+carries a WOTS signature for the wrong message" — quantified existentially over the signature
+they were about, and so could be satisfied by *building* one: nothing tied the signature to the
+forgery. They are gone. `Extraction.HypertreeChain.HypertreeFault` is already the precise
+statement, with the signature at each layer being the component the forgery supplied, and it is
+what the charges consume: every charge composition takes the colliding query's cache entry as a
+hypothesis, and a predicate that has forgotten the forgery cannot supply one. -/
 
 /-! ## The top of the structural chain
 
@@ -79,12 +55,10 @@ theorem cases_of_accepted (secretSeed publicSeed : Digest) (pk : PublicKey)
     (hroot : pk.root = honestNode secretSeed publicSeed (layers - 1) 0)
     (haccept : SlhDsaSecurity.Hypertree.verify (m := Id) forsKey signature pk tree leaf = true) :
     forsKey = honestForsKey ∨
-      SomeLayerCollision secretSeed publicSeed ∨ SomeWotsWitness secretSeed publicSeed := by
-  rcases verify_fault_or_fors_canonical secretSeed publicSeed pk tree leaf forsKey honestForsKey
-    signature hseed hroot haccept with hcanonical | hfault
-  · exact Or.inl hcanonical
-  · exact Or.inr (cases_of_hypertreeFault secretSeed publicSeed layers signature 0 tree.toNat
-      leaf forsKey honestForsKey hfault)
+      HypertreeFault secretSeed publicSeed layers signature 0 tree.toNat leaf forsKey
+        honestForsKey :=
+  verify_fault_or_fors_canonical secretSeed publicSeed pk tree leaf forsKey honestForsKey
+    signature hseed hroot haccept
 
 /-! ## Walking down the layers
 

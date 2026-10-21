@@ -268,13 +268,18 @@ verdict the game reached is the replayed verifier's verdict on that key, and
 
 The honest FORS public key is left *universally* quantified, matching
 `HypertreeDispatch.cases_of_accepted`'s own parameter: for whichever key the FORS side names as the
-honest one, either the forgery's recovered FORS key is that key or one of the two hypertree faults
-occurred. Quantifying it existentially instead would make the first disjunct true by choosing the
-recovered key itself, and say nothing. -/
+honest one, either the forgery's recovered FORS key is that key or the hypertree carries a fault.
+Quantifying it existentially instead would make the first disjunct true by choosing the recovered
+key itself, and say nothing.
+
+The fault is `Extraction.HypertreeChain.HypertreeFault` itself, at the forgery's own signature
+array, rather than a flattened "some layer collides" — a predicate that forgets which signature it
+is about can be satisfied by building one, and cannot supply the cache entry every charge
+composition requires. -/
 
 set_option maxHeartbeats 2000000 in
 /-- **An accepted forgery in a warmed tail is canonical at the walk's own honest key,
-collides, or exhibits a WOTS witness.** -/
+or the hypertree carries a fault.** -/
 theorem cases_of_win (adversary : Adversary)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     {result : (Outcome × Nat) × QueryCache HashSpec}
@@ -298,10 +303,29 @@ theorem cases_of_win (adversary : Adversary)
                     parsed.randomizer
                     (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery result.2)
                       walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2).2 message)) = honestForsKey ∨
-              @HypertreeDispatch.SomeLayerCollision (CacheReplay.replayQuery result.2)
-                  walk.1.1.1 walk.1.1.2.2 ∨
-                @HypertreeDispatch.SomeWotsWitness (CacheReplay.replayQuery result.2)
-                  walk.1.1.1 walk.1.1.2.2 := by
+              @Extraction.HypertreeChain.HypertreeFault (CacheReplay.replayQuery result.2)
+                walk.1.1.1 walk.1.1.2.2 layers parsed.hypertree 0
+                (MessageDigest.treeIndex (@Hashing.messageDigest Id (CacheReplay.replayQuery result.2)
+                  parsed.randomizer
+                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery result.2)
+                    walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2).2 message)).toNat
+                (MessageDigest.leafIndex (@Hashing.messageDigest Id (CacheReplay.replayQuery result.2)
+                  parsed.randomizer
+                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery result.2)
+                    walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2).2 message)).toFin
+                (@SlhDsaSecurity.Fors.publicKeyFromSignature Id Id.instMonad
+                (CacheReplay.replayQuery result.2) parsed.fors
+                (MessageDigest.forsIndices (@Hashing.messageDigest Id (CacheReplay.replayQuery result.2)
+                  parsed.randomizer
+                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery result.2)
+                    walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2).2 message))
+                (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery result.2)
+                  walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2).2.seed
+                (Scheme.forsAddress (@Hashing.messageDigest Id (CacheReplay.replayQuery result.2)
+                  parsed.randomizer
+                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery result.2)
+                    walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2).2 message)))
+                honestForsKey := by
   unfold WarmedGame.tail at hresult
   obtain ⟨keys, keyCache, verifyCache, hkeys, hpersist, hverify⟩ :=
     split_afterSeeds adversary walk.1.1 walk.2 result hresult

@@ -182,10 +182,29 @@ theorem cases_of_replayed_accept (secretSeed prfSeed publicSeed : Digest)
                 parsed.randomizer
                 (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
                   secretSeed prfSeed publicSeed).2 message)) = honestForsKey ∨
-          @HypertreeDispatch.SomeLayerCollision (CacheReplay.replayQuery cache)
-              secretSeed publicSeed ∨
-            @HypertreeDispatch.SomeWotsWitness (CacheReplay.replayQuery cache)
-              secretSeed publicSeed) := by
+          @Extraction.HypertreeChain.HypertreeFault (CacheReplay.replayQuery cache)
+            secretSeed publicSeed layers parsed.hypertree 0
+            (MessageDigest.treeIndex
+              (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
+                (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
+                  secretSeed prfSeed publicSeed).2 message)).toNat
+            (MessageDigest.leafIndex
+              (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
+                (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
+                  secretSeed prfSeed publicSeed).2 message)).toFin
+            (@SlhDsaSecurity.Fors.publicKeyFromSignature Id Id.instMonad
+              (CacheReplay.replayQuery cache) parsed.fors
+              (MessageDigest.forsIndices
+                (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
+                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
+                    secretSeed prfSeed publicSeed).2 message))
+              (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
+                secretSeed prfSeed publicSeed).2.seed
+              (Scheme.forsAddress
+                (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
+                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
+                    secretSeed prfSeed publicSeed).2 message)))
+            honestForsKey) := by
   obtain ⟨message, parsed, hframe, hparsed, hinternal⟩ :=
     @verifyInternal_of_verify (CacheReplay.replayQuery cache) _ _ _ haccept
   refine ⟨message, parsed, hframe, hparsed, ?_⟩

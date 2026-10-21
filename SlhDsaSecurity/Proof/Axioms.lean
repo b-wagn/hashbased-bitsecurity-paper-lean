@@ -871,9 +871,6 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision_cano
 #guard_msgs in
 #print axioms SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision_canonical
 
-/-- info: 'SlhDsaSecurity.HypertreeDispatch.cases_of_hypertreeFault' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HypertreeDispatch.cases_of_hypertreeFault
 
 /-- info: 'SlhDsaSecurity.HypertreeDispatch.cases_of_accepted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
