@@ -360,4 +360,45 @@ theorem evalDist_prepend_warmup {α : Type} (computation : OracleComp OracleWorl
     (CanonicalGraph.Programming.initialCells secretSeed) ∅
     CanonicalGraph.Programming.order_nodup (fun _ _ _ => rfl)
 
+/-! ## Inserting the warmup after the seeds
+
+The experiment does not begin with hash calls: it begins by sampling the three seeds, which
+are coin queries. The warmup can only be written down once those seeds exist, so it has to be
+inserted *after* them rather than prepended to the whole run.
+
+That is sound because coin queries leave the hash cache alone — `run_liftM_probComp` — so the
+run still meets the warmup with an empty cache, which is what `evalDist_prepend_warmup`
+requires. -/
+
+/-- Simulating a purely-sampling computation leaves the hash cache untouched.
+
+`rom` is `unifFwdImpl + randomOracle`, so a left-lifted computation simulates through the
+left component alone (`simulateQ_add_liftM_left`), and that component never writes to the
+cache. -/
+theorem run_liftM_probComp {γ : Type} (sample : ProbComp γ) (cache : QueryCache HashSpec) :
+    (simulateQ KeygenUniform.rom (liftM sample : OracleComp OracleWorld γ)).run cache =
+      (fun value => (value, cache)) <$> sample := by
+  rw [show KeygenUniform.rom = unifFwdImpl HashSpec + (randomOracle :
+      QueryImpl HashSpec (StateT (QueryCache HashSpec) ProbComp)) from rfl,
+    QueryImpl.simulateQ_add_liftM_left]
+  induction sample using OracleComp.inductionOn generalizing cache with
+  | pure value => simp [simulateQ_pure, StateT.run_pure, map_pure]
+  | query_bind coin next ih =>
+    simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, ih,
+      map_eq_bind_pure_comp, Function.comp_def, bind_assoc, pure_bind]
+    rfl
+
+/-- **The warmup may be inserted after the seeds are sampled.** -/
+theorem evalDist_prepend_warmup_after {α γ : Type} (sample : ProbComp γ)
+    (rest : γ → OracleComp OracleWorld α) (publicSeed secretSeed : γ → Digest) :
+    𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom
+        ((liftM sample : OracleComp OracleWorld γ) >>= rest)).run ∅] =
+      𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom
+        ((liftM sample : OracleComp OracleWorld γ) >>= fun value =>
+          worldWarmup (publicSeed value) (secretSeed value) >>= fun _ => rest value)).run ∅] := by
+  simp only [simulateQ_bind, StateT.run_bind, map_bind, run_liftM_probComp, bind_map_left]
+  refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ (fun value => ?_)
+  simpa only [simulateQ_bind, StateT.run_bind, map_bind] using
+    evalDist_prepend_warmup (rest value) (publicSeed value) (secretSeed value)
+
 end SlhDsaSecurity.Presample
