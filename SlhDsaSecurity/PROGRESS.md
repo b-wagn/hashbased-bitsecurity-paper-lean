@@ -978,3 +978,57 @@ and runs out of heartbeats. Two hours went into diagnosing this as a mismatch be
 and its own definition; it is neither, and the one-line `attribute [local irreducible]` at the
 top of a file that uses the game abstractly is the whole fix. Expect the same of any later file
 that mentions the game without taking it apart.
+
+## `SomeWotsWitness` is a tautology, and what that costs
+
+`HypertreeDispatch.SomeWotsWitness secretSeed publicSeed` existentially quantifies the
+signature it is about:
+
+    ∃ message expected layer tree leaf (signature : XmssSignature),
+      signature.wots = Wots.sign (m := Id) message secretSeed publicSeed (wotsAddress …) ∧
+        message ≠ expected
+
+Nothing ties `signature` to the forgery, so it can simply be built: take `signature.wots` to
+*be* `Wots.sign 0 secretSeed publicSeed (wotsAddress 0 0 0)`, `message := 0`, `expected := 1`.
+This was checked, not argued — the one-line proof compiles with no hypotheses. So that
+disjunct of `cases_of_hypertreeFault`, and therefore of `HypertreeDispatch.cases_of_accepted`
+and `GameBridge.cases_of_replayed_accept`, carries no information, and any charge stated
+against it would have to bound a probability of one.
+
+`Extraction.HypertreeChain.HypertreeFault` itself is sound: there the signature is
+`signatures 0`, a component of the array the forgery supplied. The loss happens in the
+*flattening*, which drops that binding. `SomeLayerCollision` drops it too, and is suspect for
+a second reason: at the `Id` level the oracle is `CacheReplay.replayQuery cache`, which returns
+`default` at every uncached input, so "collisions" among uncached inputs are free. What saves
+the collision branch in practice is that the charge compositions
+(`WotsCharge.deviatingCollision_of_chainCollision*`, `MerkleCharge.*`) each take the colliding
+query's *cache entry* as an explicit hypothesis — and a predicate that has forgotten the
+forgery cannot supply one.
+
+So the flattened predicates have to carry the forgery's signature, and the WOTS branch has to
+be pushed one step further than it currently is: holding `Wots.sign message` for an unsigned
+`message` means holding a chain value below what any signature revealed, which is either a
+chain collision (structural, already charged) or a WOTS secret, which is
+`PRF(PK.seed ‖ ADRS ‖ SK.seed)` and so a seed-bearing query (the input half).
+`Extraction.Wots.chain_eq_or_collision` is the step that splits those.
+
+## Where the slack actually comes from
+
+An earlier worry, now resolved: the two halves meet the target `q / 2 ^ 127` exactly, which
+seemed to leave no room for the `2 ^ -165` input-format coincidence, the `2 ^ -126` load-cap
+defect, or the `≈ 2 ^ -120` union over the chain positions at which a forgery could hold an
+unrevealed honest value. The slack is not in the arithmetic; it is in the *query count*.
+
+`Security.HasTotalBudget` charges `q` for **every** hash call in the game, key generation and
+signing included. Key generation alone makes a fixed number `H` of calls — the whole top
+subtree, on the order of `2 ^ 18` — and not one of them can produce a bad event: each is a
+canonical query, so the structural clause is dead by `CanonicalTarget.clean_of_canonical_cache`
+and the coverage clause by format, and the input half counts only the adversary's queries. So
+both halves are really bounded by `(q - H) / 2 ^ 128`, leaving `H / 2 ^ 128 ≈ 2 ^ -110` of
+slack — orders of magnitude more than every defect combined.
+
+This is the robust source of slack, and it replaces the earlier plan of taking it from the
+message-class weight (`Assembly.cap_defect_within_slack`), which supplies nothing on a run
+with no message-class queries. What it needs proved is a *lower* bound on the honest hash
+count, which is a deterministic count of a fixed computation, plus the fact that canonical
+queries are never bad — which is already `cleanBad_walk_cache` in another guise.
