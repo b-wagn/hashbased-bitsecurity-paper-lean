@@ -55,6 +55,7 @@ import SlhDsaSecurity.Proof.QueryCached
 import SlhDsaSecurity.Proof.ClassBudget
 import SlhDsaSecurity.Proof.CacheReplay
 import SlhDsaSecurity.Proof.ChainDeviation
+import SlhDsaSecurity.Proof.MerkleCharge
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -712,3 +713,11 @@ info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_array' depends 
 /-- info: 'SlhDsaSecurity.CacheReplay.tweakable_replayQuery' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.tweakable_replayQuery
+
+/--
+info: 'SlhDsaSecurity.MerkleCharge.deviatingCollision_of_pathCollision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MerkleCharge.deviatingCollision_of_pathCollision

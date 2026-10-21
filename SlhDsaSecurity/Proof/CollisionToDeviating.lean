@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CanonicalTarget
 import SlhDsaSecurity.Proof.Extraction.BinaryPath
 import SlhDsaSecurity.Proof.StructuralTerm
+import SlhDsaSecurity.Proof.CanonicalGraph.Evaluation
 
 /-!
 # Path collisions are deviating canonical-graph queries
@@ -152,12 +153,7 @@ theorem deviatingCollision_of_single_child {α : Type} (publicSeed : Digest) (ce
 `Extraction.Fors.CompressionCollision` sits at the node that compresses the fourteen FORS tree
 roots, whose children are given by `List.ofFn` and whose payload is `digestArrayBytes` rather
 than a flattened pair. The content is the same as the other two joins; only the byte-level
-step differs, and `childBytes_ofFn` supplies it. -/
-
-theorem childBytes_ofFn {size : Nat} (cells : Cells) (children : Fin size → Node) :
-    childBytes cells (List.ofFn children) =
-      digestArrayBytes (fun index => cells (children index)) := by
-  simp [childBytes, digestArrayBytes, List.map_ofFn, Function.comp_def]
+step differs, and `CanonicalGraph.Evaluation`'s `childBytes_ofFn` already supplies it. -/
 
 open scoped Classical in
 /-- **An array-node collision is a charged structural event.** -/
