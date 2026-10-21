@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.CoverageRouted
+import SlhDsaSecurity.Proof.CanonicalSignature
 import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.WarmProbes
@@ -4726,3 +4727,56 @@ info: 'SlhDsaSecurity.CoverageRouted.parse_instance_eq_of_forsKeyOfDigest_eq' de
 /-- info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq
+
+/-- info: 'SlhDsaSecurity.Extraction.HypertreeChain.signLayers_succ' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.signLayers_succ
+
+/-- info: 'SlhDsaSecurity.Extraction.HypertreeChain.xmss_eq_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.xmss_eq_sign
+
+/--
+info: 'SlhDsaSecurity.Extraction.HypertreeChain.rootFromSignature_fault_or_signed' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.rootFromSignature_fault_or_signed
+
+/--
+info: 'SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_signed' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_signed
+
+/-- info: 'SlhDsaSecurity.ForsDispatch.fors_auth_index' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.fors_auth_index
+
+/-- info: 'SlhDsaSecurity.ForsDispatch.sign_apply' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.sign_apply
+
+/--
+info: 'SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature
+
+/-- info: 'SlhDsaSecurity.CanonicalSignature.eq_signInternal' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSignature.eq_signInternal
+
+/-- info: 'SlhDsaSecurity.CanonicalSignature.signature_eq_toBytes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSignature.signature_eq_toBytes
+
+/-- info: 'SlhDsaSecurity.CanonicalSignature.not_fresh_of_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSignature.not_fresh_of_canonical
+
