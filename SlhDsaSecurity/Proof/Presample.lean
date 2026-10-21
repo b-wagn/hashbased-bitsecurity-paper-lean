@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CacheReplay
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 import SlhDsaSecurity.Proof.GraphFreshSampling
+import SlhDsaSecurity.Proof.CanonicalGraph.Programming
 
 /-!
 # Pre-sampling an unused oracle entry is free
@@ -326,5 +327,37 @@ theorem evalDist_prepend_worldEvaluate {α State Index : Type}
     simp only [worldEvaluate, bind_assoc, simulateQ_bind, hsim,
       StateT.run_bind, map_bind, hmiss, bind_map_left]
     rfl
+
+/-! ## Prepending the warmup
+
+The traversal the experiment's honest parties perform is
+`CanonicalGraph.Programming.warmup`, whose coordinates are the structural nodes in rank order.
+Every hypothesis of `evalDist_prepend_worldEvaluate` is available for it: the order is
+duplicate-free (`order_nodup`), distinct nodes have distinct byte inputs
+(`input_separated`), and from the empty cache every input is of course still empty.
+
+So the warmup may be prepended to any computation of the game's world for free — which is what
+fixes the honest cells before the adversary runs, since
+`GraphFreshSampling.evalDist_evaluate_eq_uniform_program` then turns that traversal into a
+uniform table and a programmed cache. -/
+
+/-- The warmup traversal, in the experiment's oracle world. -/
+noncomputable def worldWarmup (publicSeed secretSeed : Digest) :
+    OracleComp OracleWorld CanonicalGraph.Cells :=
+  worldEvaluate (CanonicalGraph.Programming.input publicSeed)
+    CanonicalGraph.Programming.assign CanonicalGraph.Programming.order
+    (CanonicalGraph.Programming.initialCells secretSeed)
+
+/-- **The warmup may be prepended to any run from the empty cache.** -/
+theorem evalDist_prepend_warmup {α : Type} (computation : OracleComp OracleWorld α)
+    (publicSeed secretSeed : Digest) :
+    𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom computation).run ∅] =
+      𝒟[Prod.fst <$> (simulateQ KeygenUniform.rom
+        (worldWarmup publicSeed secretSeed >>= fun _ => computation)).run ∅] :=
+  evalDist_prepend_worldEvaluate computation _ _
+    (CanonicalGraph.Programming.input_separated publicSeed)
+    CanonicalGraph.Programming.order
+    (CanonicalGraph.Programming.initialCells secretSeed) ∅
+    CanonicalGraph.Programming.order_nodup (fun _ _ _ => rfl)
 
 end SlhDsaSecurity.Presample
