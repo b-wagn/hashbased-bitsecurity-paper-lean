@@ -54,6 +54,7 @@ import SlhDsaSecurity.Proof.SeedDeferral
 import SlhDsaSecurity.Proof.QueryCached
 import SlhDsaSecurity.Proof.ClassBudget
 import SlhDsaSecurity.Proof.CacheReplay
+import SlhDsaSecurity.Proof.ChainDeviation
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -703,3 +704,7 @@ info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_array' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_array
+
+/-- info: 'SlhDsaSecurity.ChainDeviation.fold_eq_honest' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChainDeviation.fold_eq_honest
