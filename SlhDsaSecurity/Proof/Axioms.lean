@@ -3554,3 +3554,39 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 /-- info: 'SlhDsaSecurity.DigestTape.prob_romEvent_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.DigestTape.prob_romEvent_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.answers_nil' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.answers_nil
+
+/-- info: 'SlhDsaSecurity.DigestTape.answers_append' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.answers_append
+
+/-- info: 'SlhDsaSecurity.DigestTape.answers_length' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.answers_length
+
+/-- info: 'SlhDsaSecurity.DigestTape.answers_singleton' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.answers_singleton
+
+/-- info: 'SlhDsaSecurity.DigestTape.answers_getElem' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.answers_getElem
+
+/-- info: 'SlhDsaSecurity.DigestTape.answers_prefix' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.answers_prefix
+
+/-- info: 'SlhDsaSecurity.DigestTape.recorder_cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.recorder_cache_value_persists
+
+/-- info: 'SlhDsaSecurity.DigestTape.mem_record_of_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.mem_record_of_cache
+
+/-- info: 'SlhDsaSecurity.DigestTape.recordCovered_of_witnesses' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.recordCovered_of_witnesses
