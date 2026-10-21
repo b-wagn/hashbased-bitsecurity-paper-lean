@@ -118,4 +118,33 @@ theorem deviatingCollision_of_tree_pair {α : Type} (publicSeed : Digest) (cells
     exact ⟨child, by rw [hchildren]; exact hmember, hdiffers⟩
   · rwa [canonicalInput_tree publicSeed candidates location height index, hleft, hright]
 
+/-! ## The single-child case: FORS leaves
+
+`Extraction.Fors.LeafCollision` has the same content as a Merkle-layer collision but at a node
+with one child: the forged secret differs from the honest one, yet hashing it under the leaf's
+address gives the same value. The join is the same, and simpler — one child means the
+deviating assignment is just the honest cells with that child overwritten. -/
+
+theorem childBytes_single (cells : Cells) (child : Node) :
+    childBytes cells [child] = bytesBE n (cells child) := by
+  simp [childBytes]
+
+open scoped Classical in
+/-- **A single-child collision is a charged structural event.** -/
+theorem deviatingCollision_of_single_child {α : Type} (publicSeed : Digest) (cells : Cells)
+    (parent : StructuralNode) (child : Node) (actual : Digest)
+    (hchildren : parent.children = [child])
+    (hne : actual ≠ cells child)
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hentry : result.2 (Hashing.tweakableInput publicSeed parent.address
+        (bytesBE n actual)) = some output)
+    (hcollision : Hashing.truncate output = cells (.structural parent)) :
+    StructuralTerm.DeviatingCollision publicSeed cells result := by
+  classical
+  refine ⟨Function.update cells child actual, parent, output, ⟨child, ?_, ?_⟩, ?_, hcollision⟩
+  · rw [hchildren]; exact List.mem_singleton_self child
+  · rw [Function.update_self]; exact hne
+  · rw [canonicalInput, hchildren, childBytes_single, Function.update_self]
+    exact hentry
+
 end SlhDsaSecurity.CollisionToDeviating
