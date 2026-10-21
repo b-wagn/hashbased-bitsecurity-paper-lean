@@ -4635,3 +4635,11 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 /-- info: 'SlhDsaSecurity.LazyBridge.probEvent_flag_two_handlers_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LazyBridge.probEvent_flag_two_handlers_eq
+
+/-- info: 'SlhDsaSecurity.OpenCache.openCache_congr_of_not_sensitive' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.openCache_congr_of_not_sensitive
+
+/-- info: 'SlhDsaSecurity.OpenCache.lazyProgram_step_congr_available' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.lazyProgram_step_congr_available
