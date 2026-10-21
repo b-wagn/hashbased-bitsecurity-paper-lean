@@ -97,3 +97,13 @@ SHAKE inputs. For example, at the internal-message level, H_msg with R=SK.prf
 has the same input as PRF_msg on PK.root concatenated with that message.
 The pure-message encoding also matters when analyzing such overlaps.
 A hybrid that simply declares these roles independent is insufficient.
+
+`Proof/HashSeparation.lean` proves a separation criterion for H_msg versus
+structural hashing: an overlap requires PK.seed concatenated with PK.root to
+encode the structural address. A loose rectangle enclosing the standard
+128s address ranges has at most 2^91 candidates, so an independently uniform
+pair of 16-byte values satisfies this condition with probability at most
+2^-165. Connecting that distribution and those address bounds to the concrete
+key generation and algorithms remains to be proved. PRF_msg versus structural
+hashing is also proved disjoint whenever SK.prf differs from PK.seed. These
+results do not resolve the remaining H_msg/PRF_msg overlap.

@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.Checksum
 import SlhDsaSecurity.Proof.ForsCoverage
 import SlhDsaSecurity.Proof.ForsMoments
 import SlhDsaSecurity.Proof.Hashing
+import SlhDsaSecurity.Proof.HashSeparation
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -93,3 +94,15 @@ import SlhDsaSecurity.Proof.Hashing
 /-- info: 'SlhDsaSecurity.ForsCoverage.fresh_digest_coverage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCoverage.fresh_digest_coverage
+
+/-- info: 'SlhDsaSecurity.HashSeparation.message_tweakable_ne' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HashSeparation.message_tweakable_ne
+
+/-- info: 'SlhDsaSecurity.HashSeparation.randomizer_tweakable_ne' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HashSeparation.randomizer_tweakable_ne
+
+/-- info: 'SlhDsaSecurity.HashSeparation.prob_possible_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HashSeparation.prob_possible_le
