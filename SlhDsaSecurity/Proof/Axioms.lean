@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.SplitCharged
 import SlhDsaSecurity.Proof.StripCached
 import SlhDsaSecurity.Proof.VerifierProbes
 import SlhDsaSecurity.Proof.HonestProbes
@@ -3432,3 +3433,11 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 /-- info: 'SlhDsaSecurity.StripCached.queriesUnder_strip_none' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.StripCached.queriesUnder_strip_none
+
+/-- info: 'SlhDsaSecurity.SplitCharged.forsKeyOfDigest_address' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCharged.forsKeyOfDigest_address
+
+/-- info: 'SlhDsaSecurity.SplitCharged.cases_of_win_charged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCharged.cases_of_win_charged
