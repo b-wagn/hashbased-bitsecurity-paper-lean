@@ -85,6 +85,47 @@ theorem GrowthAtMostOn.cacheQuery_other {inClass : Bytes → Prop}
   have hentry := (hmembers i hi).2.1
   rwa [QueryCache.cacheQuery_of_ne initial answer hne] at hentry
 
+/-- Undoing an in-class installation costs one unit of budget: if the extended cache admits a
+budget, the original admits one more. -/
+theorem GrowthAtMostOn.succ_of_cacheQuery {inClass : Bytes → Prop}
+    {initial final : QueryCache HashSpec} {limit : Nat}
+    {input : Bytes} {answer : HashOutput}
+    (hgrowth : GrowthAtMostOn inClass (initial.cacheQuery input answer) final limit) :
+    GrowthAtMostOn inClass initial final (limit + 1) := by
+  classical
+  intro inputs hnodup hmembers
+  have hrest : (inputs.erase input).length ≤ limit := by
+    refine hgrowth (inputs.erase input) (hnodup.erase input) fun probe hprobe => ?_
+    have hmem : probe ∈ inputs := List.mem_of_mem_erase hprobe
+    have hne : probe ≠ input := by
+      intro hsame
+      subst hsame
+      exact (hnodup.not_mem_erase) hprobe
+    refine ⟨(hmembers probe hmem).1, ?_, (hmembers probe hmem).2.2⟩
+    rw [QueryCache.cacheQuery_of_ne initial answer hne]
+    exact (hmembers probe hmem).2.1
+  have hlength : inputs.length ≤ (inputs.erase input).length + 1 := by
+    by_cases hpresent : input ∈ inputs
+    · rw [List.length_erase_of_mem hpresent]
+      have := List.length_pos_of_mem hpresent
+      omega
+    · rw [List.erase_of_not_mem hpresent]
+      omega
+  omega
+
+/-- An out-of-class installation is invisible to the class budget, in the other direction from
+`cacheQuery_other`: a budget for the extended cache is one for the original. -/
+theorem GrowthAtMostOn.of_cacheQuery_other {inClass : Bytes → Prop}
+    {initial final : QueryCache HashSpec} {limit : Nat}
+    {input : Bytes} {answer : HashOutput} (hmember : ¬ inClass input)
+    (hgrowth : GrowthAtMostOn inClass (initial.cacheQuery input answer) final limit) :
+    GrowthAtMostOn inClass initial final limit := by
+  refine fun inputs hnodup hmembers => hgrowth inputs hnodup fun probe hprobe => ?_
+  have hne : probe ≠ input := fun hsame => hmember (hsame ▸ (hmembers probe hprobe).1)
+  refine ⟨(hmembers probe hprobe).1, ?_, (hmembers probe hprobe).2.2⟩
+  rw [QueryCache.cacheQuery_of_ne initial answer hne]
+  exact (hmembers probe hprobe).2.1
+
 /-- The event, with a separate growth budget for each class. -/
 def BadWithinClasses {α : Type} (bad : Bytes → HashOutput → Prop) (inClass : Bytes → Prop)
     (initialCache : QueryCache HashSpec) (insideLimit outsideLimit : Nat) :

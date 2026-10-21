@@ -52,6 +52,7 @@ import SlhDsaSecurity.Proof.SecretGuessCharge
 import SlhDsaSecurity.Proof.ClassCharge
 import SlhDsaSecurity.Proof.SeedDeferral
 import SlhDsaSecurity.Proof.QueryCached
+import SlhDsaSecurity.Proof.ClassBudget
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -681,3 +682,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.Assembly.cap_defect_within_slack' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.cap_defect_within_slack
+
+/-- info: 'SlhDsaSecurity.ClassBudget.growthOn_le_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassBudget.growthOn_le_count
