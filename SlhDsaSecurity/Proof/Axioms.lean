@@ -65,6 +65,7 @@ import SlhDsaSecurity.Proof.HypertreeDispatch
 import SlhDsaSecurity.Proof.InputCoupling
 import SlhDsaSecurity.Proof.ForsDispatch
 import SlhDsaSecurity.Proof.BlindComparison
+import SlhDsaSecurity.Proof.GameBridge
 import SlhDsaSecurity.Proof.MainTheorem
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
@@ -2573,3 +2574,13 @@ info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends 
 /-- info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_halves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_halves
+
+/-! Kernel dependency checks for the game bridge. -/
+
+/-- info: 'SlhDsaSecurity.GameBridge.verify_eq_replay' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GameBridge.verify_eq_replay
+
+/-- info: 'SlhDsaSecurity.GameBridge.keygen_publicKey' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GameBridge.keygen_publicKey
