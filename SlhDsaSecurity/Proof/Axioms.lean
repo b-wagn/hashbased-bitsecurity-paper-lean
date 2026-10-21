@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.WarmedSplit
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.CachedRun
 import SlhDsaSecurity.Proof.Parameters
@@ -2869,3 +2870,51 @@ info: 'SlhDsaSecurity.WarmedCharges.prob_deviatingCollision_tail_le' depends on 
 /-- info: 'SlhDsaSecurity.WarmedCharges.prob_combinedBad_tail_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WarmedCharges.prob_combinedBad_tail_le
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.run_rom_liftM' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.run_rom_liftM
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.verify_liftM' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.verify_liftM
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.keygenInternal_liftM' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.keygenInternal_liftM
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.run_eq_replay_of_subset' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.run_eq_replay_of_subset
+
+/--
+info: 'SlhDsaSecurity.WarmedSplit.keygenInternal_eq_replay_of_subset' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.keygenInternal_eq_replay_of_subset
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.countQueries_query_bind' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.countQueries_query_bind
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.mem_support_of_countAllHashes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.mem_support_of_countAllHashes
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.mem_support_of_countQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.mem_support_of_countQueries
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.mem_support_counted_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.mem_support_counted_bind
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.split_afterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.split_afterSeeds
+
+/-- info: 'SlhDsaSecurity.WarmedSplit.cases_of_win' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedSplit.cases_of_win
