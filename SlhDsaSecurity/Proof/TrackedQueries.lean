@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.BlindComparison
 import SlhDsaSecurity.Proof.SeedDeferral
+import SlhDsaSecurity.Proof.CanonicalGraph.Address
 
 /-!
 # Carrying the queried set alongside the count
@@ -360,5 +361,35 @@ theorem prob_meets_real_le {α Index : Type} (computation : OracleComp OracleWor
   refine tsum_congr fun result => congrArg _ ?_
   simp only [bind_pure_comp, probEvent_map]
   rfl
+
+/-! ## The seed-bearing inputs of the game
+
+At a `wotsPrf` or `forsPrf` node the only child is the secret seed, so the node's canonical
+input is the tweakable input on the seed's bytes under that node's address. `prfInput` is that
+map, and the two hypotheses the input half needs are both byte-format facts: the address field
+pins the node, and the payload pins the seed.
+
+It is stated over *all* structural nodes rather than only the PRF ones. That is deliberate and
+harmless: it enlarges the set of inputs treated as seed-bearing, which weakens the agreement
+hypothesis and strengthens the event being bounded, so a bound proved this way covers the real
+one. -/
+
+/-- The input that carries `secret` under a node's address. -/
+def prfInput (publicSeed secret : Digest) (node : CanonicalGraph.StructuralNode) : Bytes :=
+  Hashing.tweakableInput publicSeed node.address (bytesBE n secret)
+
+/-- The address field pins the node, so a seed-bearing input names the node it belongs to. -/
+theorem prfInput_node_eq (publicSeed secret secret' : Digest)
+    {node node' : CanonicalGraph.StructuralNode}
+    (heq : prfInput publicSeed secret node = prfInput publicSeed secret' node') :
+    node = node' :=
+  CanonicalGraph.StructuralNode.address_injective
+    (Hashing.tweakableInput_injective heq).2.1
+
+/-- The payload pins the seed. -/
+theorem prfInput_injective (publicSeed : Digest) (node : CanonicalGraph.StructuralNode) :
+    Function.Injective fun secret : Digest => prfInput publicSeed secret node := by
+  intro left right heq
+  exact bytesBE_injective n (Hashing.tweakableInput_injective heq).2.2
 
 end SlhDsaSecurity.TrackedQueries
