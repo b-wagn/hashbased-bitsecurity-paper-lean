@@ -130,6 +130,54 @@ theorem bad_one {γ : Type} (impl : QueryImpl spec (StateT (σ × Bool) ProbComp
         rw [hfail t (s, flag), zero_add] at hmass
         exact hmass
 
+
+/-! ## Two handlers that agree until the flag fires
+
+The refinement above compares one handler with itself. Two *different* handlers that agree
+except where the flag fires assign it the same probability for the same reason, and that is the
+comparison a lazy presentation needs against an eager one when both draw their randomness up
+front, so there is nothing for a refinement to draw.
+
+The comparison has to be made once, for the whole event. Stalling it at one coordinate would be
+unsound: handlers that differ at the inputs the flag fires on differ at *all* of them, so two
+runs stalled at one coordinate can still diverge earlier at another, and "they agree while
+unfrozen" would be false rather than merely weak.
+
+Note where the flag lives. It is in the comparison only; nothing here reads it, and in
+particular the handler that answers from a table never needs to. -/
+
+/-- **Two handlers agreeing off the flag's trigger flag it equally often.** -/
+theorem probEvent_flag_two_handlers_eq {γ : Type}
+    (left right : QueryImpl spec (StateT (σ × Bool) ProbComp)) (Bad : σ → spec.Domain → Prop)
+    (hfailLeft : ∀ (t : spec.Domain) (p : σ × Bool), Pr[⊥ | (left t).run p] = 0)
+    (hfailRight : ∀ (t : spec.Domain) (p : σ × Bool), Pr[⊥ | (right t).run p] = 0)
+    (hstickyLeft : ∀ (t : spec.Domain) (s : σ),
+      ∀ z ∈ support ((left t).run (s, true)), z.2.2 = true)
+    (hstickyRight : ∀ (t : spec.Domain) (s : σ),
+      ∀ z ∈ support ((right t).run (s, true)), z.2.2 = true)
+    (hfiresLeft : ∀ (t : spec.Domain) (s : σ) (flag : Bool), Bad s t →
+      ∀ z ∈ support ((left t).run (s, flag)), z.2.2 = true)
+    (hfiresRight : ∀ (t : spec.Domain) (s : σ) (flag : Bool), Bad s t →
+      ∀ z ∈ support ((right t).run (s, flag)), z.2.2 = true)
+    (hagree : ∀ (t : spec.Domain) (p : σ × Bool), ¬ Bad p.1 t →
+      𝒟[(left t).run p] = 𝒟[(right t).run p])
+    (oa : OracleComp spec γ) (p : σ × Bool) :
+    Pr[fun z : γ × (σ × Bool) => z.2.2 = true | (simulateQ left oa).run p] =
+      Pr[fun z : γ × (σ × Bool) => z.2.2 = true | (simulateQ right oa).run p] := by
+  classical
+  induction oa using OracleComp.inductionOn generalizing p with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure]
+  | query_bind t next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    by_cases hp : Bad p.1 t
+    · rw [bad_one left Bad hfailLeft hstickyLeft hfiresLeft t next p.1 p.2 hp,
+        bad_one right Bad hfailRight hstickyRight hfiresRight t next p.1 p.2 hp]
+    · rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+      refine tsum_congr fun step => ?_
+      rw [probOutput_congr rfl (hagree t p hp), ih step.1 step.2]
+
 /-! ## The bridge
 
 `refine s` is the distribution of eager presentations of the lazy state `s` — in the game, the

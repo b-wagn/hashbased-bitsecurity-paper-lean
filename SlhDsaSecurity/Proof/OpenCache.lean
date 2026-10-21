@@ -114,6 +114,48 @@ theorem openCache_congr_of_agreeOff
       hclosed parent ((mem_openNodes available parent).mp hparent)
     rw [fullOutput, fullOutput, hagree.1 _ (hne _ hcell), hagree.2 parent (hne _ hcell)]
 
+
+/-! ## Two availability predicates differ only at the sensitive inputs
+
+The comparison a lazy presentation needs against an eager one is between this handler at the
+real availability and the same handler at total availability — the one that answers every
+canonical input, which is the eager programmed cache read on demand. They differ at exactly the
+canonical inputs of the nodes the real availability calls sensitive, and nowhere else: a
+candidate that is not a canonical input is in neither, and a canonical input of a node whose
+children are all available is in both with the same answer.
+
+Closure is not what makes this true; it is what makes the handler blind to the unavailable
+cells. This is the plainer fact that the readable entries are determined by which nodes pass
+the test. -/
+
+open scoped Classical in
+/-- **The readable entries at two availability predicates agree off the sensitive inputs.** -/
+theorem openCache_congr_of_not_sensitive (lenient strict : Node → Prop)
+    (table : Cells × Padding) (input : Bytes)
+    (hnot : ∀ parent : StructuralNode, canonicalInput publicSeed table.1 parent = input →
+      ((∀ child ∈ parent.children, lenient child) ↔ ∀ child ∈ parent.children, strict child)) :
+    openCache publicSeed lenient table input = openCache publicSeed strict table input := by
+  classical
+  by_cases hcanonical : ∃ parent : StructuralNode,
+      canonicalInput publicSeed table.1 parent = input
+  · obtain ⟨parent, hparent⟩ := hcanonical
+    subst hparent
+    rw [openCache, openCache, cacheFrom_lookup, cacheFrom_lookup]
+    by_cases hopen : ∀ child ∈ parent.children, lenient child
+    · rw [if_pos ((mem_openNodes lenient parent).mpr hopen),
+        if_pos ((mem_openNodes strict parent).mpr ((hnot parent rfl).mp hopen))]
+    · rw [if_neg (fun hmem => hopen ((mem_openNodes lenient parent).mp hmem)),
+        if_neg (fun hmem => hopen ((hnot parent rfl).mpr
+          ((mem_openNodes strict parent).mp hmem)))]
+  · have hnone : ∀ available : Node → Prop,
+        openCache publicSeed available table input = none := by
+      intro available
+      by_contra hsome
+      exact hcanonical ((cacheFrom_empty_canonical publicSeed table.1
+        (fullOutput table.1 table.2) (openNodes available) input hsome).imp
+        fun parent hparent => hparent.symm)
+    rw [hnone lenient, hnone strict]
+
 /-! ## The handler
 
 Its state is the cache, the inputs it has been asked for with the cache each was asked
@@ -244,5 +286,26 @@ theorem evalDist_stalled_lazyProgram_congr {α : Type}
         lazyProgram_step_congr publicSeed availableAt hclosed index first second hfirst
           queried p.1 hfrozen])
     oa left right hagree state
+
+
+open scoped Classical in
+/-- **The step condition the two-handler comparison takes.** At a query that is not the
+canonical input of a node the two availability predicates disagree about, the handler's step is
+the same at both. -/
+theorem lazyProgram_step_congr_available
+    (lenient strict : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (queried : OracleWorld.Domain) (state : HandlerState)
+    (hnot : ∀ input, queried = Sum.inr input →
+      ∀ parent : StructuralNode, canonicalInput publicSeed table.1 parent = input →
+        ((∀ child ∈ parent.children, lenient state.1 child) ↔
+          ∀ child ∈ parent.children, strict state.1 child)) :
+    ((lazyProgram publicSeed lenient table) queried).run state =
+      ((lazyProgram publicSeed strict table) queried).run state := by
+  classical
+  rcases queried with coin | input
+  · rw [lazyProgram_run_inl, lazyProgram_run_inl]
+  · rw [lazyProgram_run_inr, lazyProgram_run_inr,
+      openCache_congr_of_not_sensitive publicSeed (lenient state.1) (strict state.1) table input
+        (hnot input rfl)]
 
 end SlhDsaSecurity.OpenCache
