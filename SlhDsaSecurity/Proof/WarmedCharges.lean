@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.CombinedCharge
 import SlhDsaSecurity.Proof.TrackedQueries
+import SlhDsaSecurity.Proof.GameBridge
 
 /-!
 # The charges, at the walk's own cells
@@ -261,5 +262,40 @@ theorem blindCache_indep_of_secret (publicSeed : Digest) (outputs : Programming.
       canonicalInput_of_not_prf publicSeed _ _ hstructural
         (hnone current (List.mem_cons_self ..))]
     exact ih (fun parent hparent => hnone parent (List.mem_cons_of_mem _ hparent)) _
+
+/-! ## The tail's replayed cells are the walk's cells
+
+The structural extraction speaks of `CanonicalGraph.value (replayQuery cache)`, the cells the
+*final* cache computes; the charges speak of the walk's cells. They are the same table, and
+the reason is the only thing a cache does in this development: it never forgets. The walk
+installed a canonical entry at every node, the tail can only add, so the final cache still
+answers every canonical query the same way — which by `value_eq_of_cache_agreement` pins the
+whole evaluation. -/
+
+/-- The tail can only add to the walk's cache. -/
+theorem walk_cache_persists {adversary : Adversary}
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (tail adversary walk))
+    (input : Bytes) (output : HashOutput) (hentry : walk.2 input = some output) :
+    result.2 input = some output := by
+  rw [tail] at hresult
+  exact GrowthCharge.cache_value_persists _ walk.2 result.2 result.1 hresult input output hentry
+
+/-- **The cells the tail's final cache computes are the walk's own cells.** -/
+theorem value_replay_eq_walk_cells (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (tail adversary walk)) :
+    @CanonicalGraph.value (CacheReplay.replayQuery result.2) walk.1.1.1 walk.1.1.2.2 =
+      walk.1.2 := by
+  obtain ⟨outputs, hcells, hcache⟩ := mem_support_graphWalk hwalk
+  rw [hcells]
+  refine GameBridge.value_eq_cellsOfOutputs walk.1.1.2.2 walk.1.1.1 outputs result.2
+    fun input output hentry => ?_
+  refine walk_cache_persists hresult input output ?_
+  rw [hcache, hcells]
+  exact hentry
 
 end SlhDsaSecurity.WarmedCharges

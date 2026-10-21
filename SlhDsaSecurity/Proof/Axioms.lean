@@ -3441,3 +3441,11 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 /-- info: 'SlhDsaSecurity.SplitCharged.cases_of_win_charged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCharged.cases_of_win_charged
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.walk_cache_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.walk_cache_persists
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.value_replay_eq_walk_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.value_replay_eq_walk_cells
