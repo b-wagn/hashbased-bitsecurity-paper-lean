@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.OpenCache
 import SlhDsaSecurity.Proof.StalledRun
 import SlhDsaSecurity.Proof.HonestMessage
 import SlhDsaSecurity.Proof.DrawnTable
@@ -4311,3 +4312,39 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.HonestMessage.signLayers_wots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestMessage.signLayers_wots
+
+/-- info: 'SlhDsaSecurity.OpenCache.cacheFrom_congr' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.cacheFrom_congr
+
+/-- info: 'SlhDsaSecurity.OpenCache.mem_openNodes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.mem_openNodes
+
+/-- info: 'SlhDsaSecurity.OpenCache.openCache_congr_of_agreeOff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.openCache_congr_of_agreeOff
+
+/-- info: 'SlhDsaSecurity.OpenCache.lazyProgram_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.lazyProgram_run_inl
+
+/-- info: 'SlhDsaSecurity.OpenCache.lazyProgram_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.lazyProgram_run_inr
+
+/-- info: 'SlhDsaSecurity.OpenCache.lazyProgram_step_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.lazyProgram_step_congr
+
+/-- info: 'SlhDsaSecurity.OpenCache.lazyProgram_step_congr_graph' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.lazyProgram_step_congr_graph
+
+/-- info: 'SlhDsaSecurity.OpenCache.withFlag_run' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.withFlag_run
+
+/-- info: 'SlhDsaSecurity.OpenCache.evalDist_stalled_lazyProgram_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.evalDist_stalled_lazyProgram_congr
