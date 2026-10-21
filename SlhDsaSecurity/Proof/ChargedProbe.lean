@@ -385,6 +385,20 @@ theorem prob_run_cell_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
         rw [ENNReal.tsum_mul_right]
 
 
+/-- **A finite sum and an expectation may be exchanged.** Over `ℝ≥0∞` both sides are defined and
+equal whatever the summands; it is stated for an arbitrary index set because this is the step at
+which a factor of the index count would hide, and a general statement is easier to check than
+one specialised to a type with `2 ^ 26` elements. -/
+theorem sum_tsum_comm {Index Result : Type} [DecidableEq Index] (nodes : Finset Index)
+    (summand : Index → Result → ℝ≥0∞) :
+    ∑ index ∈ nodes, ∑' result : Result, summand index result =
+      ∑' result : Result, ∑ index ∈ nodes, summand index result := by
+  refine Finset.induction_on nodes ?_ ?_
+  · simp
+  · intro head rest hhead ih
+    rw [Finset.sum_insert hhead, ih, ← ENNReal.tsum_add]
+    exact tsum_congr fun result => by rw [Finset.sum_insert hhead]
+
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
 open scoped Classical in
@@ -419,19 +433,10 @@ theorem prob_run_sensitive_le {γ : Type} (stakes : Stakes Node CanonicalGraph.N
     _ = (∑' result, ∑ index : CanonicalGraph.Node, Pr[= result | run] *
           ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
             ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        have hswap : ∀ nodes : Finset CanonicalGraph.Node,
-            ∑ index ∈ nodes, ∑' result, Pr[= result | run] *
-                ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞) =
-              ∑' result, ∑ index ∈ nodes, Pr[= result | run] *
-                ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞) := by
-          intro nodes
-          refine Finset.induction_on nodes ?_ ?_
-          · simp
-          · intro head rest hhead ih
-            rw [Finset.sum_insert hhead, ih, ← ENNReal.tsum_add]
-            exact tsum_congr fun result => by rw [Finset.sum_insert hhead]
         refine congrArg (fun total => total / ((2 ^ 128 : Nat) : ℝ≥0∞)) ?_
-        exact hswap Finset.univ
+        exact sum_tsum_comm Finset.univ fun index result =>
+          Pr[= result | run] *
+            ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)
     _ ≤ (∑' result, Pr[= result | run] * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
         refine ENNReal.div_le_div_right (ENNReal.tsum_le_tsum fun result => ?_) _
         rw [← Finset.mul_sum]
