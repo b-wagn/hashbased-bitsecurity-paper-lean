@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.GraphFreshSampling
+import SlhDsaSecurity.Proof.SecretGuessCharge
 
 /-!
 # Deferring the seed sample past a seed-derived query
@@ -176,5 +177,74 @@ theorem honest_result_defer_seed {Index State β : Type}
     simp only [Function.comp_def, pure_bind]
   simp only [hrewrite]
   exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
+
+/-! ## The per-step rate: a fixed input is an honest key with probability `2 ^ -128`
+
+This is the quantitative content of the interleaving step, and the hypothesis that
+`QueryImpl.Stateful.advantage_le_expectedQuerySlack_plus_probEvent_bad` takes as its
+`querySlack`. Everything above is about laws being equal; this is the one place a number
+enters.
+
+The argument is the FIPS 205 byte format rather than anything probabilistic. A tweakable input
+carries its address in the clear, so the address field of a candidate input already names the
+only coordinate it could possibly be the honest input of — `locate` below. Having fixed that
+coordinate, the input determines the seed, because `inputOf · node` is injective. So at most
+one seed in `2 ^ 128` makes a given input honest, whatever the adversary chose it to be.
+
+Note where the quantifiers sit: the input is fixed *first* and the seed drawn afterwards. That
+is legitimate precisely because of `honest_result_indep_of_seed` — the view from which the
+adversary picked its input has a law not involving the seed — and it is why the deferral had
+to come first. -/
+
+/-- **A fixed query input is an honest key with probability at most `2 ^ -128`.** -/
+theorem prob_honest_key_le {Index : Type} (inputOf : Digest → Index → Bytes)
+    (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (candidate : Bytes) :
+    Pr[fun secret : Digest => ∃ node : Index, inputOf secret node = candidate |
+      ($ᵗ Digest : ProbComp Digest)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  by_cases hwitness : ∃ (secret : Digest) (node : Index), inputOf secret node = candidate
+  · -- Some seed makes it honest; injectivity says no other one does.
+    obtain ⟨witness, node, hnode⟩ := hwitness
+    refine le_trans (probEvent_mono (α := Digest)
+      (q := fun secret : Digest => witness = secret) ?_) ?_
+    · rintro secret - ⟨other, hother⟩
+      -- The address field pins the coordinate, so `other = node`.
+      have hsame : other = node := by
+        have hleft : locate candidate = some other := by rw [← hother]; exact hlocate secret other
+        have hright : locate candidate = some node := by rw [← hnode]; exact hlocate witness node
+        exact Option.some.inj (hleft.symm.trans hright)
+      subst hsame
+      -- With the coordinate fixed, the input determines the seed.
+      exact (hinj other (hother.trans hnode.symm)).symm
+    · exact le_of_eq (SecretGuessCharge.prob_single_guess witness)
+  · -- No seed makes it honest at all.
+    refine le_of_eq_of_le (b := 0) (probEvent_eq_zero fun secret _ hbad => ?_) (by simp)
+    exact hwitness ⟨secret, hbad⟩
+
+/-- The same bound stated as the `querySlack` of the identical-until-bad hop: a run that makes
+at most `limit` queries meets an honest key with probability at most `limit / 2 ^ 128`. -/
+theorem prob_any_honest_key_le {Index : Type} (inputOf : Digest → Index → Bytes)
+    (locate : Bytes → Option Index)
+    (hlocate : ∀ (secret : Digest) (node : Index), locate (inputOf secret node) = some node)
+    (hinj : ∀ node : Index, Function.Injective (fun secret : Digest => inputOf secret node))
+    (candidates : Finset Bytes) :
+    Pr[fun secret : Digest =>
+        ∃ candidate ∈ candidates, ∃ node : Index, inputOf secret node = candidate |
+      ($ᵗ Digest : ProbComp Digest)] ≤
+      candidates.card / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  refine le_trans (probEvent_exists_finset_le_sum candidates _ _) ?_
+  calc ∑ candidate ∈ candidates,
+        Pr[fun secret : Digest => ∃ node : Index, inputOf secret node = candidate |
+          ($ᵗ Digest : ProbComp Digest)]
+      ≤ ∑ _candidate ∈ candidates, 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        Finset.sum_le_sum fun candidate _ =>
+          prob_honest_key_le inputOf locate hlocate hinj candidate
+    _ = candidates.card * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        rw [Finset.sum_const, nsmul_eq_mul]
+    _ ≤ candidates.card / ((2 ^ 128 : Nat) : ℝ≥0∞) := le_of_eq (by rw [mul_one_div])
 
 end SlhDsaSecurity.SeedDeferral
