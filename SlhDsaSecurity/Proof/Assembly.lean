@@ -228,4 +228,81 @@ theorem weighted_add_defect_le (weighted queries : Nat)
   refine ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _
   omega
 
+/-! ## The accounting the finished proof has to meet
+
+The halves as they now stand are not `q / 2 ^ 128` each. Both are smaller by the honest
+phase's own hashing, which is charged to `q` and can buy nothing — key generation spends at
+least `2 ^ subtreeHeight = 512` calls while leaving the walk's cache untouched. The input half
+is larger by the forgery's claimed cells, charged as candidates so that "output an unavailable
+cell without ever querying for it" needs no separate argument; there are `forsTrees +
+layers * chains = 259` of them. And the answer half carries the coverage tape's `2 ^ -141`, the
+load cap's `2 ^ -126`, and the input-format coincidence's `2 ^ -165`.
+
+So the sum to check is
+
+    (q - 512 + 259) / 2 ^ 128 + (q - 512) / 2 ^ 128 + (2 ^ -126 + 2 ^ -141 + 2 ^ -165)
+      ≤ q / 2 ^ 127
+
+and it holds with room: the two counts give `2 q - 765`, the defects are under `5 / 2 ^ 128`,
+and `2 q - 760 ≤ 2 q`. The margin is `760` units where `5` are needed, which is the point of
+charging every hash call — the honest phase pays for the defects many times over.
+
+`le_target_of_counts` is that, with the constants as parameters so the arithmetic does not have
+to be redone if a count moves. -/
+
+private theorem cast_pow (k : Nat) : ((2 ^ k : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by
+  push_cast; ring
+
+/-- A fraction over `2 ^ j` rewritten over a larger power of two. -/
+private theorem div_pow_eq (m j k : Nat) (hjk : j ≤ k) :
+    ((m : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ j =
+      ((m * 2 ^ (k - j) : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ k := by
+  have hsplit : (2 : ℝ≥0∞) ^ k = (2 : ℝ≥0∞) ^ (k - j) * (2 : ℝ≥0∞) ^ j := by
+    rw [← pow_add]
+    congr 1
+    omega
+  have hnum : ((m * 2 ^ (k - j) : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ (k - j) * (m : ℝ≥0∞) := by
+    push_cast; ring
+  rw [hsplit, hnum, ENNReal.mul_div_mul_left _ _ (by positivity) (by simp)]
+
+/-- Three small defects cost under five units of `2 ^ -128`. -/
+theorem defects_le_five :
+    (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) ≤
+      ((5 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [cast_pow, cast_pow, cast_pow, cast_pow,
+    show (1 : ℝ≥0∞) = ((1 : Nat) : ℝ≥0∞) from by push_cast; ring,
+    div_pow_eq 1 126 165 (by norm_num), div_pow_eq 1 141 165 (by norm_num),
+    div_pow_eq 1 165 165 (by norm_num), div_pow_eq 5 128 165 (by norm_num),
+    ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+  rw [← Nat.cast_add, ← Nat.cast_add]
+  refine ENNReal.div_le_div_right ?_ _
+  exact Nat.cast_le.mpr (by norm_num)
+
+/-- **The target, from the two counts and a defect allowance.** -/
+theorem le_target_of_counts (queries slack extra defectUnits : Nat)
+    (hslack : slack ≤ queries) (hfits : extra + defectUnits ≤ 2 * slack)
+    (defect : ℝ≥0∞)
+    (hdefect : defect ≤ (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    ((queries - slack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((queries - slack : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect ≤
+      (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+  have hsum : (queries - slack + extra) + (queries - slack) + defectUnits ≤ 2 * queries := by
+    omega
+  calc ((queries - slack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((queries - slack : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect
+      ≤ ((queries - slack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((queries - slack : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by gcongr
+    _ = (((queries - slack + extra) + (queries - slack) + defectUnits : Nat) : ℝ≥0∞) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        rw [ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+        push_cast
+        ring_nf
+    _ ≤ ((2 * queries : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        ENNReal.div_le_div_right (Nat.cast_le.mpr hsum) _
+    _ = (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+        rw [show ((2 * queries : Nat) : ℝ≥0∞) = (queries : ℝ≥0∞) + (queries : ℝ≥0∞) from by
+          push_cast; ring, ← ENNReal.div_add_div_same, half_add_half]
+
 end SlhDsaSecurity.Assembly
