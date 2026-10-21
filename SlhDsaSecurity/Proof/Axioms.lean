@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.WotsResidueReduction
+import SlhDsaSecurity.Proof.StrippedGame
 import SlhDsaSecurity.Proof.DigestTape
 import SlhDsaSecurity.Proof.SplitCharged
 import SlhDsaSecurity.Proof.StripCached
@@ -3583,3 +3584,83 @@ info: 'SlhDsaSecurity.WotsResidueReduction.exists_held_value_of_residue' depends
 /-- info: 'SlhDsaSecurity.WotsResidueReduction.heldValue_eq_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WotsResidueReduction.heldValue_eq_cell
+
+/-- info: 'SlhDsaSecurity.StrippedGame.Extends.refl' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.Extends.refl
+
+/-- info: 'SlhDsaSecurity.StrippedGame.extends_of_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.extends_of_mem_support
+
+/-- info: 'SlhDsaSecurity.StrippedGame.sign_lift' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.sign_lift
+
+/-- info: 'SlhDsaSecurity.StrippedGame.run_liftComp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.run_liftComp
+
+/-- info: 'SlhDsaSecurity.StrippedGame.run_strippedKeygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.run_strippedKeygen
+
+/-- info: 'SlhDsaSecurity.StrippedGame.run_strippedSign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.run_strippedSign
+
+/-- info: 'SlhDsaSecurity.StrippedGame.run_liftM_counted' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.run_liftM_counted
+
+/-- info: 'SlhDsaSecurity.StrippedGame.run_liftM_state' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.run_liftM_state
+
+/-- info: 'SlhDsaSecurity.StrippedGame.signingOracle_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.signingOracle_eq
+
+/-- info: 'SlhDsaSecurity.StrippedGame.run_signingOracleWith' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.run_signingOracleWith
+
+/-- info: 'SlhDsaSecurity.StrippedGame.run_signingOracleWith_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.run_signingOracleWith_congr
+
+/-- info: 'SlhDsaSecurity.StrippedGame.countedRun_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.countedRun_bind
+
+/-- info: 'SlhDsaSecurity.StrippedGame.evalDist_countedRun_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.evalDist_countedRun_congr
+
+/--
+info: 'SlhDsaSecurity.StrippedGame.evalDist_countedRun_signingOracle' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.evalDist_countedRun_signingOracle
+
+/-- info: 'SlhDsaSecurity.StrippedGame.evalDist_run_strippedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.evalDist_run_strippedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.StrippedGame.strippedKeygen_eq' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.strippedKeygen_eq
+
+/-- info: 'SlhDsaSecurity.StrippedGame.strippedSign_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.strippedSign_eq
+
+/-- info: 'SlhDsaSecurity.StrippedGame.honest_probes_not_in_warm_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.honest_probes_not_in_warm_cache
+
+/-- info: 'SlhDsaSecurity.StrippedGame.honest_probes_not_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StrippedGame.honest_probes_not_canonical
