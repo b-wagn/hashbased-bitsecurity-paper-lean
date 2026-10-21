@@ -1201,4 +1201,40 @@ theorem sensitive_of_sensitiveEntry (revealed : WotsKey → Fin chains → Nat)
     rw [GraphStakes.inputOf_eq_canonicalInput]
     exact hinput
 
+/-! ## The comparison's flag changes nothing the charge sees
+
+The flag the comparison is stated on reads the cells — it asks whether a query sits at the
+canonical input of a node the signatures leave a child of unavailable — so the handler carrying
+it is not blind to the table, and the charge is not proved about it. The charge is proved about
+the flag-free wrapper. The two differ only in what they write to the flag, so on an event that
+does not read the flag they agree, which is all the charge needs. -/
+
+open scoped Classical in
+/-- **The two wrappers agree off the flag.** -/
+theorem probEvent_sensitiveFlagged_eq_withFlag {α : Type}
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (computation : OracleComp OracleWorld α)
+    (event : α × HandlerState → Prop) :
+    ∀ (inner : HandlerState) (left right : Bool),
+      Pr[fun z : α × (HandlerState × Bool) => event (z.1, z.2.1) |
+        (simulateQ (sensitiveFlagged publicSeed availableAt lenient table)
+          computation).run (inner, left)] =
+        Pr[fun z : α × (HandlerState × Bool) => event (z.1, z.2.1) |
+          (simulateQ (withFlag (lazyProgram publicSeed lenient table))
+            computation).run (inner, right)] := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro inner left right
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure,
+      probEvent_pure, probEvent_pure]
+  | query_bind queried next ih =>
+    intro inner left right
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      sensitiveFlagged_run, withFlag_run, bind_assoc, bind_assoc]
+    simp only [pure_bind]
+    rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+    exact tsum_congr fun step => congrArg _ (ih step.1 step.2 _ _)
+
 end SlhDsaSecurity.ChargedProbe
