@@ -1318,3 +1318,43 @@ with the forgery's `C = 259` claimed cells charged as candidates.
 3. the position function from the forgery, and `claimedCandidates` wired into the record;
 4. the final arithmetic: `(q − 512 + 259) / 2 ^ 128` for the input half, `(q − 512) / 2 ^ 128`
    plus `2 ^ -126 + 2 ^ -141` for the answer half, summing under `q / 2 ^ 127`.
+
+## The strong-freshness replay case
+
+A real gap, found by routing the FORS branch to the coverage event and discovering it cannot
+be routed there.
+
+Strong freshness excludes the forged *pair*, not the message. So an adversary may have `M`
+signed, receive `(M, σ)`, and forge `(M, σ')` reusing the signer's own randomiser `R` and
+changing the signature elsewhere. Then the forgery's message input `H_msg(R, PK, M)` *is* the
+input the signer queried — one cached entry, and it is the forgery's own target. Coverage
+requires the witnesses to be inputs *other* than the forgery's, so neither `ForgeryCovered` nor
+`CacheCovered` fires; and the FORS branch's event — the forgery's secrets are the honest ones
+at the digest's positions — holds with probability about one, the adversary having copied them
+out of the signature it was given. Under `Notion.standard` the case evaporates, since the
+message was never signed; the target is `.strong`, so that is not a way out.
+
+The case is charged structurally, and nothing escapes:
+
+* the FORS part differs — both recover the genuine key, so either a `ForsCollision`, or every
+  secret is honest and the auth paths differ, which is a path collision, also a `ForsCollision`;
+* the FORS part agrees and the hypertree part differs — a different hypertree signature
+  verifying to the same root is a `HypertreeFault`;
+* both agree — then `σ' = σ`, contradicting freshness.
+
+**What blocked it** is that the split's left disjunct discards the fault.
+`verify_fault_or_fors_canonical` concludes `forsKey = honestForsKey ∨ HypertreeFault`, and when
+the hypertree is mauled *and* the FORS key is genuine both hold, so the left is taken and the
+fault is lost. The repair is to strengthen the canonical branch to pin the whole *signature*
+rather than the key: the no-fault branch of the recursion already establishes that each layer's
+WOTS signature is the honest signature of the honest message, and that is what has to be
+retained instead of being weakened to an equation about the root. The same on the FORS side,
+where the non-collision branch currently pins only the secrets and not the paths.
+
+`Fresh .strong` then has to be threaded into the split, where it currently does not appear —
+nothing below `MainTheorem` mentions it. That is the honest place for it: the statement being
+proved is about fresh forgeries, and this is the one step that uses what freshness says.
+
+`CoverageRouted.forgeryCovered_of_witnesses` closes the branch the moment the structural side
+rules out "the forgery's own input is the only witness", so everything else on that route is
+already proved.
