@@ -411,4 +411,54 @@ theorem locateNode_prfInput (publicSeed secret : Digest)
   obtain ⟨secret', hsecret'⟩ := hexists.choose_spec
   exact congrArg some (prfInput_node_eq publicSeed secret secret' hsecret').symm
 
+/-! ## The two descriptions of a seed-bearing input agree
+
+`BlindComparison.IsSeedInput` describes these inputs as the canonical inputs of PRF nodes;
+`SeedInputOf prfInput` describes them by the byte format, a seed's bytes under a node's
+address. They had better be the same set, and they are — at a PRF node the only child is the
+secret seed, so `childBytes` is exactly the seed's bytes.
+
+Checked rather than assumed: the two definitions were written for different purposes, one to
+state the cache agreement and one to state the injectivity, and nothing but this lemma ties
+them together. -/
+
+theorem children_of_prf {node : CanonicalGraph.StructuralNode}
+    (hprf : BlindComparison.IsPrfNode node) :
+    node.children = [CanonicalGraph.Node.secretSeed] := by
+  rcases (BlindComparison.secretSeed_mem_children_iff node).mp hprf with
+    ⟨key, chain, rfl⟩ | ⟨key, index, rfl⟩ <;> rfl
+
+/-- **A PRF node's canonical input is the seed's bytes under its address.** -/
+theorem canonicalInput_eq_prfInput (publicSeed : Digest) (cells : CanonicalGraph.Cells)
+    {node : CanonicalGraph.StructuralNode} (hprf : BlindComparison.IsPrfNode node) :
+    CanonicalGraph.canonicalInput publicSeed cells node =
+      prfInput publicSeed (cells CanonicalGraph.Node.secretSeed) node := by
+  rw [CanonicalGraph.canonicalInput, prfInput, children_of_prf hprf]
+  simp [CanonicalGraph.childBytes]
+
+/-- **Every seed-bearing input is a seed's bytes under some address.** The converse fails —
+`prfInput` formats *any* node's address, including the nodes that take no seed — so only this
+inclusion holds, and it is the one the input half needs: `AgreeOff` weakens as its exception
+set grows. -/
+theorem seedInputOf_of_isSeedInput (publicSeed : Digest) (cells : CanonicalGraph.Cells)
+    {input : Bytes} (hinput : BlindComparison.IsSeedInput publicSeed cells input) :
+    SeedInputOf (prfInput publicSeed) (cells CanonicalGraph.Node.secretSeed) input := by
+  obtain ⟨node, hprf, rfl⟩ := hinput
+  exact ⟨node, (canonicalInput_eq_prfInput publicSeed cells hprf).symm⟩
+
+/-- So the programmed caches of `agreeOff_seedInputs` agree off the inputs carrying the
+secret, in the formatted sense `prob_meets_real_le` asks for. -/
+theorem agreeOff_prfInputs (publicSeed : Digest) (cells : CanonicalGraph.Cells)
+    (outputs : CanonicalGraph.Programming.Outputs)
+    (parents blindParents : List CanonicalGraph.StructuralNode)
+    (hall : ∀ parent, parent ∈ parents)
+    (hblind : ∀ parent, parent ∈ blindParents ↔ ¬ BlindComparison.IsPrfNode parent) :
+    BlindComparison.AgreeOff
+      (SeedInputOf (prfInput publicSeed) (cells CanonicalGraph.Node.secretSeed))
+      (CanonicalGraph.Programming.cacheFrom publicSeed cells outputs parents ∅)
+      (CanonicalGraph.Programming.cacheFrom publicSeed cells outputs blindParents ∅) :=
+  fun input hinput =>
+    BlindComparison.agreeOff_seedInputs publicSeed cells outputs parents blindParents hall hblind
+      input fun hseed => hinput (seedInputOf_of_isSeedInput publicSeed cells hseed)
+
 end SlhDsaSecurity.TrackedQueries

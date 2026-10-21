@@ -2755,3 +2755,19 @@ info: 'SlhDsaSecurity.WholeGameStructural.prob_badWeighted_whole_game_le' depend
 /-- info: 'SlhDsaSecurity.TrackedQueries.locateNode_prfInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TrackedQueries.locateNode_prfInput
+
+/-- info: 'SlhDsaSecurity.TrackedQueries.children_of_prf' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TrackedQueries.children_of_prf
+
+/-- info: 'SlhDsaSecurity.TrackedQueries.canonicalInput_eq_prfInput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TrackedQueries.canonicalInput_eq_prfInput
+
+/-- info: 'SlhDsaSecurity.TrackedQueries.seedInputOf_of_isSeedInput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TrackedQueries.seedInputOf_of_isSeedInput
+
+/-- info: 'SlhDsaSecurity.TrackedQueries.agreeOff_prfInputs' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TrackedQueries.agreeOff_prfInputs
