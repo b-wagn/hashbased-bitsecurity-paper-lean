@@ -18,6 +18,13 @@ import SlhDsaSecurity.Proof.FramingOverlap
 import SlhDsaSecurity.Proof.Correctness.Scheme
 import SlhDsaSecurity.Proof.ForsPrefixCapacity
 import SlhDsaSecurity.Proof.ForsConcentrationExtended
+import SlhDsaSecurity.Proof.Correctness.SharedROM
+import SlhDsaSecurity.Proof.BlindKey
+import SlhDsaSecurity.Proof.ForsDisclosureTape
+import SlhDsaSecurity.Proof.ForsDisclosurePrefix
+import SlhDsaSecurity.Proof.ForsLeaveOneOut
+import SlhDsaSecurity.Proof.ForsConcentrationSharper
+import SlhDsaSecurity.Proof.ROMPresampling
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -212,3 +219,45 @@ import SlhDsaSecurity.Proof.ForsConcentrationExtended
 /-- info: 'SlhDsaSecurity.ForsPrefixCapacity.simultaneous_prefix_cap' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsPrefixCapacity.simultaneous_prefix_cap
+
+/-- info: 'SlhDsaSecurity.Correctness.SharedROM.experiment_probability_one' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Correctness.SharedROM.experiment_probability_one
+
+/-- info: 'SlhDsaSecurity.BlindKey.mixture_hit_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindKey.mixture_hit_le_expected
+
+/-- info: 'SlhDsaSecurity.ForsDisclosureTape.bad_load_probability' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDisclosureTape.bad_load_probability
+
+/-- info: 'SlhDsaSecurity.ForsDisclosurePrefix.bad_prefix_probability' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsDisclosurePrefix.bad_prefix_probability
+
+/-- info: 'SlhDsaSecurity.ForsLeaveOneOut.independent_tape_mixture_coverage_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsLeaveOneOut.independent_tape_mixture_coverage_le
+
+/-- info: 'SlhDsaSecurity.ForsLeaveOneOut.independent_tape_coverage_le_sharper' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsLeaveOneOut.independent_tape_coverage_le_sharper
+
+/-- info: 'SlhDsaSecurity.ROMPresampling.evalDist_security_after_preparation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ROMPresampling.evalDist_security_after_preparation
+
+/-- info: 'SlhDsaSecurity.ROMPresampling.security_budget_after_preparation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ROMPresampling.security_budget_after_preparation

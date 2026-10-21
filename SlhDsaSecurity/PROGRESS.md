@@ -81,8 +81,16 @@ proves both codec roundtrips, including that every accepted byte string is the
 canonical encoding of its parsed value. `Proof/Correctness/` proves correctness
 of WOTS, each FORS tree, XMSS authentication paths, all seven hypertree layers,
 and the complete byte-facing scheme for every fixed hash function and all seeds.
-Connecting fixed-hash correctness to the lazy shared-oracle experiment remains
-to be done.
+`Proof/Correctness/SharedROM.lean` then proves the honest keygen/sign/verify roundtrip
+with actual private seed sampling and one shared cache, from every starting cache.
+Valid contexts accept with probability one; invalid contexts return `none`.
+This is per-request correctness, not an adaptive security theorem.
+
+`Proof/ROMPresampling.lean` proves that unobserved adaptive oracle work before
+the actual security game preserves its entire outcome distribution, including
+the instrumented counters. The original almost-sure budget therefore holds
+from every cache supported by that preparation. It does not transfer that budget
+to arbitrary hybrid caches.
 
 ## FORS components
 
@@ -123,6 +131,26 @@ expected number of selected targets, plus one bad-load probability. This handles
 random allocation among query roles within that experiment; coupling the actual
 shared-oracle game to these independent tapes is still unproved.
 
+`Proof/ForsDisclosureTape.lean` defines actual disclosure sets from an independent
+tape of full parsed digest views and connects their multiplicities to the proved
+occupancy distribution. Its VCVio bad-load probability is at most 2^-141 for
+at most 5·2^62 entries. It also supplies removal of one target coordinate without
+depending on that coordinate's value.
+
+`Proof/ForsLeaveOneOut.lean` charges adaptive target selection from that same
+tape while using all other entries as disclosures, including future entries.
+The bound is 2^-141 plus the expected number of selected targets divided by
+2^128; independent auxiliary randomness may determine the causal policy.
+`Proof/ForsConcentrationSharper.lean` additionally proves a smaller load cap:
+2^102 except with probability 2^-126. It yields the alternative bound 2^-126
+plus the expected number of selected targets divided by 2^129. These are
+independent-tape theorems; connecting them to the actual shared ROM remains open.
+
+`Proof/BlindKey.lean` bounds guesses against independent hidden keys and combines
+their expected cost with other costs under one common transcript budget. Applying
+it requires a capped simulation whose transcript is independent of those keys;
+it does not identify a randomizer-key hit with a successful forgery.
+
 Even after that step, the ROM proof must handle signing whose digest was
 queried in advance, future disclosures, and overlaps between the specified
 SHAKE inputs. For example, at the internal-message level, H_msg with R=SK.prf
@@ -159,3 +187,7 @@ For fixed instance assignments satisfying the load cap and iid leaf samples,
 the probability that any prefix is covered at sixteen or more instances is at
 most 2^-152. This controls selection of a signature body after a partially
 revealed digest; its distributional hypotheses still need an adaptive-game bridge.
+`Proof/ForsDisclosurePrefix.lean` proves the corresponding result for the full
+uniform digest-view tape by conditioning on its instance assignments and
+reindexing its leaf coordinates. For at most 5·2^62 entries, the exceptional
+probability is at most 2^-141 + 2^-152.
