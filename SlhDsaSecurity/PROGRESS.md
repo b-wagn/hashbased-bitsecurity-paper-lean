@@ -49,7 +49,12 @@ security hypothesis or numerical security certificate has been assumed.
 
 `Proof/Parameters.lean` checks the standard dimensions and signature length.
 `Proof/Checksum.lean` proves the WOTS chain-step range 45–510, including both
-endpoints. Relating this arithmetic to the oracle trace remains to be done.
+endpoints. `Proof/VerificationQueries.lean` connects this arithmetic to every
+verifier trace: WOTS verification uses 46–511 calls, FORS uses exactly 183,
+and a parsed signature with a valid message frame uses 569–3824 calls.
+These bounds survive any stateful oracle implementation and initial cache;
+repeated inputs are charged. Connecting the instrumentation directly to the
+experiment's `Outcome.counts` remains to be done.
 All existing XMSS definitions and proofs are unchanged.
 
 `Statement/{Types,Address,Hashing}.lean` now defines the standard key fields,
@@ -69,8 +74,8 @@ including repetitions and rejected contexts; honest hashes are uncharged and
 every direct or final-verifier hash call is charged. The lifetime and work bounds
 hold jointly with probability one. `Proof/{Signature,SignatureCanonical}.lean`
 proves both codec roundtrips, including that every accepted byte string is the
-canonical encoding of its parsed value. Algorithm correctness and oracle-trace
-bounds still require proofs.
+canonical encoding of its parsed value. Algorithm correctness still requires
+proofs.
 
 ## FORS components
 
@@ -95,11 +100,12 @@ sixth moment of a sum of independent variables, `Proof/ForsConcentration.lean`
 proves that 2^63 independent Poisson(3) loads satisfy
 `Pr[sum_i load_i^14 >= 2^103] <= 2^-142`.
 
-The comparison with 2^64 uniform instance selections still needs a coupling.
-Writing B=2^63, the Poisson total has mean and variance 3B; Chebyshev would
-bound the probability of fewer than 2B selections by 3/B. A monotone coupling
-would therefore lose at most a factor of two, giving the candidate fixed-count
-tail bound 2^-141. The adaptive signing transcript remains a separate argument.
+`Proof/ForsConcentrationOccupancy.lean` proves the exact multinomial occupancy
+law and its Poisson mixture, preserving the dependencies between bins. Monotonicity
+and a second-moment bound transfer the Poisson result to every fixed N ≤ 2^64
+independent uniform instance selections:
+`Pr[sum_i load_i^14 > 2^103] <= 2^-141`.
+The adaptive signing transcript remains a separate argument.
 
 Even after that step, the ROM proof must handle signing whose digest was
 queried in advance, future disclosures, and overlaps between the specified
@@ -113,10 +119,13 @@ structural hashing: an overlap requires PK.seed concatenated with PK.root to
 encode the structural address. A loose rectangle enclosing the standard
 128s address ranges has at most 2^91 candidates, so an independently uniform
 pair of 16-byte values satisfies this condition with probability at most
-2^-165. Connecting that distribution and those address bounds to the concrete
-key generation and algorithms remains to be proved. PRF_msg versus structural
-hashing is also proved disjoint whenever SK.prf differs from PK.seed. These
-results do not resolve the remaining H_msg/PRF_msg overlap.
+2^-165. `Proof/{KeygenFresh,KeygenUniform}.lean` proves that the actual top-tree
+root is a fresh uniform output, and that actual key generation yields independent
+uniform public seed and root. Thus the 2^-165 bound now applies directly to
+key generation. The address ranges still need to be connected to all algorithm
+traces. PRF_msg versus structural hashing is also proved disjoint whenever
+SK.prf differs from PK.seed. These results do not resolve the remaining
+H_msg/PRF_msg overlap.
 
 `Proof/PartialDigest.lean` proves that fixing the first 128 output bits leaves
 the instance and final three FORS indices jointly uniform in the remaining

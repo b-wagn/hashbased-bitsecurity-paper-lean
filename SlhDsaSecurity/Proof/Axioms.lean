@@ -8,6 +8,9 @@ import SlhDsaSecurity.Proof.HashSeparation
 import SlhDsaSecurity.Proof.Security
 import SlhDsaSecurity.Proof.SignatureCanonical
 import SlhDsaSecurity.Proof.PartialDigest
+import SlhDsaSecurity.Proof.ForsConcentrationOccupancy
+import SlhDsaSecurity.Proof.VerificationQueries
+import SlhDsaSecurity.Proof.KeygenUniform
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -146,3 +149,25 @@ import SlhDsaSecurity.Proof.PartialDigest
 /-- info: 'SlhDsaSecurity.PartialDigest.coverage_le_256' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PartialDigest.coverage_le_256
+
+/-- info: 'SlhDsaSecurity.ForsConcentration.uniform_load_tail_of_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.uniform_load_tail_of_le
+
+/-- info: 'SlhDsaSecurity.VerificationQueries.verifyInternal_bounds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerificationQueries.verifyInternal_bounds
+
+/-- info: 'SlhDsaSecurity.VerificationQueries.verifyInternal_simulated_bounds' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerificationQueries.verifyInternal_simulated_bounds
+
+/-- info: 'SlhDsaSecurity.KeygenUniform.publicPair_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenUniform.publicPair_uniform
+
+/-- info: 'SlhDsaSecurity.KeygenUniform.keygen_prob_possible_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenUniform.keygen_prob_possible_le
