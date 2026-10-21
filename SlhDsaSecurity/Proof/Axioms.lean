@@ -36,6 +36,7 @@ import SlhDsaSecurity.Proof.Extraction.Hypertree
 import SlhDsaSecurity.Proof.Extraction.WotsPreimage
 import SlhDsaSecurity.Proof.Extraction.HypertreeChain
 import SlhDsaSecurity.Proof.CollisionCharge
+import SlhDsaSecurity.Proof.FreshHitBound
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -397,3 +398,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.CollisionCharge.fresh_tweakable_prob_mem_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CollisionCharge.fresh_tweakable_prob_mem_le
+
+/-- info: 'SlhDsaSecurity.FreshHitBound.prob_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshHitBound.prob_hit_le
