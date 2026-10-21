@@ -4726,3 +4726,28 @@ info: 'SlhDsaSecurity.CoverageRouted.parse_instance_eq_of_forsKeyOfDigest_eq' de
 /-- info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq
+
+/-- info: 'SlhDsaSecurity.Extraction.HypertreeChain.signLayers_succ' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.signLayers_succ
+
+/-- info: 'SlhDsaSecurity.Extraction.HypertreeChain.xmss_eq_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.xmss_eq_sign
+
+/--
+info: 'SlhDsaSecurity.Extraction.HypertreeChain.rootFromSignature_fault_or_signed' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.rootFromSignature_fault_or_signed
+
+/--
+info: 'SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_signed' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_signed
+
