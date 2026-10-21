@@ -4,6 +4,7 @@ import SlhDsaSecurity.Proof.ForsCoverage
 import SlhDsaSecurity.Proof.ForsMoments
 import SlhDsaSecurity.Proof.Hashing
 import SlhDsaSecurity.Proof.HashSeparation
+import SlhDsaSecurity.Proof.Security
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -106,3 +107,11 @@ import SlhDsaSecurity.Proof.HashSeparation
 /-- info: 'SlhDsaSecurity.HashSeparation.prob_possible_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HashSeparation.prob_possible_le
+
+/-- info: 'SlhDsaSecurity.Security.experiment' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Security.experiment
+
+/-- info: 'SlhDsaSecurity.Security.strong_implies_standard' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Security.strong_implies_standard

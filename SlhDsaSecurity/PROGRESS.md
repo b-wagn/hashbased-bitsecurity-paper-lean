@@ -1,13 +1,13 @@
 # SLH-DSA-128s: proof status
 
-**Construction definitions and preparatory proofs. The 127-bit security theorem is not established.**
+**Concrete construction and experiment. The 127-bit security theorem is not established.**
 
-The intended experiment is deterministic, pure SLH-DSA-128s with at most
+The experiment is deterministic, pure SLH-DSA-128s with at most
 2^64 signing requests. Work counts direct adversary hash calls and every hash
 call in final verification, including repeated inputs. Honest key generation
 and signing share the same oracle but contribute no work. The target is
 SUF-CMA advantage at most q/2^127 for every almost-sure work budget q ≥ 1;
-EUF-CMA should follow from the same experiment.
+`Proof/Security.lean` proves that any SUF-CMA bound implies the same EUF-CMA bound.
 
 ## Source audit
 
@@ -32,8 +32,7 @@ Start with the SHAKE byte formats in FIPS 205 Section 11.1, idealizing SHAKE
 as one consistent random oracle. A 30-byte output suffices for all scheme
 calls; 16-byte outputs must be prefixes of that same answer. One oracle
 call is one unit, independent of input length. This is an ideal-hash claim,
-not a concrete SHAKE or SHA2 security proof. The exact game is not implemented
-yet.
+not a concrete SHAKE or SHA2 security proof.
 
 Preserve the 32-byte addresses, both independent 16-byte secret seeds,
 public seed, message processing, and all nine unused bits in the 30-byte
@@ -59,8 +58,17 @@ truncation, and pure-message framing. `Proof/Hashing.lean` proves injectivity of
 the byte serialization, addresses, each hash-input format, and successful framing.
 Different structural address types give different inputs. The exact overlap
 between message hashing and message randomization is also proved; it is not an
-attack or a claim that the security target is impossible. The complete signing
-and verification algorithms and their experiment remain to be implemented.
+attack or a claim that the security target is impossible.
+
+`Statement/{Wots,Merkle,Fors,Hypertree,Scheme}.lean` defines the complete
+deterministic algorithms, including on-demand secret derivation and key generation
+of only the top tree. `Statement/Signature.lean` supplies the standard byte layout
+and decoder. `Statement/Security.lean` defines the adaptive experiment and the
+exact target proposition `HasSecurityBits .strong 127`. Every request counts,
+including repetitions and rejected contexts; honest hashes are uncharged and
+every direct or final-verifier hash call is charged. The lifetime and work bounds
+hold jointly with probability one. Signature codec roundtrips, correctness, and
+oracle-trace bounds still require proofs.
 
 ## FORS components
 
