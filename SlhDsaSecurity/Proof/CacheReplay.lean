@@ -179,4 +179,58 @@ theorem shortHash_replayQuery (cache : QueryCache HashSpec) (input : Bytes)
   simp only [Hashing.shortHash, Hashing.hash, replayQuery, hentry, Option.getD_some]
   simp [Functor.map, hentry]
 
+/-! ## Which inputs a replayed run has cached
+
+`run_eq_replay` says what a run *computed*; the structural charge also needs to know that the
+inputs it consulted are *present* in the cache, since `StructuralTerm.DeviatingCollision` and
+`GrowthCharge.Bad` both quantify over cache entries. Value correspondence does not give that
+on its own: `replay` answers `default` at an absent input, so an equation could in principle
+hold with nothing cached.
+
+`QueriesUnder` names the inputs a hash-only computation consults when its answers come from a
+given cache — the head query of each bind, and then whatever the continuation consults once
+that answer is fixed. `cached_of_queriesUnder` then says every such input really is in the
+final cache. Together with `run_eq_replay` this is the full threading: the verifier's computed
+values are cache values, and the inputs behind them are cache entries.
+-/
+
+/-- The inputs a hash-only computation consults when answered from `cache`. -/
+inductive QueriesUnder (cache : QueryCache HashSpec) :
+    {α : Type} → OracleComp HashSpec α → Bytes → Prop where
+  | head {α : Type} (input : Bytes) (next : HashOutput → OracleComp HashSpec α) :
+      QueriesUnder cache (query (spec := HashSpec) input >>= next) input
+  | tail {α : Type} (input probe : Bytes) (next : HashOutput → OracleComp HashSpec α) :
+      QueriesUnder cache (next (replay cache input)) probe →
+        QueriesUnder cache (query (spec := HashSpec) input >>= next) probe
+
+/-- **Every input a replayed run consults is in its final cache.** -/
+theorem cached_of_queriesUnder {α : Type} (computation : OracleComp HashSpec α)
+    (initialCache finalCache : QueryCache HashSpec) (result : α) (probe : Bytes)
+    (hquery : QueriesUnder finalCache computation probe)
+    (hmem : (result, finalCache) ∈
+      support ((simulateQ randomOracle computation).run initialCache)) :
+    finalCache probe ≠ none := by
+  induction hquery generalizing initialCache result with
+  | head input next =>
+    rw [simulateQ_bind, show simulateQ randomOracle
+        (query (spec := HashSpec) input) = randomOracle input from by simp,
+      StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    have hentry : finalCache input = some step.1 :=
+      cache_value_persists (next step.1) step.2 finalCache result hrest input step.1
+        (step_cached input initialCache step hstep)
+    rw [hentry]
+    simp
+  | tail input probe next _ ih =>
+    rw [simulateQ_bind, show simulateQ randomOracle
+        (query (spec := HashSpec) input) = randomOracle input from by simp,
+      StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    -- The answer the run took is the one `replay` reproduces, so the continuations agree.
+    have hentry : finalCache input = some step.1 :=
+      cache_value_persists (next step.1) step.2 finalCache result hrest input step.1
+        (step_cached input initialCache step hstep)
+    have hreplay : replay finalCache input = step.1 := by simp [replay, hentry]
+    exact ih step.2 result (by rw [hreplay]; exact hrest)
+
 end SlhDsaSecurity.CacheReplay

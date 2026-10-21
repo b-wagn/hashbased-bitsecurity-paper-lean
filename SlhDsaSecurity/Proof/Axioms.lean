@@ -780,3 +780,7 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision
+
+/-- info: 'SlhDsaSecurity.CacheReplay.cached_of_queriesUnder' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.cached_of_queriesUnder
