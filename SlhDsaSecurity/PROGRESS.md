@@ -620,3 +620,52 @@ Until that is done the assembly cannot be instantiated, regardless of how much o
 `hcap` is finished, because `Assembly.le_target_of_terms` is fed terms that do not sum to the
 target.
 
+## The first-principles architecture (supersedes the earlier budget sections)
+
+Several sections above record budgets that turned out to be wrong; this one supersedes them.
+With every query charged, the game is a sequence of at most `q` oracle calls and the target
+`q / 2 ^ 127` is a *rate* of `4 / 2 ^ 129` per call. The whole proof is therefore: bound what
+one call can buy, by `4`.
+
+**The classification.** FIPS 205 fixes a byte format per hash call, and the format decides
+which avenues are live (`Proof/PerQueryBudget.lean`):
+
+| class | format | live avenues | rate |
+| --- | --- | --- | --- |
+| structural | `PK.seed ‖ ADRS ‖ payload` | `SK.seed` guess `2`, structural hit `2` | `4` |
+| message | `R ‖ PK.seed ‖ PK.root ‖ M`, `SK.prf ‖ PK.seed ‖ M` | coverage `1`, `SK.prf` guess `2` | `3` |
+
+`classRate_le_target` gives `max = 4`, the target rate, where the naive sum over avenues gives
+`5`. The classes are disjoint by `Proof/HashSeparation.lean`: an `H_msg` input coincides with a
+structural one only if `PK.seed ‖ PK.root` encodes a valid address, probability `2 ^ -165`.
+
+**The two halves.** Splitting by *side* rather than by avenue:
+
+*Answer-side — proved.* `Proof/CombinedCharge.lean` charges the structural and coverage
+clauses as a single predicate. Because they are exclusive by format the per-call rate is their
+maximum `2 ^ -128`, not their sum, and `prob_combinedBad_within_le` charges a whole run at
+`limit / 2 ^ 128 = 2 · limit / 2 ^ 129`. That is exactly half the target. The chain beneath it
+is complete: `cache_value_persists` → `prob_cache_values_le` (partial random function) →
+`prob_badWithin_le` (linear charge) → `CanonicalTarget` (structural targets) and
+`ForsCoverageTerm` / `FreshDigest.prob_tape_event_le` (coverage, transported to a uniform
+disclosure tape).
+
+*Input-side — not proved.* The remaining `2 / 2 ^ 129` is secret guessing: a call whose input
+carries `SK.seed` or `SK.prf`. This is the one avenue that is **not** an event about an
+answer, so none of the charge lemmas apply — they all bound the probability that a *fresh
+uniform answer* is bad, whereas here the randomness is the key sampled at key generation. The
+abstract form is already available as `BlindKey.hit_probability_le`
+(`guesses.length / 2 ^ 128` against an independently sampled key table). What is missing is the
+coupling: the game's transcript must be shown independent of the keys up to the first hit, so
+that the adversary's inputs count as blind guesses. That is a deferred-sampling argument of
+the same kind as `ROMPresampling` and `CanonicalGraph.Programming.warmup_seed_uniform`, and it
+is the only genuinely new machinery the proof still needs.
+
+**Then:** `hsplit` (forgery implies a combined answer-side event or a secret hit, via the
+`Extraction` chain, whose structural half is complete) and the assembly
+`2q / 2 ^ 129 + 2q / 2 ^ 129 = 4q / 2 ^ 129 = q / 2 ^ 127`.
+
+The budget closes at `4` exactly, with the `2 ^ -165` separation defect and the `2 ^ -126`
+load-cap defect both far below the slack at every `q ≥ 569` — and `q ≥ 569` is automatic,
+since an accepted forgery forces that many charged verifier calls.
+
