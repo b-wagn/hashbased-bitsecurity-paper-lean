@@ -85,4 +85,96 @@ theorem transcript_indep_of_seed {β : Type} (inputOf : Digest → Bytes)
   refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ fun answer => ?_
   exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails _ (by simp) _
 
+/-! ## The honest transcript does not depend on the seed
+
+The single-query move iterates, and `GraphFreshSampling.evaluate_eq_sample` already supplies
+the iteration: along a duplicate-free list of separated, fresh coordinates, the real run of a
+traversal equals `sample`, which draws one independent uniform answer per coordinate.
+
+The observation that makes this decide the question is visible in `sample`'s definition. Its
+state evolves by `step node state output` — the seed-derived byte input appears *only* in the
+cache key `cache.cacheQuery (input node state) output`, never in the state. So the traversal's
+result is built from the fresh answers alone, and changing the inputs cannot change it. The
+two lemmas below say exactly that, and as literal equalities of computations rather than
+merely of distributions.
+
+This is the honest half of step 1: whatever the honest parties compute from the seed, what
+they hand back is distributed identically for every seed. What is still not covered is the
+adversary's interleaved queries, which share the cache and can therefore see the one thing
+that does depend on the seed — which keys are present. That is the bad event, and bounding it
+is what the identical-until-bad hop does. -/
+
+open GraphFreshSampling
+
+/-- **The sampled traversal's result does not depend on the byte inputs.** They enter only as
+cache keys, so two input families give the same result computation. -/
+theorem sample_fst_eq {Index State : Type} (input input' : Index → State → Bytes)
+    (step : Index → State → HashOutput → State) (nodes : List Index) (state : State)
+    (cache cache' : QueryCache HashSpec) :
+    Prod.fst <$> sample input step nodes state cache =
+      Prod.fst <$> sample input' step nodes state cache' := by
+  induction nodes generalizing state cache cache' with
+  | nil => simp [sample]
+  | cons node nodes ih =>
+    simp only [sample, map_bind]
+    exact congrArg (Bind.bind ($ᵗ HashOutput : ProbComp HashOutput))
+      (funext fun output => ih (step node state output) _ _)
+
+/-- **The honest transcript is independent of the secret seed.** Running a traversal whose
+byte inputs are derived from one seed returns the same computation as running it with any
+other seed, provided the coordinates are separated and fresh for both. -/
+theorem honest_result_indep_of_seed {Index State : Type}
+    (inputOf : Digest → Index → State → Bytes)
+    (step : Index → State → HashOutput → State) (nodes : List Index) (hnodup : nodes.Nodup)
+    (state : State) (cache : QueryCache HashSpec)
+    (hseparated : ∀ secret : Digest, Separated (inputOf secret))
+    (hfresh : ∀ secret : Digest, FreshFor (inputOf secret) nodes cache)
+    (secret secret' : Digest) :
+    Prod.fst <$>
+        (simulateQ randomOracle (evaluate (inputOf secret) step nodes state)).run cache =
+      Prod.fst <$>
+        (simulateQ randomOracle (evaluate (inputOf secret') step nodes state)).run cache := by
+  rw [evaluate_eq_sample (inputOf secret) step (hseparated secret) nodes hnodup state cache
+      (hfresh secret),
+    evaluate_eq_sample (inputOf secret') step (hseparated secret') nodes hnodup state cache
+      (hfresh secret')]
+  exact sample_fst_eq _ _ step nodes state cache cache
+
+/-- The distributional form: the seed may be drawn after the honest traversal has run. -/
+theorem honest_result_defer_seed {Index State β : Type}
+    (inputOf : Digest → Index → State → Bytes)
+    (step : Index → State → HashOutput → State) (nodes : List Index) (hnodup : nodes.Nodup)
+    (state : State) (cache : QueryCache HashSpec)
+    (hseparated : ∀ secret : Digest, Separated (inputOf secret))
+    (hfresh : ∀ secret : Digest, FreshFor (inputOf secret) nodes cache)
+    (reference : Digest) (view : State → Digest → ProbComp β) :
+    𝒟[(do
+        let secret ← ($ᵗ Digest : ProbComp Digest)
+        let result ←
+          (simulateQ randomOracle (evaluate (inputOf secret) step nodes state)).run cache
+        view result.1 secret)] =
+      𝒟[(do
+        let transcript ←
+          Prod.fst <$>
+            (simulateQ randomOracle (evaluate (inputOf reference) step nodes state)).run cache
+        let secret ← ($ᵗ Digest : ProbComp Digest)
+        view transcript secret)] := by
+  have hrewrite : ∀ secret : Digest,
+      (do
+        let result ←
+          (simulateQ randomOracle (evaluate (inputOf secret) step nodes state)).run cache
+        view result.1 secret) =
+      (do
+        let transcript ←
+          Prod.fst <$>
+            (simulateQ randomOracle (evaluate (inputOf reference) step nodes state)).run cache
+        view transcript secret) := by
+    intro secret
+    rw [← honest_result_indep_of_seed inputOf step nodes hnodup state cache hseparated hfresh
+      secret reference]
+    rw [map_eq_bind_pure_comp, bind_assoc]
+    simp only [Function.comp_def, pure_bind]
+  simp only [hrewrite]
+  exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
+
 end SlhDsaSecurity.SeedDeferral

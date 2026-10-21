@@ -640,3 +640,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.SeedDeferral.transcript_indep_of_seed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedDeferral.transcript_indep_of_seed
+
+/-- info: 'SlhDsaSecurity.SeedDeferral.honest_result_indep_of_seed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedDeferral.honest_result_indep_of_seed
+
+/-- info: 'SlhDsaSecurity.SeedDeferral.honest_result_defer_seed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedDeferral.honest_result_defer_seed
