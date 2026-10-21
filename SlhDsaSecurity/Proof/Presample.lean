@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.CacheReplay
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
+import SlhDsaSecurity.Proof.GraphFreshSampling
 
 /-!
 # Pre-sampling an unused oracle entry is free
@@ -125,5 +126,64 @@ theorem evalDist_prefill {α : Type} (computation : OracleComp HashSpec α) :
     have hne : probe ≠ target := fun hsame => hnotMem (hsame ▸ hprobe)
     rw [QueryCache.cacheQuery_of_ne cache value hne]
     exact hfresh probe (by simp [hprobe])
+
+/-! ## Prepending a traversal
+
+`prefill` draws a fixed list of entries, but the honest parties' queries are not a fixed list:
+each node's byte input is built from its children's cells, so it depends on the answers given
+earlier. That is why `CanonicalGraph.Programming.warmup` is a traversal rather than a flat
+table write.
+
+Prepending such a traversal is still free, and for the same reason: each of its queries lands
+on an input that is still empty, so by `evalDist_prepend_fresh` the value it draws could have
+been drawn in advance. The difference from `evalDist_prefill` is that the next input is chosen
+using the value just drawn, so the induction peels one query at a time rather than quantifying
+over a list of targets fixed up front.
+
+With this, the experiment may be rewritten as *traverse the graph, then run* — and
+`GraphFreshSampling.evalDist_evaluate_eq_uniform_program` turns that traversal into a uniform
+table and a programmed cache, which is what fixes the honest cells ahead of the adversary. -/
+
+theorem evalDist_prepend_evaluate {α State Index : Type}
+    (computation : OracleComp HashSpec α) (input : Index → State → Bytes)
+    (step : Index → State → HashOutput → State)
+    (hseparated : GraphFreshSampling.Separated input) :
+    ∀ (nodes : List Index) (state : State) (cache : QueryCache HashSpec), nodes.Nodup →
+      GraphFreshSampling.FreshFor input nodes cache →
+      𝒟[Prod.fst <$> (simulateQ randomOracle computation).run cache] =
+        𝒟[Prod.fst <$> (simulateQ randomOracle
+          (GraphFreshSampling.evaluate input step nodes state >>= fun _ => computation)).run
+            cache] := by
+  intro nodes
+  induction nodes with
+  | nil =>
+    intro state cache _ _
+    rw [GraphFreshSampling.evaluate, pure_bind]
+  | cons node rest ih =>
+    intro state cache hnodup hfresh
+    have hnotMem : node ∉ rest := (List.nodup_cons.mp hnodup).1
+    have hrest : rest.Nodup := (List.nodup_cons.mp hnodup).2
+    have hhead : cache (input node state) = none := hfresh node (by simp) state
+    refine (evalDist_prepend_fresh computation cache (input node state) hhead).trans ?_
+    have hstep : ∀ value : HashOutput,
+        𝒟[Prod.fst <$> (simulateQ randomOracle computation).run
+            (cache.cacheQuery (input node state) value)] =
+          𝒟[Prod.fst <$> (simulateQ randomOracle
+            (GraphFreshSampling.evaluate input step rest (step node state value) >>=
+              fun _ => computation)).run (cache.cacheQuery (input node state) value)] := by
+      intro value
+      refine ih (step node state value) (cache.cacheQuery (input node state) value) hrest ?_
+      intro other hother otherState
+      rw [QueryCache.cacheQuery_of_ne cache value
+        (hseparated other node (fun hsame => hnotMem (hsame ▸ hother)) otherState state)]
+      exact hfresh other (by simp [hother]) otherState
+    refine (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ hstep).trans ?_
+    rw [GraphFreshSampling.evaluate, bind_assoc]
+    simp only [simulateQ_bind, show simulateQ randomOracle
+        (liftM (HashSpec.query (input node state)) : OracleComp HashSpec HashOutput) =
+      randomOracle (input node state) from by simp, StateT.run_bind]
+    rw [QueryImpl.withCaching_run_none _ hhead]
+    simp only [uniformSampleImpl, bind_map_left, map_eq_bind_pure_comp, Function.comp_def,
+      bind_assoc, pure_bind]
 
 end SlhDsaSecurity.Presample
