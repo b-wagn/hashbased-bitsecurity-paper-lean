@@ -740,3 +740,10 @@ info: 'SlhDsaSecurity.ForsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.CanonicalCells.parentCell_eq_truncate' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CanonicalCells.parentCell_eq_truncate
+
+/--
+info: 'SlhDsaSecurity.ForsLeafCharge.deviatingCollision_of_leafCollision_canonical' depends on axioms: [propext,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsLeafCharge.deviatingCollision_of_leafCollision_canonical
