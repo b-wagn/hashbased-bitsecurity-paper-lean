@@ -1032,3 +1032,46 @@ message-class weight (`Assembly.cap_defect_within_slack`), which supplies nothin
 with no message-class queries. What it needs proved is a *lower* bound on the honest hash
 count, which is a deterministic count of a fixed computation, plus the fact that canonical
 queries are never bad — which is already `cleanBad_walk_cache` in another guise.
+
+## What the WOTS residue actually costs
+
+`FaultCharge.WotsResidue` is what is left of a hypertree fault once the collisions are charged:
+at some layer the forgery's WOTS signature is the *honest* signature of a message differing
+from the honest input threaded into that layer. Turning that into something the budget pays
+for has one easy half and one hard half, and the hard half is the deepest remaining question.
+
+**The easy half, and a simplification worth naming.** Each WOTS key in the hypertree signs
+exactly one message, and that message is a deterministic function of the key: the honest node
+value one layer down. So unlike FORS, where the signed digests follow the adversary's chosen
+messages, the hypertree's disclosures are not adaptive at all — `expectedInput` *is* what was
+revealed. `Checksum.exists_decreased_digit` then gives a chain index whose forged digit is
+strictly below the revealed one, so the forgery holds `chain(c, 0, j, secret_c)` for some
+`j < k`, a value no signature ever disclosed. `Extraction.Wots.chain_eq_or_collision` is what
+rules out the alternative that the forged value merely hashes to the right endpoint.
+
+**The hard half.** Holding that value means one of three things, and only the first is already
+charged:
+
+* the adversary queried a seed-bearing input — the input half, as designed;
+* it queried the canonical input of chain position `j'` for some `1 ≤ j' ≤ j`, whose payload is
+  the chain value at `j' - 1`, so it already held *that*; by induction this bottoms out at
+  `secret_c`, whose canonical input carries `SK.seed`;
+* or at some step it supplied, as a query payload or in its output, a cell it had not obtained
+  — a guess at a uniform 128-bit value.
+
+The third is the one with no machinery behind it. Charging it per *cell* is hopeless: there are
+about `2 ^ 26` cells, and `2 ^ 26 · q / 2 ^ 128` is far over budget. It has to be charged per
+*query*, and then it unifies with the seed guess rather than adding to it: a canonical input's
+payload is the concatenation of its children's cells, so a query at a canonical input whose
+address names a node with an unobtained child matches that child's cell with probability
+`2 ^ -128`, the address having fixed which cell is at stake. The seed guess is exactly this
+event at a PRF node, where the only child is `SK.seed`. One event, rate `2 ^ -128`, two units —
+which is what the input half already claims.
+
+What that costs is an invariant carried along the adversary's execution — which cells it has
+obtained — and the proof that an unobtained cell stays uniform given its view. That is the
+"until-first-hit coupling" this file has called open from the beginning, in its sharpest form.
+The blind comparison does not subsume it: stripping is a fixed set of entries chosen before the
+run, and the obtained set is not.
+
+Whether `q / 2 ^ 127` exactly survives this turns on it, so it is the next thing to settle.
