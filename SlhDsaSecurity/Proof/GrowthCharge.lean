@@ -429,6 +429,35 @@ theorem prob_cache_values_le {α : Type} (computation : OracleComp OracleWorld �
               mul_le_mul' tsum_probOutput_le_one le_rfl
           _ = _ := one_mul _
 
+/-- Summing the invariant over a set of assignments bounds any event defined by the answers
+recorded at the pinned inputs. Taking the assignments whose parsed FORS instances violate the
+load cap turns this into the disclosure-cap bound. -/
+theorem prob_cache_values_mem_le {α : Type} (computation : OracleComp OracleWorld α)
+    (pinned : Finset Bytes) (cache : QueryCache HashSpec)
+    (hfresh : ∀ x ∈ pinned, cache x = none)
+    (bad : Finset ((x : Bytes) → x ∈ pinned → HashOutput)) :
+    Pr[fun result : α × QueryCache HashSpec =>
+        ∃ assignment ∈ bad, ∀ x, ∀ hx : x ∈ pinned, result.2 x = some (assignment x hx) |
+      (simulateQ KeygenUniform.rom computation).run cache] ≤
+      bad.card * (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card := by
+  classical
+  refine le_trans (probEvent_exists_finset_le_sum bad _ _) ?_
+  calc ∑ assignment ∈ bad,
+        Pr[fun result : α × QueryCache HashSpec =>
+            ∀ x, ∀ hx : x ∈ pinned, result.2 x = some (assignment x hx) |
+          (simulateQ KeygenUniform.rom computation).run cache]
+      ≤ ∑ _assignment ∈ bad,
+          (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card := by
+        refine Finset.sum_le_sum fun assignment _ => ?_
+        refine le_trans (probEvent_mono ?_)
+          (prob_cache_values_le computation
+            (fun x => if hx : x ∈ pinned then assignment x hx else default) pinned cache hfresh)
+        intro result _ hvalues x hx
+        rw [dif_pos hx]
+        exact hvalues x hx
+    _ = bad.card * (1 / ((Fintype.card HashOutput : Nat) : ℝ≥0∞)) ^ pinned.card := by
+        rw [Finset.sum_const, nsmul_eq_mul]
+
 /-- At most `limit` inputs were absent from `initial` and are present in `final`. Stated
 without a cardinality on the infinite input type. -/
 def GrowthAtMost (initial final : QueryCache HashSpec) (limit : Nat) : Prop :=
