@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.StrippedGame
+import SlhDsaSecurity.Proof.AdversaryQueries
 import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.WotsResidueReduction
 import SlhDsaSecurity.Proof.DigestTape
@@ -3717,3 +3718,63 @@ info: 'SlhDsaSecurity.StrippedGame.evalDist_countedRun_signingOracle' depends on
 /-- info: 'SlhDsaSecurity.StrippedGame.honest_probes_not_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.StrippedGame.honest_probes_not_canonical
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_add' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_add
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_zero' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_zero
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_single_hash' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_single_hash
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_single_verification' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_single_verification
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_single_signing' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_single_signing
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.countAllHashes_map' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.countAllHashes_map
+
+/--
+info: 'SlhDsaSecurity.AdversaryQueries.mem_support_counted_bind_count' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.mem_support_counted_bind_count
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.run_counted_bind' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.run_counted_bind
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.run_adversaryImpl' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.run_adversaryImpl
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_le_count_adversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_le_count_adversaryImpl
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_le_count_signingOracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_le_count_signingOracle
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_le_count_adversary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_le_count_adversary
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_le_count_countQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_le_count_countQueries
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.work_le_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_le_total
