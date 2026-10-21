@@ -117,4 +117,40 @@ theorem prob_coverage_within_le_sharper {α : Type} (computation : OracleComp Or
       (prob_coveredAnswer_le_sharper revealed loads hload hmoment) hclean) ?_
   rw [mul_one_div]
 
+/-! ## Leave-one-out disclosure families
+
+A single disclosure set cannot be used inside the experiment: the honest signer's *own*
+digest is trivially covered by the very signature that disclosed it, so `CleanBad` fails for
+the full set and the charge would be vacuous. The fix is that `GrowthCharge.prob_badWithin_le`
+accepts an **input-dependent** bad event, so each input may be judged against its own
+disclosure set — in particular against the disclosures of all *other* signatures, which is
+the leave-one-out form that `ForsLeaveOneOut` is stated for.
+
+The per-call bound is unaffected: for each fixed input the disclosure set is fixed, so the
+same uniform-view computation applies. Only a uniform load cap across the family is needed.
+-/
+
+/-- The bad event for a family of disclosure sets, one per queried input. -/
+def CoveredAnswerOf (revealedOf : Bytes → ForsCoverage.Disclosures) :
+    Bytes → HashOutput → Prop :=
+  fun input answer => ForsCoverage.Covered (revealedOf input) (MessageDigest.parse answer)
+
+/-- **The FORS coverage term for a leave-one-out family.** Every input is judged against its
+own disclosure set; a uniform load cap across the family gives the same `limit / 2 ^ 129`. -/
+theorem prob_coverage_within_le_of_family {α : Type} (computation : OracleComp OracleWorld α)
+    (revealedOf : Bytes → ForsCoverage.Disclosures) (loads : ForsCoverage.Instance → Nat)
+    (hload : ∀ input index tree, (revealedOf input index tree).card ≤ loads index)
+    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102)
+    (limit : Nat) (initialCache : QueryCache HashSpec)
+    (hclean : GrowthCharge.CleanBad (CoveredAnswerOf revealedOf) initialCache) :
+    Pr[GrowthCharge.BadWithin (CoveredAnswerOf revealedOf) initialCache limit |
+      (simulateQ KeygenUniform.rom computation).run initialCache] ≤
+      limit / ((2 ^ 129 : Nat) : ℝ≥0∞) := by
+  refine le_of_le_of_eq
+    (GrowthCharge.prob_badWithin_le computation (CoveredAnswerOf revealedOf)
+      (1 / ((2 ^ 129 : Nat) : ℝ≥0∞)) limit initialCache (fun input => ?_) hclean) ?_
+  · exact prob_coveredAnswer_le_sharper (revealedOf input) loads
+      (fun index tree => hload input index tree) hmoment input
+  · rw [mul_one_div]
+
 end SlhDsaSecurity.ForsCoverageTerm

@@ -504,3 +504,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le_sharper
+
+/-- info: 'SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le_of_family' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le_of_family
