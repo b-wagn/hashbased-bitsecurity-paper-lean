@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.ForsBranch
+import SlhDsaSecurity.Proof.DigestTape
 import SlhDsaSecurity.Proof.WarmedSplit
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.CachedRun
@@ -2920,3 +2921,107 @@ info: 'SlhDsaSecurity.WarmedSplit.keygenInternal_eq_replay_of_subset' depends on
 /-- info: 'SlhDsaSecurity.ForsBranch.deviatingCollision_or_secrets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsBranch.deviatingCollision_or_secrets
+
+/-- info: 'SlhDsaSecurity.DigestTape.recorder_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.recorder_run_inl
+
+/-- info: 'SlhDsaSecurity.DigestTape.recorder_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.recorder_run_inr
+
+/-- info: 'SlhDsaSecurity.DigestTape.rom_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.rom_run_inl
+
+/-- info: 'SlhDsaSecurity.DigestTape.rom_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.rom_run_inr
+
+/-- info: 'SlhDsaSecurity.DigestTape.paddedFrom_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.paddedFrom_bind
+
+/-- info: 'SlhDsaSecurity.DigestTape.recorder_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.recorder_eq_rom
+
+/-- info: 'SlhDsaSecurity.DigestTape.probEvent_recordedRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.probEvent_recordedRun
+
+/-- info: 'SlhDsaSecurity.DigestTape.record_prefix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.record_prefix
+
+/-- info: 'SlhDsaSecurity.DigestTape.record_prefix_padded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.record_prefix_padded
+
+/-- info: 'SlhDsaSecurity.DigestTape.recorder_cache_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.recorder_cache_mono
+
+/-- info: 'SlhDsaSecurity.DigestTape.record_length_le_growth' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.record_length_le_growth
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_padding_prefix_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_padding_prefix_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_prefix_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_prefix_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.padding_length' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.padding_length
+
+/-- info: 'SlhDsaSecurity.DigestTape.padding_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.padding_neverFails
+
+/-- info: 'SlhDsaSecurity.DigestTape.probEvent_paddedFrom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.probEvent_paddedFrom
+
+/-- info: 'SlhDsaSecurity.DigestTape.viewTape_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.viewTape_uniform
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_tape_mem_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_tape_mem_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_tape_event_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_tape_event_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.expectedUses_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.expectedUses_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_tapeCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_tapeCovered_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.tapeCovered_of_prefix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.tapeCovered_of_prefix
+
+/-- info: 'SlhDsaSecurity.DigestTape.padded_length' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.padded_length
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_recordCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_recordCovered_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_recordCovered_within_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_recordCovered_within_le
+
+/-- info: 'SlhDsaSecurity.DigestTape.prob_romEvent_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.DigestTape.prob_romEvent_le
