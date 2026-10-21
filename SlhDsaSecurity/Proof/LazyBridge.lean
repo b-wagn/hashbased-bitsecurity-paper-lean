@@ -198,4 +198,51 @@ theorem probEvent_flag_refine_eq {γ : Type}
       rw [bind_map_left]
       exact ih p.1 p.2.1 p.2.2
 
+
+/-- **The bridge when no step is excepted.** If every step commutes with drawing the remaining
+randomness, the two presentations agree on the flag outright. This is the form a lazy handler
+that draws a cell *at the probe* takes rather than deferring it: drawing it there and drawing
+it in the final batch are the same law, so there is no step to except. -/
+theorem probEvent_flag_refine_eq_of_commute {γ : Type}
+    (impl : QueryImpl spec (StateT (σ × Bool) ProbComp)) (refine : σ → ProbComp σ)
+    (hfail : ∀ (t : spec.Domain) (p : σ × Bool), Pr[⊥ | (impl t).run p] = 0)
+    (hsticky : ∀ (t : spec.Domain) (s : σ),
+      ∀ z ∈ support ((impl t).run (s, true)), z.2.2 = true)
+    (hrefineMass : ∀ s : σ, Pr[⊥ | refine s] = 0)
+    (hcommute : ∀ (t : spec.Domain) (s : σ) (flag : Bool),
+      𝒟[refine s >>= fun s' => (impl t).run (s', flag)] =
+        𝒟[(impl t).run (s, flag) >>= fun p =>
+            (fun eager => (p.1, (eager, p.2.2))) <$> refine p.2.1])
+    (oa : OracleComp spec γ) (s : σ) (flag : Bool) :
+    Pr[fun z : γ × (σ × Bool) => z.2.2 = true |
+        refine s >>= fun s' => (simulateQ impl oa).run (s', flag)] =
+      Pr[fun z : γ × (σ × Bool) => z.2.2 = true | (simulateQ impl oa).run (s, flag)] :=
+  probEvent_flag_refine_eq impl (fun _ _ => False) refine hfail hsticky
+    (fun _ _ _ hbad => absurd hbad not_false) hrefineMass (fun _ _ _ _ => Iff.rfl)
+    (fun t s flag _ => hcommute t s flag) oa s flag
+
+/-- **The bound transfers.** A bound on the lazy presentation is a bound on the eager one, with
+nothing added. -/
+theorem probEvent_flag_refine_le {γ : Type}
+    (impl : QueryImpl spec (StateT (σ × Bool) ProbComp)) (Bad : σ → spec.Domain → Prop)
+    (refine : σ → ProbComp σ)
+    (hfail : ∀ (t : spec.Domain) (p : σ × Bool), Pr[⊥ | (impl t).run p] = 0)
+    (hsticky : ∀ (t : spec.Domain) (s : σ),
+      ∀ z ∈ support ((impl t).run (s, true)), z.2.2 = true)
+    (hfires : ∀ (t : spec.Domain) (s : σ) (flag : Bool), Bad s t →
+      ∀ z ∈ support ((impl t).run (s, flag)), z.2.2 = true)
+    (hrefineMass : ∀ s : σ, Pr[⊥ | refine s] = 0)
+    (hbadRefine : ∀ (t : spec.Domain) (s : σ), ∀ s' ∈ support (refine s), Bad s' t ↔ Bad s t)
+    (hcommute : ∀ (t : spec.Domain) (s : σ) (flag : Bool), ¬ Bad s t →
+      𝒟[refine s >>= fun s' => (impl t).run (s', flag)] =
+        𝒟[(impl t).run (s, flag) >>= fun p =>
+            (fun eager => (p.1, (eager, p.2.2))) <$> refine p.2.1])
+    (oa : OracleComp spec γ) (s : σ) (flag : Bool) (bound : ℝ≥0∞)
+    (hlazy : Pr[fun z : γ × (σ × Bool) => z.2.2 = true |
+      (simulateQ impl oa).run (s, flag)] ≤ bound) :
+    Pr[fun z : γ × (σ × Bool) => z.2.2 = true |
+      refine s >>= fun s' => (simulateQ impl oa).run (s', flag)] ≤ bound :=
+  le_of_eq_of_le (probEvent_flag_refine_eq impl Bad refine hfail hsticky hfires
+    hrefineMass hbadRefine hcommute oa s flag) hlazy
+
 end SlhDsaSecurity.LazyBridge
