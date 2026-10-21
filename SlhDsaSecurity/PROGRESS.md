@@ -868,3 +868,39 @@ maximum-rather-than-sum argument work in the first place. `CombinedCharge` reach
 rate by a different route; it is not wrong, it is just not instantiable at an adaptive
 disclosure set.
 
+## One weighted counter, not two class counters
+
+`ClassCharge.prob_badWithinClasses_le` bounds the bad event by
+`insideLimit * insideRate + outsideLimit * outsideRate`, with both limits *fixed numbers*.
+Supplying them from the game does not work, and the reason is worth stating because it is not
+a plumbing problem.
+
+The class counts are run-dependent. Fixing both at `q` gives `2q + q = 3q` units, over the
+answer side's allowance of `2q`. Taking the actual counts is not allowed, since the limits must
+be chosen before the run. Splitting the probability over the possible message count `m` and
+using limits `(m, q - m)` does not help either: the charge bounds the *whole* probability at
+each `m`, not the probability conditioned on it, so the sum over `m` diverges.
+
+What the game can offer is a single number. Give each charged miss its own weight — `2` for a
+structural-class input, `1` for a message-class input — and charge a single weighted budget at
+the uniform rate `2 ^ -129`. Then the answer side is `weighted / 2 ^ 129`, and with
+`qs + qm ≤ q` the weighted count is `2 qs + qm ≤ 2q - qm`.
+
+The useful part is that the load-cap dichotomy then falls out of *that one counter*, with no
+second instrumentation. Writing `total` for the plain hash count,
+
+    2 · total − weighted = qm      exactly,
+
+so `qm ≤ 2q − weighted` whenever `total ≤ q`. Hence:
+
+* `weighted > 2q − 16` forces `qm < 16`, and below sixteen disclosures the load cap holds
+  deterministically (`ForsCoverageTerm.moment_le_of_few_digests`) — no defect to pay;
+* `weighted ≤ 2q − 16` leaves `16 / 2 ^ 129 = 2 ^ -125` of room, which covers the `2 ^ -126`
+  defect with a factor of two to spare.
+
+Either way the answer side, defect included, stays within `q / 2 ^ 128`.
+
+So what to build is a *weighted* growth charge — `prob_badWithin_le` with a per-input weight
+and one budget, generalising both it and `prob_badWithinClasses_le` — together with the
+corresponding weighted instrumentation of the game. That is one induction, not two counters.
+
