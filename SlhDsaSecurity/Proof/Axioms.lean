@@ -45,6 +45,7 @@ import SlhDsaSecurity.Proof.FreshDigest
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.WholeGameStructural
 import SlhDsaSecurity.Proof.ForsCoverageTerm
+import SlhDsaSecurity.Proof.Assembly
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -510,3 +511,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le_of_family
+
+/-- info: 'SlhDsaSecurity.Assembly.le_target_of_terms' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.le_target_of_terms
