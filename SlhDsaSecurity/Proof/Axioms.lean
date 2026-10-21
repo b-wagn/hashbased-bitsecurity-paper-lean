@@ -59,6 +59,7 @@ import SlhDsaSecurity.Proof.ForsCharge
 import SlhDsaSecurity.Proof.WotsCharge
 import SlhDsaSecurity.Proof.ForsLeafCharge
 import SlhDsaSecurity.Proof.CanonicalCells
+import SlhDsaSecurity.Proof.MerkleEntry
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -816,3 +817,7 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.CacheReplay.foldl_finRange_take' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.foldl_finRange_take
+
+/-- info: 'SlhDsaSecurity.MerkleEntry.pathInput_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MerkleEntry.pathInput_cached
