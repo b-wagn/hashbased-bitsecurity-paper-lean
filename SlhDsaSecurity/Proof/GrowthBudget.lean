@@ -69,6 +69,17 @@ theorem countAllHashes_query_bind {α : Type} (queried : OracleWorld.Domain)
     QueryImpl.withAddCost, QueryImpl.withCost]
   simp [Functor.map_map, map_bind, bind_map_left]
 
+theorem countAllHashes_query (queried : OracleWorld.Domain) :
+    countAllHashes (liftM (OracleWorld.query queried)) =
+      liftM (OracleWorld.query queried) >>= fun answer =>
+        (pure (answer, hashCost queried) :
+          OracleComp OracleWorld (OracleWorld.Range queried × Nat)) := by
+  conv_lhs => rw [show (liftM (OracleWorld.query queried) :
+      OracleComp OracleWorld (OracleWorld.Range queried)) =
+    liftM (OracleWorld.query queried) >>= pure from (bind_pure _).symm,
+    countAllHashes_query_bind]
+  simp [countAllHashes_pure]
+
 /-- The total count is additive over sequencing: the count of `c >>= f` splits into the
 count of `c` and the count of the continuation. -/
 theorem countAllHashes_bind {α β : Type} (computation : OracleComp OracleWorld α)
@@ -110,6 +121,27 @@ theorem countAllHashes_eq_component {α : Type} (kind : QueryKind)
     funext inner
     simp [map_pure, Counts.single, Pi.add_apply, Pi.single_eq_same, Function.comp_def]
     rfl
+
+/-- The inner `Counts` instrumentation issues no extra queries, so wrapping a computation in
+`countQueries` leaves its total hash count unchanged. -/
+theorem countAllHashes_countQueries {α : Type} (cost : OracleWorld.Domain → Counts)
+    (computation : OracleComp OracleWorld α) :
+    (fun result : (α × Counts) × Nat => (result.1.1, result.2)) <$>
+        countAllHashes (countQueries cost computation) =
+      countAllHashes computation := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    rw [VerificationBudget.countQueries_pure, countAllHashes_pure, countAllHashes_pure,
+      map_pure]
+  | query_bind queried next ih =>
+    rw [VerificationBudget.countQueries_bind, VerificationBudget.countQueries_query,
+      countAllHashes_query_bind]
+    simp only [bind_assoc, pure_bind, countAllHashes_bind, countAllHashes_pure,
+      countAllHashes_query_bind]
+    simp only [countAllHashes_query, map_bind, bind_map_left, bind_assoc, pure_bind,
+      Functor.map_map, Function.comp_def, Nat.add_zero]
+    conv_rhs => simp only [← ih]
+    simp [bind_map_left, Functor.map_map, Function.comp_def]
 
 /-- Every new cache entry is created by a hash query, so growth never exceeds the count. -/
 theorem growth_le_count {α : Type} (computation : OracleComp OracleWorld α)
