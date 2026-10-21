@@ -4398,3 +4398,23 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.ChargedProbe.flag_iff_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.flag_iff_record
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.targets_of_sensitiveAt' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.targets_of_sensitiveAt
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.targets_unique' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.targets_unique
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sum_targets_length_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sum_targets_length_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_list_sensitiveAt_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_list_sensitiveAt_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_list_sensitive_le_of_sum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_list_sensitive_le_of_sum
