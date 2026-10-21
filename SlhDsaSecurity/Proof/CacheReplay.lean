@@ -233,4 +233,49 @@ theorem cached_of_queriesUnder {α : Type} (computation : OracleComp HashSpec α
     have hreplay : replay finalCache input = step.1 := by simp [replay, hentry]
     exact ih step.2 result (by rw [hreplay]; exact hrest)
 
+/-! ## Peeling a verification one call at a time
+
+To use `cached_of_queriesUnder` on the verifier one has to show that a particular byte input
+is among those it consults. The verifier is a fold of hash calls, so two closure properties
+suffice: a hash call consults its own input, and anything the prefix of a bind consults the
+whole bind consults too. Peeling a fold with these recovers each step's input in turn. -/
+
+theorem queriesUnder_hash {α : Type} (cache : QueryCache HashSpec) (input : Bytes)
+    (next : HashOutput → OracleComp HashSpec α) :
+    QueriesUnder cache
+      ((Hashing.hash (m := OracleComp HashSpec) input) >>= next) input :=
+  QueriesUnder.head input next
+
+/-- What a prefix consults, the whole computation consults. -/
+theorem queriesUnder_bind {α β : Type} (cache : QueryCache HashSpec)
+    (computation : OracleComp HashSpec α) (next : α → OracleComp HashSpec β) (probe : Bytes)
+    (hquery : QueriesUnder cache computation probe) :
+    QueriesUnder cache (computation >>= next) probe := by
+  induction hquery with
+  | head input continuation =>
+    rw [bind_assoc]
+    exact QueriesUnder.head input _
+  | tail input probe continuation _ ih =>
+    rw [bind_assoc]
+    exact QueriesUnder.tail input probe _ ih
+
+/-- A `shortHash` consults its own input. -/
+theorem queriesUnder_shortHash {α : Type} (cache : QueryCache HashSpec) (input : Bytes)
+    (next : Digest → OracleComp HashSpec α) :
+    QueriesUnder cache
+      ((Hashing.shortHash (m := OracleComp HashSpec) input) >>= next) input := by
+  rw [show (Hashing.shortHash (m := OracleComp HashSpec) input) >>= next =
+      (Hashing.hash (m := OracleComp HashSpec) input) >>=
+        (fun answer => next (Hashing.truncate answer)) from by
+    simp [Hashing.shortHash, bind_assoc]]
+  exact queriesUnder_hash cache input _
+
+/-- A tweakable call consults the byte input it is built from. -/
+theorem queriesUnder_tweakable {α : Type} (cache : QueryCache HashSpec) (publicSeed : Digest)
+    (address : Address) (payload : Bytes) (next : Digest → OracleComp HashSpec α) :
+    QueriesUnder cache
+      ((Hashing.tweakable (m := OracleComp HashSpec) publicSeed address payload) >>= next)
+      (Hashing.tweakableInput publicSeed address payload) :=
+  queriesUnder_shortHash cache _ next
+
 end SlhDsaSecurity.CacheReplay
