@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.Hashing
+import SlhDsaSecurity.Proof.GraphFreshSampling
 import SlhDsaSecurity.Statement.Security
 
 /-!
@@ -49,5 +50,38 @@ theorem messageInput_injective_of_frame (pk : PublicKey)
   by_contra hne
   exact messageInput_ne_of_request_ne pk pk left right (frameOf left) (frameOf right)
     (randomizerOf left) (randomizerOf right) (hframe left) (hframe right) hne hequal
+
+/-! ## Feeding the fresh-sampling machinery
+
+`GraphFreshSampling` is generic over the coordinate and state types, and its hypothesis is
+exactly byte-input separation: distinct coordinates must have distinct byte inputs *for every
+pair of payload states*. Taking the coordinates to be the signing requests, that is precisely
+`messageInput_ne_of_request_ne`.
+
+The quantification over states is what makes this usable. In the experiment the randomizer of
+a request is itself an oracle answer, so the digest input depends on the traversal state; but
+separation holds whatever the randomizers are, because the framed messages already differ. So
+the randomizers never have to be pinned down, and in particular no freshness or key-guessing
+argument about `PRF_msg` is needed.
+
+With `separated_messageInput`, `GraphFreshSampling.evaluate_eq_sample` applies to any
+duplicate-free list of signing requests: the actual shared-oracle run equals the experiment
+that draws an independent uniform thirty-byte answer per request. Parsing those answers then
+gives independent uniform FORS instances, which is the hypothesis
+`ForsConcentrationSharper` consumes.
+-/
+
+/-- The digest inputs of distinct signing requests are separated, for every assignment of
+randomizers to requests and states — including randomizers determined by the oracle. -/
+theorem separated_messageInput {State : Type} (pk : PublicKey)
+    (frameOf : Message → Bytes) (randomizerOf : Message → State → Digest)
+    (hframe : ∀ request : Message, request.frame = some (frameOf request)) :
+    GraphFreshSampling.Separated (Index := Message) (State := State)
+      (fun request state =>
+        Hashing.messageInput (randomizerOf request state) pk (frameOf request)) := by
+  intro left right hne leftState rightState
+  exact messageInput_ne_of_request_ne pk pk left right (frameOf left) (frameOf right)
+    (randomizerOf left leftState) (randomizerOf right rightState)
+    (hframe left) (hframe right) hne
 
 end SlhDsaSecurity.DigestInputDistinct
