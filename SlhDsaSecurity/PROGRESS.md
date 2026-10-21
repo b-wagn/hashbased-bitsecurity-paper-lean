@@ -365,3 +365,46 @@ Four obligations remain, in increasing order of difficulty.
    different shape from every other obligation here, and it has no counterpart in the XMSS
    development.
 
+## All-queries-counted accounting (current target)
+
+The accounting changed: every hash call made anywhere in the game is charged — key
+generation, signing, the adversary's direct calls and final verification — matching the
+leanVM `lean_sphincs` statement. Signing requests are still capped separately at `2 ^ 64`,
+including repetitions and failures. `Statement/Security.lean` adds `countAllHashes`,
+`runAll`, `HasTotalBudget`, `totalAdvantage` and the target `HasTotalSecurityBits .strong
+127`; `Proof/Security.lean` proves `totalAdvantage_eq` (the counter is bookkeeping, so
+every result about `advantage` transfers) and `total_strong_implies_standard`.
+
+**Why this accounting closes the budget, where verifier-counted did not.** Write the target
+as `4q / 2 ^ 129`. The structural charge is `2q / 2 ^ 129` and tight. Routing FORS through
+`ForsConcentrationSharper` gives `q / 2 ^ 129 + 2 ^ -126`, so the sum is
+`3q / 2 ^ 129 + 8 / 2 ^ 129` and the target is met as soon as `q ≥ 8`. Charging the honest
+work makes that automatic — key generation alone costs about `2 ^ 18` hashes — and the small
+`q` regime is covered anyway by the 569-call verification floor. It also removes the
+framing-leak obstruction entirely: that attack needs `2 ^ 64` signing requests, which are
+now charged, forcing `q` to about `2 ^ 80`, where the slack `q / 2 ^ 129 ≈ 2 ^ -49` dwarfs
+the leak's `≈ 2 ^ -72`. Under verifier-counted accounting the signing queries were free and
+that slack was zero, which is exactly what made the target unreachable there.
+
+**Done.** `Proof/WholeGameStructural.lean` proves the structural term for the entire game:
+`prob_deviatingCollision_whole_game_le` bounds the probability of any deviating structural
+collision by `q / 2 ^ 128`. Charging the honest work is what makes this unconditional — the
+game starts from the empty cache, which is vacuously a cache of honest canonical queries, so
+the honest phase needs no separate analysis. `Proof/GrowthBudget.lean` supplies the bridge
+`growth_le_count` (repeats are charged but do not grow the cache, so the count dominates the
+growth).
+
+**Remaining.**
+* *Counter comparison.* `counts.work ≤ total count`, and more specifically that the total
+  count dominates the final verifier's calls. With it, `VerificationBudget`'s 569-call floor
+  gives `totalAdvantage = 0` for `q < 569` directly. Bounded plumbing: the total counter is
+  additive over the experiment's binds while `counts.verification` accumulates only in the
+  verification phase.
+* *FORS coverage term and the forgery decomposition.* This is unchanged by the new
+  accounting and is the remaining mathematical core: couple the shared oracle to the
+  independent-tape concentration bounds for the adaptively selected digest, and decompose an
+  accepted forgery into a structural collision or a coverage event using the `Extraction.*`
+  chain. `Proof/FreshDigest.lean` supplies the freshness half (a fresh `H_msg` call has a
+  uniform parsed FORS view, and the signer's randomizer is uniform when its `PRF_msg` input
+  is uncached). The adaptive, prequeried and cross-request-correlated cases remain.
+
