@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.DrawnTable
 import SlhDsaSecurity.Proof.RecordedBudget
 import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.GraphStakes
+import SlhDsaSecurity.Proof.HonestMessage
 import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.SensitiveQuery
 import SlhDsaSecurity.Proof.LazyBridge
@@ -4158,3 +4159,23 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.GraphStakes.length_claimedCandidates' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GraphStakes.length_claimedCandidates
+
+/-- info: 'SlhDsaSecurity.HonestMessage.treeAt_succ_add_leafAt' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.treeAt_succ_add_leafAt
+
+/-- info: 'SlhDsaSecurity.HonestMessage.revealedAt_succ' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.revealedAt_succ
+
+/-- info: 'SlhDsaSecurity.HonestMessage.honestMessage_succ' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.honestMessage_succ
+
+/-- info: 'SlhDsaSecurity.HonestMessage.honestMessage_eq_revealedAt' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.honestMessage_eq_revealedAt
+
+/-- info: 'SlhDsaSecurity.HonestMessage.honestRevealed_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestMessage.honestRevealed_eq
