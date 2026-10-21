@@ -535,3 +535,45 @@ which is the present ceiling.
 This is a scope limit of the plan recorded in the tightness budget above, which assumed a
 fixed additive `2 ^ -126` available at every `q`.
 
+## Correction: the adversary cannot concentrate loads without `SK.prf`
+
+The preceding section is **wrong** where it claims the adversary can break the load cap by
+prequerying digests and then signing only messages that share an instance. Signing is
+deterministic: the signer uses `R = PRF_msg(SK.prf, PK.seed, M')`, so the digest input
+`R ‖ PK.seed ‖ PK.root ‖ M'` of an *unsigned* message is unpredictable without `SK.prf`.
+Prequerying `H_msg` at randomizers of the adversary's own choosing says nothing about which
+instance the signer will land on. And once a message is signed the signature is spent, so
+there is no re-rolling. The signed instances are therefore iid uniform under adaptive
+selection after all, and the regime limit `q ≤ 5 * 2 ^ 62` claimed above is not real: the
+tape of signed digests has at most `2 ^ 64 ≤ 5 * 2 ^ 62` entries whatever `q` is.
+
+The concentration attack is only available to an adversary that has **learned `SK.prf`**, and
+that is where the real problem is.
+
+**An unaccounted term.** Learning `SK.prf` is a `128`-bit secret guess, and it is cheaply
+verifiable: query `PRF_msg` at a guess and compare the answer with the randomizer of any
+signature already held. So with `q` charged queries the probability is about `q / 2 ^ 128 =
+2q / 2 ^ 129`. Conditioned on success the attack is devastating — with `SK.prf` the adversary
+can steer messages to one FORS instance, and about `4096 · 2 ^ 63 ≈ 2 ^ 75` charged queries
+disclose every leaf of every tree there, after which any digest landing on that instance
+forges.
+
+The tightness budget recorded earlier never charged this. Adding it:
+
+| term | cost |
+| --- | --- |
+| structural (proved, tight) | `2q / 2 ^ 129` |
+| FORS coverage (sharper cap) | `q / 2 ^ 129` |
+| `SK.prf` guess | `2q / 2 ^ 129` |
+| **sum** | **`5q / 2 ^ 129`** |
+| target | `4q / 2 ^ 129` |
+
+So the three avenues as currently bounded *exceed* the target by a factor `5/4`. This does not
+refute the target — these are upper bounds and the events need not be simultaneously
+achievable, so the true advantage may be smaller — but it does mean the budget does **not**
+close as recorded, and that one of the three has to be sharpened, or their overlap exploited,
+before the assembly can be instantiated. The `SK.prf` guess is the term to attack first, since
+it is the only one not yet proved and the only one whose `2q / 2 ^ 129` coefficient looks
+loose: a guess is only useful if it is *verified*, and verification needs a signature whose
+randomizer is known, which may permit a sharper accounting than one guess per query.
+
