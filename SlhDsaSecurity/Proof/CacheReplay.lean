@@ -421,4 +421,32 @@ theorem queriesUnder_bind_right {α β : Type} (cache : QueryCache HashSpec)
       rw [simulateQ_bind, simulateQ_spec_query]; rfl] at hquery
     exact hquery
 
+/-- A tweakable call on its own consults its byte input — the compression nodes end their
+computation with exactly this, with nothing bound after. -/
+theorem queriesUnder_tweakable_self (cache : QueryCache HashSpec) (publicSeed : Digest)
+    (address : Address) (payload : Bytes) :
+    QueriesUnder cache
+      (Hashing.tweakable (m := OracleComp HashSpec) publicSeed address payload)
+      (Hashing.tweakableInput publicSeed address payload) := by
+  rw [show (Hashing.tweakable (m := OracleComp HashSpec) publicSeed address payload) =
+      (Hashing.hash (m := OracleComp HashSpec)
+        (Hashing.tweakableInput publicSeed address payload)) >>=
+        (fun answer => pure (Hashing.truncate answer)) from rfl]
+  exact QueriesUnder.head _ _
+
+/-- **A compression node consults its own input.** Both compression nodes of the scheme have
+this shape: run a prefix, then hash one payload built from its result. The payload is
+determined by the prefix's replayed result, so nothing about the prefix's internals is
+needed — those are the business of the prefix's own entry lemma. -/
+theorem queriesUnder_compression {α : Type} (cache : QueryCache HashSpec)
+    (prefixComputation : OracleComp HashSpec α) (publicSeed : Digest) (address : Address)
+    (payloadOf : α → Bytes) :
+    QueriesUnder cache
+      (prefixComputation >>= fun result =>
+        Hashing.tweakable (m := OracleComp HashSpec) publicSeed address (payloadOf result))
+      (Hashing.tweakableInput publicSeed address
+        (payloadOf (simulateQ (replay cache) prefixComputation))) :=
+  queriesUnder_bind_right cache prefixComputation _ _
+    (queriesUnder_tweakable_self cache publicSeed address _)
+
 end SlhDsaSecurity.CacheReplay

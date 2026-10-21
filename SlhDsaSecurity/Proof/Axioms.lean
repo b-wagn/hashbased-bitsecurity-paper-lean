@@ -830,3 +830,7 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.CacheReplay.queriesUnder_bind_right' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.queriesUnder_bind_right
+
+/-- info: 'SlhDsaSecurity.CacheReplay.queriesUnder_compression' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.queriesUnder_compression
