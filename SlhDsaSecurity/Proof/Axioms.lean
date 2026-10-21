@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.SensitiveQuery
 import SlhDsaSecurity.Proof.AdversaryQueries
 import SlhDsaSecurity.Proof.SensitiveShape
 import SlhDsaSecurity.Proof.StrippedGame
@@ -3811,3 +3812,47 @@ info: 'SlhDsaSecurity.AdversaryQueries.mem_support_counted_bind_count' depends o
 /-- info: 'SlhDsaSecurity.CanonicalGraph.sensitive_of_not_available' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CanonicalGraph.sensitive_of_not_available
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.sensitive_mono' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.sensitive_mono
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.sensitive_initial' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.sensitive_initial
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.coordinate_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.coordinate_uniform
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_coordinate_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_coordinate_eq
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_sensitive_le
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_record_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_record_sensitive_le
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.probes_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.probes_run_inl
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.probes_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.probes_run_inr
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.length_le_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.length_le_count
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_probes_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_probes_sensitive_le
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.not_unavailable_of_obtainable' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.not_unavailable_of_obtainable
