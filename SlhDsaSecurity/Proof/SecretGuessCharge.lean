@@ -84,7 +84,18 @@ produce: a run that yields the inputs it has queried, with the secret drawn afte
 
 Stating it this way keeps the obligation visible instead of hidden in a side condition. What
 is *not* proved here is that the experiment can be rewritten in this order; that is the
-until-first-hit coupling, whose abstract form is `BlindKey.hit_probability_le`. -/
+until-first-hit coupling, whose abstract form is `BlindKey.hit_probability_le`.
+
+**This duplicates existing machinery.** `BlindKey.mixture_hit_le_expected` already states the
+same thing in the same shape — a transcript drawn first, a uniform key table drawn after, and
+a bound of `expectedGuesses / 2 ^ 128` — for a whole table of keys rather than one `Digest`,
+with `expectedGuesses_le_of_cap` supplying the pathwise cap. The lemma below is the `Finset`
+specialisation and adds nothing beyond convenience; new work should use `BlindKey`.
+
+That the two land on the same statement from opposite directions is the useful fact. Both are
+the *blind* side of the coupling, and neither connects it to the real experiment, which
+confirms that the gap is not in the key-guessing accounting — that is finished twice over —
+but solely in the rewriting that makes the real transcript key-independent. -/
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
