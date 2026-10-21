@@ -285,4 +285,46 @@ theorem secretSeed_mem_children_iff (parent : CanonicalGraph.StructuralNode) :
       exact absurd h (by simp)
     · rcases hcase with ⟨_, _, h⟩ | ⟨_, _, h⟩ <;> exact absurd h (by simp)
 
+/-! ## The blind cache
+
+The blind game is the one that withholds exactly the entries whose inputs carry the seed. By
+`secretSeed_mem_children_iff` those are the `wotsPrf` and `forsPrf` nodes, so the blind cache
+is the programmed cache over every *other* node.
+
+`agreeOff_seedInputs` is the comparison's hypothesis: the two programmings agree everywhere off
+the seed-bearing inputs. At a canonical input of a non-PRF node both write the same answer,
+since that node is in both lists; at any other input neither writes at all. -/
+
+/-- A node whose canonical input carries the secret seed in the clear. -/
+def IsPrfNode (parent : CanonicalGraph.StructuralNode) : Prop :=
+  CanonicalGraph.Node.secretSeed ∈ parent.children
+
+/-- The byte inputs that carry the seed. -/
+def IsSeedInput (publicSeed : Digest) (cells : CanonicalGraph.Cells) (input : Bytes) : Prop :=
+  ∃ parent : CanonicalGraph.StructuralNode,
+    IsPrfNode parent ∧ input = CanonicalGraph.canonicalInput publicSeed cells parent
+
+/-- **Programming all nodes, and programming all but the seed-bearing ones, agree off the
+seed-bearing inputs.** -/
+theorem agreeOff_seedInputs (publicSeed : Digest) (cells : CanonicalGraph.Cells)
+    (outputs : CanonicalGraph.Programming.Outputs)
+    (parents blindParents : List CanonicalGraph.StructuralNode)
+    (hall : ∀ parent, parent ∈ parents)
+    (hblind : ∀ parent, parent ∈ blindParents ↔ ¬ IsPrfNode parent) :
+    AgreeOff (IsSeedInput publicSeed cells)
+      (CanonicalGraph.Programming.cacheFrom publicSeed cells outputs parents ∅)
+      (CanonicalGraph.Programming.cacheFrom publicSeed cells outputs blindParents ∅) := by
+  classical
+  intro input hinput
+  by_cases hcanonical : ∃ parent, input = CanonicalGraph.canonicalInput publicSeed cells parent
+  · obtain ⟨parent, rfl⟩ := hcanonical
+    have hnotPrf : ¬ IsPrfNode parent := fun hprf => hinput ⟨parent, hprf, rfl⟩
+    rw [CanonicalGraph.Programming.cacheFrom_lookup,
+      CanonicalGraph.Programming.cacheFrom_lookup,
+      if_pos (hall parent), if_pos ((hblind parent).mpr hnotPrf)]
+  · rw [agreeOff_cacheFrom publicSeed cells outputs parents ∅ input
+      (fun hmem => hcanonical (by obtain ⟨p, hp⟩ := hmem; exact ⟨p, hp⟩)),
+      agreeOff_cacheFrom publicSeed cells outputs blindParents ∅ input
+      (fun hmem => hcanonical (by obtain ⟨p, hp⟩ := hmem; exact ⟨p, hp⟩))]
+
 end SlhDsaSecurity.BlindComparison
