@@ -188,4 +188,39 @@ theorem probEvent_le_of_tail (adversary : Adversary)
   exact Averaging.probEvent_bind_pair_le graphWalk (tail adversary)
     (fun walk result => event ((walk.1, result.1), result.2)) bound htail
 
+/-! ## What the walk leaves
+
+The walk's whole purpose is the shape of what it leaves behind: a cell table that is some
+uniform output table read through `cellsOfOutputs`, and a cache that is exactly the canonical
+entries of that table. `CanonicalGraph.Programming.warmup_uniform` is that law; here it is read
+as a statement about the support, which is all the charges need — they are uniform over the
+walk, so only the *form* of its result matters, never its distribution. -/
+
+/-- The walk, as the seeds followed by the hash-only graph traversal. -/
+theorem graphWalk_eq :
+    graphWalk = (do
+      let sds ← seeds
+      let result ← (simulateQ randomOracle
+        (CanonicalGraph.Programming.warmup sds.2.2 sds.1)).run ∅
+      pure ((sds, result.1), result.2)) := by
+  rw [graphWalk]
+  simp only [simulateQ_bind, StateT.run_bind, Presample.run_liftM_probComp, bind_map_left,
+    Presample.run_worldWarmup, simulateQ_pure, StateT.run_pure]
+
+/-- **Every walk is a programmed table.** -/
+theorem mem_support_graphWalk {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk) :
+    ∃ outputs : CanonicalGraph.Programming.Outputs,
+      walk.1.2 = CanonicalGraph.Programming.cellsOfOutputs walk.1.1.1 outputs ∧
+        walk.2 = CanonicalGraph.Programming.cacheFrom walk.1.1.2.2 walk.1.2 outputs
+          CanonicalGraph.Programming.order ∅ := by
+  rw [graphWalk_eq] at hwalk
+  simp only [support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff,
+    exists_prop] at hwalk
+  obtain ⟨sds, -, result, hresult, hpair⟩ := hwalk
+  rw [Averaging.support_eq_of_evalDist_eq
+    (CanonicalGraph.Programming.warmup_uniform sds.2.2 sds.1), support_map] at hresult
+  obtain ⟨outputs, -, houtputs⟩ := hresult
+  refine ⟨outputs, ?_, ?_⟩ <;> rw [hpair] <;> rw [← houtputs]
+
 end SlhDsaSecurity.WarmedGame

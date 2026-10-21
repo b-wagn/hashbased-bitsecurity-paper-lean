@@ -38,4 +38,11 @@ theorem probEvent_bind_pair_le {α β : Type} (first : ProbComp α) (rest : α �
     _ ≤ 1 * bound := mul_le_mul' tsum_probOutput_le_one le_rfl
     _ = bound := one_mul bound
 
+/-- Equal laws have equal supports — the one thing needed to read a support off a
+presampling identity. -/
+theorem support_eq_of_evalDist_eq {α : Type} {left right : ProbComp α}
+    (hlaw : 𝒟[left] = 𝒟[right]) : support left = support right := by
+  ext value
+  rw [mem_support_iff, mem_support_iff, probOutput_def, probOutput_def, hlaw]
+
 end SlhDsaSecurity.Averaging

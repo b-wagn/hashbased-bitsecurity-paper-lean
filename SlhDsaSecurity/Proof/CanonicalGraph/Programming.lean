@@ -162,6 +162,31 @@ theorem cacheFrom_lookup (publicSeed : Digest) (cells : Cells) (outputs : Output
         rw [QueryCache.cacheQuery_of_ne _ _ hinput]
         simp only [List.mem_cons, heq, false_or]
 
+/-- And nothing else is installed: the programmed cache is exactly the canonical entries,
+which is the hypothesis every charge takes about the cache it starts from. -/
+theorem cacheFrom_canonical (publicSeed : Digest) (cells : Cells) (outputs : Outputs)
+    (parents : List StructuralNode) (cache : QueryCache HashSpec)
+    (hcache : ∀ input, cache input ≠ none →
+      ∃ parent : StructuralNode, input = canonicalInput publicSeed cells parent)
+    (input : Bytes) (hinput : cacheFrom publicSeed cells outputs parents cache input ≠ none) :
+    ∃ parent : StructuralNode, input = canonicalInput publicSeed cells parent := by
+  induction parents generalizing cache with
+  | nil => exact hcache input hinput
+  | cons current parents ih =>
+      refine ih _ ?_ hinput
+      intro key hkey
+      by_cases heq : key = canonicalInput publicSeed cells current
+      · exact ⟨current, heq⟩
+      · exact hcache key (by rwa [QueryCache.cacheQuery_of_ne _ _ heq] at hkey)
+
+/-- The programmed cache of a whole walk carries canonical entries and nothing else. -/
+theorem cacheFrom_empty_canonical (publicSeed : Digest) (cells : Cells) (outputs : Outputs)
+    (parents : List StructuralNode) (input : Bytes)
+    (hinput : cacheFrom publicSeed cells outputs parents ∅ input ≠ none) :
+    ∃ parent : StructuralNode, input = canonicalInput publicSeed cells parent :=
+  cacheFrom_canonical publicSeed cells outputs parents ∅
+    (fun key hkey => absurd (by simp) hkey) input hinput
+
 theorem full_cache_lookup (publicSeed secretSeed : Digest) (outputs : Outputs)
     (parent : StructuralNode) :
     cacheFrom publicSeed (cellsOfOutputs secretSeed outputs) outputs order ∅

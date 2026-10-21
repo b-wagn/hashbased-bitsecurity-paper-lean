@@ -939,3 +939,42 @@ the two cases are a query inside `S`, where both runs add the same input and the
 already decided, and a query outside it, where the caches agree at that input so the answer
 distribution is the same.
 
+
+## Warming the game, and the defeq trap in `afterSeeds`
+
+Every charge bounds an event against a *fixed* cell table, and has to: the alternative — a cell
+drawn after the query that collides with it — needs a union bound over the whole graph, some
+`2 ^ 26` cells, which no budget here can pay for. In the bare experiment the cells are a random
+variable, so no charge applied to the run's own key. That gap was not an oversight in the
+charges; it is why `Presample` exists.
+
+`WarmedGame.warmedRun` closes it. `experiment_eq` puts `Security.experiment` into the
+`liftM seeds >>= rest` shape (`liftM_bind` does the work; the three seed draws are coin
+queries), `Presample.evalDist_counted_warmed` inserts the graph walk after the seeds, and
+`probEvent_warmed` transfers the winning event — which looks only at the outcome, so the walk's
+effect on the cache is invisible to it. `warmedRun_eq` then splits the run into `graphWalk` and
+`tail`, and `probEvent_le_of_tail` reduces each half to a bound on the tail with the cells
+fixed, averaged by `Averaging.probEvent_bind_pair_le`.
+
+Three things the walk supplies, each now proved:
+
+* `WarmedGame.mem_support_graphWalk` — the walk's result is always `cellsOfOutputs` of some
+  output table together with the canonical cache of that table (read off
+  `Programming.warmup_uniform` as a statement about the support, since the charges are uniform
+  over the walk and never look at its distribution);
+* `WarmedCharges.walk_cache_canonical` — that cache carries canonical entries and nothing else,
+  which is the cleanliness hypothesis every charge takes
+  (`Programming.cacheFrom_empty_canonical`);
+* `WarmedCharges.count_le_of_budget_tail` — the budget, which speaks about `Security.runAll`,
+  bounds the tail's count, imported through `evalDist_outcome`.
+
+`prob_deviatingCollision_tail_le` is the first charge in this form: the structural term at this
+run's own honest key.
+
+**The trap.** `WarmedGame.afterSeeds` must be made `irreducible` wherever it is treated as an
+opaque computation. Left reducible, a defeq check as trivial as closing a goal with a
+hypothesis of *syntactically identical* type — verified identical under `pp.all` — unfolds it
+and runs out of heartbeats. Two hours went into diagnosing this as a mismatch between `tail`
+and its own definition; it is neither, and the one-line `attribute [local irreducible]` at the
+top of a file that uses the game abstractly is the whole fix. Expect the same of any later file
+that mentions the game without taking it apart.
