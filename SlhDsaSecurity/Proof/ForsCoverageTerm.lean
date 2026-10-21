@@ -64,4 +64,57 @@ theorem prob_coverage_within_le {α : Type} (computation : OracleComp OracleWorl
       (prob_coveredAnswer_le revealed loads hload hmoment) hclean) ?_
   rw [mul_one_div]
 
+/-! ## The sharper cap
+
+The assembled bound needs the FORS term at `q / 2 ^ 129`, not `q / 2 ^ 128`: the structural
+term already costs `2q / 2 ^ 129` and the target is `4q / 2 ^ 129`, so a FORS term of
+`2q / 2 ^ 129` would consume the whole budget and leave nothing for the additive cost of
+relating the actual honest disclosures to a capped set. Routing FORS through the smaller load
+cap `2 ^ 102` of `ForsConcentrationSharper` halves it, leaving `q / 2 ^ 129` of slack.
+-/
+
+/-- Under the smaller load cap a single fresh answer is covered with probability at most
+`2 ^ -129`. -/
+theorem prob_coveredAnswer_le_sharper (revealed : ForsCoverage.Disclosures)
+    (loads : ForsCoverage.Instance → Nat)
+    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
+    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102) (input : Bytes) :
+    Pr[fun answer : HashOutput => CoveredAnswer revealed input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 129 : Nat) : ℝ≥0∞) := by
+  have hcount : (∑ index : ForsCoverage.Instance,
+      ∏ tree : ForsCoverage.Tree, (revealed index tree).card) ≤ 2 ^ 102 := by
+    refine le_trans (Finset.sum_le_sum fun index _ => ?_) hmoment
+    calc
+      _ ≤ ∏ _ : ForsCoverage.Tree, loads index :=
+        Finset.prod_le_prod' (fun tree _ => hload index tree)
+      _ = loads index ^ 14 := by
+        rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
+        rfl
+  rw [show (fun answer : HashOutput => CoveredAnswer revealed input answer) =
+    fun output => ForsCoverage.Covered revealed (MessageDigest.parse output) from rfl,
+    ForsCoverage.fresh_digest_coverage]
+  calc
+    _ ≤ ((2 ^ 102 : Nat) : ℝ≥0∞) / ((2 ^ 231 : Nat) : ℝ≥0∞) :=
+      ENNReal.div_le_div_right (Nat.cast_le.mpr hcount) _
+    _ = _ := by
+      apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
+      norm_num
+
+/-- **The FORS coverage term at the sharper cap.** This is the form the assembled `q / 2 ^ 127`
+bound consumes. -/
+theorem prob_coverage_within_le_sharper {α : Type} (computation : OracleComp OracleWorld α)
+    (revealed : ForsCoverage.Disclosures) (loads : ForsCoverage.Instance → Nat)
+    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
+    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102)
+    (limit : Nat) (initialCache : QueryCache HashSpec)
+    (hclean : GrowthCharge.CleanBad (CoveredAnswer revealed) initialCache) :
+    Pr[GrowthCharge.BadWithin (CoveredAnswer revealed) initialCache limit |
+      (simulateQ KeygenUniform.rom computation).run initialCache] ≤
+      limit / ((2 ^ 129 : Nat) : ℝ≥0∞) := by
+  refine le_of_le_of_eq
+    (GrowthCharge.prob_badWithin_le computation (CoveredAnswer revealed)
+      (1 / ((2 ^ 129 : Nat) : ℝ≥0∞)) limit initialCache
+      (prob_coveredAnswer_le_sharper revealed loads hload hmoment) hclean) ?_
+  rw [mul_one_div]
+
 end SlhDsaSecurity.ForsCoverageTerm

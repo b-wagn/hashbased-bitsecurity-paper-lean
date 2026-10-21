@@ -498,3 +498,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le
+
+/-- info: 'SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le_sharper' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le_sharper
