@@ -97,4 +97,52 @@ theorem rootFromSignature_fault_or_canonical (secretSeed publicSeed rootTarget :
       · exact Or.inr (Or.inl hcollision)
     · exact Or.inr (Or.inr (Or.inr hfault))
 
+/-- The honest fold over `remaining + 1` layers reaches the top subtree root, independent
+of its incoming message. Mirrors `Correctness.Hypertree.rootFromSignature_signLayers`. -/
+theorem honestFold_eq (secretSeed publicSeed : Digest) (remaining layer tree : Nat)
+    (input : Digest) :
+    honestFold secretSeed publicSeed (remaining + 1) layer tree input =
+      honestNode secretSeed publicSeed (layer + remaining)
+        (tree / 2 ^ (subtreeHeight * remaining)) := by
+  induction remaining generalizing layer tree input with
+  | zero => simp only [honestFold, Nat.add_zero, Nat.mul_zero, pow_zero, Nat.div_one]
+  | succ remaining ih =>
+    rw [honestFold, ih (layer + 1) (tree / 2 ^ subtreeHeight)
+      (honestNode secretSeed publicSeed layer tree)]
+    have hlayer : layer + 1 + remaining = layer + (remaining + 1) := by omega
+    have hexponent : subtreeHeight + subtreeHeight * remaining =
+        subtreeHeight * (remaining + 1) := by ring
+    rw [hlayer, Nat.div_div_eq_div_mul, ← pow_add, hexponent]
+
+/-- A forged hypertree signature accepted against an honestly generated key either contains
+a concrete structural fault at some layer, or its recovered FORS public key (the bottom
+message) equals the honest FORS public key fed into the hypertree. -/
+theorem verify_fault_or_fors_canonical (secretSeed publicSeed : Digest) (pk : PublicKey)
+    (tree : SlhDsaSecurity.Hypertree.TreeIndex) (leaf : SlhDsaSecurity.Hypertree.LeafIndex)
+    (forsKey honestForsKey : Digest) (signature : HypertreeSignature)
+    (hseed : pk.seed = publicSeed)
+    (hroot : pk.root = honestNode secretSeed publicSeed (layers - 1) 0)
+    (haccept : SlhDsaSecurity.Hypertree.verify (m := Id) forsKey signature pk tree leaf = true) :
+    forsKey = honestForsKey ∨
+      HypertreeFault secretSeed publicSeed layers signature 0 tree.toNat leaf forsKey
+        honestForsKey := by
+  have htop : SlhDsaSecurity.Hypertree.rootFromSignature (m := Id) publicSeed layers
+      signature 0 tree.toNat leaf forsKey = pk.root := by
+    rw [← hseed]
+    simp only [SlhDsaSecurity.Hypertree.verify, bind, pure] at haccept
+    exact (beq_iff_eq (α := Digest)).mp haccept
+  have hexp : honestFold secretSeed publicSeed layers 0 tree.toNat honestForsKey = pk.root := by
+    have hfold : honestFold secretSeed publicSeed layers 0 tree.toNat honestForsKey =
+        honestNode secretSeed publicSeed (layers - 1) 0 := by
+      have h := honestFold_eq secretSeed publicSeed (layers - 1) 0 tree.toNat honestForsKey
+      have htree : tree.toNat / 2 ^ (subtreeHeight * (layers - 1)) = 0 := by
+        apply Nat.div_eq_of_lt
+        have := tree.isLt
+        simpa only [show totalHeight - subtreeHeight = subtreeHeight * (layers - 1) from rfl] using this
+      rw [Nat.zero_add, htree] at h
+      exact h
+    rw [hfold, hroot]
+  exact rootFromSignature_fault_or_canonical secretSeed publicSeed pk.root layers 0 tree.toNat
+    leaf forsKey honestForsKey signature htop hexp
+
 end SlhDsaSecurity.Extraction.HypertreeChain

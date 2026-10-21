@@ -372,3 +372,9 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.HypertreeChain.rootFromSignature_fault_or_canonical
+
+/-- info: 'SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Extraction.HypertreeChain.verify_fault_or_fors_canonical
