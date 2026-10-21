@@ -399,6 +399,48 @@ theorem sum_tsum_comm {Index Result : Type} [DecidableEq Index] (nodes : Finset 
     rw [Finset.sum_insert hhead, ih, ← ENNReal.tsum_add]
     exact tsum_congr fun result => by rw [Finset.sum_insert hhead]
 
+
+set_option maxHeartbeats 1000000 in
+set_option maxRecDepth 1000000 in
+open scoped Classical in
+/-- **The weighted per-cell charges add to one unit per probe.** Stated for an abstract run and
+record, so the only thing it turns on is `sum_targets_length_le` under one measure and the
+exchange of the sum over cells with the expectation. -/
+theorem sum_weighted_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
+    ∑ index : CanonicalGraph.Node,
+        (∑' result, Pr[= result | run] *
+          ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  calc ∑ index : CanonicalGraph.Node,
+        (∑' result, Pr[= result | run] *
+          ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞)
+      = (∑' result, ∑ index : CanonicalGraph.Node, Pr[= result | run] *
+          ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        simp only [div_eq_mul_inv, ← Finset.sum_mul]
+        refine congrArg (fun total => total * (((2 ^ 128 : Nat) : ℝ≥0∞))⁻¹) ?_
+        exact sum_tsum_comm Finset.univ _
+    _ ≤ (∑' result, Pr[= result | run] * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        refine ENNReal.div_le_div_right (ENNReal.tsum_le_tsum fun result => ?_) _
+        rw [← Finset.mul_sum]
+        by_cases hmem : result ∈ support run
+        · refine mul_le_mul' le_rfl ?_
+          rw [← Nat.cast_sum]
+          refine Nat.cast_le.mpr (le_trans ?_ (hlimit result hmem))
+          exact sum_targets_length_le stakes unavailable (record result)
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+    _ ≤ (1 * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        refine ENNReal.div_le_div_right ?_ _
+        rw [ENNReal.tsum_mul_right]
+        exact mul_le_mul' tsum_probOutput_le_one le_rfl
+    _ = _ := by rw [one_mul]
+
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
 open scoped Classical in
