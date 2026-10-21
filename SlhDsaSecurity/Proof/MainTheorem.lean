@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.Assembly
 import SlhDsaSecurity.Statement.Security
+import SlhDsaSecurity.Proof.KeygenFresh
 
 /-!
 # The target, reduced to its two halves
@@ -56,5 +57,31 @@ theorem totalSecurityBits_of_halves
           (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
         add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
     _ = (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := Assembly.half_add_half q
+
+/-! ## The game with its cache kept
+
+`Security.runAll` discards the oracle cache: it is `run'`, which keeps only the value. Every
+charge in this development is stated about the run that keeps the cache, because the events it
+bounds — `GrowthCharge.Bad`, `StructuralTerm.DeviatingCollision` — are statements about cache
+entries.
+
+The two are the same experiment, so an event about the value alone has the same probability
+either way. `probEvent_runAll` is that, and it is what lets the three obligations of
+`totalSecurityBits_of_halves` be discharged against the charges rather than restated. -/
+
+/-- The cache-keeping form of the all-queries-counted run. -/
+noncomputable def runAllWithCache (adversary : Adversary) :
+    ProbComp ((Outcome × Nat) × QueryCache HashSpec) :=
+  (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run ∅
+
+/-- **An event about the value alone does not see the cache.** -/
+theorem probEvent_runAll (adversary : Adversary) (event : Outcome × Nat → Prop) :
+    Pr[event | runAll adversary] =
+      Pr[fun result => event result.1 | runAllWithCache adversary] := by
+  rw [runAll, XmssSecurity.RandomOracleModel.run, runAllWithCache,
+    show (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run' ∅ =
+      Prod.fst <$> (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run ∅
+      from rfl, probEvent_map]
+  rfl
 
 end SlhDsaSecurity.MainTheorem
