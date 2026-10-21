@@ -42,6 +42,7 @@ import SlhDsaSecurity.Proof.CanonicalTarget
 import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.FreshDigest
+import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -465,3 +466,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.Security.total_strong_implies_standard' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Security.total_strong_implies_standard
+
+/-- info: 'SlhDsaSecurity.GrowthBudget.growth_le_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GrowthBudget.growth_le_count
