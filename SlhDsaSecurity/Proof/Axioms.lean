@@ -3795,3 +3795,19 @@ info: 'SlhDsaSecurity.AdversaryQueries.mem_support_counted_bind_count' depends o
 /-- info: 'SlhDsaSecurity.CanonicalGraph.singleton_children_of_sensitive' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CanonicalGraph.singleton_children_of_sensitive
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.not_available_wotsPosition' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.not_available_wotsPosition
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.sensitive_of_child_wotsPosition' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.sensitive_of_child_wotsPosition
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.available_of_children_available' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.available_of_children_available
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.sensitive_of_not_available' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.sensitive_of_not_available

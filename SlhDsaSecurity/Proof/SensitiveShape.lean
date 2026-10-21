@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.CanonicalGraph.Children
+import SlhDsaSecurity.Proof.CanonicalGraph.Correspondence
 
 /-!
 # Why a sensitive query costs one unit and not several
@@ -152,5 +153,93 @@ theorem singleton_children_of_sensitive (hrevealed : ∀ key chain, revealed key
     exact absurd (available_of_alwaysAvailable revealed signed hrevealed (halways child hchild))
       hunavailable
   · exact hsingle
+
+/-! ## What a hypertree fault leaves unavailable
+
+The reduction of a hypertree fault ends with the forgery holding the chain value at some
+position strictly below the digit that key's honest message encodes — `WotsResidueReduction`
+names the key, the chain and the position, and `heldValue_eq_cell` identifies the value with
+the cell of `wotsPosition`. This says that cell is one the signatures do not make available,
+which is what puts the fault inside the charged event.
+
+Position zero is the PRF-derived secret, available only when the revealed digit is zero;
+position `p + 1` is `wotsHash` at step `p`, available only when the revealed digit is at most
+`p + 1`. Below the revealed digit, neither holds. -/
+
+/-- **A chain value below the revealed digit is unavailable.** -/
+theorem not_available_wotsPosition (key : WotsKey) (chain : Fin chains) (position : Fin w)
+    (hbelow : position.val < revealed key chain) :
+    ¬ Available revealed signed (.structural (wotsPosition key chain position)) := by
+  rw [wotsPosition]
+  split
+  · rename_i hzero
+    show ¬ revealed key chain = 0
+    omega
+  · rename_i hzero
+    show ¬ revealed key chain ≤ position.val - 1 + 1
+    omega
+
+/-- So the node whose cell it is, is sensitive — provided it is reached as a child, which is
+how the chain's own canonical inputs present it. -/
+theorem sensitive_of_child_wotsPosition (key : WotsKey) (chain : Fin chains) (position : Fin w)
+    (hbelow : position.val < revealed key chain) {parent : StructuralNode}
+    (hchild : Node.structural (wotsPosition key chain position) ∈ parent.children) :
+    Sensitive revealed signed parent :=
+  ⟨_, hchild, not_available_wotsPosition revealed signed key chain position hbelow⟩
+
+/-! ## Availability is closed under the structure
+
+A charge on sensitive queries is worth nothing without this, and the counterexample is short.
+Suppose some node `c` were *not* sensitive — every cell its canonical input mentions is
+available — and yet `c`'s own cell were unavailable. A run may query `c` outright, read its
+cell off the answer, and from then on form the canonical input of the node above `c` at will.
+That node is sensitive for the rest of the run, so a sensitive query happens with probability
+one and no per-query bound survives.
+
+So the charge needs availability *closed*: a node all of whose children are available has an
+available cell. In this graph it holds, and the proof is a case check — every node with an
+unavailable cell has an unavailable child. Reading it the other way round: the only way to
+reach a protected cell is through a sensitive query, which is what makes the charge the first
+place a run can get one. -/
+
+/-- **A node whose children are all available has an available cell.** -/
+theorem available_of_children_available {parent : StructuralNode}
+    (hchildren : ∀ child ∈ parent.children, Available revealed signed child) :
+    Available revealed signed (.structural parent) := by
+  cases parent with
+  | wotsPrf key chain =>
+    exact (hchildren .secretSeed (by rw [StructuralNode.children]; exact List.mem_singleton_self _)
+      : Available revealed signed .secretSeed).elim
+  | wotsHash key chain step =>
+    show revealed key chain ≤ step.val + 1
+    rw [StructuralNode.children] at hchildren
+    split at hchildren
+    · rename_i hzero
+      have := hchildren _ (List.mem_singleton_self _)
+      show revealed key chain ≤ step.val + 1
+      have hprf : revealed key chain = 0 := this
+      omega
+    · rename_i hzero
+      have := hchildren _ (List.mem_singleton_self _)
+      have hhash : revealed key chain ≤ step.val - 1 + 1 := this
+      omega
+  | wotsPk key => exact True.intro
+  | tree location height index => exact True.intro
+  | forsPrf key index =>
+    exact (hchildren .secretSeed (by rw [StructuralNode.children]; exact List.mem_singleton_self _)
+      : Available revealed signed .secretSeed).elim
+  | forsTree key height index => exact True.intro
+  | forsRoots key => exact True.intro
+
+/-- The contrapositive, which is the form the charge consumes: a protected cell is reached
+only through a sensitive query. -/
+theorem sensitive_of_not_available {parent : StructuralNode}
+    (hunavailable : ¬ Available revealed signed (.structural parent)) :
+    Sensitive revealed signed parent := by
+  by_contra hsensitive
+  rw [Sensitive] at hsensitive
+  push_neg at hsensitive
+  exact hunavailable (available_of_children_available revealed signed
+    fun child hchild => hsensitive child hchild)
 
 end SlhDsaSecurity.CanonicalGraph
