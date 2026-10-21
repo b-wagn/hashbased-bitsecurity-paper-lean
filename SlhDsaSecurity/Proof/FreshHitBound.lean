@@ -5,14 +5,21 @@ import VCVio.OracleComp.QueryTracking.QueryBound
 # Linear charge for hitting a fixed digest with a hash call
 
 A computation over the shared world makes free uniform-coin queries and charged hash
-queries. If its hash queries are bounded by `count`, and the starting cache holds no
-answer whose sixteen-byte truncation equals `target`, then the probability that the run
-ends with *any* cached answer truncating to `target` is at most `count / 2 ^ 128`.
+queries. Fix a target digest for every possible input, `targetOf : Bytes → Digest`. If the
+computation's hash queries are bounded by `count`, and the starting cache holds no answer
+truncating to its own input's target, then the probability that the run ends with any
+cached answer truncating to its own input's target is at most `count / 2 ^ 128`.
 
 Because the starting cache is clean, such an answer must have been installed during the
 run, so this is the union bound over cache misses: each miss draws a fresh uniform 30-byte
 answer whose truncation is uniform on 128 bits, costing `2 ^ -128`. The bound is linear in
 the query count rather than quadratic, which is what the target `q / 2 ^ 127` requires.
+
+Crucially the charge does not grow with the number of honest values. A cache miss at
+`input` can only match `targetOf input`, so an arbitrarily large table of honest node
+values — all the FORS leaves and Merkle nodes revealed by up to `2 ^ 64` signatures —
+costs the same `count / 2 ^ 128` as a single target would. A union bound over that table
+instead of over the queries would be far too lossy.
 
 Uniform-coin queries are free: they never touch the cache and never consume budget.
 -/
@@ -28,18 +35,23 @@ def HashQuery : OracleWorld.Domain → Prop := fun query => query.isRight = true
 
 instance : DecidablePred HashQuery := fun _ => inferInstanceAs (Decidable (_ = _))
 
-/-- The final cache holds an answer truncating to `target`. -/
-def Hit {α : Type} (target : Digest) : α × QueryCache HashSpec → Prop := fun result =>
-  ∃ input output, result.2 input = some output ∧ Hashing.truncate output = target
+/-- The final cache holds an answer truncating to the target of its own input.
 
-/-- A cache holding no answer that truncates to `target`. -/
-def Clean (target : Digest) (cache : QueryCache HashSpec) : Prop :=
-  ∀ input output, cache input = some output → Hashing.truncate output ≠ target
+The target may differ from input to input, so a single charge covers an arbitrarily large
+table of honest values: each cache miss can only match the one target belonging to the
+input being queried. This is what keeps the bound linear in the query count instead of
+multiplying by the number of honest values. -/
+def Hit {α : Type} (targetOf : Bytes → Digest) : α × QueryCache HashSpec → Prop := fun result =>
+  ∃ input output, result.2 input = some output ∧ Hashing.truncate output = targetOf input
 
-theorem Clean.cacheQuery {target : Digest} {cache : QueryCache HashSpec}
-    (hclean : Clean target cache) {input : Bytes} {output : HashOutput}
-    (hmiss : Hashing.truncate output ≠ target) :
-    Clean target (cache.cacheQuery input output) := by
+/-- A cache holding no answer that truncates to its own input's target. -/
+def Clean (targetOf : Bytes → Digest) (cache : QueryCache HashSpec) : Prop :=
+  ∀ input output, cache input = some output → Hashing.truncate output ≠ targetOf input
+
+theorem Clean.cacheQuery {targetOf : Bytes → Digest} {cache : QueryCache HashSpec}
+    (hclean : Clean targetOf cache) {input : Bytes} {output : HashOutput}
+    (hmiss : Hashing.truncate output ≠ targetOf input) :
+    Clean targetOf (cache.cacheQuery input output) := by
   intro queried answer hanswer
   by_cases heq : queried = input
   · subst heq
@@ -65,11 +77,12 @@ theorem prob_truncate_eq (target : Digest) :
 
 set_option maxHeartbeats 1000000 in
 /-- The linear union bound over charged cache misses. -/
-theorem prob_hit_le {α : Type} (computation : OracleComp OracleWorld α) (target : Digest)
+theorem prob_hit_le {α : Type} (computation : OracleComp OracleWorld α)
+    (targetOf : Bytes → Digest)
     (count : Nat) (initialCache : QueryCache HashSpec)
     (hbound : computation.IsQueryBoundP HashQuery count)
-    (hclean : Clean target initialCache) :
-    Pr[Hit target | (simulateQ KeygenUniform.rom computation).run initialCache] ≤
+    (hclean : Clean targetOf initialCache) :
+    Pr[Hit targetOf | (simulateQ KeygenUniform.rom computation).run initialCache] ≤
       count / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   induction computation using OracleComp.inductionOn generalizing count initialCache with
   | pure value =>
@@ -96,7 +109,7 @@ theorem prob_hit_le {α : Type} (computation : OracleComp OracleWorld α) (targe
         obtain ⟨coinValue, rfl⟩ := hform
         rfl
       calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *
-            Pr[Hit target | (simulateQ KeygenUniform.rom (next step.1)).run step.2]
+            Pr[Hit targetOf | (simulateQ KeygenUniform.rom (next step.1)).run step.2]
           ≤ ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *
               (count / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
             refine ENNReal.tsum_le_tsum fun step => ?_
@@ -143,32 +156,32 @@ theorem prob_hit_le {α : Type} (computation : OracleComp OracleWorld α) (targe
           rw [QueryImpl.withCaching_run_none _ hcached]
           simp [uniformSampleImpl]
         rw [hrun]
-        show Pr[Hit target | (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
+        show Pr[Hit targetOf | (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
           (simulateQ KeygenUniform.rom (next answer)).run
             (initialCache.cacheQuery input answer))] ≤ _
         rw [probEvent_bind_eq_tsum]
         -- Each answer either truncates to the target, costing at most one, or leaves a
         -- clean cache, where the remaining budget applies.
         have hpointwise : ∀ answer : HashOutput,
-            Pr[Hit target | (simulateQ KeygenUniform.rom (next answer)).run
+            Pr[Hit targetOf | (simulateQ KeygenUniform.rom (next answer)).run
                 (initialCache.cacheQuery input answer)] ≤
-              (if Hashing.truncate answer = target then 1 else 0) +
+              (if Hashing.truncate answer = targetOf input then 1 else 0) +
                 ((count - 1 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
           intro answer
-          by_cases htrunc : Hashing.truncate answer = target
+          by_cases htrunc : Hashing.truncate answer = targetOf input
           · rw [if_pos htrunc]
             exact le_add_right probEvent_le_one
           · rw [if_neg htrunc, zero_add]
             exact ih answer (count - 1) (initialCache.cacheQuery input answer)
               (hrest' answer) (hclean.cacheQuery htrunc)
         calc ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
-              Pr[Hit target | (simulateQ KeygenUniform.rom (next answer)).run
+              Pr[Hit targetOf | (simulateQ KeygenUniform.rom (next answer)).run
                 (initialCache.cacheQuery input answer)]
             ≤ ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
-                ((if Hashing.truncate answer = target then 1 else 0) +
+                ((if Hashing.truncate answer = targetOf input then 1 else 0) +
                   ((count - 1 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
               ENNReal.tsum_le_tsum fun answer => mul_le_mul' le_rfl (hpointwise answer)
-          _ = (∑' answer : HashOutput, (if Hashing.truncate answer = target then
+          _ = (∑' answer : HashOutput, (if Hashing.truncate answer = targetOf input then
                   Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] else 0)) +
                 (∑' answer : HashOutput,
                     Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)]) *
@@ -176,13 +189,13 @@ theorem prob_hit_le {α : Type} (computation : OracleComp OracleWorld α) (targe
               rw [← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
               refine tsum_congr fun answer => ?_
               rw [mul_add]
-              by_cases htrunc : Hashing.truncate answer = target <;> simp [htrunc]
+              by_cases htrunc : Hashing.truncate answer = targetOf input <;> simp [htrunc]
           _ ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) +
                 1 * (((count - 1 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
               refine add_le_add (le_of_eq ?_)
                 (mul_le_mul' tsum_probOutput_le_one le_rfl)
               rw [← probEvent_eq_tsum_ite]
-              exact prob_truncate_eq target
+              exact prob_truncate_eq (targetOf input)
           _ = (count : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
               rw [one_mul, ENNReal.div_add_div_same]
               congr 1
@@ -190,5 +203,16 @@ theorem prob_hit_le {α : Type} (computation : OracleComp OracleWorld α) (targe
               calc (1 : ℝ≥0∞) + ((count - 1 : Nat) : ℝ≥0∞)
                   = ((1 + (count - 1) : Nat) : ℝ≥0∞) := by push_cast; ring
                 _ = (count : ℝ≥0∞) := by rw [hnat]
+
+/-- The constant-target case: one honest value fixed before the run. -/
+theorem prob_hit_const_le {α : Type} (computation : OracleComp OracleWorld α) (target : Digest)
+    (count : Nat) (initialCache : QueryCache HashSpec)
+    (hbound : computation.IsQueryBoundP HashQuery count)
+    (hclean : ∀ input output, initialCache input = some output →
+      Hashing.truncate output ≠ target) :
+    Pr[Hit (fun _ => target) |
+      (simulateQ KeygenUniform.rom computation).run initialCache] ≤
+      count / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_hit_le computation (fun _ => target) count initialCache hbound hclean
 
 end SlhDsaSecurity.FreshHitBound
