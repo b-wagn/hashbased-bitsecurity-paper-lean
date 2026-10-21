@@ -494,3 +494,44 @@ This invariant is the remaining content of `hcap`. It is a genuine probabilistic
 the shared oracle, not an instantiation of the existing fresh-sampling results, and it is
 what `ROMPresampling` would have to be extended to provide.
 
+## A regime limit in the FORS route, and why `pinned` cannot be the signed set
+
+The oracle-to-tape chain is complete: `GrowthCharge.cache_value_persists` and
+`prob_cache_values_le` give the partial-random-function invariant,
+`prob_cache_values_mem_le'` sums it over a bad set with a `Fintype` index,
+`FreshDigest.viewAssignment_uniform` pushes forward to parsed views, and
+`prob_view_event_le` / `prob_tape_event_le` land on a uniform
+`ForsDisclosureTape.Tape pinned.card`, which is the exact form of
+`bad_load_probability_sharper` and `ForsLeaveOneOut.independent_tape_coverage_le_sharper`.
+
+Instantiating it at the experiment is **not** mere bookkeeping, for two linked reasons.
+
+*`pinned` is fixed in advance; the signed set is adaptive.* Worse than a technicality: the
+adversary can deliberately break the load cap. Prequerying digests is charged but allowed, so
+it may query many messages, observe their instances, and then sign only messages sharing an
+instance. Violating the `2 ^ 102` cap needs a single instance of load `157`, which takes about
+`157 · 2 ^ 63 ≈ 2 ^ 70.3` digest queries to collect. So for `q` beyond roughly `2 ^ 70` the
+signed-digest tape is **not** iid uniform and `Pr[cap violated]` is not `2 ^ -126`; it tends to
+one. The signed set therefore cannot be used as `pinned`.
+
+*The leave-one-out machinery avoids this by capping the full tape, which bounds `q`.*
+`ForsLeaveOneOut.independent_tape_coverage_le_sharper` puts the cap on the whole iid tape and
+charges the adaptive *selection* separately through the policy, which is the right structure.
+But its hypothesis is `trials ≤ 5 * 2 ^ 62 = 2 ^ 64.32`, and under all-queries counting the
+tape must cover every digest query, so the route needs `q ≲ 2 ^ 64.32`. Note `2 ^ 64 ≤ 5 * 2 ^ 62`,
+so the signing limit alone is fine; it is the *charged* digest queries that bind.
+
+Beyond that the cap itself fails for a structural reason, not a proof gap: with `T` digest
+queries the typical potential is about `2 ^ 63 · (T / 2 ^ 63) ^ 14`, which passes `2 ^ 102`
+once `T ≳ 2 ^ 65.8`.
+
+So the current FORS route proves the bound only for `q ≤ 5 * 2 ^ 62`. The target is a
+statement for **every** `q ≥ 1`, so a second argument is needed for `q > 5 * 2 ^ 62`. That
+regime is not hopeless — the target `q / 2 ^ 127` is correspondingly weaker there — but it
+needs a `q`-dependent load cap with a coverage coefficient adjusted to match, replacing the
+fixed `2 ^ 102` / `2 ^ -129` pair. `ForsConcentrationExtended` already reaches `5 * 2 ^ 62`,
+which is the present ceiling.
+
+This is a scope limit of the plan recorded in the tightness budget above, which assumed a
+fixed additive `2 ^ -126` available at every `q`.
+
