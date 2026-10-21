@@ -42,6 +42,45 @@ theorem fresh_hash_uniform (input : Bytes) (cache : QueryCache HashSpec)
   rw [StateT.run'_eq, randomOracle, QueryImpl.withCaching_run_none _ hfresh]
   simp [uniformSampleImpl, Functor.map_map]
 
+/-- An uncached short call answers uniformly on its sixteen retained bytes. This is
+`KeygenUniform.fresh_tweakable_uniform` with the input left arbitrary, so it covers the
+`PRF_msg` format as well as the tweakable ones. -/
+theorem fresh_shortHash_uniform (input : Bytes) (cache : QueryCache HashSpec)
+    (hfresh : cache input = none) :
+    𝒟[(simulateQ KeygenUniform.rom
+        (Hashing.shortHash input : OracleComp OracleWorld Digest)).run' cache] =
+      𝒟[($ᵗ Digest : ProbComp Digest)] := by
+  have hrun : (simulateQ KeygenUniform.rom
+      (Hashing.shortHash input : OracleComp OracleWorld Digest)).run' cache =
+      Hashing.truncate <$> ($ᵗ HashOutput : ProbComp HashOutput) := by
+    unfold Hashing.shortHash Hashing.hash
+    simp only [simulateQ_bind, simulateQ_pure, StateT.run'_eq, StateT.run_bind,
+      StateT.run_pure]
+    rw [show simulateQ KeygenUniform.rom (query (spec := HashSpec)
+        (m := OracleComp OracleWorld) input) =
+      randomOracle input from roSim.simulateQ_HasQuery_query randomOracle _]
+    change Prod.fst <$> ((randomOracle input).run cache >>=
+      fun result => pure (Hashing.truncate result.1, result.2)) = _
+    rw [randomOracle, QueryImpl.withCaching_run_none _ hfresh]
+    simp [uniformSampleImpl, Functor.map_map]
+  rw [hrun]
+  exact KeygenUniform.truncate_uniform
+
+/-- The signer's randomizer is a uniform sixteen-byte value whenever its specified
+`PRF_msg` byte input is absent from the cache. This is the hypothesis under which the
+`H_msg` input that the signer goes on to query is unpredictable to the adversary; the
+`FramingLeak` overlap is exactly the situation in which this hypothesis can fail, because
+there the `PRF_msg` input coincides with an `H_msg` input the adversary may already have
+queried. -/
+theorem fresh_randomizer_uniform (prf seed : Digest) (message : Bytes)
+    (cache : QueryCache HashSpec)
+    (hfresh : cache (Hashing.randomizerInput prf seed message) = none) :
+    𝒟[(simulateQ KeygenUniform.rom
+        (Hashing.randomizer prf seed message : OracleComp OracleWorld Digest)).run' cache] =
+      𝒟[($ᵗ Digest : ProbComp Digest)] := by
+  unfold Hashing.randomizer
+  exact fresh_shortHash_uniform _ cache hfresh
+
 /-- A fresh `H_msg` call has a uniform parsed FORS view: the 63-bit instance and all
 fourteen 12-bit leaf indices are jointly uniform and independent. -/
 theorem fresh_messageDigest_parse_uniform (randomizer : Digest) (pk : PublicKey)

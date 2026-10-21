@@ -451,3 +451,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshDigest.fresh_messageDigest_parse_uniform
+
+/-- info: 'SlhDsaSecurity.FreshDigest.fresh_randomizer_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshDigest.fresh_randomizer_uniform
