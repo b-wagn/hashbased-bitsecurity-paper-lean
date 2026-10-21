@@ -354,4 +354,25 @@ theorem queriesUnder_foldlM_get {ι : Type} (cache : QueryCache HashSpec)
       have hrest : k < rest.length := by simpa using hk
       simpa [replayFold] using ih (Hashing.truncate (replay cache (inputOf init x))) k hrest
 
+/-- `replayFold` is an ordinary left fold, which is the vocabulary the extraction speaks:
+`Extraction.BinaryPath.value_eq_fold` identifies exactly such a fold with
+`Extraction.BinaryPath.value`, so the running value `queriesUnder_foldlM_get` names is the one
+the collision is stated about. -/
+theorem replayFold_eq_foldl {ι : Type} (cache : QueryCache HashSpec)
+    (inputOf : Digest → ι → Bytes) (xs : List ι) (init : Digest) :
+    replayFold cache inputOf xs init =
+      xs.foldl (fun value x => Hashing.truncate (replay cache (inputOf value x))) init := by
+  induction xs generalizing init with
+  | nil => rfl
+  | cons x rest ih => exact ih _
+
+/-- The step `replayFold` takes is a tweakable call answered from the cache — the form
+`Extraction.BinaryPath.value`'s `combine` has when the extraction is instantiated at
+`replayQuery`. -/
+theorem replayFold_step_eq_tweakable (cache : QueryCache HashSpec) (publicSeed : Digest)
+    (address : Address) (payload : Bytes) :
+    Hashing.truncate (replay cache (Hashing.tweakableInput publicSeed address payload)) =
+      @Hashing.tweakable Id _ (replayQuery cache) publicSeed address payload := by
+  simp [Hashing.tweakable, Hashing.shortHash, Hashing.hash, replayQuery, replay, Functor.map]
+
 end SlhDsaSecurity.CacheReplay
