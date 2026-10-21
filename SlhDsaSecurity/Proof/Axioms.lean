@@ -4138,3 +4138,23 @@ info: 'SlhDsaSecurity.GraphStakes.forsSecret_signed_or_not_obtainable' depends o
 /-- info: 'SlhDsaSecurity.HonestGrowth.growth_le_count_sub_pow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestGrowth.growth_le_count_sub_pow
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitive_inputOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitive_inputOf
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitive_wotsClaim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitive_wotsClaim
+
+/-- info: 'SlhDsaSecurity.GraphStakes.sensitive_forsClaim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.sensitive_forsClaim
+
+/-- info: 'SlhDsaSecurity.GraphStakes.claimedCount' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.claimedCount
+
+/-- info: 'SlhDsaSecurity.GraphStakes.length_claimedCandidates' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.length_claimedCandidates

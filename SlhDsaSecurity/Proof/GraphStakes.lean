@@ -271,4 +271,93 @@ theorem forsSecret_signed_or_not_obtainable (cache : QueryCache HashSpec)
   · exact Or.inl hsigned
   · exact Or.inr (not_obtainable_forsPrf revealed signedAt state key _ hsigned)
 
+/-! ## The forgery's own claimed cells, as candidates
+
+Nothing turns a run's transcript into `Obtainable`, and nothing needs to. A forgery that claims
+a value for a cell contributes a candidate of its own: `inputOf node value`, which by `inputOf`'s
+injectivity in the cell is the node's canonical input exactly when the claimed value is the one
+the table gives. So "the forgery holds the unavailable cell" is the same event as "this
+candidate is sensitive", and recording the claims alongside the queries charges both at once.
+
+The two shapes of claim are a chain value and a FORS secret, and the nodes above them have
+exactly one child whether or not they are sensitive — a chain step's child is the position below
+it, a FORS leaf's child is its secret — so the candidates are built unconditionally. -/
+
+/-- The chain-step node above a chain position, which always has exactly one child. -/
+def wotsHashNode (key : WotsKey) (chain : Fin chains) (step : Fin (w - 1)) : SensitiveNode :=
+  ⟨.wotsHash key chain step,
+    .structural (wotsPosition key chain ⟨step.val, by have := step.isLt; omega⟩),
+    by by_cases hzero : step.val = 0 <;>
+      simp [StructuralNode.children, wotsPosition, hzero]⟩
+
+/-- The FORS leaf node above a FORS secret, which always has exactly one child. -/
+def forsLeafNode (key : ForsKey) (index : Fin (forsTrees * 2 ^ forsHeight)) : SensitiveNode :=
+  ⟨.forsTree key ⟨0, by omega⟩ ⟨index.val, by simp [index.isLt]⟩,
+    .structural (.forsPrf key index), by
+      rw [StructuralNode.children, dif_pos rfl]⟩
+
+omit [HasQuery HashSpec Id] in
+/-- **A claim at an unavailable cell is a sensitive candidate.** -/
+theorem sensitive_inputOf (node : SensitiveNode) (table : Cells) (state : State) (value : Cell)
+    (hunavailable : unavailableAt revealed signedAt state node.child)
+    (hvalue : value = table node.child) :
+    SensitiveQuery.Sensitive (stakes publicSeed) (unavailableAt revealed signedAt) table state
+      (inputOf publicSeed node value) :=
+  ⟨node, hunavailable, by rw [hvalue]; rfl⟩
+
+omit [HasQuery HashSpec Id] in
+/-- **A chain value the forgery claims below the revealed digit is a sensitive candidate.** -/
+theorem sensitive_wotsClaim (table : Cells) (state : State) (key : WotsKey)
+    (chain : Fin chains) (step : Fin (w - 1)) (value : Cell)
+    (hbelow : step.val < revealed key chain)
+    (hvalue : value = table (.structural (wotsPosition key chain
+      ⟨step.val, by have := step.isLt; omega⟩))) :
+    SensitiveQuery.Sensitive (stakes publicSeed) (unavailableAt revealed signedAt) table state
+      (inputOf publicSeed (wotsHashNode key chain step) value) :=
+  sensitive_inputOf publicSeed revealed signedAt _ table state value
+    (not_available_wotsPosition revealed (signedAt state) key chain _ hbelow) hvalue
+
+omit [HasQuery HashSpec Id] in
+/-- **A FORS secret the forgery claims at an unsigned position is a sensitive candidate.** -/
+theorem sensitive_forsClaim (table : Cells) (state : State) (key : ForsKey)
+    (index : Fin (forsTrees * 2 ^ forsHeight)) (value : Cell)
+    (hunsigned : index ∉ signedAt state key)
+    (hvalue : value = table (.structural (.forsPrf key index))) :
+    SensitiveQuery.Sensitive (stakes publicSeed) (unavailableAt revealed signedAt) table state
+      (inputOf publicSeed (forsLeafNode key index) value) :=
+  sensitive_inputOf publicSeed revealed signedAt _ table state value hunsigned hvalue
+
+/-! ## The record the charge takes
+
+One candidate per claimed cell: the fourteen FORS secrets the signature reveals, and one WOTS
+value per layer and chain. The position each WOTS value sits at is the digit that layer's
+message encodes, which the residue reduction supplies; it is a parameter here so that the list
+is a function of the forgery alone. Its length is a constant — `forsTrees + layers * chains`,
+which is `259` — not a function of the budget, which is what makes it affordable. -/
+
+/-- One candidate per cell the forgery claims. -/
+def claimedCandidates (forsKey : ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
+    (signature : Signature) (keyAt : Fin layers → WotsKey)
+    (stepAt : Fin layers → Fin chains → Fin (w - 1)) : List Bytes :=
+  (List.finRange forsTrees).map (fun tree =>
+      inputOf publicSeed (forsLeafNode forsKey (forsIndex indices tree))
+        (signature.fors tree).secret) ++
+    (List.finRange layers).flatMap fun layer =>
+      (List.finRange chains).map fun chain =>
+        inputOf publicSeed (wotsHashNode (keyAt layer) chain (stepAt layer chain))
+          ((signature.hypertree layer).wots chain)
+
+omit [HasQuery HashSpec Id] in
+/-- The constant, counted rather than estimated. -/
+theorem claimedCount : forsTrees + layers * chains = 259 := by decide
+
+omit [HasQuery HashSpec Id] in
+/-- **The record's length is a constant.** -/
+theorem length_claimedCandidates (forsKey : ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
+    (signature : Signature) (keyAt : Fin layers → WotsKey)
+    (stepAt : Fin layers → Fin chains → Fin (w - 1)) :
+    (claimedCandidates publicSeed forsKey indices signature keyAt stepAt).length =
+      forsTrees + layers * chains := by
+  simp [claimedCandidates, List.length_flatMap]
+
 end SlhDsaSecurity.GraphStakes
