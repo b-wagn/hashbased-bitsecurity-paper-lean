@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.WarmedSplit
+import SlhDsaSecurity.Proof.FaultCharge
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.CachedRun
 import SlhDsaSecurity.Proof.Parameters
@@ -2915,3 +2916,67 @@ info: 'SlhDsaSecurity.WarmedSplit.keygenInternal_eq_replay_of_subset' depends on
 /-- info: 'SlhDsaSecurity.WarmedSplit.cases_of_win' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WarmedSplit.cases_of_win
+
+/-- info: 'SlhDsaSecurity.FaultCharge.queriesUnder_pathInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.queriesUnder_pathInput
+
+/-- info: 'SlhDsaSecurity.FaultCharge.merkle_eq_wots_bind_fold' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.merkle_eq_wots_bind_fold
+
+/-- info: 'SlhDsaSecurity.FaultCharge.replay_agrees' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.replay_agrees
+
+/-- info: 'SlhDsaSecurity.FaultCharge.queriesUnder_sequenceFin' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.queriesUnder_sequenceFin
+
+/-- info: 'SlhDsaSecurity.FaultCharge.simulateQ_endpoints' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.simulateQ_endpoints
+
+/-- info: 'SlhDsaSecurity.FaultCharge.queriesUnder_wots_compression' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.queriesUnder_wots_compression
+
+/-- info: 'SlhDsaSecurity.FaultCharge.queriesUnder_wots_chain' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.queriesUnder_wots_chain
+
+/-- info: 'SlhDsaSecurity.FaultCharge.queriesUnder_merkle_wots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.queriesUnder_merkle_wots
+
+/-- info: 'SlhDsaSecurity.FaultCharge.queriesUnder_merkle_path' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.queriesUnder_merkle_path
+
+/-- info: 'SlhDsaSecurity.FaultCharge.endpoints_sign_eq_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.endpoints_sign_eq_cells
+
+/--
+info: 'SlhDsaSecurity.FaultCharge.deviatingCollision_of_layerCollision' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.deviatingCollision_of_layerCollision
+
+/--
+info: 'SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_fault' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_fault
+
+/--
+info: 'SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_top_fault' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FaultCharge.deviatingCollision_or_residue_of_top_fault
