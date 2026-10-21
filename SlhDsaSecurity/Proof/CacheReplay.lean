@@ -392,4 +392,33 @@ theorem foldl_finRange_take {α : Type} (n k : Nat) (hk : k ≤ n) (step : α �
     List.map_coe_finRange_eq_range, List.map_coe_finRange_eq_range, List.take_range,
     Nat.min_eq_left hk]
 
+/-! ## Reaching a call that comes after a prefix
+
+`queriesUnder_bind` goes into a bind's prefix. The two compression nodes sit the other way
+round: their hash is the last call, after the chains or the trees have been computed. Reaching
+it needs the opposite direction — what the continuation consults once the prefix has run, the
+whole bind consults — and the prefix's result under replay is exactly `simulateQ (replay cache)`
+applied to it, which is what `run_eq_replay` identifies with the oracle run's result.
+
+So this closes the remaining direction, and with it any call in a hash-only computation is
+reachable: `queriesUnder_bind` to descend into a prefix, this to step over one. -/
+
+theorem queriesUnder_bind_right {α β : Type} (cache : QueryCache HashSpec)
+    (computation : OracleComp HashSpec α) (next : α → OracleComp HashSpec β) (probe : Bytes)
+    (hquery : QueriesUnder cache (next (simulateQ (replay cache) computation)) probe) :
+    QueriesUnder cache (computation >>= next) probe := by
+  induction computation using OracleComp.inductionOn generalizing probe with
+  | pure value =>
+    rw [pure_bind]
+    rwa [simulateQ_pure] at hquery
+  | query_bind input continuation ih =>
+    rw [show (liftM (HashSpec.query input) : OracleComp HashSpec HashOutput) >>= continuation =
+        query (spec := HashSpec) input >>= continuation from rfl, bind_assoc]
+    refine QueriesUnder.tail input probe _ (ih (replay cache input) probe ?_)
+    rw [show simulateQ (replay cache)
+        ((liftM (HashSpec.query input) : OracleComp HashSpec HashOutput) >>= continuation) =
+          simulateQ (replay cache) (continuation (replay cache input)) from by
+      rw [simulateQ_bind, simulateQ_spec_query]; rfl] at hquery
+    exact hquery
+
 end SlhDsaSecurity.CacheReplay
