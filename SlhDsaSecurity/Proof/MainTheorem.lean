@@ -36,28 +36,6 @@ namespace SlhDsaSecurity.MainTheorem
 
 open Security
 
-/-- **The target follows from the two halves.** -/
-theorem totalSecurityBits_of_halves
-    (answerBad inputBad : Outcome × Nat → Prop)
-    (hsplit : ∀ (adversary : Adversary), ∀ result ∈ support (runAll adversary),
-      Wins .strong result.1 → answerBad result ∨ inputBad result)
-    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[answerBad | runAll adversary] ≤ (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[inputBad | runAll adversary] ≤ (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    HasTotalSecurityBits .strong 127 := by
-  intro q hq adversary hbudget
-  rw [totalAdvantage]
-  calc Pr[fun result => Wins .strong result.1 | runAll adversary]
-      ≤ Pr[fun result => answerBad result ∨ inputBad result | runAll adversary] :=
-        probEvent_mono (fun result hmem hwin => hsplit adversary result hmem hwin)
-    _ ≤ Pr[answerBad | runAll adversary] + Pr[inputBad | runAll adversary] :=
-        probEvent_or_le _ _ _
-    _ ≤ (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-        add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
-    _ = (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := Assembly.half_add_half q
-
 /-! ## The game with its cache kept
 
 `Security.runAll` discards the oracle cache: it is `run'`, which keeps only the value. Every
@@ -79,5 +57,33 @@ theorem probEvent_runAll (adversary : Adversary) (event : Outcome × Nat → Pro
       Prod.fst <$> (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run ∅
       from rfl, probEvent_map]
   rfl
+
+/-- **The target follows from the two halves.** -/
+theorem totalSecurityBits_of_halves
+    (answerBad inputBad : (Outcome × Nat) × QueryCache HashSpec → Prop)
+    (hsplit : ∀ (adversary : Adversary),
+      ∀ result ∈ support (WholeGameStructural.instrumentedRun adversary),
+      Wins .strong result.1.1 → answerBad result ∨ inputBad result)
+    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[answerBad | WholeGameStructural.instrumentedRun adversary] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[inputBad | WholeGameStructural.instrumentedRun adversary] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    HasTotalSecurityBits .strong 127 := by
+  intro q hq adversary hbudget
+  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1)]
+  calc Pr[fun result : (Outcome × Nat) × QueryCache HashSpec => Wins .strong result.1.1 |
+        WholeGameStructural.instrumentedRun adversary]
+      ≤ Pr[fun result => answerBad result ∨ inputBad result |
+          WholeGameStructural.instrumentedRun adversary] :=
+        probEvent_mono (fun result hmem hwin => hsplit adversary result hmem hwin)
+    _ ≤ Pr[answerBad | WholeGameStructural.instrumentedRun adversary] +
+          Pr[inputBad | WholeGameStructural.instrumentedRun adversary] :=
+        probEvent_or_le _ _ _
+    _ ≤ (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
+    _ = (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := Assembly.half_add_half q
 
 end SlhDsaSecurity.MainTheorem

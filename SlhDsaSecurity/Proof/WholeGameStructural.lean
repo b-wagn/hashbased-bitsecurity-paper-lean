@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.GrowthBudget
+import SlhDsaSecurity.Proof.CombinedCharge
 
 /-!
 # The structural term for the whole game
@@ -68,5 +69,38 @@ theorem prob_deviatingCollision_whole_game_le (adversary : Adversary) (q : Nat)
   exact GrowthBudget.GrowthAtMost.mono
     (GrowthBudget.growth_le_count (experiment adversary) ∅ result hmem)
     (count_le_of_budget hbudget hmem)
+
+/-! ## The answer side of the budget, for the whole game
+
+The structural term above charges one of the two answer-side avenues. The other is FORS
+coverage, and `CombinedCharge` charges them together — as one predicate, so their rate is the
+maximum `2 ^ -128` rather than the sum, which is what keeps the answer side inside half the
+target.
+
+`prob_combinedBad_whole_game_le` is that charge at the whole game, discharging the growth
+budget from `HasTotalBudget` exactly as the structural term does. It is the `hanswer`
+obligation of `MainTheorem.totalSecurityBits_of_halves`, for the cells and disclosures that
+the experiment's key generation and signing produce. -/
+
+/-- **The answer side for the whole game.** -/
+theorem prob_combinedBad_whole_game_le (adversary : Adversary) (q : Nat)
+    (publicSeed : Digest) (pk : PublicKey) (cells : Cells)
+    (revealed : ForsCoverage.Disclosures) (loads : ForsCoverage.Instance → Nat)
+    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
+    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102)
+    (hseparated : ∀ input, CombinedCharge.IsMessageInput pk input →
+      CanonicalTarget.canonicalTarget publicSeed cells input = none)
+    (hbudget : HasTotalBudget adversary q) :
+    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        GrowthCharge.Bad (CombinedCharge.CombinedBad publicSeed pk cells revealed) result |
+      instrumentedRun adversary] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_trans (probEvent_mono ?_)
+    (CombinedCharge.prob_combinedBad_within_le (countAllHashes (experiment adversary))
+      publicSeed pk cells revealed loads hload hmoment hseparated q ∅
+      (by intro input output hentry; exact absurd hentry (by simp)))
+  intro result hmem hbad
+  exact ⟨hbad, GrowthBudget.GrowthAtMost.mono
+    (GrowthBudget.growth_le_count (experiment adversary) ∅ result hmem)
+    (count_le_of_budget hbudget hmem)⟩
 
 end SlhDsaSecurity.WholeGameStructural

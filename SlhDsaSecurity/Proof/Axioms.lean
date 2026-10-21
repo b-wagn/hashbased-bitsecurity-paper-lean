@@ -2588,3 +2588,11 @@ info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends 
 /-- info: 'SlhDsaSecurity.MainTheorem.probEvent_runAll' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.MainTheorem.probEvent_runAll
+
+/--
+info: 'SlhDsaSecurity.WholeGameStructural.prob_combinedBad_whole_game_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WholeGameStructural.prob_combinedBad_whole_game_le
