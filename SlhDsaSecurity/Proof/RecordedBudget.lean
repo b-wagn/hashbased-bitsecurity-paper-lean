@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.HonestGrowth
 import SlhDsaSecurity.Proof.GraphStakes
+import SlhDsaSecurity.Proof.ClaimedProbes
 
 /-!
 # The budget, carried to the recorded game
@@ -124,6 +125,22 @@ theorem work_add_pow_le_of_budget_tail {adversary : Adversary} {q : Nat}
   have htotal := WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult
   omega
 
+/-- The same at the stripped game, which is where a presentation with a table in its state runs:
+the recording is one more layer on top, and the work the outcome reports is the same either
+way. -/
+theorem work_add_pow_le_of_budget_stripped {adversary : Adversary} {q : Nat}
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : Outcome × QueryCache HashSpec}
+    (hresult : result ∈ support ((simulateQ KeygenUniform.rom
+      (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run walk.2)) :
+    result.1.counts.work + 2 ^ subtreeHeight ≤ q := by
+  rw [Averaging.support_eq_of_evalDist_eq (StrippedGame.evalDist_run_strippedAfterSeeds
+    adversary walk.1.1 walk.2 walk.2 (StrippedGame.Extends.refl walk.2))] at hresult
+  obtain ⟨count, hcounted⟩ := mem_support_countAllHashes _ walk.2 result hresult
+  exact work_add_pow_le_of_budget_tail hbudget hwalk hcounted
+
 /-- The same at the recorded game. -/
 theorem work_add_pow_le_of_budget_recorded {adversary : Adversary} {q : Nat}
     (hbudget : HasTotalBudget adversary q)
@@ -137,11 +154,7 @@ theorem work_add_pow_le_of_budget_recorded {adversary : Adversary} {q : Nat}
       (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run walk.2) := by
     rw [← RecordedQueries.map_recordedAfterSeeds, simulateQ_map, StateT.run_map, support_map]
     exact ⟨result, hresult, rfl⟩
-  rw [Averaging.support_eq_of_evalDist_eq (StrippedGame.evalDist_run_strippedAfterSeeds
-    adversary walk.1.1 walk.2 walk.2 (StrippedGame.Extends.refl walk.2))] at hstripped
-  obtain ⟨count, hcounted⟩ :=
-    mem_support_countAllHashes _ walk.2 (result.1.1, result.2) hstripped
-  exact work_add_pow_le_of_budget_tail hbudget hwalk hcounted
+  exact work_add_pow_le_of_budget_stripped hbudget hwalk hstripped
 
 /-- **The record, with the forgery's claimed cells appended, fits the budget.** The queries cost
 the work the game charged, which the budget bounds by `q` less key generation's spend; the claims
@@ -170,7 +183,9 @@ theorem card_toFinset_append_le_of_budget {adversary : Adversary} {q : Nat}
         exact claimed.toFinset_card_le
 
 /-- **The record at the forgery's own claimed cells, in numbers.** Two hundred and fifty-nine
-claims against the five hundred and twelve key generation puts back. -/
+claims against the five hundred and twelve key generation puts back. The claims are not a
+parameter: the signature is parsed from the forgery and the digest replayed against the cache
+the run ends with, so the list is a function of the run's own result. -/
 theorem card_toFinset_claimed_le_of_budget [HasQuery HashSpec Id] {adversary : Adversary}
     {q : Nat} (hbudget : HasTotalBudget adversary q)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
@@ -178,14 +193,12 @@ theorem card_toFinset_claimed_le_of_budget [HasQuery HashSpec Id] {adversary : A
     {result : (Outcome × Multiset Bytes) × QueryCache HashSpec}
     (hresult : result ∈ support ((simulateQ KeygenUniform.rom
       (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2))
-    (forsKey : CanonicalGraph.ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
-    (signature : Signature) (keyAt : Fin layers → CanonicalGraph.WotsKey)
-    (stepAt : Fin layers → Fin chains → Fin (w - 1)) :
+    (pk : PublicKey) (message : Bytes) (parsed : Signature) :
     (Multiset.toFinset (result.1.2 +
-      ((GraphStakes.claimedCandidates walk.1.1.2.2 forsKey indices signature keyAt stepAt :
+      ((ClaimedProbes.claimedCandidatesOf walk.1.1.2.2 result.2 pk message parsed :
         List Bytes) : Multiset Bytes))).card ≤ (q - 2 ^ subtreeHeight) + 259 := by
   have hbound := card_toFinset_append_le_of_budget hbudget hwalk hresult
-    (GraphStakes.claimedCandidates walk.1.1.2.2 forsKey indices signature keyAt stepAt)
-  rwa [GraphStakes.length_claimedCandidates, GraphStakes.claimedCount] at hbound
+    (ClaimedProbes.claimedCandidatesOf walk.1.1.2.2 result.2 pk message parsed)
+  rwa [ClaimedProbes.length_claimedCandidatesOf] at hbound
 
 end SlhDsaSecurity.RecordedBudget

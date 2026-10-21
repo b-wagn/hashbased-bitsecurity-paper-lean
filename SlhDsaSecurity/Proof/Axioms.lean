@@ -1,3 +1,5 @@
+import SlhDsaSecurity.Proof.LazyBudget
+import SlhDsaSecurity.Proof.WarmProbes
 import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.ChargedProbe
 import SlhDsaSecurity.Proof.RedrawCell
@@ -4508,3 +4510,67 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_claimed_le_of_budget' depends
 /-- info: 'SlhDsaSecurity.RedrawCell.prob_joint_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.prob_joint_sensitive_le
+
+/-- info: 'SlhDsaSecurity.LazyBudget.mem_support_simulateQ_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.mem_support_simulateQ_of_step
+
+/-- info: 'SlhDsaSecurity.LazyBudget.lazyAnswer_mem_randomOracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.lazyAnswer_mem_randomOracle
+
+/-- info: 'SlhDsaSecurity.LazyBudget.mem_support_rom_of_lazy' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.mem_support_rom_of_lazy
+
+/-- info: 'SlhDsaSecurity.LazyBudget.work_add_pow_le_of_budget_lazy' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LazyBudget.work_add_pow_le_of_budget_lazy
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped
+
+/-- info: 'SlhDsaSecurity.WarmProbes.warmCount_strip' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.warmCount_strip
+
+/-- info: 'SlhDsaSecurity.WarmProbes.warmCount_adversary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.warmCount_adversary
+
+/-- info: 'SlhDsaSecurity.WarmProbes.warmCount_countQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.warmCount_countQueries
+
+/-- info: 'SlhDsaSecurity.WarmProbes.warmCount_strippedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.warmCount_strippedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.WarmProbes.exists_mem_warmProbes' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.exists_mem_warmProbes
+
+/-- info: 'SlhDsaSecurity.WarmProbes.warmCount_add_pow_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.warmCount_add_pow_le_of_budget
+
+/-- info: 'SlhDsaSecurity.WarmProbes.length_warmProbes_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.length_warmProbes_le_of_budget
+
+/-- info: 'SlhDsaSecurity.ClaimedProbes.length_claimedCandidatesOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClaimedProbes.length_claimedCandidatesOf
+
+/-- info: 'SlhDsaSecurity.WarmProbes.length_claimedEntries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.length_claimedEntries
+
+/-- info: 'SlhDsaSecurity.WarmProbes.length_record_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmProbes.length_record_le_of_budget

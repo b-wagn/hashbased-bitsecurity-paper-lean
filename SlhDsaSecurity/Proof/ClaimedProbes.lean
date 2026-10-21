@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.GraphStakes
 import SlhDsaSecurity.Proof.WotsResidueReduction
+import SlhDsaSecurity.Proof.SplitCharged
 
 /-!
 # Where the forgery's claimed chain values sit
@@ -98,5 +99,40 @@ theorem sensitive_forgedClaim (publicSeed : Digest) {State : Type}
   refine hvalue.trans (congrArg (fun position : Fin w =>
     table (Node.structural (wotsPosition key chain position))) ?_)
   exact (Fin.val_injective hclamp).symm
+
+
+/-! ## The record, read off the run
+
+Everything `GraphStakes.claimedCandidates` needs is a function of the forgery and of the cache
+the run ends with: the signature is parsed from the forgery's bytes, the digest is the one the
+replayed verifier computes, and the digest selects the FORS key, the FORS indices, the subtree
+and the leaf. The hypertree's own keys follow from the subtree and leaf by the same accumulators
+the residue threads, so the record is determined rather than quantified. -/
+
+/-- The WOTS key the forgery's path uses at a layer. -/
+def forgedKey (tree : Fin (2 ^ (totalHeight - subtreeHeight)))
+    (leaf : SlhDsaSecurity.Hypertree.LeafIndex) (layer : Fin layers) : WotsKey :=
+  ⟨⟨layer, ⟨treeAt tree.val layer.val,
+      lt_of_le_of_lt (treeAt_le tree.val layer.val) tree.isLt⟩⟩,
+    leafAt leaf tree.val layer.val⟩
+
+/-- **The record the charge takes, as a function of the run's own result.** -/
+def claimedCandidatesOf (publicSeed : Digest) (cache : QueryCache HashSpec) (pk : PublicKey)
+    (message : Bytes) (parsed : Signature) : List Bytes :=
+  GraphStakes.claimedCandidates publicSeed
+    (SplitCharged.forsKeyOfDigest (VerifierProbes.digestOf cache pk message parsed))
+    (MessageDigest.forsIndices (VerifierProbes.digestOf cache pk message parsed)) parsed
+    (forgedKey (MessageDigest.treeIndex (VerifierProbes.digestOf cache pk message parsed)).toFin
+      (MessageDigest.leafIndex (VerifierProbes.digestOf cache pk message parsed)).toFin)
+    (forgedSteps publicSeed parsed
+      (MessageDigest.treeIndex (VerifierProbes.digestOf cache pk message parsed)).toNat
+      (MessageDigest.leafIndex (VerifierProbes.digestOf cache pk message parsed)).toFin
+      (VerifierProbes.forsKeyOf cache pk message parsed))
+
+/-- **The record's length is still the constant.** -/
+theorem length_claimedCandidatesOf (publicSeed : Digest) (cache : QueryCache HashSpec)
+    (pk : PublicKey) (message : Bytes) (parsed : Signature) :
+    (claimedCandidatesOf publicSeed cache pk message parsed).length = 259 := by
+  rw [claimedCandidatesOf, GraphStakes.length_claimedCandidates, GraphStakes.claimedCount]
 
 end SlhDsaSecurity.ClaimedProbes
