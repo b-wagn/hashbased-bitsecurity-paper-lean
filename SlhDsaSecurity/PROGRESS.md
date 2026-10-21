@@ -1075,3 +1075,49 @@ The blind comparison does not subsume it: stripping is a fixed set of entries ch
 run, and the obtained set is not.
 
 Whether `q / 2 ^ 127` exactly survives this turns on it, so it is the next thing to settle.
+
+## The obtained-cells invariant is not needed: fix the secret region instead
+
+The section above left the input half needing an invariant along the adversary's execution —
+which cells it has obtained — and called that the sharpest form of the coupling this file has
+had open from the start. It is not needed. The region can be fixed before the adversary runs,
+and then the existing blind comparison charges all of it at once.
+
+**The secret region.** Call a structural node *secret* when its canonical input carries
+something the adversary must not be able to form:
+
+* `wotsPrf` and `forsPrf` — the only child is `SK.seed`;
+* `forsLeaf` — the only child is a FORS secret cell;
+* `wotsHash` at a chain position strictly below the digit the honest message encodes on that
+  chain — the only child is the chain value one step back, which no signature discloses.
+
+The last clause is the one that looked adaptive and is not. **Each WOTS key in the hypertree
+signs exactly one message, and that message is a deterministic function of the key** — the
+honest node value one layer down. So the revealed digit on each chain is fixed by the walk,
+whether or not that leaf is ever signed, and the whole region is a function of the seeds and
+the output table. Nothing about it waits on the adversary. (FORS is the opposite — its signed
+digests follow the adversary's messages — which is why the FORS *coverage* event goes to the
+tape instead, and why `forsLeaf` is stripped wholesale rather than by disclosure.)
+
+**Why stripping that region is enough.** The blind cache is the walk's cache with every secret
+node's entry dropped. Its remaining keys mention only non-secret cells, and its remaining
+values are the output table's other coordinates, so the blind cache is independent of the
+secret cells and of `SK.seed`. The honest phase, stripped by `StripCached`, asks nothing the
+walk's cache answers, so it never touches the region — the single reason the earlier,
+PRF-only, version of this comparison said nothing. And the signatures still hand the adversary
+exactly what they should: chain values at or above the revealed digit, and FORS secrets at the
+disclosed positions, all read from the table rather than queried.
+
+**The rate is exactly right.** A secret node's canonical input is
+`PK.seed ‖ ADRS ‖ (its children's cells)`, and the address determines the node, hence *which*
+cell is at stake. Every node in the region has exactly **one** secret child — `wotsPk` and
+`forsRoots` collect endpoints and roots, which sit at or above the revealed positions; tree
+nodes collect tree cells — so a query matches a stripped input with probability `2 ^ -128`,
+two units, and the union is over queries rather than over the `2 ^ 26`-odd cells. Charging per
+cell was what made this look impossible; charging per query makes the chain-value guess and
+the seed guess *the same event* rather than two, which is what the budget was always assuming.
+
+So the input half is `q / 2 ^ 128` exactly, and the ingredients are the ones already proved:
+`StripCached` to keep the honest phase out of the region, `TrackedQueries.prob_meets_real_eq_blind`
+for the exact comparison, and `SeedDeferral.prob_any_honest_key_le` generalised from one secret
+to a family — each query still putting only one coordinate at stake.
