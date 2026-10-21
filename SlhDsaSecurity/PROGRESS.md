@@ -86,18 +86,18 @@ been removed from the hash output. `fresh_digest_coverage` connects this parser
 to the exact coverage count. Freshness of an adaptively selected input remains
 a separate obligation.
 
-`Proof/ForsMoments.lean` checks Touchard-polynomial values through degree 84
-and a sixth-moment scalar inequality. The following concentration route still
-needs its probabilistic proof. Write B=2^63 and first consider 2B independent
-uniform instance selections. Poissonizing to independent loads of mean 3
-would dominate this experiment with a factor at most 2: the total has mean
-3B and variance 3B, so Chebyshev bounds the probability of fewer than 2B
-selections by 3/B. For Y equal to one load raised to power 14, the checked
-polynomials bound its moments through order six. Centering Y and expanding
-the sixth moment of the sum leads to the four terms in
-`sixth_moment_scalar`, bounded by 2^-142 at threshold B*2^40. The resulting
-candidate load-tail bound is 2^-141. Neither the moment identities nor this
-coupling have yet been formalized here.
+`Proof/ForsMoments.lean` checks Touchard-polynomial values through degree 84.
+`Proof/ForsConcentrationPoisson.lean` identifies them with moments of the actual
+Poisson measure and proves integrability and centered moments. Using the exact
+sixth moment of a sum of independent variables, `Proof/ForsConcentration.lean`
+proves that 2^63 independent Poisson(3) loads satisfy
+`Pr[sum_i load_i^14 >= 2^103] <= 2^-142`.
+
+The comparison with 2^64 uniform instance selections still needs a coupling.
+Writing B=2^63, the Poisson total has mean and variance 3B; Chebyshev would
+bound the probability of fewer than 2B selections by 3/B. A monotone coupling
+would therefore lose at most a factor of two, giving the candidate fixed-count
+tail bound 2^-141. The adaptive signing transcript remains a separate argument.
 
 Even after that step, the ROM proof must handle signing whose digest was
 queried in advance, future disclosures, and overlaps between the specified

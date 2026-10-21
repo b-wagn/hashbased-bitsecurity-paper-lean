@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.Parameters
 import SlhDsaSecurity.Proof.Checksum
 import SlhDsaSecurity.Proof.ForsCoverage
 import SlhDsaSecurity.Proof.ForsMoments
+import SlhDsaSecurity.Proof.ForsConcentration
 import SlhDsaSecurity.Proof.Hashing
 import SlhDsaSecurity.Proof.HashSeparation
 import SlhDsaSecurity.Proof.Security
@@ -115,3 +116,19 @@ import SlhDsaSecurity.Proof.Security
 /-- info: 'SlhDsaSecurity.Security.strong_implies_standard' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Security.strong_implies_standard
+
+/-- info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_power_nat' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integral_power_nat
+
+/-- info: 'SlhDsaSecurity.ForsConcentration.centeredMoment_bounds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.centeredMoment_bounds
+
+/-- info: 'SlhDsaSecurity.ForsConcentration.independent_sum_moments' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.independent_sum_moments
+
+/-- info: 'SlhDsaSecurity.ForsConcentration.poisson_load_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_load_tail
