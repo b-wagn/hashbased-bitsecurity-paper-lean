@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.OpenCache
 import SlhDsaSecurity.Proof.StalledRun
+import SlhDsaSecurity.Proof.CacheAvailability
 
 /-!
 # Which cell a probe is charged against, and the flag that records it
@@ -650,9 +651,8 @@ open scoped Classical in
 /-- **A released cell stays released.** Availability grows with the cache, and the cache only
 grows, so a state where the cell is available is followed by states where it is. -/
 theorem flagged_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -665,9 +665,8 @@ theorem flagged_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Nod
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
   exact hmono state.1.1 inner.2.1
-    (fun probe hprobe =>
-      lazyProgram_cache_mono publicSeed availableAt table queried state.1 inner hinner probe
-        hprobe)
+    (@CacheAvailability.lazyProgram_persists (CacheReplay.replayQuery ∅) publicSeed availableAt
+      table queried state.1 inner hinner)
     index hstate
 
 open scoped Classical in
@@ -786,9 +785,8 @@ theorem withFlag_neverFails (availableAt : QueryCache HashSpec → CanonicalGrap
 open scoped Classical in
 /-- A released cell stays released, the flag being untouched. -/
 theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (index : CanonicalGraph.Node) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -801,9 +799,8 @@ theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.No
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
   exact hmono state.1.1 inner.2.1
-    (fun probe hprobe =>
-      lazyProgram_cache_mono publicSeed availableAt table queried state.1 inner hinner probe
-        hprobe)
+    (@CacheAvailability.lazyProgram_persists (CacheReplay.replayQuery ∅) publicSeed availableAt
+      table queried state.1 inner hinner)
     index hstate
 
 open scoped Classical in
@@ -844,9 +841,8 @@ the count cannot change once the cell is released — not because of anything ab
 cells. -/
 theorem expected_aiming_stalled_eq {α : Type}
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
@@ -922,9 +918,8 @@ open scoped Classical in
 /-- **Stalling does not change the chance of a charged probe.** -/
 theorem prob_charged_stalled_eq {α : Type}
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :

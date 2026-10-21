@@ -229,9 +229,8 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
@@ -357,9 +356,8 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec),
-      (∀ probe, left probe ≠ none → right probe ≠ none) →
-        ∀ node, availableAt left node → availableAt right node)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) (limit : Nat)
