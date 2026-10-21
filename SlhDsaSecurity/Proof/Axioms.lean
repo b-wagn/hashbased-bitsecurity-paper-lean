@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
+import SlhDsaSecurity.Proof.CoverageRouted
 import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.WarmProbes
@@ -4693,3 +4694,28 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 /-- info: 'SlhDsaSecurity.OpenCache.lazyProgram_step_congr_available' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.OpenCache.lazyProgram_step_congr_available
+
+/-- info: 'SlhDsaSecurity.CoverageRouted.forsIndex_inj' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.forsIndex_inj
+
+/-- info: 'SlhDsaSecurity.CoverageRouted.messageInput_ne' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.messageInput_ne
+
+/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryCovered_of_witnesses' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.forgeryCovered_of_witnesses
+
+/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryCovered_or_only_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.forgeryCovered_or_only_self
+
+/--
+info: 'SlhDsaSecurity.CoverageRouted.parse_instance_eq_of_forsKeyOfDigest_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.parse_instance_eq_of_forsKeyOfDigest_eq
+
