@@ -144,6 +144,93 @@ theorem probEvent_flag_stalled_eq {γ : Type}
         probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
       exact tsum_congr fun z => congrArg _ (ih z.1 z.2)
 
+
+/-! ## Stalling preserves more than a flag
+
+The flag above is one instance of a general fact: stalling leaves alone the expectation of any
+quantity that cannot change once the run is frozen. A sticky flag is such a quantity, and so is
+a count of events that can only happen while unfrozen — which is what carries the per-cell
+weights of a charge across the stall. -/
+
+/-- **A frozen run leaves a quantity it cannot change where it found it.** -/
+theorem expectation_frozen {γ : Type} (impl : QueryImpl spec (StateT (σ × Bool) ProbComp))
+    (Frozen : σ → Prop) (weight : σ × Bool → ℝ≥0∞)
+    (hfail : ∀ (t : spec.Domain) (p : σ × Bool), Pr[⊥ | (impl t).run p] = 0)
+    (hfrozen : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
+      ∀ z ∈ support ((impl t).run p), Frozen z.2.1)
+    (hquiet : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
+      ∀ z ∈ support ((impl t).run p), weight z.2 = weight p)
+    (oa : OracleComp spec γ) (p : σ × Bool) (hp : Frozen p.1) :
+    (∑' z : γ × (σ × Bool), Pr[= z | (simulateQ impl oa).run p] * weight z.2) = weight p := by
+  induction oa using OracleComp.inductionOn generalizing p with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, tsum_probOutput_pure_mul]
+  | query_bind t next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, tsum_probOutput_bind_mul]
+    calc ∑' y, Pr[= y | (impl t).run p] *
+          ∑' z : γ × (σ × Bool), Pr[= z | (simulateQ impl (next y.1)).run y.2] * weight z.2
+        = ∑' y, Pr[= y | (impl t).run p] * weight p := by
+          refine tsum_congr fun y => ?_
+          by_cases hmem : y ∈ support ((impl t).run p)
+          · rw [ih y.1 y.2 (hfrozen t p hp y hmem), hquiet t p hp y hmem]
+          · rw [probOutput_eq_zero_of_not_mem_support hmem]
+            simp
+      _ = weight p := by
+          rw [ENNReal.tsum_mul_right]
+          have hmass := probFailure_add_tsum_probOutput ((impl t).run p)
+          rw [hfail t p, zero_add] at hmass
+          rw [hmass, one_mul]
+
+open scoped Classical in
+/-- **Stalling preserves the expectation of a quantity that cannot change while frozen.**
+`probEvent_flag_stalled_eq` is the case of a sticky flag; a count of events that can only occur
+while unfrozen is the case this is wanted for. -/
+theorem expectation_stalled_eq {γ : Type}
+    (impl : QueryImpl spec (StateT (σ × Bool) ProbComp)) (Frozen : σ → Prop)
+    (stall : (t : spec.Domain) → spec.Range t) (weight : σ × Bool → ℝ≥0∞)
+    (hfail : ∀ (t : spec.Domain) (p : σ × Bool), Pr[⊥ | (impl t).run p] = 0)
+    (hfrozen : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
+      ∀ z ∈ support ((impl t).run p), Frozen z.2.1)
+    (hquiet : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
+      ∀ z ∈ support ((impl t).run p), weight z.2 = weight p)
+    (oa : OracleComp spec γ) (p : σ × Bool) :
+    (∑' z : γ × (σ × Bool), Pr[= z | (simulateQ impl oa).run p] * weight z.2) =
+      ∑' z : γ × (σ × Bool),
+        Pr[= z | (simulateQ (stalled impl Frozen stall) oa).run p] * weight z.2 := by
+  classical
+  have hstalledFail : ∀ (t : spec.Domain) (q : σ × Bool),
+      Pr[⊥ | ((stalled impl Frozen stall) t).run q] = 0 := by
+    intro t q
+    by_cases hq : Frozen q.1
+    · rw [stalled_run_of_frozen impl Frozen stall t q hq]; simp
+    · rw [stalled_run_of_not_frozen impl Frozen stall t q hq]; exact hfail t q
+  have hstalledFrozen : ∀ (t : spec.Domain) (q : σ × Bool), Frozen q.1 →
+      ∀ z ∈ support (((stalled impl Frozen stall) t).run q), Frozen z.2.1 := by
+    intro t q hq z hz
+    rw [stalled_run_of_frozen impl Frozen stall t q hq, support_pure,
+      Set.mem_singleton_iff] at hz
+    rw [hz]
+    exact hq
+  have hstalledQuiet : ∀ (t : spec.Domain) (q : σ × Bool), Frozen q.1 →
+      ∀ z ∈ support (((stalled impl Frozen stall) t).run q), weight z.2 = weight q := by
+    intro t q hq z hz
+    rw [stalled_run_of_frozen impl Frozen stall t q hq, support_pure,
+      Set.mem_singleton_iff] at hz
+    rw [hz]
+  induction oa using OracleComp.inductionOn generalizing p with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure]
+  | query_bind t next ih =>
+    by_cases hp : Frozen p.1
+    · rw [expectation_frozen impl Frozen weight hfail hfrozen hquiet _ p hp,
+        expectation_frozen (stalled impl Frozen stall) Frozen weight hstalledFail
+          hstalledFrozen hstalledQuiet _ p hp]
+    · rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+        simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+        stalled_run_of_not_frozen impl Frozen stall t p hp,
+        tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
+      exact tsum_congr fun y => congrArg _ (ih y.1 y.2)
+
 /-! ## The stalled run is blind to the cell it stalled on
 
 The per-step hypothesis is demanded only at states that are not frozen — the states at which
