@@ -42,14 +42,23 @@ cache keys the adversary never sees, is `SeedDeferral.honest_result_indep_of_see
 * `probEvent_bad_le` — the bad-flag mass is itself at most `q / 2 ^ 128`, so
 * `advantage_le_two_mul` — the separation, `advantage ≤ 2 * q / 2 ^ 128`.
 
-## What is *not* proved here
+## What is *not* proved here, stated precisely
 
-That `real` is the real experiment. `real` resamples the seed at every step; the real game draws
-it once at key generation. The two agree because the honest transcript does not depend on the
-seed (`SeedDeferral.honest_result_indep_of_seed`, `honest_result_defer_seed`), but turning those
-two lemmas into an equality of the two *handlers* is a separate step and is not carried out in
-this file. What is established here is the quantitative half: against a handler that answers
-every query freshly, the lazily-seeded handler is `2q / 2 ^ 128`-indistinguishable.
+`real` is not the experiment. The constraint above forces the seed out of the state entirely, and
+the only handler shape that achieves that draws a *fresh independent* seed at every step: a seed
+remembered across steps is a seed in the state. So `real` resamples, while the experiment draws
+one seed at key generation and keeps it.
+
+The two are not literally identical-until-bad. On the no-bad path neither handler's answers
+depend on the seed, so the output law *conditioned* on no-bad agrees; but the mass of the no-bad
+path does not. With the same input queried twice, the eager handler misses with probability
+`1 - p` and the resampling handler with probability `(1 - p) ^ 2`. The discrepancy is itself of
+order `q / 2 ^ 128`, so the bridge to the eager handler is a further bounded-slack hop, not an
+exact equality, and it is not carried out here.
+
+What is established here is the half that the structural constraint permits: against a handler
+that answers every query freshly, the lazily-seeded handler is `2 q / 2 ^ 128`-indistinguishable,
+with both halves of that budget — query slack and bad-flag mass — proved rather than assumed.
 -/
 
 open OracleComp OracleSpec ENNReal
