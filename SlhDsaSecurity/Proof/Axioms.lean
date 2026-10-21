@@ -44,6 +44,7 @@ import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.FreshDigest
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.WholeGameStructural
+import SlhDsaSecurity.Proof.ForsCoverageTerm
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -493,3 +494,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.GrowthCharge.prob_badWithin_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GrowthCharge.prob_badWithin_le
+
+/-- info: 'SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsCoverageTerm.prob_coverage_within_le
