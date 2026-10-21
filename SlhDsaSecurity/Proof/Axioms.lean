@@ -15,6 +15,9 @@ import SlhDsaSecurity.Proof.VerificationBudget
 import SlhDsaSecurity.Proof.ChecksumAntichain
 import SlhDsaSecurity.Proof.ForsAdaptiveTargets
 import SlhDsaSecurity.Proof.FramingOverlap
+import SlhDsaSecurity.Proof.Correctness.Scheme
+import SlhDsaSecurity.Proof.ForsPrefixCapacity
+import SlhDsaSecurity.Proof.ForsConcentrationExtended
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -197,3 +200,15 @@ import SlhDsaSecurity.Proof.FramingOverlap
 /-- info: 'SlhDsaSecurity.FramingOverlap.keygen_zero_probability' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FramingOverlap.keygen_zero_probability
+
+/-- info: 'SlhDsaSecurity.Correctness.Scheme.verify_sign_keygen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Correctness.Scheme.verify_sign_keygen
+
+/-- info: 'SlhDsaSecurity.Correctness.Fors.publicKeyFromSignature_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Correctness.Fors.publicKeyFromSignature_sign
+
+/-- info: 'SlhDsaSecurity.ForsPrefixCapacity.simultaneous_prefix_cap' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsPrefixCapacity.simultaneous_prefix_cap

@@ -78,8 +78,11 @@ including repetitions and rejected contexts; honest hashes are uncharged and
 every direct or final-verifier hash call is charged. The lifetime and work bounds
 hold jointly with probability one. `Proof/{Signature,SignatureCanonical}.lean`
 proves both codec roundtrips, including that every accepted byte string is the
-canonical encoding of its parsed value. Algorithm correctness still requires
-proofs.
+canonical encoding of its parsed value. `Proof/Correctness/` proves correctness
+of WOTS, each FORS tree, XMSS authentication paths, all seven hypertree layers,
+and the complete byte-facing scheme for every fixed hash function and all seeds.
+Connecting fixed-hash correctness to the lazy shared-oracle experiment remains
+to be done.
 
 ## FORS components
 
@@ -109,6 +112,8 @@ law and its Poisson mixture, preserving the dependencies between bins. Monotonic
 and a second-moment bound transfer the Poisson result to every fixed N ≤ 2^64
 independent uniform instance selections:
 `Pr[sum_i load_i^14 > 2^103] <= 2^-141`.
+`Proof/ForsConcentrationExtended.lean` proves the same tail up to 5·2^62 draws,
+allowing room for additional independent digest queries in a future reduction.
 The adaptive signing transcript remains a separate argument.
 
 `Proof/ForsAdaptiveTargets.lean` proves a bound for adaptive selection from an
@@ -148,3 +153,9 @@ the instance and final three FORS indices jointly uniform in the remaining
 of instances, coverage is at most `|instances| * L^3 / 2^99`; at L=256 this is
 `|instances| / 2^75`. Applying it to adaptive disclosures requires a freshness
 and independence argument that is not yet proved.
+
+`Proof/ForsPrefixCapacity.lean` bounds all 120-bit FORS prefixes simultaneously.
+For fixed instance assignments satisfying the load cap and iid leaf samples,
+the probability that any prefix is covered at sixteen or more instances is at
+most 2^-152. This controls selection of a signature body after a partially
+revealed digest; its distributional hypotheses still need an adaptive-game bridge.
