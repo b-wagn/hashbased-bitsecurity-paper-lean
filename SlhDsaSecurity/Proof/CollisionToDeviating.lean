@@ -147,4 +147,45 @@ theorem deviatingCollision_of_single_child {α : Type} (publicSeed : Digest) (ce
   · rw [canonicalInput, hchildren, childBytes_single, Function.update_self]
     exact hentry
 
+/-! ## The array case: FORS root compression
+
+`Extraction.Fors.CompressionCollision` sits at the node that compresses the fourteen FORS tree
+roots, whose children are given by `List.ofFn` and whose payload is `digestArrayBytes` rather
+than a flattened pair. The content is the same as the other two joins; only the byte-level
+step differs, and `childBytes_ofFn` supplies it. -/
+
+theorem childBytes_ofFn {size : Nat} (cells : Cells) (children : Fin size → Node) :
+    childBytes cells (List.ofFn children) =
+      digestArrayBytes (fun index => cells (children index)) := by
+  simp [childBytes, digestArrayBytes, List.map_ofFn, Function.comp_def]
+
+open scoped Classical in
+/-- **An array-node collision is a charged structural event.** -/
+theorem deviatingCollision_of_array {α : Type} {size : Nat} (publicSeed : Digest)
+    (cells : Cells) (parent : StructuralNode) (children : Fin size → Node)
+    (actual : Fin size → Digest)
+    (hchildren : parent.children = List.ofFn children)
+    (hinj : Function.Injective children)
+    (hne : ∃ index, actual index ≠ cells (children index))
+    (result : α × QueryCache HashSpec) (output : HashOutput)
+    (hentry : result.2 (Hashing.tweakableInput publicSeed parent.address
+        (digestArrayBytes actual)) = some output)
+    (hcollision : Hashing.truncate output = cells (.structural parent)) :
+    StructuralTerm.DeviatingCollision publicSeed cells result := by
+  classical
+  set candidates : Cells := fun node =>
+    if h : ∃ index, children index = node then actual h.choose else cells node with hcand
+  have hvalue : ∀ index, candidates (children index) = actual index := by
+    intro index
+    have hexists : ∃ probe, children probe = children index := ⟨index, rfl⟩
+    simp only [hcand, dif_pos hexists]
+    rw [hinj hexists.choose_spec]
+  refine ⟨candidates, parent, output, ?_, ?_, hcollision⟩
+  · obtain ⟨index, hindex⟩ := hne
+    exact ⟨children index, by rw [hchildren]; exact List.mem_ofFn.mpr ⟨index, rfl⟩,
+      by rw [hvalue index]; exact hindex⟩
+  · rw [canonicalInput, hchildren, childBytes_ofFn,
+      show (fun index => candidates (children index)) = actual from funext hvalue]
+    exact hentry
+
 end SlhDsaSecurity.CollisionToDeviating
