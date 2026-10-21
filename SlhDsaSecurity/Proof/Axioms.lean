@@ -559,3 +559,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.FreshDigest.instanceAssignment_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshDigest.instanceAssignment_uniform
+
+/-- info: 'SlhDsaSecurity.GrowthCharge.prob_cache_values_mem_le'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GrowthCharge.prob_cache_values_mem_le'
