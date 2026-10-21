@@ -73,6 +73,55 @@ theorem cache_mono {α : Type} (computation : OracleComp OracleWorld α)
           exact hpresent
     exact ih output middleCache finalCache result hrest hmiddle
 
+/-- Cache entries are never *overwritten* either: an installed answer persists verbatim.
+
+This is the strengthening of `cache_mono` that the partial-random-function invariant needs.
+It is what makes a run started from the **empty** cache enough, where the `FreshFor`
+hypothesis of the fresh-sampling results — freshness at the moment of the query — is not
+available in the experiment, because the adversary may query a signer's input first. Once an
+answer is installed, whoever installed it, every later query returns that same answer. -/
+theorem cache_value_persists {α : Type} (computation : OracleComp OracleWorld α)
+    (initialCache finalCache : QueryCache HashSpec) (result : α)
+    (hmem : (result, finalCache) ∈
+      support ((simulateQ KeygenUniform.rom computation).run initialCache))
+    (input : Bytes) (output : HashOutput) (hentry : initialCache input = some output) :
+    finalCache input = some output := by
+  induction computation using OracleComp.inductionOn generalizing
+      initialCache finalCache result with
+  | pure value =>
+    simp only [simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff, Prod.mk.injEq] at hmem
+    exact hmem.2 ▸ hentry
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨⟨answer, middleCache⟩, hquery, hrest⟩ := hmem
+    have hmiddle : middleCache input = some output := by
+      rcases queried with coin | queried
+      · have hcache : middleCache = initialCache := by
+          symm
+          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hquery
+        exact hcache ▸ hentry
+      · change (answer, middleCache) ∈ support ((randomOracle queried).run initialCache) at hquery
+        cases hqueried : initialCache queried with
+        | none =>
+          rw [QueryImpl.withCaching_run_none _ hqueried, support_map] at hquery
+          obtain ⟨sampled, _, hpair⟩ := hquery
+          have hmid : middleCache = initialCache.cacheQuery queried sampled :=
+            (Prod.ext_iff.mp hpair).2.symm
+          rw [hmid]
+          have hne : input ≠ queried := by
+            intro hsame
+            rw [hsame, hqueried] at hentry
+            simp at hentry
+          rw [QueryCache.cacheQuery_of_ne initialCache sampled hne]
+          exact hentry
+        | some cached =>
+          rw [QueryImpl.withCaching_run_some _ hqueried, support_pure,
+            Set.mem_singleton_iff] at hquery
+          have hmid : middleCache = initialCache := (Prod.ext_iff.mp hquery).2
+          exact hmid ▸ hentry
+    exact ih answer middleCache finalCache result hrest hmiddle
+
 /-- At most `limit` inputs were absent from `initial` and are present in `final`. Stated
 without a cardinality on the infinite input type. -/
 def GrowthAtMost (initial final : QueryCache HashSpec) (limit : Nat) : Prop :=

@@ -533,3 +533,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.DigestInputDistinct.separated_messageInput' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.DigestInputDistinct.separated_messageInput
+
+/-- info: 'SlhDsaSecurity.GrowthCharge.cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GrowthCharge.cache_value_persists
