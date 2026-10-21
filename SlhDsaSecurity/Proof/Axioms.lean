@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.VerifierProbes
+import SlhDsaSecurity.Proof.SplitCharged
 import SlhDsaSecurity.Proof.HonestProbes
 import SlhDsaSecurity.Proof.FaultCharge
 import SlhDsaSecurity.Proof.ForsBranch
@@ -3423,3 +3424,11 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified' 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.VerifierProbes.deviatingCollision_or_secrets_of_verified
+
+/-- info: 'SlhDsaSecurity.SplitCharged.forsKeyOfDigest_address' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCharged.forsKeyOfDigest_address
+
+/-- info: 'SlhDsaSecurity.SplitCharged.cases_of_win_charged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCharged.cases_of_win_charged
