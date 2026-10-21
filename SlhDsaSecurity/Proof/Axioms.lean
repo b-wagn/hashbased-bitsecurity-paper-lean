@@ -708,3 +708,7 @@ info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_array' depends 
 /-- info: 'SlhDsaSecurity.ChainDeviation.fold_eq_honest' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChainDeviation.fold_eq_honest
+
+/-- info: 'SlhDsaSecurity.CacheReplay.tweakable_replayQuery' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.tweakable_replayQuery

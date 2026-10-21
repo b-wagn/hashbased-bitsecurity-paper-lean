@@ -142,4 +142,41 @@ theorem run_eq_replay {α : Type} (computation : OracleComp HashSpec α)
     rw [hreplay]
     rfl
 
+/-! ## Reading the extraction chain's `Id`-level hashes out of the cache
+
+The extraction chain states its collisions with `Hashing.tweakable (m := Id)`, under the
+`[HasQuery HashSpec Id]` the development carries as a variable. `replayQuery` is the instance
+that answers from a finished cache, and the two lemmas below say what that answers with: a
+hash call is the cache's value, and a tweakable call is its truncation.
+
+With these, every `Id`-level equation the extraction produces becomes a statement about cache
+entries, which is what the structural charge quantifies over — so an accepted forgery's
+collisions can be read off the cache the game itself left behind. -/
+
+/-- The `HasQuery` instance that answers from a finished cache. -/
+def replayQuery (cache : QueryCache HashSpec) : HasQuery HashSpec Id :=
+  ⟨fun input => ((cache input).getD default : Id HashOutput)⟩
+
+theorem hash_replayQuery (cache : QueryCache HashSpec) (input : Bytes) (output : HashOutput)
+    (hentry : cache input = some output) :
+    @Hashing.hash Id (replayQuery cache) input = output := by
+  simp [Hashing.hash, replayQuery, hentry]
+
+/-- A tweakable call reads the truncation of the cached answer at its own byte input. -/
+theorem tweakable_replayQuery (cache : QueryCache HashSpec) (publicSeed : Digest)
+    (address : Address) (payload : Bytes) (output : HashOutput)
+    (hentry : cache (Hashing.tweakableInput publicSeed address payload) = some output) :
+    @Hashing.tweakable Id _ (replayQuery cache) publicSeed address payload =
+      Hashing.truncate output := by
+  simp only [Hashing.tweakable, Hashing.shortHash, Hashing.hash, replayQuery, hentry,
+    Option.getD_some]
+  simp [Functor.map, hentry]
+
+/-- The same for a bare `shortHash`, which the FORS compression collision is stated with. -/
+theorem shortHash_replayQuery (cache : QueryCache HashSpec) (input : Bytes)
+    (output : HashOutput) (hentry : cache input = some output) :
+    @Hashing.shortHash Id _ (replayQuery cache) input = Hashing.truncate output := by
+  simp only [Hashing.shortHash, Hashing.hash, replayQuery, hentry, Option.getD_some]
+  simp [Functor.map, hentry]
+
 end SlhDsaSecurity.CacheReplay
