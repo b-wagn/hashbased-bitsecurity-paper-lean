@@ -800,3 +800,7 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision' dep
 /-- info: 'SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_tail' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_tail
+
+/-- info: 'SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_get' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheReplay.queriesUnder_foldlM_get

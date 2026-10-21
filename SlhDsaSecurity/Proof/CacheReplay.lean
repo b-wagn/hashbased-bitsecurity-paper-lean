@@ -315,4 +315,43 @@ theorem queriesUnder_foldlM_tail {ι : Type} (cache : QueryCache HashSpec)
           (Hashing.truncate answer)) from by simp [Hashing.shortHash, bind_assoc]]
   exact QueriesUnder.tail (inputOf init x) probe _ hquery
 
+/-! ## Peeling to arbitrary depth
+
+The head and tail lemmas walk a fold one step at a time; this names where that walk arrives.
+`replayFold` is the Id-level fold the oracle run is replayed as — each step advancing the
+running value to the truncation of the cached answer — and `queriesUnder_foldlM_get` says the
+`k`-th step of the fold consults its input at the value `replayFold` has reached after the
+first `k`.
+
+This is what makes the peeling usable on the verifier, whose Merkle path is a fold of
+`subtreeHeight` steps and whose collision sits at an arbitrary one of them. -/
+
+/-- The Id-level fold a replayed hash-fold performs. -/
+def replayFold {ι : Type} (cache : QueryCache HashSpec) (inputOf : Digest → ι → Bytes) :
+    List ι → Digest → Digest
+  | [], value => value
+  | x :: xs, value =>
+      replayFold cache inputOf xs (Hashing.truncate (replay cache (inputOf value x)))
+
+/-- **The `k`-th step of a fold consults its input at the replayed running value.** -/
+theorem queriesUnder_foldlM_get {ι : Type} (cache : QueryCache HashSpec)
+    (inputOf : Digest → ι → Bytes) :
+    ∀ (xs : List ι) (init : Digest) (k : Nat) (hk : k < xs.length),
+      QueriesUnder cache
+        (xs.foldlM (m := OracleComp HashSpec)
+          (fun value i => Hashing.shortHash (inputOf value i)) init)
+        (inputOf (replayFold cache inputOf (xs.take k) init) xs[k]) := by
+  intro xs
+  induction xs with
+  | nil => intro _ k hk; exact absurd hk (by simp)
+  | cons x rest ih =>
+    intro init k hk
+    cases k with
+    | zero =>
+      simpa [replayFold] using queriesUnder_foldlM_head cache inputOf x rest init
+    | succ k =>
+      refine queriesUnder_foldlM_tail cache inputOf x rest init _ ?_
+      have hrest : k < rest.length := by simpa using hk
+      simpa [replayFold] using ih (Hashing.truncate (replay cache (inputOf init x))) k hrest
+
 end SlhDsaSecurity.CacheReplay
