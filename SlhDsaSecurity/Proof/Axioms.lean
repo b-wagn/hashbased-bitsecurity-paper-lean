@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.SensitiveShape
 import SlhDsaSecurity.Proof.StrippedGame
 import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.WotsResidueReduction
@@ -3717,3 +3718,11 @@ info: 'SlhDsaSecurity.StrippedGame.evalDist_countedRun_signingOracle' depends on
 /-- info: 'SlhDsaSecurity.StrippedGame.honest_probes_not_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.StrippedGame.honest_probes_not_canonical
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.alwaysAvailable_merkleChild' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.alwaysAvailable_merkleChild
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.children_alwaysAvailable_or_singleton' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.children_alwaysAvailable_or_singleton
