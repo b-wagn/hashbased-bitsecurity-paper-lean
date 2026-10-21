@@ -153,4 +153,36 @@ theorem publicKey_eq_canonical_roots_or_collision (secretSeed publicSeed : Diges
     exact SlhDsaSecurity.Extraction.Wots.digestArrayBytes_injective forsTrees
       (Hashing.tweakableInput_injective hinput).2.2
 
+set_option maxRecDepth 10000 in
+/-- Full FORS structural decomposition: a FORS signature recovering the genuine FORS public
+key either collides at the root compression, or for every one of the fourteen trees it
+collides on that tree's authentication path or reproduces the canonical secret leaf and all
+twelve siblings. This composes the compression and per-tree extractions; no collision
+resistance is assumed. -/
+theorem publicKey_canonical_decomposition (secretSeed publicSeed : Digest) (address : Address)
+    (indices : SlhDsaSecurity.Fors.Indices) (signature : ForsSignature)
+    (hpk : SlhDsaSecurity.Fors.publicKeyFromSignature (m := Id) signature indices publicSeed address =
+      Hashing.tweakable (m := Id) publicSeed (rootAddress address)
+        (digestArrayBytes (canonicalRoots secretSeed publicSeed address))) :
+    CompressionCollision (recoveredRoot signature indices publicSeed address)
+        (canonicalRoots secretSeed publicSeed address) publicSeed address ∨
+    ∀ i : Fin forsTrees,
+      let nodes : Nat → Nat → Digest :=
+        SlhDsaSecurity.Fors.node (m := Id) secretSeed publicSeed address
+      let combine : Nat → Nat → Digest → Digest → Digest := fun height nodeIndex left right =>
+        Hashing.tweakable (m := Id) publicSeed
+          (SlhDsaSecurity.Fors.nodeAddress address height nodeIndex)
+          (BinaryPath.pairBytes (left, right))
+      let leaf : Digest := recoveredLeaf signature indices publicSeed address i
+      (leaf = nodes 0 (leafIndex indices i) ∧ ∀ j, (signature i).authentication j =
+        nodes j.val (Nat.xor (leafIndex indices i / 2 ^ j.val) 1)) ∨
+      ∃ j < forsHeight,
+        BinaryPath.Collision nodes combine (leafIndex indices i) leaf (siblings signature i) j := by
+  rcases publicKey_eq_canonical_roots_or_collision secretSeed publicSeed address indices
+      signature hpk with hroots | hcomp
+  · refine Or.inr (fun i => ?_)
+    exact root_eq_canonical_or_collision secretSeed publicSeed address indices signature i
+      (congrFun hroots i)
+  · exact Or.inl hcomp
+
 end SlhDsaSecurity.Extraction.Fors
