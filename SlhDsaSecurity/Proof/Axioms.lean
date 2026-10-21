@@ -2558,3 +2558,7 @@ info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends 
 /-- info: 'SlhDsaSecurity.BlindComparison.flag_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlindComparison.flag_one
+
+/-- info: 'SlhDsaSecurity.BlindComparison.prob_touched_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindComparison.prob_touched_eq
