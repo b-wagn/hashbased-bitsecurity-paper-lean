@@ -49,6 +49,7 @@ import SlhDsaSecurity.Proof.Assembly
 import SlhDsaSecurity.Proof.PerQueryBudget
 import SlhDsaSecurity.Proof.CombinedCharge
 import SlhDsaSecurity.Proof.SecretGuessCharge
+import SlhDsaSecurity.Proof.ClassCharge
 import SlhDsaSecurity.Proof.CollisionToDeviating
 import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
@@ -622,3 +623,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.Assembly.le_target_of_classes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.le_target_of_classes
+
+/-- info: 'SlhDsaSecurity.ClassCharge.prob_badWithinClasses_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassCharge.prob_badWithinClasses_le
