@@ -1,3 +1,5 @@
+import SlhDsaSecurity.Proof.WarmedCharges
+import SlhDsaSecurity.Proof.CachedRun
 import SlhDsaSecurity.Proof.Parameters
 import SlhDsaSecurity.Proof.Checksum
 import SlhDsaSecurity.Proof.ForsCoverage
@@ -2807,3 +2809,51 @@ info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_warmed_halves' depends on
 /-- info: 'SlhDsaSecurity.WarmedGame.probEvent_le_of_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WarmedGame.probEvent_le_of_tail
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.Programming.cacheFrom_canonical' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.Programming.cacheFrom_canonical
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.Programming.cacheFrom_empty_canonical' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.Programming.cacheFrom_empty_canonical
+
+/-- info: 'SlhDsaSecurity.Averaging.support_eq_of_evalDist_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Averaging.support_eq_of_evalDist_eq
+
+/-- info: 'SlhDsaSecurity.WarmedGame.graphWalk_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedGame.graphWalk_eq
+
+/-- info: 'SlhDsaSecurity.WarmedGame.mem_support_graphWalk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedGame.mem_support_graphWalk
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.mem_support_warmedRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.mem_support_warmedRun
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.count_le_of_budget_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.count_le_of_budget_tail
+
+/-- info: 'SlhDsaSecurity.WarmedCharges.walk_cache_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.walk_cache_canonical
+
+/--
+info: 'SlhDsaSecurity.WarmedCharges.prob_deviatingCollision_tail_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WarmedCharges.prob_deviatingCollision_tail_le
+
+/-- info: 'SlhDsaSecurity.CachedRun.run_eq_pure_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CachedRun.run_eq_pure_of_cached
+
+/-- info: 'SlhDsaSecurity.CachedRun.eq_of_mem_support_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CachedRun.eq_of_mem_support_of_cached
