@@ -867,3 +867,11 @@ info: 'SlhDsaSecurity.WotsCharge.deviatingCollision_of_compressionCollision_cano
 /-- info: 'SlhDsaSecurity.HypertreeDispatch.cases_of_accepted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HypertreeDispatch.cases_of_accepted
+
+/--
+info: 'SlhDsaSecurity.HypertreeDispatch.queriesUnder_rootFromSignature_tail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HypertreeDispatch.queriesUnder_rootFromSignature_tail

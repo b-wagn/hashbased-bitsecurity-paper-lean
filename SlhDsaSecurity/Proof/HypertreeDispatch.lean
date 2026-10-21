@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.Extraction.HypertreeChain
+import SlhDsaSecurity.Proof.CacheReplay
 
 /-!
 # Unfolding the seven-layer fault
@@ -16,6 +17,8 @@ the honest chain never signed is a one-wayness witness — the adversary holds c
 below what any signature revealed — and that is a secret-side event, charged on the input
 half of the budget.
 -/
+
+open OracleComp OracleSpec
 
 namespace SlhDsaSecurity.HypertreeDispatch
 
@@ -82,5 +85,47 @@ theorem cases_of_accepted (secretSeed publicSeed : Digest) (pk : PublicKey)
   · exact Or.inl hcanonical
   · exact Or.inr (cases_of_hypertreeFault secretSeed publicSeed layers signature 0 tree.toNat
       leaf forsKey honestForsKey hfault)
+
+/-! ## Walking down the layers
+
+`Hypertree.rootFromSignature` is a recursion, one `Merkle.publicKeyFromSignature` per layer,
+each fed the root the layer below produced. A collision sits at one particular layer, so
+reaching its query means walking down to that layer — and the two directions of
+`CacheReplay.queriesUnder_bind` and `queriesUnder_bind_right` are exactly the two steps of
+that walk: descend into this layer, or step over it to the next.
+
+Stepping over a layer advances the message to that layer's replayed root, which is what
+`CacheReplay.run_eq_replay` identifies with the root the oracle run actually produced. -/
+
+open CacheReplay in
+/-- Descend into this layer. -/
+theorem queriesUnder_rootFromSignature_head (cache : QueryCache HashSpec) (publicSeed : Digest)
+    (remaining : Nat) (signatures : Fin (remaining + 1) → XmssSignature) (layer tree : Nat)
+    (leaf : SlhDsaSecurity.Hypertree.LeafIndex) (message : Digest) (probe : Bytes)
+    (hquery : QueriesUnder cache
+      (SlhDsaSecurity.Merkle.publicKeyFromSignature (m := OracleComp HashSpec) leaf
+        (signatures 0) message publicSeed (SlhDsaSecurity.Hypertree.address layer tree)) probe) :
+    QueriesUnder cache
+      (SlhDsaSecurity.Hypertree.rootFromSignature (m := OracleComp HashSpec) publicSeed
+        (remaining + 1) signatures layer tree leaf message) probe :=
+  queriesUnder_bind cache _ _ probe hquery
+
+open CacheReplay in
+/-- Step over this layer to the next, advancing the message to this layer's replayed root. -/
+theorem queriesUnder_rootFromSignature_tail (cache : QueryCache HashSpec) (publicSeed : Digest)
+    (remaining : Nat) (signatures : Fin (remaining + 1) → XmssSignature) (layer tree : Nat)
+    (leaf : SlhDsaSecurity.Hypertree.LeafIndex) (message : Digest) (probe : Bytes)
+    (hquery : QueriesUnder cache
+      (SlhDsaSecurity.Hypertree.rootFromSignature (m := OracleComp HashSpec) publicSeed
+        remaining (fun i => signatures i.succ) (layer + 1)
+        (tree / 2 ^ subtreeHeight) (SlhDsaSecurity.Hypertree.nextLeaf tree)
+        (simulateQ (replay cache)
+          (SlhDsaSecurity.Merkle.publicKeyFromSignature (m := OracleComp HashSpec) leaf
+            (signatures 0) message publicSeed
+            (SlhDsaSecurity.Hypertree.address layer tree)))) probe) :
+    QueriesUnder cache
+      (SlhDsaSecurity.Hypertree.rootFromSignature (m := OracleComp HashSpec) publicSeed
+        (remaining + 1) signatures layer tree leaf message) probe :=
+  queriesUnder_bind_right cache _ _ probe hquery
 
 end SlhDsaSecurity.HypertreeDispatch
