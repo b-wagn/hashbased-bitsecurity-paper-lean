@@ -31,6 +31,9 @@ import SlhDsaSecurity.Proof.CanonicalGraph.Separation
 import SlhDsaSecurity.Proof.CanonicalGraph.Programming
 import SlhDsaSecurity.Proof.Extraction.Merkle
 import SlhDsaSecurity.Proof.Extraction.Wots
+import SlhDsaSecurity.Proof.FramingClosure
+import SlhDsaSecurity.Proof.SharedOracleArithmetic
+import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -311,3 +314,27 @@ import SlhDsaSecurity.Proof.Extraction.Wots
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.Wots.publicKey_eq_canonical_or_collision
+
+/-! Framing closure, feasibility arithmetic, and the eligible-encoding count. -/
+
+/-- info: 'SlhDsaSecurity.FramingClosure.chainFrame_family_injective' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FramingClosure.chainFrame_family_injective
+
+/-- info: 'SlhDsaSecurity.FramingClosure.prepend_digest_exists_frame' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FramingClosure.prepend_digest_exists_frame
+
+/-- info: 'SlhDsaSecurity.SharedOracleArithmetic.proposed_bound_exceeds_target' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleArithmetic.proposed_bound_exceeds_target
+
+/-- info: 'SlhDsaSecurity.EligibilityCertificate.count_gt' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.EligibilityCertificate.count_gt
+
+/-- info: 'SlhDsaSecurity.EligibilityCertificate.coeff_eq_digit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.EligibilityCertificate.coeff_eq_digit

@@ -7,6 +7,18 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 theorems='(Correctness|StrongUnforgeability|Unforgeability)Theorems'
 libraries='(XmssSecurity|SlhDsaSecurity)'
+
+# Prefer ripgrep when it is a real executable; otherwise fall back to grep so the
+# check never degrades into a silent pass when rg is unavailable (e.g. in CI or a
+# non-interactive shell where rg is only a shell function).
+if command -v rg >/dev/null 2>&1 && rg --version >/dev/null 2>&1; then
+  list_files() { rg --files XmssSecurity/Statement SlhDsaSecurity/Statement -g '*.lean'; }
+  match_import() { rg -nH "^[[:blank:]]*import[[:blank:]]+$1" "$2"; }
+else
+  list_files() { find XmssSecurity/Statement SlhDsaSecurity/Statement -name '*.lean' -type f; }
+  match_import() { grep -nHE "^[[:blank:]]*import[[:blank:]]+$1" "$2"; }
+fi
+
 import_status=0
 while IFS= read -r file; do
   case "$file" in
@@ -16,13 +28,13 @@ while IFS= read -r file; do
       forbidden="$libraries\\.Statement\\.$theorems([[:space:]]|$)" ;;
     *) forbidden="$libraries\\.(Proof\\.|Statement\\.$theorems([[:space:]]|$))" ;;
   esac
-  if rg -nH "^[[:blank:]]*import[[:blank:]]+$forbidden" "$file"; then
+  if match_import "$forbidden" "$file"; then
     import_status=1
   else
-    rg_status=$?
-    if [ "$rg_status" -ne 1 ]; then exit "$rg_status"; fi
+    match_status=$?
+    if [ "$match_status" -ne 1 ]; then exit "$match_status"; fi
   fi
-done < <(rg --files XmssSecurity/Statement SlhDsaSecurity/Statement -g '*.lean')
+done < <(list_files)
 if [ "$import_status" -ne 0 ]; then
   echo "Unexpected dependencies on the proof layer listed above." >&2
   exit "$import_status"
