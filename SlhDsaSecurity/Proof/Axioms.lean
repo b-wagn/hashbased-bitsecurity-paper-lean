@@ -39,6 +39,7 @@ import SlhDsaSecurity.Proof.CollisionCharge
 import SlhDsaSecurity.Proof.FreshHitBound
 import SlhDsaSecurity.Proof.FramingLeak
 import SlhDsaSecurity.Proof.CanonicalTarget
+import SlhDsaSecurity.Proof.GrowthCharge
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -430,3 +431,11 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.CanonicalTarget.hit_of_deviating_collision' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CanonicalTarget.hit_of_deviating_collision
+
+/-- info: 'SlhDsaSecurity.GrowthCharge.cache_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GrowthCharge.cache_mono
+
+/-- info: 'SlhDsaSecurity.GrowthCharge.prob_hitWithin_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GrowthCharge.prob_hitWithin_le
