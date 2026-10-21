@@ -1,5 +1,7 @@
 import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.WarmedCharges
+import SlhDsaSecurity.Proof.HonestGrowth
+import SlhDsaSecurity.Proof.GraphStakes
 
 /-!
 # The budget, carried to the recorded game
@@ -97,5 +99,93 @@ theorem card_toFinset_le_of_budget {adversary : Adversary} {q : Nat}
     (Multiset.toFinset result.1.2).card ≤ q :=
   RecordedQueries.card_toFinset_le adversary walk.1.1 walk.2 walk.2 q result hresult
     (work_le_of_budget_recorded hbudget hwalk hresult)
+
+/-! ## Reserving what key generation spent
+
+Key generation's hash calls are charged to the budget and counted in neither `.hash` nor
+`.verification`, so the work the game charges leaves that much of the budget unspent. Reserving
+it rather than discarding it is what pays for the forgery's own claimed cells: the input half
+records one candidate per claimed cell, a constant `GraphStakes.claimedCount = 259` of them,
+against the `2 ^ subtreeHeight = 512` key generation puts back. -/
+
+/-- **The budget bounds the work, with key generation's spend reserved.** -/
+theorem work_add_pow_le_of_budget_tail {adversary : Adversary} {q : Nat}
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (tail adversary walk)) :
+    result.1.1.counts.work + 2 ^ subtreeHeight ≤ q := by
+  obtain ⟨keygenCount, keys, keyCache, hkeys, hbound⟩ :=
+    AdversaryQueries.work_add_keygen_le_total adversary walk.1.1 walk.2 result hresult
+  have hpow : (2 : Nat) ^ subtreeHeight ≤ keygenCount :=
+    HonestGrowth.pow_le_count_keygen walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2
+      ⟨⟨keys, keygenCount⟩, keyCache⟩ hkeys
+  have htotal := WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult
+  omega
+
+/-- The same at the recorded game. -/
+theorem work_add_pow_le_of_budget_recorded {adversary : Adversary} {q : Nat}
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : (Outcome × Multiset Bytes) × QueryCache HashSpec}
+    (hresult : result ∈ support ((simulateQ KeygenUniform.rom
+      (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2)) :
+    result.1.1.counts.work + 2 ^ subtreeHeight ≤ q := by
+  have hstripped : (result.1.1, result.2) ∈ support ((simulateQ KeygenUniform.rom
+      (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run walk.2) := by
+    rw [← RecordedQueries.map_recordedAfterSeeds, simulateQ_map, StateT.run_map, support_map]
+    exact ⟨result, hresult, rfl⟩
+  rw [Averaging.support_eq_of_evalDist_eq (StrippedGame.evalDist_run_strippedAfterSeeds
+    adversary walk.1.1 walk.2 walk.2 (StrippedGame.Extends.refl walk.2))] at hstripped
+  obtain ⟨count, hcounted⟩ :=
+    mem_support_countAllHashes _ walk.2 (result.1.1, result.2) hstripped
+  exact work_add_pow_le_of_budget_tail hbudget hwalk hcounted
+
+/-- **The record, with the forgery's claimed cells appended, fits the budget.** The queries cost
+the work the game charged, which the budget bounds by `q` less key generation's spend; the claims
+cost their own number, which is a constant. -/
+theorem card_toFinset_append_le_of_budget {adversary : Adversary} {q : Nat}
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : (Outcome × Multiset Bytes) × QueryCache HashSpec}
+    (hresult : result ∈ support ((simulateQ KeygenUniform.rom
+      (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2))
+    (claimed : List Bytes) :
+    (Multiset.toFinset (result.1.2 + (claimed : Multiset Bytes))).card ≤
+      (q - 2 ^ subtreeHeight) + claimed.length := by
+  classical
+  have hwork := RecordedQueries.card_toFinset_le_work adversary walk.1.1 walk.2 walk.2 result
+    hresult
+  have hbound := work_add_pow_le_of_budget_recorded hbudget hwalk hresult
+  calc (Multiset.toFinset (result.1.2 + (claimed : Multiset Bytes))).card
+      ≤ (Multiset.toFinset result.1.2).card +
+          (Multiset.toFinset (claimed : Multiset Bytes)).card := by
+        rw [Multiset.toFinset_add]
+        exact Finset.card_union_le _ _
+    _ ≤ (q - 2 ^ subtreeHeight) + claimed.length := by
+        refine Nat.add_le_add (by omega) ?_
+        exact claimed.toFinset_card_le
+
+/-- **The record at the forgery's own claimed cells, in numbers.** Two hundred and fifty-nine
+claims against the five hundred and twelve key generation puts back. -/
+theorem card_toFinset_claimed_le_of_budget [HasQuery HashSpec Id] {adversary : Adversary}
+    {q : Nat} (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : (Outcome × Multiset Bytes) × QueryCache HashSpec}
+    (hresult : result ∈ support ((simulateQ KeygenUniform.rom
+      (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2))
+    (forsKey : CanonicalGraph.ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
+    (signature : Signature) (keyAt : Fin layers → CanonicalGraph.WotsKey)
+    (stepAt : Fin layers → Fin chains → Fin (w - 1)) :
+    (Multiset.toFinset (result.1.2 +
+      ((GraphStakes.claimedCandidates walk.1.1.2.2 forsKey indices signature keyAt stepAt :
+        List Bytes) : Multiset Bytes))).card ≤ (q - 2 ^ subtreeHeight) + 259 := by
+  have hbound := card_toFinset_append_le_of_budget hbudget hwalk hresult
+    (GraphStakes.claimedCandidates walk.1.1.2.2 forsKey indices signature keyAt stepAt)
+  rwa [GraphStakes.length_claimedCandidates, GraphStakes.claimedCount] at hbound
 
 end SlhDsaSecurity.RecordedBudget
