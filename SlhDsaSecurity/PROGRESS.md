@@ -337,11 +337,21 @@ Four obligations remain, in increasing order of difficulty.
    many free uniform-coin queries while keeping its hash count under `q`, so no unit-cost
    worst-case bound and no finite per-index bound for the `unifSpec` indices exist.
 
-2. **Assembling the structural term.** Combine `Extraction.*` (every fault witness),
-   `CanonicalTarget.hit_of_deviating_collision` (each witness is a charged hit) and the
-   counter-based charge from (1) into a single `q / 2 ^ 128` term for the whole game. This
-   also needs the honest keygen and signing caches shown to consist only of canonical
-   queries, so `CanonicalTarget.clean_of_canonical_cache` applies.
+2. **Assembling the structural term — done.** `Proof/StructuralTerm.lean` proves
+   `prob_deviatingCollision_le`: started from a cache holding only honest canonical
+   queries, a charged phase produces a deviating structural collision — precisely the shape
+   of every witness `Extraction.*` yields — while growing the cache by at most `limit`,
+   with probability at most `limit / 2 ^ 128`. It composes
+   `CanonicalTarget.clean_of_canonical_cache`,
+   `CanonicalTarget.hit_of_deviating_collision` and `GrowthCharge.prob_hitWithin_le`. The
+   charge is linear in the budget and independent of how many honest node values exist.
+
+   What is still needed to use it inside the experiment: instantiate `initialCache` with
+   the actual post-key-generation, post-signing cache, which means showing the honest phase
+   queries only canonical inputs. `ROMPresampling` provides the phase decomposition and
+   `CanonicalGraph.Correspondence` identifies the honest queries as canonical cells, so this
+   is bookkeeping rather than a new idea, but it is not done.
+
 3. **FORS coverage in the real game.** Couple the shared oracle to the independent-tape
    bounds. By the tightness budget above this *must* go through
    `ForsConcentrationSharper` (`q / 2 ^ 129 + 2 ^ -126`); the plain `2 ^ -128` coverage

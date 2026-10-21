@@ -40,6 +40,7 @@ import SlhDsaSecurity.Proof.FreshHitBound
 import SlhDsaSecurity.Proof.FramingLeak
 import SlhDsaSecurity.Proof.CanonicalTarget
 import SlhDsaSecurity.Proof.GrowthCharge
+import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
@@ -439,3 +440,7 @@ import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 /-- info: 'SlhDsaSecurity.GrowthCharge.prob_hitWithin_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GrowthCharge.prob_hitWithin_le
+
+/-- info: 'SlhDsaSecurity.StructuralTerm.prob_deviatingCollision_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StructuralTerm.prob_deviatingCollision_le
