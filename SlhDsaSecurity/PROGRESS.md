@@ -2447,3 +2447,39 @@ record's canonical part for the input half, plus the forgery's `259` claims, plu
 message-class part for the ordering defect. With `work + 2 ^ subtreeHeight ≤ q` that is
 `(q - 2 ^ subtreeHeight) + 259`, and the total is `2 q - 247`. The randomiser defect's term and
 the signer's coincidence both disappear with the proxy that created them.
+## What the stalled stack asks of monotonicity, and the one way it could fail
+
+Moving `availableAt`'s domain from the cache to a serving carrier is safe for the stalling and
+redraw arguments, and the audit is short because the dependency is narrow. The whole stack
+consumes monotonicity in **two places of the same shape** — `ChargedProbe.withFlag_frozen` and
+`ChargedProbe.flagged_frozen`, each of them
+
+    hmono state.1.1 inner.2.1 (CacheAvailability.lazyProgram_persists …) index hstate
+
+and nowhere else. Neither uses a property of `Persists`: not transitivity, not reflexivity, not
+a lookup. The relation is passed from the step lemma straight into `hmono`, so any relation
+whatever will do. `StalledRun` mentions no cache at all — it is generic in the state — and
+`OpenCache.lazyProgram` feeds the state's first component to availability at exactly one site.
+
+**So the burden moves entirely onto the carrier analogue of
+`CacheAvailability.lazyProgram_persists`**: that a handler step grows the carrier. Its present
+proof is two cases — a coin step leaves the state *identical*, a hash step adds at most one
+cache entry — so it needs only reflexivity and "adding a cache entry grows the carrier".
+
+**The one shape that would make it false is a step that clears the in-flight framing.** If
+`Grows` is componentwise — cache grows, served grows, in-flight unchanged — then the step in
+which a request completes, and its framing moves from in-flight to served, is not `Grows`, and
+the lemma fails exactly there. Since "logged **or** in flight" is the point of the notion,
+`Grows` has to be a statement about what the carrier *discloses* — served together with
+in-flight — rather than about its three components separately.
+
+**Two sites keep a cache and must not be swept along.** `RedrawCell.probEvent_rom_eq_lazy` and
+`probEvent_rom_eq_lazyProgram` compare the game's own rom cache with the programmed entries by
+lookup, through `Compatible` and `unionCache`, at total availability where nothing reads a
+carrier. They are about cache contents, not disclosure, and stay cache-level.
+
+**And the record's entries change type with it.** A record entry is the probe paired with the
+object availability is read from, so it becomes `Bytes × Carrier`; the claims charge requires
+every claim to carry the run's own final one, so `WarmProbes.claimedEntries` must pair with the
+final carrier. The event has to agree: `RoutedSplit.InputBad` reads disclosure at the trace's
+final cache, and whatever that becomes must be the same object the entries carry.
