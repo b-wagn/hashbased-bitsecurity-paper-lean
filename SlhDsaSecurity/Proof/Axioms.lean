@@ -243,6 +243,7 @@ import SlhDsaSecurity.Proof.NoticingCover
 import SlhDsaSecurity.Proof.FusedCover
 import SlhDsaSecurity.Proof.SplitCounted
 import SlhDsaSecurity.Proof.SplitTail
+import SlhDsaSecurity.Proof.CarrierCover
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15383,3 +15384,27 @@ info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised
+
+/-- info: 'SlhDsaSecurity.CarrierCover.forgetsAlong_dropCount' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.forgetsAlong_dropCount
+
+/-- info: 'SlhDsaSecurity.CarrierCover.mem_support_dropCount_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.mem_support_dropCount_run
+
+/-- info: 'SlhDsaSecurity.CarrierCover.dropCount_startServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.dropCount_startServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierCover.dropCount_stopServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.dropCount_stopServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierCover.mem_support_dropCount_phase' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.mem_support_dropCount_phase
+
+/-- info: 'SlhDsaSecurity.CarrierCover.cover_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.cover_carrierTail
