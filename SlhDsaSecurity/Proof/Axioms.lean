@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
 import SlhDsaSecurity.Proof.WriterState
@@ -5370,3 +5371,15 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.Target.target_of_obligations' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.target_of_obligations
+
+/-- info: 'SlhDsaSecurity.KeygenBudget.pow_le_count_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenBudget.pow_le_count_tail
+
+/-- info: 'SlhDsaSecurity.KeygenBudget.pow_le_count_of_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenBudget.pow_le_count_of_mem_support
+
+/-- info: 'SlhDsaSecurity.KeygenBudget.pow_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenBudget.pow_le_of_budget
