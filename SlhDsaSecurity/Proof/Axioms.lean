@@ -208,6 +208,7 @@ import SlhDsaSecurity.Proof.ServingForget
 import SlhDsaSecurity.Proof.HandlerStall
 import SlhDsaSecurity.Proof.HandlerCharge
 import SlhDsaSecurity.Proof.HandlerLenient
+import SlhDsaSecurity.Proof.ServingTable
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -13016,3 +13017,31 @@ info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_class_of_parts' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_class_of_parts
+
+/-- info: 'SlhDsaSecurity.ServingTable.cache_fileIf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.cache_fileIf
+
+/-- info: 'SlhDsaSecurity.ServingTable.servingProgram_run_inr_cases' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.servingProgram_run_inr_cases
+
+/-- info: 'SlhDsaSecurity.ServingTable.rom_union_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.rom_union_step
+
+/-- info: 'SlhDsaSecurity.ServingTable.compatible_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.compatible_step
+
+/-- info: 'SlhDsaSecurity.ServingTable.probEvent_rom_eq_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.probEvent_rom_eq_serving
+
+/-- info: 'SlhDsaSecurity.ServingTable.probEvent_honest_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.probEvent_honest_serving
+
+/-- info: 'SlhDsaSecurity.ServingTable.probEvent_tail_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.probEvent_tail_serving
