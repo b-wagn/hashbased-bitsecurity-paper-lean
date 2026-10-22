@@ -166,7 +166,9 @@ theorem sensitiveFlagged_flag_iff_record {α : Type} (publicSeed : Digest)
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rcases queried with coin | probe
     · have hsame : inner.2.2.1 = state.1.2.1 :=
-        HandlerStall.record_inl publicSeed availableAt impl hfacts table coin state.1 inner hinner
+        HandlerStall.record_inl publicSeed (fun _ => availableAt) impl
+          (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) table coin state.1
+          inner hinner
       have hnone : ¬ SensitiveQueryAt publicSeed flagAt table.1 state.1 (Sum.inl coin) := by
         rintro ⟨candidate, hcandidate, -⟩
         simp [probeOf] at hcandidate
@@ -177,8 +179,9 @@ theorem sensitiveFlagged_flag_iff_record {α : Type} (publicSeed : Digest)
       rw [decide_eq_false hnone, Bool.or_false, hsame]
       exact hstate
     · have hrec : inner.2.2.1 = state.1.2.1 ++ [(probe, state.1.1)] :=
-        HandlerStall.record_inr publicSeed availableAt impl hfacts table probe state.1 inner
-          hinner
+        HandlerStall.record_inr publicSeed (fun _ => availableAt) impl
+          (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) table probe state.1
+          inner hinner
       have hhere : SensitiveQueryAt publicSeed flagAt table.1 state.1 (Sum.inr probe) ↔
           SensitiveEntry publicSeed flagAt table.1 (probe, state.1.1) := by
         constructor
