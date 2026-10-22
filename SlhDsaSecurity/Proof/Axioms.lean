@@ -187,6 +187,8 @@ import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.FusedCoverage
 import SlhDsaSecurity.Proof.RecorderView
 import SlhDsaSecurity.Proof.LateProvenance
+import SlhDsaSecurity.Proof.RecordedWalkTable
+import SlhDsaSecurity.Proof.RecordedStripping
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11427,3 +11429,43 @@ info: 'SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.expected_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.expected_congr
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.evalDist_recordedPairedRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.evalDist_recordedPairedRun
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_seeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_seeds
+
+/-- info: 'SlhDsaSecurity.RecordedStripping.writerRun_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.writerRun_bind
+
+/-- info: 'SlhDsaSecurity.RecordedStripping.evalDist_writerRun_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.evalDist_writerRun_congr
+
+/--
+info: 'SlhDsaSecurity.RecordedStripping.evalDist_writerRun_signingOracle' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.evalDist_writerRun_signingOracle
+
+/--
+info: 'SlhDsaSecurity.RecordedStripping.evalDist_run_recordedAfterSeeds' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.evalDist_run_recordedAfterSeeds
