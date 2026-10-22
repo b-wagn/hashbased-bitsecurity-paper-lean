@@ -189,6 +189,7 @@ import SlhDsaSecurity.Proof.RecorderView
 import SlhDsaSecurity.Proof.LateProvenance
 import SlhDsaSecurity.Proof.PairedAverage
 import SlhDsaSecurity.Proof.SharedAssembly
+import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.ServedAgreement
@@ -11963,3 +11964,15 @@ info: 'SlhDsaSecurity.PairedAverage.prob_le_expected_of_perWalk' depends on axio
 /-- info: 'SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_claim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_claim
+
+/--
+info: 'SlhDsaSecurity.SharedAssembly.probesIn_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.probesIn_forget
+
+/--
+info: 'SlhDsaSecurity.FinalAssembly.target_of_producers' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FinalAssembly.target_of_producers

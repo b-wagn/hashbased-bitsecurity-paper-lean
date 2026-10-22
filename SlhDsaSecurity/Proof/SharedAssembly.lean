@@ -69,6 +69,15 @@ theorem inputBullet_of_recorded (adversary : Adversary) (ordering : RecordedPair
   rw [InputBullet, hprob, hcount]
   exact hbullet
 
+/-- **The input half's containment survives the move untouched.** A supported pair of the larger
+run forgets to a supported pair of the smaller, so a `SharedJoin.ProbesIn` proved there applies
+here by one application. Only the bullet is restated; what sits under it is not. -/
+theorem probesIn_forget (part probes : RecordedPair → Multiset Bytes) (adversary : Adversary)
+    (hprobes : ProbesIn part probes adversary) :
+    ∀ pair ∈ support (pairedOf FusedCoverage.fusedTail adversary),
+      probes (forgetRecordings pair) ≤ part (forgetRecordings pair) :=
+  fun _ hpair => hprobes _ (mem_support_forget (FusedCoverage.forgetsTo adversary) hpair)
+
 /-! ## The two counts still fit the budget
 
 They are two parts of one record and disjoint by construction, so the join's own bound applies
