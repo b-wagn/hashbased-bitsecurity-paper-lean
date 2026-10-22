@@ -285,7 +285,7 @@ theorem step_bound (prfSeed : Digest) (pk : PublicKey) (state : SplitState) (inp
           simp
         · rw [hpot]
           refine le_trans (add_le_add (le_trans (hsplit default)
-            (add_le_add hold (prob_entry_fires_le prfSeed pk state.1 input input hright.2.2)))
+            (add_le_add hold (prob_entry_fires_le prfSeed pk state.1 input input hright.2)))
             le_rfl) ?_
           rw [show ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) = ((1 : Nat) : ℝ≥0∞) * rate from by
             rw [rate]; simp, add_assoc]
@@ -357,7 +357,7 @@ theorem prob_lateDisclosure_le (prfSeed : Digest) (pk : PublicKey)
     (fun state input hcache hnotfired => step_bound prfSeed pk state input hcache hnotfired)
     computation (cache, [], [])
     (by rintro ⟨entry, hentry, -⟩; simp at hentry)
-  simpa [potential, gauge, Fired, LateDisclosure] using hmain
+  simpa [potential, gauge, Fired, LateDisclosure, Served.Late, disclosingKeep] using hmain
 
 /-! ## The target recording is not the adversary's alone
 
@@ -385,7 +385,7 @@ theorem not_targetKeep_signer_randomizerInput (prfSeed : Digest) (pk : PublicKey
     (cache : QueryCache HashSpec) (message : Bytes) :
     ¬ targetKeep prfSeed pk
       (Hashing.randomizerInput prfSeed pk.seed (bytesBE n pk.root ++ message)) cache :=
-  fun hkeep => hkeep.2.1 ⟨pk.seed, bytesBE n pk.root ++ message, rfl⟩
+  fun hkeep => hkeep.1.2 ⟨pk.seed, bytesBE n pk.root ++ message, rfl⟩
 
 /-- The same input, read as the digest input it also is. -/
 theorem signer_randomizerInput_isMessageInput (prfSeed : Digest) (pk : PublicKey)

@@ -7245,6 +7245,41 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.cover_messageInput
 
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.cover' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.cover
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.targetKeep_narrow' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.targetKeep_narrow
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.disclosedRecorded_of_not_late' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.disclosedRecorded_of_not_late
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_not_late' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_not_late
+
+
 /-- info: 'SlhDsaSecurity.SplitWitness.disclosingKeep_mono' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.disclosingKeep_mono
