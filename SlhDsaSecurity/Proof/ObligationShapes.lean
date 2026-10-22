@@ -126,7 +126,7 @@ theorem sharedChargedLate_of_parts
     (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       SharedAssembly.InputBullet adversary LateProbes.Ordering)
     (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary) :
-    Obligations.SharedChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
+    Obligations.SharedChargedLate 259 FusedCoverage.fusedTail FinalAssembly.forgetFused
       LateProbes.Ordering := by
   classical
   intro q adversary _ hbudget

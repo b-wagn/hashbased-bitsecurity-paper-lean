@@ -132,9 +132,14 @@ noncomputable def defects : ℝ≥0∞ :=
   (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
     ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞))
 
-/-- **The allowance closes, with every number concrete.** -/
-theorem allowance (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
-    ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+/-- **The allowance closes, at any number of claimed cells key generation's spend leaves room
+for.** The numeral is a parameter because the shared side's constant term is not settled: what
+the forgery claims is `259`, and anything else charged as a constant lands beside it and has to
+fit in the same `2 ^ subtreeHeight` that key generation reserves, alongside the six units the
+four small defects take. -/
+theorem allowanceOf (claims q : Nat) (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
+    (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
   have hdefects : defects ≤ ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
@@ -146,8 +151,15 @@ theorem allowance (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
       ring]
     exact Assembly.defects_le_six
   rw [← add_assoc]
-  exact Assembly.le_target_of_full q (2 ^ subtreeHeight) 259 6 hkeygen
-    (by simp only [subtreeHeight]; omega) defects hdefects
+  exact Assembly.le_target_of_full q (2 ^ subtreeHeight) claims 6 hkeygen hclaims defects hdefects
+
+/-- **The allowance at the claims the forgery makes**, which is what the obligations stated
+before the numeral was a parameter and what `target_of_obligations` still reads. -/
+theorem allowance (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
+      (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
+  allowanceOf 259 q (by simp only [subtreeHeight]; omega) hkeygen
 
 /-! ## The target -/
 
@@ -298,7 +310,8 @@ set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **The target, from two obligations at a refining tail.** The answer side rules the defect
 out, the shared side pays for it, and the walk's own coincidences are paid once beside them. -/
-theorem target_of_obligations_fused {γ : Type}
+theorem target_of_obligations_fused {γ : Type} (claims : Nat)
+    (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
     (fused : Adversary → (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) →
       ProbComp γ)
     (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
@@ -322,7 +335,7 @@ theorem target_of_obligations_fused {γ : Type}
       Pr[fun pair => GoodWalk pair.1 ∧
           (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
         pairedFused (fused adversary)] ≤
-        ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+        ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     HasTotalSecurityBits .strong 127 := by
   classical
   refine MainTheorem.totalSecurityBits_of_bound
@@ -390,14 +403,14 @@ theorem target_of_obligations_fused {γ : Type}
     _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
             ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
               (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
-          (((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
             (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞))) :=
         add_le_add hgoodAnswer
           (add_le_add (hshared q adversary hq hbudget)
             (prob_bad_walk_pairedFused (fused adversary)))
-    _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+    _ = ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) := by rw [defects]; ring
     _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
-        allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
+        allowanceOf claims q hclaims (KeygenBudget.pow_le_of_budget q adversary hbudget)
 
 end SlhDsaSecurity.Target

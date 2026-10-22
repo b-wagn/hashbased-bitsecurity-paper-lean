@@ -12465,3 +12465,9 @@ info: 'SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceOf

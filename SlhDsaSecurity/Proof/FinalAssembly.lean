@@ -52,10 +52,10 @@ set_option maxHeartbeats 1000000 in
 theorem target_of_producers
     (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail forgetFused
       LateProbes.Ordering)
-    (hshared : Obligations.SharedChargedLate FusedCoverage.fusedTail forgetFused
+    (hshared : Obligations.SharedChargedLate 259 FusedCoverage.fusedTail forgetFused
       LateProbes.Ordering) :
     HasTotalSecurityBits .strong 127 :=
-  Obligations.target_of_charges_fused FusedCoverage.fusedTail forgetFused LateProbes.Ordering
-    forgetFused_map hanswer hshared
+  Obligations.target_of_charges_fused 259 (by simp only [subtreeHeight]; omega)
+    FusedCoverage.fusedTail forgetFused LateProbes.Ordering forgetFused_map hanswer hshared
 
 end SlhDsaSecurity.FinalAssembly
