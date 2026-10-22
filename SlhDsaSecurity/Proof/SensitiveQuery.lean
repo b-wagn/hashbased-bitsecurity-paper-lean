@@ -252,13 +252,22 @@ costs one unit per record, with no loss to the earlier candidates having been an
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **A recorded run meets a sensitive input with probability at most one unit per record.** -/
-theorem prob_record_sensitive_le {γ : Type} (stakes : Stakes Node Index)
-    (unavailable : State → Index → Prop) (run : ProbComp γ)
-    (record : γ → List (Bytes × State))
+/-- **A recorded run meets a hit with probability at most one unit per record.** The hit is a
+parameter and so is its rate: everything below the rate — the union over the record, the sum
+over runs, the limit — is counting, and counting does not care what a hit is.
+
+That is what lets one count of the run's queries pay for more than one defect. Two events each
+costing `2 ^ -128` per query, charged separately and added, would need the budget twice; charged
+as one hit whose own rate is `2 ^ -128`, they are paid for once. Whoever instantiates owes that
+combined rate, which is where the argument that a query cannot be both lives. -/
+theorem prob_record_hit_le {γ : Type} (Hit : (Index → Cell) → State → Bytes → Prop)
+    (hrate : ∀ (state : State) (candidate : Bytes),
+      Pr[fun table : Index → Cell => Hit table state candidate |
+        ($ᵗ (Index → Cell) : ProbComp (Index → Cell))] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (run : ProbComp γ) (record : γ → List (Bytes × State))
     (limit : Nat) (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
     Pr[fun pair : γ × (Index → Cell) =>
-        ∃ entry ∈ record pair.1, Sensitive stakes unavailable pair.2 entry.2 entry.1 |
+        ∃ entry ∈ record pair.1, Hit pair.2 entry.2 entry.1 |
       (do
         let result ← run
         let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
@@ -268,7 +277,7 @@ theorem prob_record_sensitive_le {γ : Type} (stakes : Stakes Node Index)
   rw [probEvent_bind_eq_tsum]
   calc ∑' result, Pr[= result | run] *
         Pr[fun pair : γ × (Index → Cell) =>
-            ∃ entry ∈ record pair.1, Sensitive stakes unavailable pair.2 entry.2 entry.1 |
+            ∃ entry ∈ record pair.1, Hit pair.2 entry.2 entry.1 |
           (do
             let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
             pure (result, table))]
@@ -279,17 +288,16 @@ theorem prob_record_sensitive_le {γ : Type} (stakes : Stakes Node Index)
           rw [bind_pure_comp, probEvent_map]
           refine le_trans (probEvent_mono (q := fun table : Index → Cell =>
             ∃ entry ∈ (record result).toFinset,
-              Sensitive stakes unavailable table entry.2 entry.1) ?_) ?_
+              Hit table entry.2 entry.1) ?_) ?_
           · rintro table - ⟨entry, hentry, hsensitive⟩
             exact ⟨entry, List.mem_toFinset.mpr hentry, hsensitive⟩
           refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
           calc ∑ entry ∈ (record result).toFinset,
                 Pr[fun table : Index → Cell =>
-                    Sensitive stakes unavailable table entry.2 entry.1 |
+                    Hit table entry.2 entry.1 |
                   ($ᵗ (Index → Cell) : ProbComp (Index → Cell))]
               ≤ ∑ _entry ∈ (record result).toFinset, 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-                Finset.sum_le_sum fun entry _ =>
-                  prob_sensitive_le stakes unavailable entry.2 entry.1
+                Finset.sum_le_sum fun entry _ => hrate entry.2 entry.1
             _ = (record result).toFinset.card * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
                 rw [Finset.sum_const, nsmul_eq_mul]
             _ ≤ (limit : ℝ≥0∞) * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
@@ -304,6 +312,25 @@ theorem prob_record_sensitive_le {γ : Type} (stakes : Stakes Node Index)
         mul_le_mul' tsum_probOutput_le_one le_rfl
     _ = _ := one_mul _
 
+
+
+open scoped Classical in
+/-- **A recorded run meets a sensitive input with probability at most one unit per record.**
+The sensitive case of the charge above: its rate is `prob_sensitive_le`. -/
+theorem prob_record_sensitive_le {γ : Type} (stakes : Stakes Node Index)
+    (unavailable : State → Index → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × State))
+    (limit : Nat) (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
+    Pr[fun pair : γ × (Index → Cell) =>
+        ∃ entry ∈ record pair.1, Sensitive stakes unavailable pair.2 entry.2 entry.1 |
+      (do
+        let result ← run
+        let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
+        pure (result, table))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_record_hit_le (fun table state candidate => Sensitive stakes unavailable table state
+    candidate) (fun state candidate => prob_sensitive_le stakes unavailable state candidate)
+    run record limit hlimit
 
 /-! ## The run that issues the candidates
 
@@ -375,6 +402,31 @@ theorem length_le_count {α : Type} (computation : OracleComp OracleWorld α)
       rw [hpure]
       simp only [List.length_append, List.length_cons, List.length_nil]
       omega
+
+/-- **The charge against a run of the shared oracle, at a parametric hit.** A run that charges
+at most `limit` hash calls ever issues a hit with probability at most `limit / 2 ^ 128`, the
+table being drawn after the run. The count is the run's own query count whatever the hit is,
+which is what lets one count pay for more than one defect. -/
+theorem prob_probes_hit_le {α : Type}
+    (Hit : (Index → Cell) → QueryCache HashSpec → Bytes → Prop)
+    (hrate : ∀ (state : QueryCache HashSpec) (candidate : Bytes),
+      Pr[fun table : Index → Cell => Hit table state candidate |
+        ($ᵗ (Index → Cell) : ProbComp (Index → Cell))] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) (limit : Nat)
+    (hlimit : ∀ result ∈ support ((simulateQ probes computation).run (cache, [], 0)),
+      result.2.2.2 ≤ limit) :
+    Pr[fun pair : (α × ProbeState) × (Index → Cell) =>
+        ∃ entry ∈ pair.1.2.2.1, Hit pair.2 entry.2 entry.1 |
+      (do
+        let result ← (simulateQ probes computation).run (cache, [], 0)
+        let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
+        pure (result, table))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_record_hit_le Hit hrate
+    ((simulateQ probes computation).run (cache, [], 0)) (fun result => result.2.2.1) limit
+    fun result hmem =>
+      le_trans (length_le_count computation (cache, [], 0) result hmem (by simp))
+        (hlimit result hmem)
 
 /-- **The charge against a run of the shared oracle.** A run that charges at most `limit` hash
 calls ever issues a sensitive candidate with probability at most `limit / 2 ^ 128`, the table

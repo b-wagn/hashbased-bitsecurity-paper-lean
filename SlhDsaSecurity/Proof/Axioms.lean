@@ -3659,3 +3659,11 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.LinkedGame.recordedAfterSeedsAt_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LinkedGame.recordedAfterSeedsAt_eq
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_record_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_record_hit_le
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_probes_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_probes_hit_le
