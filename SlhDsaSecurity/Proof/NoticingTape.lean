@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.TapeFactor
+import SlhDsaSecurity.Proof.CoverageCount
 
 /-!
 # The tape factorisation at the recorder that notices
@@ -771,5 +772,65 @@ theorem noticingProb_exists_hit_le_expected
   rw [← Finset.sum_mul]
   exact mul_le_mul' (noticingSum_prob_selected_le_expected leftKeep rightKeep computation cache
     leftLength rightLength) le_rfl
+
+/-! ## The recordings are still invisible
+
+`CoverageCount.recorderOf_eq_rom` says an event about the result and the view's cache has the
+same probability under the recorded run as under the shared oracle's — the write-only bridge
+the structural term is read across. At the repaired recorder it is the same statement for the
+same reason, and the *notice does not move the right-hand side at all*: `cacheOf_onQuery` says
+noticing a query leaves the cache alone, so the oracle's run is started and continued at exactly
+the cache it was before. Only the carrier under the recording moves, and the event cannot see
+the carrier except through its cache. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The recordings are invisible at the repaired recorder.**
+`CoverageCount.recorderOf_eq_rom` at `RecorderView.noticingRecorderOf`. -/
+theorem noticingRecorderOf_eq_rom {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ)
+    (event : α × QueryCache HashSpec → Prop) :
+    Pr[fun result : α × StateOf σ => event (result.1, CacheView.cacheOf result.2.1) |
+        (simulateQ (noticingRecorderOf leftKeep rightKeep) computation).run state] =
+      Pr[event | (simulateQ KeygenUniform.rom computation).run
+        (CacheView.cacheOf state.1)] := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state with
+  | pure value =>
+    simp only [simulateQ_pure, StateT.run_pure]
+    rw [probEvent_pure, probEvent_pure]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, simulateQ_bind,
+      simulateQ_spec_query, StateT.run_bind]
+    rcases queried with coin | input
+    · rw [noticingRecorderOf_run_inl, RecorderView.recorderOf_run_inl, DigestTape.rom_run_inl,
+        bind_assoc, bind_assoc]
+      simp only [pure_bind]
+      rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+      exact tsum_congr fun value => by rw [ih value state]
+    · rw [noticingRecorderOf_run_inr]
+      have hview : CacheView.cacheOf (CacheView.onQuery state.1 input) =
+          CacheView.cacheOf state.1 := cacheOf_onQuery state.1 input
+      cases hcached : CacheView.cacheOf state.1 input with
+      | some cached =>
+        rw [RecorderView.recorderOf_run_inr_some _ _ input
+            (CacheView.onQuery state.1 input, state.2) cached (by rw [hview]; exact hcached),
+          CoverageCount.rom_run_inr_some input _ cached hcached]
+        simp only [pure_bind]
+        simpa only [hview] using ih cached (CacheView.onQuery state.1 input,
+          RecorderView.appendedOf leftKeep rightKeep input
+            (CacheView.onQuery state.1 input, state.2) cached)
+      | none =>
+        rw [RecorderView.recorderOf_run_inr_none _ _ input
+            (CacheView.onQuery state.1 input, state.2) (by rw [hview]; exact hcached),
+          CoverageCount.rom_run_inr_none input _ hcached]
+        simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
+        rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+        refine tsum_congr fun answer => ?_
+        rw [← hview, ← CacheView.cache_update (CacheView.onQuery state.1 input) input answer]
+        exact congrArg _ (ih answer
+          (CacheView.update (CacheView.onQuery state.1 input) input answer,
+            RecorderView.appendedOf leftKeep rightKeep input
+              (CacheView.onQuery state.1 input, state.2) answer))
 
 end SlhDsaSecurity.NoticingTape

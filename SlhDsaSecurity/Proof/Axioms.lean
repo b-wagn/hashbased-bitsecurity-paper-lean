@@ -14365,3 +14365,9 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_recorder' depe
 /-- info: 'SlhDsaSecurity.CacheReplay.simulateQ_replay_congr' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheReplay.simulateQ_replay_congr
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingRecorderOf_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingRecorderOf_eq_rom

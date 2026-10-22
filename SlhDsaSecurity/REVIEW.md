@@ -85,14 +85,73 @@ optional attribute or `protected`/`nonrec`, and resolves names through a namespa
 **blind** to a declaration indented inside a `section` and to one named by a macro. Coverage is
 complete as of this writing; if you add either kind, add its guard by hand.
 
-## 8. Standing prohibitions
+## 8. The leaves are not vacuous, and here is exactly how far that was checked
+
+A leaf that is vacuously true is a silent hole: nothing fails, and the theorem means less than
+it reads. Six predicates were probed, each with a satisfiability witness **and** a refutability
+witness, and each satisfiability witness paired with a control in which the load-bearing
+ingredient is removed. **Every control fails**, so no probe proved less than it looked like.
+
+| predicate | satisfiable | refutable | control fails at |
+| --- | --- | --- | --- |
+| `AnswerCarrier.carrierRightKeep` | at `framing = none` | `not_carrierRightKeep_randomizerInput` | the left test catching the frame's digest input |
+| `SplitWitness.LateDisclosure` | target entry + cached `PRF_msg` | empty target recording | the missing cache entry |
+| `AnswerCoverage.ForgerySeedRandomised` | the format identity | unframeable context | a randomiser that is not `SK.prf` |
+| `RoutedSplit.InputBad` (and with `GoodWalk`) | empty log + correct claimed cell | unframeable context | `(parsed.fors tree0).secret = base node.child` |
+| `CarrierAvailability.availableAt` | `forsRoots` at any carrier | `forsPrf` at the empty carrier | — |
+| `GoodWalk ∧ ForgerySeedRandomised` | the format identity at the walk's seeds | — | — |
+
+Three results worth not re-deriving:
+
+**The ordering split is checked, not assumed.** The old trap was a firing predicate false at
+every step boundary. The witness has **filing** holding at the step (the flag) and **firing**
+holding at the end (the final cache) — two different objects, which is what the three-way
+restatement was for.
+
+**`RoutedSplit.InputBad` reads availability from the log** (`ServedLog.disclosedByLog`), **not
+from the handler.** The handler decides which *queries* are answered, not which *claims* a
+forgery contains, so a handler that refuses unavailable cells cannot empty the event. Reasoning
+about the handler here is reasoning about the wrong object.
+
+**The seed leftover cannot be dissolved.** `ForgerySeedRandomised` holds **with certainty** for
+a forgery publishing `SK.prf`, through `FramingLeak.randomizerInput_eq_messageInput` rather than
+through a collision. No vacuity argument retires it.
+
+### What the probes do **not** establish
+
+**Every witness is free data.** A `Trace`, a result, a carrier state is a tuple, and the probe
+chose it. The probes show the *predicates* are non-vacuous; they do **not** show the witnesses
+lie in the support of a real run. Nobody has checked reachability of any leaf, and a probe that
+did would be a support argument per leaf — a development, not a check.
+
+**The split is non-degenerate as propositions only.** `SigningFaithful.cases_of_win_charged`
+gives `Wins → AnswerBad ∨ InputBad`. Both branches were witnessed — a win that is `AnswerBad`
+and not `InputBad`, and a win that is `InputBad` and not `AnswerBad` — and **no implication
+lemma between the two sides exists anywhere in the tree**, so the split is not degenerate by
+construction either. But the two negative halves are bought off-support: `¬ InputBad` with a
+context too long to frame (which could not verify) and `¬ AnswerBad` with an empty cache (which
+a supported result never has).
+
+**Why that gap was left open deliberately.** A degenerate split would not weaken the theorem:
+`HasTotalSecurityBits` bounds `Pr[Wins]` from `Wins → AnswerBad ∨ InputBad` plus a bound on
+each, so if every win landed on one side both obligations would still hold and the bound would
+be exactly as strong. Degeneracy costs *work*, not strength. And both obligations bound their
+own side by something of order `q / 2 ^ 128`, so on the support both sides are rare and
+`InputBad ∧ ¬ AnswerBad` is `InputBad` minus a rare set — **degeneracy would need one side to be
+unreachable outright, not merely rarer.** Nothing suggests that.
+
+Probes live in the session scratch rather than the repository: they are evidence about the
+statements, not part of the proof, and a probe that compiles as a `theorem` is a maintenance
+burden with no consumer.
+
+## 9. Standing prohibitions
 
 - Nothing under `SlhDsaSecurity/Statement/` may be redefined. It is the thing being proved.
 - No `sorry`, no `admit`, no new axioms.
 - `decide +kernel` for closed numerics, **never `native_decide`** — the Stirling table and the
   centered moments are kernel-checked and must stay that way.
 
-## 9. Before claiming an absence
+## 10. Before claiming an absence
 
 An absence is only established by an exhaustive check. Count first, read second, and when the
 conclusion is "nothing anywhere", say how the search was bounded. Two confident negatives in
