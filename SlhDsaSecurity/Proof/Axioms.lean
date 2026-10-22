@@ -7790,3 +7790,21 @@ info: 'SlhDsaSecurity.BlockViews.prob_blockHit_le' depends on axioms: [propext, 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlockViews.prob_blockHit_le
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.leftOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.leftOf_prefix
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.leftOf_getElem?' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.leftOf_getElem?
+
+/--
+info: 'SlhDsaSecurity.BlockViews.covered_of_recordCovers' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.covered_of_recordCovers

@@ -185,4 +185,50 @@ theorem prob_blockHit_le (length : Nat) (block : List HashOutput)
   rw [← probEvent_congr' (fun _ _ => Iff.rfl) evalDist_parse_uniform, probEvent_map]
   rfl
 
+/-! ## From the recording's own witnesses to the block's disclosures
+
+The game's coverage event is witnessed by entries of the *recording*; the charge reads the
+disclosures off the whole *block*, the part no query reached included. Taking the block is only
+ever an over-count — more disclosures make coverage likelier, so the charge is still an upper
+bound — and the step that makes it one is this: an entry of the recording is a cell of the
+block, so the leaf it supplies is a leaf the block discloses.
+
+What this needs of the run is `TapeFactor.leftOf_getElem?` and that the recording did not
+outrun its block. The second is a cap on the number of *disclosing* queries, which the signing
+limit gives; it is not a cap on the targets, and the charge is still an expectation in those. -/
+
+/-- A view all of whose fourteen leaves are supplied by entries of a recording, at the
+recording's own FORS instance. This is the shape the game's coverage events are stated in. -/
+def RecordCovers (record : DigestTape.Record) (view : MessageDigest.View) : Prop :=
+  ∀ tree, ∃ entry ∈ record, (MessageDigest.parse entry.2).1 = view.1 ∧
+    (MessageDigest.parse entry.2).2 tree = view.2 tree
+
+open scoped Classical in
+/-- **A recording's witnesses are the block's disclosures.** -/
+theorem covered_of_recordCovers (length : Nat) (block : List HashOutput)
+    (record : DigestTape.Record) (view : MessageDigest.View)
+    (hcells : ∀ index : Nat, index < record.length →
+      ((record[index]?).map Prod.snd) = block[index]?)
+    (hlength : record.length ≤ length)
+    (hcovers : RecordCovers record view) :
+    ForsCoverage.Covered (ForsDisclosureTape.disclosures (blockTape length block)) view := by
+  classical
+  intro tree
+  obtain ⟨entry, hmember, hinstance, hleaf⟩ := hcovers tree
+  obtain ⟨index, hindex, hentry⟩ := List.mem_iff_getElem.mp hmember
+  have hcell : block.getD index default = entry.2 := by
+    have hread : ((record[index]?).map Prod.snd) = block[index]? := hcells index hindex
+    rw [List.getElem?_eq_getElem hindex, hentry] at hread
+    rw [List.getD_eq_getElem?_getD, ← hread]
+    rfl
+  have hview : blockTape length block ⟨index, lt_of_lt_of_le hindex hlength⟩ =
+      MessageDigest.parse entry.2 := by
+    rw [blockTape, hcell]
+  rw [ForsDisclosureTape.disclosures]
+  refine Finset.mem_image.mpr ⟨⟨index, lt_of_lt_of_le hindex hlength⟩, ?_, ?_⟩
+  · simp only [Finset.mem_filter, Finset.mem_univ, true_and, hview]
+    exact hinstance
+  · rw [hview]
+    exact hleaf
+
 end SlhDsaSecurity.BlockViews
