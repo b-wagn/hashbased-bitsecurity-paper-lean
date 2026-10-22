@@ -196,6 +196,7 @@ import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
+import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 
@@ -12098,6 +12099,30 @@ info: 'SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord
+
+/--
+info: 'SlhDsaSecurity.SignerDigestStep.signInternalAt_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerDigestStep.signInternalAt_eq
+
+/--
+info: 'SlhDsaSecurity.SignerDigestStep.signInternal_eq_two' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerDigestStep.signInternal_eq_two
+
+/--
+info: 'SlhDsaSecurity.SignerDigestStep.signerRandomised_digest' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerDigestStep.signerRandomised_digest
+
+/--
+info: 'SlhDsaSecurity.SignerDigestStep.not_targetKeep_digest' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerDigestStep.not_targetKeep_digest
 
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
