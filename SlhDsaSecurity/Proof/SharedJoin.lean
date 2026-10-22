@@ -453,14 +453,14 @@ theorem prob_sharedBad_le_three (q : Nat) (adversary : Adversary)
         add_le_add hcounts le_rfl
     _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
 
-/-- **The shared obligation, from the two charges the repair leaves.** Stated at the split's
-current disjuncts; when the third stops being `RandomiserBad` only `hcover` changes, since
-`prob_sharedBad_le_three` takes the shared event abstractly. -/
+/-- **The shared obligation, from the two charges the repair leaves.** The split is two-way now,
+so the shared event is `InputBad` alone; `prob_sharedBad_le_three` takes it abstractly, which is
+why only `hcover` had to change when the randomiser defect went. -/
 theorem sharedCharged_of_three
     (inputBad ordering : (q : Nat) → Adversary → RecordedPair → Prop)
     (hcover : ∀ q adversary, HasTotalBudget adversary q →
       ∀ pair ∈ support (recordedPairedRun adversary), GoodWalk pair.1 →
-        (InputBad (recordedTraceOf pair) ∨ RandomiserBad (recordedTraceOf pair)) →
+        InputBad (recordedTraceOf pair) →
           (inputBad q adversary pair ∧ ¬ ordering q adversary pair) ∨
             ordering q adversary pair)
     (hinput : ∀ q adversary, HasTotalBudget adversary q →
@@ -478,7 +478,7 @@ theorem sharedCharged_of_three
     Obligations.SharedCharged := by
   intro q adversary _ hbudget
   exact prob_sharedBad_le_three q adversary hbudget
-    (fun pair => InputBad (traceOf pair) ∨ RandomiserBad (traceOf pair))
+    (fun pair => InputBad (traceOf pair))
     (inputBad q adversary) (ordering q adversary) (hcover q adversary hbudget)
     (hinput q adversary hbudget) (hordering q adversary hbudget)
 
@@ -622,68 +622,7 @@ What each owner has to deliver, with the randomiser defect's reduction already p
 signer's condition already fixed. Only the four bounds and the budget's pathwise inequality are
 left. -/
 
-/-- **The shared obligation, from four charges at their expected counts.** -/
-theorem sharedCharged_of_expected
-    (ordering : (q : Nat) → Adversary → RecordedPair → Prop)
-    (countCanonical countOffCanonical countOrdering :
-      (q : Nat) → Adversary → RecordedPair → Nat)
-    (hshare : ∀ q adversary, HasTotalBudget adversary q →
-      ∀ pair ∈ support (recordedPairedRun adversary),
-        countCanonical q adversary pair + countOffCanonical q adversary pair +
-            countOrdering q adversary pair +
-              2 * AdversaryQueries.servedCount pair.2.1.1.1.signed ≤ q - 2 ^ subtreeHeight)
-    (hinput : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBad (recordedTraceOf pair) ∧
-          ¬ ordering q adversary pair | recordedPairedRun adversary] ≤
-        (expected (recordedPairedRun adversary) (countCanonical q adversary) +
-          ((259 : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hordering : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering q adversary pair |
-          recordedPairedRun adversary] ≤
-        expected (recordedPairedRun adversary) (countOrdering q adversary) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hrecord : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
-          RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 | recordedPairedRun adversary] ≤
-        expected (recordedPairedRun adversary) (countOffCanonical q adversary) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hsigner : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ SignerEvent pair |
-          recordedPairedRun adversary] ≤
-        expected (recordedPairedRun adversary)
-            (fun pair => 2 * AdversaryQueries.servedCount pair.2.1.1.1.signed) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Obligations.SharedCharged := by
-  intro q adversary _ hbudget
-  exact prob_sharedBad_le_expected q adversary (countCanonical q adversary)
-    (countOffCanonical q adversary) (countOrdering q adversary) (hshare q adversary hbudget)
-    (ordering q adversary) (hinput q adversary hbudget) (hordering q adversary hbudget)
-    (hrecord q adversary hbudget) (hsigner q adversary hbudget)
 
-/-- **The shared obligation, from four charges at constant counts.** Sound, and usable only when
-each constant bounds its charge's *expected* count. -/
-theorem sharedCharged_of_parts (qc qp qm qs : Nat)
-    (ordering : (q : Nat) → Adversary → RecordedPair → Prop)
-    (hsum : ∀ q : Nat, 1 ≤ q → qc + qp + qm + qs ≤ q - 2 ^ subtreeHeight)
-    (hinput : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBad (recordedTraceOf pair) ∧
-          ¬ ordering q adversary pair | recordedPairedRun adversary] ≤
-        ((qc + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hordering : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering q adversary pair |
-          recordedPairedRun adversary] ≤ ((qm : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hrecord : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
-          RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 | recordedPairedRun adversary] ≤
-        ((qp : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hsigner : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ SignerEvent pair |
-          recordedPairedRun adversary] ≤ ((qs : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Obligations.SharedCharged := by
-  intro q adversary hq hbudget
-  exact prob_sharedBad_le q adversary qc qp qm qs (hsum q hq) (ordering q adversary)
-    (hinput q adversary hbudget) (hordering q adversary hbudget) (hrecord q adversary hbudget)
-    (hsigner q adversary hbudget)
 
 /-! ## The signer's coincidence, in expectation form
 

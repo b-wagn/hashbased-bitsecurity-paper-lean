@@ -8049,12 +8049,6 @@ info: 'SlhDsaSecurity.SharedJoin.prob_sharedBad_le' depends on axioms: [propext,
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.prob_sharedBad_le
 
-/--
-info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_parts
-
 /-- info: 'SlhDsaSecurity.LateRate.not_targetKeep_signer_randomizerInput' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.not_targetKeep_signer_randomizerInput
@@ -8340,12 +8334,6 @@ info: 'SlhDsaSecurity.RandomiserProvenance.growthAtMostOn_prfClass_of_clean' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserProvenance.growthAtMostOn_prfClass_of_clean
-
-/--
-info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_expected
 
 /--
 info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps' depends on axioms: [propext, Classical.choice, Quot.sound]
