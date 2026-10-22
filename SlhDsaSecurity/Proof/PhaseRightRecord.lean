@@ -106,6 +106,36 @@ theorem right_record_adversaryImpl (leftKeep rightKeep : Bytes → QueryCache Ha
       show input ∈ recordOf (Sum.inr input)
       simp [recordOf]
 
+/-! ## The game's own sequencing, at the recorder
+
+The first brick of the outer decomposition. `WarmedSplit.mem_support_counted_bind` says this at
+the shared oracle, and its proof uses nothing about the oracle — `countAllHashes_bind` is an
+equality of computations and the rest is the monad's own algebra — so it carries with the
+recorder substituted. The count rides on the value and the recorder never reads it. -/
+
+set_option maxHeartbeats 800000 in
+/-- **A counted bind splits at the recorder**, with the recorder's state threaded through. -/
+theorem mem_support_counted_bind (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α β : Type} (computation : OracleComp OracleWorld α) (next : α → OracleComp OracleWorld β)
+    (state : SplitState) (result : (β × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
+      (countAllHashes (computation >>= next))).run state)) :
+    ∃ (value : α) (mid : SplitState) (first second : Nat),
+      ((value, first), mid) ∈ support ((simulateQ (recorder leftKeep rightKeep)
+          (countAllHashes computation)).run state) ∧
+        ((result.1.1, second), result.2) ∈ support ((simulateQ (recorder leftKeep rightKeep)
+          (countAllHashes (next value))).run mid) := by
+  rw [GrowthBudget.countAllHashes_bind, simulateQ_bind, StateT.run_bind,
+    mem_support_bind_iff] at hmem
+  obtain ⟨first, hfirst, hrest⟩ := hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hrest
+  obtain ⟨second, hsecond, hpure⟩ := hrest
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hpure
+  refine ⟨first.1.1, first.2, first.1.2, second.1.2, hfirst, ?_⟩
+  rw [show result.1.1 = second.1.1 from by rw [hpure],
+    show result.2 = second.2 from by rw [hpure]]
+  exact hsecond
+
 /-! ## The attribution -/
 
 /-- Where a target-recorded entry of the phase can have come from: the adversary's own record,
