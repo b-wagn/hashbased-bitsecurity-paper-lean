@@ -13374,3 +13374,19 @@ info: 'SlhDsaSecurity.CountedHandler.run_withCount_count' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.run_withCount_count
+
+/--
+info: 'SlhDsaSecurity.HandlerLenient.prob_game_sensitive_le_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerLenient.prob_game_sensitive_le_canonical
+
+/--
+info: 'SlhDsaSecurity.HandlerLenient.prob_game_sensitive_honest_le_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerLenient.prob_game_sensitive_honest_le_canonical
