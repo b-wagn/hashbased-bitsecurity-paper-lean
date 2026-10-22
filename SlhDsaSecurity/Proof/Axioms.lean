@@ -257,6 +257,7 @@ import SlhDsaSecurity.Proof.AnswerCarrierBound
 import SlhDsaSecurity.Proof.SharedOracleScaling
 import SlhDsaSecurity.Proof.HandlerEvent
 import SlhDsaSecurity.Proof.CarrierServedLog
+import SlhDsaSecurity.Proof.LedgerThird
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16157,3 +16158,59 @@ info: 'SlhDsaSecurity.TargetColumn.probEvent_eq_zero_of_self_charge' depends on 
 /-- info: 'SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.le_target_of_full_third' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.le_target_of_full_third
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.q_squared_third_not_fits' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.q_squared_third_not_fits
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.q_squared_third_fits_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.q_squared_third_fits_iff
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.expected_le_mul_probEvent' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.expected_le_mul_probEvent
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.claims_spare' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.claims_spare
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.claims_spare_exact' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.claims_spare_exact
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.q_squared_fits_at_threshold' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.q_squared_fits_at_threshold
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.q_squared_not_fits_above_threshold' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.q_squared_not_fits_above_threshold
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation
