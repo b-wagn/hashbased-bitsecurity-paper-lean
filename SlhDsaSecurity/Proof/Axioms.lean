@@ -16214,3 +16214,7 @@ info: 'SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_available_wotsHashNode_child' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_available_wotsHashNode_child

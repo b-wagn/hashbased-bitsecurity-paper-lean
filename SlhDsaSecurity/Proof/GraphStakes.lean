@@ -352,6 +352,46 @@ def wotsHashNode (key : WotsKey) (chain : Fin chains) (step : Fin (w - 1)) : Sen
     by by_cases hzero : step.val = 0 <;>
       simp [StructuralNode.children, wotsPosition, hzero]⟩
 
+/-! ### Why the honest phase cannot be filtered out on availability
+
+**The stake is one position lower than the probe.** `wotsHashNode key chain step` sits at the
+chain step whose address is `step`, and its single child is `wotsPosition key chain step` — the
+cell that step *reads*, not the one it writes. So a probe at a chain step stakes the position
+being guessed, and the honest signer, walking a chain from its start up to the digit it reveals,
+stakes exactly the positions it is walking through and has not yet revealed.
+
+Every one of them is unavailable, by the lemma below. The honest signer's probes are therefore
+`ChargedProbe.Targets`, and **no test on availability can drop them from the charge's weight** —
+not the one `ChargedProbe.sum_targets_countP_le` already admits, and not any refinement of it.
+The way the honest phase is kept out of the half's budget is **stripping**, which removes its
+canonical probes before they reach the handler at all, as `ProbeContainment` does; filtering is
+not an alternative route to the same place.
+
+The witness that the probes are really made is `WotsEntry.queriesUnder_chain`: every step of a
+chain consults its canonical input at the chain's own partial value. That the walk's length is
+the encoded digit — the same digit `honestRevealed` is defined as — is left unstated here,
+being the one part of the argument that is not in doubt. -/
+
+omit [HasQuery HashSpec Id] in
+/-- **A chain position strictly below the revealed digit is unavailable**, and it is what a
+probe at the step above it stakes. -/
+theorem not_available_wotsHashNode_child
+    (revealedAt : WotsKey -> Fin chains -> Nat)
+    (signedSet : ForsKey -> Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (key : WotsKey) (chain : Fin chains) (step : Fin (w - 1))
+    (hbelow : step.val < revealedAt key chain) :
+    ¬ CanonicalGraph.Available revealedAt signedSet (wotsHashNode key chain step).child := by
+  show ¬ CanonicalGraph.Available revealedAt signedSet
+    (.structural (wotsPosition key chain ⟨step.val, by have := step.isLt; omega⟩))
+  unfold wotsPosition
+  by_cases hzero : step.val = 0
+  · rw [dif_pos hzero]
+    simp only [CanonicalGraph.Available]
+    omega
+  · rw [dif_neg hzero]
+    simp only [CanonicalGraph.Available]
+    omega
+
 /-- The FORS leaf node above a FORS secret, which always has exactly one child. -/
 def forsLeafNode (key : ForsKey) (index : Fin (forsTrees * 2 ^ forsHeight)) : SensitiveNode :=
   ⟨.forsTree key ⟨0, by omega⟩ ⟨index.val, by simp [index.isLt]⟩,
