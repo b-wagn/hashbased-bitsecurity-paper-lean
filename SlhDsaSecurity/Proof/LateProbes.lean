@@ -17,7 +17,11 @@ it to break, because the join would still typecheck.
 **The containment is stated against the part, not against the predicate the part is cut by.**
 What the join's message-class part excludes alongside is the join's business and is moving; all
 this file needs is that an input in the record and of the right class is in the part, which the
-join proves once. So the exclusion can change without anything here changing.
+join proves once. So the exclusion can change without anything here changing. That is the
+general form and it is worth saying as one: a lemma stated against the object survives the
+predicate that defines the object changing, and a lemma stated against the predicate does not.
+`probesOf_le` takes the part as a bare `Multiset`, and every use of it below goes through the
+join's own membership lemma rather than through either conjunct by name.
 
 What the containment still asks for, and what this file does not prove, is **provenance**: that
 a target-recorded input is a query the record holds. The recorder sees every query the run
@@ -28,6 +32,21 @@ it is made, by its own `PRF_msg` answer, while its `PRF_msg` query is excluded b
 Turning that into a proof needs the recorder and the phase record to run on one state, which is
 the fusion this file waits on, so it is a hypothesis named `hrecord` and nothing else here
 depends on how it is discharged.
+
+**Why the defect is not a predicate of the record, which is why the probes are the recording's
+and not the record's.** The record is a multiset: it remembers which queries were made and how
+often, not in which order. The defect is an ordering — an entry the right test kept was not
+disclosing when it was answered and is disclosing at the end — and the two runs that have to be
+told apart differ in nothing else. In the first, the adversary queries
+`Hashing.messageInput r pk m` while no `PRF_msg` entry for `m` is in the cache, and the signer's
+later answer happens to truncate to `r`; that is the defect, and it costs `2 ^ -128`. In the
+second, the signer signs `m` first, the adversary reads `r` off the published signature and
+queries the same input; that query is recorded too, since the recording handler records every
+query and tests no freshness, and the input is message-class and disclosing at the final cache
+just as in the first, with probability one. No predicate of the record and the final cache
+separates them — `ServedLog.servedLog` holds in both, the log carrying `m` with published
+randomiser `r` either way — so a charge stated on the record alone is either certain or fails to
+cover `SplitWitness.LateDisclosure`, which is the hypothesis the answer side is owed.
 -/
 
 open OracleComp OracleSpec ENNReal
