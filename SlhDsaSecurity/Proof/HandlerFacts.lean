@@ -233,27 +233,30 @@ owes, and this is a relation between two. Making it a field would force a handle
 its own alternative — it would have to carry, as part of being a handler, the identity of the
 lenient twin it is to be compared against. So it stands beside `Facts`, and a reader needing
 both says so by taking both. -/
-structure Lenient (publicSeed : Digest) (availableAt : HandlerCarrier.State → Node → Prop)
+structure Lenient (publicSeed : Digest)
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp)) : Prop where
-  /-- A query that is at no sensitive node's canonical input is answered alike. -/
+  /-- A query that is at no sensitive node's canonical input is answered alike. The sensitive
+  nodes are the ones **this** table's availability leaves a child of unavailable, since that is
+  the availability the two handlers are being compared at. -/
   agree : ∀ (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState),
-    ¬ ChargedProbe.SensitiveQueryAt publicSeed availableAt table.1 state queried →
+    ¬ ChargedProbe.SensitiveQueryAt publicSeed (availableAt table) table.1 state queried →
       ((lenientImpl table) queried).run state = ((strictImpl table) queried).run state
 
 open scoped Classical in
 /-- **The lazy handler at total availability against itself at the real one.** -/
 theorem lenient_lazyProgram (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) :
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop) :
     Lenient publicSeed availableAt (fun table => lazyProgram publicSeed (fun _ _ => True) table)
-      (fun table => lazyProgram publicSeed availableAt table) where
+      (fun table => lazyProgram publicSeed (availableAt table) table) where
   agree table queried state hnot := by
     classical
     rcases queried with coin | input
     · rw [lazyProgram_run_inl, lazyProgram_run_inl]
     · rw [lazyProgram_run_inr, lazyProgram_run_inr,
-        openCache_congr_of_not_sensitive publicSeed (fun _ => True) (availableAt state.1) table
-          input ?_]
+        openCache_congr_of_not_sensitive publicSeed (fun _ => True) (availableAt table state.1)
+          table input ?_]
       intro parent hparent
       refine ⟨fun _ child hchild => ?_, fun _ _ _ => trivial⟩
       by_contra hunavailable
@@ -263,17 +266,17 @@ open scoped Classical in
 /-- **The serving handler at total availability against itself at the real one.** The filing is
 the same on both sides, reading the framing and the input and never availability. -/
 theorem lenient_servingProgram (publicSeed : Digest) (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) :
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop) :
     Lenient publicSeed availableAt
       (fun table => ServingProgram.servingProgram publicSeed pk (fun _ _ => True) table)
-      (fun table => ServingProgram.servingProgram publicSeed pk availableAt table) where
+      (fun table => ServingProgram.servingProgram publicSeed pk (availableAt table) table) where
   agree table queried state hnot := by
     classical
     rcases queried with coin | input
     · rw [ServingProgram.servingProgram_run_inl, ServingProgram.servingProgram_run_inl]
     · rw [ServingProgram.servingProgram_run_inr, ServingProgram.servingProgram_run_inr,
-        lazyAnswer_congr_available publicSeed (fun _ _ => True) availableAt table input state.1
-          ?_]
+        lazyAnswer_congr_available publicSeed (fun _ _ => True) (availableAt table) table input
+          state.1 ?_]
       intro parent hparent
       refine ⟨fun _ child hchild => ?_, fun _ _ _ => trivial⟩
       by_contra hunavailable

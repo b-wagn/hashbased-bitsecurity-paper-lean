@@ -64,19 +64,20 @@ open scoped Classical in
 with the choice made and monotonicity discharged. Capped, so not the form a half sharing its
 budget may use. -/
 theorem prob_game_sensitive_carrier_le [HasQuery HashSpec Id] {α : Type}
-    (publicSeed secretSeed : Digest)
+    (publicSeed : Digest)
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed)
+    (hstrictFacts : TableFacts publicSeed
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
         (ServingCarrier.disclosedAt cache) node) allowed strictImpl)
     (hlenient : Lenient publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed)
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
         (ServingCarrier.disclosedAt cache) node) lenientImpl strictImpl)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
@@ -85,9 +86,14 @@ theorem prob_game_sensitive_carrier_le [HasQuery HashSpec Id] {α : Type}
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (revealedOf : α → WotsKey → Fin chains → Nat)
+    (hrevealedOf : ∀ value key chain, revealedOf value key chain ≤ w - 1)
+    (hreadsRevealed : ∀ (table : Cells × Padding) (value : α),
+      value ∈ support (computation table) → revealedOf value =
+        GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-        (ServingCarrier.disclosedAt cache) node)
+      ∀ (value : α) (cache : HandlerCarrier.State),
+        CanonicalGraph.Available (revealedOf value) (ServingCarrier.disclosedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = []) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -99,25 +105,26 @@ theorem prob_game_sensitive_carrier_le [HasQuery HashSpec Id] {α : Type}
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (sensitiveFlagged publicSeed
-          (fun cache node => CanonicalGraph.Available
-            (GraphStakes.honestRevealed secretSeed publicSeed)
+          (fun table cache node => CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
             (ServingCarrier.disclosedAt cache) node) lenientImpl (cells, pad))
           (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
             ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-              (fun cache node => ¬ CanonicalGraph.Available
-                (GraphStakes.honestRevealed secretSeed publicSeed)
+              (fun cache node => ¬ CanonicalGraph.Available (revealedOf pair.1.1)
                 (ServingCarrier.disclosedAt cache) node) pair.2 entry.2 entry.1 | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (withFlag (strictImpl (cells, pad)))
             (computation (cells, pad))).run (inner, false)
           pure (result, cells))] :=
-  HandlerLenient.prob_game_sensitive_honest_le publicSeed secretSeed ServingCarrier.disclosedAt
-    lenientImpl strictImpl hlenientFacts hstrictFacts hlenient (availableAt_mono secretSeed
-      publicSeed) stall computation touched hcover htouched hopen inner hinner limit hlimit
+  HandlerLenient.prob_game_sensitive_honest_le publicSeed ServingCarrier.disclosedAt
+    lenientImpl strictImpl hlenientFacts hstrictFacts hlenient
+    (fun table => availableAt_mono (table.1 CanonicalGraph.Node.secretSeed) publicSeed) stall
+    computation touched hcover htouched revealedOf hrevealedOf hreadsRevealed hopen inner hinner
+    limit hlimit
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -126,19 +133,20 @@ open scoped Classical in
 with the choice made and monotonicity discharged. This is the shape `InputBullet.ClaimsCharged`
 is stated at. -/
 theorem prob_game_sensitive_carrier_le_canonical [HasQuery HashSpec Id] {α : Type}
-    (publicSeed secretSeed : Digest)
+    (publicSeed : Digest)
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed)
+    (hstrictFacts : TableFacts publicSeed
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
         (ServingCarrier.disclosedAt cache) node) allowed strictImpl)
     (hlenient : Lenient publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed)
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
         (ServingCarrier.disclosedAt cache) node) lenientImpl strictImpl)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
@@ -147,9 +155,14 @@ theorem prob_game_sensitive_carrier_le_canonical [HasQuery HashSpec Id] {α : Ty
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (revealedOf : α → WotsKey → Fin chains → Nat)
+    (hrevealedOf : ∀ value key chain, revealedOf value key chain ≤ w - 1)
+    (hreadsRevealed : ∀ (table : Cells × Padding) (value : α),
+      value ∈ support (computation table) → revealedOf value =
+        GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-        (ServingCarrier.disclosedAt cache) node)
+      ∀ (value : α) (cache : HandlerCarrier.State),
+        CanonicalGraph.Available (revealedOf value) (ServingCarrier.disclosedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = [])
     (keep : Bytes × HandlerCarrier.State → Bool)
     (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
@@ -158,8 +171,8 @@ theorem prob_game_sensitive_carrier_le_canonical [HasQuery HashSpec Id] {α : Ty
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (sensitiveFlagged publicSeed
-          (fun cache node => CanonicalGraph.Available
-            (GraphStakes.honestRevealed secretSeed publicSeed)
+          (fun table cache node => CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
             (ServingCarrier.disclosedAt cache) node) lenientImpl (cells, pad))
           (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
@@ -173,18 +186,18 @@ theorem prob_game_sensitive_carrier_le_canonical [HasQuery HashSpec Id] {α : Ty
           ((2 ^ 128 : Nat) : ℝ≥0∞) +
         Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
             ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-              (fun cache node => ¬ CanonicalGraph.Available
-                (GraphStakes.honestRevealed secretSeed publicSeed)
+              (fun cache node => ¬ CanonicalGraph.Available (revealedOf pair.1.1)
                 (ServingCarrier.disclosedAt cache) node) pair.2 entry.2 entry.1 | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (withFlag (strictImpl (cells, pad)))
             (computation (cells, pad))).run (inner, false)
           pure (result, cells))] :=
-  HandlerLenient.prob_game_sensitive_honest_le_canonical publicSeed secretSeed
+  HandlerLenient.prob_game_sensitive_honest_le_canonical publicSeed
     ServingCarrier.disclosedAt lenientImpl strictImpl hlenientFacts hstrictFacts hlenient
-    (availableAt_mono secretSeed publicSeed) stall computation touched hcover htouched hopen
-    inner hinner keep hkeep
+    (fun table => availableAt_mono (table.1 CanonicalGraph.Node.secretSeed) publicSeed) stall
+    computation touched hcover htouched revealedOf hrevealedOf hreadsRevealed hopen inner hinner
+    keep hkeep
 
 
 end SlhDsaSecurity.CarrierAvailability
