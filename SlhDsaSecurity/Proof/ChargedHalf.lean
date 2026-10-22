@@ -351,7 +351,7 @@ theorem prob_claimed_strict_le [HasQuery HashSpec Id] (adversary : Adversary)
     (fun table => CarrierAvailability.availableAt_mono (table.1 Node.secretSeed) publicSeed)
     (GraphStakes.stakes publicSeed) stall (seededLinked adversary prfSeed publicSeed)
     RedrawCell.seedAndRoot (fun _ hnode => hnode)
-    (touched_seededLinked adversary prfSeed publicSeed)
+    (touched_seededLinked adversary prfSeed publicSeed) (fun _ => True)
     (fun value cache node => ¬ Available
       (GraphStakes.honestRevealed value.2.1 publicSeed)
       (ServingCarrier.disclosedAt cache) node)
@@ -360,7 +360,7 @@ theorem prob_claimed_strict_le [HasQuery HashSpec Id] (adversary : Adversary)
         (GraphStakes.honestRevealed_le value.2.1 publicSeed)
         (ServingCarrier.disclosedAt cache) node htouch hne))
     (fun table value hvalue => by
-      rw [seed_of_mem_support adversary prfSeed publicSeed table value hvalue])
+      rw [seed_of_mem_support adversary prfSeed publicSeed table value hvalue]; simp)
     (inner, false) (claimsOf publicSeed) (carrier_of_mem_claimsOf publicSeed) 259
     (length_claimsOf publicSeed)
 

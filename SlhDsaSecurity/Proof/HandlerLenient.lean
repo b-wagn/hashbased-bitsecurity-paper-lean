@@ -372,10 +372,11 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
     (fun table cache node => CanonicalGraph.Available (revealed table) (signedAt cache) node)
     strictImpl hstrictFacts hmono (GraphStakes.stakes publicSeed) stall computation touched
     hcover htouched
+    (fun _ => True)
     (fun value cache node =>
       ¬ CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
     (fun value node htouch hne cache hun => hun (hopen node htouch hne value cache))
-    (fun table value hvalue => by rw [hreadsRevealed table value hvalue])
+    (fun table value hvalue => by rw [hreadsRevealed table value hvalue]; simp)
     (inner, false) limit hlimit
 
 set_option maxRecDepth 1000000 in
@@ -488,10 +489,11 @@ theorem prob_game_sensitive_le_canonical {α : Type} (publicSeed : Digest)
   exact HandlerCharge.prob_sensitive_run_le_canonical publicSeed
     (fun table cache node => CanonicalGraph.Available (revealed table) (signedAt cache) node)
     strictImpl hstrictFacts hmono stall computation touched hcover htouched
+    (fun _ => True)
     (fun value cache node =>
       ¬ CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
     (fun value node htouch hne cache hun => hun (hopen node htouch hne value cache))
-    (fun table value hvalue => by rw [hreadsRevealed table value hvalue])
+    (fun table value hvalue => by rw [hreadsRevealed table value hvalue]; simp)
     (inner, false) keep hkeep
 
 open scoped Classical in
