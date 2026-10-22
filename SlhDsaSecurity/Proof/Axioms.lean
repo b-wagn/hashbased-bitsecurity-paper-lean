@@ -157,6 +157,7 @@ import SlhDsaSecurity.Proof.CacheProvenance
 import SlhDsaSecurity.Proof.SplitWitness
 import SlhDsaSecurity.Proof.RandomiserDeferral
 import SlhDsaSecurity.Proof.RecordedTail
+import SlhDsaSecurity.Proof.LateCharge
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7447,3 +7448,19 @@ info: 'SlhDsaSecurity.Target.prob_bad_walk_paired' depends on axioms: [propext, 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.prob_bad_walk_paired
+
+/-- info: 'SlhDsaSecurity.LateCharge.prob_truncate_mem_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.prob_truncate_mem_le
+
+/-- info: 'SlhDsaSecurity.LateCharge.spent_of_signerRandomised' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.spent_of_signerRandomised
+
+/-- info: 'SlhDsaSecurity.LateCharge.spent_mono' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.spent_mono
+
+/-- info: 'SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent
