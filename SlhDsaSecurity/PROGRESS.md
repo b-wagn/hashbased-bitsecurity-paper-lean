@@ -4121,6 +4121,27 @@ Neither thread was wrong, neither produced bad work, and nothing is lost but the
 restating one set of charges on the other's shape. The fix is the ordinary one: **one canonical
 object, with a map to the other presentation if anything still wants it.**
 
+## A proof that proves more than its statement says
+
+A counting fact was reported missing, correctly as far as the *stated* lemmas go: the one that
+points from the parts into the record composes with the budget bound to give nothing. But the
+budget bound's **proof** established `card (recordOf pair) = counts.work` and
+`work + 2 ^ subtreeHeight ≤ q`, handed both to `omega`, and stated only the weaker conclusion it
+happened to need. Dropping its first step **was** the missing lemma — seven lines.
+
+> **A proof that establishes a more general fact than its own statement is a fact that will be
+> reported missing.** State the general one beside it; do not rewrite the specific one, which has
+> consumers and whose shape is right for them.
+
+Second instance in two rounds of the thing-to-build being a projection of something already
+proved — the first was an unused conjunct of a hypothesis — and **both were found by reading a
+proof rather than a statement.** That is the same move as reading a hypothesis's *use* rather
+than its text, one level further in.
+
+It also sharpens the search rule. "I did not find X" is right, and the follow-up is not only
+*grep under the consumer's name* but **open the proofs of the near misses**: the fact may be a
+line inside one of them.
+
 ## A factored-out definition is a message
 
 The seed leftover was chased for four rounds as a new charge needing new units. It was already
