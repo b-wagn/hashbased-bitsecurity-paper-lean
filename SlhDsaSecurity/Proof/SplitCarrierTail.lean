@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.SplitCounted
 import SlhDsaSecurity.Proof.CarrierTail
+import SlhDsaSecurity.Proof.AnswerCarrier
 
 /-!
 # The carrier's tail, with the counter split in two
@@ -502,6 +503,127 @@ theorem answerBound_splitCarrierTail (inClass : Bytes → Prop) {inside outside 
     (splitCarrierTail inClass inside outside rightKeep adversary walk) coverage constant
     (prob_bad_splitCarrierTail_le inClass bad hrate hbadClass rightKeep adversary walk hclean)
     hcoverage budget hshare
+
+
+
+/-! ## The split tail is the tail
+
+The charge above is stated at a run nothing else is stated at, and that is only safe because
+the two runs are one run read two ways. `SplitCounted.sumSlots` adds the slots, the split
+handler forgets to the counted one along it, and the brackets commute with it because they
+write the framing and summing writes the counter. So the three stages chain exactly as they do
+in `CarrierTail.forget_carrierTail` and no induction is repeated.
+
+**Here the slots do have to be distinct.** `forgetsAlong_sumSlots` is `run_withSplit_withCount`,
+which needs `inside ≠ outside`: a shared slot would be added to itself. That is the same place
+the distinctness is needed in the budget, and it is the only place — the charge itself does not
+ask for it. -/
+
+set_option maxHeartbeats 1000000 in
+theorem sum_first_stage_bind (inClass : Bytes → Prop) {inside outside : QueryKind}
+    (hne : inside ≠ outside)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : SplitCountedState) :
+    (simulateQ (CarrierTail.handlerAt rightKeep walk) computation).run
+        (SplitCounted.sumSlots inside outside state) =
+      (simulateQ (splitHandlerAt inClass inside outside rightKeep walk) computation).run
+          state >>= fun z =>
+        (pure (z.1, SplitCounted.sumSlots inside outside z.2) :
+          ProbComp (α × BracketedRun.CountedState)) := by
+  rw [CarrierTail.handlerAt, CarrierFiles.countedCarrierRecorder, splitHandlerAt,
+    SplitCounted.splitCarrierRecorder,
+    ← SplitCounted.forgetsAlong_sumSlots inClass hne
+      (@noticingRecorderOf HandlerCarrier.State (servingView (keyAt walk))
+        (disclosingKeep (keyAt walk)) (rightKeep walk)) computation state,
+    map_eq_bind_pure_comp]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+theorem sum_middle_stage_bind (inClass : Bytes → Prop) {inside outside : QueryKind}
+    (hne : inside ≠ outside)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    (adversary : Adversary) (keys : (SecretKey × PublicKey) × SplitCountedState) :
+    (simulateQ (fuseServing (CarrierTail.handlerAt rightKeep walk)
+          (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          ServedAgreement.startServingOn ServedAgreement.stopServingOn)
+        (adversary.main keys.1.2)).run
+        (1, [], SplitCounted.sumSlots inside outside keys.2) =
+      (simulateQ (fuseServing (splitHandlerAt inClass inside outside rightKeep walk)
+          (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          ServedAgreement.startServingOn ServedAgreement.stopServingOn)
+          (adversary.main keys.1.2)).run (1, [], keys.2) >>= fun step =>
+        (pure (step.1, (step.2.1, step.2.2.1,
+            SplitCounted.sumSlots inside outside step.2.2.2)) :
+          ProbComp (Forgery × (Multiplicative Tally × SigningLog ×
+            BracketedRun.CountedState))) := by
+  rw [CarrierTail.handlerAt, CarrierFiles.countedCarrierRecorder, splitHandlerAt,
+    SplitCounted.splitCarrierRecorder,
+    ← ServingForget.run_fuseServing_conj (SplitCounted.sumSlots inside outside) _ _
+      (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+      ServedAgreement.startServingOn ServedAgreement.stopServingOn
+      ServedAgreement.startServingOn ServedAgreement.stopServingOn
+      (SplitCounted.sumSlots_startServingOn inside outside)
+      (SplitCounted.sumSlots_stopServingOn inside outside)
+      (SplitCounted.forgetsAlong_sumSlots inClass hne
+        (@noticingRecorderOf HandlerCarrier.State (servingView (keyAt walk))
+          (disclosingKeep (keyAt walk)) (rightKeep walk)))
+      (adversary.main keys.1.2) 1 [] keys.2,
+    map_eq_bind_pure_comp]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+/-- **The split tail is the tail, with the counter split.** -/
+theorem sum_splitCarrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
+    (hne : inside ≠ outside)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
+    (walk : Walk) :
+    (fun z : ((Outcome × Multiset Bytes) × Counts) × SplitPrefix.SplitState =>
+        ((z.1.1, z.1.2 inside + z.1.2 outside), z.2)) <$>
+        splitCarrierTail inClass inside outside rightKeep adversary walk =
+      CarrierTail.carrierTail rightKeep adversary walk := by
+  rw [CarrierTail.carrierTail,
+    show (CarrierTail.startAt walk.2, ((([], []) : DigestTape.Record × DigestTape.Record),
+        (0 : Nat))) =
+      SplitCounted.sumSlots inside outside (CarrierTail.startAt walk.2, (([], []), 0)) from rfl,
+    sum_first_stage_bind inClass hne rightKeep walk
+      (Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2)
+      (CarrierTail.startAt walk.2, (([], []), 0)),
+    splitCarrierTail]
+  simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
+  refine bind_congr fun keys => ?_
+  rw [sum_middle_stage_bind inClass hne rightKeep walk adversary keys]
+  simp only [bind_assoc, pure_bind]
+  refine bind_congr fun middle => ?_
+  rw [sum_first_stage_bind inClass hne rightKeep walk
+    (countRecorded verifierCost (Scheme.verify keys.1.2 middle.1.message middle.1.signature))
+    middle.2.2.2]
+  simp only [bind_assoc, pure_bind]
+  refine bind_congr fun final => ?_
+  rfl
+
+
+
+/-! ## And so at the run the answer half's bound is owed at
+
+`AnswerCarrier.answerCarrierRun` is `AnswerShape.forgetRecord` over the tail, so it is one
+further map from the split tail. Composed with `sum_splitCarrierTail` that is a single map out
+of the split run, which is what `hsplit` and the coverage charge — both stated at
+`answerCarrierRun` — travel along by `probEvent_map`, with no new argument at either end.
+
+Stated as an equality of *computations*, and the two forgetting **functions** are all that is
+compared: the three stages are never unfolded, which is the lesson of
+`AnswerCarrier.map_answerCarrierRun_eq_tail` one map further down. -/
+
+theorem map_splitCarrierTail_eq_answerCarrierRun (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
+    (walk : Walk) :
+    (fun z : ((Outcome × Multiset Bytes) × Counts) × SplitPrefix.SplitState =>
+        AnswerShape.forgetRecord ((z.1.1, z.1.2 inside + z.1.2 outside), z.2)) <$>
+        splitCarrierTail inClass inside outside rightKeep adversary walk =
+      AnswerCarrier.answerCarrierRun rightKeep adversary walk := by
+  rw [AnswerCarrier.answerCarrierRun,
+    ← sum_splitCarrierTail inClass hne rightKeep adversary walk, Functor.map_map]
 
 
 end SlhDsaSecurity.SplitCarrierTail

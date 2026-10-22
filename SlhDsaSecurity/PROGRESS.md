@@ -4326,10 +4326,26 @@ into one reassociated wrapper. That refusal is exactly what made the mirror mech
 merged abstraction would have had to be re-threaded here. **Duplication a reader can see beats
 an abstraction every call site has to pay for**, and the bill came due in the mirror's favour.
 
+**A charge at a run nothing else is stated at is not finished, so the bridge is here too.**
+`sum_splitCarrierTail` says the split tail *is* the tail: summing the two slots carries one onto
+the other, by `SplitCounted.forgetsAlong_sumSlots` at each stage and
+`ServingForget.run_fuseServing_conj` at the bracketed one — bracketed to bracketed, because the
+far side brackets too, which is why `run_fuseServing_map` is the wrong lemma there and the
+`_conj` variant exists. `map_splitCarrierTail_eq_answerCarrierRun` composes that with
+`AnswerShape.forgetRecord`, so everything already stated at `answerCarrierRun` — `hsplit`, the
+coverage charge — travels to the split run along one map by `probEvent_map`, with no new
+argument at either end.
+
+**Here the slots must be distinct**, and only here: `forgetsAlong_sumSlots` is
+`run_withSplit_withCount`, which adds them. The same place the budget needs it. A hypothesis
+that is needed in the bridge and not in the charge is worth separating, because carrying it into
+the charge is what makes a lemma look unavailable at a call site that cannot supply it.
+
 **One note for the consumer side.** `AnswerCarrier.answerBound_of_charges` and
 `answerBoundSeed_of_charges` are stated at `answerCarrierRun`, whose counter is a single `Nat`:
 the outside slot cannot be read off their results. Instantiating them therefore means either
 taking `outsideCount` to be the whole count — which spends the budget twice, the thing the split
-exists to prevent — or taking the bound at the split tail instead. The abstract meeting point
+exists to prevent — or taking the bound at the split tail, where `answerBound_splitCarrierTail`
+already takes it and where the bridge now puts both other charges. The abstract meeting point
 `prob_bad_or_coverage_le_of_two_charges` is indifferent; the choice of run is where it is
 decided.

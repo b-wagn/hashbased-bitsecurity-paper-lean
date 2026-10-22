@@ -15419,3 +15419,29 @@ info: 'SlhDsaSecurity.SplitCarrierTail.answerBound_splitCarrierTail' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.answerBound_splitCarrierTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.sum_first_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.sum_first_stage_bind
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.sum_middle_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.sum_middle_stage_bind
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.sum_splitCarrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.sum_splitCarrierTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun
