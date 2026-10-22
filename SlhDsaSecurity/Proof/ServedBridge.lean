@@ -271,4 +271,66 @@ theorem carrierBelowLog_of_filed (adversary : Adversary)
     finalCache result.2 answer hmem hlater]
   exact servedLog_of_logged adversary hresult entry hentry framed hframe
 
+/-! ## The log and the recorder's disclosing test
+
+`AnswerJoin`'s `hdisclosing` asks for an **iff** between `ServedLog.servedLog` — the log says the
+signer served this input — and `SplitWitness.disclosingKeep`, which is
+`CacheAvailability.SignerRandomised`: the *cache* says the signer randomised it. Only one
+direction of that is provable, and saying which is which is the point of stating it here.
+
+**Left to right is log faithfulness and is proved below.** A logged request's answer is the
+signature the signer published, so the input the log names is built from the randomiser the
+signer derived; and the request's own `PRF_msg` entry is in the cache by
+`SigningFaithful.randomiserCached_tail`, which is what `SignerRandomised` asks for. Nothing in
+it does not already exist.
+
+**Right to left is the proxy fiction and is false as stated.** `SignerRandomised` reads only the
+cache, so an adversary that knows `SK.prf` makes it hold by querying
+`Hashing.randomizerInput SK.prf PK.seed m` itself, with no request behind it: the test holds and
+the log says nothing. That is exactly the gap the served-indexed repair exists to close, and it
+retires not by being proved but by the recorder's test *becoming* the carrier's served one —
+after which the iff is between two readings of the same set rather than between a set and a
+proxy for it. Until then the direction is the randomiser defect's absence, and no amount of log
+faithfulness reaches it.
+
+So a producer should take `hdisclosing` as `signerRandomised_of_servedLog` plus one named
+missing piece, rather than as a hypothesis nobody can discharge. -/
+
+/-- **The left half of the agreement: a logged served input passes the recorder's test.**
+
+The right half — that the recorder's test implies the log served it — is *false* while the test
+reads the cache, and retires when it reads the carrier's served set instead. -/
+theorem signerRandomised_of_servedLog (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (WarmedGame.tail adversary walk))
+    (sk : SecretKey) (pk : PublicKey)
+    (hsk : sk = ReplayGate.secretKeyOf ((walk.1, result.1), result.2))
+    (hpk : pk = RoutedSplit.keyOf ((walk.1, result.1), result.2))
+    (input : Bytes) (hserved : ServedLog.servedLog pk result input) :
+    CacheAvailability.SignerRandomised sk.prf pk result.2 input := by
+  subst hsk
+  subst hpk
+  obtain ⟨entry, hentry, framed, bytes, parsed, hframe, hanswer, hparsed, rfl⟩ := hserved
+  have hfaithful := SigningFaithful.logFaithful_tail adversary hresult entry hentry framed hframe
+  have hbytes : bytes =
+      (@Scheme.signInternal Id Id.instMonad (replayQuery result.2)
+        (ReplayGate.secretKeyOf ((walk.1, result.1), result.2)) framed).toBytes :=
+    Option.some.inj (hanswer.symm.trans hfaithful)
+  have hparsedEq : parsed =
+      @Scheme.signInternal Id Id.instMonad (replayQuery result.2)
+        (ReplayGate.secretKeyOf ((walk.1, result.1), result.2)) framed := by
+    rw [hbytes, Signature.fromBytes_toBytes] at hparsed
+    exact (Option.some.inj hparsed).symm
+  have hcached := SigningFaithful.randomiserCached_tail adversary hresult entry hentry framed
+    hframe
+  cases hentryValue : result.2 (Hashing.randomizerInput
+      (ReplayGate.secretKeyOf ((walk.1, result.1), result.2)).prf
+      (ReplayGate.secretKeyOf ((walk.1, result.1), result.2)).publicKey.seed framed) with
+  | none => exact absurd hentryValue hcached
+  | some prfAnswer =>
+    refine ⟨framed, prfAnswer, hentryValue, ?_⟩
+    rw [hparsedEq, signInternal_randomizer, HonestProbes.replayRandomizer]
+    simp [replay, hentryValue]
+
 end SlhDsaSecurity.ServedBridge
