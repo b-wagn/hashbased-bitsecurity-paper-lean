@@ -42,9 +42,14 @@ theorem walk_cache_eq_warmCache
 /-! ## How much key generation spends
 
 The exact number is not needed — the defects the charges carry sum to less than `2 ^ -125`, and
-four units of budget at `2 ^ -127` apiece already exceed that. Four is read off the Merkle
-recursion: each level above the leaves ends in one compression call, and the subtree has nine
-of them. -/
+four units of budget at `2 ^ -127` apiece already exceed that.
+
+What is proved is `pow_le_count_keygen : 2 ^ subtreeHeight ≤ count`, and the `4` of
+`growth_le_count_sub_four` is that weakened by `omega`; it is not read off the recursion. The
+*power* is, and the recursion doubles rather than adds: a node of height `h + 1` costs its two
+children and one compression call, so a subtree of height `subtreeHeight = 9` costs at least
+`2 ^ 9 = 512` — one call per **leaf**, not one per level. `pow_le_count_merkleNode` is that
+induction. -/
 
 theorem hash_eq_liftM (input : Bytes) :
     (Hashing.hash (m := OracleComp OracleWorld) input) =
