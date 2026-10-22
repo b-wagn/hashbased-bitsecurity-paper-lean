@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.CarrierTail
+import SlhDsaSecurity.Proof.CarrierCoverage
 
 /-!
 # The run the answer side owes a bound at, when the tail is the carrier's
@@ -363,5 +364,44 @@ theorem answerBound_of_charges
     (CoverageCount.prob_bad_or_coverage_le_of_two_charges
       (answerCarrierRun rightKeep adversary walk) structuralBad coverageBad _
       outsideCount insideCount budget hstructural hcoverage hshare)
+
+/-! ## `hcoverage` at this run
+
+`CarrierCoverage.prob_carrierTail_targetCovered_le` charges `BlockViews.TargetCovered` at
+`CarrierTail.carrierTail` itself. The event reads the two recordings and nothing else, and
+`AnswerShape.forgetRecord` keeps the whole recorder state — it drops the record from the
+*value* — so the event is the **same proposition** at either run and the charge transports by
+`probEvent_map` with no adapter. The count transports the same way, by `tsum_probOutput_map`.
+
+That is what `AnswerShape.forgetRecord` was chosen for, and it is why the carrier's coverage
+charge did not have to be restated here: the one thing that would have broken it is a forgetting
+map that drops a recording, and this one does not. -/
+
+open scoped Classical in
+/-- **The coverage charge at the run the answer side owes its bound at.** -/
+theorem prob_targetCovered_answerCarrierRun_le
+    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
+      HandlerCarrier.State → Prop)
+    (adversary : Adversary)
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hleftBound : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
+      result.2.2.1.length ≤ leftLength)
+    (hrightBound : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
+      result.2.2.2.length ≤ rightLength) :
+    Pr[BlockViews.TargetCovered | answerCarrierRun rightKeep adversary walk] ≤
+      (1 : ENNReal) / 2 ^ 141 +
+        ClassExpectation.expected (answerCarrierRun rightKeep adversary walk)
+          (fun result => result.2.2.2.length) / ((2 ^ 128 : Nat) : ENNReal) := by
+  classical
+  have hcount : ClassExpectation.expected (answerCarrierRun rightKeep adversary walk)
+      (fun result => result.2.2.2.length) =
+      ∑' result, Pr[= result | CarrierTail.carrierTail rightKeep adversary walk] *
+        ((result.2.2.2.length : Nat) : ENNReal) := by
+    rw [answerCarrierRun, ClassExpectation.expected]
+    exact BlockViews.tsum_probOutput_map _ AnswerShape.forgetRecord _
+  rw [hcount, answerCarrierRun, probEvent_map]
+  exact CarrierCoverage.prob_carrierTail_targetCovered_le rightKeep adversary walk
+    leftLength rightLength hcap hleftBound hrightBound
 
 end SlhDsaSecurity.AnswerCarrier

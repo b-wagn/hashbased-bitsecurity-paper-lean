@@ -4108,3 +4108,43 @@ So the diff habit has a dual, and it fires earlier:
 The consumer-side habit asks *what does my proof know that my conclusion drops*. This one asks
 *what would a caller need in order to hand me this*. Both are answered by writing one thing down
 and comparing; neither fires on its own.
+
+## `hcoverage` lands at the answer side's run for free, and why
+
+`CarrierCoverage.prob_carrierTail_targetCovered_le` charges `BlockViews.TargetCovered` at
+`CarrierTail.carrierTail`. `AnswerCarrier.prob_targetCovered_answerCarrierRun_le` is that at
+`answerCarrierRun`, and the whole proof is `probEvent_map` and `tsum_probOutput_map`.
+
+It is free because of a choice made two weeks earlier: `AnswerShape.forgetRecord` drops the
+record from the **value** and keeps the whole recorder state. `TargetCovered` reads the two
+recordings and nothing else, so it is the *same proposition* at either run rather than a
+transported one. The one thing that would have broken this is a forgetting map that drops a
+recording — `FinalAssembly.forgetFused` is such a map, which is why the target had to be restated
+at a refining tail in the first place.
+
+**The counts line up for the same reason.** The coverage charge is one unit per *expected target
+recorded*, and `insideCount := fun r => r.2.2.2.length` is literally that, so `hcoverage`'s shape
+in `answerBound_of_charges` needs no adapter either.
+
+## What the split counter costs at a bracketed run — the open question
+
+`hstructural` and `hshare` are not free in the same way, and the reason is one object the carrier
+does not have.
+
+On the cache side both charges are read off `ClassGrowth.splitCost`, a counter installed by
+instrumenting the *computation* with `countQueries`, whose two slots partition the queries and
+sum to the run's own count. `CoverageCount.rightRecord_length_le_count` then bounds the target
+recording by the inside slot, and the budget bounds the sum. `NoticingCoverage` has all of that
+at the noticing recorder — but at `noticingRecordedRun`, which is **one computation**.
+
+`CarrierTail.carrierTail` is three-stage and bracketed, and its count is read off the handler's
+`CountedState`, not from `countQueries`. So there is no split counter to read the two charges
+against, and the two obvious substitutes both fail: `insideCount := targetRecording.length`
+matches the coverage charge exactly but leaves `outsideCount` undetermined, and
+`outsideCount := count - targetLength` makes `hshare` trivial while making `hstructural` strictly
+harder than the version anybody has proved.
+
+So the question is not "how do I prove `hstructural`" but **"what counts the carrier tail
+admits"**, and it is a question about the counted handler rather than about the charge. Recording
+it here because it is the kind of thing that looks like a proof obligation and is really an
+interface decision.
