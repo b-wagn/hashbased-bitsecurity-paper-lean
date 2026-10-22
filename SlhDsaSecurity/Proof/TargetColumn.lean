@@ -701,4 +701,57 @@ theorem record_fits_claims_at_pow :
   · norm_num
   · norm_num
 
+/-! ## The same quantity, summed instead of capped, and the threshold goes away
+
+`expected_le_of_self_charge` above caps the count by `B` **on** the event and multiplies by the
+event's probability, giving `B ^ 2 / 2 ^ 128` and a query bound. That is the right instrument
+when a count is only bounded above. It is the wrong one here, because this count is a **sum of
+indicators whose individual probabilities are known**: by `Hashing.randomizerInput_injective`
+each recorded input is in `PrfClass prf` for **at most one** `prf`, which is exactly
+`RecordPrfCharge.prob_prfClass_single_le`.
+
+So in the blind order linearity gives the quantity directly:
+
+    E[card recordPrfClass] = Σ_{entry ∈ record} Pr[entry ∈ PrfClass prf] ≤ card record / 2 ^ 128
+
+and that is **below one** for every `q < 2 ^ 128`, hence inside any constant column at all. No
+threshold, no query bound, and the `claims` column is not even approached.
+
+**The squaring was an artefact of bounding too early** — a sum of small things bounded by one
+big thing times one small thing — and it is the same shape as the union bound that could not see
+a partition of the runs. `expected_le_of_self_charge` and `record_fits_claims_at_pow` stay as
+the record of what that route cost, which is why the exact `2 ^ 68` is worth keeping.
+
+Blind order throughout: `prob_prfClass_single_le` is about a seed drawn after the inputs are
+fixed. Moving it to the real game is the hop. -/
+
+open scoped Classical in
+/-- **The record's `PRF_msg` part, in the blind order, summed term by term.** -/
+theorem expected_card_prfClass_le (inputs : Finset Bytes) :
+    ClassExpectation.expected ($ᵗ Digest : ProbComp Digest)
+        (fun prfSeed => (inputs.filter fun input =>
+          RandomizerGate.PrfClass prfSeed input).card) ≤
+      (inputs.card : ℝ≥0∞) * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+  ClassExpectation.expected_card_filter_le ($ᵗ Digest : ProbComp Digest) inputs
+    (fun input prfSeed => RandomizerGate.PrfClass prfSeed input)
+    (1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (fun input _ => RecordPrfCharge.prob_prfClass_single_le input)
+
+open scoped Classical in
+/-- **And below one for every record a budgeted run can hold.** A record of at most `bound`
+entries with `bound < 2 ^ 128` keeps the part's expectation under a single unit — so it fits the
+constant column with the whole column to spare, at every `q` the statement quantifies over. -/
+theorem expected_card_prfClass_lt_one (inputs : Finset Bytes) (bound : Nat)
+    (hcard : inputs.card ≤ bound) (hsmall : bound < 2 ^ 128) :
+    ClassExpectation.expected ($ᵗ Digest : ProbComp Digest)
+        (fun prfSeed => (inputs.filter fun input =>
+          RandomizerGate.PrfClass prfSeed input).card) ≤ 1 := by
+  classical
+  refine (expected_card_prfClass_le inputs).trans ?_
+  rw [mul_one_div]
+  refine ENNReal.div_le_of_le_mul ?_
+  rw [one_mul]
+  calc ((inputs.card : Nat) : ℝ≥0∞) ≤ ((bound : Nat) : ℝ≥0∞) := Nat.cast_le.mpr hcard
+    _ ≤ ((2 ^ 128 : Nat) : ℝ≥0∞) := Nat.cast_le.mpr (le_of_lt hsmall)
+
 end SlhDsaSecurity.TargetColumn

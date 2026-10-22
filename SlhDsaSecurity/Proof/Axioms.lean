@@ -16157,3 +16157,27 @@ info: 'SlhDsaSecurity.TargetColumn.probEvent_eq_zero_of_self_charge' depends on 
 /-- info: 'SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_zero
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_eq_probEvent' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_indicator_eq_probEvent
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_card_filter_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_card_filter_le
+
+/-- info: 'SlhDsaSecurity.TargetColumn.expected_card_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_card_prfClass_le
+
+/-- info: 'SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one
