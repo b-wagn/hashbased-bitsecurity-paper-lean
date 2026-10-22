@@ -122,6 +122,7 @@ import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 import SlhDsaSecurity.Proof.KeygenValue
+import SlhDsaSecurity.Proof.RecordedPhase
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -5375,3 +5376,19 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.KeygenValue.run_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.KeygenValue.run_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.RecordedPhase.run_tell_liftM' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedPhase.run_tell_liftM
+
+/-- info: 'SlhDsaSecurity.RecordedPhase.run_unchargedPhase_inr' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedPhase.run_unchargedPhase_inr
+
+/-- info: 'SlhDsaSecurity.RecordedPhase.phase_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedPhase.phase_eq
+
+/-- info: 'SlhDsaSecurity.RecordedPhase.run_phase_counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedPhase.run_phase_counted
