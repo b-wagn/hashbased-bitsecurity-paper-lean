@@ -6444,3 +6444,11 @@ info: 'SlhDsaSecurity.ReplayGate.randomiserBad_of_replay' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ReplayGate.randomiserBad_of_replay
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_record_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_record_hit_le
+
+/-- info: 'SlhDsaSecurity.SensitiveQuery.prob_probes_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveQuery.prob_probes_hit_le
