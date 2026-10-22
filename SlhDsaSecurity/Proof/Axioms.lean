@@ -218,6 +218,7 @@ import SlhDsaSecurity.Proof.HandlerLenient
 import SlhDsaSecurity.Proof.ServingTable
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.CountedHandler
+import SlhDsaSecurity.Proof.CarrierAvailability
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -13736,3 +13737,207 @@ info: 'SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves_proved' depen
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves_proved
+
+/--
+info: 'SlhDsaSecurity.CarrierAvailability.availableAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierAvailability.availableAt_mono
+
+/--
+info: 'SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le
+
+/--
+info: 'SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le_canonical
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.independent_integrable_add_power' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.independent_integrable_add_power
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.independent_integral_add_power' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.independent_integral_add_power
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.sumMoment_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.sumMoment_zero
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.sumMoment_succ' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.sumMoment_succ
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_centered_sum_moments' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_centered_sum_moments
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_sixth_sum_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_sixth_sum_bound
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.centeredLoadSum_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.centeredLoadSum_eq
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.wordCounts_total' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.wordCounts_total
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.wordCounts_polynomial' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.wordCounts_polynomial
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.wordLoads_fiber_card' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.wordLoads_fiber_card
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.uniformLoads_singleton' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.uniformLoads_singleton
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poissonLoads_real_singleton' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poissonLoads_real_singleton
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.uniformLoads_real_singleton' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.uniformLoads_real_singleton
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poissonLoads_singleton_factor' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poissonLoads_singleton_factor
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.wordLoads_cons' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.wordLoads_cons
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.uniformLoads_real_apply' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.uniformLoads_real_apply
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_square_sub' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integral_square_sub
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_factorial_shift' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_factorial_shift
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_hasSum_descFactorial' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_hasSum_descFactorial
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_integrable_descFactorial' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integrable_descFactorial
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_descFactorial' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integral_descFactorial
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.power_eq_stirling_descFactorial_real' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.power_eq_stirling_descFactorial_real
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_integrable_power' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integrable_power
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_power' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integral_power
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_integrable_centered_power' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integrable_centered_power
+
+/--
+info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_centered_power' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsConcentration.poisson_integral_centered_power
