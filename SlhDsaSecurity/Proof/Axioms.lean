@@ -7747,3 +7747,23 @@ info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun_le
+
+/-- info: 'SlhDsaSecurity.LateCharge.fires_shape' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.fires_shape
+
+/-- info: 'SlhDsaSecurity.LateCharge.prob_entry_fires_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.prob_entry_fires_le
+
+/-- info: 'SlhDsaSecurity.LateCharge.persists_cacheQuery' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.persists_cacheQuery
+
+/-- info: 'SlhDsaSecurity.LateCharge.spent_cacheQuery_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.spent_cacheQuery_iff
+
+/-- info: 'SlhDsaSecurity.LateCharge.prob_record_fires_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.prob_record_fires_le
