@@ -14580,3 +14580,35 @@ info: 'SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont' depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_recordOf_of_cache_reaches' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_recordOf_of_cache_reaches
+
+/-- info: 'SlhDsaSecurity.SplitWitness.Served.narrowTargetAt_of_narrowTarget' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.narrowTargetAt_of_narrowTarget
+
+/-- info: 'SlhDsaSecurity.SplitWitness.Served.narrowTarget_of_narrowTargetAt' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.narrowTarget_of_narrowTargetAt
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrow_at' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrow_at
+
+/-- info: 'SlhDsaSecurity.AnswerCarrier.clearFraming_cacheAnswer' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.clearFraming_cacheAnswer
+
+/-- info: 'SlhDsaSecurity.AnswerCarrier.narrowTargetAt_clear' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.narrowTargetAt_clear
