@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.ClassGrowth
 import SlhDsaSecurity.Proof.SensitiveExpectation
+import SlhDsaSecurity.Proof.ClassExpectation
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.CoverageRouted
@@ -5095,4 +5096,24 @@ info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_expected_le' depen
 /-- info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_bind
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_map
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_const_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_const_add
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.run_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.run_neverFails
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.prob_bad_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.prob_bad_le_expected
 
