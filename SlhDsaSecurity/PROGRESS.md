@@ -3482,6 +3482,14 @@ redex. Three forms of the same obstruction have now cost a build each:
 rather than asking `rw` to find it. Three lines. The diagnosis is the expensive part and the
 symptom is misleading in every case — the error names the goal, not the application.
 
+**But form 3 had a cheaper fix than the one that diagnosis endorses, and it is the general
+lesson.** The stuck `Bind ?m` in `CarrierTail.forget_carrierTail` went away not by steering the
+tactic but by **restating the three stage laws as binds**, so `bind_assoc` flattened both sides
+and `bind_congr` walked them with nothing left to solve for. Changing what the lemmas say was
+cheaper than changing how the rewrite is applied. The rule: when a rewrite has to match on
+*both* sides of an equation, normalise the **statements** until there is only one shape, rather
+than teaching the tactic to see through two.
+
 Related and already recorded: `simp only` fails silently in the files that set
 `backward.isDefEq.respectTransparency false`, and `lake env lean` reads oleans rather than
 sources. All three are cases of a tactic failing in a way that does not name its own cause.
