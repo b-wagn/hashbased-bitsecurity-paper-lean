@@ -4945,9 +4945,9 @@ info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depen
 #guard_msgs in
 #print axioms SlhDsaSecurity.AdversaryQueries.servedCount_append
 
-/-- info: 'SlhDsaSecurity.AdversaryQueries.one_le_count_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.AdversaryQueries.two_le_count_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.AdversaryQueries.one_le_count_sign
+#print axioms SlhDsaSecurity.AdversaryQueries.two_le_count_sign
 
 /--
 info: 'SlhDsaSecurity.AdversaryQueries.work_add_served_le_count_adversary' depends on axioms: [propext,
@@ -5013,3 +5013,6 @@ info: 'SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_run_le' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_run_le
 
+/-- info: 'SlhDsaSecurity.AdversaryQueries.le_count_query_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.le_count_query_bind

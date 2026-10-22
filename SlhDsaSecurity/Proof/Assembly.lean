@@ -298,16 +298,16 @@ theorem defects_le_six :
   exact Nat.cast_le.mpr (by norm_num)
 
 /-- **A defect proportional to the served requests, added to the four constant ones.** -/
-theorem defects_add_served_le (served : Nat) :
+theorem defects_add_served_le (units : Nat) :
     (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
         (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        (served : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
-      ((6 + served : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        (units : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      ((6 + units : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   calc (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
         (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        (served : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+        (units : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
       ≤ ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          (served : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by gcongr; exact defects_le_six
+          (units : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by gcongr; exact defects_le_six
     _ = _ := by rw [ENNReal.div_add_div_same, ← Nat.cast_add]
 
 /-! ## Two slacks
@@ -349,15 +349,15 @@ theorem le_target_of_two_slacks (queries inputSlack answerSlack extra defectUnit
 fifty-nine claimed cells and six constant defects, plus one defect unit per served request,
 against key generation's five hundred and twelve reserved on both halves and one more per
 served request reserved on the half that counts the record. -/
-theorem le_target_of_served (queries served : Nat) (hkeygen : 2 ^ subtreeHeight + served ≤ queries)
-    (defect : ℝ≥0∞)
-    (hdefect : defect ≤ ((6 + served : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    ((queries - (2 ^ subtreeHeight + served) + 259 : Nat) : ℝ≥0∞) /
+theorem le_target_of_served (queries served : Nat)
+    (hkeygen : 2 ^ subtreeHeight + 2 * served ≤ queries) (defect : ℝ≥0∞)
+    (hdefect : defect ≤ ((6 + 2 * served : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    ((queries - (2 ^ subtreeHeight + 2 * served) + 259 : Nat) : ℝ≥0∞) /
           ((2 ^ 128 : Nat) : ℝ≥0∞) +
         ((queries - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect ≤
       (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
-  refine le_target_of_two_slacks queries (2 ^ subtreeHeight + served) (2 ^ subtreeHeight) 259
-    (6 + served) hkeygen (by omega) ?_ defect hdefect
+  refine le_target_of_two_slacks queries (2 ^ subtreeHeight + 2 * served) (2 ^ subtreeHeight) 259
+    (6 + 2 * served) hkeygen (by omega) ?_ defect hdefect
   simp only [subtreeHeight]
   omega
 
