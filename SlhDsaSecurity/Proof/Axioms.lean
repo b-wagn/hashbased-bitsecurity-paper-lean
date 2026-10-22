@@ -11181,3 +11181,33 @@ info: 'SlhDsaSecurity.LateProbes.prob_ordering_le_recorded' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateProbes.prob_ordering_le_recorded
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.lazyAnswer_served' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.lazyAnswer_served
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.served_isMessageInput_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.served_isMessageInput_step
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.served_isMessageInput_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.served_isMessageInput_run
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.served_cacheAnswer' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.served_cacheAnswer
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.served_setFraming' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.served_setFraming
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.served_clearFraming' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.served_clearFraming
