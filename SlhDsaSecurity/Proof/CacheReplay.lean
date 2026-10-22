@@ -449,4 +449,35 @@ theorem queriesUnder_compression {α : Type} (cache : QueryCache HashSpec)
   queriesUnder_bind_right cache prefixComputation _ _
     (queriesUnder_tweakable_self cache publicSeed address _)
 
+/-! ## A replay reads the cache only where it asks
+
+`QueriesUnder` names the inputs a replayed run consults. This is the other half of what that
+naming is for: the run's value depends on the cache **only** through those inputs, so two caches
+agreeing there give the same value.
+
+It is the fact a quantity recomputed at a different cache needs. `cached_of_queriesUnder` and
+its handler-side twin say every such input is in the run's own cache; this says that is enough.
+Between them, a replay at a smaller cache and a replay at a larger one that extends it agree,
+without any statement about what the larger one holds elsewhere. -/
+
+/-- **A replay is determined by the cache on the inputs it asks.** -/
+theorem simulateQ_replay_congr {α : Type} (computation : OracleComp HashSpec α) :
+    ∀ (left right : QueryCache HashSpec),
+      (∀ probe : Bytes, QueriesUnder left computation probe → left probe = right probe) →
+        (simulateQ (replay left) computation : Id α) =
+          (simulateQ (replay right) computation : Id α) := by
+  induction computation using OracleComp.inductionOn with
+  | pure value => intro left right _; rfl
+  | query_bind input next ih =>
+    intro left right hagree
+    have hhead : left input = right input :=
+      hagree input (QueriesUnder.head (cache := left) input next)
+    have hanswer : replay left input = replay right input := by
+      rw [replay, replay, hhead]
+    show (simulateQ (replay left) (next (replay left input)) : Id α) =
+      (simulateQ (replay right) (next (replay right input)) : Id α)
+    rw [← hanswer]
+    exact ih (replay left input) left right fun probe hprobe =>
+      hagree probe (QueriesUnder.tail input probe next hprobe)
+
 end SlhDsaSecurity.CacheReplay
