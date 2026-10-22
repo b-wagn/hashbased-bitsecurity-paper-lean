@@ -2685,3 +2685,20 @@ are, and the same holds with `¬ AimsSomewhere` in its place. The message-class 
 changes by one lemma, `canonical_not_messageInput` becoming `RedrawCell.locate_messageInput`,
 which has the same `GoodWalk` hypotheses because an aiming address is a structural node's and so
 is within `HashSeparation`'s bounds.
+
+## A seventh defeq trap: an ascription that changes which lift is meant
+
+`simulateQ_spec_query` is stated as `simulateQ impl (liftM (spec.query t)) = impl t`. Writing the
+same term as
+
+    (liftM (OracleWorld.query (Sum.inr input)) : OracleComp OracleWorld HashOutput)
+
+makes the lemma **fail to match**, while writing it without the ascription — letting the bind
+that consumes it fix the type — makes it match. The ascription forces `HashOutput` where the
+lemma has `OracleWorld.Range (Sum.inr input)`; the two are definitionally equal and not
+syntactically so, so the `liftM` elaborates through a different `MonadLiftT` path, and `rw` sees
+two different terms.
+
+It is trap 5 in new clothes, and the rule it gives is the general one: **spell a term the way
+the lemma that will have to match it spells it, and let the context supply the type rather than
+ascribing it.** An ascription is not free; it is a choice of elaboration.

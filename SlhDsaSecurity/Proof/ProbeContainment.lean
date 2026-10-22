@@ -197,20 +197,20 @@ handler's where it drew. -/
 open scoped Classical in
 /-- **A hash step leaves its own input cached.** -/
 theorem lazyProgram_hash_cached (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (input : Bytes) (state : OpenCache.HandlerState)
     (z : OracleWorld.Range (Sum.inr input) × OpenCache.HandlerState)
     (hz : z ∈ support (((OpenCache.lazyProgram publicSeed availableAt table)
-      (Sum.inr input)).run state)) : z.2.1 input = some z.1 := by
+      (Sum.inr input)).run state)) : z.2.1.cache input = some z.1 := by
   classical
   have hbind : z ∈ support
-      ((match state.1 input with
+      ((match state.1.cache input with
         | some cached => (pure (cached, state.1) : ProbComp _)
         | none =>
           match OpenCache.openCache publicSeed (availableAt state.1) table input with
-          | some answer => pure (answer, state.1.cacheQuery input answer)
+          | some answer => pure (answer, HandlerCarrier.cacheAnswer state.1 input answer)
           | none =>
-            (fun answer => (answer, state.1.cacheQuery input answer)) <$>
+            (fun answer => (answer, HandlerCarrier.cacheAnswer state.1 input answer)) <$>
               ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun step =>
         (pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
           ProbComp _)) := hz
@@ -218,7 +218,7 @@ theorem lazyProgram_hash_cached (publicSeed : Digest)
   obtain ⟨step, hstep, hpure⟩ := hbind
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [show z.1 = step.1 from by rw [hpure], show z.2.1 = step.2 from by rw [hpure]]
-  cases hcached : state.1 input with
+  cases hcached : state.1.cache input with
   | some cached =>
     simp only [hcached, support_pure, Set.mem_singleton_iff] at hstep
     rw [hstep]
@@ -243,7 +243,7 @@ from and what the handler ends with, because that is the only cache at which the
 and the replayed ones agree: the table's where the table answered, the handler's where it drew.
 -/
 theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (computation : OracleComp HashSpec α) :
     ∀ (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
       z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
@@ -252,9 +252,9 @@ theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
       ∀ later : QueryCache HashSpec,
         (∀ (input : Bytes) (value : HashOutput), warm input = some value →
           later input = some value) →
-        (∀ (input : Bytes) (value : HashOutput), z.2.1 input = some value →
+        (∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
           later input = some value) →
-        ∃ added : List (Bytes × QueryCache HashSpec),
+        ∃ added : List (Bytes × HandlerCarrier.State),
           z.2.2.1 = state.2.1 ++ added ∧
             ∀ entry ∈ added,
               QueriesUnder later (simulateQ (StripCached.stripImpl warm) computation) entry.1 := by
@@ -300,12 +300,12 @@ theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
       obtain ⟨step, hstepRun, hrest⟩ := hz'
       have hrecord : step.2.2.1 = state.2.1 ++ [(input, state.1)] :=
         ChargedProbe.lazyProgram_step_inr publicSeed availableAt table input state step hstepRun
-      have hcached : step.2.1 input = some step.1 :=
+      have hcached : step.2.1.cache input = some step.1 :=
         lazyProgram_hash_cached publicSeed availableAt table input state step hstepRun
-      have hpersists : CacheAvailability.Persists step.2.1 z.2.1 :=
+      have hpersists : HandlerCarrier.Grows step.2.1 z.2.1 :=
         CacheAvailability.lazyProgram_run_persists publicSeed availableAt table _ step.2 z hrest
       have hreplay : replay later input = step.1 := by
-        simp [replay, hfinal input step.1 (hpersists input step.1 hcached)]
+        simp [replay, hfinal input step.1 (hpersists.1 input step.1 hcached)]
       obtain ⟨added, hadded, hprobes⟩ := ih step.1 step.2 z hrest later hwarm hfinal
       refine ⟨(input, state.1) :: added, by rw [hadded, hrecord, List.append_assoc]; rfl, ?_⟩
       intro entry hentry
@@ -327,7 +327,7 @@ set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **A run of the stripped signer appends no aiming probe to the record.** -/
 theorem strippedSign_adds_no_aiming (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (sk : SecretKey) (hseed : sk.seed = table.1 Node.secretSeed)
     (hpk : sk.publicKey.seed = publicSeed) (hprf : sk.prf ≠ publicSeed)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
@@ -336,22 +336,22 @@ theorem strippedSign_adds_no_aiming (publicSeed : Digest)
     (hz : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
       (StrippedGame.strippedSign (OpenCache.openCache publicSeed (fun _ => True) table) sk
         request)).run state))
-    (hcompatible : ∀ (input : Bytes) (value : HashOutput), z.2.1 input = some value →
-      RedrawCell.unionCache publicSeed table z.2.1 input = some value) :
-    ∃ added : List (Bytes × QueryCache HashSpec),
+    (hcompatible : ∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
+      RedrawCell.unionCache publicSeed table z.2.1.cache input = some value) :
+    ∃ added : List (Bytes × HandlerCarrier.State),
       z.2.2.1 = state.2.1 ++ added ∧
         ∀ entry ∈ added, ¬ RedrawCell.AimsSomewhere publicSeed entry.1 := by
   obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed availableAt table
     (OpenCache.openCache publicSeed (fun _ => True) table)
     (Scheme.sign (m := OracleComp HashSpec) sk request) state z hz
-    (RedrawCell.unionCache publicSeed table z.2.1)
+    (RedrawCell.unionCache publicSeed table z.2.1.cache)
     (fun input value hvalue =>
-      RedrawCell.unionCache_of_open publicSeed table z.2.1 input value hvalue)
+      RedrawCell.unionCache_of_open publicSeed table z.2.1.cache input value hvalue)
     hcompatible
   refine ⟨added, hadded, fun entry hentry => ?_⟩
   by_cases hcold : OpenCache.openCache publicSeed (fun _ => True) table entry.1 = none
-  · exact not_aims_of_strippedSign_probe publicSeed table z.2.1 sk hseed hpk hprf hpublic request
-      entry.1 (hprobes entry hentry) hcold
+  · exact not_aims_of_strippedSign_probe publicSeed table z.2.1.cache sk hseed hpk hprf hpublic
+      request entry.1 (hprobes entry hentry) hcold
   · exact absurd (StripCached.queriesUnder_strip_none
       (Scheme.sign (m := OracleComp HashSpec) sk request) _ _ entry.1 (hprobes entry hentry))
       hcold
@@ -360,26 +360,26 @@ set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **A run of the stripped key generation appends nothing at all.** -/
 theorem strippedKeygen_adds_nothing (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (sds : Digest × Digest × Digest) (hseed : sds.1 = table.1 Node.secretSeed)
     (hpublic : sds.2.2 = publicSeed) (state : OpenCache.HandlerState)
     (z : (SecretKey × PublicKey) × OpenCache.HandlerState)
     (hz : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
       (StrippedGame.strippedKeygen (OpenCache.openCache publicSeed (fun _ => True) table)
         sds)).run state))
-    (hcompatible : ∀ (input : Bytes) (value : HashOutput), z.2.1 input = some value →
-      RedrawCell.unionCache publicSeed table z.2.1 input = some value) :
+    (hcompatible : ∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
+      RedrawCell.unionCache publicSeed table z.2.1.cache input = some value) :
     z.2.2.1 = state.2.1 := by
   obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed availableAt table
     (OpenCache.openCache publicSeed (fun _ => True) table)
     (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) state z hz
-    (RedrawCell.unionCache publicSeed table z.2.1)
+    (RedrawCell.unionCache publicSeed table z.2.1.cache)
     (fun input value hvalue =>
-      RedrawCell.unionCache_of_open publicSeed table z.2.1 input value hvalue)
+      RedrawCell.unionCache_of_open publicSeed table z.2.1.cache input value hvalue)
     hcompatible
   rw [hadded, show added = [] from ?_, List.append_nil]
   refine List.eq_nil_iff_forall_not_mem.mpr fun entry hentry => ?_
-  exact no_cold_strippedKeygen_probe publicSeed table z.2.1 sds hseed hpublic entry.1
+  exact no_cold_strippedKeygen_probe publicSeed table z.2.1.cache sds hseed hpublic entry.1
     (hprobes entry hentry)
     (StripCached.queriesUnder_strip_none
       (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) _ _ entry.1
