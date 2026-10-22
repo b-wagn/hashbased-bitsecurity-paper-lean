@@ -15383,3 +15383,15 @@ info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised
+
+/-- info: 'SlhDsaSecurity.SharedAssembly.prob_forgerySeed_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.prob_forgerySeed_le_record
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record

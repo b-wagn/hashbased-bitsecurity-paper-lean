@@ -168,4 +168,41 @@ theorem sharedCharged_of_parts
         add_le_add (expected_parts_le_budget q adversary hbudget) le_rfl
     _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
 
+/-! ## The answer side's leftover, sent to the record charge
+
+The containment itself is `RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised` and
+has no side condition. What this adds is the one presentation step between it and the shared
+half: the leftover is read at the fused pair and the charge at the recorded one, and
+`LateProbes.probEvent_forget` is the transport between them — the same one the input bullet
+uses, at any tail that forgets to the game. -/
+
+set_option maxHeartbeats 8000000 in
+set_option linter.constructorNameAsVariable false in
+/-- **The forgery-seed leftover is bounded by the record charge, at any tail.** -/
+theorem prob_forgerySeed_le_record (fused : LateProbes.FusedTail) (adversary : Adversary)
+    (hforget : LateProbes.ForgetsTo fused adversary) :
+    Pr[fun pair : SplitPair => GoodWalk pair.1 ∧
+        AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+          (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+          ((pair.2.1.1.1, pair.2.1.2), pair.2.2.1) |
+      pairedOf fused adversary] ≤
+      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
+          RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 |
+        RandomiserRecord.recordedPairedRun adversary] := by
+  classical
+  refine le_trans (le_of_eq (probEvent_forget hforget
+    (fun p : RecordedPair => GoodWalk p.1 ∧
+      AnswerCoverage.ForgerySeedRandomised p.1.1.1.2.1
+        (SplitCharged.generatedKey p.1.1.1.1 p.1.1.1.2.1 p.1.1.1.2.2 p.1.2)
+        ((p.2.1.1.1, p.2.1.2), p.2.2)))) ?_
+  refine probEvent_mono fun pair hpair hbad => ⟨hbad.1, ?_⟩
+  obtain ⟨hwalk, hresult⟩ := mem_support_recordedPairedRun hpair
+  refine RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised adversary hresult ?_
+  simp only [RoutedSplit.keyOf]
+  rw [AnswerSide.generatedKey_eq_walk adversary hwalk
+    (result := ((pair.2.1.1.1, pair.2.1.2), pair.2.2))
+    (by rw [RecordedTail.tail_eq_map_recordedTail, support_map]
+        exact ⟨pair.2, hresult, rfl⟩)]
+  exact hbad.2
+
 end SlhDsaSecurity.SharedAssembly
