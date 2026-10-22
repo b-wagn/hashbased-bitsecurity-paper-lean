@@ -283,4 +283,116 @@ theorem mem_signerRecord_randomizer (sk : SecretKey) (request : Message) (framed
   exact RandomiserRecord.mem_record_head signerCost _ _ cache step hstep _
     (by simp [signerCost, recordOf])
 
+/-! ## The left record is untouched, so `card = work` survives the growth
+
+Instrumenting the signer widens the writer, and the counts the shared side's arithmetic rests on
+are read off the **left** record — the adversary's and the verifier's. The one thing that must
+not move is `RecordedTail.card_eq_work`: `Multiset.card record = Outcome.counts.work`, exactly,
+with no slack. Every part of the record is tied to the budget through it, and an inequality in
+its place would weaken `card_parts_le_budget` from a partition of the work to a bound on it.
+
+It survives, and for a reason worth stating rather than re-proving. `narrow` forgets the
+signer's component and keeps the other two, and under it the instrumented game **is** the
+recorded game — `narrow_splitAfterSeeds` below, an equality of computations. So the left record
+of a split run is the record of a recorded run with the same counts, and `card_eq_work`
+transports along it rather than being re-established at the wider presentation.
+
+What makes that work is `signerCost`: it charges `0` and records into the third component only.
+Had the signer's instrumentation charged anything, `narrow` would not commute with the handlers
+and the identity would genuinely have to be reproved — with a term for the signer's hashes on
+one side and nothing to pay it on the other.
+
+This is the lemma to re-run if the signer's instrumentation ever starts charging. -/
+
+/-- **Forgetting the signer's record turns the instrumented signing oracle back into the
+recording one.** The sub-run is substituted away by `bind_countRecorded`: what the signer asked
+is exactly what `narrow` drops. -/
+theorem run_splitSigningOracle_narrow (sk : SecretKey) (request : Message) :
+    (recordedSigningOracle (Scheme.sign sk) request).run =
+      (fun step => (step.1, narrow step.2)) <$> (splitSigningOracle sk request).run := by
+  funext log
+  show ((recordedSigningOracle (Scheme.sign sk) request).run).run log =
+    (fun step : (Option Bytes × Multiplicative Split) × SigningLog =>
+      ((step.1.1, narrow step.1.2), step.2)) <$>
+        ((splitSigningOracle sk request).run).run log
+  rw [run_recordedSigningOracle, run_splitSigningOracle, map_eq_bind_pure_comp, bind_assoc]
+  simp only [Function.comp_def, pure_bind]
+  exact (bind_countRecorded signerCost (Scheme.sign sk request)
+    (fun answer => (pure ((answer, Multiplicative.ofAdd
+        ((Counts.single .signing 1 : Counts), (0 : Multiset Bytes))), log ++ [⟨request, answer⟩]) :
+      OracleComp OracleWorld ((Option Bytes × Multiplicative Tally) × SigningLog)))).symm
+
+set_option linter.constructorNameAsVariable false in
+set_option maxHeartbeats 1000000 in
+/-- **The signer's record is the only new thing.** Dropping it returns `RecordedTail`'s
+presentation exactly, counts and left record and all. -/
+theorem narrow_splitAfterSeeds (adversary : Adversary) (sds : Digest × Digest × Digest) :
+    (fun result => (result.1, result.2.1)) <$> splitAfterSeeds adversary sds =
+      RecordedTail.recordedAfterSeeds adversary sds := by
+  unfold splitAfterSeeds RecordedTail.recordedAfterSeeds
+  rw [map_bind]
+  refine congrArg (Bind.bind _) (funext fun keys => ?_)
+  obtain ⟨sk, pk⟩ := keys
+  dsimp only
+  rw [map_bind,
+    show ((simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk))
+        (adversary.main pk)).run).run [] =
+      (fun step => ((step.1.1, narrow step.1.2), step.2)) <$>
+        ((simulateQ (splitAdversaryImpl + splitSigningOracle sk)
+          (adversary.main pk)).run).run [] from by
+      rw [run_simulateQ_map_writer narrow narrow_one narrow_mul
+        (splitAdversaryImpl + splitSigningOracle sk)
+        (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk))
+        (fun t => by
+          rcases t with world | request
+          · exact run_splitAdversaryImpl_map world
+          · exact run_splitSigningOracle_narrow sk request) (adversary.main pk)]
+      exact stateT_map_apply _ _ [],
+    bind_map_left]
+  refine congrArg (Bind.bind _) (funext fun advStep => ?_)
+  obtain ⟨⟨forgery, tally⟩, signed⟩ := advStep
+  dsimp only
+  rw [map_bind]
+  refine congrArg (Bind.bind _) (funext fun verifyStep => ?_)
+  obtain ⟨verified, verifierTally⟩ := verifyStep
+  rfl
+
+attribute [local irreducible] splitAfterSeeds RecordedTail.recordedAfterSeeds
+  WarmedGame.afterSeeds Scheme.verify Scheme.keygenInternal Security.countQueries
+
+/-- **The recorded tail is the split tail with the signer's record dropped.** -/
+theorem recordedTail_eq_map_splitTail (adversary : Adversary)
+    (start : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) :
+    RecordedTail.recordedTail adversary start =
+      (fun result => (((result.1.1.1, result.1.1.2.1), result.1.2), result.2)) <$>
+        splitTail adversary start := by
+  rw [RecordedTail.recordedTail, splitTail, ← narrow_splitAfterSeeds adversary start.1.1,
+    RecordedTail.countAllHashes_map, simulateQ_map, StateT.run_map]
+
+/-- **A result of the split tail is a result of the recorded tail**, with the signer's record
+besides. -/
+theorem mem_support_recordedTail_of_split (adversary : Adversary)
+    {start : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    {result : ((Outcome × Multiset Bytes × Multiset Bytes) × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (splitTail adversary start)) :
+    (((result.1.1.1, result.1.1.2.1), result.1.2), result.2) ∈
+      support (RecordedTail.recordedTail adversary start) := by
+  rw [recordedTail_eq_map_splitTail, support_map]
+  exact ⟨result, hresult, rfl⟩
+
+/-- **The left record is exactly as big as the work the game charges**, at the presentation that
+also carries the signer's. This is the identity the shared side's arithmetic rests on, and it is
+transported rather than reproved. -/
+theorem card_eq_work_split (adversary : Adversary)
+    {start : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    {result : ((Outcome × Multiset Bytes × Multiset Bytes) × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (splitTail adversary start)) :
+    Multiset.card result.1.1.2.1 = result.1.1.1.counts.work := by
+  have hmem := mem_support_recordedTail_of_split adversary hresult
+  rw [RecordedTail.recordedTail] at hmem
+  exact RecordedTail.card_eq_work adversary start.1.1 start.2
+    ((result.1.1.1, result.1.1.2.1), result.2)
+    (WarmedSplit.mem_support_of_countAllHashes _ start.2
+      (((result.1.1.1, result.1.1.2.1), result.1.2), result.2) hmem)
+
 end SlhDsaSecurity.SplitRecorder
