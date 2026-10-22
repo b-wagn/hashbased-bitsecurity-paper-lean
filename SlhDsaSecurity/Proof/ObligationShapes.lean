@@ -144,6 +144,146 @@ event as it stands. Only the conclusion was narrower than what the target will n
 input half's bullet is claims-only costs nothing here either — a bullet that spends `259` and
 none of the record satisfies a hypothesis that allows the aiming part besides. -/
 
+/-! ## The shared half at whatever tail the assembly runs on
+
+The half was written at `FusedCoverage.fusedTail` because that was the only tail there was. Its
+argument never looks at the tail: it splits the shared event by excluded middle, charges the
+ordering defect against the message-class part of the record, and adds the two expectations
+against one budget. Every one of those steps reads the *pair*. What the tail supplies is four
+facts — that it forgets to the game, that it is a recorder run, that its probes are recorded, and
+that its two parts share the budget — and `LateProbes` has been generic in the tail since the
+probes were stated.
+
+**`LateProbes.IsRecorderRun` is not one of the four, and this is where checking rather than
+renaming paid.** Reading the proof, the tail enters it three times: once through
+`SharedAssembly.expected_parts_le_budget_at`, which wants only `ForgetsTo`; once through
+`LateProbes.probes_le_recordMessageClass`, for the containment; and once through
+`LateProbes.prob_ordering_le`, for the charge. The last two both ask the tail to *be*
+`simulateQ (recorder …) computation`, and `ServingForget`'s module docstring says in as many
+words that a bracketed run is not that and cannot be made that: such a computation can only
+sample or query, and the brackets write the state between queries. So a socket shaped
+`IsRecorderRun` is one no bracketed presentation can ever fill.
+
+What the proof actually consumes is the two *conclusions* — the containment and the ordering
+charge — and those are statements about the pair, which any tail can satisfy however it likes.
+They are the parameters below. `sharedChargedLate_of_parts_recorder` is the specialisation for a
+tail that happens to be a recorder run, which derives both from `IsRecorderRun` and the
+provenance fact; the cache tail goes through it, and a bracketed tail goes through the general
+form with its own analogues of those two `LateProbes` lemmas.
+
+**`late` and the seed event are parameters for the same reason `seedUnits` is.** The fused
+presentation pays `Ordering ∨ ForgerySeedRandomised` because its target test carries
+`SplitWitness.narrowClass`'s `¬ PrfClass` and so leaves the forgery's randomiser over. A
+presentation whose target test excludes the signer's randomiser probe by the frame in flight
+instead has no leftover at all, and wants `late := LateProbes.Ordering` with the seed event
+`fun _ => False` at `seedUnits := 0`. Both are instances of one statement, and which one an
+assembly takes is a fact about its recorder rather than about its arithmetic. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The shared obligation at any fused tail**, from the input half's bullet, the ordering
+defect's own machinery, and a charge for whatever leftover the tail's target test leaves.
+
+`hlate` is what ties the obligation's `late` to what is actually paid: the bound covers the
+ordering defect and the seed event, so any `late` those two cover is payable here. At the fused
+tail that is `FinalAssembly.lateOrSeed`; at a tail that retires the leftover it is
+`LateProbes.Ordering` with `seedEvent := fun _ => False` and `seedUnits := 0`. -/
+theorem sharedChargedLate_of_parts_at (fused : LateProbes.FusedTail)
+    (claims seedUnits : Nat) (late seedEvent : LateProbes.SplitPair → Prop)
+    (hclaims : 259 + seedUnits ≤ claims)
+    (hlate : ∀ pair : LateProbes.SplitPair, late pair →
+      LateProbes.Ordering pair ∨ seedEvent pair)
+    (hforget : ∀ adversary : Adversary, LateProbes.ForgetsTo fused adversary)
+    (hordering : ∀ adversary : Adversary,
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧ LateProbes.Ordering pair |
+          LateProbes.pairedOf fused adversary] ≤
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      SharedAssembly.InputBulletAt fused adversary LateProbes.Ordering)
+    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧ seedEvent pair |
+        LateProbes.pairedOf fused adversary] ≤
+        ((seedUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    Obligations.SharedChargedLate claims fused FinalAssembly.forgetFused late := by
+  classical
+  intro q adversary _ hbudget
+  have hordering := hordering adversary
+  refine le_trans (probEvent_mono (q := fun pair : LateProbes.SplitPair =>
+    (GoodWalk pair.1 ∧ InputBad (SharedAssembly.splitTraceOf pair) ∧
+        ¬ LateProbes.Ordering pair) ∨
+      ((GoodWalk pair.1 ∧ LateProbes.Ordering pair) ∨
+        (GoodWalk pair.1 ∧ seedEvent pair))) ?_) ?_
+  · rintro pair - ⟨hgood, hshared | hlatePair⟩
+    · exact (SharedJoin.cover_of_em
+        (fun pair : LateProbes.SplitPair => InputBad (SharedAssembly.splitTraceOf pair))
+        LateProbes.Ordering pair hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord =>
+          Or.inl ⟨hgood, hord⟩
+    · exact Or.inr ((hlate pair hlatePair).imp (fun hord => ⟨hgood, hord⟩)
+        fun hseeded => ⟨hgood, hseeded⟩)
+  refine le_trans (probEvent_or_le _ _ _) ?_
+  refine le_trans (add_le_add (hinput q adversary hbudget)
+    (le_trans (probEvent_or_le _ _ _)
+      (add_le_add hordering (hseed q adversary hbudget)))) ?_
+  rw [← add_assoc, ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+  refine ENNReal.div_le_div_right ?_ _
+  calc (ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+        ((259 : Nat) : ℝ≥0∞) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair)))) +
+        ((seedUnits : Nat) : ℝ≥0∞)
+      = ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+          ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
+          ((259 + seedUnits : Nat) : ℝ≥0∞) := by push_cast; ring
+    _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((claims : Nat) : ℝ≥0∞) :=
+        add_le_add (SharedAssembly.expected_parts_le_budget_at fused q adversary
+          (hforget adversary) hbudget) (Nat.cast_le.mpr hclaims)
+    _ = ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
+
+set_option maxHeartbeats 1000000 in
+/-- **The same, for a tail that is a recorder run**, which derives the containment and the
+ordering charge rather than taking them.
+
+This is the seam the two presentations meet at. `hrecord` is the provenance fact — every entry
+of the target recording is a query the join's record holds — stated at the parameter tail, which
+is exactly `LateProvenance.hrecord`'s conclusion with `FusedCoverage.fusedTail` replaced by
+`fused`. A tail that is a recorder run needs nothing else. A **bracketed** tail cannot use this
+door at all, because `LateProbes.IsRecorderRun` is false of it by construction; it supplies its
+own analogues of `LateProbes.probes_le_recordMessageClass` and `LateProbes.prob_ordering_le` —
+of which `hrecord` is a hypothesis of the first — and goes through
+`sharedChargedLate_of_parts_at` above. -/
+theorem sharedChargedLate_of_parts_recorder (fused : LateProbes.FusedTail)
+    (claims seedUnits : Nat) (late seedEvent : LateProbes.SplitPair → Prop)
+    (hclaims : 259 + seedUnits ≤ claims)
+    (hlate : ∀ pair : LateProbes.SplitPair, late pair →
+      LateProbes.Ordering pair ∨ seedEvent pair)
+    (hforget : ∀ adversary : Adversary, LateProbes.ForgetsTo fused adversary)
+    (hrecorder : ∀ adversary : Adversary, LateProbes.IsRecorderRun fused adversary)
+    (hrecord : ∀ adversary : Adversary,
+      ∀ pair ∈ support (LateProbes.pairedOf fused adversary), GoodWalk pair.1 →
+        ∀ entry ∈ pair.2.2.2.2,
+          entry.1 ∈ SharedJoin.recordOf (LateProbes.forgetRecordings pair))
+    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      SharedAssembly.InputBulletAt fused adversary LateProbes.Ordering)
+    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧ seedEvent pair |
+        LateProbes.pairedOf fused adversary] ≤
+        ((seedUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    Obligations.SharedChargedLate claims fused FinalAssembly.forgetFused late :=
+  sharedChargedLate_of_parts_at fused claims seedUnits late seedEvent hclaims hlate hforget
+    (fun adversary => LateProbes.prob_ordering_le (hrecorder adversary)
+      (LateProbes.probes_le_recordMessageClass (hforget adversary) (hrecorder adversary)
+        (hrecord adversary)))
+    hinput hseed
+
 set_option maxHeartbeats 1000000 in
 /-- **The shared obligation at its adopted shape**, with the narrowing's leftover carried at
 whatever it costs.
@@ -166,53 +306,14 @@ theorem sharedChargedLate_of_parts (claims seedUnits : Nat) (hclaims : 259 + see
         LateProbes.pairedOf FusedCoverage.fusedTail adversary] ≤
         ((seedUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     Obligations.SharedChargedLate claims FusedCoverage.fusedTail FinalAssembly.forgetFused
-      FinalAssembly.lateOrSeed := by
-  classical
-  intro q adversary _ hbudget
-  have hforget := FusedCoverage.forgetsTo adversary
-  have hprobes := LateProbes.probes_le_recordMessageClass hforget
-    (FusedCoverage.isRecorderRun adversary)
-    (LateProvenance.hrecord adversary)
-  have hordering := LateProbes.prob_ordering_le (FusedCoverage.isRecorderRun adversary) hprobes
-  refine le_trans (probEvent_mono (q := fun pair : LateProbes.SplitPair =>
-    (GoodWalk pair.1 ∧ InputBad (SharedAssembly.splitTraceOf pair) ∧
-        ¬ LateProbes.Ordering pair) ∨
-      ((GoodWalk pair.1 ∧ LateProbes.Ordering pair) ∨
-        (GoodWalk pair.1 ∧ AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
-          (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
-          (FinalAssembly.forgetFused pair.2)))) ?_) ?_
-  · rintro pair - ⟨hgood, hshared | hordered | hseeded⟩
-    · exact (SharedJoin.cover_of_em
-        (fun pair : LateProbes.SplitPair => InputBad (SharedAssembly.splitTraceOf pair))
-        LateProbes.Ordering pair hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord =>
-          Or.inl ⟨hgood, hord⟩
-    · exact Or.inr (Or.inl ⟨hgood, hordered⟩)
-    · exact Or.inr (Or.inr ⟨hgood, hseeded⟩)
-  refine le_trans (probEvent_or_le _ _ _) ?_
-  refine le_trans (add_le_add (hinput q adversary hbudget)
-    (le_trans (probEvent_or_le _ _ _)
-      (add_le_add hordering (hseed q adversary hbudget)))) ?_
-  rw [← add_assoc, ENNReal.div_add_div_same, ENNReal.div_add_div_same]
-  refine ENNReal.div_le_div_right ?_ _
-  calc (ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
-          (fun pair =>
-            Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
-        ((259 : Nat) : ℝ≥0∞) +
-        ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
-          (fun pair =>
-            Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair)))) +
-        ((seedUnits : Nat) : ℝ≥0∞)
-      = ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
-            (fun pair =>
-              Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
-          ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
-            (fun pair =>
-              Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
-          ((259 + seedUnits : Nat) : ℝ≥0∞) := by push_cast; ring
-    _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((claims : Nat) : ℝ≥0∞) :=
-        add_le_add (SharedAssembly.expected_parts_le_budget q adversary hbudget)
-          (Nat.cast_le.mpr hclaims)
-    _ = ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
+      FinalAssembly.lateOrSeed :=
+  sharedChargedLate_of_parts_recorder FusedCoverage.fusedTail claims seedUnits
+    FinalAssembly.lateOrSeed
+    (fun pair => AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+      (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+      (FinalAssembly.forgetFused pair.2))
+    hclaims (fun _ hlate => hlate) FusedCoverage.forgetsTo FusedCoverage.isRecorderRun
+    LateProvenance.hrecord hinput hseed
 
 /-! ## Why `seedUnits` is a parameter and not `1`
 

@@ -14300,3 +14300,27 @@ info: 'SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected' depends 
 /-- info: 'SlhDsaSecurity.ServingTable.digestOf_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingTable.digestOf_unionCache
+
+/-- info: 'SlhDsaSecurity.SharedAssembly.inputBullet_eq_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.inputBullet_eq_at
+
+/-- info: 'SlhDsaSecurity.SharedAssembly.expected_parts_le_budget_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.expected_parts_le_budget_at
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_at' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_at
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_recorder' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_recorder
