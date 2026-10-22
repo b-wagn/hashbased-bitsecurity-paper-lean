@@ -16531,3 +16531,11 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 /-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedFlag.recordFlag_step_inl
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_appended_eq_hashCost' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_appended_eq_hashCost
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.counts_hashCost' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.counts_hashCost

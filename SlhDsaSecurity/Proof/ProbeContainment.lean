@@ -847,6 +847,26 @@ theorem probes_grow {α : Type} (publicSeed : Digest)
     rw [hprobing.record queried state step hstep, List.length_append]
     omega
 
+/-- **A step appends exactly as many probes as the budget charges it.** `hashCost` is one per
+hash call and nothing per uniform sample, which is the length of `HandlerFacts.appended` on the
+nose. So the list the charge weighs and the total the budget caps are **the same count**, not
+two comparable ones, and the inequality one might expect between them is an equality. -/
+theorem length_appended_eq_hashCost (queried : OracleWorld.Domain)
+    (carrier : HandlerCarrier.State) :
+    (HandlerFacts.appended queried carrier).length = hashCost queried := by
+  rcases queried with coin | input <;> rfl
+
+/-- **So a probing handler's counter is a `hashCost` counter**, which is exactly
+`CountedHandler.withCount`'s own rule. -/
+theorem counts_hashCost (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (queried : OracleWorld.Domain)
+    (state : OpenCache.HandlerState)
+    (step : OracleWorld.Range queried × OpenCache.HandlerState)
+    (hstep : step ∈ support ((program queried).run state)) :
+    step.2.2.2 = state.2.2 + hashCost queried := by
+  rw [hprobing.counts queried state step hstep, length_appended_eq_hashCost]
+
 open scoped Classical in
 /-- **The probe list and the counter move together.** Every step advances both by the length of
 what it appends, so the counter the budget bounds is the length of the list the charge weighs. -/
