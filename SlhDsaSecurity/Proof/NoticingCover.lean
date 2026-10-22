@@ -112,6 +112,39 @@ theorem cache_value_persists {α : Type} (leftKeep rightKeep : Bytes → σ → 
       rw [cacheOf_onQuery]
       exact hentry
 
+/-- **A run stays among the views `reaches` names**, which is what lets a composition enter the
+next stage with the predicate it entered this one with. -/
+theorem reaches_run {α : Type} (leftKeep rightKeep : Bytes → σ → Prop) (reaches : σ → Prop)
+    (hupdate : ∀ (view : σ) (probe : Bytes) (answer : HashOutput),
+      reaches view → reaches (CacheView.update view probe answer))
+    (honQuery : ∀ (view : σ) (probe : Bytes), reaches view →
+      reaches (CacheView.onQuery view probe))
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (noticingRecorderOf leftKeep rightKeep)
+      computation).run state))
+    (hstart : reaches state.1) : reaches result.2.1 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hstart
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | probe
+    · rw [step_inl leftKeep rightKeep coin state step hstep] at hrest
+      exact ih step.1 state result hrest hstart
+    · refine ih step.1 step.2 result hrest ?_
+      rcases recorderOf_step leftKeep rightKeep probe
+        (CacheView.onQuery state.1 probe, state.2) step
+        (step_inr leftKeep rightKeep probe state step hstep) with ⟨-, hshape⟩ | ⟨-, hshape⟩
+      · rw [show step.2.1 = CacheView.onQuery state.1 probe from by rw [hshape]]
+        exact honQuery state.1 probe hstart
+      · rw [show step.2.1 =
+          CacheView.update (CacheView.onQuery state.1 probe) probe step.1 from by rw [hshape]]
+        exact hupdate _ probe step.1 (honQuery state.1 probe hstart)
+
 /-! ## The cover, at the views a run of the noticing recorder passes through -/
 
 set_option maxHeartbeats 1000000 in

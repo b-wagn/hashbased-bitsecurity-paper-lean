@@ -240,6 +240,7 @@ import SlhDsaSecurity.Proof.CarrierCoverage
 import SlhDsaSecurity.Proof.CarrierShared
 import SlhDsaSecurity.Proof.CarrierDemand
 import SlhDsaSecurity.Proof.NoticingCover
+import SlhDsaSecurity.Proof.FusedCover
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15176,3 +15177,19 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 /-- info: 'SlhDsaSecurity.NoticingCover.mem_recordOf_of_cache_reaches' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingCover.mem_recordOf_of_cache_reaches
+
+/-- info: 'SlhDsaSecurity.NoticingCover.reaches_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCover.reaches_run
+
+/-- info: 'SlhDsaSecurity.FusedCover.recordOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedCover.recordOf_prefix
+
+/-- info: 'SlhDsaSecurity.FusedCover.cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedCover.cache_value_persists
+
+/-- info: 'SlhDsaSecurity.FusedCover.mem_recordOf_of_cache_reaches' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedCover.mem_recordOf_of_cache_reaches
