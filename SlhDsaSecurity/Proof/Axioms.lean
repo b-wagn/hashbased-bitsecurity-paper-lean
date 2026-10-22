@@ -7130,3 +7130,33 @@ info: 'SlhDsaSecurity.TapeFactor.evalDist_splitTapeRun' depends on axioms: [prop
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TapeFactor.evalDist_splitTapeRun
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_step
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRun_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRun_neverFails
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.rightOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.rightOf_prefix
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.probEvent_length_eq_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.probEvent_length_eq_one
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.probEvent_length_set' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.probEvent_length_set
