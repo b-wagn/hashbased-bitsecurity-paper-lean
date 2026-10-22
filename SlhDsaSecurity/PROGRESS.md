@@ -4476,3 +4476,48 @@ exists to prevent — or taking the bound at the split tail, where `answerBound_
 already takes it and where the bridge now puts both other charges. The abstract meeting point
 `prob_bad_or_coverage_le_of_two_charges` is indifferent; the choice of run is where it is
 decided.
+
+### The cover, reached through three stages
+
+`AnswerCarrier.hsplit_of_join`'s `hjoin` needs `ForgeryDisclosedCovered → TargetCovered` at the
+carrier's run. The engine for that is the cover — *a query the run ends holding is recorded on
+one side or the other* — and it existed at one run (`NoticingCover.mem_recordOf_of_cache_reaches`)
+and at a bracketed phase (`FusedCover.mem_recordOf_of_cache_reaches`), but not at the carrier
+tail, which is three of those in sequence under a handler that also carries a counter.
+`SlhDsaSecurity/Proof/CarrierCover.lean` closes both gaps.
+
+**The counter comes off by an instance nobody had taken.**
+`CountedHandler.forgetsAlong_withCount` at `π = id` says the counted recorder forgets to the
+recorder underneath, so a supported result of a stage is a supported result of the bare
+recorder's with the same carrier and the same recordings. The brackets survive by
+`ServingForget.run_fuseServing_conj`, with `dropCount` commuting with them by one `cases` on the
+request's frame — the same two-line obligation as `sumSlots`, for the same reason.
+
+**Then the chaining is a case split per boundary and nothing else.** At each sequencing point
+the input is either still fresh — carry the freshness forward — or already answered, in which
+case `cache_value_persists` identifies the value with the one the tail ends holding, the cover
+at *that* stage files it, and `recordOf_prefix` carries the entry to the end. Two boundaries,
+two splits.
+
+**`reaches` is absent from the statement, and that is a decision.** The carrier's cover holds at
+every view — `CarrierDemand.cover_inFlight` is what makes that true, the forgery's digest input
+being left-kept with a request in flight as well as without — so threading a predicate would buy
+nothing, and `FusedCover` proves no propagation for one across the phase. A future cover that did
+*not* hold in flight would need `reaches` back, and **that phase propagation is the single piece
+that would then be missing**; it is named in the file so nobody rediscovers it. With the cover
+unconditional, `FusedCover`'s signing obligation `hsub` is discharged inside the proof, a signing
+sub-run being a plain noticing run at the view the opening bracket produced.
+
+**What `hjoin` still needs, named.** `cover_carrierTail` is the reach-in; the join on top of it
+is not done and needs three things, none of which is a three-stage argument:
+
+1. the cover's hypothesis discharged at the carrier's class and tests — `CarrierDemand`'s
+   in-flight branch plus a clear-framing branch, at the **narrowed** class
+   (`IsMessageInput ∧ ¬ RandomizerGate.PrfClass`), which is what makes the cover unconditional
+   rather than conditional on a frame; `prfClass_of_inFlight_coincidence` is the reason the
+   narrowing is the right one;
+2. the assembly from `ForgeryDisclosedCovered` to `TargetCovered` — the forgery's own input into
+   the target recording (its left test excluded by `¬LateDisclosure` and
+   `¬ForgerySeedRandomised`) and each witness into the disclosing one, then `RecordCovers`;
+3. the transfer from `carrierTail` to `AnswerCarrier.answerCarrierRun`, for which
+   `CarrierTailRecordings.recordClass_answerCarrierRun` is the pattern.
