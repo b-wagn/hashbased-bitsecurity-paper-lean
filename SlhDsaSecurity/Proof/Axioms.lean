@@ -217,6 +217,7 @@ import SlhDsaSecurity.Proof.HandlerStall
 import SlhDsaSecurity.Proof.HandlerCharge
 import SlhDsaSecurity.Proof.HandlerLenient
 import SlhDsaSecurity.Proof.ServingTable
+import SlhDsaSecurity.Proof.ChargedHalf
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.CountedHandler
 import SlhDsaSecurity.Proof.CarrierAvailability
@@ -14020,3 +14021,27 @@ info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_centered_power' depends
 /-- info: 'SlhDsaSecurity.HandlerCharge.value_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerCharge.value_mem_support
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.seed_of_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.seed_of_mem_support
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.touched_seededLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.touched_seededLinked
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.facts_lenientImpl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.facts_lenientImpl
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.facts_strictImpl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.facts_strictImpl
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.lenient_pair' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.lenient_pair
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.prob_charged_seededLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.prob_charged_seededLinked
