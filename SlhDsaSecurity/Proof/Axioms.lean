@@ -161,6 +161,7 @@ import SlhDsaSecurity.Proof.LateCharge
 import SlhDsaSecurity.Proof.TapeFactor
 import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.WalkTable
+import SlhDsaSecurity.Proof.LateRate
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7793,3 +7794,87 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le'
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le
+
+/-- info: 'SlhDsaSecurity.LateCharge.fires_shape' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.fires_shape
+
+/-- info: 'SlhDsaSecurity.LateCharge.prob_entry_fires_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.prob_entry_fires_le
+
+/-- info: 'SlhDsaSecurity.LateCharge.persists_cacheQuery' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.persists_cacheQuery
+
+/-- info: 'SlhDsaSecurity.LateCharge.spent_cacheQuery_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.spent_cacheQuery_iff
+
+/-- info: 'SlhDsaSecurity.LateCharge.prob_record_fires_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.prob_record_fires_le
+
+/-- info: 'SlhDsaSecurity.LateRate.length_filter_split' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.length_filter_split
+
+/-- info: 'SlhDsaSecurity.LateRate.fired_iff_lateDisclosure' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.fired_iff_lateDisclosure
+
+/-- info: 'SlhDsaSecurity.LateRate.run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.run_inl
+
+/-- info: 'SlhDsaSecurity.LateRate.run_inl_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.run_inl_mass
+
+/-- info: 'SlhDsaSecurity.LateRate.run_inr_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.run_inr_cached
+
+/-- info: 'SlhDsaSecurity.LateRate.run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.run_inr_fresh
+
+/-- info: 'SlhDsaSecurity.LateRate.run_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.run_mass
+
+/-- info: 'SlhDsaSecurity.LateRate.gauge_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.gauge_stepOf
+
+/-- info: 'SlhDsaSecurity.LateRate.gauge_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.gauge_run
+
+/-- info: 'SlhDsaSecurity.LateRate.becomesSpent_of_spent' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.becomesSpent_of_spent
+
+/-- info: 'SlhDsaSecurity.LateRate.potential_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.potential_split
+
+/-- info: 'SlhDsaSecurity.LateRate.potential_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.potential_stepOf
+
+/-- info: 'SlhDsaSecurity.LateRate.rate_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.rate_le
+
+/-- info: 'SlhDsaSecurity.LateRate.rate_le3' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.rate_le3
+
+/-- info: 'SlhDsaSecurity.LateRate.step_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.step_bound
+
+/-- info: 'SlhDsaSecurity.LateRate.prob_lateDisclosure_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.prob_lateDisclosure_le
