@@ -4945,3 +4945,37 @@ generic in the handler and its `Files` instance, so the step is to re-point them
 `CarrierTail.handlerAt` rather than to prove anything new about the carrier.
 `ServedAgreement.servedLog_iff_logServed` then turns `logServed` into `ServedLog.servedLog`,
 closing the half `CarrierLeftRecord` left open.
+
+### The middle-stage application, and the containment from two invariants
+
+The question I stopped on last round — which cache `SignerPins` is meant at — was answerable by
+**reading the statement**, not by asking: `ServedAgreement.servedAgree_run` passes
+`warm := fun _ => none`, and `signerPins_sign`'s own docstring says why — *nothing is stripped,
+so the pin holds at every cache and the table is empty.* There was nothing to decide, only
+something to read, and the round-trip was avoidable.
+
+`ServedAgreement.servingPhaseWith impl signer` is `fuseServing impl (recordedAdversaryImpl +
+recordedSigningOracle signer) startServingOn stopServingOn` — the carrier tail's middle stage on
+the nose. So `carrierLogged_phase` is one application of `carrierLogged_run_with` at
+`CarrierTail.handlerAt`, and `logFiled_phase` is the same application a second time at the
+mirror law. Both are generic in the handler and its `Files` instance, and
+`signerFaithful_sign` supplies `SignerFaithful` at *any* handler that files, so nothing about
+the signer had to be reproved for the carrier.
+
+**The verifier's stage is then growth and nothing else.** `grows_run_of_clear` reads
+`HandlerCarrier.Grows` off the two facts proved at the ends — the cache only grows
+(`cache_persists_run`, via `CarrierCover`'s counter-dropping) and, with nothing in flight, the
+served set does not move at all. `carrierLogged_run` and `logFiled_run` carry both invariants
+across it, the second by `LogFiled.mono`, which already existed.
+
+`carrierBelowLog_of_invariants` is then `ServedBridge.CarrierBelowLog` **from the two invariants
+alone** — no recorder, no stages, no run. That is why they were worth reaching separately:
+the containment has no three-stage content in it, and every statement that looked like it did
+was really one of the two invariants in disguise.
+
+**What is left is the instantiation at `CarrierTail.carrierTail` itself**: splitting the tail
+at its three sequencing points, taking `sk := keys.1.1` with `hpk` from
+`CarrierRecord.keys_publicKey` and `hpublic` from `AnswerSide.not_possible_generatedKey` on a
+good walk, and feeding `hcache` from the run's own cache. That is bookkeeping over a
+decomposition this development has now written five times, and it is the only thing between
+here and the served-agreement hypothesis.
