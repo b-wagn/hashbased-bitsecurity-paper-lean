@@ -2659,3 +2659,29 @@ lives on the game's side, applies there and not directly at the handler's.
 What is left is therefore an interface rather than an argument: state the invariant at the
 game's cache, where provenance applies, and carry it to the handler's record through
 `unionCache`, which `probEvent_rom_eq_lazy` already maintains step by step.
+
+## The input half's part of the record is the aiming one, not the canonical one
+
+`SharedJoin.recordCanonical` filters the record by `HonestProbes.Canonical` — the inputs that
+are canonical at the **walk's own cells**. The input half's probe list cannot sit inside that,
+and the reason is the same one that has now surfaced three times in different clothes.
+
+The weights count *guesses*. The per-cell argument gives each probe that names a sensitive
+node's address one chance at a freshly drawn cell, so what it counts is probes with the right
+**address** and any payload. A probe is canonical at the walk's cells exactly when its payload
+is the cell's true value — that is, exactly when the guess is **correct**, which is the event
+being charged and not the count paying for it. So:
+
+* aiming and canonical — the correct guesses, which is the bad event;
+* aiming but not canonical — the wrong guesses, which is almost the whole weight;
+* canonical but not aiming — canonical inputs of parents with more than one child, which no
+  probe of this half aims by.
+
+`RedrawCell.AimsSomewhere` is the test the weight is taken at, and the part of the record the
+containment can be proved into. Widening the join's part from `Canonical` to that costs the
+arithmetic nothing: `card_parts_le_record` is disjointness **by construction** — the message
+class carries `¬ Canonical` as a conjunct — so the two parts fit inside the record whatever they
+are, and the same holds with `¬ AimsSomewhere` in its place. The message-class owner's adapter
+changes by one lemma, `canonical_not_messageInput` becoming `RedrawCell.locate_messageInput`,
+which has the same `GoodWalk` hypotheses because an aiming address is a structural node's and so
+is within `HashSeparation`'s bounds.
