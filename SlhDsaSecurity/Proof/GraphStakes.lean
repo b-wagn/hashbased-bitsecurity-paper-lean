@@ -205,6 +205,29 @@ discloses. -/
 def honestRevealed (secretSeed publicSeed : Digest) (key : WotsKey) (chain : Fin chains) : Nat :=
   (Checksum.encode (honestMessage secretSeed publicSeed key) chain).val
 
+/-- **The chain value a signature discloses is available.** The position it opens is the digit
+the key's own message encodes, and that digit is what `revealed` records — so the cell at that
+position is one the signature has made available, whether it is the chain's start or a value
+along it.
+
+The message is the *key's own*, not the forgery's. Read with the wrong one the statement still
+typechecks and says nothing: a position the forgery would open need not be one any signature
+discloses. -/
+theorem available_wotsPosition (revealed : WotsKey → Fin chains → Nat)
+    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (key : WotsKey) (chain : Fin chains) (position : Fin w)
+    (hposition : position.val = revealed key chain) :
+    CanonicalGraph.Available revealed signed
+      (.structural (CanonicalGraph.wotsPosition key chain position)) := by
+  rw [CanonicalGraph.wotsPosition]
+  split
+  · rename_i hzero
+    show revealed key chain = 0
+    omega
+  · rename_i hzero
+    show revealed key chain ≤ (position.val - 1) + 1
+    omega
+
 /-- A revealed digit never exceeds `w - 1`, which is the only thing the rate needs of it. -/
 theorem honestRevealed_le (secretSeed publicSeed : Digest) :
     ∀ (key : WotsKey) (chain : Fin chains),
