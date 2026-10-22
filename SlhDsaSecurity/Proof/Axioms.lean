@@ -8746,3 +8746,15 @@ info: 'SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt
+
+/-- info: 'SlhDsaSecurity.RedrawCell.locate_randomizerInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.locate_randomizerInput
+
+/-- info: 'SlhDsaSecurity.RedrawCell.locate_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.locate_messageInput
+
+/-- info: 'SlhDsaSecurity.RedrawCell.not_targets_of_locate_none' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.not_targets_of_locate_none

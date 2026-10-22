@@ -551,6 +551,46 @@ theorem sum_aiming_le_canonical (publicSeed : Digest)
     (fun index entry htargets =>
       hkeep entry (canonicalClass_of_targets publicSeed unavailable index entry htargets)) record
 
+/-! ### The honest phase aims nowhere
+
+The weights have to be read off the *recorded* queries — the adversary's and the verifier's —
+and the handler's record holds more than those: the stripped honest phase still asks for each
+signature's randomiser and message digest. Those probes have to contribute nothing, and they do,
+for the two reasons `Target.GoodWalk` already names and pays for. A randomiser input opens with
+`SK.prf`, which is not the public seed; a message input would have to make the public key encode
+a structural address, which the walk's second coincidence is exactly the absence of. Both are
+`HashSeparation`'s, read here through the stakes' own `locate`. -/
+
+/-- **A randomiser input aims at no cell.** -/
+theorem locate_randomizerInput (publicSeed prf seed : Digest) (message : Bytes)
+    (hne : prf ≠ publicSeed) :
+    GraphStakes.locate publicSeed (Hashing.randomizerInput prf seed message) = none := by
+  classical
+  refine dif_neg ?_
+  rintro ⟨node, cell, hinput⟩
+  exact HashSeparation.randomizer_tweakable_ne hne hinput.symm
+
+/-- **A message-digest input aims at no cell.** -/
+theorem locate_messageInput (publicSeed randomizer : Digest) (pk : PublicKey) (message : Bytes)
+    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root)) :
+    GraphStakes.locate publicSeed (Hashing.messageInput randomizer pk message) = none := by
+  classical
+  refine dif_neg ?_
+  rintro ⟨node, cell, hinput⟩
+  exact HashSeparation.message_tweakable_ne hpublic
+    (withinBounds_structural node.parent) hinput.symm
+
+/-- **A probe that aims nowhere is weighed nowhere.** -/
+theorem not_targets_of_locate_none (publicSeed : Digest)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec)
+    (hlocate : GraphStakes.locate publicSeed entry.1 = none) :
+    ¬ ChargedProbe.Targets (GraphStakes.stakes publicSeed) unavailable index entry := by
+  rintro ⟨node, -, -, hnode⟩
+  rw [show (GraphStakes.stakes publicSeed).locate = GraphStakes.locate publicSeed from rfl,
+    hlocate] at hnode
+  exact absurd hnode (by simp)
+
 /-- A sensitive query whose staked cell is any other — the avenue charged here. -/
 def SensitiveOffSeed (stakes : Stakes Target CanonicalGraph.Node)
     (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
