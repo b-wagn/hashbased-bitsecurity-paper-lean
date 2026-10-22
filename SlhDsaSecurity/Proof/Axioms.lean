@@ -12175,6 +12175,18 @@ info: 'SlhDsaSecurity.PhaseRightRecord.mem_support_of_countAllHashes' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseRightRecord.mem_support_of_countAllHashes
 
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.keygen_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.keygen_right_record
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.verify_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.verify_right_record
+
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog

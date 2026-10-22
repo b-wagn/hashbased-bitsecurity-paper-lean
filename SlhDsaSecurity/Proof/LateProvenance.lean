@@ -68,6 +68,31 @@ theorem mem_record_countRecorded {α : Type} (computation : OracleComp OracleWor
           queried_of_fresh_step queried cache step (by simpa using hstep) probe hfresh hstepfresh]
       simp [recordOf]
 
+set_option maxHeartbeats 800000 in
+/-- **An entry the verifier's phase files as a target is one of its own queries**, hence in the
+record it keeps. Who asked is a question the record answers, so this projects the sub-run to the
+shared oracle and asks it there — the recorder is needed only where the recording itself is the
+question. -/
+theorem verify_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (pk : PublicKey) (message : Message) (signature : Bytes)
+    (state : SplitPrefix.SplitState)
+    (result : (Bool × Tally) × SplitPrefix.SplitState)
+    (hmem : result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+      (countRecorded verifierCost (Scheme.verify pk message signature))).run state))
+    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.2)
+    (hfresh : state.1 entry.1 = none) :
+    entry ∈ state.2.2 ∨ entry.1 ∈ result.1.2.2 := by
+  classical
+  obtain ⟨suffix, hsuffix, hentries⟩ :=
+    SplitPrefix.right_record_suffix leftKeep rightKeep _ state result hmem
+  rw [hsuffix] at hentry
+  rcases List.mem_append.mp hentry with hprior | hnew
+  · exact Or.inl hprior
+  · obtain ⟨-, -, -, -, -, hfinal⟩ := hentries entry hnew
+    refine Or.inr (mem_record_countRecorded _ state.1 (result.1, result.2.1)
+      (SplitPrefix.mem_support_rom leftKeep rightKeep _ state result hmem) entry.1 hfresh ?_)
+    exact Option.ne_none_iff_exists'.mpr ⟨entry.2, hfinal⟩
+
 /-! ## Two readings of a generated key
 
 Key generation's last line builds the pair, so its secret key carries the seed it was given and

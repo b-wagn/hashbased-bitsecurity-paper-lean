@@ -294,6 +294,42 @@ theorem right_record_phase (leftKeep rightKeep : Bytes → QueryCache HashSpec �
             exact houterFinal probe value (by rw [hsignedState]; exact hlater probe value hprobe)
     · exact Or.inr (by rw [hrecord]; exact hsource.mono_record_right)
 
+/-! ## Key generation's own step
+
+The first of the two outer phases, in the split form: one lemma, one sub-run, one question. Key
+generation's question is about an input's **shape**, which the shared oracle can answer, so this
+projects with `SplitPrefix.mem_support_rom` and asks it there rather than redoing anything at
+the recorder. -/
+
+set_option maxHeartbeats 800000 in
+/-- **An entry key generation files as a target is one of its own probes.** -/
+theorem keygen_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (secretSeed prfSeed publicSeed : Digest) (state : SplitState)
+    (result : (SecretKey × PublicKey) × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
+      (Scheme.keygenInternal (m := OracleComp OracleWorld)
+        secretSeed prfSeed publicSeed)).run state))
+    (later : QueryCache HashSpec)
+    (hlater : ∀ (probe : Bytes) (value : HashOutput),
+      result.2.1 probe = some value → later probe = some value)
+    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.2)
+    (hfresh : state.1 entry.1 = none) :
+    entry ∈ state.2.2 ∨ QueriesUnder later
+      (Scheme.keygenInternal (m := OracleComp HashSpec) secretSeed prfSeed publicSeed)
+      entry.1 := by
+  classical
+  obtain ⟨suffix, hsuffix, hentries⟩ :=
+    right_record_suffix leftKeep rightKeep _ state result hmem
+  rw [hsuffix] at hentry
+  rcases List.mem_append.mp hentry with hprior | hnew
+  · exact Or.inl hprior
+  · obtain ⟨-, -, -, -, -, hfinal⟩ := hentries entry hnew
+    refine Or.inr (CacheProvenance.queriesUnder_keygenInternal_of_fresh secretSeed prfSeed
+      publicSeed state.1 result.2.1 later result.1
+      (mem_support_rom leftKeep rightKeep _ state result hmem) hlater entry.1 hfresh ?_)
+    rw [hfinal]
+    simp
+
 /-! ## The whole game
 
 The outer decomposition is three applications of `mem_support_counted_bind`, one
