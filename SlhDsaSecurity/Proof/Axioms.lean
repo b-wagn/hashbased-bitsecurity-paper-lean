@@ -203,6 +203,7 @@ import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.HonestLinked
 import SlhDsaSecurity.Proof.TouchedKeys
 import SlhDsaSecurity.Proof.HonestTail
+import SlhDsaSecurity.Proof.ServingForget
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -12655,3 +12656,21 @@ info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts' depends on
 /-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_step_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_step_map
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_map
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map
