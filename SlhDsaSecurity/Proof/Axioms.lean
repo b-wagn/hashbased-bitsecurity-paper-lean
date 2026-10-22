@@ -4,6 +4,7 @@ import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.ServedLog
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
@@ -8510,3 +8511,19 @@ info: 'SlhDsaSecurity.CacheProvenance.sign_digest_cached' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.ServedDisclosure.unavailableServed_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedDisclosure.unavailableServed_eq
+
+/-- info: 'SlhDsaSecurity.ServedLog.isMessageInput_of_servedLog' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.isMessageInput_of_servedLog
+
+/-- info: 'SlhDsaSecurity.ServedLog.servedLog_mono' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.servedLog_mono
+
+/-- info: 'SlhDsaSecurity.ServedLog.entry_of_servedLog' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.entry_of_servedLog
+
+/-- info: 'SlhDsaSecurity.ServedLog.mem_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.mem_disclosedByLog
