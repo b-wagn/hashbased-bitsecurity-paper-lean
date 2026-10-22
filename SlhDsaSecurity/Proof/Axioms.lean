@@ -197,6 +197,7 @@ import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
+import SlhDsaSecurity.Proof.SignerRightRecord
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -12075,6 +12076,24 @@ info: 'SlhDsaSecurity.SignerDigestStep.not_targetKeep_digest' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SignerDigestStep.not_targetKeep_digest
+
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.simulateQ_hash' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.simulateQ_hash
+
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.run_signInternal' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.run_signInternal
+
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.signInternal_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.signInternal_right_record
 
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
