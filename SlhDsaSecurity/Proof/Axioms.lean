@@ -8141,3 +8141,15 @@ info: 'SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected' depends o
 /-- info: 'SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_expected
+
+/-- info: 'SlhDsaSecurity.RedrawCell.canonicalClass_of_targets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.canonicalClass_of_targets
+
+/-- info: 'SlhDsaSecurity.RedrawCell.sum_aiming_le_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.sum_aiming_le_canonical
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_canonical

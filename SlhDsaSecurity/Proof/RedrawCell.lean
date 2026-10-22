@@ -376,6 +376,49 @@ def SensitiveAtSeed (stakes : Stakes Target CanonicalGraph.Node)
     unavailable cache (stakes.stake node) ∧
     stakes.inputOf node (cells (stakes.stake node)) = candidate
 
+/-- The inputs whose first block is the public seed. This is the class the half's probes fall
+in, and the class the budget charges it for: `ClassGrowth.splitCost` partitions the *inputs*, so
+a count that is a whole class converts to an expectation and a count that is a share of one does
+not. The canonical part of a record is a whole class. -/
+def CanonicalClass (publicSeed : Digest) (input : Bytes) : Prop :=
+  ∃ (address : Address) (payload : Bytes),
+    input = Hashing.tweakableInput publicSeed address payload
+
+/-- **A probe that aims anywhere is a probe of the canonical class.** What a probe aims at is
+read off its own bytes before any cell is consulted, and a sensitive node's input opens with the
+public seed — so a probe the charge weighs is one the canonical count counts. -/
+theorem canonicalClass_of_targets (publicSeed : Digest)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec)
+    (htargets : ChargedProbe.Targets (GraphStakes.stakes publicSeed) unavailable index entry) :
+    CanonicalClass publicSeed entry.1 := by
+  classical
+  obtain ⟨node, -, -, hlocate⟩ := htargets
+  by_cases hsome : ∃ (other : GraphStakes.SensitiveNode) (cell : Cell),
+      GraphStakes.inputOf publicSeed other cell = entry.1
+  · obtain ⟨other, cell, hother⟩ := hsome
+    exact ⟨other.parent.address, bytesBE n cell, hother.symm⟩
+  · rw [show (GraphStakes.stakes publicSeed).locate entry.1 = none from by
+      rw [show (GraphStakes.stakes publicSeed).locate = GraphStakes.locate publicSeed from rfl,
+        GraphStakes.locate, dif_neg hsome]] at hlocate
+    exact absurd hlocate (by simp)
+
+/-- **The weights the charge adds up are at most the record's canonical part.** The class is
+taken as whatever test the count reports it by, so that the charge and the cost that counts it
+speak of the same list and no decidability instance has to be matched across them. -/
+theorem sum_aiming_le_canonical (publicSeed : Digest)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (keep : Bytes × QueryCache HashSpec → Bool)
+    (hkeep : ∀ entry : Bytes × QueryCache HashSpec,
+      CanonicalClass publicSeed entry.1 → keep entry = true)
+    (record : List (Bytes × QueryCache HashSpec)) :
+    ∑ index : CanonicalGraph.Node,
+        ChargedProbe.aiming (GraphStakes.stakes publicSeed) unavailable index record ≤
+      (record.filter keep).length :=
+  ChargedProbe.sum_targets_countP_le (GraphStakes.stakes publicSeed) unavailable keep
+    (fun index entry htargets =>
+      hkeep entry (canonicalClass_of_targets publicSeed unavailable index entry htargets)) record
+
 /-- A sensitive query whose staked cell is any other — the avenue charged here. -/
 def SensitiveOffSeed (stakes : Stakes Target CanonicalGraph.Node)
     (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
@@ -607,6 +650,53 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
         (fun cache node => ¬ availableAt cache node) z.2.1.2.1)
     (ChargedProbe.tsum_weight_le _
       (fun z : α × (HandlerState × Bool) => z.2.1.2.1.length) limit hlimit)
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The charge at the record's canonical part**, which is the count the shared budget grants
+this half. The weight is a whole class of inputs rather than a share of one, so it is a count an
+input-indexed cost can report, and it is left at its expectation so that the four charges
+sharing the budget can be added. -/
+theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt cache child) →
+        availableAt cache (.structural parent))
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : Cells × Padding → OracleComp OracleWorld α)
+    (touched : CanonicalGraph.Node → Prop)
+    (htouched : ∀ left right : Cells × Padding,
+      (∀ node, touched node → left.1 node = right.1 node) →
+        computation left = computation right)
+    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
+      ∀ cache, availableAt cache node)
+    (state : HandlerState × Bool) (keep : Bytes × QueryCache HashSpec → Bool)
+    (hkeep : ∀ entry : Bytes × QueryCache HashSpec,
+      CanonicalClass publicSeed entry.1 → keep entry = true) :
+    Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
+        ∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed (GraphStakes.stakes publicSeed)
+          (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
+      (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+          (computation (cells, pad))).run state
+        pure (result, cells))] ≤
+      (∑' z : α × (HandlerState × Bool),
+        Pr[= z | (do
+          let cells ← ($ᵗ Cells : ProbComp Cells)
+          let pad ← ($ᵗ Padding : ProbComp Padding)
+          (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+            (computation (cells, pad))).run state)] *
+          (((z.2.1.2.1.filter keep).length : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_sensitive_run_le_expected publicSeed availableAt hclosed hmono
+    (GraphStakes.stakes publicSeed) stall computation touched htouched hopen state
+    (fun z => (z.2.1.2.1.filter keep).length)
+    fun z _ => sum_aiming_le_canonical publicSeed
+      (fun cache node => ¬ availableAt cache node) keep hkeep z.2.1.2.1
 
 
 /-! ## The game's run is this one with the record forgotten
