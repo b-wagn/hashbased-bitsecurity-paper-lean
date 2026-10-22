@@ -7267,3 +7267,21 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
 /-- info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_record_witness' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_witness
+
+/-- info: 'SlhDsaSecurity.SplitWitness.disclosedRecorded_of_not_late' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.disclosedRecorded_of_not_late
+
+/-- info: 'SlhDsaSecurity.SplitWitness.late_ordering' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.late_ordering
+
+/-- info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late
