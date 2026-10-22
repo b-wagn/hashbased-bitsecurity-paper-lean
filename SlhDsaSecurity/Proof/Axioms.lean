@@ -15923,3 +15923,15 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk' depends on axioms: [
 /-- info: 'SlhDsaSecurity.InputBullet.probEvent_inputBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.InputBullet.probEvent_inputBad_le
+
+/--
+info: 'SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all
+
+/-- info: 'SlhDsaSecurity.RecordSlot.isMessageInput_messageInput' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.isMessageInput_messageInput

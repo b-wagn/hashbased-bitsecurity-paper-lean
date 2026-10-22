@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.SecretGuessCharge
+import SlhDsaSecurity.Proof.SharedJoin
 
 /-!
 # What the ordering slot can and cannot also buy
@@ -39,6 +40,8 @@ entries, which exist only through the format identity.
 open OracleComp OracleSpec ENNReal
 
 namespace SlhDsaSecurity.RecordSlot
+
+open Security
 
 
 /-- **Two targets cost two units.** The merged per-entry event — this entry's randomiser field
@@ -127,5 +130,56 @@ which is `log2 (3/2) ≈ 0.585` of a bit. On this route the honest statement is 
 This is recorded here rather than left as an absence because every other avenue is closed above,
 and an unexamined quarter reads the same as an examined one once the file is quiet.
 -/
+
+/-! ## Can the message class be bounded below the record? What is actually attainable
+
+The last numerical escape: a bound `card recordMessageClass ≤ c · card recordOf` with `c < 1`
+would shrink the overflow. The theorem below says what stands in the way, and it is not a
+belief — **the filter is the identity whenever every recorded input is a message input**, so a
+strict bound would have to rule such records out.
+
+On a good walk the aiming conjunct is free: `SharedJoin.not_aimsSomewhere_messageInput` says a
+message input at the walk's key aims nowhere. So `recordMessageClass` is *exactly* the message
+inputs of the record, and the only question is how many of the record's entries the adversary can
+make message inputs.
+
+**And the honest answer is: all of its own, but not all of the record.** The record is the
+adversary's hash queries *and the verifier's*, by `SharedJoin.card_record_eq_work`
+(`work = hash + verification`). The adversary can make every one of its own queries a message
+input — `CombinedCharge.IsMessageInput pk (Hashing.messageInput r pk m)` holds for any `r` and
+`m`, and the public key is its input — but the verifier also queries Merkle and FORS inputs,
+which are structural and not message inputs. So the attainable value of
+`card recordMessageClass` is `card recordOf` **less the verifier's own structural queries**,
+which is a constant of the scheme and not a fraction of `q`.
+
+**So no bound of the form `c · card recordOf` with `c < 1` is available, and the overflow stays
+`q`-proportional.** Subtracting a constant from a `q`-sized term changes no coefficient. This
+sharpens the previous reading — strict equality is *not* attainable, and it does not matter,
+because the escape needed a factor and only a constant is on offer.
+-/
+
+/-- **The message class is the whole record when the record is all message inputs.** The
+hypothesis is what a strict bound would have to refute, stated so that it can be looked at
+rather than assumed away. -/
+theorem recordMessageClass_eq_record_of_all (adversary : Adversary)
+    {pair : SharedJoin.RecordedPair}
+    (hpair : pair ∈ support (RandomiserRecord.recordedPairedRun adversary))
+    (hgood : Target.GoodWalk pair.1)
+    (hall : ∀ input ∈ SharedJoin.recordOf pair, CombinedCharge.IsMessageInput
+      (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2) input) :
+    SharedJoin.recordMessageClass pair = SharedJoin.recordOf pair := by
+  classical
+  obtain ⟨hwalk, -⟩ := SharedJoin.mem_support_recordedPairedRun hpair
+  rw [SharedJoin.recordMessageClass]
+  refine Multiset.filter_eq_self.mpr fun input hmem => ?_
+  exact ⟨hall input hmem,
+    SharedJoin.not_aimsSomewhere_messageInput hwalk hgood input (hall input hmem)⟩
+
+/-- **And the adversary can name a message input at will**, the public key being its own input.
+So the hypothesis above is not exotic: it asks only that the adversary spend its queries on a
+shape it chooses. -/
+theorem isMessageInput_messageInput (pk : PublicKey) (randomizer : Digest) (message : Bytes) :
+    CombinedCharge.IsMessageInput pk (Hashing.messageInput randomizer pk message) :=
+  ⟨randomizer, message, rfl⟩
 
 end SlhDsaSecurity.RecordSlot
