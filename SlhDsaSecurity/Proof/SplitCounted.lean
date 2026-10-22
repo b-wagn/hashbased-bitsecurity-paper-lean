@@ -167,6 +167,44 @@ theorem run_withSplit_withCount (inClass : Bytes → Prop) {inside outside : Que
       ih step.1 (step.2.1, (step.2.2, state.2.2 + splitCost inClass inside outside queried)),
       harith]
 
+/-- The map a split state is read as a counted state through: sum the two slots. -/
+def sumSlots (inside outside : QueryKind)
+    (state : HandlerCarrier.State × (τ × Counts)) : HandlerCarrier.State × (τ × Nat) :=
+  (state.1, (state.2.1, state.2.2 inside + state.2.2 outside))
+
+/-- **The split-counted handler forgets to the counted one along it.** This is
+`run_withSplit_withCount` as the interface a bracketed phase reads a handler through, which is
+the form every consumer actually wants. -/
+theorem forgetsAlong_sumSlots (inClass : Bytes → Prop) {inside outside : QueryKind}
+    (hne : inside ≠ outside)
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp)) :
+    ServingForget.ForgetsAlong (sumSlots inside outside)
+      (withSplit inClass inside outside impl) (withCount impl) :=
+  fun computation state => run_withSplit_withCount inClass hne impl computation state
+
+/-! ### And the brackets commute with it
+
+`ServingForget.run_fuseServing_conj` carries a bracketed phase to a bracketed phase along any
+`π` the brackets commute with. The tail's brackets touch the carrier's framing and nothing else,
+and summing two counter slots touches the counter and nothing else, so they commute by cases on
+the request's frame. That is the last hypothesis a split tail needs over the counted one, and
+with it the three stages chain by `bind_of_forgetsAlong` and `bind_of_fuseServing_conj` with no
+new induction. -/
+
+theorem sumSlots_startServingOn (inside outside : QueryKind) (request : Message)
+    (state : HandlerCarrier.State × (τ × Counts)) :
+    sumSlots inside outside (startServingOn request state) =
+      startServingOn request (sumSlots inside outside state) := by
+  rw [startServingOn, startServingOn]
+  cases request.frame with
+  | none => rfl
+  | some framed => rfl
+
+theorem sumSlots_stopServingOn (inside outside : QueryKind)
+    (state : HandlerCarrier.State × (τ × Counts)) :
+    sumSlots inside outside (stopServingOn state) =
+      stopServingOn (sumSlots inside outside state) := rfl
+
 /-! ## The per-query lower bounds
 
 What a charge reads off a counter is that the query it is charging moved the slot. These are

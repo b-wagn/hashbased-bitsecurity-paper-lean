@@ -15220,3 +15220,15 @@ info: 'SlhDsaSecurity.SplitCounted.run_splitCarrierRecorder_counted' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCounted.run_splitCarrierRecorder_counted
+
+/-- info: 'SlhDsaSecurity.SplitCounted.forgetsAlong_sumSlots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.forgetsAlong_sumSlots
+
+/-- info: 'SlhDsaSecurity.SplitCounted.sumSlots_startServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.sumSlots_startServingOn
+
+/-- info: 'SlhDsaSecurity.SplitCounted.sumSlots_stopServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.sumSlots_stopServingOn
