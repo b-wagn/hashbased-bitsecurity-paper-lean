@@ -239,6 +239,7 @@ import SlhDsaSecurity.Proof.CarrierOrdering
 import SlhDsaSecurity.Proof.CarrierCoverage
 import SlhDsaSecurity.Proof.CarrierShared
 import SlhDsaSecurity.Proof.CarrierDemand
+import SlhDsaSecurity.Proof.NoticingCover
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15155,3 +15156,23 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 /-- info: 'SlhDsaSecurity.CountedHandler.run_toStateful_withFlag_withAddCost' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.run_toStateful_withFlag_withAddCost
+
+/-- info: 'SlhDsaSecurity.NoticingCover.step_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCover.step_inr
+
+/-- info: 'SlhDsaSecurity.NoticingCover.step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCover.step_inl
+
+/-- info: 'SlhDsaSecurity.NoticingCover.recordOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCover.recordOf_prefix
+
+/-- info: 'SlhDsaSecurity.NoticingCover.cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCover.cache_value_persists
+
+/-- info: 'SlhDsaSecurity.NoticingCover.mem_recordOf_of_cache_reaches' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCover.mem_recordOf_of_cache_reaches
