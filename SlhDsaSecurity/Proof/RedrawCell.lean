@@ -442,10 +442,17 @@ set_option maxHeartbeats 8000000 in
 set_option maxRecDepth 1000000 in
 set_option linter.constructorNameAsVariable false in
 open scoped Classical in
-/-- **A run of the handler that answers only what it may is charged one unit per probe.** The
-run reads the table only at `touched`, and every cell there but the secret seed is available
-throughout, so excluding both from the sum excludes nothing an adversary can use. -/
-theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
+/-- **A run of the handler that answers only what it may is charged its expected number of
+aiming probes.** The run reads the table only at `touched`, and every cell there but the secret
+seed is available throughout, so excluding both from the sum excludes nothing an adversary can
+use.
+
+The charge stops at the expectation rather than at a cap, and the weight is whatever bounds the
+run's own aiming probes run by run. That is what lets this half be added to the three it shares
+a budget with: the split of the budget between a run's own queries and its requests is the
+adversary's choice, so four almost-sure caps are four budgets, while four expectations add
+pathwise. `prob_sensitive_run_le` below is this with the expectation taken at the end. -/
+theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
@@ -461,12 +468,14 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
         computation left = computation right)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
       ∀ cache, availableAt cache node)
-    (state : HandlerState × Bool) (limit : Nat)
-    (hlimit : ∀ z ∈ support (do
+    (state : HandlerState × Bool) (weight : α × (HandlerState × Bool) → Nat)
+    (hweight : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-          (computation (cells, pad))).run state), z.2.1.2.1.length ≤ limit) :
+          (computation (cells, pad))).run state),
+      ∑ index : CanonicalGraph.Node, ChargedProbe.aiming stakes
+        (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 ≤ weight z) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed stakes
           (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
@@ -476,7 +485,13 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
         let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
           (computation (cells, pad))).run state
         pure (result, cells))] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+      (∑' z : α × (HandlerState × Bool),
+        Pr[= z | (do
+          let cells ← ($ᵗ Cells : ProbComp Cells)
+          let pad ← ($ᵗ Padding : ProbComp Padding)
+          (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+            (computation (cells, pad))).run state)] * ((weight z : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   refine le_trans (probEvent_mono
     (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
@@ -542,13 +557,57 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
     rw [← hmapped, probEvent_map]
     rfl
   refine le_trans (Finset.sum_le_sum fun index _ => hindex index) ?_
-  exact ChargedProbe.sum_weighted_le stakes (fun cache node => ¬ availableAt cache node)
+  exact ChargedProbe.sum_weighted_le_of_sum stakes (fun cache node => ¬ availableAt cache node)
     (do
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
         (computation (cells, pad))).run state)
-    (fun z => z.2.1.2.1) limit hlimit
+    (fun z => z.2.1.2.1) weight hweight
+
+open scoped Classical in
+/-- **The same charge, capped at the record's length.** The expectation above is taken at the
+end, which a half that does not share its budget may do and this one may not. -/
+theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt cache child) →
+        availableAt cache (.structural parent))
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
+    (stakes : Stakes Target CanonicalGraph.Node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : Cells × Padding → OracleComp OracleWorld α)
+    (touched : CanonicalGraph.Node → Prop)
+    (htouched : ∀ left right : Cells × Padding,
+      (∀ node, touched node → left.1 node = right.1 node) →
+        computation left = computation right)
+    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
+      ∀ cache, availableAt cache node)
+    (state : HandlerState × Bool) (limit : Nat)
+    (hlimit : ∀ z ∈ support (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+          (computation (cells, pad))).run state), z.2.1.2.1.length ≤ limit) :
+    Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
+        ∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed stakes
+          (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
+      (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
+          (computation (cells, pad))).run state
+        pure (result, cells))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  le_trans
+    (prob_sensitive_run_le_expected publicSeed availableAt hclosed hmono stakes stall computation
+      touched htouched hopen state (fun z => z.2.1.2.1.length)
+      fun z _ => ChargedProbe.sum_targets_length_le stakes
+        (fun cache node => ¬ availableAt cache node) z.2.1.2.1)
+    (ChargedProbe.tsum_weight_le _
+      (fun z : α × (HandlerState × Bool) => z.2.1.2.1.length) limit hlimit)
+
 
 /-! ## The game's run is this one with the record forgotten
 

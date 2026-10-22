@@ -125,6 +125,58 @@ theorem targets_unique (stakes : Stakes Node CanonicalGraph.Node)
 
 set_option linter.constructorNameAsVariable false in
 open scoped Classical in
+/-- **The weights add to the number of probes a filter keeps**, for any filter that keeps every
+probe aiming anywhere. The half that pays for these probes does not pay for all of them — the
+honest phase's are not in its budget — so what the weights have to be compared against is the
+length of the list the filter leaves, not of the record. -/
+theorem sum_targets_countP_le (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (keep : Bytes × QueryCache HashSpec → Bool)
+    (hkeep : ∀ (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec),
+      Targets stakes unavailable index entry → keep entry = true)
+    (probes : List (Bytes × QueryCache HashSpec)) :
+    ∑ index : CanonicalGraph.Node,
+        (probes.filter (fun entry => decide (Targets stakes unavailable index entry))).length ≤
+      (probes.filter keep).length := by
+  classical
+  induction probes with
+  | nil => simp
+  | cons entry rest ih =>
+    have hone : ∑ index : CanonicalGraph.Node,
+        (if Targets stakes unavailable index entry then 1 else 0) ≤ 1 := by
+      rw [← Finset.card_filter]
+      refine Finset.card_le_one.mpr fun first hfirst second hsecond => ?_
+      rw [Finset.mem_filter] at hfirst hsecond
+      exact targets_unique stakes unavailable entry hfirst.2 hsecond.2
+    have hsplit : ∀ index : CanonicalGraph.Node,
+        ((entry :: rest).filter
+            (fun other => decide (Targets stakes unavailable index other))).length =
+          (if Targets stakes unavailable index entry then 1 else 0) +
+            (rest.filter (fun other =>
+              decide (Targets stakes unavailable index other))).length := by
+      intro index
+      by_cases hentry : Targets stakes unavailable index entry
+      · rw [List.filter_cons_of_pos (by simpa using hentry), List.length_cons, if_pos hentry]
+        omega
+      · rw [List.filter_cons_of_neg (by simpa using hentry), if_neg hentry]
+        omega
+    by_cases haims : ∃ index : CanonicalGraph.Node, Targets stakes unavailable index entry
+    · obtain ⟨index, hindex⟩ := haims
+      rw [List.filter_cons_of_pos (by simpa using hkeep index entry hindex), List.length_cons]
+      simp only [hsplit, Finset.sum_add_distrib]
+      omega
+    · have hnone : ∀ index : CanonicalGraph.Node,
+          (if Targets stakes unavailable index entry then 1 else 0) = 0 :=
+        fun index => if_neg fun hindex => haims ⟨index, hindex⟩
+      simp only [hsplit, hnone, zero_add]
+      refine le_trans ih ?_
+      by_cases hkept : keep entry = true
+      · rw [List.filter_cons_of_pos hkept, List.length_cons]
+        omega
+      · rw [List.filter_cons_of_neg (by simpa using hkept)]
+
+set_option linter.constructorNameAsVariable false in
+open scoped Classical in
 /-- **The weights add to the number of probes.** -/
 theorem sum_targets_length_le (stakes : Stakes Node CanonicalGraph.Node)
     (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
@@ -405,18 +457,24 @@ theorem sum_tsum_comm {Index Result : Type} [DecidableEq Index] (nodes : Finset 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
 open scoped Classical in
-/-- **The weighted per-cell charges add to one unit per probe.** Stated for an abstract run and
-record, so the only thing it turns on is `sum_targets_length_le` under one measure and the
-exchange of the sum over cells with the expectation. -/
-theorem sum_weighted_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
+/-- **The weighted per-cell charges add to the expected value of anything that bounds their own
+sum, run by run.** The sum over cells is exchanged with the expectation here and nowhere else,
+and the result is left *at* that expectation rather than capped: four charges sharing one budget
+can be added at their expectations and cannot be added at four almost-sure caps, since how a run
+splits the budget between its own queries and its requests is the adversary's choice. The cap
+form below is this one with the expectation taken at the end. -/
+theorem sum_weighted_le_of_sum {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
     (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
-    (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
+    (record : γ → List (Bytes × QueryCache HashSpec)) (weight : γ → Nat)
+    (hweight : ∀ result ∈ support run,
+      ∑ index : CanonicalGraph.Node, aiming stakes unavailable index (record result) ≤
+        weight result) :
     ∑ index : CanonicalGraph.Node,
         (∑' result, Pr[= result | run] *
           ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
             ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+      (∑' result, Pr[= result | run] * ((weight result : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   calc ∑ index : CanonicalGraph.Node,
         (∑' result, Pr[= result | run] *
@@ -428,20 +486,54 @@ theorem sum_weighted_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
         simp only [div_eq_mul_inv, ← Finset.sum_mul]
         refine congrArg (fun total => total * (((2 ^ 128 : Nat) : ℝ≥0∞))⁻¹) ?_
         exact sum_tsum_comm Finset.univ _
-    _ ≤ (∑' result, Pr[= result | run] * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+    _ ≤ _ := by
         refine ENNReal.div_le_div_right (ENNReal.tsum_le_tsum fun result => ?_) _
         rw [← Finset.mul_sum]
         by_cases hmem : result ∈ support run
         · refine mul_le_mul' le_rfl ?_
           rw [← Nat.cast_sum]
-          refine Nat.cast_le.mpr (le_trans ?_ (hlimit result hmem))
-          exact sum_targets_length_le stakes unavailable (record result)
+          exact Nat.cast_le.mpr (hweight result hmem)
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+
+/-- **An expected count bounded on every supported run gives a bounded charge.** -/
+theorem tsum_weight_le {γ : Type} (run : ProbComp γ) (weight : γ → Nat) (limit : Nat)
+    (hlimit : ∀ result ∈ support run, weight result ≤ limit) :
+    (∑' result, Pr[= result | run] * ((weight result : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  calc (∑' result, Pr[= result | run] * ((weight result : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞)
+      ≤ (∑' result, Pr[= result | run] * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        refine ENNReal.div_le_div_right (ENNReal.tsum_le_tsum fun result => ?_) _
+        by_cases hmem : result ∈ support run
+        · exact mul_le_mul' le_rfl (Nat.cast_le.mpr (hlimit result hmem))
         · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
     _ ≤ (1 * (limit : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
         refine ENNReal.div_le_div_right ?_ _
         rw [ENNReal.tsum_mul_right]
         exact mul_le_mul' tsum_probOutput_le_one le_rfl
     _ = _ := by rw [one_mul]
+
+set_option maxHeartbeats 1000000 in
+set_option maxRecDepth 1000000 in
+open scoped Classical in
+/-- **The weighted per-cell charges add to one unit per probe.** Stated for an abstract run and
+record, so the only thing it turns on is `sum_targets_length_le` under one measure and the
+exchange of the sum over cells with the expectation. -/
+theorem sum_weighted_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
+    ∑ index : CanonicalGraph.Node,
+        (∑' result, Pr[= result | run] *
+          ((aiming stakes unavailable index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  le_trans
+    (sum_weighted_le_of_sum stakes unavailable run record (fun result => (record result).length)
+      fun result _ => sum_targets_length_le stakes unavailable (record result))
+    (tsum_weight_le run (fun result => (record result).length) limit hlimit)
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in

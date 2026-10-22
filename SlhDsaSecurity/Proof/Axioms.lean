@@ -8126,3 +8126,18 @@ info: 'SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected
+/-- info: 'SlhDsaSecurity.ChargedProbe.sum_targets_countP_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sum_targets_countP_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sum_weighted_le_of_sum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sum_weighted_le_of_sum
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.tsum_weight_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.tsum_weight_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_expected
