@@ -247,6 +247,7 @@ import SlhDsaSecurity.Proof.SplitCarrierTail
 import SlhDsaSecurity.Proof.CarrierCover
 import SlhDsaSecurity.Proof.CarrierJoin
 import SlhDsaSecurity.Proof.RecordPrfCharge
+import SlhDsaSecurity.Proof.RecordColumn
 import SlhDsaSecurity.Proof.CarrierSplit
 
 /--
@@ -15668,3 +15669,23 @@ info: 'SlhDsaSecurity.CarrierSplit.exists_carrierTail_of_answerCarrierRun' depen
 /-- info: 'SlhDsaSecurity.CarrierSplit.hsplit_splitCarrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierSplit.hsplit_splitCarrierTail
+
+/-- info: 'SlhDsaSecurity.RecordColumn.recordMeetsPrfClass_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordColumn.recordMeetsPrfClass_iff
+
+/-- info: 'SlhDsaSecurity.RecordColumn.card_three_parts_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordColumn.card_three_parts_le_record
+
+/--
+info: 'SlhDsaSecurity.RecordColumn.sharedChargedLate_of_parts_record_at' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordColumn.sharedChargedLate_of_parts_record_at
+
+/-- info: 'SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf
