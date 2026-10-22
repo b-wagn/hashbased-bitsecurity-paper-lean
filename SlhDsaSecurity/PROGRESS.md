@@ -4184,6 +4184,33 @@ source unreliable as evidence rather than merely incomplete.
 The same distinction applies to the record generally: *I did not find it* and *it is not there*
 are different findings, and only one of them licenses building on its absence.
 
+## The column a `Nat` is added in
+
+The rule above — *does the thing being paid for grow with `q`?* — was asked and answered
+correctly, and **the answer was then recorded in a slot whose column nobody checked.** A `Nat` in
+the `q`-shaped sum `qc + qp + qm + qs ≤ q - 2 ^ subtreeHeight` and a `Nat` in the constant column
+`claims + defectUnits ≤ 2 ^ subtreeHeight` are the same type and entirely different claims, and
+the slot changed column between two files two paragraphs below a header saying the event is
+`q`-shaped.
+
+So the rule has a second altitude:
+
+> **Ask which column a `Nat` is added in, and check that column against the event — every time a
+> `Nat` crosses a file boundary.**
+
+It is invisible to the type checker in both directions: the wrong column type-checks, and the
+right one gives no signal it was ever in doubt. The mechanical form is a ten-minute sweep — grep
+the rate pattern `((x : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)` and read each parameter's
+*other* constraint — against two rounds per instance found by accident.
+
+Run once, that sweep reported eleven budgets clean (each tied to a work-count hypothesis, hence
+`q`-shaped), constant defect units clean, both length caps clean or not column questions at all
+— and **three live errors, one of them in the theorem the whole development is stated against.**
+
+And the general form, which is why this is worth a section rather than a line:
+
+> A rule applied to the thing being replaced and not to its replacement is **half a rule**.
+
 ## A parameter is not a guard: `Nat` units against a `q`-shaped event
 
 `seedUnits` was introduced as a parameter precisely so that no constant would be asserted
