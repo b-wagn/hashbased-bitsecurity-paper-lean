@@ -12120,6 +12120,18 @@ info: 'SlhDsaSecurity.SignerRightRecord.appended_right_mem' depends on axioms: [
 #print axioms SlhDsaSecurity.SignerRightRecord.appended_right_mem
 
 /--
+info: 'SlhDsaSecurity.SignerRightRecord.signInternalAt_simulate' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.signInternalAt_simulate
+
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.signInternalAt_liftM' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.signInternalAt_liftM
+
+/--
 info: 'SlhDsaSecurity.PhaseRightRecord.recorderRun_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -12144,13 +12156,15 @@ info: 'SlhDsaSecurity.PhaseRightRecord.right_record_adversaryImpl' depends on ax
 #print axioms SlhDsaSecurity.PhaseRightRecord.right_record_adversaryImpl
 
 /--
-info: 'SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record' depends on axioms: [propext, Quot.sound]
+info: 'SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record
 
 /--
-info: 'SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record_right' depends on axioms: [propext, Quot.sound]
+info: 'SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record_right' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record_right
@@ -13374,6 +13388,12 @@ info: 'SlhDsaSecurity.CountedHandler.run_withCount_count' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.run_withCount_count
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.stage_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.stage_forget
 
 /--
 info: 'SlhDsaSecurity.HandlerLenient.prob_game_sensitive_le_canonical' depends on axioms: [propext,

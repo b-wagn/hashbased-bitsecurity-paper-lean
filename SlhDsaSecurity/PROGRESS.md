@@ -3314,8 +3314,22 @@ build the witness that the two descriptions of the entry are the same. The repai
 the sub-run's queries as well, after which the branch closes from one lemma about one sub-run
 and needs no shared-oracle provenance at all.
 
-> Make the statement's edge sit where the proof's knowledge already ends. Too far in and the
-> caller does your work; too far out and the consumer cannot use what you had.
+> Make the statement's edge sit where the proof's knowledge **ends** — not where it is
+> **widest**. Too far in and the caller does your work; too far out and the consumer cannot use
+> what you had.
+
+**"Hand back the most you know" is wrong as stated, and the habit found the counterexample on
+its first serious run.** The strengthened lemma's proof also had the sub-run's start contained
+in the mid cache, and returning it would have been noise: *no consumer can name that object.*
+What makes a dropped witness a defect is not that something was omitted, but that the consumer
+**could have named it and needed it**; what makes an extra conjunct noise is that the consumer
+cannot name its subject at all. One test, two directions.
+
+A third outcome is available and is the one to reach for when neither applies. The same proof
+had the entry's own value in the final cache — nameable, not currently wanted, and recoverable
+by one `right_record_suffix` call. Leaving it out **and saying so in the docstring** beats both
+returning it and silently omitting it, because the next consumer who wants it is told where it
+comes from instead of re-deriving the lemma.
 
 ### The workaround that would have been worse than the wall
 
