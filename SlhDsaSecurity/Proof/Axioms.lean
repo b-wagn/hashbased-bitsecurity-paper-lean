@@ -151,6 +151,7 @@ import SlhDsaSecurity.Proof.AnswerSide
 import SlhDsaSecurity.Proof.SigningFaithful
 import SlhDsaSecurity.Proof.BlockDisclosures
 import SlhDsaSecurity.Proof.SplitPrefix
+import SlhDsaSecurity.Proof.TapeFactor
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7009,3 +7010,45 @@ info: 'SlhDsaSecurity.Assembly.le_target_of_full' depends on axioms: [propext, C
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.le_target_of_full
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inl
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_other' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_other
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_cons' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_cons
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_nil' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_nil
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.recorder_run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.recorder_run_inr_fresh
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.recorder_run_inr_other' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.recorder_run_inr_other
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.evalDist_tapeRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.evalDist_tapeRun
