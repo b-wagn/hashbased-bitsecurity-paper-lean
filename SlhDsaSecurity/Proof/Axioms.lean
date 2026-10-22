@@ -14972,3 +14972,27 @@ info: 'SlhDsaSecurity.CountedView.forgetsAlong_counted' depends on axioms: [prop
 /-- info: 'SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_step_conj' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_step_conj
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_conj' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_conj
+
+/--
+info: 'SlhDsaSecurity.ServingForget.bind_of_forgetsAlong' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.bind_of_forgetsAlong
+
+/--
+info: 'SlhDsaSecurity.ServingForget.bind_of_fuseServing_conj' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.bind_of_fuseServing_conj
