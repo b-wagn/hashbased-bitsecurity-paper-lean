@@ -186,6 +186,7 @@ import SlhDsaSecurity.Proof.FusedGame
 import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.FusedCoverage
 import SlhDsaSecurity.Proof.RecorderView
+import SlhDsaSecurity.Proof.LateProvenance
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11396,3 +11397,33 @@ info: 'SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.mem_record_countRecorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.mem_record_countRecorded
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.keygen_prf' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.keygen_prf
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.keygen_publicKey' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.keygen_publicKey
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.provenance_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.provenance_recordedAfterSeeds
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree
