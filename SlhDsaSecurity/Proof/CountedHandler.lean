@@ -379,6 +379,49 @@ theorem files_withCount
     (hfiles : Files pk impl) : Files pk (withCount impl) :=
   files_withExtra pk hfiles fun queried count => count + hashCost queried
 
+/-! ## What a counted, flagged run still caches
+
+The charge reads a quantity recomputed from the carrier, and that is sound only because the
+run already asked everything the recomputation asks. `ServedAgreement.cached_queriesUnder` says
+so at a bare filing handler; this says it at the handler the charge actually runs under, which
+is that one inside a flag inside a cost writer. Nothing about the argument changes — the two
+wrappers are re-encodings and the interface transports through both. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **A counted, flagged run caches everything its computation consults.** -/
+theorem cached_queriesUnder_counted {ω : Type} [AddCommMonoid ω] (pk : PublicKey)
+    (impl : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hfiles : Files pk impl) (cost : OracleWorld.Domain → ω)
+    {α : Type} (computation : OracleComp HashSpec α)
+    (state : OpenCache.HandlerState × Bool)
+    (z : (α × Multiplicative ω) × (OpenCache.HandlerState × Bool))
+    (hz : z ∈ support ((simulateQ (OpenCache.withFlag impl)
+      ((simulateQ (addCostOracle cost)
+        (OracleComp.liftComp computation OracleWorld)).run)).run state))
+    (probe : Bytes)
+    (hquery : CacheReplay.QueriesUnder z.2.1.1.cache computation probe) :
+    z.2.1.1.cache probe ≠ none := by
+  classical
+  rw [← WriterState.run_simulateQ_withAddCost] at hz
+  have hstateful : (z.1.1, ((1 : Multiplicative ω) * z.1.2, z.2)) ∈ support
+      ((simulateQ (WriterState.toStateful ((OpenCache.withFlag impl).withAddCost cost))
+        (OracleComp.liftComp computation OracleWorld)).run (1, state)) := by
+    rw [WriterState.run_toStateful, support_map]
+    exact ⟨z, hz, rfl⟩
+  have hextra : (z.1.1, (z.2.1.1, ((z.2.1.2, z.2.2), (1 : Multiplicative ω) * z.1.2))) ∈
+      support ((simulateQ (withExtra (withExtra impl (fun _ flag => flag))
+        (fun queried x => x * Multiplicative.ofAdd (cost queried)))
+        (OracleComp.liftComp computation OracleWorld)).run
+        (state.1.1, ((state.1.2, state.2), (1 : Multiplicative ω)))) := by
+    rw [← run_toStateful_withFlag_withAddCost impl cost
+      (OracleComp.liftComp computation OracleWorld) 1 state, support_map]
+    exact ⟨_, hstateful, rfl⟩
+  exact ServedAgreement.cached_queriesUnder pk _
+    (files_withExtra pk (files_withExtra pk hfiles (fun _ flag => flag))
+      (fun queried x => x * Multiplicative.ofAdd (cost queried)))
+    z.2.1.1 probe hquery _ _ hextra rfl
+
 /-! ## And so does the projection law
 
 `ServingForget.ForgetsAlong` is the other thing a bracketed phase asks of its handler. Counting
