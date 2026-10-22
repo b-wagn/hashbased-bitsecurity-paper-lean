@@ -15002,3 +15002,11 @@ info: 'SlhDsaSecurity.CountedView.forgetsAlong_counted' depends on axioms: [prop
 /-- info: 'SlhDsaSecurity.CarrierOrdering.chargedKeepAt_carrierRightKeep' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierOrdering.chargedKeepAt_carrierRightKeep
+
+/--
+info: 'SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail'' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail'

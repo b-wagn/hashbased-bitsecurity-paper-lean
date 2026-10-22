@@ -101,9 +101,11 @@ theorem prob_ordering_perWalk (adversary : Adversary) (walk : Walk)
 per-walk charge, which is the theorem above. This is the two of them, and it is `hordering` in
 the shape `ObligationShapes.sharedChargedLate_of_parts_at` names.
 
-The one input left is `LateProbes.ForgetsTo` — that forgetting the carrier tail's recordings
-returns the recorded paired run — which is the presentation equation, not a charge, and belongs
-to whoever establishes the tail's equivalence to the game. -/
+`LateProbes.ForgetsTo` — that forgetting the carrier tail's recordings returns the recorded
+paired run — is the presentation equation rather than a charge, and `CarrierTail.forgetsTo`
+already proves it for an arbitrary `rightKeep`, so it holds at `chargedKeepAt` with nothing
+written. The hypothesis-free form below is therefore the end of this half: `hordering` as
+`ObligationShapes.sharedChargedLate_of_parts_at` names it, with no input left to supply. -/
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -121,5 +123,19 @@ theorem prob_ordering_le_carrierTail (adversary : Adversary)
     (fun walk _ hgood => prob_ordering_perWalk adversary walk hgood)
     (BracketedOrdering.probes_le_recordMessageClass_carrierTail chargedKeepAt
       chargedKeepAt_carrierRightKeep adversary hforget)
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The ordering term at the carrier tail, with nothing assumed.** `CarrierTail.forgetsTo` is
+stated for an arbitrary test, so it holds at `chargedKeepAt` directly. -/
+theorem prob_ordering_le_carrierTail' (adversary : Adversary) :
+    Pr[fun pair : LateProbes.SplitPair =>
+        Target.GoodWalk pair.1 ∧ LateProbes.Ordering pair |
+        LateProbes.pairedOf (carrierTail chargedKeepAt) adversary] ≤
+      expected (LateProbes.pairedOf (carrierTail chargedKeepAt) adversary)
+          (fun pair => Multiset.card (SharedJoin.recordMessageClass
+            (LateProbes.forgetRecordings pair))) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_ordering_le_carrierTail adversary (forgetsTo chargedKeepAt adversary)
 
 end SlhDsaSecurity.CarrierOrdering
