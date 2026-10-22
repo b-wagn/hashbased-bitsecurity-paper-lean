@@ -16001,3 +16001,11 @@ info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms:
 /-- info: 'SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100
+
+/-- info: 'SlhDsaSecurity.TargetColumn.card_aiming_add_prf_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_aiming_add_prf_le_record
+
+/-- info: 'SlhDsaSecurity.TargetColumn.card_parts_weighed_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_parts_weighed_le_record
