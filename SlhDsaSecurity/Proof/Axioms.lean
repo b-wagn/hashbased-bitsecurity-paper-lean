@@ -16577,3 +16577,37 @@ info: 'SlhDsaSecurity.GuessingBar.one_stake_is_half' depends on axioms: [propext
 /-- info: 'SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit_at' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit_at
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit
+
+/--
+info: 'SlhDsaSecurity.Target.unitColumn_line' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.unitColumn_line
+
+/--
+info: 'SlhDsaSecurity.Target.unitColumn_margin' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.unitColumn_margin
+
+/--
+info: 'SlhDsaSecurity.Target.target_of_obligations_fused_unit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations_fused_unit

@@ -744,4 +744,64 @@ theorem target_of_obligations_fused {γ : Type} (claims : Nat)
     claims 6 (by rw [← defects_eq_defectsAt]; exact defects_le_six_units) hclaims
     fused forget hforget answerBad inputBad late hsplit hanswer hshared
 
+/-! ## The `127` socket: two columns, and no seed column at all
+
+The live route to `127` is not a cheaper seed clause but **no seed clause**: the forgery's
+digest input is in the record — the verifier queries it — and what keeps it out of the target
+recording is the filing rule, that the recorder files on a fresh draw and the signer had cached
+it first. If the target test can keep an entry the signer cached, the forgery is visible on
+exactly the runs the clause was invented for.
+
+**Disjointness cannot rescue a clause whose count is forced by its probability.**
+`Pr[seed] ≤ card record / 2 ^ 128` is a union bound, so its numerator is record-sized however
+disjoint the parts are — which is `TargetColumn.seedEvent_empty_of_prfClass_charge` read from
+the other side. So the clause's *existence* is the binding constraint, and this socket is stated
+for its absence rather than for a lower price.
+
+**The `Nat` line is `(q - 512 + 260) + q + 2 ≤ 2 * q`, i.e. `262 ≤ 512`, with 250 spare.** The
+`260` is the forgery's 259 claimed cells plus one unit for the format identity's overlap, which
+is what `TargetColumn.expected_three_parts_le_budget_unit` delivers; the `2` is the answer
+half's proved defect. Nothing is doubled anywhere. -/
+
+/-- **The line**, so it is read rather than reconstructed: `260 + 2 ≤ 512`. -/
+theorem unitColumn_line : (260 : Nat) + 2 ≤ 2 ^ subtreeHeight := by
+  simp only [subtreeHeight]
+  omega
+
+/-- **And its spare.** -/
+theorem unitColumn_margin : 2 ^ subtreeHeight - ((260 : Nat) + 2) = 250 := by
+  simp only [subtreeHeight]
+  omega
+
+/-- **The target at `127`, at a refining tail, with the shared half inside one record plus the
+overlap's unit and no seed column.** Every hypothesis is in the shape its holder is producing:
+`hanswer` is `AnswerCarrierBound.answerBound_carrier`'s bound at `answerDefectProved`, and
+`hshared` is the shared side's three clauses against `q - 2 ^ subtreeHeight + 260`. -/
+theorem target_of_obligations_fused_unit {γ : Type}
+    (fused : Adversary → (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) →
+      ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (hforget : ∀ (adversary : Adversary) (walk : (((Digest × Digest × Digest) × Cells) ×
+      QueryCache HashSpec)), forget <$> fused adversary walk = tail adversary walk)
+    (answerBad inputBad :
+      (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) × QueryCache HashSpec → Prop)
+    (late : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) × γ) → Prop)
+    (hsplit : ∀ (adversary : Adversary), ∀ walk ∈ support graphWalk, GoodWalk walk →
+      ∀ result ∈ support (tail adversary walk), Wins .strong result.1.1 →
+        answerBad ((walk.1, result.1), result.2) ∨ inputBad ((walk.1, result.1), result.2))
+    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : γ =>
+            answerBad ((walk.1, (forget result).1), (forget result).2) ∧
+              ¬ late (walk, result) | fused adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefectProved)
+    (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[fun pair => GoodWalk pair.1 ∧
+          (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
+        pairedFused (fused adversary)] ≤
+        ((q - 2 ^ subtreeHeight + 260 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    HasTotalSecurityBits .strong 127 :=
+  target_of_obligations_fused_at answerDefectProved 260 2 defectsAt_proved_le_two
+    unitColumn_line fused forget hforget answerBad inputBad late hsplit hanswer hshared
+
 end SlhDsaSecurity.Target
