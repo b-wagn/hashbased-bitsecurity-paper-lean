@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.RandomiserRecord
 import SlhDsaSecurity.Proof.ClassExpectation
 import SlhDsaSecurity.Proof.ClassGrowth
 import SlhDsaSecurity.Proof.AnswerSide
+import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.RecordedBudget
 
 /-!
@@ -108,33 +109,44 @@ attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.tail
 /-- The run's own record. -/
 abbrev recordOf (pair : RecordedPair) : Multiset Bytes := pair.2.1.1.2
 
+/-- **A probe whose address locates a cell.** The input half's part is read at this and not at
+canonicality, and the difference is a soundness point rather than a fit.
+
+A probe is *canonical* at the walk's own cells exactly when its payload is the true cell — that
+is, exactly when the guess is **right**. The per-cell charge gives every probe naming a
+sensitive node's address one chance at a freshly drawn cell, so the weight has to count probes
+with the right address and *any* payload. Narrowing the part to canonical probes would narrow
+the charge to the hits, and the wrong guesses are precisely what the `2 ^ -128` pays for. It is
+the narrowing that looks safe that makes the charge unsound. -/
+def AimsSomewhere (publicSeed : Digest) (input : Bytes) : Prop :=
+  GraphStakes.locate publicSeed input ≠ none
+
 open scoped Classical in
-/-- **The input half's count**: the record's entries that are canonical inputs of the walk's own
-cells. -/
-noncomputable def recordCanonical (pair : RecordedPair) : Multiset Bytes :=
-  (recordOf pair).filter (HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2)
+/-- **The input half's count**: the record's entries whose address locates a cell. -/
+noncomputable def recordAiming (pair : RecordedPair) : Multiset Bytes :=
+  (recordOf pair).filter (AimsSomewhere pair.1.1.1.2.2)
 
 open scoped Classical in
 /-- **The ordering defect's count**: the record's entries that are message inputs at the key the
-**walk** generates and are not canonical.
+**walk** generates and aim nowhere.
 
 **The key is the walk's, and everything here names that one.** The walk's key is fixed before
 the run, so a statement about it composes; the run's key is a function of the result, and naming
 it would drag `AnswerSide.generatedKey_eq_walk` into every use and let the same defect be stated
 twice at two keys that are equal only on the support. That lemma is applied once, inside
-`canonical_not_messageInput`, where the support is in hand, and no producer ever writes the
+`not_aimsSomewhere_messageInput`, where the support is in hand, and no producer ever writes the
 run's key.
 
-The canonical exclusion is in the definition rather than in a hypothesis, which is what makes
-the two parts disjoint on *every* run and so keeps `GoodWalk` out of the arithmetic entirely. It
-costs the owner nothing: on a good walk no canonical input is a message input
-(`canonical_not_messageInput`), so `mem_recordMessageClass` lets a containment be proved against
-the plain predicate. -/
+The aiming exclusion is in the definition rather than in a hypothesis, which is what makes the
+two parts disjoint on *every* run and so keeps `GoodWalk` out of the arithmetic entirely. It
+costs the owner nothing: on a good walk a message input aims nowhere
+(`not_aimsSomewhere_messageInput`), so `mem_recordMessageClass` lets a containment be proved
+against the plain predicate. -/
 noncomputable def recordMessageClass (pair : RecordedPair) : Multiset Bytes :=
   (recordOf pair).filter fun input =>
     CombinedCharge.IsMessageInput
         (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2) input ∧
-      ¬ HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2 input
+      ¬ AimsSomewhere pair.1.1.1.2.2 input
 
 /-- **What a charge has to prove about its own probes**: that they sit inside one part of the
 record.
@@ -178,17 +190,22 @@ theorem card_record_eq_work (adversary : Adversary)
     (WarmedSplit.mem_support_of_countAllHashes _ walk.2 result hresult)
 
 set_option maxHeartbeats 1000000 in
-/-- **A canonical input of the walk's cells is not a message input at the walk's key**, the key
-being no coincidence on a good walk. Stated at the walk's key, it needs no run at all. -/
-theorem canonical_not_messageInput
+/-- **A message input at the walk's key aims nowhere**, the key being no coincidence on a good
+walk: an aiming address is a structural node's, so it sits inside `HashSeparation`'s bounds and
+a message input cannot be one. Stated at the walk's key, it needs no run at all.
+
+This replaces the canonicality separation, and it is the easier of the two: aiming is about the
+address alone, and the address is where the separation already lives. -/
+theorem not_aimsSomewhere_messageInput
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support graphWalk) (hgood : GoodWalk walk)
-    (input : Bytes) (hcanonical : HonestProbes.Canonical walk.1.1.2.2 walk.1.2 input) :
-    ¬ CombinedCharge.IsMessageInput
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input := by
-  obtain ⟨parent, rfl⟩ := hcanonical
-  exact WarmedCharges.not_messageInput_canonical walk.1.1.2.2 walk.1.2 _
-    (AnswerSide.not_possible_generatedKey hwalk hgood.2) withinBounds_structural parent
+    (input : Bytes) (hmessage : CombinedCharge.IsMessageInput
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input) :
+    ¬ AimsSomewhere walk.1.1.2.2 input := by
+  obtain ⟨randomizer, message, rfl⟩ := hmessage
+  rw [AimsSomewhere, RedrawCell.locate_messageInput walk.1.1.2.2 randomizer _ message
+    (AnswerSide.not_possible_generatedKey hwalk hgood.2)]
+  exact fun hne => hne rfl
 
 /-- **The run's key is the walk's**, on a supported pair. This is the one place
 `AnswerSide.generatedKey_eq_walk` is applied, so that no statement downstream has to carry it. -/
@@ -203,7 +220,7 @@ theorem keyOf_eq_walkKey (adversary : Adversary) {pair : RecordedPair}
 
 open scoped Classical in
 /-- **A message input of the record is in the ordering defect's part**, on a good walk, where
-nothing canonical is one. So the owner proves its containment against the plain predicate. -/
+nothing that aims is one. So the owner proves its containment against the plain predicate. -/
 theorem mem_recordMessageClass (adversary : Adversary) {pair : RecordedPair}
     (hpair : pair ∈ support (recordedPairedRun adversary)) (hgood : GoodWalk pair.1)
     {input : Bytes} (hmem : input ∈ recordOf pair)
@@ -213,25 +230,24 @@ theorem mem_recordMessageClass (adversary : Adversary) {pair : RecordedPair}
   classical
   obtain ⟨hwalk, -⟩ := mem_support_recordedPairedRun hpair
   rw [recordMessageClass, Multiset.mem_filter]
-  exact ⟨hmem, hmessage, fun hcanonical =>
-    canonical_not_messageInput hwalk hgood input hcanonical hmessage⟩
+  exact ⟨hmem, hmessage, not_aimsSomewhere_messageInput hwalk hgood input hmessage⟩
 
 open scoped Classical in
 /-- **The two parts fit inside the record**, being disjoint by construction and so on every
 run. -/
 theorem card_parts_le_record (pair : RecordedPair) :
-    Multiset.card (recordCanonical pair) + Multiset.card (recordMessageClass pair) ≤
+    Multiset.card (recordAiming pair) + Multiset.card (recordMessageClass pair) ≤
       Multiset.card (recordOf pair) := by
   classical
   have hdisjoint : ∀ input ∈ recordOf pair,
-      ¬ (HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2 input ∧
+      ¬ (AimsSomewhere pair.1.1.1.2.2 input ∧
         (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
             input ∧
-          ¬ HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2 input)) := by
-    rintro input - ⟨hcanonical, -, hnot⟩
-    exact hnot hcanonical
-  rw [recordCanonical, recordMessageClass, ← Multiset.card_add, Multiset.filter_add_filter,
+          ¬ AimsSomewhere pair.1.1.1.2.2 input)) := by
+    rintro input - ⟨haims, -, hnot⟩
+    exact hnot haims
+  rw [recordAiming, recordMessageClass, ← Multiset.card_add, Multiset.filter_add_filter,
     Multiset.filter_eq_nil.mpr hdisjoint, add_zero]
   exact Multiset.card_le_card (Multiset.filter_le _ _)
 
@@ -240,10 +256,10 @@ forgery's claims. -/
 theorem card_parts_le_budget (adversary : Adversary) (q : Nat)
     (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
     (hpair : pair ∈ support (recordedPairedRun adversary)) :
-    Multiset.card (recordCanonical pair) + Multiset.card (recordMessageClass pair) ≤
+    Multiset.card (recordAiming pair) + Multiset.card (recordMessageClass pair) ≤
       q - 2 ^ subtreeHeight := by
   obtain ⟨hwalk, hresult⟩ := mem_support_recordedPairedRun hpair
-  have hparts : Multiset.card (recordCanonical pair) +
+  have hparts : Multiset.card (recordAiming pair) +
       Multiset.card (recordMessageClass pair) ≤ Multiset.card (recordOf pair) :=
     card_parts_le_record pair
   have hwork : Multiset.card (recordOf pair) = pair.2.1.1.1.counts.work :=
@@ -341,7 +357,7 @@ open scoped Classical in
 /-- **The input half's hypothesis, from a containment and a walk-by-walk charge.** -/
 theorem hinput_of_probesIn (adversary : Adversary) (inputBad ordering : RecordedPair → Prop)
     (probes : RecordedPair → Multiset Bytes)
-    (hprobes : ProbesIn recordCanonical probes adversary)
+    (hprobes : ProbesIn recordAiming probes adversary)
     (hcharge : ∀ walk ∈ support graphWalk,
       Pr[fun result => GoodWalk walk ∧ inputBad (walk, result) ∧ ¬ ordering (walk, result) |
           RecordedTail.recordedTail adversary walk] ≤
@@ -351,7 +367,7 @@ theorem hinput_of_probesIn (adversary : Adversary) (inputBad ordering : Recorded
     Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ inputBad pair ∧ ¬ ordering pair |
         recordedPairedRun adversary] ≤
       (expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordCanonical pair)) + ((259 : Nat) : ℝ≥0∞)) /
+          (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
         ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   refine le_trans (prob_le_expected_of_perWalk adversary _
@@ -411,7 +427,7 @@ theorem prob_sharedBad_le_three (q : Nat) (adversary : Adversary)
     (hinput : Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ inputBad pair ∧ ¬ ordering pair |
         recordedPairedRun adversary] ≤
       (expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordCanonical pair)) + ((259 : Nat) : ℝ≥0∞)) /
+          (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
         ((2 ^ 128 : Nat) : ℝ≥0∞))
     (hordering : Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering pair |
         recordedPairedRun adversary] ≤
@@ -433,7 +449,7 @@ theorem prob_sharedBad_le_three (q : Nat) (adversary : Adversary)
   rw [ENNReal.div_add_div_same]
   refine ENNReal.div_le_div_right ?_ _
   have hcounts : expected (recordedPairedRun adversary)
-        (fun pair => Multiset.card (recordCanonical pair)) +
+        (fun pair => Multiset.card (recordAiming pair)) +
       expected (recordedPairedRun adversary)
         (fun pair => Multiset.card (recordMessageClass pair)) ≤
       ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) := by
@@ -441,11 +457,11 @@ theorem prob_sharedBad_le_three (q : Nat) (adversary : Adversary)
     exact expected_le_of_le (recordedPairedRun adversary) _ _ fun pair hpair =>
       card_parts_le_budget adversary q hbudget hpair
   calc expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordCanonical pair)) + ((259 : Nat) : ℝ≥0∞) +
+          (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞) +
         expected (recordedPairedRun adversary)
           (fun pair => Multiset.card (recordMessageClass pair))
       = expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordCanonical pair)) +
+            (fun pair => Multiset.card (recordAiming pair)) +
           expected (recordedPairedRun adversary)
             (fun pair => Multiset.card (recordMessageClass pair)) +
               ((259 : Nat) : ℝ≥0∞) := by ring
@@ -467,7 +483,7 @@ theorem sharedCharged_of_three
       Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ inputBad q adversary pair ∧
           ¬ ordering q adversary pair | recordedPairedRun adversary] ≤
         (expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordCanonical pair)) + ((259 : Nat) : ℝ≥0∞)) /
+            (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
           ((2 ^ 128 : Nat) : ℝ≥0∞))
     (hordering : ∀ q adversary, HasTotalBudget adversary q →
       Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering q adversary pair |

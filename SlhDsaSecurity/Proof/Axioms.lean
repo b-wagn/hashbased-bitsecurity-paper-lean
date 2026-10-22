@@ -8664,12 +8664,6 @@ info: 'SlhDsaSecurity.SharedJoin.card_record_eq_work' depends on axioms: [propex
 #print axioms SlhDsaSecurity.SharedJoin.card_record_eq_work
 
 /--
-info: 'SlhDsaSecurity.SharedJoin.canonical_not_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedJoin.canonical_not_messageInput
-
-/--
 info: 'SlhDsaSecurity.SharedJoin.mem_recordMessageClass' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -9034,3 +9028,9 @@ info: 'SlhDsaSecurity.SplitRecorder.forget_narrow' depends on axioms: [Quot.soun
 /-- info: 'SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.not_aimsSomewhere_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.not_aimsSomewhere_messageInput
