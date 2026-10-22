@@ -2566,3 +2566,49 @@ non-targeting by the shape argument.
 
 So the containment is a provenance argument over a de-duplicated record, not a filter argument
 over a fresh skeleton, and the honest phase is where the difference lies.
+
+## An unapplied bridge is a missing bridge, and probe files are how you find out
+
+**A bridge that exists but sits unapplied is indistinguishable from a missing one at the moment
+someone hands work over, and the cost lands on whoever assembles.** This has now been the shape
+of four mismatches in this development, twice found before assembly and twice after, and the
+difference each time was whether anyone had tried to hand the work over.
+
+The two joins both had it. `AnswerJoin` stated its recorder hypotheses at the split-counted run
+while every producer writes at the all-hashes-counted one; the bridge
+(`CoverageCount.mem_support_recorder_countAllHashes`) existed and sat unapplied, so a producer
+would have handed over something that did not fit and both statements would have read correctly
+on their own. `SharedJoin` defined `ProbesIn` and `card_le_of_probesIn` but never showed how to
+get from them to the hypotheses it takes — four lines that two of its three owners would each
+have discovered.
+
+### The check that finds it
+
+Not reading. Write a probe file per hypothesis, state it the way its *producer* would state it,
+and try to discharge the join's version by bare `exact` with no tactic. Compile it with
+`lake env lean` on a scratch file; it does not belong in the library. Three things make it work:
+
+* **`exact` and nothing else.** A tactic that succeeds hides whether an adapter was needed. The
+  question is not "is this provable" but "does it plug in", and only a bare term answers it.
+* **State the producer's form, not the join's.** The whole failure mode is that both read
+  correctly in isolation, so the test has to put them in the same place.
+* **Expect timeouts, and treat them as failures.** Two of the probes exhausted `whnf` rather
+  than reporting a mismatch. That *is* the answer — the elaborator could not equate the terms —
+  but a cleaner probe is worth writing: compare the one component that differs rather than the
+  whole statement. `(recordedTraceOf pair).2 = pair.2.2` settles in milliseconds what the full
+  filter could not settle at all.
+
+Probe files need the same `attribute [local irreducible]` line and `maxHeartbeats` as the module
+they probe, or they time out on the game's definitions rather than on the question.
+
+### The conventions that came out of it
+
+* **Hypotheses are stated at the run their producer writes at**, and the join bridges. A
+  side-effect worth having: `AnswerJoin`'s hypotheses then stopped mentioning the counter slots
+  at all, because they only ever did through the run.
+* **A charge is taken per walk**, which is both the habit and the shape charges naturally prove;
+  the averaging is the join's step, not the owner's (`SharedJoin.prob_le_expected_of_perWalk`).
+* **Keys are named at the walk's cache, never the run's.** The walk's key is fixed before the
+  run, so statements about it compose; the run's is a function of the result and drags
+  `AnswerSide.generatedKey_eq_walk` into every use. Applied once, in the join, where the support
+  is in hand.
