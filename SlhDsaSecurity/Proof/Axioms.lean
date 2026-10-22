@@ -6612,3 +6612,15 @@ info: 'SlhDsaSecurity.VerifierFormat.verify_probe_randomizerInput' depends on ax
 /-- info: 'SlhDsaSecurity.GraphStakes.honestMessage_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GraphStakes.honestMessage_succ
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.alwaysAvailable_merkleNode' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.alwaysAvailable_merkleNode
+
+/-- info: 'SlhDsaSecurity.RedrawCell.xmssSignature_eq' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.xmssSignature_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.signLayers_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.signLayers_congr

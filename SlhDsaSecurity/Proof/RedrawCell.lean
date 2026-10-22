@@ -822,7 +822,6 @@ theorem forsTreeSignature_eq {left right : ForsTreeSignature}
 /-- **An honest FORS signature reads only the cells it discloses.** -/
 theorem fors_sign_congr (publicSeed : Digest) (cache : QueryCache HashSpec)
     (left right : Cells × Padding) (key : ForsKey) (indices : Fors.Indices)
-    (hseed : left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed)
     (hagree : ∀ node, ForsDiscloses key indices node → left.1 node = right.1 node) :
     @Fors.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache)) indices
         (left.1 CanonicalGraph.Node.secretSeed) publicSeed key.address =
@@ -836,6 +835,114 @@ theorem fors_sign_congr (publicSeed : Digest) (cache : QueryCache HashSpec)
   · rw [HonestProbes.fors_sign_authentication_cell, HonestProbes.fors_sign_authentication_cell,
       replayCells_unionCache, replayCells_unionCache]
     exact hagree _ (Or.inr ⟨tree, level, rfl⟩)
+
+/-- Two XMSS signatures agree when their fields do. -/
+theorem xmssSignature_eq {left right : XmssSignature} (hwots : left.wots = right.wots)
+    (hauth : left.authentication = right.authentication) : left = right := by
+  cases left
+  cases right
+  simp_all
+
+/-- **The climb reads only cells the signatures have released.** Change the table away from
+those cells and the hypertree signature does not move.
+
+Each side is stated at its own table's secret seed, and that is deliberate. The seed enters only
+through the cells the replayed graph computes, so the congruence needs no hypothesis tying the
+two seeds together — but an instantiation does, because the handler's signer carries one fixed
+secret key. That hypothesis is free where it is needed: `OpenCache.AgreeOff index` gives
+agreement everywhere but `index`, and the charge excludes `index = Node.secretSeed` from its
+sum, paying that avenue by `TrackedQueries` instead. The exclusion was forced on the charge for
+its own reasons, and it is what makes the seeds agree here.
+
+The invariant carried through the climb has two halves that fail differently. That the two
+messages agree is carried by `hagree` over nodes that are always available, so it breaks
+loudly. That `revealed` at a layer's key is the digit count of *that layer's own* message is the
+half that could quietly become a statement about the wrong message, and `honestMessage_succ` is
+what pins it. -/
+theorem signLayers_congr (publicSeed : Digest) (cache : QueryCache HashSpec)
+    (left right : Cells × Padding)
+    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (hagree : ∀ node, CanonicalGraph.Available
+        (@GraphStakes.honestRevealed (CacheReplay.replayQuery (unionCache publicSeed left cache))
+          (left.1 CanonicalGraph.Node.secretSeed) publicSeed) signed node →
+        left.1 node = right.1 node) :
+    ∀ (remaining layer tree : Nat) (leaf : Hypertree.LeafIndex)
+      (htree : tree < 2 ^ (totalHeight - subtreeHeight)) (message : Digest),
+      layer + remaining ≤ layers →
+      (∀ hl : layer < layers, message = @GraphStakes.honestMessage
+        (CacheReplay.replayQuery (unionCache publicSeed left cache))
+        (left.1 CanonicalGraph.Node.secretSeed) publicSeed
+        ⟨⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩, leaf⟩) →
+      @Hypertree.signLayers Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache))
+          (left.1 CanonicalGraph.Node.secretSeed) publicSeed remaining layer tree leaf message =
+        @Hypertree.signLayers Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache))
+          (right.1 CanonicalGraph.Node.secretSeed) publicSeed remaining layer tree leaf
+          message := by
+  intro remaining
+  induction remaining with
+  | zero => intro layer tree leaf htree message _ _; rfl
+  | succ remaining ih =>
+    intro layer tree leaf htree message hbound hmessage
+    have hl : layer < layers := by omega
+    have hdiv : tree / 2 ^ subtreeHeight < 2 ^ (totalHeight - subtreeHeight) :=
+      lt_of_le_of_lt (Nat.div_le_self _ _) htree
+    have hhead : @Merkle.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache))
+          message (left.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (Hypertree.address layer tree) leaf =
+        @Merkle.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache))
+          message (right.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (Hypertree.address layer tree) leaf := by
+      show @Merkle.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache))
+          message (left.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩ : CanonicalGraph.Tree).address leaf =
+        @Merkle.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache))
+          message (right.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩ : CanonicalGraph.Tree).address leaf
+      refine xmssSignature_eq (funext fun chain => ?_) (funext fun level => ?_)
+      · rw [HonestProbes.merkle_sign_wots_cell (tree := ⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩),
+          HonestProbes.merkle_sign_wots_cell (tree := ⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩),
+          replayCells_unionCache, replayCells_unionCache]
+        refine hagree _ (GraphStakes.available_wotsPosition _ signed _ chain _ ?_)
+        rw [hmessage hl]
+        rfl
+      · rw [HonestProbes.merkle_sign_authentication_cell (tree := ⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩),
+          HonestProbes.merkle_sign_authentication_cell (tree := ⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩),
+          replayCells_unionCache, replayCells_unionCache]
+        exact hagree _ (CanonicalGraph.available_of_alwaysAvailable _ signed
+          (@GraphStakes.honestRevealed_le
+            (CacheReplay.replayQuery (unionCache publicSeed left cache)) _ _)
+          (CanonicalGraph.alwaysAvailable_merkleNode _ _ _ _))
+    have hroot : @Merkle.node Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache))
+          (left.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (Hypertree.address layer tree) subtreeHeight 0 =
+        @Merkle.node Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache))
+          (right.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (Hypertree.address layer tree) subtreeHeight 0 := by
+      show @Merkle.node Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache))
+          (left.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩ : CanonicalGraph.Tree).address subtreeHeight 0 =
+        @Merkle.node Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache))
+          (right.1 CanonicalGraph.Node.secretSeed) publicSeed
+          (⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩ : CanonicalGraph.Tree).address subtreeHeight 0
+      rw [HonestProbes.subtree_root_cell _ _ _ ⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩,
+        HonestProbes.subtree_root_cell _ _ _ ⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩,
+        replayCells_unionCache, replayCells_unionCache]
+      exact hagree _ (CanonicalGraph.available_of_alwaysAvailable _ signed
+        (@GraphStakes.honestRevealed_le
+          (CacheReplay.replayQuery (unionCache publicSeed left cache)) _ _)
+        (CanonicalGraph.alwaysAvailable_merkleNode _ _ _ _))
+    funext index
+    refine Fin.cases ?_ (fun below => ?_) index
+    · rw [HonestProbes.signLayers_head, HonestProbes.signLayers_head]
+      exact hhead
+    · rw [HonestProbes.signLayers_tail, HonestProbes.signLayers_tail, ← hroot]
+      refine congrFun (ih (layer + 1) (tree / 2 ^ subtreeHeight) (Hypertree.nextLeaf tree) hdiv _
+        (by omega) fun hnext => ?_) below
+      rw [@GraphStakes.honestMessage_succ
+        (CacheReplay.replayQuery (unionCache publicSeed left cache))
+        (left.1 CanonicalGraph.Node.secretSeed) publicSeed ⟨layer + 1, hnext⟩
+        (Nat.succ_pos layer) tree hdiv]
+      rfl
 
 /-- A handler cache saying nothing the programmed entries contradict. -/
 def Compatible (publicSeed : Digest) (table : Cells × Padding)
