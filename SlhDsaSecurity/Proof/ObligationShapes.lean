@@ -362,4 +362,23 @@ theorem messageInput_default_eq_replay (cache : QueryCache HashSpec) (sk : Secre
         message := by
   rw [HonestProbes.replayRandomizer, CacheReplay.replay, hmiss, Option.getD_none]
 
+/-- **The whole of it at what the answer half proves**, with the four freed units available to
+the seed charge. `claims` and `seedUnits` share the `251` the defect budget now leaves. -/
+theorem target_of_answer_and_leaves_proved (claims seedUnits : Nat)
+    (hclaims : 259 + seedUnits ≤ claims) (hfits : claims + 2 ≤ 2 ^ subtreeHeight)
+    (hanswer : Obligations.AnswerChargedAt Target.answerDefectProved FusedCoverage.fusedTail
+      FinalAssembly.forgetFused FinalAssembly.lateOrSeed)
+    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      SharedAssembly.InputBullet adversary LateProbes.Ordering)
+    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧
+          AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+            (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+            (FinalAssembly.forgetFused pair.2) |
+        LateProbes.pairedOf FusedCoverage.fusedTail adversary] ≤
+        ((seedUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    HasTotalSecurityBits .strong 127 :=
+  FinalAssembly.target_of_producers_proved claims hfits hanswer
+    (sharedChargedLate_of_parts claims seedUnits hclaims hinput hseed)
+
 end SlhDsaSecurity.ObligationShapes

@@ -212,8 +212,22 @@ theorem sign_randomizer_answer (sk : SecretKey) (request : Message) (framed : By
     simp [replay, hlater _ value hentry]
 
 /-- **And leaves its answer in the cache**, read at any cache extending the one it left. The
-presence-only reading of `sign_randomizer_answer`, kept because several consumers want no more
-than this. -/
+presence-only reading of `sign_randomizer_answer`.
+
+**Which consumers need which**, so that this entry is annotated rather than re-reported:
+
+* `ServedRandomised.signerRandomised_of_served` needs **presence only**. It wants "cached with
+  some value" and recovers the value itself by `Option.ne_none_iff_exists'`, so the drop costs
+  it nothing.
+* `PhaseProvenance.SignerMade`'s second conjunct, and through it the provenance hypothesis,
+  needed the **value**. It compares the signer's *published* randomiser against what
+  `CacheReplay.replay` returns, and `replay` answers a miss with `default` — so a statement
+  carried on presence alone said something about `Hashing.truncate default` for messages never
+  signed, and a one-query adversary refuted it. That is what `sign_randomizer_answer` fixes.
+
+So a presence-only conclusion is a defect **when a consumer must relate the value to something
+else**, and merely conservative when the consumer can recover it. The `≠ none` grep finds the
+candidates; only a consumer says which are live. -/
 theorem sign_randomizer_cached (sk : SecretKey) (request : Message) (framed : Bytes)
     (hframe : request.frame = some framed)
     (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)

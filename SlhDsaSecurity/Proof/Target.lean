@@ -20,17 +20,39 @@ and `probEvent_le_of_good_walk` applies them together.
 The arithmetic is discharged too, and every number in it is concrete. `allowance` reads
 `Assembly.le_target_of_full`, whose content is the `Nat` line `(q - slack + extra) + q +
 defectUnits ≤ 2 * q`: key generation's `2 ^ subtreeHeight = 512` calls are the `slack`, the
-forgery's `259` claimed cells are the `extra`, and six units of `2 ^ -128` are the
-`defectUnits` covering the four small defects — the load cap at `2 ^ -126`, the coverage tape
-at `2 ^ -141`, the input-format coincidence at `2 ^ -165` and the seed coincidence at
-`2 ^ -128`. So what has to hold is `259 + 6 ≤ 512`, and the margin is `247` units. (The
-`1024` of a `759`-unit margin belongs to `le_target_of_counts` and `le_target_of_two_slacks`,
-which reserve on both halves; `allowance` does not call them.)
+forgery's `259` claimed cells are the `extra`, and the `defectUnits` cover the small defects —
+the coverage tape at `2 ^ -141`, the input-format coincidence at `2 ^ -165`, the seed
+coincidence at `2 ^ -128`, and the answer half's own term. So what has to hold is
+`claims + defectUnits ≤ 512`. (The `1024` of a `759`-unit margin belongs to
+`le_target_of_counts` and `le_target_of_two_slacks`, which reserve on both halves; `allowance`
+does not call them.)
+
+**Two readings of the answer half's term, and the margin follows from which is taken.** The
+obligation *states* `1 / 2 ^ 126 + 1 / 2 ^ 141`, which is four units plus a sliver, so
+`defectUnits` is six and the margin is `247`. The half *proves*
+`q / 2 ^ 128 + 1 / 2 ^ 141` — `AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow` — and
+reaches the stated form by `le_add_right`. At what is proved, `defectUnits` is two and the
+margin is `251`. `defectsAt` takes the term as a parameter so that both readings are one
+statement, and `answerDefectProved` is the second one.
+
+**The `2 ^ -126` here is not the sharper concentration cap's**, which is a different quantity
+with no consumer. They are numerically equal, so no arithmetic can tell them apart and the
+distinction has to be carried in words: this one is the allowance `Obligations.AnswerChargedLate`
+states for the answer half, and the other is a bound in `ForsConcentrationSharper`. Calling this
+one "the load cap" is the confusion `MainTheorem`'s narrative had, and it is why nothing caught
+it.
 
 The `q` coefficient has no margin at all: the same `Nat` line is `2 * q` on the right and
 `q + q` on the left, so the two halves have one budget each and a third `q`-proportional term
-cannot be added. Constants can, up to the `247`, which is why `allowanceOf` takes the claims
-numeral as a parameter.
+cannot be added. Constants can, up to the margin, which is why `allowanceAt` takes the claims
+numeral and the defect units as parameters.
+
+**What is still open is five leaves, not two obligations.** The fused target takes an answer
+obligation and a shared one, and each decomposes further: the answer side's into `hjoinNarrow`,
+`hleftBound` and `hdisclosing`, the shared side's into the input half's bullet and the seed
+charge at `seedUnits`. Counting the signature's hypotheses understates what is unproved, which
+is the same kind of error as counting a statement's witnesses instead of an adversary's
+chances.
 
 **What may be charged as a constant, and what may not.** An event whose witness is a single
 object of the run — the forgery, its randomiser, its claims — is not thereby a constant. What
@@ -159,26 +181,92 @@ noncomputable def defects : ℝ≥0∞ :=
   (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
     ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞))
 
+/-- The small defects, with the **answer half's own term a parameter**. The other two are the
+walk's, and the walk pays them whatever the answer half's bound turns out to be. -/
+noncomputable def defectsAt (answerDefect : ℝ≥0∞) : ℝ≥0∞ :=
+  answerDefect +
+    ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞))
+
+theorem defects_eq_defectsAt :
+    defects = defectsAt ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+      (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := rfl
+
+/-- **The answer half's defect term, at what the answer half proves.**
+
+`AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow` concludes `q / 2 ^ 128 + 1 / 2 ^ 141`,
+and `AnswerJoin` adds the `2 ^ -126` to it by `le_add_right` alone — only so that the bound
+matches the obligation's stated right-hand side. So the `2 ^ -126` is an allowance that route
+does not spend, and reading the answer half at what it proves frees four units of `2 ^ -128`.
+
+**It is not the same `2 ^ -126` as the sharper concentration cap's**, which also has no consumer.
+Those two quantities are equal and unrelated, and arithmetic cannot tell them apart, so the
+distinction has to be kept in words: this one is the allowance `AnswerChargedLate` states, and
+the other is a bound in `ForsConcentrationSharper`. -/
+noncomputable def answerDefectProved : ℝ≥0∞ := (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)
+
+private theorem castPow (k : Nat) : ((2 ^ k : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by
+  push_cast; ring
+
+private theorem divPowEq (m j k : Nat) (hjk : j ≤ k) :
+    ((m : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ j =
+      ((m * 2 ^ (k - j) : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ k := by
+  have hsplit : (2 : ℝ≥0∞) ^ k = (2 : ℝ≥0∞) ^ (k - j) * (2 : ℝ≥0∞) ^ j := by
+    rw [← pow_add]
+    congr 1
+    omega
+  have hnum : ((m * 2 ^ (k - j) : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ (k - j) * (m : ℝ≥0∞) := by
+    push_cast; ring
+  rw [hsplit, hnum, ENNReal.mul_div_mul_left _ _ (by positivity) (by simp)]
+
+/-- **Three small defects cost under two units of `2 ^ -128`.** The companion of
+`Assembly.defects_le_six` with the answer half's unspent allowance left out. The two helpers
+above are `Assembly`'s own, which are `private` there. -/
+theorem defectsAt_proved_le_two :
+    defectsAt answerDefectProved ≤ ((2 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [defectsAt, answerDefectProved, castPow, castPow, castPow,
+    show (1 : ℝ≥0∞) = ((1 : Nat) : ℝ≥0∞) from by push_cast; ring,
+    divPowEq 1 141 165 (by norm_num), divPowEq 1 165 165 (by norm_num),
+    divPowEq 1 128 165 (by norm_num), divPowEq 2 128 165 (by norm_num),
+    ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+  rw [← Nat.cast_add, ← Nat.cast_add]
+  refine ENNReal.div_le_div_right ?_ _
+  exact Nat.cast_le.mpr (by norm_num)
+
+/-- **The allowance closes, at any answer-half defect term and any number of claimed cells.**
+The two numerals it takes are tied together by `hclaims`: what the forgery claims and what the
+defects cost share the `2 ^ subtreeHeight` key generation reserves. -/
+theorem allowanceAt (answerDefect : ℝ≥0∞) (claims defectUnits q : Nat)
+    (hdefect : defectsAt answerDefect ≤ ((defectUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hclaims : claims + defectUnits ≤ 2 ^ subtreeHeight) (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defectsAt answerDefect) ≤
+      (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+  rw [← add_assoc]
+  exact Assembly.le_target_of_full q (2 ^ subtreeHeight) claims defectUnits hkeygen hclaims
+    (defectsAt answerDefect) hdefect
+
 /-- **The allowance closes, at any number of claimed cells key generation's spend leaves room
 for.** The numeral is a parameter because the shared side's constant term is not settled: what
 the forgery claims is `259`, and anything else charged as a constant lands beside it and has to
 fit in the same `2 ^ subtreeHeight` that key generation reserves, alongside the six units the
 four small defects take. -/
+theorem defects_le_six_units : defects ≤ ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [defects, show (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+      (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
+      ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞)) =
+    (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
+      (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) from by
+    ring]
+  exact Assembly.defects_le_six
+
 theorem allowanceOf (claims q : Nat) (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
     (hkeygen : 2 ^ subtreeHeight ≤ q) :
     ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
-  have hdefects : defects ≤ ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-    rw [defects, show (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-        (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
-        ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞)) =
-      (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
-        (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) from by
-      ring]
-    exact Assembly.defects_le_six
-  rw [← add_assoc]
-  exact Assembly.le_target_of_full q (2 ^ subtreeHeight) claims 6 hkeygen hclaims defects hdefects
+  rw [defects_eq_defectsAt]
+  exact allowanceAt _ claims 6 q (by rw [← defects_eq_defectsAt]; exact defects_le_six_units)
+    hclaims hkeygen
 
 /-- **The allowance at the claims the forgery makes**, which is what the obligations stated
 before the numeral was a parameter and what `target_of_obligations` still reads. -/
@@ -337,8 +425,10 @@ set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **The target, from two obligations at a refining tail.** The answer side rules the defect
 out, the shared side pays for it, and the walk's own coincidences are paid once beside them. -/
-theorem target_of_obligations_fused {γ : Type} (claims : Nat)
-    (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
+theorem target_of_obligations_fused_at {γ : Type} (answerDefect : ℝ≥0∞)
+    (claims defectUnits : Nat)
+    (hdefect : defectsAt answerDefect ≤ ((defectUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hclaims : claims + defectUnits ≤ 2 ^ subtreeHeight)
     (fused : Adversary → (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) →
       ProbComp γ)
     (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
@@ -355,9 +445,7 @@ theorem target_of_obligations_fused {γ : Type} (claims : Nat)
         Pr[fun result : γ =>
             answerBad ((walk.1, (forget result).1), (forget result).2) ∧
               ¬ late (walk, result) | fused adversary walk] ≤
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefect)
     (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
       Pr[fun pair => GoodWalk pair.1 ∧
           (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
@@ -377,9 +465,7 @@ theorem target_of_obligations_fused {γ : Type} (claims : Nat)
       Pr[fun pair => GoodWalk pair.1 ∧
           answerBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∧ ¬ late pair |
         pairedFused (fused adversary)] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefect := by
     refine Averaging.probEvent_bind_pair_le graphWalk (fused adversary)
       (fun walk result => GoodWalk walk ∧
         answerBad ((walk.1, (forget result).1), (forget result).2) ∧ ¬ late (walk, result)) _
@@ -427,17 +513,52 @@ theorem target_of_obligations_fused {γ : Type} (claims : Nat)
               pairedFused (fused adversary)] +
             Pr[fun pair => ¬ GoodWalk pair.1 | pairedFused (fused adversary)]) :=
         add_le_add le_rfl (probEvent_or_le _ _ _)
-    _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
+    _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefect) +
           (((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
             (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞))) :=
         add_le_add hgoodAnswer
           (add_le_add (hshared q adversary hq hbudget)
             (prob_bad_walk_pairedFused (fused adversary)))
     _ = ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) := by rw [defects]; ring
+          ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defectsAt answerDefect) := by
+        rw [defectsAt]; ring
     _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
-        allowanceOf claims q hclaims (KeygenBudget.pow_le_of_budget q adversary hbudget)
+        allowanceAt answerDefect claims defectUnits q hdefect hclaims
+          (KeygenBudget.pow_le_of_budget q adversary hbudget)
+
+/-- **The target at the answer half's stated allowance**, which is the reading the obligations
+were written at and the one the dead ledgers below still use. `target_of_obligations_fused_at`
+at the term the answer half *proves* is four units cheaper. -/
+theorem target_of_obligations_fused {γ : Type} (claims : Nat)
+    (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
+    (fused : Adversary → (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) →
+      ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (hforget : ∀ (adversary : Adversary) (walk : (((Digest × Digest × Digest) × Cells) ×
+      QueryCache HashSpec)), forget <$> fused adversary walk = tail adversary walk)
+    (answerBad inputBad :
+      (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) × QueryCache HashSpec → Prop)
+    (late : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) × γ) → Prop)
+    (hsplit : ∀ (adversary : Adversary), ∀ walk ∈ support graphWalk, GoodWalk walk →
+      ∀ result ∈ support (tail adversary walk), Wins .strong result.1.1 →
+        answerBad ((walk.1, result.1), result.2) ∨ inputBad ((walk.1, result.1), result.2))
+    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : γ =>
+            answerBad ((walk.1, (forget result).1), (forget result).2) ∧
+              ¬ late (walk, result) | fused adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))
+    (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[fun pair => GoodWalk pair.1 ∧
+          (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
+        pairedFused (fused adversary)] ≤
+        ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    HasTotalSecurityBits .strong 127 :=
+  target_of_obligations_fused_at
+    ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
+    claims 6 (by rw [← defects_eq_defectsAt]; exact defects_le_six_units) hclaims
+    fused forget hforget answerBad inputBad late hsplit hanswer hshared
 
 end SlhDsaSecurity.Target
