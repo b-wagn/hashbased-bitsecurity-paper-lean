@@ -400,6 +400,15 @@ theorem strippedKeygen_adds_nothing (publicSeed : Digest)
 
 /-! ## Counting the aiming probes against the record's aiming part
 
+**Nothing in the input half uses anything from here to the end of the containment.** The count
+below — and `aimCount_*`, `weight_le_recordAim*`, and the honest-phase lemmas they rest on —
+was written to pay the half against the record's **canonical part**. That count is slack:
+`RoutedSplit.InputBad` is an existential over the forgery's `259` claims and quantifies over no
+probe of the run, so the half owes a constant and spends no part of the record. What would use
+this again is a split that moved the run's own sensitive queries into the input bullet; that
+version's weight is exactly `weight_le_recordAim_at`, already proved against the part the join
+carries. It is all true and all proved; it is simply not on the half's path today.
+
 The weight is a count of the handler's list; the budget pays out of the run's recorded multiset.
 Both sides are counted by the same test, and a step moves them together: a hash call appends one
 probe and records one input, and a probe that aims is an input that aims. -/
@@ -788,6 +797,11 @@ theorem weight_le_recordAim_at (publicSeed : Digest)
   exact hbound
 
 /-! ## The export, in the join's vocabulary
+
+**Also currently unused**, for the same reason as the counting above: the half's bullet is paid
+by the claims alone, so it discharges no containment at the join. It is kept because the shape
+is the one a moved split would need, and because `recordAim_eq_card_recordAiming` is what stops
+this half's test and the join's from drifting apart unnoticed.
 
 **`ProbesIn` is reflexivity here, and the reflexivity is not the argument.** `ProbesIn` takes
 the probe list as a function of the join's pair, and this half's list is a feature of the
