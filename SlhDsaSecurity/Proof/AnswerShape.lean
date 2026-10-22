@@ -162,7 +162,11 @@ event, and the only work is reordering a conjunction.
 
 What this buys is that **`hseed` leaves the obligation entirely.** The answer half no longer
 owes a probability bound at a fixed walk, where it has none; the complement is charged on the
-shared side, at `seedUnits`, where the seed is still random. -/
+shared side, at `seedUnits`, where the seed is still random.
+
+And the conclusion is `Obligations.AnswerChargedAt Target.answerDefectProved`, not the six-unit
+`AnswerChargedLate`: this side proves `q / 2 ^ 128 + 1 / 2 ^ 141` and now says so, which is what
+frees the four units of `2 ^ -128` the ledger was holding for a `2 ^ -126` nothing spends. -/
 
 set_option maxHeartbeats 1000000 in
 /-- **The answer obligation at `lateOrSeed`, from the bound at the answer side's own run.** -/
@@ -177,11 +181,9 @@ theorem answerChargedLateSeed_of_recordedBound
               ¬ SplitWitness.LateDisclosure walk.1.1.2.1
                 (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
           AnswerJoin.answerRecordedRun adversary walk] ≤
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) :
-    Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
-      FinalAssembly.lateOrSeed := by
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + Target.answerDefectProved) :
+    Obligations.AnswerChargedAt Target.answerDefectProved FusedCoverage.fusedTail
+      FinalAssembly.forgetFused FinalAssembly.lateOrSeed := by
   intro q adversary hq hbudget walk hwalk hgood
   refine le_trans (le_of_eq ?_) (hbound q adversary hq hbudget walk hwalk hgood)
   rw [← map_fusedTail, probEvent_map]
@@ -236,8 +238,8 @@ theorem answerChargedLateSeed_of_parts {inside outside : QueryKind} (hne : insid
           SplitWitness.disclosingKeep walk.1.1.2.1
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
             input result.2.1) :
-    Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
-      FinalAssembly.lateOrSeed :=
+    Obligations.AnswerChargedAt Target.answerDefectProved FusedCoverage.fusedTail
+      FinalAssembly.forgetFused FinalAssembly.lateOrSeed :=
   answerChargedLateSeed_of_recordedBound
     (AnswerJoin.answerRecordedBound_narrow_of_parts hne hjoinNarrow hleftBound hdisclosing)
 

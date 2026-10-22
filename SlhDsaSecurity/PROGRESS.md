@@ -3521,3 +3521,48 @@ Two of the five are the carrier's and are proved already; what is missing there 
 object, not the lemmas. The composition was probe-checked before landing, as every join in this
 development now is, and the probe is what recounted the leaves after the provenance retirement
 changed the arity under me.
+
+## The carrier run is not the recorded run, and the bridge is an interface not a map
+
+`AnswerShape.map_fusedTail` reads the fused tail as `answerRecordedRun` because both are the
+recorder at a **cache** test. The carrier tail has no such reading: its disclosing test is
+`HandlerCarrier.FilesLeft`, a comparison against the frame in flight, and the two disagree by
+construction — which is the repair, since it is what lets the carrier file a served request whose
+digest is already cached and refuse the signer's own randomiser probe. `forgetRecord` keeps the
+recordings, so the differing records sit inside the mapped value. Independently, the carrier tail
+is bracketed and three-stage under `noticingRecorderOf` while `answerRecordedRun` is one
+computation under `recorderOf`.
+
+So the answer side's bound has to be **restated**, and the question is what it has to be restated
+over. Not the recorder: the place where the two charges *meet* mentions no recorder at all. It
+takes the structural clause at its own expected count, the coverage clause at its own, and the
+pathwise fact that the two counts share one budget — `prob_bad_or_coverage_le_of_charges`, three
+lines, generic in the run. Everything run-specific lives in the two charges handed to it, and the
+coverage one is the hard half, being the tape factorisation at a bracketed noticing run.
+
+`AnswerCarrier.answerCarrierRun` is the name for the run itself, defined once so two shapes
+cannot drift; `answerCarrierRun_eq` is `rfl` against what the presentation move asks for.
+
+**And one premise survives the change of recorder, which had to be checked rather than assumed.**
+`noticingRecorderOf` runs `recorderOf` at `CacheView.onQuery state.1 input`, and `cacheOf_onQuery`
+says the notice leaves the cache alone — so `appendedOf`'s guard is still freshness, and
+`noticingRecorderOf_run_inr_some` shows a cache hit leaves both recordings untouched. The carrier
+files on a **fresh draw only**, exactly as the cache recorder does. Everything resting on a filed
+entry being a fresh uniform answer keeps its premise; what the notice moves is which state the
+two *tests* are read at, which is the point and costs those steps nothing.
+
+## State what you prove, or the ledger reserves for a term nobody spends
+
+`answerRecordedBound_narrow_of_parts` proved `q / 2 ^ 128 + 1 / 2 ^ 141` and then added
+`1 / 2 ^ 126` by `le_add_right`, for no reason but to match a stated right-hand side. That is
+four units of `2 ^ -128` the ledger was holding against a term nothing spends, and no arithmetic
+could have found it, because the weakening is *valid*. It was found by asking what the proof
+ends on rather than what the statement says.
+
+With `Obligations.AnswerChargedAt` parameterised over the allowance and
+`Target.answerDefectProved` naming the proved one, the tighter statement is what the assembly
+consumes, and the margin is 251 rather than 247.
+
+The rule: **a weakening added to match an expected shape is a silent reservation.** If the proof
+ends on something tighter, say so and let the consumer weaken — the consumer knows what it can
+afford and the producer does not.
