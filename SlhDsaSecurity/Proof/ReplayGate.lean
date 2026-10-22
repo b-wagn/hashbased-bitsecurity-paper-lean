@@ -59,35 +59,32 @@ theorem signerRandomised_of_replay {x : Trace} {message : Bytes} {parsed : Signa
 
 /-- **The forgery's randomiser is the one the signer derives for its message.** -/
 theorem randomizer_eq_of_replay {x : Trace} {message : Bytes} {parsed : Signature}
-    (hdisclosed : Disclosed x message parsed) (honly : OnlySelfAt x message parsed) :
+    (hself : SelfRandomised x message parsed) :
     parsed.randomizer =
       @Hashing.randomizer Id Id.instMonad (replayQuery x.2) x.1.1.1.2.1 (keyOf x).seed message :=
-  CacheAvailability.randomizer_eq_of_signerRandomised _ _ _ _ _
-    (signerRandomised_of_replay hdisclosed honly)
+  CacheAvailability.randomizer_eq_of_signerRandomised _ _ _ _ _ hself
 
 /-! ## So the forgery is the signature the signer writes -/
 
 /-- **A replay forgery is `Scheme.signInternal` on its own message.** The randomiser comes from
 the cache, the other two fields from `CanonicalAt`, and a `Signature` has no fourth field. -/
 theorem eq_signInternal_of_replay {x : Trace} {message : Bytes} {parsed : Signature}
-    (hcanonical : CanonicalAt x message parsed) (hdisclosed : Disclosed x message parsed)
-    (honly : OnlySelfAt x message parsed) :
+    (hcanonical : CanonicalAt x message parsed) (hself : SelfRandomised x message parsed) :
     parsed = @Scheme.signInternal Id Id.instMonad (replayQuery x.2) (secretKeyOf x) message := by
   refine @CanonicalSignature.eq_signInternal (replayQuery x.2) (secretKeyOf x) message parsed
-    (randomizer_eq_of_replay hdisclosed honly) hcanonical.2.1 ?_
+    (randomizer_eq_of_replay hself) hcanonical.2.1 ?_
   rw [hcanonical.2.2, ← hcanonical.1]
   rfl
 
 /-- **So its bytes are the bytes a signing request would have returned.** -/
 theorem signature_eq_of_replay {x : Trace} {message : Bytes} {parsed : Signature}
     (hparsed : Signature.fromBytes? x.1.2.1.forgery.signature = some parsed)
-    (hcanonical : CanonicalAt x message parsed) (hdisclosed : Disclosed x message parsed)
-    (honly : OnlySelfAt x message parsed) :
+    (hcanonical : CanonicalAt x message parsed) (hself : SelfRandomised x message parsed) :
     x.1.2.1.forgery.signature =
       (@Scheme.signInternal Id Id.instMonad (replayQuery x.2) (secretKeyOf x) message).toBytes :=
   @CanonicalSignature.signature_eq_toBytes (replayQuery x.2) (secretKeyOf x) message
     x.1.2.1.forgery.signature parsed hparsed
-    (eq_signInternal_of_replay hcanonical hdisclosed honly)
+    (eq_signInternal_of_replay hcanonical hself)
 
 /-! ## The dichotomy, and the event it leaves
 
@@ -116,15 +113,15 @@ it was not, and the `PRF_msg` entry its randomiser comes from is one no signing 
 theorem randomiserBad_of_replay {x : Trace} (hfaithful : LogFaithful x)
     (hwin : Wins .strong x.1.2.1) (hreplay : ReplayForgery x) : RandomiserBad x := by
   classical
-  obtain ⟨message, parsed, hframe, hparsed, hcanonical, hdisclosed, honly⟩ := hreplay
-  obtain ⟨other, prfAnswer, hentry, hinput⟩ := signerRandomised_of_replay hdisclosed honly
+  obtain ⟨message, parsed, hframe, hparsed, hcanonical, hself⟩ := hreplay
+  obtain ⟨other, prfAnswer, hentry, hinput⟩ := id hself
   obtain ⟨-, -, hmessage⟩ := Hashing.messageInput_injective hinput
   subst hmessage
   by_cases hsigned : ∃ entry ∈ x.1.2.1.signed, entry.1.frame = some message
   · obtain ⟨entry, hmem, hentryFrame⟩ := hsigned
     exact absurd ⟨entry, hmem, Message.frame_injective hentryFrame hframe,
       by rw [hfaithful entry hmem message hentryFrame,
-        signature_eq_of_replay hparsed hcanonical hdisclosed honly]⟩ hwin.2
+        signature_eq_of_replay hparsed hcanonical hself]⟩ hwin.2
   · exact ⟨message, prfAnswer, hentry, hsigned⟩
 
 /-! ## The split the target asks for

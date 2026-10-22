@@ -32,7 +32,9 @@ fourteen positions its digest selects, and each position is either undisclosed �
 it claims is a sensitive entry of the record, which is `InputBad` — or disclosed. If all
 fourteen are disclosed, `CoverageRouted.forgeryDisclosedCovered_or_only_self` forks again: the
 forgery's digest is covered by the digests that actually disclose, which is `AnswerBad`, or the
-forgery's own input is the only one disclosing them. The witnesses are kept at the disclosing
+forgery's own input is the only one disclosing them. The fork is taken only once the forgery's
+own input is known not to be disclosing: one that is sends the win to the replay case, where it
+belongs, and keeps it out of the coverage charge, which counts targets outside that class. The witnesses are kept at the disclosing
 class rather than weakened to the message class, because only a digest the signer randomised
 reveals anything, and the signing limit caps those while nothing caps the others.
 
@@ -137,19 +139,36 @@ def Disclosed (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
       CacheAvailability.signedAt x.1.1.1.2.1 (keyOf x) x.2
         (forsKeyOfDigest (digestOf x.2 (keyOf x) message parsed))
 
-/-- **The replay case**, which is the canonical branch with its coverage side closed off: the
-forgery is the signer's own signature, its positions are disclosed, and the only disclosing
-digest that selects them is the one the forgery itself reads.
+/-- The forgery reads its digest at an input the signer randomised: its own randomiser is the
+one the signer derives for its own message. -/
+def SelfRandomised (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
+  CacheAvailability.SignerRandomised x.1.1.1.2.1 (keyOf x) x.2
+    (Hashing.messageInput parsed.randomizer (keyOf x) message)
 
-`Disclosed` is carried rather than dropped because `OnlySelfAt` is a statement about every
-disclosing input and says nothing about there being one. What the replay argument needs is a
-disclosing input to apply it to, and that is what this supplies. -/
+/-- **A forgery whose positions are disclosed only by itself reads a signer-randomised
+input.** The disclosure supplies a disclosing input that selects one of the positions, and
+`OnlySelfAt` says every such input is the forgery's own. -/
+theorem selfRandomised_of_only_self {x : Trace} {message : Bytes} {parsed : Signature}
+    (hdisclosed : Disclosed x message parsed) (honly : OnlySelfAt x message parsed) :
+    SelfRandomised x message parsed := by
+  obtain ⟨tree, honly⟩ := honly
+  obtain ⟨input, answer, hsigner, hentry, hkey, other, hindex⟩ :=
+    (CacheAvailability.mem_signedAt _ _ _ _ _).mp (hdisclosed tree)
+  rw [SelfRandomised, ← honly input answer hsigner hentry hkey ⟨other, hindex⟩]
+  exact hsigner
+
+/-- **The replay case**, which is the canonical branch with its coverage side closed off: the
+forgery is the signer's own signature on its own message, read at the signer's own randomiser.
+
+`SelfRandomised` is what the replay argument needs — the randomiser the forgery carries is the
+one the cache says the signer derived — and it is also what separates this case from coverage:
+a forgery that reads a signer-randomised input is not a target the coverage charge has to
+carry, because the charge counts targets outside the disclosing class. -/
 def ReplayForgery (x : Trace) : Prop :=
   ∃ (message : Bytes) (parsed : Signature),
     x.1.2.1.forgery.message.frame = some message ∧
       Signature.fromBytes? x.1.2.1.forgery.signature = some parsed ∧
-        CanonicalAt x message parsed ∧ Disclosed x message parsed ∧
-          OnlySelfAt x message parsed
+        CanonicalAt x message parsed ∧ SelfRandomised x message parsed
 
 /-! ## The record holds both kinds of claim
 
@@ -267,12 +286,15 @@ theorem cases_of_canonical (adversary : Adversary)
           (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result.2
           (forsKeyOfDigest (digestOf result.2
             (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) message parsed))
-  · rcases CoverageRouted.forgeryDisclosedCovered_or_only_self walk.1.1.2.1
-        (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result message parsed _
-        hframe hparsed (cached_digest adversary hresult message parsed hframe hparsed)
-        hsigned with hcovered | honly
-    · exact Or.inl (Or.inr hcovered)
-    · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical, hsigned, honly⟩)
+  · by_cases hself : SelfRandomised ((walk.1, result.1), result.2) message parsed
+    · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical, hself⟩)
+    · rcases CoverageRouted.forgeryDisclosedCovered_or_only_self walk.1.1.2.1
+          (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result message parsed _
+          hframe hparsed (cached_digest adversary hresult message parsed hframe hparsed)
+          hself hsigned with hcovered | honly
+      · exact Or.inl (Or.inr hcovered)
+      · exact absurd (selfRandomised_of_only_self (x := ((walk.1, result.1), result.2))
+          hsigned honly) hself
   · push Not at hsigned
     obtain ⟨tree, hunsigned⟩ := hsigned
     have hsecrets : ∀ tree : Fin forsTrees, (parsed.fors tree).secret =
