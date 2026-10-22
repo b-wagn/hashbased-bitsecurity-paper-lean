@@ -14793,3 +14793,15 @@ info: 'SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont
+
+/--
+info: 'SlhDsaSecurity.FusedTape.fusedRightOf_getElem?_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.fusedRightOf_getElem?_cont
+
+/--
+info: 'SlhDsaSecurity.FusedTape.threeStageRightOf_getElem?' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.threeStageRightOf_getElem?

@@ -544,4 +544,162 @@ theorem threeStageCausal (leftKeep rightKeep : Bytes → σ → Prop)
   simpa only [List.length_nil, Nat.zero_add] using h.symm
 
 
+/-! ## The cell correspondence at the fused handler, and across the three stages
+
+Two more applications of the continuation form, in the order the other families went. No
+invariant appears in either, for the reason the continuation form was given: each layer quotes
+its own recording and its own block.
+-/
+
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **Each recorded target answer is the block cell it was read from, at the fused handler.** -/
+theorem fusedRightOf_getElem?_cont (leftKeep rightKeep : Bytes → σ → Prop)
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    {α γ : Type} (phase : OracleComp (OracleWorld + SigningSpec) α)
+    (cont : α × (ω × SigningLog × SplitTapeState σ) → ProbComp γ)
+    (finalRight : γ → Record)
+    (hprefix : ∀ z w, w ∈ support (cont z) → rightOf z.2.2.2 <+: finalRight w)
+    (hcont : ∀ z w, w ∈ support (cont z) → ∀ index : Nat,
+      (rightOf z.2.2.2).length + index < (finalRight w).length ->
+      index < (NoticingTape.rightTapeOf z.2.2.2).length ->
+        ((finalRight w)[(rightOf z.2.2.2).length + index]?).map Prod.snd =
+          (NoticingTape.rightTapeOf z.2.2.2)[index]?) :
+    ∀ (accumulated : ω) (log : SigningLog) (cache : σ)
+      (leftTape rightTape : List HashOutput) (leftRecord rightRecord : Record) (w : γ),
+      w ∈ support ((simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+        (fun request => onCarrierTape (before request)) (onCarrierTape afterMap)) phase).run
+          (accumulated, log, (cache, (leftTape, rightTape), (leftRecord, rightRecord))) >>=
+            cont) ->
+      ∀ index : Nat, rightRecord.length + index < (finalRight w).length ->
+        index < rightTape.length ->
+        ((finalRight w)[rightRecord.length + index]?).map Prod.snd = rightTape[index]? := by
+  classical
+  induction phase using OracleComp.inductionOn with
+  | pure value =>
+    intro accumulated log cache leftTape rightTape leftRecord rightRecord w hw index hreached
+      hcell
+    rw [simulateQ_pure, StateT.run_pure, pure_bind] at hw
+    exact hcont (value, (accumulated, log, (cache, (leftTape, rightTape),
+      (leftRecord, rightRecord)))) w hw index hreached hcell
+  | query_bind queried next ih =>
+    intro accumulated log cache leftTape rightTape leftRecord rightRecord w hw index hreached
+      hcell
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc] at hw
+    rcases queried with world | request
+    · rw [fuseServing_run_inl, bind_assoc] at hw
+      refine NoticingTape.rightOf_getElem?_cont leftKeep rightKeep
+        (((inner (Sum.inl world)).run).run log)
+        (fun z => (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, z.2)) :
+            ProbComp _) >>= fun step =>
+          (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+            (fun r => onCarrierTape (before r)) (onCarrierTape afterMap))
+            (next step.1)).run step.2 >>= cont)
+        finalRight ?_ ?_ cache leftTape rightTape leftRecord rightRecord w hw index hreached
+        hcell
+      · intro z v hv
+        rw [pure_bind, mem_support_bind_iff] at hv
+        obtain ⟨r, hr, hv2⟩ := hv
+        exact List.IsPrefix.trans (fusedRightOf_prefix leftKeep rightKeep inner before afterMap _
+          (accumulated * z.1.1.2, z.1.2, z.2) r hr) (hprefix r v hv2)
+      · intro z v hv idx hreach hcl
+        rw [pure_bind] at hv
+        exact ih z.1.1.1 (accumulated * z.1.1.2) z.1.2 z.2.1 z.2.2.1.1 z.2.2.1.2 z.2.2.2.1
+          z.2.2.2.2 v hv idx hreach hcl
+    · rw [fuseServing_run_inr, bind_assoc] at hw
+      refine NoticingTape.rightOf_getElem?_cont leftKeep rightKeep
+        (((inner (Sum.inr request)).run).run log)
+        (fun z => (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, onCarrierTape afterMap z.2)) :
+            ProbComp _) >>= fun step =>
+          (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+            (fun r => onCarrierTape (before r)) (onCarrierTape afterMap))
+            (next step.1)).run step.2 >>= cont)
+        finalRight ?_ ?_ (before request cache) leftTape rightTape leftRecord rightRecord w hw
+        index hreached hcell
+      · intro z v hv
+        rw [pure_bind, mem_support_bind_iff] at hv
+        obtain ⟨r, hr, hv2⟩ := hv
+        exact List.IsPrefix.trans (fusedRightOf_prefix leftKeep rightKeep inner before afterMap _
+          (accumulated * z.1.1.2, z.1.2, onCarrierTape afterMap z.2) r hr) (hprefix r v hv2)
+      · intro z v hv idx hreach hcl
+        rw [pure_bind] at hv
+        exact ih z.1.1.1 (accumulated * z.1.1.2) z.1.2 (afterMap z.2.1) z.2.2.1.1 z.2.2.1.2
+          z.2.2.2.1 z.2.2.2.2 v hv idx hreach hcl
+
+set_option maxHeartbeats 4000000 in
+open scoped Classical in
+/-- **Each recorded target answer is the block cell it was read from, across all three stages.**
+The innermost layer is vacuous rather than `rfl` this time: the final `pure` adds nothing to the
+recording, so no entry lies beyond it and the hypothesis that one does is false. -/
+theorem threeStageRightOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (leftRecord rightRecord : Record)
+    (leftTape rightTape : List HashOutput) (w : δ × SplitPrefix.SplitState)
+    (hw : w ∈ support (threeStageTapeRun leftKeep rightKeep inner before afterMap first phase
+      last value cache leftRecord rightRecord leftTape rightTape)) :
+    ∀ index : Nat, rightRecord.length + index < w.2.2.2.length ->
+      index < rightTape.length ->
+      (w.2.2.2[rightRecord.length + index]?).map Prod.snd = rightTape[index]? := by
+  classical
+  rw [threeStageTapeRun] at hw
+  refine NoticingTape.rightOf_getElem?_cont leftKeep rightKeep first
+    (fun keys => (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep)
+          (inner keys.1) (fun request => onCarrierTape (before request))
+          (onCarrierTape afterMap)) (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+        (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+            (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+            forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
+    (fun v => v.2.2.2) ?_ ?_ cache leftTape rightTape leftRecord rightRecord w hw
+  · intro keys v hv
+    rw [mem_support_bind_iff] at hv
+    obtain ⟨middle, hmiddle, hv1⟩ := hv
+    rw [mem_support_bind_iff] at hv1
+    obtain ⟨final, hfinal, hpure⟩ := hv1
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [hpure]
+    exact List.IsPrefix.trans (fusedRightOf_prefix leftKeep rightKeep (inner keys.1) before
+        afterMap _ (1, [], keys.2) middle hmiddle)
+      (noticingRightOf_prefix leftKeep rightKeep _ middle.2.2.2 final hfinal)
+  · intro keys v hv idx hreach hcl
+    refine fusedRightOf_getElem?_cont leftKeep rightKeep (inner keys.1) before afterMap
+      (phase keys.1)
+      (fun middle => (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+            (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+            ProbComp (δ × SplitPrefix.SplitState)))
+      (fun v => v.2.2.2) ?_ ?_ 1 [] keys.2.1 keys.2.2.1.1 keys.2.2.1.2 keys.2.2.2.1
+      keys.2.2.2.2 v hv idx hreach hcl
+    · intro y u hu
+      rw [mem_support_bind_iff] at hu
+      obtain ⟨final, hfinal, hpure⟩ := hu
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact noticingRightOf_prefix leftKeep rightKeep _ y.2.2.2 final hfinal
+    · intro y u hu idx2 hreach2 hcl2
+      refine NoticingTape.rightOf_getElem?_cont leftKeep rightKeep (last keys.1 y.1)
+        (fun final => (pure (value keys.1 y.1 y.2.1 y.2.2.1 final.1, forgetViewTape final.2) :
+          ProbComp (δ × SplitPrefix.SplitState)))
+        (fun v => v.2.2.2) ?_ ?_ y.2.2.2.1 y.2.2.2.2.1.1 y.2.2.2.2.1.2 y.2.2.2.2.2.1
+        y.2.2.2.2.2.2 u hu idx2 hreach2 hcl2
+      · intro t s hs
+        rw [support_pure, Set.mem_singleton_iff] at hs
+        rw [hs]
+        exact List.prefix_rfl
+      · intro t s hs idx3 hreach3 _
+        rw [support_pure, Set.mem_singleton_iff] at hs
+        rw [hs] at hreach3
+        simp only [forgetViewTape, rightOf] at hreach3
+        exfalso
+        omega
+
 end SlhDsaSecurity.FusedTape
