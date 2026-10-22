@@ -4755,3 +4755,40 @@ the ledger does not already provide.
 where the shared half must charge it. That is the distinction between deferral and elimination
 applied to this file's own change, and it is the same distinction recorded above for
 `¬ LateDisclosure`.
+
+## The cap at the tail: an empty served set, not an empty cache
+
+`CarrierCap.leftRecord_le_cap_carrierTail` is `CarrierFiles.leftRecord_length_le_cap` at
+`CarrierTail.carrierTail`. The lift turns on two observations and neither is a new argument.
+
+**Where the recording can grow.** `HandlerCarrier.FilesLeft` compares an input against the
+framing in flight, so with nothing in flight it is false — and then the notice is the identity,
+the left test never fires, and the disclosing recording cannot grow. `CarrierClearFraming`
+already says every stage of the tail is entered and left clear, so key generation and
+verification contribute nothing and the whole recording is the adversary's phase's. That is
+`leftFixed_step`, and it is also why the cap can be read at the middle stage and then carried
+across verification unchanged, instead of having to survive a third stage's arithmetic.
+
+**What the agreement actually needed.** `CarrierFiles.agreesWithLog_carrierRun` reads the
+agreement at a phase started from `HandlerCarrier.empty`, and the tail's middle stage starts
+from the carrier key generation left behind, whose cache is **not** empty. The argument never
+wanted an empty cache: it wanted an empty *served set*, because that is the only reason
+`ServedAgreement.CarrierLogged` holds at the start — there is nothing served to be logged.
+`carrierLogged_run_with` and `logFiled_run_with` were already general in the starting state, so
+`agreesWithLog_quiet` is their composition at a quiet start and not a new induction.
+
+So the invariant that does the work is `Quiet` — nothing in flight, nothing served — and it is
+a `ServedAgreement.Files.invariant`, whose filing clause is discharged by the framing being
+clear rather than by anything about the carrier's history. **The distinction between "empty" and
+"empty in the component the proof reads" is the whole lift**, and it was visible only after
+asking what the hypothesis was used *for* rather than what it said.
+
+The rest is mirrors: `appendedOf_left_shape` and `step_left_shape` are the left-hand copies of
+`CarrierRecordings`' right-hand ones, and `LeftFreshNodup` and `LeftServed` are invariants over
+the three stages in `CarrierTailRecordings`' pattern — `run_invariant`, `phase_invariant` with
+the two bracket laws, `run_invariant` again. The brackets keep all of them for the one reason
+they keep everything: they write the framing and return the rest of the state untouched.
+
+**What is not here, and is a hypothesis.** The signing log's length. It is a budget fact about
+the adversary, and the theorem takes it at the tail's own outcome — `result.1.1.1.signed` — so
+a consumer can discharge it without reaching into a stage.

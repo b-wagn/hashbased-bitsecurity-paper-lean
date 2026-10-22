@@ -250,6 +250,7 @@ import SlhDsaSecurity.Proof.RecordPrfCharge
 import SlhDsaSecurity.Proof.RecordColumn
 import SlhDsaSecurity.Proof.CarrierSplit
 import SlhDsaSecurity.Proof.RecordSlot
+import SlhDsaSecurity.Proof.CarrierCap
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15702,3 +15703,125 @@ info: 'SlhDsaSecurity.RecordColumn.sharedChargedLate_of_parts_record_at' depends
 /-- info: 'SlhDsaSecurity.RecordSlot.prob_one_target_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordSlot.prob_one_target_eq
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.quiet_startAt' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.quiet_startAt
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.quiet_cacheAnswer' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.quiet_cacheAnswer
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.quiet_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.quiet_run
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.left_appendedOf_of_not_left' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.left_appendedOf_of_not_left
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftFixed_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftFixed_step
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.appendedOf_left_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.appendedOf_left_shape
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.step_left_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.step_left_shape
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftFreshNodup_startAt' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftFreshNodup_startAt
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftServed_startAt' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftServed_startAt
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftFreshNodup_bracket' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftFreshNodup_bracket
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.step_leftCached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.step_leftCached
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.step_leftFreshNodup' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.step_leftFreshNodup
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.step_leftServed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.step_leftServed
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftServed_bracket' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftServed_bracket
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.served_startServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.served_startServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.served_stopServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.served_stopServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.carrierLogged_of_quiet' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.carrierLogged_of_quiet
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.agreesWithLog_quiet' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.agreesWithLog_quiet
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftRecord_length_le_cap_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftRecord_length_le_cap_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail
