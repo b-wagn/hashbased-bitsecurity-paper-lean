@@ -4524,3 +4524,33 @@ is not done and needs three things, none of which is a three-stage argument:
    `¬ForgerySeedRandomised`) and each witness into the disclosing one, then `RecordCovers`;
 3. the transfer from `carrierTail` to `AnswerCarrier.answerCarrierRun`, for which
    `CarrierTailRecordings.recordClass_answerCarrierRun` is the pattern.
+
+### The cover's hypothesis, discharged — and where the unconditional cover's price landed
+
+`cover_carrierTail` took the cover as a hypothesis. It is now discharged at the carrier's own two
+tests, and the surprise is that it needs **no case on the framing and no cache hypothesis at
+all** — the in-flight branch looked like it would be the work and was not.
+
+The reason: `AnswerCarrier.FilesRandomiser` *is* a membership of the PRF class, read at one
+frame. It says the input is `randomizerInput prfSeed pk.seed framed` for the frame in flight,
+and that is already `RandomizerGate.PrfClass prfSeed input` with `seed := pk.seed` and
+`message := framed`. So at the narrowed class the clause is refuted outright and the frame is
+never inspected. `CarrierDemand.prfClass_of_inFlight_coincidence` is the same observation
+pointed the other way, which is why the narrowing is the right one.
+
+**This is where dropping `reaches` was paid for, and it is worth being plain about it.** The
+unconditional cover did not make the residue disappear; it moved it into the class, exactly
+where the cache route already keeps it. `cover_carrierTail_narrow` carries the narrowed class
+`IsMessageInput ∧ ¬ PrfClass` in its statement — that is the invoice, and it is visible rather
+than buried in a side condition.
+
+`cover_answerCarrierRun` then arrives by `support_map` and nothing else, because
+`AnswerShape.forgetRecord` drops the record from the *value* and keeps the whole recorder
+state — the third time that one fact has paid, after `hcoverage` transporting free and the
+split tail's map.
+
+**What is left of `hjoin`** is only the assembly from `ForgeryDisclosedCovered` to
+`TargetCovered`: the forgery's own input into the target recording, each witness into the
+disclosing one, then `RecordCovers`. That is the cache side's
+`SplitWitness.mem_records_of_covered_of_not_late` argument redone against the recordings the
+cover hands back, and it belongs to the thread that owns that argument. The reach-in is done.

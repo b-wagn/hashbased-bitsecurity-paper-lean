@@ -15544,3 +15544,19 @@ info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail
+
+/-- info: 'SlhDsaSecurity.CarrierCover.not_filesRandomiser_of_not_prfClass' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.not_filesRandomiser_of_not_prfClass
+
+/-- info: 'SlhDsaSecurity.CarrierCover.cover_carrierRightKeep' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.cover_carrierRightKeep
+
+/-- info: 'SlhDsaSecurity.CarrierCover.cover_carrierTail_narrow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.cover_carrierTail_narrow
+
+/-- info: 'SlhDsaSecurity.CarrierCover.cover_answerCarrierRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCover.cover_answerCarrierRun

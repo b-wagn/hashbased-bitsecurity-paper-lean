@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.CarrierTail
 import SlhDsaSecurity.Proof.FusedCover
+import SlhDsaSecurity.Proof.AnswerCarrier
 
 /-!
 # The cover, reached through three stages
@@ -263,5 +264,90 @@ theorem cover_carrierTail
       (rightKeep walk) _ (dropCount middle.2.2.2) (final.1, dropCount final.2) h3
     exact hmem.imp (fun h => hleftLast.subset (hleftPhase.subset h))
       (fun h => hrightLast.subset (hrightPhase.subset h))
+
+/-! ## The cover's hypothesis, at the carrier's own two tests
+
+`cover_carrierTail` takes the cover as a hypothesis. Here it is discharged, and it turns out to
+need **no case on the framing and no cache hypothesis at all** — which is worth saying, because
+the in-flight branch (`CarrierDemand.cover_inFlight`) looked like it would be the work.
+
+The reason is that `AnswerCarrier.FilesRandomiser` *is* a membership of the PRF class, read at
+one frame: it says the input is `randomizerInput prfSeed pk.seed framed` for the frame in
+flight, and that is already `RandomizerGate.PrfClass prfSeed input` with `seed := pk.seed` and
+`message := framed`. So at the narrowed class the clause is refuted outright, with the frame
+never inspected. `CarrierDemand.prfClass_of_inFlight_coincidence` is the same observation
+pointed the other way, and it is why the narrowing is the right one.
+
+**This is where the unconditional cover's price is paid.** Dropping `reaches` from
+`cover_carrierTail` did not make the residue disappear; it moved it into the class, exactly
+where the cache route already keeps it. The narrowed class is the invoice. -/
+
+/-- **A randomiser the carrier would file is of the PRF class.** -/
+theorem not_filesRandomiser_of_not_prfClass (prfSeed : Digest) (publicKey : PublicKey)
+    (state : HandlerCarrier.State) (input : Bytes)
+    (hprf : ¬ RandomizerGate.PrfClass prfSeed input) :
+    ¬ AnswerCarrier.FilesRandomiser prfSeed publicKey state input := by
+  rintro ⟨framed, -, hinput⟩
+  exact hprf ⟨publicKey.seed, framed, hinput⟩
+
+open scoped Classical in
+/-- **The cover at the carrier's two tests**, at the narrowed class and at every view. -/
+theorem cover_carrierRightKeep (walk : Walk) (probe : Bytes) (view : HandlerCarrier.State)
+    (hclass : CombinedCharge.IsMessageInput (keyAt walk) probe)
+    (hprf : ¬ RandomizerGate.PrfClass walk.1.1.2.1 probe) :
+    disclosingKeep (keyAt walk) probe view ∨ AnswerCarrier.carrierRightKeep walk probe view := by
+  classical
+  by_cases hleft : disclosingKeep (keyAt walk) probe view
+  · exact Or.inl hleft
+  · exact Or.inr ⟨⟨hclass,
+      not_filesRandomiser_of_not_prfClass walk.1.1.2.1 (keyAt walk) view probe hprf⟩, hleft⟩
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The cover at the carrier tail, with nothing assumed.** -/
+theorem cover_carrierTail_narrow (adversary : Adversary) (walk : Walk)
+    (result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState)
+    (hresult : result ∈ support
+      (carrierTail AnswerCarrier.carrierRightKeep adversary walk))
+    (input : Bytes) (answer : HashOutput)
+    (hclass : CombinedCharge.IsMessageInput (keyAt walk) input)
+    (hprf : ¬ RandomizerGate.PrfClass walk.1.1.2.1 input)
+    (hfresh : walk.2 input = none)
+    (hfinal : result.2.1 input = some answer) :
+    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 :=
+  cover_carrierTail AnswerCarrier.carrierRightKeep
+    (fun probe => CombinedCharge.IsMessageInput (keyAt walk) probe ∧
+      ¬ RandomizerGate.PrfClass walk.1.1.2.1 probe) adversary walk
+    (fun probe view hc _ => cover_carrierRightKeep walk probe view hc.1 hc.2)
+    result hresult input answer ⟨hclass, hprf⟩ hfresh hfinal
+
+/-! ## And at the run the answer side names
+
+`AnswerCarrier.answerCarrierRun` is `AnswerShape.forgetRecord` over the tail, and that map
+**drops the record from the value and keeps the whole recorder state** — the same fact that let
+`hcoverage` transport free. So the cover arrives here by `support_map` and nothing else. -/
+
+set_option maxHeartbeats 4000000 in
+set_option linter.constructorNameAsVariable false in
+open scoped Classical in
+/-- **The cover at `answerCarrierRun`.** -/
+theorem cover_answerCarrierRun (adversary : Adversary) (walk : Walk)
+    (result : (Outcome × Nat) × SplitPrefix.SplitState)
+    (hresult : result ∈ support
+      (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk))
+    (input : Bytes) (answer : HashOutput)
+    (hclass : CombinedCharge.IsMessageInput (keyAt walk) input)
+    (hprf : ¬ RandomizerGate.PrfClass walk.1.1.2.1 input)
+    (hfresh : walk.2 input = none)
+    (hfinal : result.2.1 input = some answer) :
+    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 := by
+  classical
+  rw [AnswerCarrier.answerCarrierRun, support_map] at hresult
+  obtain ⟨rich, hrich, hshape⟩ := hresult
+  have hstate : rich.2 = result.2 := by rw [← hshape]; rfl
+  refine (cover_carrierTail_narrow adversary walk rich hrich input answer hclass hprf hfresh
+    ?_).imp (fun h => by rwa [hstate] at h) (fun h => by rwa [hstate] at h)
+  rw [hstate]
+  exact hfinal
 
 end SlhDsaSecurity.CarrierCover
