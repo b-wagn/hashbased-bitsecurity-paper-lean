@@ -23,8 +23,11 @@ the budget is for. What would be unsound is a record that misses the real claim,
 direction the clamp cannot go.
 
 Keeping the record indexed by every layer and chain, rather than only by the chain the residue
-names, is what keeps its length a constant: `GraphStakes.claimedCount` is `259`, against the
-`1020` the honest phase's spend allows.
+names, is what keeps its length a constant: `GraphStakes.claimedCount` is `259`, and what the
+honest phase's spend allows is `506` — `Target.allowanceOf`'s `hclaims : claims + 6 ≤ 512`,
+reserving on one half. (Earlier notes here said `1020`; no lemma records that figure, and the
+nearest one, `Assembly.le_target_of_counts`, allows `2 * slack = 1024` by reserving on both
+halves and is unconsumed.)
 -/
 
 open OracleComp OracleSpec

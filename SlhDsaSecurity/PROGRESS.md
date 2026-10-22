@@ -3338,3 +3338,44 @@ lemma earlier than the last. The `≠ none` grep catches the *signature*; the ge
 conclusion weaker than what the proof has in hand, and no grep sees that. The habit that does:
 **when writing a lemma, write down what the proof knows and what the conclusion says, and diff
 them.**
+## The assembly layer had a ledger per generation, and the headings did not say so
+
+`Assembly.lean` accumulated five ledger theorems as the design moved, and **four have no
+consumers**. That would be harmless if the narrative said which was which. It did not: the
+module docstring described the first (`le_target_of_terms`), the section headed *"The accounting
+the finished proof has to meet"* described the fourth (`le_target_of_counts`, margin `760`,
+defects bounded by `defects_le_five`), and the live `le_target_of_full` — margin `247`, defects
+`defects_le_six` — sat under a heading about a different theorem with no narrative at all.
+
+The `759`/`1024` figures that reached `Target.lean`, `ClaimedProbes.lean` and a brief came from
+that heading. Reading top to bottom gave a margin wrong by a factor of three, and every layer was
+individually true.
+
+`MainTheorem.lean` had the same shape one level up: *"What remains after this file is exactly its
+three hypotheses"* listed the hypotheses of `totalSecurityBits_of_halves`, which nothing calls,
+while the live route is `totalSecurityBits_of_bound` into
+`ObligationShapes.target_of_answer_and_leaves` and a different three.
+
+The convention that fixes it is cheap and already present in seven docstrings, four of them in
+one file: **a narrative that says what the proof does names the theorem, and a theorem with no
+consumers says so.** It is checkable by grep, which is the point. Both files now carry a liveness
+table or note, and the dead ledgers say they are dead.
+
+## And a check of mine that was cut off by `head`
+
+While reporting the above I claimed `2 ^ 102` appeared nowhere in the Lean. It appears in **38
+places**. The grep was `grep -rn "2 ^ 102" SlhDsaSecurity/ | head -5`, and `PROGRESS.md` alone
+supplied five matches, so every Lean hit was truncated away. I then wrote the negative conclusion
+into a docstring and into a report that was acted on.
+
+Both caps are live, for different terms: `2 ^ 102` is `ForsConcentrationSharper`'s, giving the
+`2 ^ -126` additive and the halved FORS term, and is what `CombinedCharge`,
+`WholeGameStructural` and `WarmedCharges` take as `hmoment`; `2 ^ 103` is the coverage tape's,
+where `BlockViews.GoodBlock` is the cap and `prob_not_goodBlock_le` turns it into the flat
+`2 ^ -141`. The old header's remark that `2 ^ 103` "cannot be used" is about the FORS *term* in a
+dead ledger and is correct about it.
+
+The rule, which is this week's defect in a new disguise: **a grep that establishes an absence
+must not be truncated, and `| head` on a search whose hits are dominated by a log file
+establishes nothing.** Count first, read second. A positive finding survives truncation; a
+negative one does not.
