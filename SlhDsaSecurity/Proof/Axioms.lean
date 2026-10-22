@@ -8758,3 +8758,11 @@ info: 'SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt' depends on
 /-- info: 'SlhDsaSecurity.RedrawCell.not_targets_of_locate_none' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.not_targets_of_locate_none
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.aiming_dedup_eq_card' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.aiming_dedup_eq_card
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet

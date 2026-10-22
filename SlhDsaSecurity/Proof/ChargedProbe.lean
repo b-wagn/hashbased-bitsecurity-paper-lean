@@ -926,12 +926,65 @@ theorem withFlag_aiming_quiet (availableAt : QueryCache HashSpec → CanonicalGr
       rw [List.filter_cons_of_neg (by simpa using hnot), List.filter_nil]
     simp only [aiming, List.filter_append, hsingle, List.append_nil]
 
+/-! ### Counting the distinct probes
+
+The charge weighs the probes a record names, not the entries it holds: a repeated probe is one
+chance at the cell and not two, and the containment that pays for these weights speaks of the
+entry a probe installed, which a repeat does not install twice. So the weight is taken at the
+record's `List.dedup`, and what that counts is read as a `Finset` cardinality, where appending a
+probe is inserting one element. -/
+
+open scoped Classical in
+/-- **The weight at a de-duplicated record counts distinct probes.** -/
+theorem aiming_dedup_eq_card (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (probes : List (Bytes × QueryCache HashSpec)) :
+    aiming stakes unavailable index probes.dedup =
+      (probes.toFinset.filter (fun entry => Targets stakes unavailable index entry)).card := by
+  classical
+  rw [aiming, ← List.toFinset_card_of_nodup
+      (List.Nodup.filter _ (List.nodup_dedup probes)),
+    List.toFinset_filter, show probes.dedup.toFinset = probes.toFinset from by ext entry; simp]
+  simp
+
+open scoped Classical in
+/-- **Once the cell is released nothing more aims at it**, counting distinct probes. -/
+theorem withFlag_aiming_dedup_quiet
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
+    (hstate : availableAt state.1.1 index)
+    (step : OracleWorld.Range queried × (HandlerState × Bool))
+    (hstep : step ∈ support (((withFlag (lazyProgram publicSeed availableAt table))
+      queried).run state)) :
+    aiming stakes (fun cache node => ¬ availableAt cache node) index step.2.1.2.1.dedup =
+      aiming stakes (fun cache node => ¬ availableAt cache node) index state.1.2.1.dedup := by
+  classical
+  rw [withFlag_run, mem_support_bind_iff] at hstep
+  obtain ⟨inner, hinner, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+  show aiming stakes (fun cache node => ¬ availableAt cache node) index inner.2.2.1.dedup = _
+  rcases queried with coin | probe
+  · rw [lazyProgram_step_inl publicSeed availableAt table coin state.1 inner hinner]
+  · rw [lazyProgram_step_inr publicSeed availableAt table probe state.1 inner hinner]
+    have hnot : ¬ Targets stakes (fun cache node => ¬ availableAt cache node) index
+        (probe, state.1.1) := by
+      rintro ⟨-, -, hunavailable, -⟩
+      exact hunavailable hstate
+    rw [aiming_dedup_eq_card, aiming_dedup_eq_card,
+      show (state.1.2.1 ++ [(probe, state.1.1)]).toFinset =
+        insert (probe, state.1.1) state.1.2.1.toFinset from by simp,
+      Finset.filter_insert, if_neg hnot]
+
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **The expected number of probes aiming at a cell is the same stalled and unstalled.** The
-equality is between the real run and the run stalled at that same cell, and it holds because
-the count cannot change once the cell is released — not because of anything about the sum over
-cells. -/
+/-- **The expected number of distinct probes aiming at a cell is the same stalled and
+unstalled.** The equality is between the real run and the run stalled at that same cell, and it
+holds because the count cannot change once the cell is released — not because of anything about
+the sum over cells. The count is of *distinct* probes: the record is de-duplicated before it is
+weighed, since a repeat is one chance at the cell and the containment that pays for these
+weights speaks of the entry a probe installed. -/
 theorem expected_aiming_stalled_eq {α : Type}
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
@@ -942,24 +995,24 @@ theorem expected_aiming_stalled_eq {α : Type}
     (∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (withFlag (lazyProgram publicSeed availableAt table))
             computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup :
             Nat) : ℝ≥0∞)) =
       ∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (StalledRun.stalled
             (withFlag (lazyProgram publicSeed availableAt table))
             (fun inner => availableAt inner.1 index) stall) computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup :
             Nat) : ℝ≥0∞) :=
   StalledRun.expectation_stalled_eq (withFlag (lazyProgram publicSeed availableAt table))
     (fun inner => availableAt inner.1 index) stall
-    (fun p => ((aiming stakes (fun cache node => ¬ availableAt cache node) index p.1.2.1 :
+    (fun p => ((aiming stakes (fun cache node => ¬ availableAt cache node) index p.1.2.1.dedup :
       Nat) : ℝ≥0∞))
     (fun queried p => withFlag_neverFails publicSeed availableAt table queried p)
     (fun queried p hp z hz =>
       withFlag_frozen publicSeed availableAt hmono index table queried p hp z hz)
     (fun queried p hp z hz => by
       exact_mod_cast congrArg (fun count : Nat => (count : ℝ≥0∞))
-        (withFlag_aiming_quiet publicSeed availableAt stakes index table queried p hp z hz))
+        (withFlag_aiming_dedup_quiet publicSeed availableAt stakes index table queried p hp z hz))
     computation state
 
 
@@ -1118,9 +1171,10 @@ theorem prob_claimed_stalled_eq {α : Type}
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **The expected number of claims aiming at a cell is the same stalled and unstalled**, and
-for the same reason: a claim read at the run's own final cache aims nowhere once that cache has
-the cell available. -/
+/-- **The expected number of distinct claims aiming at a cell is the same stalled and
+unstalled**, and for the same reason: a claim read at the run's own final cache aims nowhere
+once that cache has the cell available. The list is de-duplicated before it is weighed, as the
+record is, so that both weights count chances rather than entries. -/
 theorem expected_aiming_claimed_stalled_eq {α : Type}
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
@@ -1134,29 +1188,29 @@ theorem expected_aiming_claimed_stalled_eq {α : Type}
     (∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (withFlag (lazyProgram publicSeed availableAt table))
             computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z).dedup :
             Nat) : ℝ≥0∞)) =
       ∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (StalledRun.stalled
             (withFlag (lazyProgram publicSeed availableAt table))
             (fun inner => availableAt inner.1 index) stall) computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z).dedup :
             Nat) : ℝ≥0∞) := by
   classical
   refine StalledRun.expectation_stalled_eq_of_zero
     (withFlag (lazyProgram publicSeed availableAt table))
     (fun inner => availableAt inner.1 index) stall
-    (fun z => ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
-      Nat) : ℝ≥0∞))
+    (fun z => ((aiming stakes (fun cache node => ¬ availableAt cache node) index
+      (claims z).dedup : Nat) : ℝ≥0∞))
     (fun queried p hp z hz =>
       withFlag_frozen publicSeed availableAt hmono index table queried p hp z hz)
     (fun z hz => ?_) computation state
-  have hnil : (claims z).filter (fun entry => decide (Targets stakes
+  have hnil : (claims z).dedup.filter (fun entry => decide (Targets stakes
       (fun cache node => ¬ availableAt cache node) index entry)) = [] := by
     rw [List.filter_eq_nil_iff]
     intro entry hentry hdecide
     obtain ⟨-, -, hunavailable, -⟩ := of_decide_eq_true hdecide
-    exact hunavailable (by rw [hcache z entry hentry]; exact hz)
+    exact hunavailable (by rw [hcache z entry (List.mem_dedup.mp hentry)]; exact hz)
   rw [aiming, hnil]
   simp
 
