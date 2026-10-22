@@ -1535,6 +1535,33 @@ way it declines points away from the cause.
    silently, with unfolding producing terms that are not type-correct at `instances`
    transparency. The rule: phrase each lemma at the index its goal has, and convert once, inside
    that lemma's own proof.
+
+   **The refinement, paid for twice.** "Convert once, inside the lemma's own proof" is not
+   enough when the lemma is used on a *hypothesis*. Rewriting a hypothesis across the index
+   succeeds — and then every later `rw` in the same chain fails with *did not find an occurrence
+   of the pattern* on a goal where the pattern is plainly visible, because the term the first
+   rewrite produced is no longer type-correct at `instances`. The failure is reported at the
+   second rewrite, which is innocent, so the search starts in the wrong place.
+
+   Two repairs that look right and are not. Ascribing the lemma's right-hand side at the sum's
+   `Range` does nothing: an ascription is a defeq check, so the elaborator keeps the term's own
+   type and the statement comes out at the summand's index anyway. A `show` localising the
+   conversion inside the proof makes that proof go through and leaves the *statement* mixed, so
+   the caller breaks instead.
+
+   What works is to keep the conversion out of every rewrite. State the lemma entirely at the
+   **summand's** index, where it is self-consistent and every rewrite inside it is sound, and
+   **apply** it at the sum's index with `exact` — one defeq check at `default` transparency,
+   which succeeds because the gap is only semireducible. `AdversaryQueries` already does this
+   (`work_le_count_adversaryImpl` applied at `Sum.inl`), and `SigningFaithful` follows it. So
+   the rule has a second half: never rewrite across the index, convert by application.
+
+   The same transparency gap has a cousin that presents as a missing instance.
+   `rw [Scheme.sign]` works at `m := OracleComp OracleWorld` and fails at `m := Id` with
+   `failed to synthesize HasQuery HashSpec Id`, because `rw` elaborates the equation lemma on
+   its own and `CacheReplay.replayQuery cache` is a term, not an instance. The fix is the same
+   shape: prove the step monad-generically with the instance as a variable, and instantiate it
+   by `@`-application.
 5. **An instance path.** Two syntactically different `MonadLiftT` instances for the same pair of
    types, not definitionally equal, so a lemma stated at one cannot be applied at the other. The
    symptom is an instance search failing *downstream* of the mismatch — the search is for

@@ -151,6 +151,9 @@ import SlhDsaSecurity.Proof.AnswerSide
 import SlhDsaSecurity.Proof.SigningFaithful
 import SlhDsaSecurity.Proof.BlockDisclosures
 import SlhDsaSecurity.Proof.SplitPrefix
+import SlhDsaSecurity.Proof.RandomiserProvenance
+import SlhDsaSecurity.Proof.PhaseProvenance
+import SlhDsaSecurity.Proof.CacheProvenance
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7027,3 +7030,143 @@ info: 'SlhDsaSecurity.SplitPrefix.paddedFrom_bind' depends on axioms: [propext, 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitPrefix.paddedFrom_bind
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftM' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftM
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftComp' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftComp
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_keygenInternal_of_fresh' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_keygenInternal_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_sign_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_sign_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_verify_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_verify_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_subset
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queried_of_fresh_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queried_of_fresh_step
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.recordedRun_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.recordedRun_bind
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.persists_of_mem_recordedRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.persists_of_mem_recordedRun
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.log_eq_recordedAdversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.log_eq_recordedAdversaryImpl
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.log_eq_recordedSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.log_eq_recordedSigningOracle
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.log_append' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.log_append
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.provenance_phase' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.provenance_phase
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.exists_recorded_of_mem_countedRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.exists_recorded_of_mem_countedRun
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.provenance_phase_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.provenance_phase_subset
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.keygen_not_randomizerInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.keygen_not_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.sign_messageProbe' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.sign_messageProbe
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.provenance_afterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.provenance_afterSeeds
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.randomiserBad_source
