@@ -11555,3 +11555,45 @@ info: 'SlhDsaSecurity.ServedAgreement.logServed_subset_served_run' depends on ax
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.logServed_subset_served_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.FramingAdmitted.none' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.FramingAdmitted.none
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.FramingAdmitted.mono' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.FramingAdmitted.mono
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_step
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_phase_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_phase_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty

@@ -342,4 +342,204 @@ theorem logServed_subset_served_run (pk : PublicKey)
     (logFiled_run publicSeed pk availableAt table sk hpk computation (accumulated, [], carrier)
       (logFiled_nil sk carrier.1) z hz) input hlog
 
+/-! ## The carrier is below the log, as far as the handler decides it
+
+The other direction asks what the carrier serves that the log does not, and the handler settles
+most of it by itself: it files only where `HandlerCarrier.FilesLeft` holds, and that test reads
+the framing, which is set only across a signing step and names that step's own request. So every
+served input has the shape of some logged request's digest input — with *some* randomiser.
+
+**That last word is the whole of the remaining gap, and it is not the handler's to close.**
+`ServingCarrier.logServed` names one randomiser, the one the cache replays, and pinning the
+filed input to it is a statement about what the signer *asks*: of all the inputs of its
+framing's digest shape, it asks only its own digest's. That is
+`ServedBridge.sign_messageShape_randomizer`, which is stated along `CacheReplay.QueriesUnder` —
+the replay semantics — while what is filed here is a query of the handler's run. The bridge
+between those two readings of "the signer asked this" is what is missing, and it is a statement
+about `Scheme.sign`, not about the carrier.
+
+So this section proves the containment at the shape and names the residue rather than assuming
+it. -/
+
+/-- A framing that names a logged request. -/
+def FramingAdmitted (log : SigningLog) (framing : Option Bytes) : Prop :=
+  ∀ framed : Bytes, framing = some framed → ∃ entry ∈ log, entry.1.frame = some framed
+
+theorem FramingAdmitted.none (log : SigningLog) : FramingAdmitted log none := by
+  intro framed hframed
+  exact absurd hframed (by simp)
+
+theorem FramingAdmitted.mono {log : SigningLog} {framing : Option Bytes}
+    (hframing : FramingAdmitted log framing) (entry : (_ : Message) × Option Bytes) :
+    FramingAdmitted (log ++ [entry]) framing := by
+  intro framed hframed
+  obtain ⟨probe, hprobe, hframe⟩ := hframing framed hframed
+  exact ⟨probe, List.mem_append.mpr (Or.inl hprobe), hframe⟩
+
+/-- An input of some logged request's digest shape. -/
+def ShapeAdmitted (pk : PublicKey) (log : SigningLog) (input : Bytes) : Prop :=
+  ∃ entry ∈ log, ∃ framed : Bytes, entry.1.frame = some framed ∧
+    ∃ randomizer : Digest, input = Hashing.messageInput randomizer pk framed
+
+theorem ShapeAdmitted.mono {pk : PublicKey} {log : SigningLog} {input : Bytes}
+    (hshape : ShapeAdmitted pk log input) (entry : (_ : Message) × Option Bytes) :
+    ShapeAdmitted pk (log ++ [entry]) input := by
+  obtain ⟨probe, hprobe, framed, hframe, randomizer, hinput⟩ := hshape
+  exact ⟨probe, List.mem_append.mpr (Or.inl hprobe), framed, hframe, randomizer, hinput⟩
+
+/-- **A run of the handler serves only inputs of an admitted framing's shape.** -/
+theorem servedShape_run {α : Type} (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (log : SigningLog) (computation : OracleComp OracleWorld α) (state : HandlerState)
+    (result : α × HandlerState)
+    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+      computation).run state))
+    (hframing : FramingAdmitted log state.1.framing)
+    (hstart : ∀ input : Bytes, HandlerCarrier.Served state.1 input → ShapeAdmitted pk log input)
+    (input : Bytes) (hserved : HandlerCarrier.Served result.2.1 input) :
+    ShapeAdmitted pk log input := by
+  refine (servingProgram_invariant publicSeed pk availableAt table
+    (fun carrier => FramingAdmitted log carrier.framing ∧
+      ∀ probe : Bytes, HandlerCarrier.Served carrier probe → ShapeAdmitted pk log probe)
+    (fun carrier probe answer hinv => ⟨hinv.1, hinv.2⟩)
+    (fun carrier probe hinv hfiles => ⟨hinv.1, fun served hmem => ?_⟩)
+    computation state result hresult ⟨hframing, hstart⟩).2 input hserved
+  rcases Multiset.mem_cons.mp hmem with rfl | hrest
+  · obtain ⟨framed, hframed, randomizer, hinput⟩ := hfiles
+    obtain ⟨entry, hentry, hframe⟩ := hinv.1 framed hframed
+    exact ⟨entry, hentry, framed, hframe, randomizer, hinput⟩
+  · exact hinv.2 served hrest
+
+open scoped Classical in
+/-- **A step of the phase preserves it**, with the framing's own invariant carried alongside:
+outside a signing step the framing is clear and nothing is filed at all. -/
+theorem servedShape_step (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (queried : (OracleWorld + SigningSpec).Domain)
+    (state : Multiplicative Tally × SigningLog × HandlerState)
+    (step : (OracleWorld + SigningSpec).Range queried ×
+      (Multiplicative Tally × SigningLog × HandlerState))
+    (hstep : step ∈ support (((servingPhase publicSeed pk availableAt table sk) queried).run
+      state)) (hclear : state.2.2.1.framing = none)
+    (hinv : ∀ input : Bytes, HandlerCarrier.Served state.2.2.1 input →
+      ShapeAdmitted pk state.2.1 input) :
+    ∀ input : Bytes, HandlerCarrier.Served step.2.2.2.1 input →
+      ShapeAdmitted pk step.2.2.1 input := by
+  classical
+  rcases queried with world | request
+  · have hrun : step ∈ support
+        ((simulateQ (servingProgram publicSeed pk availableAt table)
+          (((recordedAdversaryImpl world).run).run state.2.1)).run state.2.2 >>=
+          fun inner =>
+            (pure (inner.1.1.1, (state.1 * inner.1.1.2, inner.1.2, inner.2)) :
+              ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
+                (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+    rw [mem_support_bind_iff] at hrun
+    obtain ⟨inner, hinner, hpure⟩ := hrun
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    have hlog : step.2.2.1 = state.2.1 := by
+      have hmapped := hinner
+      rw [run_recordedAdversaryImpl, simulateQ_map, StateT.run_map, support_map] at hmapped
+      obtain ⟨raw, -, hinnerEq⟩ := hmapped
+      rw [hpure, ← hinnerEq]
+    have hcarrier : step.2.2.2 = inner.2 := by rw [hpure]
+    rw [hlog, hcarrier]
+    exact servedShape_run publicSeed pk availableAt table state.2.1
+      (((recordedAdversaryImpl world).run).run state.2.1) state.2.2 inner hinner
+      (by rw [hclear]; exact FramingAdmitted.none _) hinv
+  · have hrun : step ∈ support
+        ((simulateQ (servingProgram publicSeed pk availableAt table)
+          (((recordedSigningOracle (Scheme.sign sk) request).run).run state.2.1)).run
+            (startServing request state.2.2) >>= fun inner =>
+          (pure (inner.1.1.1,
+            (state.1 * inner.1.1.2, inner.1.2, stopServing inner.2)) :
+            ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
+              (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+    rw [mem_support_bind_iff] at hrun
+    obtain ⟨inner, hinner, hpure⟩ := hrun
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [run_recordedSigningOracle] at hinner
+    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure publicSeed pk availableAt table
+      (Scheme.sign sk request) _ (startServing request state.2.2) inner hinner
+    have hlog : step.2.2.1 = state.2.1 ++ [⟨request, signStep.1⟩] := by
+      rw [hpure]
+      exact congrArg (fun z => z.1.2) hvalue
+    have hcarrier : step.2.2.2.1 = HandlerCarrier.clearFraming signStep.2.1 := by
+      rw [hpure]
+      exact congrArg (fun z => HandlerCarrier.clearFraming z.2.1) hvalue
+    rw [hlog, hcarrier]
+    intro input hserved
+    refine servedShape_run publicSeed pk availableAt table
+      (state.2.1 ++ [⟨request, signStep.1⟩]) (Scheme.sign sk request)
+      (startServing request state.2.2) signStep hsign ?_
+      (fun probe hprobe => ?_) input hserved
+    · cases hframe : request.frame with
+      | none =>
+        rw [show (startServing request state.2.2).1 = state.2.2.1 from by
+          simp only [startServing, hframe], hclear]
+        exact FramingAdmitted.none _
+      | some framed =>
+        rw [show (startServing request state.2.2).1 =
+          HandlerCarrier.setFraming state.2.2.1 framed from by
+            simp only [startServing, hframe]]
+        intro probe hprobe
+        exact ⟨⟨request, signStep.1⟩, List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl)),
+          by rw [← Option.some.inj hprobe]; exact hframe⟩
+    · refine ShapeAdmitted.mono (hinv probe ?_) _
+      cases hframe : request.frame with
+      | none =>
+        rw [show (startServing request state.2.2) = state.2.2 from by
+          simp only [startServing, hframe]] at hprobe
+        exact hprobe
+      | some framed =>
+        rw [show (startServing request state.2.2) =
+          (HandlerCarrier.setFraming state.2.2.1 framed, state.2.2.2) from by
+            simp only [startServing, hframe]] at hprobe
+        exact hprobe
+
+open scoped Classical in
+/-- **And therefore a whole run of the phase.** The framing's own invariant rides along, because
+the shape step needs it: at an adversary's query the framing is clear and nothing is filed, and
+that is what keeps the adversary out of the served set however long it runs. -/
+theorem servedShape_phase_run (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ (state : Multiplicative Tally × SigningLog × HandlerState),
+      state.2.2.1.framing = none →
+      (∀ input : Bytes, HandlerCarrier.Served state.2.2.1 input →
+        ShapeAdmitted pk state.2.1 input) →
+      ∀ z ∈ support ((simulateQ (servingPhase publicSeed pk availableAt table sk)
+        computation).run state),
+        ∀ input : Bytes, HandlerCarrier.Served z.2.2.2.1 input →
+          ShapeAdmitted pk z.2.2.1 input := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state hclear hinv z hz
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+    rw [show z.2 = state from by rw [hz]]
+    exact hinv
+  | query_bind queried next ih =>
+    intro state hclear hinv z hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+    obtain ⟨step, hstep, hrest⟩ := hz
+    exact ih step.1 step.2
+      (framing_clear_step publicSeed pk availableAt table sk queried state hclear step hstep)
+      (servedShape_step publicSeed pk availableAt table sk queried state step hstep hclear hinv)
+      z hrest
+
+/-- **From a fresh carrier**: a run of the phase serves only inputs of its own log's requests'
+digest shape. The adversary contributes nothing to the served set, whatever it asks. -/
+theorem servedShape_phase_run_empty (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (accumulated : Multiplicative Tally) (probes : List (Bytes × HandlerCarrier.State))
+    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × HandlerState))
+    (hz : z ∈ support ((simulateQ (servingPhase publicSeed pk availableAt table sk)
+      computation).run (accumulated, [], (HandlerCarrier.empty, probes, count))))
+    (input : Bytes) (hserved : HandlerCarrier.Served z.2.2.2.1 input) :
+    ShapeAdmitted pk z.2.2.1 input :=
+  servedShape_phase_run publicSeed pk availableAt table sk computation
+    (accumulated, [], (HandlerCarrier.empty, probes, count)) rfl
+    (fun probe hprobe => absurd hprobe (ServingProgram.not_served_empty probe)) z hz input hserved
+
 end SlhDsaSecurity.ServedAgreement
