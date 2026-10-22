@@ -200,6 +200,7 @@ import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.SignerRightRecord
 import SlhDsaSecurity.Proof.PhaseRightRecord
 import SlhDsaSecurity.Proof.ServedRandomised
+import SlhDsaSecurity.Proof.RecordInvariant
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -11681,6 +11682,22 @@ info: 'SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem
+
+/--
+info: 'SlhDsaSecurity.RecordInvariant.run_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.run_invariant
+
+/--
+info: 'SlhDsaSecurity.RecordInvariant.phase_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.phase_invariant
+
+/-- info: 'SlhDsaSecurity.RecordInvariant.bracket_invariant' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.bracket_invariant
 
 /-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
