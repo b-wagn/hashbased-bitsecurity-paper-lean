@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SecretGuessCharge
 import SlhDsaSecurity.Proof.HashSeparation
+import SlhDsaSecurity.Proof.ClassCharge
 
 /-!
 # The gate the disclosed set opens, and what it costs
@@ -143,6 +144,76 @@ theorem messageInput_eq_randomizerInput_iff (randomizer prfSeed seed : Digest) (
       randomizer = prfSeed := by
   rw [messageInput_eq_randomizerInput]
   exact randomizerInput_prf_inj
+
+/-! ## The answer side of the same class
+
+The gate is about an input the adversary writes; its neighbour is about an answer the *signer*
+receives. A served request's randomiser is the truncation of a fresh answer at a `PRF_msg`
+input, and if that truncation is the seed itself then the signer's own digest query becomes a
+`PRF_msg` input at the real seed — which is how a disclosure can be manufactured with no request
+behind it.
+
+A fresh answer truncates to a fixed digest with probability `2 ^ -128`, and only inputs of the
+class can fire the event, so the charge is one unit per *in-class* fresh query rather than per
+fresh query. That is `ClassCharge.prob_badWithinClasses_le` with the outside rate zero; the
+total growth would be far too coarse. -/
+
+/-- The inputs whose first block is a given seed. -/
+def PrfClass (prfSeed : Digest) (input : Bytes) : Prop :=
+  ∃ (seed : Digest) (message : Bytes), input = Hashing.randomizerInput prfSeed seed message
+
+/-- The answer-side event: an answer at an input of the class truncating to the seed that input
+carries. -/
+def RandomizerHitsSeed (prfSeed : Digest) (input : Bytes) (answer : HashOutput) : Prop :=
+  PrfClass prfSeed input ∧ Hashing.truncate answer = prfSeed
+
+/-- **A fresh answer truncates to a fixed digest with probability `2 ^ -128`.** -/
+theorem prob_truncate_eq (target : Digest) :
+    Pr[fun answer : HashOutput => Hashing.truncate answer = target |
+      ($ᵗ HashOutput : ProbComp HashOutput)] = 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [show (fun answer : HashOutput => Hashing.truncate answer = target) =
+      (fun value : Digest => value = target) ∘ Hashing.truncate from rfl, ← probEvent_map,
+    probEvent_congr' (fun _ _ => Iff.rfl) KeygenUniform.truncate_uniform,
+    show (fun value : Digest => value = target) = (fun value : Digest => target = value) from by
+      funext value; exact propext ⟨Eq.symm, Eq.symm⟩]
+  exact SecretGuessCharge.prob_single_guess target
+
+theorem prob_randomizerHitsSeed_le (prfSeed : Digest) (input : Bytes) :
+    Pr[fun answer : HashOutput => RandomizerHitsSeed prfSeed input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_of_le_of_eq (probEvent_mono (q := fun answer : HashOutput =>
+    Hashing.truncate answer = prfSeed) fun answer _ hbad => hbad.2) (prob_truncate_eq prfSeed)
+
+/-- **The walk's cache holds no such answer**, its entries being canonical and the two seeds
+distinct. -/
+theorem cleanBad_of_canonical (publicSeed prfSeed : Digest) (cells : Cells)
+    (cache : QueryCache HashSpec) (hne : prfSeed ≠ publicSeed)
+    (hcanonical : ∀ input, cache input ≠ none →
+      ∃ parent : StructuralNode, input = canonicalInput publicSeed cells parent) :
+    GrowthCharge.CleanBad (RandomizerHitsSeed prfSeed) cache := by
+  intro input answer hentry hbad
+  obtain ⟨parent, hparent⟩ := hcanonical input (by rw [hentry]; simp)
+  obtain ⟨seed, message, hmessage⟩ := hbad.1
+  exact canonicalInput_ne_randomizerInput publicSeed prfSeed seed cells parent message hne
+    (hparent ▸ hmessage)
+
+set_option maxHeartbeats 1000000 in
+/-- **The charge.** A run whose in-class growth is at most `served` ends holding such an answer
+with probability at most `served / 2 ^ 128`. Only the class's own growth is spent, because an
+answer outside it cannot fire the event. -/
+theorem prob_randomizerHitsSeed_run_le {α : Type} (computation : OracleComp OracleWorld α)
+    (prfSeed : Digest) (initialCache : QueryCache HashSpec) (served outside : Nat)
+    (hclean : GrowthCharge.CleanBad (RandomizerHitsSeed prfSeed) initialCache) :
+    Pr[ClassCharge.BadWithinClasses (RandomizerHitsSeed prfSeed) (PrfClass prfSeed)
+        initialCache served outside |
+      (simulateQ KeygenUniform.rom computation).run initialCache] ≤
+      served / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_of_le_of_eq (ClassCharge.prob_badWithinClasses_le computation
+    (RandomizerHitsSeed prfSeed) (PrfClass prfSeed) (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) 0 served
+    outside initialCache (fun input _ => prob_randomizerHitsSeed_le prfSeed input)
+    (fun input houtside => ?_) hclean) ?_
+  · exact le_of_eq (probEvent_eq_zero fun answer _ hbad => houtside hbad.1)
+  · rw [mul_one_div, mul_zero, add_zero]
 
 /-- **The coincidence the disjointness excludes costs one unit.** -/
 theorem prob_prf_eq_publicSeed (publicSeed : Digest) :

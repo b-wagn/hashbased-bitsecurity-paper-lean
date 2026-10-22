@@ -259,34 +259,53 @@ theorem hash_eq_query (input : Bytes) :
     (Hashing.hash (m := OracleComp OracleWorld) input) =
       liftM (OracleWorld.query (Sum.inr input)) := rfl
 
+/-- A computation that opens with a hash call is charged that call and whatever its
+continuation is charged. -/
+theorem le_count_query_bind {α : Type} (input : Bytes)
+    (next : OracleWorld.Range (Sum.inr input) → OracleComp OracleWorld α) (charged : Nat)
+    (hnext : ∀ (answer : OracleWorld.Range (Sum.inr input)) (inner : QueryCache HashSpec)
+      (rest : (α × Nat) × QueryCache HashSpec),
+      rest ∈ support ((simulateQ KeygenUniform.rom (countAllHashes (next answer))).run inner) →
+        charged ≤ rest.1.2)
+    (cache : QueryCache HashSpec) (result : (α × Nat) × QueryCache HashSpec)
+    (hmem : result ∈ support ((simulateQ KeygenUniform.rom (countAllHashes
+      (liftM (OracleWorld.query (Sum.inr input)) >>= next))).run cache)) :
+    charged + 1 ≤ result.1.2 := by
+  rw [GrowthBudget.countAllHashes_query_bind, simulateQ_bind, simulateQ_spec_query,
+    StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨step, -, hrest⟩ := hmem
+  rw [simulateQ_map, StateT.run_map, support_map] at hrest
+  obtain ⟨inner, hinner, heq⟩ := hrest
+  have hcharged := hnext step.1 step.2 inner hinner
+  rw [show result.1.2 = hashCost (Sum.inr input) + inner.1.2 from by rw [← heq]]
+  show charged + 1 ≤ 1 + inner.1.2
+  omega
+
 /-- A computation that opens with a hash call is charged at least one unit. -/
 theorem one_le_count_query_bind {α : Type} (input : Bytes)
     (next : OracleWorld.Range (Sum.inr input) → OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (result : (α × Nat) × QueryCache HashSpec)
     (hmem : result ∈ support ((simulateQ KeygenUniform.rom (countAllHashes
       (liftM (OracleWorld.query (Sum.inr input)) >>= next))).run cache)) :
-    1 ≤ result.1.2 := by
-  rw [GrowthBudget.countAllHashes_query_bind, simulateQ_bind, simulateQ_spec_query,
-    StateT.run_bind, mem_support_bind_iff] at hmem
-  obtain ⟨step, -, hrest⟩ := hmem
-  rw [simulateQ_map, StateT.run_map, support_map] at hrest
-  obtain ⟨inner, -, heq⟩ := hrest
-  rw [show result.1.2 = hashCost (Sum.inr input) + inner.1.2 from by rw [← heq]]
-  show 1 ≤ 1 + inner.1.2
-  omega
+    1 ≤ result.1.2 :=
+  le_count_query_bind input next 0 (fun _ _ _ _ => Nat.zero_le _) cache result hmem
 
-/-- **A served request costs at least one unit of the total count**: signing opens with the
-randomiser's own hash call, and that call is the signer's, so the work budget never sees it. -/
-theorem one_le_count_sign (sk : SecretKey) (request : Message) (message : Bytes)
+/-- **A served request costs at least two units of the total count**: signing opens with the
+randomiser's hash call and follows it with the message digest's, and both are the signer's, so
+the work budget sees neither. Two is what the accounting needs, because a served request can
+put two entries into the class the answer-side charge is measured on — its randomiser's input
+always, and its digest's input when the randomiser it derived is the seed itself. -/
+theorem two_le_count_sign (sk : SecretKey) (request : Message) (message : Bytes)
     (hframe : request.frame = some message) (cache : QueryCache HashSpec)
     (result : (Option Bytes × Nat) × QueryCache HashSpec)
     (hmem : result ∈ support ((simulateQ KeygenUniform.rom
       (countAllHashes (Scheme.sign (m := OracleComp OracleWorld) sk request))).run cache)) :
-    1 ≤ result.1.2 := by
+    2 ≤ result.1.2 := by
   rw [Scheme.sign, hframe] at hmem
-  simp only [Scheme.signInternal, Hashing.randomizer, Hashing.shortHash, bind_assoc,
-    hash_eq_query] at hmem
-  exact one_le_count_query_bind _ _ cache result hmem
+  simp only [Scheme.signInternal, Hashing.randomizer, Hashing.shortHash, Hashing.messageDigest,
+    bind_assoc, hash_eq_query, pure_bind] at hmem
+  exact le_count_query_bind _ _ 1 (fun _ _ _ hrest => one_le_count_query_bind _ _ _ _ hrest)
+    cache result hmem
 
 set_option maxHeartbeats 1000000 in
 /-- **A signing request charges nothing to the work budget, and a served one spends a unit of
@@ -297,8 +316,8 @@ theorem work_add_served_le_count_signingOracle (sk : SecretKey) (request : Messa
       QueryCache HashSpec)
     (hmem : outer ∈ support ((simulateQ KeygenUniform.rom (countAllHashes
       ((WriterT.run (Security.signingOracle sk request)).run log))).run cache)) :
-    (Multiplicative.toAdd outer.1.1.1.2).work + servedCount outer.1.1.2 ≤
-      outer.1.2 + servedCount log := by
+    (Multiplicative.toAdd outer.1.1.1.2).work + 2 * servedCount outer.1.1.2 ≤
+      outer.1.2 + 2 * servedCount log := by
   rw [StrippedGame.signingOracle_eq, StrippedGame.run_signingOracleWith,
     GrowthBudget.countAllHashes_bind, simulateQ_bind, StateT.run_bind,
     mem_support_bind_iff] at hmem
@@ -315,13 +334,13 @@ theorem work_add_served_le_count_signingOracle (sk : SecretKey) (request : Messa
   cases hanswer : first.1.1 with
   | none => simp
   | some value =>
-    have hone : 1 ≤ first.1.2 := by
+    have hone : 2 ≤ first.1.2 := by
       rcases hframe : request.frame with _ | message
       · rw [Scheme.sign, hframe, GrowthBudget.countAllHashes_pure, simulateQ_pure,
           StateT.run_pure, support_pure, Set.mem_singleton_iff] at hfirst
         rw [show first.1.1 = none from by rw [hfirst]] at hanswer
         exact absurd hanswer (by simp)
-      · exact one_le_count_sign sk request message hframe cache first hfirst
+      · exact two_le_count_sign sk request message hframe cache first hfirst
     simp only [Option.isSome_some, if_pos]
     omega
 
@@ -332,8 +351,8 @@ theorem work_add_served_le_count_adversaryImpl (queried : OracleWorld.Domain)
       QueryCache HashSpec)
     (hmem : outer ∈ support ((simulateQ KeygenUniform.rom (countAllHashes
       ((WriterT.run (adversaryImpl queried)).run log))).run cache)) :
-    (Multiplicative.toAdd outer.1.1.1.2).work + servedCount outer.1.1.2 ≤
-      outer.1.2 + servedCount log := by
+    (Multiplicative.toAdd outer.1.1.1.2).work + 2 * servedCount outer.1.1.2 ≤
+      outer.1.2 + 2 * servedCount log := by
   rw [run_adversaryImpl, countAllHashes_map, GrowthBudget.countAllHashes_query, simulateQ_map,
     StateT.run_map, support_map] at hmem
   obtain ⟨inner, hinner, heq⟩ := hmem
@@ -356,14 +375,14 @@ theorem work_add_served_le_count_adversary (sk : SecretKey) {α : Type}
       result ∈ support ((simulateQ KeygenUniform.rom (countAllHashes
         ((WriterT.run (simulateQ (adversaryImpl + Security.signingOracle sk)
           computation)).run log))).run cache) →
-        (Multiplicative.toAdd result.1.1.1.2).work + servedCount result.1.1.2 ≤
-          result.1.2 + servedCount log := by
+        (Multiplicative.toAdd result.1.1.1.2).work + 2 * servedCount result.1.1.2 ≤
+          result.1.2 + 2 * servedCount log := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
     intro log cache result hmem
     rw [simulateQ_pure] at hmem
-    show (Multiplicative.toAdd result.1.1.1.2).work + servedCount result.1.1.2 ≤
-      result.1.2 + servedCount log
+    show (Multiplicative.toAdd result.1.1.1.2).work + 2 * servedCount result.1.1.2 ≤
+      result.1.2 + 2 * servedCount log
     rw [show ((WriterT.run (pure value : CountedRun α)).run log) =
         (pure ((value, (1 : Multiplicative Counts)), log) :
           OracleComp OracleWorld ((α × Multiplicative Counts) × SigningLog)) from rfl,
@@ -381,8 +400,8 @@ theorem work_add_served_le_count_adversary (sk : SecretKey) {α : Type}
     rw [countAllHashes_map, simulateQ_map, StateT.run_map, support_map] at hinner
     obtain ⟨inner, hinner, heq⟩ := hinner
     have htail := ih outer.1.1 outer.2 middleCache inner hinner
-    have hhead : (Multiplicative.toAdd outer.1.2).work + servedCount outer.2 ≤
-        first + servedCount log := by
+    have hhead : (Multiplicative.toAdd outer.1.2).work + 2 * servedCount outer.2 ≤
+        first + 2 * servedCount log := by
       rcases queried with world | request
       · exact work_add_served_le_count_adversaryImpl world log cache
           ⟨⟨outer, first⟩, middleCache⟩ houter
@@ -454,7 +473,8 @@ theorem work_add_keygen_add_served_le_total (adversary : Adversary)
     ∃ (keygenCount : Nat) (keys : SecretKey × PublicKey) (keyCache : QueryCache HashSpec),
       ((keys, keygenCount), keyCache) ∈ support ((simulateQ KeygenUniform.rom
         (countAllHashes (Scheme.keygenInternal sds.1 sds.2.1 sds.2.2))).run cache) ∧
-        result.1.1.counts.work + keygenCount + servedCount result.1.1.signed ≤ result.1.2 := by
+        result.1.1.counts.work + keygenCount + 2 * servedCount result.1.1.signed ≤
+          result.1.2 := by
   unfold WarmedGame.afterSeeds at hmem
   obtain ⟨⟨sk, pk⟩, keyCache, keyCount, advTotal, hkeys, hrest1, hsplit1⟩ :=
     mem_support_counted_bind_count _ _ cache result hmem
@@ -465,8 +485,8 @@ theorem work_add_keygen_add_served_le_total (adversary : Adversary)
     hsplit3⟩ := mem_support_counted_bind_count _ _ advCache _ hrest2
   rw [GrowthBudget.countAllHashes_pure, simulateQ_pure, StateT.run_pure, support_pure,
     Set.mem_singleton_iff] at hrest3
-  have hadvWork : (Multiplicative.toAdd adversaryCounts).work + servedCount signed ≤
-      advCount + servedCount [] :=
+  have hadvWork : (Multiplicative.toAdd adversaryCounts).work + 2 * servedCount signed ≤
+      advCount + 2 * servedCount [] :=
     work_add_served_le_count_adversary sk (adversary.main pk) [] keyCache
       ⟨⟨⟨⟨forgery, adversaryCounts⟩, signed⟩, advCount⟩, advCache⟩ hadv
   have hverifyWork : verifierCounts.work ≤ verifyCount :=
@@ -477,7 +497,7 @@ theorem work_add_keygen_add_served_le_total (adversary : Adversary)
   simp only at hvalue htail hsplit2 hsplit3
   rw [hvalue]
   show (Multiplicative.toAdd adversaryCounts + verifierCounts).work + keyCount +
-    servedCount signed ≤ result.1.2
+    2 * servedCount signed ≤ result.1.2
   rw [work_add, hsplit1, hsplit2, hsplit3, htail]
   rw [show servedCount ([] : SigningLog) = 0 from rfl] at hadvWork
   omega

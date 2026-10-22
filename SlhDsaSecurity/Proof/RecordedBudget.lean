@@ -171,7 +171,7 @@ theorem work_add_pow_add_served_le_of_budget_tail {adversary : Adversary} {q : N
     {result : (Outcome × Nat) × QueryCache HashSpec}
     (hresult : result ∈ support (tail adversary walk)) :
     result.1.1.counts.work + 2 ^ subtreeHeight +
-      AdversaryQueries.servedCount result.1.1.signed ≤ q := by
+      2 * AdversaryQueries.servedCount result.1.1.signed ≤ q := by
   obtain ⟨keygenCount, keys, keyCache, hkeys, hbound⟩ :=
     AdversaryQueries.work_add_keygen_add_served_le_total adversary walk.1.1 walk.2 result hresult
   have hpow : (2 : Nat) ^ subtreeHeight ≤ keygenCount :=
@@ -189,7 +189,7 @@ theorem work_add_pow_add_served_le_of_budget_recorded {adversary : Adversary} {q
     (hresult : result ∈ support ((simulateQ KeygenUniform.rom
       (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2)) :
     result.1.1.counts.work + 2 ^ subtreeHeight +
-      AdversaryQueries.servedCount result.1.1.signed ≤ q := by
+      2 * AdversaryQueries.servedCount result.1.1.signed ≤ q := by
   have hstripped : (result.1.1, result.2) ∈ support ((simulateQ KeygenUniform.rom
       (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run walk.2) := by
     rw [← RecordedQueries.map_recordedAfterSeeds, simulateQ_map, StateT.run_map, support_map]
@@ -211,7 +211,7 @@ theorem card_toFinset_append_le_of_budget_served {adversary : Adversary} {q : Na
       (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2))
     (claimed : List Bytes) :
     (Multiset.toFinset (result.1.2 + (claimed : Multiset Bytes))).card ≤
-      (q - 2 ^ subtreeHeight - AdversaryQueries.servedCount result.1.1.signed) +
+      (q - 2 ^ subtreeHeight - 2 * AdversaryQueries.servedCount result.1.1.signed) +
         claimed.length := by
   classical
   have hwork := RecordedQueries.card_toFinset_le_work adversary walk.1.1 walk.2 walk.2 result
@@ -222,7 +222,7 @@ theorem card_toFinset_append_le_of_budget_served {adversary : Adversary} {q : Na
           (Multiset.toFinset (claimed : Multiset Bytes)).card := by
         rw [Multiset.toFinset_add]
         exact Finset.card_union_le _ _
-    _ ≤ (q - 2 ^ subtreeHeight - AdversaryQueries.servedCount result.1.1.signed) +
+    _ ≤ (q - 2 ^ subtreeHeight - 2 * AdversaryQueries.servedCount result.1.1.signed) +
           claimed.length := by
         refine Nat.add_le_add (by omega) ?_
         exact claimed.toFinset_card_le
