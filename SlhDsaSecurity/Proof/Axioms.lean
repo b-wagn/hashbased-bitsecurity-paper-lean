@@ -171,6 +171,7 @@ import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.OffClassBlind
 import SlhDsaSecurity.Proof.RandomiserRecord
 import SlhDsaSecurity.Proof.AnswerCoverage
+import SlhDsaSecurity.Proof.ServedDisclosure
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8473,3 +8474,23 @@ info: 'SlhDsaSecurity.CacheProvenance.sign_digest_cached' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheProvenance.sign_digest_cached
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.mem_servedAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.mem_servedAt
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.servedAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.servedAt_mono
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.available_mono_signed' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.available_mono_signed
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.available_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.available_mono
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.closed
