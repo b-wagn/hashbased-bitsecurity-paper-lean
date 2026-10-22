@@ -16431,3 +16431,23 @@ info: 'SlhDsaSecurity.Target.target_of_obligations_doubled' depends on axioms: [
 /-- info: 'SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.framing_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.framing_splitOf
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.served_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.served_splitOf
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_clear
+
+/--
+info: 'SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_framing' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_framing

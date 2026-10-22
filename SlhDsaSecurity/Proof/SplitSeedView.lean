@@ -125,4 +125,67 @@ counter — is the real game's, unchanged. -/
     · rfl
     · exact congrFun (CarriedWitness.cacheOf_servingNotice pk state.1 input) probe
 
+/-! ## The correspondence, as a function rather than a relation
+
+`HandlerComparison.prob_bad_eq` takes a relation between the two states and a `transfer` that
+carries a left step's outcome to the right one. Both are much easier to supply if the relation
+is **functional** — if the modified state is a function of the real one — and it can be, because
+the only thing the modified game holds that the real one does not is *where* an entry is kept.
+
+`splitOf` is that function: the real carrier's cache is split in two, the `PRF_msg` entries at
+the real seed going to the table and everything else staying in the carrier. Then `rel` is an
+equation and `transfer` is `splitOf` of the real game's own next state.
+
+**And the split is exactly where the two games differ.** Read at a view with a request in
+flight, `splitOf` gives back the real cache on every input — `splitCacheOf_splitOf_of_framing`
+below. Read with nothing in flight, it gives back the real cache off the class and `none` on it:
+the signer's randomisers are invisible to the adversary, which is the whole content of the hop,
+and `splitCacheOf_splitOf_of_clear` is that sentence as an equation.
+-/
+
+open scoped Classical in
+/-- The modified carrier a real one corresponds to: the same state, with its `PRF_msg` entries
+at the real seed moved into the table. -/
+noncomputable def splitOf (prfSeed : Digest) (carrier : HandlerCarrier.State) : SplitCarrier :=
+  ({ cache := fun input =>
+        if RandomizerGate.PrfClass prfSeed input then none else carrier.cache input,
+      served := carrier.served,
+      framing := carrier.framing },
+    fun input => if RandomizerGate.PrfClass prfSeed input then carrier.cache input else none)
+
+@[simp] theorem framing_splitOf (prfSeed : Digest) (carrier : HandlerCarrier.State) :
+    (splitOf prfSeed carrier).1.framing = carrier.framing := rfl
+
+@[simp] theorem served_splitOf (prfSeed : Digest) (carrier : HandlerCarrier.State) :
+    (splitOf prfSeed carrier).1.served = carrier.served := rfl
+
+open scoped Classical in
+/-- **With a request in flight the two games read the same cache.** The signer sees its own
+randomisers, wherever they are kept. -/
+theorem splitCacheOf_splitOf_of_framing (prfSeed : Digest) (carrier : HandlerCarrier.State)
+    (framed : Bytes) (hframing : carrier.framing = some framed) :
+    splitCacheOf prfSeed (splitOf prfSeed carrier) = carrier.cache := by
+  classical
+  funext input
+  rw [splitCacheOf, FromTable, framing_splitOf, hframing]
+  by_cases hclass : RandomizerGate.PrfClass prfSeed input
+  · rw [if_pos ⟨by simp, hclass⟩]
+    show (if RandomizerGate.PrfClass prfSeed input then carrier.cache input else none) = _
+    rw [if_pos hclass]
+  · rw [if_neg (fun hboth => hclass hboth.2)]
+    show (if RandomizerGate.PrfClass prfSeed input then none else carrier.cache input) = _
+    rw [if_neg hclass]
+
+open scoped Classical in
+/-- **And with nothing in flight the `PRF_msg` entries are gone.** This is the hop's content:
+what the signer cached at the real seed is not there for the adversary to find. -/
+theorem splitCacheOf_splitOf_of_clear (prfSeed : Digest) (carrier : HandlerCarrier.State)
+    (hclear : carrier.framing = none) (input : Bytes) :
+    splitCacheOf prfSeed (splitOf prfSeed carrier) input =
+      if RandomizerGate.PrfClass prfSeed input then none else carrier.cache input := by
+  classical
+  rw [splitCacheOf, FromTable, framing_splitOf, hclear,
+    if_neg (fun hboth => hboth.1 rfl)]
+  rfl
+
 end SlhDsaSecurity.SplitSeedView
