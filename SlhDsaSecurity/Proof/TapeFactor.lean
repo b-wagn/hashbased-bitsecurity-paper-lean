@@ -1070,4 +1070,105 @@ theorem prob_exists_hit_le_expected
   exact mul_le_mul' (sum_prob_selected_le_expected leftKeep rightKeep computation cache
     leftLength rightLength) le_rfl
 
+/-! ## The recording is the block, cell for cell
+
+The charge is stated at cell `index` of the target *block*, and the game's event is about the
+`index`-th entry of the target *recording*. They are the same answer: the recorder takes each
+fresh target answer off the head of the block, in order, so the recording's answers are the
+block's cells until the block runs out. Past that the recorder draws for itself and the two
+part company, which is why the agreement is claimed only where the block still has a cell. -/
+
+/-- A prefix decides the cells it covers. -/
+theorem getElem?_of_prefix {β : Type} {short long : List β} (hprefix : short <+: long)
+    (index : Nat) (hindex : index < short.length) : long[index]? = short[index]? := by
+  obtain ⟨extra, hextra⟩ := hprefix
+  rw [← hextra, List.getElem?_append_left hindex]
+
+open scoped Classical in
+/-- **Each recorded target answer is the block cell it was read from.** -/
+theorem rightOf_getElem? (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (cache : QueryCache HashSpec) (leftTape rightTape : List HashOutput)
+      (leftRecord rightRecord : Record) (result : α × SplitTapeState),
+      result ∈ support ((simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
+        (cache, (leftTape, rightTape), (leftRecord, rightRecord))) →
+      ∀ index : Nat, rightRecord.length + index < (rightOf result.2).length →
+        index < rightTape.length →
+        ((rightOf result.2)[rightRecord.length + index]?).map Prod.snd = rightTape[index]? := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro cache leftTape rightTape leftRecord rightRecord result hmem index hreached _
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at hreached
+    exact absurd hreached (by simp [rightOf])
+  | query_bind queried next ih =>
+    intro cache leftTape rightTape leftRecord rightRecord result hmem index hreached hcell
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | input
+    · rw [splitTapeRecorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨answer, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure] at hrest
+      exact ih _ _ _ _ _ _ result hrest index hreached hcell
+    · by_cases hfresh : cache input = none
+      · by_cases hleft : leftKeep input cache
+        · -- The left block is read; the target block and recording are untouched.
+          cases leftTape with
+          | nil =>
+            rw [splitTapeRecorder_run_left_nil leftKeep rightKeep input cache rightTape
+              leftRecord rightRecord hfresh hleft, mem_support_bind_iff] at hstep
+            obtain ⟨answer, -, hpure⟩ := hstep
+            rw [support_pure, Set.mem_singleton_iff] at hpure
+            rw [hpure] at hrest
+            exact ih _ _ _ _ _ _ result hrest index hreached hcell
+          | cons head rest =>
+            rw [splitTapeRecorder_run_left_cons leftKeep rightKeep input cache head rest
+              rightTape leftRecord rightRecord hfresh hleft, support_pure,
+              Set.mem_singleton_iff] at hstep
+            rw [hstep] at hrest
+            exact ih _ _ _ _ _ _ result hrest index hreached hcell
+        · by_cases hright : rightKeep input cache
+          · cases rightTape with
+            | nil => exact absurd hcell (by simp)
+            | cons head rest =>
+              rw [splitTapeRecorder_run_right_cons leftKeep rightKeep input cache leftTape head
+                rest leftRecord rightRecord hfresh hleft hright, support_pure,
+                Set.mem_singleton_iff] at hstep
+              rw [hstep] at hrest
+              cases index with
+              | zero =>
+                -- This cell is the one just read, and the recording keeps it.
+                have hprefix := rightOf_prefix leftKeep rightKeep (next head)
+                  (cache.cacheQuery input head, (leftTape, rest),
+                    (leftRecord, rightRecord ++ [(input, head)])) result hrest
+                rw [Nat.add_zero]
+                rw [getElem?_of_prefix hprefix rightRecord.length (by simp [rightOf])]
+                simp [rightOf]
+              | succ smaller =>
+                have hstep' := ih head (cache.cacheQuery input head) leftTape rest leftRecord
+                  (rightRecord ++ [(input, head)]) result hrest smaller
+                  (by simpa using (by omega : rightRecord.length + 1 + smaller <
+                    (rightOf result.2).length))
+                  (by simpa using Nat.lt_of_succ_lt_succ (by simpa using hcell))
+                rw [show rightRecord.length + (smaller + 1) =
+                    (rightRecord ++ [(input, head)]).length + smaller from by simp; omega]
+                rw [hstep']
+                simp
+          · rw [splitTapeRecorder_run_other leftKeep rightKeep input cache
+              (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hleft h.2)
+              (fun h => hright h.2), mem_support_bind_iff] at hstep
+            obtain ⟨answer, -, hpure⟩ := hstep
+            rw [support_pure, Set.mem_singleton_iff] at hpure
+            rw [hpure] at hrest
+            exact ih _ _ _ _ _ _ result hrest index hreached hcell
+      · rw [splitTapeRecorder_run_other leftKeep rightKeep input cache
+          (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hfresh h.1)
+          (fun h => hfresh h.1), mem_support_bind_iff] at hstep
+        obtain ⟨answer, -, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        rw [hpure] at hrest
+        exact ih _ _ _ _ _ _ result hrest index hreached hcell
+
 end SlhDsaSecurity.TapeFactor

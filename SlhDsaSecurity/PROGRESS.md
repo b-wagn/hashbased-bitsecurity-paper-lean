@@ -1805,3 +1805,54 @@ exactly as `expectedUses` carries it at the tape.
 Items 1, 3, 4 and 5 are each in the range the existing modules occupy. Item 2 is the one with
 real risk, and it is the one to attempt first: if the factorisation does not go through, nothing
 downstream of it is worth writing.
+
+## The coverage charge in expectation: what it cost
+
+The estimate above was right about the route and wrong about the price. The factorisation was
+named as the part with real risk and the part to attempt first. It was attempted first and it
+did not resist: `TapeFactor.evalDist_tapeRun` and `evalDist_splitTapeRun` are the one-block and
+two-block identities, and between them they took one afternoon rather than the module-sized
+effort the estimate allowed for.
+
+Two things account for the difference, and both are worth keeping in mind the next time
+something is costed by the shape of its statement.
+
+**The fallback removes the side condition.** A tape-reading oracle that *draws for itself* once
+its block is spent factorises for every block length, with no hypothesis that the block is long
+enough and nothing owed when it is too long. The estimate assumed a "never runs out" invariant
+threaded through the induction from the budget; there is none to thread. The uniform cap comes
+back later, as a cap on the *count*, which is where it was always allowed to be.
+
+**Causality is not determinism.** The obvious reading of
+`ForsLeaveOneOut.independent_tape_mixture_coverage_le` asks for a *function* from auxiliary
+randomness to a policy, and supplying one means presampling every draw the run makes — including
+the adversary's `unifSpec` coins, whose answer type varies with the query. Reading the
+resampling argument for what it uses instead, the three things that must survive overwriting one
+target cell are: the disclosure set (which sits on the other block), the coverage test (which
+reads that cell and nothing else), and the selection. The selection is the only one that touches
+the run, and what it needs is that its *probability* is unchanged — `probEvent_length_set` — not
+that it is a function of anything. So the coins and the out-of-class answers never leave the
+run, and only the two class blocks are front-loaded.
+
+What came out is `TapeFactor.prob_exists_hit_le_expected`: a run whose disclosing block is good
+pays, for the event that some cell of its target recording is hit by that block, its expected
+recording length times the rate. The per-cell factor is `prob_selected_hit_le`, which is
+`ForsLeaveOneOut.selected_local_hit_le` at the run, and summing the factors is where the
+expectation appears — `∑ index, Pr[reached index]` is an expected length, not a block length.
+
+### What is left
+
+The machinery is generic in the two class tests, the block predicate and the hit relation.
+Connecting it to `CoverageTail` is instantiation, not new argument:
+
+* carry the game's recorded run to `blockRun` through `evalDist_splitTapeRun`, which is a
+  distribution identity and so moves any event;
+* instantiate the block predicate with the load condition and `Pr[¬good]` with
+  `BlockDisclosures.block_bad_load_probability`, the left block being uniform by construction;
+* instantiate the hit relation with `ForsCoverage.Covered` and its rate with
+  `ForsCoverage.fresh_coverage_le_of_loads`;
+* read the game's coverage event as a hit at a cell, for which `rightOf_getElem?` is the bridge:
+  the `index`-th recorded target answer *is* cell `index` of the block.
+
+Then `ClassExpectation.prob_bad_or_coverage_le` takes it and the answer side has no hypothesis
+left but the budget.

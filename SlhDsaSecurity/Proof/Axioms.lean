@@ -7202,3 +7202,15 @@ info: 'SlhDsaSecurity.TapeFactor.prob_exists_hit_le_expected' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TapeFactor.prob_exists_hit_le_expected
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.getElem?_of_prefix' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.getElem?_of_prefix
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.rightOf_getElem?
