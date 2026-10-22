@@ -473,4 +473,42 @@ theorem answerChargedLate_carrier_of_bound (rightKeep : Walk → Bytes → Handl
   rw [probEvent_map]
   rfl
 
+/-! ## The same move at the defect the target instantiates, and at the bound the side proves
+
+Two edits that mirror the cache side's exactly, landed here rather than in `AnswerShape` because
+this is where the carrier's presentation move lives.
+
+`FinalAssembly.lateOrSeed` is `LateProbes.Ordering ∨ AnswerCoverage.ForgerySeedRandomised`, so the
+obligation's `¬ late` is the answer side's two conjuncts by `not_or`; and the answer side proves
+`q / 2 ^ 128 + 1 / 2 ^ 141`, which is `Target.answerDefectProved`, not the six-unit allowance.
+Taking the tighter bound and the wider defect is what lets the carrier route discharge the
+obligation the assembly actually reads, with the four freed units of `2 ^ -128` staying freed. -/
+
+open scoped ENNReal in
+/-- **The answer obligation at the carrier tail, at the defect the target instantiates and the
+bound the answer side proves.** -/
+theorem answerChargedAt_carrier_of_bound
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → Security.HasTotalBudget adversary q →
+      ∀ walk ∈ support WarmedGame.graphWalk, Target.GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                (result.1, result.2.1) ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+          AnswerShape.forgetRecord <$> carrierTail rightKeep adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + Target.answerDefectProved) :
+    Obligations.AnswerChargedAt Target.answerDefectProved (carrierTail rightKeep)
+      FinalAssembly.forgetFused FinalAssembly.lateOrSeed := by
+  intro q adversary hq hbudget walk hwalk hgood
+  refine le_trans (le_of_eq ?_) (hbound q adversary hq hbudget walk hwalk hgood)
+  rw [probEvent_map]
+  refine probEvent_congr' (fun result _ => ?_) rfl
+  simp only [Function.comp_def, FinalAssembly.lateOrSeed, not_or]
+  constructor
+  · rintro ⟨hbad, hlate, hseed⟩; exact ⟨hbad, hseed, hlate⟩
+  · rintro ⟨hbad, hseed, hlate⟩; exact ⟨hbad, hlate, hseed⟩
+
 end SlhDsaSecurity.CarrierTail
