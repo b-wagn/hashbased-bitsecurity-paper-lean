@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
@@ -6524,3 +6525,9 @@ info: 'SlhDsaSecurity.Obligations.target_of_charges' depends on axioms: [propext
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Obligations.target_of_charges
+
+/--
+info: 'SlhDsaSecurity.RandomiserCharge.walk_cache_prf_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserCharge.walk_cache_prf_fresh
