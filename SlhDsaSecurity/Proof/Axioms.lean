@@ -3,7 +3,6 @@ import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
 import SlhDsaSecurity.Proof.WriterState
-import SlhDsaSecurity.Proof.LinkedPhase
 import SlhDsaSecurity.Proof.ClassExpectation
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.ClassGrowth
@@ -5206,13 +5205,7 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 #guard_msgs in
 #print axioms SlhDsaSecurity.WriterState.run_statefulSigningOracle
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_phaseHandler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_phaseHandler
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_link_phaseHandler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_link_phaseHandler
 
 /-- info: 'SlhDsaSecurity.ClassExpectation.expected_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -5330,33 +5323,12 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_liftM_state' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_liftM_state
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_liftM_world' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_liftM_world
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_tell_liftM' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_tell_liftM
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_unchargedPhase_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_unchargedPhase_inr
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_charged_signer' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_charged_signer
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.phase_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.phase_eq
 
-/-- info: 'SlhDsaSecurity.LinkedPhase.run_phase_counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LinkedPhase.run_phase_counted
 
 /-- info: 'SlhDsaSecurity.Target.prob_bad_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

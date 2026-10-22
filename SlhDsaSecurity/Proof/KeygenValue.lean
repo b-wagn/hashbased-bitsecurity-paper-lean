@@ -20,6 +20,10 @@ same thing the stripping surgery removes and is handled the same way — the law
 the uncounted run, with `Security.countAllHashes` left outside it. Being an equality of runs, it
 carries every field of the outcome and the record as literally the same values.
 
+**So apply it at the uncounted level, never inside the counter.** The substitution is sound
+exactly because the law says nothing about the outer total, which it does change; used under
+`Security.countAllHashes` it would be claiming something false.
+
 What it buys beyond unblocking the move: the key is now `⟨sds.1, sds.2.1, ⟨sds.2.2, root⟩⟩`,
 whose only table coordinates are the secret seed and the honest root — the two
 `RedrawCell.seedAndRoot` names, which is the hypothesis the charge takes.
@@ -41,18 +45,18 @@ noncomputable def honestKeys (sds : Digest × Digest × Digest)
 noncomputable def recordedAfterSeedsAt (adversary : Adversary)
     (keys : SecretKey × PublicKey) (warm : QueryCache HashSpec) :
     OracleComp OracleWorld (Outcome × Multiset Bytes) := do
-  let ((forgery, adversaryTally), signed) ←
+  let adversaryStep ←
     (simulateQ (recordedAdversaryImpl +
       recordedSigningOracle (StrippedGame.strippedSign warm keys.1))
       (adversary.main keys.2)).run.run []
-  let (verified, verifierTally) ← countRecorded verifierCost
-    (Scheme.verify keys.2 forgery.message forgery.signature)
-  return ({
-    forgery := forgery
-    signed := signed
-    verified := verified
-    counts := (Multiplicative.toAdd adversaryTally).1 + verifierTally.1 },
-    (Multiplicative.toAdd adversaryTally).2 + verifierTally.2)
+  let verifierStep ← countRecorded verifierCost
+    (Scheme.verify keys.2 adversaryStep.1.1.message adversaryStep.1.1.signature)
+  pure ({
+    forgery := adversaryStep.1.1
+    signed := adversaryStep.2
+    verified := verifierStep.1
+    counts := (Multiplicative.toAdd adversaryStep.1.2).1 + verifierStep.2.1 },
+    (Multiplicative.toAdd adversaryStep.1.2).2 + verifierStep.2.2)
 
 /-- **Generating the keys and handing them in are the same run.** -/
 theorem run_recordedAfterSeeds (adversary : Adversary) (sds : Digest × Digest × Digest)

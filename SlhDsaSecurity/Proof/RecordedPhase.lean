@@ -19,7 +19,29 @@ adversary's own queries, one signing request and nothing recorded on its request
 `Faithful` remains a property of that cost function, unaffected by where it is applied.
 
 What is left answering tells nothing and keeps only the log, so it is already the stateful
-handler the composition wants.
+handler the composition wants: `QueryImpl.Stateful.link` puts an outer handler and an inner one
+together over the product of their states, and `simulateQ_link_run` says that running the
+composite *is* the nesting the experiment writes. That is what the move is for — the signer
+becomes something a handler does rather than something the computation does, so its reads of
+the cell table are frozen when the run is stalled.
+
+**Why not the frame machinery next door.** A `Frame`'s two lenses must be *separated*, so
+`parSumWith` would give the hash half and the signing half states that cannot interfere, and
+they could then not accumulate into one counter. The experiment's single counter would have
+become two components whose product is the real count, changing the accounting shape for
+nothing. The two halves are already summed over one target monad in the game, so once the
+charge has moved they are a single handler, and `link` uses a product only where one genuinely
+belongs: between the outer handler's state and the inner handler's.
+
+**A warning for anything working over the sum spec.**
+`(OracleWorld + SigningSpec).Range (Sum.inr request)` and `SigningSpec.Range request` are equal
+only semireducibly, so a lemma phrased at the summand will not rewrite an occurrence sitting at
+the sum: `rw` reports the pattern missing and `simp` declines without saying why, and unfolding
+past it yields terms that are not type-correct at `instances` transparency. The rule is to
+phrase each lemma at the index its goal has — `run_unchargedPhase_inr` is about
+`unchargedPhase signer (Sum.inr request)`, not about the signer — and to convert the index once,
+inside that lemma's own proof, where it is local. No lifting law is involved; an instance search
+that fails here is failing downstream of the mismatch and cannot fix it.
 -/
 
 open OracleComp OracleSpec
