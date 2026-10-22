@@ -191,6 +191,7 @@ import SlhDsaSecurity.Proof.SharedAssembly
 import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.ServedAgreement
+import SlhDsaSecurity.Proof.RecordedChain
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11867,3 +11868,63 @@ info: 'SlhDsaSecurity.ServedAgreement.agreesWithLog_run' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.agreesWithLog_run
+
+/-- info: 'SlhDsaSecurity.RecordedChain.run_recordedAfterSeeds_eq_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.run_recordedAfterSeeds_eq_map
+
+/-- info: 'SlhDsaSecurity.RecordedChain.expected_recordedTail_stripped' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.expected_recordedTail_stripped
+
+/-- info: 'SlhDsaSecurity.RecordedChain.probEvent_recordedTail_linked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.probEvent_recordedTail_linked
+
+/-- info: 'SlhDsaSecurity.RecordedChain.expected_recordedTail_linked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.expected_recordedTail_linked
+
+/--
+info: 'SlhDsaSecurity.RecordedChain.probEvent_recordedTail_uncounted' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.probEvent_recordedTail_uncounted
+
+/--
+info: 'SlhDsaSecurity.RecordedChain.expected_recordedTail_uncounted' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.expected_recordedTail_uncounted
+
+/--
+info: 'SlhDsaSecurity.RecordedChain.probEvent_recordedTail_stripped' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.probEvent_recordedTail_stripped
+
+/--
+info: 'SlhDsaSecurity.RecordedChain.run_recordedAfterSeeds_eq_linked' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.run_recordedAfterSeeds_eq_linked
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeedsAt' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeedsAt
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at

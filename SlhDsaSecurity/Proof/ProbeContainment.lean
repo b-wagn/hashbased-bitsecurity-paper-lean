@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.SharedJoin
+import SlhDsaSecurity.Proof.KeygenValue
 
 /-!
 # The probes the charge weighs are the run's own recorded queries
@@ -719,6 +720,71 @@ theorem weight_le_recordAim (publicSeed : Digest)
   rw [hstart, show aimCount publicSeed [] = 0 from rfl, Nat.zero_add] at hbound
   exact hbound
 
+
+
+/-! ## The same, with the keys handed in
+
+The charge reads the game with key generation already replaced by the value the walk's cache
+determines, because that is what lets the signer's reads of the table be frozen. The containment
+is simpler there, not harder: with no key generation in the computation there is no keygen step
+to account for, and the assembly is the adversary's phase and the verifier's. -/
+
+set_option maxHeartbeats 4000000 in
+set_option linter.constructorNameAsVariable false in
+open scoped Classical in
+/-- **The game with its keys handed in appends at most what it records.** -/
+theorem aimCount_recordedAfterSeedsAt (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (adversary : Adversary) (keys : SecretKey × PublicKey)
+    (hseed : keys.1.seed = table.1 Node.secretSeed)
+    (hpk : keys.1.publicKey.seed = publicSeed) (hprf : keys.1.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (keys.1.publicKey.seed, keys.1.publicKey.root))
+    (state : OpenCache.HandlerState)
+    (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
+    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      (KeygenValue.recordedAfterSeedsAt adversary keys
+        (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
+    aimCount publicSeed result.2.2.1 ≤
+      aimCount publicSeed state.2.1 + recordAim publicSeed result.1.2 := by
+  classical
+  unfold KeygenValue.recordedAfterSeedsAt at hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨phase, hphase, hmem⟩ := hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨verify, hverify, hmem⟩ := hmem
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+  have hphase' := aimCount_adversary publicSeed availableAt table keys.1 hseed hpk hprf hpublic
+    (adversary.main keys.2) [] state phase hphase
+  have hverify' := aimCount_countRecorded publicSeed availableAt table
+    (Scheme.verify keys.2 phase.1.1.1.message phase.1.1.1.signature) phase.2 verify hverify
+  rw [show result.2 = verify.2 from by rw [hmem],
+    show result.1.2 = (Multiplicative.toAdd phase.1.1.2).2 + verify.1.2.2 from by rw [hmem],
+    recordAim_add, hverify']
+  omega
+
+set_option maxHeartbeats 4000000 in
+open scoped Classical in
+/-- **The charge's weight is at most the record's aiming part**, with the keys handed in. -/
+theorem weight_le_recordAim_at (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (adversary : Adversary) (keys : SecretKey × PublicKey)
+    (hseed : keys.1.seed = table.1 Node.secretSeed)
+    (hpk : keys.1.publicKey.seed = publicSeed) (hprf : keys.1.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (keys.1.publicKey.seed, keys.1.publicKey.root))
+    (state : OpenCache.HandlerState) (hstart : state.2.1 = [])
+    (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
+    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      (KeygenValue.recordedAfterSeedsAt adversary keys
+        (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
+    (result.2.2.1.dedup.filter
+        (fun entry => decide (RedrawCell.AimsSomewhere publicSeed entry.1))).length ≤
+      Multiset.card (result.1.2.filter (RedrawCell.AimsSomewhere publicSeed)) := by
+  classical
+  refine le_trans (dedup_filter_length_le publicSeed result.2.2.1) ?_
+  have hbound := aimCount_recordedAfterSeedsAt publicSeed availableAt table adversary keys hseed
+    hpk hprf hpublic state result hmem
+  rw [hstart, show aimCount publicSeed [] = 0 from rfl, Nat.zero_add] at hbound
+  exact hbound
 
 /-! ## The export, in the join's vocabulary
 
