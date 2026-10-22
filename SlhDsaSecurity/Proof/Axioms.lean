@@ -195,6 +195,7 @@ import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
+import SlhDsaSecurity.Proof.ObligationShapes
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -12065,3 +12066,21 @@ info: 'SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput' depends
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.seedRandomised_of_signer_query' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.seedRandomised_of_signer_query
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.cover_of_served_or_narrow' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.cover_of_served_or_narrow
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts
