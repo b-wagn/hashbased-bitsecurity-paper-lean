@@ -16242,3 +16242,19 @@ info: 'SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail' depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierLeftRecord.signerRandomised_of_servedLog' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.signerRandomised_of_servedLog
+
+/--
+info: 'SlhDsaSecurity.CarrierLeftRecord.not_servedLog_rightRecord_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.not_servedLog_rightRecord_carrierTail

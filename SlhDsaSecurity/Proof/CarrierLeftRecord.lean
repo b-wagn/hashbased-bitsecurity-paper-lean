@@ -296,6 +296,84 @@ theorem servedLog_leftRecord_carrierTail
     (leftServed_carrierTail rightKeep adversary walk keys hkeys middle hmiddle _ final hlast
       entry hentry)
 
+/-! ## The ordering fact, from the invariant that was already there
+
+`hrightClass` says no target-recorded entry is in the signed log. On the cache route
+`¬ SplitWitness.LateDisclosure` supplies it, and that hypothesis is already available at the
+carrier — it is one of the three `hjoin` is handed. What was missing is the step between the
+two notions of disclosure: `LateDisclosure` is stated at `SplitWitness.disclosingKeep`, which
+reads the **cache**, and `hrightClass` is stated at `ServedLog.servedLog`, which reads the
+**log**.
+
+`ServedAgreement.LogFiled` is exactly that step, and `CarrierServedLog` already puts it at the
+tail's final carrier. A logged request carries its signature's randomiser and the `PRF_msg`
+entry it truncates, so a served input **is** signer-randomised at the final cache — which is
+`disclosingKeep` on the nose.
+
+**So the ordering fact needed no new invariant, only the one proved for the containment read in
+the other direction.** The containment used `LogFiled` to put the carrier's served set below the
+log; this uses it to put the log's inputs inside the cache's disclosure. Same lemma, both ways. -/
+
+/-- **A served input is signer-randomised at the cache the log was filed against.** -/
+theorem signerRandomised_of_servedLog (sk : SecretKey) (pk : PublicKey)
+    (hpk : sk.publicKey = pk) (log : SigningLog) (carrier : HandlerCarrier.State)
+    (hfiled : ServedAgreement.LogFiled sk log carrier) (value : Outcome × Nat)
+    (hsigned : value.1.signed = log) (input : Bytes)
+    (hserved : ServedLog.servedLog pk (value, carrier.cache) input) :
+    SplitWitness.disclosingKeep sk.prf pk input carrier.cache := by
+  obtain ⟨entry, hentry, framed, bytes, parsed, hframe, hanswer, hparsed, hinput⟩ := hserved
+  rw [hsigned] at hentry
+  obtain ⟨seed, signature, hcached, hsigAnswer, hrandomizer, -⟩ := hfiled entry hentry framed hframe
+  have hbytes : bytes = signature.toBytes := by
+    rw [hsigAnswer] at hanswer
+    exact (Option.some_injective _ hanswer).symm
+  have hparsedEq : parsed = signature := by
+    rw [hbytes, Signature.fromBytes_toBytes] at hparsed
+    exact (Option.some_injective _ hparsed).symm
+  subst hpk
+  exact ⟨framed, seed, hcached, by rw [hinput, hparsedEq, hrandomizer]⟩
+
+set_option maxHeartbeats 2000000 in
+set_option linter.constructorNameAsVariable false in
+/-- **No target-recorded entry of the carrier tail is in the signed log**, off the ordering
+defect. The second recording-class hypothesis, from `¬ LateDisclosure` and nothing else new. -/
+theorem not_servedLog_rightRecord_carrierTail
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (adversary : Adversary) (walk : Walk)
+    (hwalk : walk ∈ support WarmedGame.graphWalk)
+    (result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState)
+    (hresult : result ∈ support (carrierTail rightKeep adversary walk)) (count : Nat)
+    (hlate : ¬ SplitWitness.LateDisclosure walk.1.1.2.1 (keyAt walk) result) :
+    ∀ entry ∈ result.2.2.2,
+      ¬ ServedLog.servedLog (keyAt walk) ((result.1.1.1, count), result.2.1) entry.1 := by
+  classical
+  rw [carrierTail, mem_support_bind_iff] at hresult
+  obtain ⟨keys, hkeys, hrest⟩ := hresult
+  rw [mem_support_bind_iff] at hrest
+  obtain ⟨middle, hmiddle, hrest⟩ := hrest
+  rw [mem_support_bind_iff] at hrest
+  obtain ⟨final, hlast, hpure⟩ := hrest
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  have hpk : keys.1.1.publicKey = keyAt walk :=
+    CarrierRecord.keys_publicKey rightKeep walk hwalk keys hkeys
+  have hprf : keys.1.1.prf = walk.1.1.2.1 :=
+    CarrierRecord.keys_prf rightKeep walk hwalk keys hkeys
+  have hquiet : CarrierCap.Quiet keys.2.1 :=
+    CarrierCap.quiet_run rightKeep walk _ (startAt walk.2, (([], []), 0)) keys hkeys
+      (CarrierCap.quiet_startAt walk.2)
+  have hclearMiddle : middle.2.2.2.1.framing = none :=
+    CarrierClearFraming.clear_phase rightKeep walk keys.1.1 _ 1 [] keys.2 middle hmiddle hquiet.1
+  have hfiled : ServedAgreement.LogFiled keys.1.1 middle.2.2.1 final.2.1 :=
+    CarrierServedLog.logFiled_run keys.1.1 middle.2.2.1 rightKeep walk _ middle.2.2.2 final
+      hlast hclearMiddle
+      (CarrierServedLog.logFiled_phase rightKeep walk keys.1.1 hpk _ 1 keys.2 middle hmiddle)
+  intro entry hentry hserved
+  refine hlate ⟨entry, hentry, ?_⟩
+  rw [hpure] at hentry hserved ⊢
+  rw [← hprf]
+  exact signerRandomised_of_servedLog keys.1.1 (keyAt walk) hpk middle.2.2.1 final.2.1 hfiled
+    _ rfl entry.1 hserved
+
 /-! ## What is left, and where it lives
 
 `ServedLog.servedLog` asks more than a frame: it asks that the frame appear in the run's
