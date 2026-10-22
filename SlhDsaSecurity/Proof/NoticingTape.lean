@@ -601,10 +601,9 @@ blocks-drawn-at-the-top design gives: a second copy is a second place the margin
 -/
 
 /-- A run with the two blocks it read kept beside its result. -/
-noncomputable def blockRunOf {α : Type}
-    (run : List HashOutput → List HashOutput → ProbComp (α × SplitTapeState σ))
+noncomputable def blockRunOf {ρ : Type} (run : List HashOutput → List HashOutput → ProbComp ρ)
     (leftLength rightLength : Nat) :
-    ProbComp ((List HashOutput × List HashOutput) × (α × SplitTapeState σ)) :=
+    ProbComp ((List HashOutput × List HashOutput) × ρ) :=
   padding leftLength >>= fun leftTape =>
     padding rightLength >>= fun rightTape =>
       (fun result => ((leftTape, rightTape), result)) <$> run leftTape rightTape
@@ -612,31 +611,34 @@ noncomputable def blockRunOf {α : Type}
 set_option maxHeartbeats 2000000 in
 open scoped Classical in
 /-- **The charge on one target cell**, at the repaired recorder. -/
-theorem prob_selected_hit_le_of_causal {α : Type}
-    (run : List HashOutput → List HashOutput → ProbComp (α × SplitTapeState σ))
+theorem prob_selected_hit_le_of_causal {ρ : Type}
+    (run : List HashOutput → List HashOutput → ProbComp ρ)
+    (rightOfResult : ρ → Record)
     (leftLength rightLength index : Nat) (hindex : index < rightLength)
     (goodBlock : List HashOutput → Prop) (hit : List HashOutput → HashOutput → Prop)
     (rate : ℝ≥0∞)
     (hrate : ∀ leftTape, goodBlock leftTape →
       Pr[fun value => hit leftTape value | ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
     (hcausal : ∀ (leftTape rightTape : List HashOutput) (value : HashOutput),
-      Pr[fun z : α × SplitTapeState σ => index < (rightOf z.2).length |
+      Pr[fun z : ρ => index < (rightOfResult z).length |
           run leftTape (rightTape.set index value)] =
-        Pr[fun z : α × SplitTapeState σ => index < (rightOf z.2).length |
+        Pr[fun z : ρ => index < (rightOfResult z).length |
           run leftTape rightTape]) :
-    Pr[fun outcome => index < (rightOf outcome.2.2).length ∧ goodBlock outcome.1.1 ∧
+    Pr[fun outcome : (List HashOutput × List HashOutput) × ρ =>
+        index < (rightOfResult outcome.2).length ∧ goodBlock outcome.1.1 ∧
           ∃ value, outcome.1.2[index]? = some value ∧ hit outcome.1.1 value |
         blockRunOf run leftLength rightLength] ≤
-      Pr[fun outcome => index < (rightOf outcome.2.2).length |
+      Pr[fun outcome : (List HashOutput × List HashOutput) × ρ =>
+        index < (rightOfResult outcome.2).length |
         blockRunOf run leftLength rightLength] * rate := by
   classical
   set target : List HashOutput → List HashOutput → ℝ≥0∞ := fun leftTape rightTape =>
-    Pr[fun result : α × SplitTapeState σ => index < (rightOf result.2).length |
+    Pr[fun result : ρ => index < (rightOfResult result).length |
       run leftTape rightTape] with htarget
   -- The selection alone, with the blocks forgotten.
   have hright : Pr[fun outcome :
-        (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
-        index < (rightOf outcome.2.2).length |
+        (List HashOutput × List HashOutput) × ρ =>
+        index < (rightOfResult outcome.2).length |
       blockRunOf run leftLength rightLength] =
       ∑' leftTape, Pr[= leftTape | padding leftLength] *
         ∑' rightTape, Pr[= rightTape | padding rightLength] * target leftTape rightTape := by
@@ -647,15 +649,15 @@ theorem prob_selected_hit_le_of_causal {α : Type}
     rw [probEvent_map]
     rfl
   -- The charged event, after one cell of the target block is redrawn.
-  have hleft : Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
-        index < (rightOf outcome.2.2).length ∧ goodBlock outcome.1.1 ∧
+  have hleft : Pr[fun outcome : (List HashOutput × List HashOutput) × ρ =>
+        index < (rightOfResult outcome.2).length ∧ goodBlock outcome.1.1 ∧
           ∃ value, outcome.1.2[index]? = some value ∧ hit outcome.1.1 value |
       blockRunOf run leftLength rightLength] =
       ∑' leftTape, Pr[= leftTape | padding leftLength] *
         ∑' rightTape, Pr[= rightTape | padding rightLength] *
           ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
-            Pr[fun result : α × SplitTapeState σ =>
-                index < (rightOf result.2).length ∧ goodBlock leftTape ∧
+            Pr[fun result : ρ =>
+                index < (rightOfResult result).length ∧ goodBlock leftTape ∧
                   ∃ other, (rightTape.set index value)[index]? = some other ∧
                     hit leftTape other |
               run leftTape (rightTape.set index value)] := by
@@ -681,16 +683,16 @@ theorem prob_selected_hit_le_of_causal {α : Type}
   refine mul_le_mul' le_rfl ?_
   -- The cell's own draw is all that is left to charge.
   calc ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        Pr[fun result : α × SplitTapeState σ =>
-            index < (rightOf result.2).length ∧ goodBlock leftTape ∧
+        Pr[fun result : ρ =>
+            index < (rightOfResult result).length ∧ goodBlock leftTape ∧
               ∃ other, (rightTape.set index value)[index]? = some other ∧ hit leftTape other |
           run leftTape (rightTape.set index value)]
       ≤ ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
           (if goodBlock leftTape ∧ hit leftTape value then target leftTape rightTape else 0) := by
         refine ENNReal.tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
-        refine le_trans (probEvent_mono (q := fun result : α × SplitTapeState σ =>
+        refine le_trans (probEvent_mono (q := fun result : ρ =>
           (goodBlock leftTape ∧ hit leftTape value) ∧
-            index < (rightOf result.2).length) ?_) ?_
+            index < (rightOfResult result).length) ?_) ?_
         · rintro result - ⟨hselected, hgood, other, hread, hhit⟩
           exact ⟨⟨hgood, (eq_of_getElem?_set rightTape index value other hread) ▸ hhit⟩,
             hselected⟩
@@ -717,43 +719,44 @@ theorem prob_selected_hit_le_of_causal {α : Type}
         · simp [hgood]
 
 /-- The sum of the per-cell selection probabilities is an expected recording length. -/
-theorem sum_prob_selected_le_expected_of {α : Type}
-    (run : List HashOutput → List HashOutput → ProbComp (α × SplitTapeState σ))
+theorem sum_prob_selected_le_expected_of {ρ : Type}
+    (run : List HashOutput → List HashOutput → ProbComp ρ)
+    (rightOfResult : ρ → Record)
     (leftLength rightLength : Nat) :
     (∑ index : Fin rightLength,
-        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
-            index.val < (rightOf outcome.2.2).length |
+        Pr[fun outcome : (List HashOutput × List HashOutput) × ρ =>
+            index.val < (rightOfResult outcome.2).length |
           blockRunOf run leftLength rightLength]) ≤
       ∑' outcome, Pr[= outcome |
           blockRunOf run leftLength rightLength] *
-        (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞) := by
+        (((rightOfResult outcome.2).length : Nat) : ℝ≥0∞) := by
   classical
   calc ∑ index : Fin rightLength,
-        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
-            index.val < (rightOf outcome.2.2).length |
+        Pr[fun outcome : (List HashOutput × List HashOutput) × ρ =>
+            index.val < (rightOfResult outcome.2).length |
           blockRunOf run leftLength rightLength]
       = ∑ index : Fin rightLength, ∑' outcome,
-          (if index.val < (rightOf outcome.2.2).length then
+          (if index.val < (rightOfResult outcome.2).length then
             Pr[= outcome | blockRunOf run leftLength
               rightLength]
           else 0) :=
         Finset.sum_congr rfl fun index _ => probEvent_eq_tsum_ite _ _
     _ = ∑' outcome, ∑ index : Fin rightLength,
-          (if index.val < (rightOf outcome.2.2).length then
+          (if index.val < (rightOfResult outcome.2).length then
             Pr[= outcome | blockRunOf run leftLength
               rightLength]
           else 0) := sum_tsum_comm Finset.univ _
     _ ≤ ∑' outcome, Pr[= outcome |
             blockRunOf run leftLength rightLength] *
-          (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞) := by
+          (((rightOfResult outcome.2).length : Nat) : ℝ≥0∞) := by
         refine ENNReal.tsum_le_tsum fun outcome => ?_
         rw [Finset.sum_ite, Finset.sum_const, Finset.sum_const_zero, add_zero, nsmul_eq_mul,
           mul_comm]
         refine mul_le_mul' le_rfl (Nat.cast_le.mpr ?_)
         have hinject := Finset.card_le_card_of_injOn (fun index : Fin rightLength => index.val)
           (s := Finset.univ.filter
-            (fun index : Fin rightLength => index.val < (rightOf outcome.2.2).length))
-          (t := Finset.range (rightOf outcome.2.2).length)
+            (fun index : Fin rightLength => index.val < (rightOfResult outcome.2).length))
+          (t := Finset.range (rightOfResult outcome.2).length)
           (fun index hindex => Finset.mem_range.mpr (by simpa using hindex))
           (fun left _ right _ hvalue => Fin.val_injective hvalue)
         simpa using hinject
@@ -762,8 +765,9 @@ set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The coverage charge, as an expectation**, at the repaired recorder. This is what the
 carrier's answer run composes with. -/
-theorem prob_exists_hit_le_expected_of_causal {α : Type}
-    (run : List HashOutput → List HashOutput → ProbComp (α × SplitTapeState σ))
+theorem prob_exists_hit_le_expected_of_causal {ρ : Type}
+    (run : List HashOutput → List HashOutput → ProbComp ρ)
+    (rightOfResult : ρ → Record)
     (leftLength rightLength : Nat)
     (goodBlock : List HashOutput → Prop) (hit : List HashOutput → HashOutput → Prop)
     (rate : ℝ≥0∞)
@@ -771,21 +775,21 @@ theorem prob_exists_hit_le_expected_of_causal {α : Type}
       Pr[fun value => hit leftTape value | ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
     (hcausal : ∀ (index : Nat) (leftTape rightTape : List HashOutput)
         (value : HashOutput),
-      Pr[fun z : α × SplitTapeState σ => index < (rightOf z.2).length |
+      Pr[fun z : ρ => index < (rightOfResult z).length |
           run leftTape (rightTape.set index value)] =
-        Pr[fun z : α × SplitTapeState σ => index < (rightOf z.2).length |
+        Pr[fun z : ρ => index < (rightOfResult z).length |
           run leftTape rightTape]) :
-    Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
-          ∃ index : Fin rightLength, index.val < (rightOf outcome.2.2).length ∧
+    Pr[fun outcome : (List HashOutput × List HashOutput) × ρ =>
+          ∃ index : Fin rightLength, index.val < (rightOfResult outcome.2).length ∧
             goodBlock outcome.1.1 ∧
             ∃ value, outcome.1.2[index.val]? = some value ∧ hit outcome.1.1 value |
         blockRunOf run leftLength rightLength] ≤
       (∑' outcome, Pr[= outcome |
           blockRunOf run leftLength rightLength] *
-        (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞)) * rate := by
+        (((rightOfResult outcome.2).length : Nat) : ℝ≥0∞)) * rate := by
   classical
   refine le_trans (probEvent_mono (q := fun outcome => ∃ index ∈ (Finset.univ :
-      Finset (Fin rightLength)), index.val < (rightOf outcome.2.2).length ∧
+      Finset (Fin rightLength)), index.val < (rightOfResult outcome.2).length ∧
       goodBlock outcome.1.1 ∧
       ∃ value, outcome.1.2[index.val]? = some value ∧ hit outcome.1.1 value)
     fun outcome _ hhit => by
@@ -793,11 +797,11 @@ theorem prob_exists_hit_le_expected_of_causal {α : Type}
       exact ⟨index, Finset.mem_univ index, hindex⟩) ?_
   refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
   refine le_trans (Finset.sum_le_sum fun index _ =>
-    prob_selected_hit_le_of_causal run leftLength rightLength
+    prob_selected_hit_le_of_causal run rightOfResult leftLength rightLength
       index.val
       index.isLt goodBlock hit rate hrate (hcausal index.val)) ?_
   rw [← Finset.sum_mul]
-  exact mul_le_mul' (sum_prob_selected_le_expected_of run
+  exact mul_le_mul' (sum_prob_selected_le_expected_of run rightOfResult
     leftLength rightLength) le_rfl
 
 /-! ## The recordings are still invisible
@@ -853,7 +857,11 @@ theorem noticingProb_selected_hit_le (leftKeep rightKeep : Bytes → σ → Prop
       Pr[fun outcome => index < (rightOf outcome.2.2).length |
         noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] * rate := by
   rw [noticingBlockRun_eq]
-  exact prob_selected_hit_le_of_causal _ leftLength rightLength index
+  exact prob_selected_hit_le_of_causal
+    (fun leftTape rightTape =>
+      (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+        (cache, (leftTape, rightTape), ([], []))) (fun z => rightOf z.2)
+    leftLength rightLength index
     hindex goodBlock hit rate hrate
     (noticingCausal leftKeep rightKeep computation cache index)
 /-- The sum of the per-cell selection probabilities is an expected recording length. -/
@@ -869,7 +877,10 @@ theorem noticingSum_prob_selected_le_expected
           noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] *
         (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞) := by
   rw [noticingBlockRun_eq]
-  exact sum_prob_selected_le_expected_of _ leftLength rightLength
+  exact sum_prob_selected_le_expected_of
+    (fun leftTape rightTape =>
+      (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+        (cache, (leftTape, rightTape), ([], []))) (fun z => rightOf z.2) leftLength rightLength
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The coverage charge, as an expectation**, at the repaired recorder. This is what the
@@ -891,7 +902,10 @@ theorem noticingProb_exists_hit_le_expected
           noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] *
         (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞)) * rate := by
   rw [noticingBlockRun_eq]
-  exact prob_exists_hit_le_expected_of_causal _ leftLength rightLength
+  exact prob_exists_hit_le_expected_of_causal
+    (fun leftTape rightTape =>
+      (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+        (cache, (leftTape, rightTape), ([], []))) (fun z => rightOf z.2) leftLength rightLength
     goodBlock hit rate hrate
     (noticingCausal leftKeep rightKeep computation cache)
 set_option maxHeartbeats 1000000 in

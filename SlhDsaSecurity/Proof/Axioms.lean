@@ -14775,3 +14775,15 @@ info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail
 /-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_stages' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierClearFraming.clear_stages
+
+/--
+info: 'SlhDsaSecurity.FusedTape.probEvent_length_set_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.probEvent_length_set_threeStage
+
+/--
+info: 'SlhDsaSecurity.FusedTape.threeStageCausal' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.threeStageCausal
