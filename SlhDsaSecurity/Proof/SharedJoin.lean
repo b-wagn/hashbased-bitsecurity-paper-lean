@@ -5,6 +5,7 @@ import SlhDsaSecurity.Proof.ClassGrowth
 import SlhDsaSecurity.Proof.AnswerSide
 import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.RecordedBudget
+import SlhDsaSecurity.Proof.PairedAverage
 
 /-!
 # The shared side's charges, added
@@ -252,7 +253,15 @@ theorem card_parts_le_record (pair : RecordedPair) :
   exact Multiset.card_le_card (Multiset.filter_le _ _)
 
 /-- **The two parts fit inside the budget**, with key generation's spend reserved for the
-forgery's claims. -/
+forgery's claims.
+
+Read by the shared side at a pair that carries the recorder's recordings, through
+`LateProbes.mem_support_forget`, because that pair's type and its projection to this one are
+defined above this file. **A cleanup for after the obligation closes**: `LateProbes.SplitPair`
+and `LateProbes.forgetRecordings` need only the two type abbreviations above and
+`SplitPrefix.SplitState`, all of which are below this file, so moving them down would let this
+be stated at the pair the shared side actually reads and the transport would go. Not worth
+changing the join's surface for while two owners are still landing. -/
 theorem card_parts_le_budget (adversary : Adversary) (q : Nat)
     (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
     (hpair : pair ∈ support (recordedPairedRun adversary)) :
@@ -288,11 +297,8 @@ theorem probEvent_recordedPairedRun (adversary : Adversary) (event : RecordedPai
     Pr[event | recordedPairedRun adversary] =
       ∑' walk, Pr[= walk | graphWalk] *
         Pr[fun result => event (walk, result) |
-          RecordedTail.recordedTail adversary walk] := by
-  rw [recordedPairedRun, probEvent_bind_eq_tsum]
-  refine tsum_congr fun walk => congrArg _ ?_
-  rw [bind_pure_comp, probEvent_map]
-  rfl
+          RecordedTail.recordedTail adversary walk] :=
+  PairedAverage.probEvent_pairedWith (RecordedTail.recordedTail adversary) event
 
 open scoped Classical in
 /-- **The same, read at a count.** -/
@@ -300,12 +306,8 @@ theorem expected_recordedPairedRun (adversary : Adversary) (count : RecordedPair
     expected (recordedPairedRun adversary) count =
       ∑' walk, Pr[= walk | graphWalk] *
         expected (RecordedTail.recordedTail adversary walk)
-          (fun result => count (walk, result)) := by
-  classical
-  haveI : DecidableEq RecordedPair := Classical.decEq _
-  rw [recordedPairedRun, expected_bind]
-  refine tsum_congr fun walk => congrArg _ ?_
-  rw [bind_pure_comp, expected_map]
+          (fun result => count (walk, result)) :=
+  PairedAverage.expected_pairedWith (RecordedTail.recordedTail adversary) count
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -320,41 +322,36 @@ theorem prob_le_expected_of_perWalk (adversary : Adversary) (event : RecordedPai
           (fun result => count (walk, result)) + extra) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     Pr[event | recordedPairedRun adversary] ≤
       (expected (recordedPairedRun adversary) count + extra) /
-        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [probEvent_recordedPairedRun, expected_recordedPairedRun]
-  calc ∑' walk, Pr[= walk | graphWalk] *
-        Pr[fun result => event (walk, result) | RecordedTail.recordedTail adversary walk]
-      ≤ ∑' walk, Pr[= walk | graphWalk] *
-          ((expected (RecordedTail.recordedTail adversary walk)
-            (fun result => count (walk, result)) + extra) / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
-        refine ENNReal.tsum_le_tsum fun walk => ?_
-        by_cases hmem : walk ∈ support graphWalk
-        · exact mul_le_mul' le_rfl (hwalkwise walk hmem)
-        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
-    _ = ∑' walk, (Pr[= walk | graphWalk] *
-            expected (RecordedTail.recordedTail adversary walk)
-              (fun result => count (walk, result)) +
-          Pr[= walk | graphWalk] * extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        refine tsum_congr fun walk => ?_
-        simp only [div_eq_mul_inv]
-        ring
-    _ = ((∑' walk, Pr[= walk | graphWalk] *
-            expected (RecordedTail.recordedTail adversary walk)
-              (fun result => count (walk, result))) +
-          (∑' walk, Pr[= walk | graphWalk]) * extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        simp only [div_eq_mul_inv]
-        rw [ENNReal.tsum_mul_right, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-    _ ≤ ((∑' walk, Pr[= walk | graphWalk] *
-            expected (RecordedTail.recordedTail adversary walk)
-              (fun result => count (walk, result))) + extra) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        refine ENNReal.div_le_div_right (add_le_add le_rfl ?_) _
-        exact le_of_le_of_eq (mul_le_mul' tsum_probOutput_le_one le_rfl) (one_mul extra)
+        ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  PairedAverage.prob_le_expected_of_perWalk (RecordedTail.recordedTail adversary) event count
+    extra hwalkwise
+
+/-! ## The two per-walk adapters, neither of which has a consumer
+
+Both are sound and neither can serve the owner it was written for. `hinput_of_probesIn` takes
+its charge per walk, which the input half cannot give, for the reason its own docstring sets
+out. `hordering_of_probesIn` takes an `ordering` that is a predicate of the recorded pair, and
+the ordering defect is not one — a recorded pair carries no recordings, and which side an entry
+was filed on is the whole content of the defect. `SharedAssembly` closes the obligation without
+either. They are kept until it closes, and the hazard a reader meeting them first should be
+spared is reaching for one on the strength of its name. -/
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **The input half's hypothesis, from a containment and a walk-by-walk charge.** -/
+/-- **The input half's hypothesis, from a containment and a walk-by-walk charge.**
+
+**Sound, but the input half cannot use it, and nobody should reach for it on the strength of
+its name.** The charge is taken *per walk*, and the input half's cannot be: conditioning on the
+walk fixes the cell table, an adversary may be chosen knowing it, and at the walk whose cells it
+hardcodes the input event has probability one against a bound near `2 ^ -100`. That is the
+counterexample that moved `Obligations.SharedCharged` to the paired run in the first place; this
+adapter inherits the per-walk shape and inherits the obstruction with it.
+
+**The rule, which this is the third occasion for: a charge may be read at a fixed walk exactly
+when the randomness it spends is drawn after the walk.** The ordering defect qualifies — what it
+spends is the oracle's own fresh answers — and `hordering_of_probesIn` below is the adapter that
+serves it. The input half spends a secret the walk already drew, and discharges
+`prob_sharedBad_le_expected`'s `hinput` directly at `recordedPairedRun` instead. -/
 theorem hinput_of_probesIn (adversary : Adversary) (inputBad ordering : RecordedPair → Prop)
     (probes : RecordedPair → Multiset Bytes)
     (hprobes : ProbesIn recordAiming probes adversary)
@@ -377,7 +374,10 @@ theorem hinput_of_probesIn (adversary : Adversary) (inputBad ordering : Recorded
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **The ordering defect's hypothesis, from a containment and a walk-by-walk charge.** -/
+/-- **The ordering defect's hypothesis, from a containment and a walk-by-walk charge.** This is
+the adapter the per-walk shape is sound for: the randomness the defect spends is the oracle's
+own fresh answers, drawn after the walk, so fixing the walk gives an adversary nothing. See
+`hinput_of_probesIn` for the half this does *not* serve. -/
 theorem hordering_of_probesIn (adversary : Adversary) (ordering : RecordedPair → Prop)
     (probes : RecordedPair → Multiset Bytes)
     (hprobes : ProbesIn recordMessageClass probes adversary)
@@ -518,8 +518,11 @@ Two things follow, and both are worth saying where the hypothesis used to sit.
   against the aiming part. -/
 
 /-- **The two-part cover of an event is excluded middle.** No property of `ordering` is used;
-in particular it need not be an event of the run at all. -/
-theorem cover_of_em (shared ordering : RecordedPair → Prop) (pair : RecordedPair)
+in particular it need not be an event of the run at all — and no property of the pair either,
+which is why it is stated at any type. The second caller reads a pair that carries the
+recorder's two recordings, since the ordering defect is not a predicate of the recorded pair,
+and a lemma that looked at nothing should not have to be restated for it. -/
+theorem cover_of_em {α : Type} (shared ordering : α → Prop) (pair : α)
     (hshared : shared pair) :
     (shared pair ∧ ¬ ordering pair) ∨ ordering pair := by
   classical
@@ -552,7 +555,17 @@ theorem sharedCharged_of_two
         hshared)
     hinput hordering
 
-/-! ## The union bound
+/-! ## The four-term union-bound route, superseded
+
+Everything from here to the end of the file is the route built when the split still named a
+randomiser defect and the signer's seed coincidence: four events, four counts, one budget.
+The two-way split retired the first and the replay branch's closure retired the second, and
+`SharedAssembly.sharedCharged_of_parts` now closes `Obligations.SharedCharged` from the input
+half's bullet and the ordering term alone. Nothing outside this file reaches any of it.
+
+It is retained until the obligation closes, not because anything here is wrong — it is not —
+but because deleting a route while two owners are still landing is the trade that has cost
+twice. `SignerEvent` goes with it when it goes.
 
 The shared event is covered by the four, and this is the only step that knows which event is
 which. Everything after it is arithmetic on the counts.

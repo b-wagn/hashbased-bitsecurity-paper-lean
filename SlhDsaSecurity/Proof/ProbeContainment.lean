@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.SharedJoin
+import SlhDsaSecurity.Proof.KeygenValue
 
 /-!
 # The probes the charge weighs are the run's own recorded queries
@@ -29,7 +30,7 @@ is read at, and `queriesUnder_strip` is the step that gets there: at a cache ext
 stripping answers from, a probe of the stripped computation is a probe of the original.
 -/
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec ENNReal
 
 namespace SlhDsaSecurity.ProbeContainment
 
@@ -320,9 +321,16 @@ theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
 /-! ## The honest phase appends nothing that aims
 
 The two halves meet here: what the handler records while the honest phase runs is what that
-phase consults, and what it consults that the table does not answer aims nowhere. The cache both
-halves are read at is the game's own, and the hypothesis that it extends the handler's is the
-compatibility `RedrawCell.probEvent_rom_eq_lazy` maintains step by step. -/
+phase consults, and what it consults that the table does not answer aims nowhere.
+
+**No compatibility between the two caches is needed, and that is a fact about the argument's
+shape rather than an economy.** The side condition on the cache a probe statement is read at is
+used only where the table is *silent* — which is exactly where a probe is forwarded to the
+handler at all — and `RedrawCell.unionCache` defers to the handler's own cache precisely there.
+So the condition discharges itself, `RedrawCell.Compatible` never appears, and the containment
+holds at **any** availability: it never compares what the handler answered with what the table
+would have. Had the hypothesis merely been proved instead of removed, that would not be
+visible. -/
 
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
@@ -713,6 +721,71 @@ theorem weight_le_recordAim (publicSeed : Digest)
   exact hbound
 
 
+
+/-! ## The same, with the keys handed in
+
+The charge reads the game with key generation already replaced by the value the walk's cache
+determines, because that is what lets the signer's reads of the table be frozen. The containment
+is simpler there, not harder: with no key generation in the computation there is no keygen step
+to account for, and the assembly is the adversary's phase and the verifier's. -/
+
+set_option maxHeartbeats 4000000 in
+set_option linter.constructorNameAsVariable false in
+open scoped Classical in
+/-- **The game with its keys handed in appends at most what it records.** -/
+theorem aimCount_recordedAfterSeedsAt (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (adversary : Adversary) (keys : SecretKey × PublicKey)
+    (hseed : keys.1.seed = table.1 Node.secretSeed)
+    (hpk : keys.1.publicKey.seed = publicSeed) (hprf : keys.1.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (keys.1.publicKey.seed, keys.1.publicKey.root))
+    (state : OpenCache.HandlerState)
+    (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
+    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      (KeygenValue.recordedAfterSeedsAt adversary keys
+        (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
+    aimCount publicSeed result.2.2.1 ≤
+      aimCount publicSeed state.2.1 + recordAim publicSeed result.1.2 := by
+  classical
+  unfold KeygenValue.recordedAfterSeedsAt at hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨phase, hphase, hmem⟩ := hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨verify, hverify, hmem⟩ := hmem
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+  have hphase' := aimCount_adversary publicSeed availableAt table keys.1 hseed hpk hprf hpublic
+    (adversary.main keys.2) [] state phase hphase
+  have hverify' := aimCount_countRecorded publicSeed availableAt table
+    (Scheme.verify keys.2 phase.1.1.1.message phase.1.1.1.signature) phase.2 verify hverify
+  rw [show result.2 = verify.2 from by rw [hmem],
+    show result.1.2 = (Multiplicative.toAdd phase.1.1.2).2 + verify.1.2.2 from by rw [hmem],
+    recordAim_add, hverify']
+  omega
+
+set_option maxHeartbeats 4000000 in
+open scoped Classical in
+/-- **The charge's weight is at most the record's aiming part**, with the keys handed in. -/
+theorem weight_le_recordAim_at (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (adversary : Adversary) (keys : SecretKey × PublicKey)
+    (hseed : keys.1.seed = table.1 Node.secretSeed)
+    (hpk : keys.1.publicKey.seed = publicSeed) (hprf : keys.1.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (keys.1.publicKey.seed, keys.1.publicKey.root))
+    (state : OpenCache.HandlerState) (hstart : state.2.1 = [])
+    (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
+    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      (KeygenValue.recordedAfterSeedsAt adversary keys
+        (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
+    (result.2.2.1.dedup.filter
+        (fun entry => decide (RedrawCell.AimsSomewhere publicSeed entry.1))).length ≤
+      Multiset.card (result.1.2.filter (RedrawCell.AimsSomewhere publicSeed)) := by
+  classical
+  refine le_trans (dedup_filter_length_le publicSeed result.2.2.1) ?_
+  have hbound := aimCount_recordedAfterSeedsAt publicSeed availableAt table adversary keys hseed
+    hpk hprf hpublic state result hmem
+  rw [hstart, show aimCount publicSeed [] = 0 from rfl, Nat.zero_add] at hbound
+  exact hbound
+
 /-! ## The export, in the join's vocabulary
 
 **`ProbesIn` is reflexivity here, and the reflexivity is not the argument.** `ProbesIn` takes
@@ -737,5 +810,138 @@ theorem recordAim_eq_card_recordAiming (pair : SharedJoin.RecordedPair) :
 theorem probesIn_recordAiming (adversary : Adversary) :
     SharedJoin.ProbesIn SharedJoin.recordAiming SharedJoin.recordAiming adversary :=
   fun _ _ => le_refl _
+
+
+
+/-! ## The forgery's claims never stake the secret seed
+
+The half is charged at `RedrawCell.SensitiveOffSeed`, the avenue whose staked cell is not the
+secret seed; the seed's own avenue is charged elsewhere and must not be paid for twice. For the
+forgery's claims the distinction costs nothing, and structurally rather than by hypothesis:
+every claimed candidate is the canonical input of a FORS leaf or a WOTS chain step, whose staked
+cell is a **structural** node — a signature carries no claim about the seed. So a sensitive
+claim is a sensitive claim off the seed, and the seed term does not arise on this side at all.
+-/
+
+/-- **Every claim is the input of a node that stakes a structural cell.** -/
+theorem claimedCandidates_cases (publicSeed : Digest) (forsKey : ForsKey)
+    (indices : SlhDsaSecurity.Fors.Indices) (signature : Signature)
+    (keyAt : Fin layers → WotsKey) (stepAt : Fin layers → Fin chains → Fin (w - 1))
+    (candidate : Bytes)
+    (hmem : candidate ∈
+      GraphStakes.claimedCandidates publicSeed forsKey indices signature keyAt stepAt) :
+    ∃ (node : GraphStakes.SensitiveNode) (cell : SensitiveQuery.Cell),
+      node.child ≠ Node.secretSeed ∧ GraphStakes.inputOf publicSeed node cell = candidate := by
+  rw [GraphStakes.claimedCandidates, List.mem_append] at hmem
+  rcases hmem with hfors | hwots
+  · obtain ⟨tree, -, htree⟩ := List.mem_map.mp hfors
+    exact ⟨GraphStakes.forsLeafNode forsKey (GraphStakes.forsIndex indices tree),
+      (signature.fors tree).secret, by simp [GraphStakes.forsLeafNode], htree⟩
+  · obtain ⟨layer, -, hlayer⟩ := List.mem_flatMap.mp hwots
+    obtain ⟨chain, -, hchain⟩ := List.mem_map.mp hlayer
+    exact ⟨GraphStakes.wotsHashNode (keyAt layer) chain (stepAt layer chain),
+      ((signature.hypertree layer).wots chain), by simp [GraphStakes.wotsHashNode], hchain⟩
+
+/-- **A sensitive claim is sensitive off the seed.** -/
+theorem sensitiveOffSeed_of_claim (publicSeed : Digest)
+    (unavailable : HandlerCarrier.State → Node → Prop) (table : Cells)
+    (state : HandlerCarrier.State) (candidate : Bytes)
+    (hclaim : ∃ (node : GraphStakes.SensitiveNode) (cell : SensitiveQuery.Cell),
+      node.child ≠ Node.secretSeed ∧ GraphStakes.inputOf publicSeed node cell = candidate)
+    (hsensitive : SensitiveQuery.Sensitive (GraphStakes.stakes publicSeed) unavailable table
+      state candidate) :
+    RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed) unavailable table state
+      candidate := by
+  obtain ⟨node, cell, hchild, hinput⟩ := hclaim
+  obtain ⟨witness, hunavailable, hwitness⟩ := hsensitive
+  have hsame : witness = node :=
+    (GraphStakes.inputOf_inj publicSeed (hwitness.trans hinput.symm)).1
+  exact ⟨witness, by rw [show (GraphStakes.stakes publicSeed).stake witness =
+      witness.child from rfl, hsame]; exact hchild, hunavailable, hwitness⟩
+
+
+
+/-! ## The one property the whole half rests on, at the notion that now carries it
+
+Everything above turns on availability being **closed under the structure**: a node all of whose
+children are available has an available cell. It is what stops a run from reaching a protected
+cell, what makes the stalled run blind, and what answers the objection below. The disclosure
+notion it is read at has changed once already — it is now the served log's — so the closure is
+discharged here, at that notion, rather than left to an instantiation to notice.
+
+Nothing had to be proved for it: `available_of_children_available` takes the
+disclosed set as a **parameter**, so it holds for any, the served log's included. That is the
+same lesson as the writer and the carrier — a lemma stated against what it actually uses
+survives the thing it was written for changing. -/
+
+/-- **Availability is closed under the structure at the served notion.** -/
+theorem closed_disclosedByLog [HasQuery HashSpec Id] (secretSeed publicSeed : Digest)
+    (pk : PublicKey) (state : (Outcome × Nat) × QueryCache HashSpec)
+    (parent : StructuralNode)
+    (hchildren : ∀ child ∈ parent.children,
+      Available (GraphStakes.honestRevealed secretSeed publicSeed)
+        (ServedLog.disclosedByLog pk state) child) :
+    Available (GraphStakes.honestRevealed secretSeed publicSeed)
+      (ServedLog.disclosedByLog pk state) (.structural parent) :=
+  available_of_children_available _ _ hchildren
+
+/-! ## Why the claims charge stands alone, and the run that looks like it breaks it
+
+**The objection, which is worth stating because it will be re-proposed.** An adversary queries
+the canonical input of an unavailable node, reads the cell off the answer, claims it, and
+`InputBad` holds with probability one — so no constant bound on it can be right.
+
+**It cannot do that, and the reason is in the charge's first hypothesis.** A node's canonical
+input *contains its children's cells as its payload*:
+`canonicalInput publicSeed cells parent = tweakableInput publicSeed parent.address
+(childBytes cells parent.children)`. So forming that input already requires holding the children's
+cells. And if the node's own cell is unavailable then some child's is too — that is the
+contrapositive of `hclosed`, the closure hypothesis every charge here takes — so forming it
+requires an unavailable cell. The recursion bottoms out at the secret seed, which no signature
+discloses. "Query it and read the cell off" presupposes the cell it was supposed to produce.
+
+What the adversary can do instead is **guess**: write `tweakableInput publicSeed addr payload`
+with a payload it hopes is the cell. The handler serves a canonical answer only where
+`OpenCache.openCache publicSeed (availableAt state) table` has one, which by `hclosed` is only
+where every child is available — so at an unavailable node it draws fresh and the run learns
+nothing. A lucky guess lower down cannot cascade upward either, for the same reason: serving the
+node above needs the node below available.
+
+**So the claims charge is sound on its own and `hclosed` is what makes it so.** The probes' own
+weight pays for a different event — that some *probe* of the run is sensitive — and
+`RoutedSplit.InputBad` does not quantify over the run's probes at all. -/
+
+/-! ## The shape this half owes the join
+
+Pinned by elaboration rather than by eye, because a mismatch between what an owner proves and
+what the join takes is the failure that has cost this development most.
+
+**The per-walk adapter is not available to this half**, and for the reason the obligation was
+moved to the paired run in the first place: conditioning on the walk fixes the cell table, and
+an adversary chosen knowing it makes the input event certain at that walk. So what this half
+owes is `prob_sharedBad_le_expected`'s `hinput` itself, at the recorded **paired** run, with the
+count the record's aiming part. `SharedJoin.hinput_of_probesIn` is for an owner whose charge is
+per-walk; the ordering defect is such an owner and this one is not. -/
+
+/-- The input half's bullet at the recorded pair.
+
+**The target has moved one pair along and this statement is kept only as its hinge.** The
+ordering defect is not a predicate of the recorded pair, so the bullet that quantifies over it
+is read at the split pair: `SharedAssembly.InputBullet` is that statement, and it is what this
+half now has to produce. `SharedAssembly.inputBullet_of_recorded` proves that the move costs
+nothing for an ordering event that *is* a recorded-pair predicate — this statement gives that
+one by transport alone — so the two are one obligation and the larger pair is the one to prove
+it at.
+
+What makes the transport free on this half's side is that `¬ ordering` is never read: the bound
+below is proved for the event **without** that conjunct, which is strictly larger, so the bullet
+follows by `probEvent_mono` and the ordering term is used pointwise or not at all. -/
+def InputBullet (adversary : Adversary) (ordering : SharedJoin.RecordedPair → Prop) : Prop :=
+  Pr[fun pair : SharedJoin.RecordedPair => Target.GoodWalk pair.1 ∧
+      RoutedSplit.InputBad (SharedJoin.recordedTraceOf pair) ∧ ¬ ordering pair |
+    RandomiserRecord.recordedPairedRun adversary] ≤
+    (ClassExpectation.expected (RandomiserRecord.recordedPairedRun adversary)
+        (fun pair => Multiset.card (SharedJoin.recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
+      ((2 ^ 128 : Nat) : ℝ≥0∞)
 
 end SlhDsaSecurity.ProbeContainment

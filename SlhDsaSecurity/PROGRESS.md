@@ -9,6 +9,69 @@ and signing share the same oracle but contribute no work. The target is
 SUF-CMA advantage at most q/2^127 for every almost-sure work budget q ≥ 1;
 `Proof/Security.lean` proves that any SUF-CMA bound implies the same EUF-CMA bound.
 
+## Where the proof stands
+
+*Read this first, and read the rest knowing what it is.* The sections below are in the order
+they were written, so several of them record designs that were later replaced. Those are marked
+**Superseded** at the top, with one line saying what replaced them. Nothing is deleted: why a
+design was rejected is the part of this file that stops it being proposed again, and twice in
+one day a note of that kind has done exactly that.
+
+`Obligations.target_of_charges` reduces `HasTotalSecurityBits .strong 127` to **two** statements
+about the warmed tail. That is the whole of what is outstanding.
+
+### The answer half
+
+`Obligations.AnswerCharged`, at a fixed walk, bounded by
+`q / 2 ^ 128 + (1 / 2 ^ 126 + 1 / 2 ^ 141)`.
+`AnswerSide.prob_answerBad_good_le_of_caps` proves it from four hypotheses, and each is a named
+piece of work rather than a design question:
+
+* **`hlate`** — the ordering defect, as a support hypothesis on the recorded run.
+* **`hleftBound`** — the disclosing recording is no longer than a `leftLength ≤ 5 * 2 ^ 62`.
+  Settled: `ServedAgreement.record_length_le_cap` gives it at `signingLimit`, which is
+  `4 * 2 ^ 62`. The headroom is a quarter and no more; see *How long the disclosing recording
+  is* in `Proof/ServedAgreement.lean` for why twice the signing limit would not have been
+  recoverable.
+* **`hseed`** — the narrowing's leftover, as a term the caller adds.
+* **`hdisclosing`** — the recorder's left test agrees with the log. Left to right is log
+  faithfulness and is proved (`ServedBridge.signerRandomised_of_servedLog`); right to left is
+  false while the test reads the cache, and retires when the test becomes the carrier's served
+  set, which `ServedAgreement.agreesWithLog_run` now supplies in both directions.
+
+### The shared half
+
+`Obligations.SharedCharged`, read at the walk and the game together, bounded by
+`(q - 2 ^ subtreeHeight + 259) / 2 ^ 128`. `SharedJoin.sharedCharged_of_two` proves it from
+**two** charges and nothing else:
+
+* **`hinput`** — `GoodWalk ∧ InputBad ∧ ¬ ordering`, charged to the record's **aiming** part
+  plus the forgery's 259 claims;
+* **`hordering`** — the ordering defect, charged to the record's **message-class** part.
+
+There is no third hypothesis. The cover between the two is excluded middle
+(`SharedJoin.cover_of_em`), which also means the ordering defect's event may be restated however
+its owner likes without this step moving. The arithmetic closes on the nose: the two parts are
+disjoint by construction, `Multiset.card record = counts.work`, and
+`work + 2 ^ subtreeHeight ≤ q`.
+
+### Where each hypothesis has to be discharged, which is not a free choice
+
+`hinput` is discharged directly at `RandomiserRecord.recordedPairedRun`, **not** through
+`SharedJoin.hinput_of_probesIn`. That adapter is sound and the input half cannot use it, because
+it takes its charge per walk and the input half's charge cannot be read at a fixed walk: see
+*A charge that defers its secret cannot be read at a fixed walk* below for the rule, which is
+that a charge may be read at a fixed walk exactly when the randomness it spends is drawn after
+the walk. `hordering` spends the oracle's own fresh answers and so may use the per-walk adapter;
+the two adapters now say which owner each serves.
+
+### What is no longer owed
+
+The randomiser defect's charge is gone: the replay branch closes outright by strong freshness,
+so no branch reaches it. With it went the four-term shared accounting, the three-way
+classification of the record by first block, and the signer's coincidence — which was paying for
+a cache proxy that the carrier's served set has replaced.
+
 ## Source audit
 
 - [FIPS 205](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf),
@@ -260,6 +323,9 @@ probability is at most 2^-141 + 2^-152.
 
 ## Tightness budget for the 127-bit target
 
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records.
+
 Write the target as `q / 2 ^ 127 = 4q / 2 ^ 129`. The two unavoidable attack avenues are
 additive, and their sum decides whether the target is provable at all.
 
@@ -312,6 +378,10 @@ the 569-query verification floor, and a charged-work lower bound on the framing-
 recovery. Routing FORS through the plain `2 ^ -128` bound cannot work.
 
 ## Remaining obligations for `HasSecurityBits .strong 127`
+
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records. The obligations are now the two in
+*Where the proof stands*.
 
 The structural half is complete and the per-query charge is proved and bridged to it.
 Four obligations remain, in increasing order of difficulty.
@@ -367,6 +437,9 @@ Four obligations remain, in increasing order of difficulty.
 
 ## All-queries-counted accounting (current target)
 
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records. It is no longer the current target.
+
 The accounting changed: every hash call made anywhere in the game is charged — key
 generation, signing, the adversary's direct calls and final verification — matching the
 leanVM `lean_sphincs` statement. Signing requests are still capped separately at `2 ^ 64`,
@@ -409,6 +482,9 @@ growth).
   is uncached). The adaptive, prequeried and cross-request-correlated cases remain.
 
 ## The two remaining inputs, and how `hcap` avoids a freshness argument
+
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records.
 
 `Proof/Assembly.lean`'s `le_target_of_terms` reduces the 127-bit bound to three inputs. The
 structural term (`WholeGameStructural`, `2q / 2 ^ 129`) and the FORS term
@@ -455,6 +531,9 @@ in the form `ForsConcentrationSharper` consumes — not a freshness or key-guess
 
 ## What `hcap` actually needs: a partial-random-function invariant
 
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records.
+
 `Proof/DigestInputDistinct.lean` proves what the message layer owes: distinct signing
 requests have distinct `H_msg` inputs (`messageInput_ne_of_request_ne`), and the digest-input
 family is byte-input separated for *every* assignment of randomizers to requests and states
@@ -495,6 +574,9 @@ the shared oracle, not an instantiation of the existing fresh-sampling results, 
 what `ROMPresampling` would have to be extended to provide.
 
 ## A regime limit in the FORS route, and why `pinned` cannot be the signed set
+
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records.
 
 The oracle-to-tape chain is complete: `GrowthCharge.cache_value_persists` and
 `prob_cache_values_le` give the partial-random-function invariant,
@@ -537,6 +619,9 @@ fixed additive `2 ^ -126` available at every `q`.
 
 ## Correction: the adversary cannot concentrate loads without `SK.prf`
 
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records.
+
 The preceding section is **wrong** where it claims the adversary can break the load cap by
 prequerying digests and then signing only messages that share an instance. Signing is
 deterministic: the signer uses `R = PRF_msg(SK.prf, PK.seed, M')`, so the digest input
@@ -578,6 +663,9 @@ loose: a guess is only useful if it is *verified*, and verification needs a sign
 randomizer is known, which may permit a sharper accounting than one guess per query.
 
 ## The decisive question: the per-query union
+
+**Superseded** by *The first-principles architecture*, below, which replaced the budget this
+section reasons inside. Kept for the dead ends it records.
 
 The two preceding sections went back and forth; this settles what the obstacle actually is.
 
@@ -670,6 +758,9 @@ load-cap defect both far below the slack at every `q ≥ 569` — and `q ≥ 569
 since an accepted forgery forces that many charged verifier calls.
 
 ## State of the first-principles proof
+
+**Superseded** by *Where the proof stands*, at the top. Kept because it records what the
+architecture looked like before the two obligations were isolated.
 
 Everything below is proved, unconditionally, with no `sorry` and axiom-guarded.
 
@@ -1270,6 +1361,8 @@ the adversary runs, the input side needs them deferred.
 
 ## State of the proof, consolidated
 
+**Superseded** by *Where the proof stands*, at the top.
+
 The table under "State of the first-principles proof" above is superseded. Everything listed
 here is proved, unconditionally, with no `sorry` and an axiom guard.
 
@@ -1514,7 +1607,27 @@ the run to be nonempty, and nothing has to: an adversary whose run can fail ever
 closed by the same line that closes the small-budget case rather than excluded by a hypothesis
 no one had stated.
 
-## Five definitional equalities that read as syntactic ones
+## The traps, consolidated
+
+**The index.** Eight are known. Six are the numbered list in this section; the last two are
+their own sections further down, because they are not defeq failures at all and the symptom is
+different. Two of the six have since been *confirmed* — seen twice, from different directions —
+and those are the ones worth reading first, because a trap seen once can still be a quirk of one
+proof.
+
+1. An opaque game definition — and the half that still costs builds, that
+   `attribute [local irreducible]` is per file (**confirmed**).
+2. Rewriting under a binder — and the variant where a rewrite that fires first moves the term a
+   later one was going to match.
+3. A choice-based lookup.
+4. A semireducible index — never rewrite across it, convert by application. Three riders: the
+   repair that looks right and is not, the **projection trap** (**confirmed**, in two distinct
+   shapes), and the instance cousin at `rw [Scheme.sign]`.
+5. An instance path.
+6. Two spellings of one value — a convention, not a tactic.
+7. *A disjunct that is true outright* — below. The elaborator cannot catch this one: the
+   statement is well typed and vacuous.
+8. *An ascription that changes which lift is meant* — below.
 
 Each of these cost hours, and each presents differently. The common shape: two terms are equal
 by unfolding but not by matching, so the tool that needs them to look alike declines — and the
@@ -1624,6 +1737,8 @@ the lemma, rather than writing the lemma one would like and making the goal fit.
 
 ## A sixth, which the elaborator cannot catch: a disjunct that is true outright
 
+*Entry 7 of the traps list; the index is under **The traps, consolidated** above.*
+
 The five above are proofs that will not go through. This one is a proof that does, and a
 theorem that says nothing. `RandomiserProvenance.randomiserBad_source` was first stated with its
 overlap case as a bare equation,
@@ -1681,6 +1796,10 @@ gate queries are paid on the other half.
 
 ## The two halves share the record by class, not by a shared rate
 
+**Superseded** in its instantiation: there is no randomiser defect to share the record with any
+more. The distinction it draws — two charges may share a *count* without sharing a *rate* — is the
+live part, and is what `SharedJoin`'s two parts still rest on.
+
 The input half and the randomiser defect are charged against one budget, and there are two ways
 to read that. The one that does not work is a single hit predicate whose own rate is one unit:
 the two events are not even about the same randomness — the sensitive hit is over the cell
@@ -1695,6 +1814,9 @@ then taken separately, each against its own part, and added — the sum of the t
 is one expected record length, which is the `(q - 512) + 259` the obligation allows.
 
 ## What the theorem now rests on
+
+**Superseded** by *Where the proof stands*, at the top: the split is two-way now, not three-way,
+and `ReplayGate.RandomiserBad` is no longer one of the events.
 
 `Obligations.target_of_charges` instantiates the target at the three events the split actually
 produces — `RoutedSplit.AnswerBad`, `RoutedSplit.InputBad`, `ReplayGate.RandomiserBad` — so the
@@ -1718,6 +1840,10 @@ faithfulness at the cache in hand is not preserved as the cache grows.
 Nothing above is a design question any more. Each is a proof.
 
 ### The three classes the shared budget pays for
+
+**Superseded.** The three-way classification needed `SK.prf` to name two of its parts, and a
+deferral reads its count before the secret is drawn. The split is now `aiming ⊎ message-class`,
+which names only the walk.
 
 The shared half ends up charging three things, and they have to be made exclusive before their
 counts are added. A record entry is canonical — `PK.seed` first — or a `PRF_msg` input at the
@@ -1883,6 +2009,11 @@ of its own, not a step inside a proof.
 
 ## A charge that defers its secret cannot be read at a fixed walk
 
+*A second pass at the section above, written without noticing the first. Both are kept: they reach
+the same rule by different routes, and the rule — a charge may be read at a fixed walk exactly
+when the randomness it spends is drawn after the walk — has since been hit a third time, at
+`SharedJoin.hinput_of_probesIn`.*
+
 The shared obligation was stated per walk: for every walk in the support, a bound on the tail's
 probability. That form is **false**, and the counterexample is short. Conditioning on the walk
 fixes `SK.prf` and the cell table. The adversary is quantified before the walk, so it may be one
@@ -1909,6 +2040,11 @@ during the run. No choice of adversary biases an answer that has not been drawn.
 read at a fixed walk exactly when the randomness it spends is drawn after the walk.
 
 ## The whole budget, charge by charge, and why every term has a home
+
+**Superseded** by *Where the proof stands*, at the top. This is the four-term accounting: the
+randomiser defect's term and the signer's coincidence are both gone, and the shared side is now
+two terms against the record's aiming and message-class parts. Read it for the method — write the
+accounting into the statements rather than trusting the margin — which still holds.
 
 The target allows `q / 2 ^ 127`, which is **two units of `2 ^ -128` per counted query**. Six
 charges are now in flight and three of them are stated against counts loose enough to look as
@@ -2163,6 +2299,10 @@ left but the budget.
 
 ## Where the two obligations stand
 
+**Superseded** by *Where the proof stands*, at the top. Its shared half says four terms; there are
+two. The paragraph on `PotentialCharge.prob_fired_le` — a potential on the state paid down against
+a gauge read off the state — is still live and is why that lemma exists.
+
 `Obligations.target_of_charges` reduces the theorem to `AnswerCharged` and `SharedCharged`.
 Neither has an open problem left; what remains in both is instantiation.
 
@@ -2386,6 +2526,11 @@ a digest. They are places where the extraction gives up, and the decomposition w
 giving up.
 
 ### The cause is that disclosure is defined by the cache
+
+**Superseded** by the carrier: disclosure is served-indexed now, read off `HandlerCarrier.State`'s
+own served set rather than off the cache, and `ServedAgreement.agreesWithLog_run` proves that set
+is exactly what the log names. The diagnosis here is still the right one — it is why the carrier
+exists.
 
 `CacheAvailability.signedAt` counts a digest as disclosing when the `PRF_msg` entry for its
 message is in the cache. That is a proxy for *the signer produced a signature at this digest*,
@@ -2687,6 +2832,8 @@ which has the same `GoodWalk` hypotheses because an aiming address is a structur
 is within `HashSeparation`'s bounds.
 
 ## A seventh defeq trap: an ascription that changes which lift is meant
+
+*Entry 8 of the traps list; the index is under **The traps, consolidated** above.*
 
 `simulateQ_spec_query` is stated as `simulateQ impl (liftM (spec.query t)) = impl t`. Writing the
 same term as
