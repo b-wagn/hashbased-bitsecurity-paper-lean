@@ -1872,3 +1872,44 @@ is what makes the two halves genuinely different. Its charges are guesses at the
 fresh answers* — a collision with a canonical target, a coverage pattern among digests drawn
 during the run. No choice of adversary biases an answer that has not been drawn. A charge may be
 read at a fixed walk exactly when the randomness it spends is drawn after the walk.
+
+## The whole budget, charge by charge, and why every term has a home
+
+The target allows `q / 2 ^ 127`, which is **two units of `2 ^ -128` per counted query**. Six
+charges are now in flight and three of them are stated against counts loose enough to look as
+though they do not fit. They do, and this is the accounting that says so. Write it into the
+statements rather than trusting the margin: the margin is 247 units and every one of these terms
+is proportional to `q`.
+
+Let `work` be the adversary's own charged queries, `req` the served requests, and note
+`work + req + 2 ^ subtreeHeight ≤ q`, since key generation's subtree is charged and each request
+costs at least one counted hash.
+
+**The answer side spends one unit per query, and its two charges partition the queries.**
+
+* structural collisions — the growth *outside* the message class;
+* FORS coverage — the growth *inside* it.
+
+They add to the run's own count, which is at most `q`. Nothing else is charged there.
+
+**The shared side spends one unit per query too, and its four charges partition the record.** A
+record entry opens with `PK.seed` (canonical), with `SK.prf` (`PRF_msg`), or is message-class;
+made exclusive by priority these three are disjoint, and the fourth charge is not about the
+record at all:
+
+* the input half — the canonical part, plus the forgery's 259 claims;
+* the randomiser defect — the `PRF_msg` part, plus one for the forgery's own digest input;
+* the ordering defect — the message-class part, which is where the *right* recording lives:
+  the signer queries its `PRF_msg` input before its digest, so a signer's digest is disclosing
+  when made and is recorded on the left, and the right recording holds only the adversary's;
+* the signer's coincidence — one per **request**, not one per query.
+
+So the shared side costs at most `work + 259 + req + 1 ≤ (q - 2 ^ subtreeHeight) + 259`, which
+is its obligation on the nose.
+
+**What this forbids.** No charge on the shared side may be stated against `q` or against the
+whole record. Three of them currently are, or were: the randomiser defect against the record's
+whole cardinality, the signer's coincidence against `q`, and the ordering defect against every
+message-class query rather than the recorded ones. Each is true and each is a factor of two or
+three too loose to add. The sharp form is the one above, and it is the one the statements have
+to carry.
