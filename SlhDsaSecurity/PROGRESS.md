@@ -3478,6 +3478,20 @@ redex. Three forms of the same obstruction have now cost a build each:
    type arguments are determined only after that rewrite lands — a `bind_congr` attempted
    before then has nothing to resolve and reports a stuck `Bind ?m`.
 
+
+**Two more, from elaboration rather than rewriting, with the same repair.**
+
+4. `refine le_trans (big_lemma …) ?_` exhausts `maxRecDepth` at 1000000 *and* overflows the
+   stack at 4000000, where `have h := big_lemma …` followed by `refine le_trans h ?_` elaborates
+   immediately. `refine` unifies a large term against the goal; `have` elaborates it on its own.
+5. A support-congruence goal arrives **un-beta-reduced** — `((fun pair => …) ∘ fun result =>
+   (result, cells index)) z` — so `rw` finds no occurrence of the pattern until
+   `simp only [Function.comp_apply]` has run.
+
+So the repair generalises past rewriting: **name the instance instead of asking a tactic to find
+it**, whether the tactic is searching for a pattern or unifying a term. Five obstructions, one
+fix, and every one of them reports the goal rather than the cause.
+
 **The fix in all three is the same: name the instance at the state it is used at**, as a `have`,
 rather than asking `rw` to find it. Three lines. The diagnosis is the expensive part and the
 symptom is misleading in every case — the error names the goal, not the application.
