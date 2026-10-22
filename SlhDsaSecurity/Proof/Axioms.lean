@@ -8065,12 +8065,6 @@ info: 'SlhDsaSecurity.SharedJoin.prob_sharedBad_le' depends on axioms: [propext,
 #print axioms SlhDsaSecurity.SharedJoin.prob_sharedBad_le
 
 /--
-info: 'SlhDsaSecurity.SharedJoin.prob_signerEvent_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedJoin.prob_signerEvent_le
-
-/--
 info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -8353,3 +8347,17 @@ info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps' depends on
 /-- info: 'SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_canonical
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.growthAtMostOn_prfClass_of_clean' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.growthAtMostOn_prfClass_of_clean
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_expected

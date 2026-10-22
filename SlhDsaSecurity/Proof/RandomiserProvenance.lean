@@ -416,6 +416,43 @@ theorem growthAtMostOn_prfClass (sds : Digest × Digest × Digest)
         Finset.card_le_card hsub
     _ ≤ _ := card_prfCandidates_le sds.2.1 keys.1 result.2 record result.1.1.signed
 
+open scoped Classical in
+/-- **On the branch the record's charge does not cover, the class's growth is twice the served
+requests.**
+
+Worth stating on its own, because it says what is and is not missing. The number `2 · served` is
+already in hand here, with no instrumentation at all: once the record's own part of the class is
+empty, the only in-class entries left are the signer's own two per served request. So what the
+signer's charge still lacks is not a *count* — a counter wrapped around the signer would produce
+this same number and buy nothing — but a charge that can be **conditioned** on this branch. -/
+theorem growthAtMostOn_prfClass_of_clean (sds : Digest × Digest × Digest)
+    (cache : QueryCache HashSpec) (result : (Outcome × Nat) × QueryCache HashSpec)
+    (keys : SecretKey × PublicKey) (record : Multiset Bytes)
+    (hkeys : keys = @Scheme.keygenInternal Id Id.instMonad (replayQuery result.2)
+      sds.1 sds.2.1 sds.2.2)
+    (hprov : ∀ probe : Bytes, cache probe = none → result.2 probe ≠ none →
+      (probe ∈ record ∨
+        QueriesUnder result.2
+          (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) probe ∨
+        (∃ entry ∈ result.1.1.signed, SignerMade keys.1 result.2 entry.1 probe) ∨
+        QueriesUnder result.2
+          (Scheme.verify (m := OracleComp HashSpec) keys.2 result.1.1.forgery.message
+            result.1.1.forgery.signature) probe))
+    (hforgery : ∀ input ∈ forgeryDigestRecord keys.2 result.1.1.forgery, input ∈ record)
+    (hne : sds.2.1 ≠ sds.2.2)
+    (hserved : ∀ entry ∈ result.1.1.signed, ∀ framed : Bytes,
+      entry.1.frame = some framed → entry.2.isSome)
+    (hclean : ∀ input ∈ record, ¬ RandomizerGate.PrfClass sds.2.1 input) :
+    ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass sds.2.1) cache result.2
+      (2 * AdversaryQueries.servedCount result.1.1.signed) := by
+  have hcard : (record.toFinset.filter (RandomizerGate.PrfClass sds.2.1)).card = 0 := by
+    rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
+    intro input hinput
+    exact hclean input (Multiset.mem_toFinset.mp hinput)
+  have hgrowth := growthAtMostOn_prfClass sds cache result keys record hkeys hprov hforgery hne
+    hserved
+  rwa [hcard, Nat.zero_add] at hgrowth
+
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.tail
 
 open scoped Classical in
