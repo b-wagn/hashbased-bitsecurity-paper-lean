@@ -4,6 +4,7 @@ import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.SplitWitness
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
@@ -7059,3 +7060,23 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget' depends on axioms:
 /-- info: 'SlhDsaSecurity.SplitPrefix.right_record_class' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitPrefix.right_record_class
+
+/-- info: 'SlhDsaSecurity.SplitWitness.cover_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.cover_messageInput
+
+/-- info: 'SlhDsaSecurity.SplitWitness.disclosingKeep_mono' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.disclosingKeep_mono
+
+/-- info: 'SlhDsaSecurity.SplitWitness.targetKeep_class' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.targetKeep_class
+
+/-- info: 'SlhDsaSecurity.SplitWitness.disclosingKeep_class' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.disclosingKeep_class
+
+/-- info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered
