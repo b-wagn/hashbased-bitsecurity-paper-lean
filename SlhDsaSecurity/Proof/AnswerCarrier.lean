@@ -413,4 +413,65 @@ theorem prob_targetCovered_answerCarrierRun_le
   exact CarrierCoverage.prob_carrierTail_targetCovered_le rightKeep adversary walk
     leftLength rightLength hcap hleftBound hrightBound
 
+/-! ## The same with the leftover excluded, which is the form this route can actually use
+
+`answerBound_of_charges` above bounds `AnswerBad ∧ ¬ LateDisclosure`, with no seed conjunct. That
+is the **strong** form, and taking it is a decision rather than a convenience: its `hsplit` has to
+send every supported run with that event to one of the two clauses, including runs where the
+forgery's published randomiser is `SK.prf`. On those the narrowing fails —
+`not_narrowTarget_of_forgerySeedRandomised`, and `CarrierDemand`'s in-flight branch for the views
+`CarrierClearFraming.clear_stages` does not reach — and `hsplit` is a **pathwise** statement, so a
+set of small probability does not excuse it. The strong form is not expensive to prove; it is
+unavailable.
+
+What the route needs instead is this, and it costs nothing. The event carries
+`¬ AnswerCoverage.ForgerySeedRandomised`, so `hsplit` may use it; the event is smaller, so the
+same two charges bound it; and the shape is `CarrierTail.answerChargedAt_carrier_of_bound`'s on
+the nose, with `budget := q` giving `q / 2 ^ 128 + Target.answerDefectProved` exactly rather than
+through a weakening. The leftover then leaves the answer half the way it left the cache half —
+conjoined to the event and charged on the shared side at `seedUnits`, where
+`CarrierShared.sharedChargedLate_at` already takes it. -/
+
+open scoped ENNReal in
+/-- **The answer half's bound at the carrier's run, with the narrowing's leftover excluded.** -/
+theorem answerBoundSeed_of_charges
+    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
+      HandlerCarrier.State → Prop)
+    (adversary : Adversary)
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (structuralBad coverageBad : ((Outcome × Nat) × SplitPrefix.SplitState) → Prop)
+    (outsideCount insideCount : ((Outcome × Nat) × SplitPrefix.SplitState) → Nat)
+    (budget : Nat)
+    (hsplit : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
+        structuralBad result ∨ coverageBad result)
+    (hstructural : Pr[structuralBad | answerCarrierRun rightKeep adversary walk] ≤
+      ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) outsideCount /
+        ((2 ^ 128 : Nat) : ENNReal))
+    (hcoverage : Pr[coverageBad | answerCarrierRun rightKeep adversary walk] ≤
+      (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) +
+        ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) insideCount /
+          ((2 ^ 128 : Nat) : ENNReal))
+    (hshare : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      outsideCount result + insideCount result ≤ budget) :
+    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+        RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+      answerCarrierRun rightKeep adversary walk] ≤
+      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
+        (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) :=
+  le_trans (probEvent_mono hsplit)
+    (CoverageCount.prob_bad_or_coverage_le_of_two_charges
+      (answerCarrierRun rightKeep adversary walk) structuralBad coverageBad _
+      outsideCount insideCount budget hstructural hcoverage hshare)
+
 end SlhDsaSecurity.AnswerCarrier
