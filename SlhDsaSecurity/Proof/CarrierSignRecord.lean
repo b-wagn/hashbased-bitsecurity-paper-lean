@@ -26,6 +26,23 @@ open Security BracketedRun CarrierFiles CarrierRecordings SignerRightRecord Coun
 variable (pk : PublicKey)
 
 set_option maxHeartbeats 1000000 in
+/-- **A carrier run projects onto the shared oracle's**, by the equality the handler was given. -/
+theorem mem_support_rom_of_carrier (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : CountedState)
+    (result : α × CountedState)
+    (hresult : result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep)
+      computation).run state)) :
+    (result.1, result.2.1.cache) ∈
+      support ((simulateQ KeygenUniform.rom computation).run state.1.cache) := by
+  have hforget := forgetsAlong_countedCarrierRecorder pk rightKeep computation state
+  rw [show ((simulateQ KeygenUniform.rom computation).run state.1.cache) =
+    (simulateQ KeygenUniform.rom computation).run
+      ((fun state : CountedState =>
+        RecorderView.CacheView.cacheOf (state.1, state.2.1).1) state) from rfl,
+    ← hforget, support_map]
+  exact ⟨result, hresult, rfl⟩
+
+set_option maxHeartbeats 1000000 in
 /-- **A served request files, as a target, only its own randomiser probe or an entry whose
 carrier already held that request's randomiser answer.** -/
 theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
@@ -41,7 +58,11 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
           (∀ (probe : Bytes) (value : HashOutput),
             mid.cache probe = some value → result.2.1.cache probe = some value) ∧
             mid.cache entry.1 = none ∧
-              rightKeep entry.1 (servingNotice pk mid entry.1) := by
+              rightKeep entry.1 (servingNotice pk mid entry.1) ∧
+                mid.framing = state.1.framing ∧
+                  CacheReplay.QueriesUnder result.2.1.cache
+                    (SignerRandomiser.signInternalAt (m := OracleComp HashSpec)
+                      (Hashing.truncate answer) sk message) entry.1 := by
   classical
   rw [run_signInternal_at, mem_support_bind_iff] at hresult
   obtain ⟨step, hstep, hrest⟩ := hresult
@@ -65,8 +86,24 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
       · refine Or.inr (Or.inl ?_)
         rw [List.mem_singleton.mp hself]
         exact (Sum.inr.injEq _ _).mp hqueried.symm
-  · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries entry hnew
-    exact Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hlater, habsent, hkeep⟩)
+  · obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal, hframing⟩ := hentries entry hnew
+    have hfreshStart : step.2.1.cache entry.1 = none := by
+      rcases hstate : step.2.1.cache entry.1 with _ | value
+      · rfl
+      · rw [hstart entry.1 value hstate] at habsent
+        exact absurd habsent (by simp)
+    have hmemRom : (result.1, result.2.1.cache) ∈ support ((simulateQ KeygenUniform.rom
+        (liftM (SignerRandomiser.signInternalAt (m := OracleComp HashSpec)
+            (Hashing.truncate step.1) sk message) :
+          OracleComp OracleWorld Signature)).run step.2.1.cache) := by
+      rw [← signInternalAt_liftM]
+      exact mem_support_rom_of_carrier pk rightKeep _ step.2 result hrest
+    refine Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hlater, habsent, hkeep, ?_, ?_⟩)
+    · rw [hframing]
+      exact (files_countedCarrierRecorder pk rightKeep).stepFraming _ state step hstep
+    · exact CacheProvenance.queriesUnder_of_fresh_liftM _ step.2.1.cache result.2.1.cache
+        result.2.1.cache result.1 hmemRom (fun _ _ h => h) entry.1 hfreshStart
+        (Option.ne_none_iff_exists'.mpr ⟨entry.2, hfinal⟩)
 
 set_option maxHeartbeats 1000000 in
 /-- **A rejected request files nothing**, because it makes no query. -/
@@ -96,7 +133,11 @@ theorem sign_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
           (∀ (probe : Bytes) (value : HashOutput),
             mid.cache probe = some value → result.2.1.cache probe = some value) ∧
             mid.cache entry.1 = none ∧
-              rightKeep entry.1 (servingNotice pk mid entry.1) := by
+              rightKeep entry.1 (servingNotice pk mid entry.1) ∧
+                mid.framing = state.1.framing ∧
+                  CacheReplay.QueriesUnder result.2.1.cache
+                    (SignerRandomiser.signInternalAt (m := OracleComp HashSpec)
+                      (Hashing.truncate answer) sk framed) entry.1 := by
   classical
   rw [Scheme.sign, hframe] at hresult
   simp only [simulateQ_bind, simulateQ_pure, StateT.run_bind, StateT.run_pure,
@@ -113,23 +154,6 @@ generation's is about an input's shape and the verifier's is about who asked, an
 shared oracle's to answer. The projection is **stronger** here than `SplitPrefix.mem_support_rom`
 was: `ServingForget.ForgetsAlong` is an equality of computations, so the shared oracle's run is
 not merely reachable from the carrier's but equal to its image. -/
-
-set_option maxHeartbeats 1000000 in
-/-- **A carrier run projects onto the shared oracle's**, by the equality the handler was given. -/
-theorem mem_support_rom_of_carrier (rightKeep : Bytes → HandlerCarrier.State → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) (state : CountedState)
-    (result : α × CountedState)
-    (hresult : result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep)
-      computation).run state)) :
-    (result.1, result.2.1.cache) ∈
-      support ((simulateQ KeygenUniform.rom computation).run state.1.cache) := by
-  have hforget := forgetsAlong_countedCarrierRecorder pk rightKeep computation state
-  rw [show ((simulateQ KeygenUniform.rom computation).run state.1.cache) =
-    (simulateQ KeygenUniform.rom computation).run
-      ((fun state : CountedState =>
-        RecorderView.CacheView.cacheOf (state.1, state.2.1).1) state) from rfl,
-    ← hforget, support_map]
-  exact ⟨result, hresult, rfl⟩
 
 set_option maxHeartbeats 1000000 in
 /-- **An entry key generation files as a target is one of its own probes.** -/
@@ -151,7 +175,7 @@ theorem keygen_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop
   rw [hsuffix] at hentry
   rcases List.mem_append.mp hentry with hprior | hnew
   · exact Or.inl hprior
-  · obtain ⟨mid, hstart, -, habsent, -, hfinal⟩ := hentries entry hnew
+  · obtain ⟨mid, hstart, -, habsent, -, hfinal, -⟩ := hentries entry hnew
     have hfresh : state.1.cache entry.1 = none := by
       rcases hstate : state.1.cache entry.1 with _ | value
       · rfl
@@ -177,7 +201,7 @@ theorem verify_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop
   rw [hsuffix] at hentry
   rcases List.mem_append.mp hentry with hprior | hnew
   · exact Or.inl hprior
-  · obtain ⟨mid, hstart, -, habsent, -, hfinal⟩ := hentries entry hnew
+  · obtain ⟨mid, hstart, -, habsent, -, hfinal, -⟩ := hentries entry hnew
     have hfresh : state.1.cache entry.1 = none := by
       rcases hstate : state.1.cache entry.1 with _ | value
       · rfl

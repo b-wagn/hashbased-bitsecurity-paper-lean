@@ -171,7 +171,7 @@ theorem right_record_phase (rightKeep : Bytes → HandlerCarrier.State → Prop)
           exact Or.inl hstepMem
         | some framed =>
           rcases sign_right_record pk rightKeep sk request framed hframe _ signed hsigned entry
-            hstepMem with hprior | hrandomiser | ⟨mid, answer, hmid, hlater, habsent, hkeep⟩
+            hstepMem with hprior | hrandomiser | ⟨mid, answer, hmid, hlater, habsent, hkeep, -, -⟩
           · rw [(CarrierTail.bracket_startServingOn request carrier).2] at hprior
             exact Or.inl hprior
           · exact Or.inr (Or.inr ⟨framed, Or.inl hrandomiser⟩)
