@@ -5309,3 +5309,33 @@ checked.
 
 `targetCovered_carrierTail_narrow` keeps its two class parameters, correctly. It is the
 per-result conditional the join is built from, and it should not know where they come from.
+
+## The bar an attack has to clear, and why nothing clears it at this margin
+
+`GuessingBar.within_target_of_stakes`: an adversary whose staked guesses number at most `2 * q`
+is inside `q / 2 ^ 127`. The scale is not an estimate —
+`SecretGuessCharge.prob_single_guess` is an **equality**, one staked guess is exactly `2 ^ -128`,
+and `Assembly.half_add_half` says the target is exactly **two** of those. So a refutation must
+convert **more than two staked guesses per query** into forgery probability.
+
+**The refutation condition is `∃ q, ∃ adversary`**, so a point-specific attack is not defective
+— it is sufficient. That cuts the other way too: a conclusion that *no* operating point works is
+an answer and not a scaling claim.
+
+**What the format identity gives, and what it does not.**
+`Hashing.message_randomizer_overlap` makes one query at `x ‖ PK.seed ‖ PK.root ‖ m`
+simultaneously an `H_msg` query at randomiser `x` and a `PRF_msg` query at `prf = x`; both
+readings are real and the reduction charges both, which is where its factor comes from. But
+**`Scheme.verifyInternal` computes the digest from `signature.randomizer` — a field of the
+signature the forger supplies — and never reads `SK.prf`.** The second reading's prize is not an
+input to the predicate a forgery has to satisfy.
+
+**The honesty marker, which belongs beside the conclusion and not in a report.** The step from
+*"`SK.prf` is not an input to verification"* to *"`SK.prf` has no per-query forgery value"* is
+cryptographic reasoning this development has no model in which to state. The bar is the part
+that is arithmetic; the conversion argument is stated so it can be argued against something
+fixed, and is not a theorem.
+
+So the factor is in **our accounting**, not in the adversary: the reduction charges two readings
+at the full rate because its event accounting cannot tell them apart, and the adversary converts
+one.
