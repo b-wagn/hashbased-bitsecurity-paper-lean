@@ -234,4 +234,75 @@ theorem card_three_parts_le_record_of_not_recordMeets (pair : SharedJoin.Recorde
   rw [recordPrfClass_eq_zero_of_not_recordMeets pair hnot]
   simpa using SharedJoin.card_parts_le_record pair
 
+/-! ## The count the case split needs, and what is left to state it against
+
+The partition says a run pays the ordering column **or** the seed column, never both. To spend
+that, the assembly has to charge the middle disjunct at a count that **vanishes on the runs the
+seed branch already pays for**:
+
+    weighedMessageClass pair = if RecordMeetsPrfClass … then 0 else card (recordMessageClass pair)
+
+With that count the three parts fit in **one** record's worth on every good walk, which is
+`card_parts_weighed_le_record` below — and that is the inequality `hparts` is asked for, at the
+budget the ledger already has. No doubling, no `3 / 2`, no bit lost.
+
+**Both branches are needed and they close differently.** Off the seed event the `PRF_msg` part
+is empty and the first two parts are disjoint by construction. On it the middle term is zero and
+what is needed is that the *aiming* part and the `PRF_msg` part are disjoint — which they are,
+because a `PRF_msg` input aims at no cell (`RedrawCell.locate_randomizerInput`), and that lemma
+wants `SK.prf ≠ PK.seed`. That is `Target.GoodWalk`'s **first** conjunct, which the shared side
+already carries on every disjunct. So the hypothesis is one the assembly has in hand.
+
+**What is not here.** The ordering charge is still stated at `card (recordMessageClass pair)`,
+not at `weighedMessageClass`. Getting the indicator into it is not a weakening of the event —
+`LateProbes.prob_ordering_le`'s per-walk step bounds the late-disclosure probability by the
+*probes*, and the probes do not vanish on a seed run — so it is a real step and not a transport.
+Until it exists this file supplies the counting half and nothing more. -/
+
+open scoped Classical in
+/-- The message-class count, charged only on the runs the seed branch does not already pay. -/
+noncomputable def weighedMessageClass (pair : SharedJoin.RecordedPair) : Nat :=
+  if RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 then 0
+  else Multiset.card (SharedJoin.recordMessageClass pair)
+
+open scoped Classical in
+/-- **The aiming part and the `PRF_msg` part are disjoint on a good walk**, because a `PRF_msg`
+input aims at no cell once the two seeds differ. -/
+theorem card_aiming_add_prf_le_record (pair : SharedJoin.RecordedPair)
+    (hgood : Target.GoodWalk pair.1) :
+    Multiset.card (SharedJoin.recordAiming pair) +
+        Multiset.card (RecordColumn.recordPrfClass pair) ≤
+      Multiset.card (SharedJoin.recordOf pair) := by
+  classical
+  have hdisjoint : ∀ input ∈ SharedJoin.recordOf pair,
+      ¬ (SharedJoin.AimsSomewhere pair.1.1.1.2.2 input ∧
+        RandomizerGate.PrfClass pair.1.1.1.2.1 input) := by
+    rintro input - ⟨haims, seed, message, rfl⟩
+    exact haims (RedrawCell.locate_randomizerInput pair.1.1.1.2.2 pair.1.1.1.2.1 seed message
+      hgood.1)
+  rw [SharedJoin.recordAiming, RecordColumn.recordPrfClass, ← Multiset.card_add,
+    Multiset.filter_add_filter, Multiset.filter_eq_nil.mpr hdisjoint, add_zero]
+  exact Multiset.card_le_card (Multiset.filter_le _ _)
+
+open scoped Classical in
+/-- **The three parts fit in one record's worth**, with the middle one weighed. This is the
+counting content of the case split: the `3 / 2` was the price of charging both columns on every
+run, and no run needs both. -/
+theorem card_parts_weighed_le_record (pair : SharedJoin.RecordedPair)
+    (hgood : Target.GoodWalk pair.1) :
+    Multiset.card (SharedJoin.recordAiming pair) + weighedMessageClass pair +
+        Multiset.card (RecordColumn.recordPrfClass pair) ≤
+      Multiset.card (SharedJoin.recordOf pair) := by
+  classical
+  by_cases hmeets : RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2
+  · have hzero : weighedMessageClass pair = 0 := by
+      rw [weighedMessageClass, if_pos hmeets]
+    rw [hzero, add_zero]
+    exact card_aiming_add_prf_le_record pair hgood
+  · have hweighed : weighedMessageClass pair =
+        Multiset.card (SharedJoin.recordMessageClass pair) := by
+      rw [weighedMessageClass, if_neg hmeets]
+    rw [hweighed, recordPrfClass_eq_zero_of_not_recordMeets pair hmeets]
+    simpa using SharedJoin.card_parts_le_record pair
+
 end SlhDsaSecurity.TargetColumn

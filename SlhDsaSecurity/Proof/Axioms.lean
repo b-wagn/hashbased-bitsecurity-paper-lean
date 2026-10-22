@@ -15967,3 +15967,11 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
+
+/-- info: 'SlhDsaSecurity.TargetColumn.card_aiming_add_prf_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_aiming_add_prf_le_record
+
+/-- info: 'SlhDsaSecurity.TargetColumn.card_parts_weighed_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_parts_weighed_le_record
