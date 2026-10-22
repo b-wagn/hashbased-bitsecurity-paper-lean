@@ -4932,3 +4932,44 @@ info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depen
 /-- info: 'SlhDsaSecurity.HonestProbes.probes_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestProbes.probes_sign
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.servedCount_append' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.servedCount_append
+
+/-- info: 'SlhDsaSecurity.AdversaryQueries.one_le_count_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.one_le_count_sign
+
+/--
+info: 'SlhDsaSecurity.AdversaryQueries.work_add_served_le_count_adversary' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_add_served_le_count_adversary
+
+/--
+info: 'SlhDsaSecurity.AdversaryQueries.work_add_keygen_add_served_le_total' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_add_keygen_add_served_le_total
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_add_served_le_of_budget_tail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_add_pow_add_served_le_of_budget_tail
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served
+
