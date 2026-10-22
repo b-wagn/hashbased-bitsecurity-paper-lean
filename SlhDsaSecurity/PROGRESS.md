@@ -4853,3 +4853,37 @@ the file, plus the `constructorNameAsVariable` linter off for the statements tha
 Same shape as the `answerCarrierRun` boundary: **make the object opaque at the point where
 nothing below has to see through it**, and the timeouts are a symptom of the object's size
 rather than of any name in the statement.
+
+### Both ends of the tail, for the carrier-to-log containment
+
+`ServedBridge.CarrierBelowLog` — `Served → servedLog` — has to be stated **before**
+`BracketedRun.forgetCarrier` drops the carrier the tail ends at. `SlhDsaSecurity/Proof/
+CarrierServedLog.lean` supplies what the engine needed at the tail's two unbracketed stages.
+`ServedAgreement.carrierLogged_run_with` is already general in the start state; what was
+missing was the ends.
+
+**At the front.** `carrierLogged_empty` is the vacuous instance at `HandlerCarrier.empty`, and
+the tail does not start there — it starts after key generation, at a carrier with a warm cache.
+What makes the instance vacuous is not emptiness but an **empty served set**, so
+`carrierLogged_of_served_zero` is the general form, and `CarrierCap.quiet_run` already carries
+its hypothesis across key generation.
+
+**At the back.** The verifier's stage runs after the phase, when the served set is no longer
+empty, so `Quiet` does not survive it and nothing weaker existed. What is true is that the
+stage files nothing: `CarrierClearFraming` enters it with nothing in flight and
+`HandlerCarrier.FilesLeft` cannot match a clear frame, so the served set comes out
+**unchanged**, whatever it was. `clearWith_run` is `quiet_run`'s own argument with the served
+set a parameter instead of zero, and `served_run_of_clear` reads it off.
+
+**Both are the same observation at the two ends**: *filing needs a frame in flight, and both of
+the tail's unbracketed stages have none.* That is also why neither needed new machinery — the
+`Files.invariant` interface the budget thread used for `Quiet` took them both.
+
+**What remains is one application and it is about the signer, not the carrier.**
+`carrierLogged_run_with` at the middle stage wants `SignerShape sk (Scheme.sign sk)`,
+`SignerPins sk warm (Scheme.sign sk)` and `sk.publicKey = pk`. `ServedAgreement.servedAgree_run`
+discharges exactly those at the serving phase's own handler, and `carrierLogged_run_with` is
+generic in the handler and its `Files` instance, so the step is to re-point them at
+`CarrierTail.handlerAt` rather than to prove anything new about the carrier.
+`ServedAgreement.servedLog_iff_logServed` then turns `logServed` into `ServedLog.servedLog`,
+closing the half `CarrierLeftRecord` left open.
