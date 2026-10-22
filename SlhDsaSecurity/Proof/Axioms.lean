@@ -4940,3 +4940,7 @@ info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depen
 /-- info: 'SlhDsaSecurity.RedrawCell.sensitiveOffSeed_iff_exists' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.sensitiveOffSeed_iff_exists
+
+/-- info: 'SlhDsaSecurity.RedrawCell.open_seedAndRoot' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.open_seedAndRoot
