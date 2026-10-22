@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.ServedBridge
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RoutedSplit
@@ -8690,3 +8691,31 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_three' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_three
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.randomizerInput_ne_messageInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.randomizerInput_ne_messageInput
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.sign_messageShape_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.sign_messageShape_randomizer
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.disclosedAt_subset_disclosedByLog' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.disclosedAt_subset_disclosedByLog
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt
