@@ -4218,3 +4218,37 @@ the carrier, so both charges read what they always read.
 The generic transport lemmas `withExtra_step_map`, `run_withExtra_map` and
 `forgetsAlong_withExtra` now carry the `withCount` ones as one-line corollaries, which is the
 third instance the `withExtra` note asked for.
+
+### The split tail, and the length bound into the inside slot
+
+`SlhDsaSecurity/Proof/SplitTail.lean` is the tail at the split handler: the same three stages,
+the same brackets, the same value, with the two slots carried out beside the value where the two
+charges can read them. `map_splitCarrierTail` says its first component **is**
+`CarrierTail.carrierTail`, and the proof is `CarrierTail.forget_carrierTail`'s skeleton with the
+three transports swapped — `ServingForget.bind_of_forgetsAlong` twice and
+`bind_of_fuseServing_conj` once, discharged by `SplitCounted.forgetsAlong_sumSlots` and the two
+bracket-commutation laws. **No induction was added.**
+
+`prob_splitCarrierTail_targetCovered_le` is the payoff and is worth naming as such: the coverage
+charge at the split tail is the image of the one at the tail under that map, and the proof is
+`probEvent_map` and `ClassExpectation.expected_map`, both identities. Had the split been put
+*into* `BracketedRun.CountedState`, this is the theorem where the tape factorisation would have
+had to be reproved. It is the cost the layering avoids, and it is now visible in one place.
+
+`splitCarrierTail_work` says the value's work count is the two slots added, by construction.
+
+`SplitCounted.rightRecord_length_le_inside` is the carrier analogue of
+`CoverageCount.rightRecord_length_le_count`: the target recording is no longer than the inside
+slot, at a run of the split carrier recorder, carrying the counter the run started at. The
+argument is the cache side's — an entry is appended on a **fresh draw** only, and `cacheOf_onQuery`
+says the notice leaves the cache alone, so the notice costs the premise nothing; the test that
+files to the target implies the class, so the query that appends is the query that bumps the slot.
+
+**It is `≤` and the slack is real.** An in-class query whose answer is already cached bumps the
+slot and files nothing. That slack is exactly what the subtractive substitute tried to recover
+and could not, which is why the bound runs this way round and not as an equality.
+
+**Where it stops.** The bound is at a *single run* of the handler, which is the scope its cache-side
+counterpart has too. Chaining it across the tail's three stages — in particular through the fused
+middle stage — is a further step and is not done; `prob_splitCarrierTail_targetCovered_le` takes
+its two record bounds as hypotheses for the same reason the tail-level charge does.
