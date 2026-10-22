@@ -34,15 +34,30 @@ open Security WarmedGame RoutedSplit Target ClassExpectation SharedJoin Randomis
 abbrev splitTraceOf (pair : SplitPair) : RoutedSplit.Trace :=
   SharedJoin.recordedTraceOf (forgetRecordings pair)
 
+/-- **The input half's bullet at whatever tail the assembly is run on.** Nothing in the bullet
+is about which tail produced the pair: the event, the aiming count and the `259` all read the
+pair, and the tail enters only as the measure. So the statement is parametric and the tail the
+development currently assembles at is one instance of it, which is what lets a half proved at
+one presentation meet an assembly stated at another by `exact`. -/
+def InputBulletAt (fused : LateProbes.FusedTail) (adversary : Adversary)
+    (ordering : SplitPair → Prop) : Prop :=
+  Pr[fun pair : SplitPair => GoodWalk pair.1 ∧ InputBad (splitTraceOf pair) ∧ ¬ ordering pair |
+      pairedOf fused adversary] ≤
+    (expected (pairedOf fused adversary)
+        (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
+      ((259 : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+
 /-- **The input half's bullet, at the pair the ordering term is read at.** This is
 `ProbeContainment.InputBullet` with its three recorded-pair readings taken at
 `LateProbes.forgetRecordings pair` and its `ordering` a predicate of the larger pair. -/
 def InputBullet (adversary : Adversary) (ordering : SplitPair → Prop) : Prop :=
-  Pr[fun pair : SplitPair => GoodWalk pair.1 ∧ InputBad (splitTraceOf pair) ∧ ¬ ordering pair |
-      pairedOf FusedCoverage.fusedTail adversary] ≤
-    (expected (pairedOf FusedCoverage.fusedTail adversary)
-        (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
-      ((259 : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+  InputBulletAt FusedCoverage.fusedTail adversary ordering
+
+/-- **The named bullet is the parametric one at the fused tail**, definitionally, so a producer
+or a consumer of either is one of the other with no adapter. -/
+theorem inputBullet_eq_at (adversary : Adversary) (ordering : SplitPair → Prop) :
+    InputBullet adversary ordering =
+      InputBulletAt FusedCoverage.fusedTail adversary ordering := rfl
 
 /-- **What the move costs, exactly.** An ordering event that *is* a predicate of the recorded
 pair needs no restatement at all: the bullet as the input half has pinned it gives this one by
@@ -66,7 +81,7 @@ theorem inputBullet_of_recorded (adversary : Adversary) (ordering : RecordedPair
         (fun pair => Multiset.card (recordAiming pair)) :=
     expected_forget (FusedCoverage.forgetsTo adversary)
       (fun pair : RecordedPair => Multiset.card (recordAiming pair))
-  rw [InputBullet, hprob, hcount]
+  rw [InputBullet, InputBulletAt, hprob, hcount]
   exact hbullet
 
 /-- **The input half's containment survives the move untouched.** A supported pair of the larger
@@ -84,18 +99,32 @@ They are two parts of one record and disjoint by construction, so the join's own
 to them at the image pair, and the expectation is taken at the larger run. -/
 
 open scoped Classical in
+/-- **The budget split at any tail that forgets to the game.** The pathwise fact
+`card_parts_le_budget` is about the recorded pair, so all the tail supplies is that its own pairs
+forget to supported ones — which is exactly `LateProbes.ForgetsTo`. -/
+theorem expected_parts_le_budget_at (fused : LateProbes.FusedTail) (q : Nat)
+    (adversary : Adversary) (hforget : LateProbes.ForgetsTo fused adversary)
+    (hbudget : HasTotalBudget adversary q) :
+    expected (pairedOf fused adversary)
+        (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
+      expected (pairedOf fused adversary)
+        (fun pair => Multiset.card (recordMessageClass (forgetRecordings pair))) ≤
+      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) := by
+  classical
+  rw [← expected_add]
+  exact expected_le_of_le _ _ _ fun pair hpair =>
+    card_parts_le_budget adversary q hbudget (mem_support_forget hforget hpair)
+
+open scoped Classical in
 theorem expected_parts_le_budget (q : Nat) (adversary : Adversary)
     (hbudget : HasTotalBudget adversary q) :
     expected (pairedOf FusedCoverage.fusedTail adversary)
         (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
       expected (pairedOf FusedCoverage.fusedTail adversary)
         (fun pair => Multiset.card (recordMessageClass (forgetRecordings pair))) ≤
-      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) := by
-  classical
-  rw [← expected_add]
-  exact expected_le_of_le _ _ _ fun pair hpair =>
-    card_parts_le_budget adversary q hbudget
-      (mem_support_forget (FusedCoverage.forgetsTo adversary) hpair)
+      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) :=
+  expected_parts_le_budget_at FusedCoverage.fusedTail q adversary
+    (FusedCoverage.forgetsTo adversary) hbudget
 
 /-! ## The assembly -/
 
