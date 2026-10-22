@@ -14556,3 +14556,11 @@ info: 'SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun' depends on axioms: [p
 /-- info: 'SlhDsaSecurity.InputBullet.bullet_of_claimsCharged_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.InputBullet.bullet_of_claimsCharged_at
+
+/-- info: 'SlhDsaSecurity.AnswerCarrier.not_narrowTarget_of_forgerySeedRandomised' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.not_narrowTarget_of_forgerySeedRandomised
+
+/-- info: 'SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised

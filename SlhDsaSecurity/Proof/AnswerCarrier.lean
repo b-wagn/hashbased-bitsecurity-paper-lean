@@ -185,6 +185,83 @@ theorem not_carrierRightKeep_randomizerInput
       state :=
   fun hkeep => hkeep.1.2 (filesRandomiser_probe walk.1.1.2.1 _ state framed hframing)
 
+/-! ## The clause buys nothing at the target, and `hsplit` is where that surfaces
+
+**The leftover is not retired here.** It is tempting to read `carrierRightKeep` as having removed
+it: the class is the message class with `¬ FilesRandomiser` where `SplitWitness.narrowClass` had
+`¬ PrfClass`, and `AnswerCoverage.narrowTarget_messageClass` shows that at the message class
+alone `Served.NarrowTarget` is free. The two theorems below say that reading is wrong, in both
+directions: at this class `Served.NarrowTarget` is **equivalent** to
+`¬ AnswerCoverage.ForgerySeedRandomised`, which is exactly the leftover the cache side pays at
+`seedUnits`. Nothing about it is smaller here.
+
+**Why the weakening fails exactly here and nowhere else.** `FilesRandomiser` is `PrfClass` with
+its seed and frame witnessed by a *state*, and `filesRandomiser_prfClass` is one half of that.
+`Served.NarrowTarget` quantifies over **every** view at which the input is still uncached, so the
+other half comes for free: a view with the framing set to the forgery's own frame is a value of
+`HandlerCarrier.State` like any other, and it makes the clause fail. Read at one state the
+weakening is real — that is `not_carrierRightKeep_randomizerInput`, and it is what the clause was
+built for and still does. Read at all states it collapses.
+
+**So `Obligations.SharedChargedLate` at this tail cannot be taken with `seedUnits := 0`**, and
+the shape that would make it so is not a smaller charge but a different statement: the target's
+demand read at the view its input was *actually answered at*, rather than at every view. That is
+the same discipline `SplitWitness.Served` already keeps between its two tests — a filing test is
+read at the state a query is made from — and `RecorderView` knows that state. Until such a form
+exists, the carrier route owes the same seed charge the cache route does, and
+`AnswerCarrier.answerBound_of_charges`' `hsplit` is where the demand will appear. -/
+
+/-- **The leftover defeats the carrier's target test too.** If the forgery's published randomiser
+is `SK.prf` then `Served.NarrowTarget` fails at this class, because the demand ranges over every
+view at which the input is uncached and one of those has the framing set to the forgery's own
+frame. -/
+theorem not_narrowTarget_of_forgerySeedRandomised
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (result : (Outcome × Nat) × RecorderView.StateOf HandlerCarrier.State)
+    (hforgery : AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+      (result.1, RecorderView.CacheView.cacheOf result.2.1)) :
+    ¬ SplitWitness.Served.NarrowTarget
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+      (fun input state => CombinedCharge.IsMessageInput
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input ∧
+        ¬ FilesRandomiser walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) state input)
+      result := by
+  classical
+  obtain ⟨message, parsed, hframe, hparsed, seed, framed, hinput⟩ := hforgery
+  obtain ⟨-, hseed, -⟩ := Hashing.randomizerInput_injective
+    ((FramingLeak.randomizerInput_eq_messageInput parsed.randomizer _ message).trans hinput)
+  subst hseed
+  intro hnarrow
+  have hview := hnarrow message parsed
+    (HandlerCarrier.setFraming HandlerCarrier.empty framed) hframe hparsed
+    (by
+      show HandlerCarrier.cacheOf (HandlerCarrier.setFraming HandlerCarrier.empty framed) _ = none
+      simp [HandlerCarrier.cacheOf, HandlerCarrier.empty])
+  exact hview.2 ⟨framed, rfl, hinput⟩
+
+/-- **And off the leftover it holds**, by `filesRandomiser_prfClass` at whatever view is offered.
+With the theorem above this is an equivalence, which is the whole content: the carrier's class
+asks for exactly what the cache's did. -/
+theorem narrowTarget_of_not_forgerySeedRandomised
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (result : (Outcome × Nat) × RecorderView.StateOf HandlerCarrier.State)
+    (hforgery : ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+      (result.1, RecorderView.CacheView.cacheOf result.2.1)) :
+    SplitWitness.Served.NarrowTarget
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+      (fun input state => CombinedCharge.IsMessageInput
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input ∧
+        ¬ FilesRandomiser walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) state input)
+      result :=
+  fun message parsed view hframe hparsed _ =>
+    ⟨⟨parsed.randomizer, message, rfl⟩, fun hfiles =>
+      hforgery ⟨message, parsed, hframe, hparsed,
+        filesRandomiser_prfClass walk.1.1.2.1 _ view _ hfiles⟩⟩
+
 /-! ## The answer half's bound at this run, from three charges and a split
 
 This is the composition side, and it is finished: given the two charges and the fact that their
