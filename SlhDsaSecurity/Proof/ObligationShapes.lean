@@ -327,8 +327,11 @@ The escape clause is narrower than it looks: `¬ PrfClass` fails only when `trun
 a legal frame and so never arises for an adversary that makes no signing request. What is
 kernel-checked here is the pair of predicate facts; that such an entry lands in a real run's
 target recording needs freshness at the walk cache and `hcold` at that run's final cache, both
-routine for a one-query adversary that signs nothing and neither of them in Lean. The hypothesis
-is refuted, not proved false.
+routine for a one-query adversary that signs nothing and neither of them in Lean. **The
+*unguarded* hypothesis is refuted, not proved false** — and the *guarded* one, which is the
+version in the tree, is neither: it is open, as the paragraph above says. Two statements share
+this name in this section and their verdicts differ, so neither sentence is safe to quote
+without saying which subject it has.
 
 **What this does not threaten is the consequence.** `LateProvenance.hrecord_of_signerDigestFree`
 only wants every target-recorded input to be in `SharedJoin.recordOf` — the adversary's and the
