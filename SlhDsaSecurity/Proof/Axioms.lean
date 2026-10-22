@@ -181,6 +181,7 @@ import SlhDsaSecurity.Proof.ServedBridge
 import SlhDsaSecurity.Proof.LateProbes
 import SlhDsaSecurity.Proof.HandlerCarrier
 import SlhDsaSecurity.Proof.ServingProgram
+import SlhDsaSecurity.Proof.ServingPhase
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11041,3 +11042,57 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_two' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_two
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.lazyAnswer_framing' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.lazyAnswer_framing
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_framing' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_framing
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_run_framing' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_run_framing
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.framing_cacheAnswer' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.framing_cacheAnswer
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.framing_file' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.framing_file
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.framing_clearFraming' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.framing_clearFraming
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.framing_setFraming' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.framing_setFraming
+
+/-- info: 'SlhDsaSecurity.ServingPhase.framing_stopServing' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingPhase.framing_stopServing
+
+/--
+info: 'SlhDsaSecurity.ServingPhase.framing_clear_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingPhase.framing_clear_step
+
+/--
+info: 'SlhDsaSecurity.ServingPhase.framing_clear_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingPhase.framing_clear_run
+
+/-- info: 'SlhDsaSecurity.ServingPhase.not_filesLeft_adversary' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingPhase.not_filesLeft_adversary

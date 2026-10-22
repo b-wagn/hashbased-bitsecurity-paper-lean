@@ -192,4 +192,93 @@ theorem disclosedAt_step (pk : PublicKey)
     ⟨input, inner.1, Multiset.mem_cons_self _ _, ?_, rfl, tree, rfl⟩
   exact lazyAnswer_cached publicSeed availableAt table input state.1 inner hinner
 
+
+/-! ## The handler never writes the framing
+
+It caches and it files, and neither changes what the state says is in flight. That is what makes
+the framing a component only the signing oracle writes — and so what turns
+`HandlerCarrier.not_filesLeft_of_clear` from a remark about the definition into a fact about the
+run. -/
+
+open scoped Classical in
+/-- **The answer leaves the framing alone.** -/
+theorem lazyAnswer_framing (availableAt : HandlerCarrier.State → Node → Prop)
+    (table : Cells × Padding) (input : Bytes) (carrier : HandlerCarrier.State)
+    (step : HashOutput × HandlerCarrier.State)
+    (hstep : step ∈ support (lazyAnswer publicSeed availableAt table input carrier)) :
+    step.2.framing = carrier.framing := by
+  classical
+  rw [lazyAnswer] at hstep
+  cases hcached : carrier.cache input with
+  | some cached =>
+    rw [hcached, support_pure, Set.mem_singleton_iff] at hstep
+    rw [show step.2 = carrier from by rw [hstep]]
+  | none =>
+    rw [hcached] at hstep
+    cases hopen : openCache publicSeed (availableAt carrier) table input with
+    | some answer =>
+      rw [hopen, support_pure, Set.mem_singleton_iff] at hstep
+      rw [show step.2 = HandlerCarrier.cacheAnswer carrier input answer from by rw [hstep]]
+      exact HandlerCarrier.framing_cacheAnswer carrier input answer
+    | none =>
+      rw [hopen, support_map] at hstep
+      obtain ⟨answer, -, heq⟩ := hstep
+      rw [show step.2 = HandlerCarrier.cacheAnswer carrier input answer from by rw [← heq]]
+      exact HandlerCarrier.framing_cacheAnswer carrier input answer
+
+open scoped Classical in
+/-- **A step of the handler leaves the framing alone.** -/
+theorem servingProgram_framing (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (queried : OracleWorld.Domain) (state : HandlerState)
+    (step : OracleWorld.Range queried × HandlerState)
+    (hstep : step ∈ support (((servingProgram publicSeed pk availableAt table) queried).run
+      state)) : step.2.1.framing = state.1.framing := by
+  classical
+  rcases queried with coin | input
+  · rw [servingProgram_run_inl, mem_support_bind_iff] at hstep
+    obtain ⟨value, -, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [show step.2 = state from by rw [hpure]]
+  · have hbind : step ∈ support
+        (lazyAnswer publicSeed availableAt table input state.1 >>= fun inner =>
+          (pure (inner.1,
+            ((if HandlerCarrier.FilesLeft pk state.1 input then
+                HandlerCarrier.file inner.2 input else inner.2),
+              state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
+            ProbComp (OracleWorld.Range (Sum.inr input) × HandlerState))) := hstep
+    rw [mem_support_bind_iff] at hbind
+    obtain ⟨inner, hinner, hpure⟩ := hbind
+    rw [show step.2.1 =
+      (if HandlerCarrier.FilesLeft pk state.1 input then HandlerCarrier.file inner.2 input
+        else inner.2) from by rw [hpure]]
+    have hinnerFraming : inner.2.framing = state.1.framing :=
+      lazyAnswer_framing publicSeed availableAt table input state.1 inner hinner
+    by_cases hfiles : HandlerCarrier.FilesLeft pk state.1 input
+    · rw [if_pos hfiles, HandlerCarrier.framing_file]
+      exact hinnerFraming
+    · rw [if_neg hfiles]
+      exact hinnerFraming
+
+open scoped Classical in
+/-- **A run of the handler leaves the framing alone**, which is what the bracket's invariant is
+read against: the adversary's phase can run as long as it likes without the framing moving. -/
+theorem servingProgram_run_framing (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (state : HandlerState) (z : α × HandlerState),
+      z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+        computation).run state) → z.2.1.framing = state.1.framing := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state z hz
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+    rw [show z.2 = state from by rw [hz]]
+  | query_bind queried next ih =>
+    intro state z hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+    obtain ⟨step, hstep, hrest⟩ := hz
+    rw [ih step.1 step.2 z hrest,
+      servingProgram_framing publicSeed pk availableAt table queried state step hstep]
+
 end SlhDsaSecurity.ServingProgram

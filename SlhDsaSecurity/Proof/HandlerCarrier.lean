@@ -100,6 +100,17 @@ def cacheAnswer (state : State) (input : Bytes) (answer : HashOutput) : State :=
 @[simp] theorem cache_clearFraming (state : State) : (clearFraming state).cache = state.cache :=
   rfl
 
+@[simp] theorem framing_cacheAnswer (state : State) (input : Bytes) (answer : HashOutput) :
+    (cacheAnswer state input answer).framing = state.framing := rfl
+
+@[simp] theorem framing_file (state : State) (input : Bytes) :
+    (file state input).framing = state.framing := rfl
+
+@[simp] theorem framing_clearFraming (state : State) : (clearFraming state).framing = none := rfl
+
+@[simp] theorem framing_setFraming (state : State) (framed : Bytes) :
+    (setFraming state framed).framing = some framed := rfl
+
 /-- **Any change of framing is growth.** The relation does not constrain the component, so the
 completing step — which takes a request out of flight — is growth like every other. -/
 theorem grows_of_framing (state : State) (framing : Option Bytes) :
