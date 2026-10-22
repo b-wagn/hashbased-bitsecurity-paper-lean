@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.PhaseProvenance
 import SlhDsaSecurity.Proof.CacheProvenance
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
@@ -6806,3 +6807,73 @@ info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_verify_of_fresh' depends on a
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_verify_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_subset
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queried_of_fresh_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queried_of_fresh_step
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.recordedRun_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.recordedRun_bind
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.persists_of_mem_recordedRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.persists_of_mem_recordedRun
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.log_eq_recordedAdversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.log_eq_recordedAdversaryImpl
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.log_eq_recordedSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.log_eq_recordedSigningOracle
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.log_append' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.log_append
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.provenance_phase' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.provenance_phase
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.exists_recorded_of_mem_countedRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.exists_recorded_of_mem_countedRun
