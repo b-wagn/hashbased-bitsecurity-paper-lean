@@ -2871,3 +2871,49 @@ two different terms.
 It is trap 5 in new clothes, and the rule it gives is the general one: **spell a term the way
 the lemma that will have to match it spells it, and let the context supply the type rather than
 ascribing it.** An ascription is not free; it is a choice of elaboration.
+
+## Where a charge concludes decides what it can say
+
+The answer half's charges used to conclude at the shared oracle's run, where the recordings are
+gone. That is fine while every conjunct of the charged event reads the result and the cache, and
+it stops being fine the moment one of them reads a recording — which is what happened when the
+ordering defect stopped being assumed away and became a conjunct instead. No amount of plumbing
+rescues it: `¬ LateDisclosure` is not *expressible* at a run whose state is a cache, so the
+hypothesis cannot be threaded, only moved.
+
+Moving it cost nothing, and the reason is worth keeping. `CoverageCount.prob_coverage_le_expected`
+began with a single rewrite — the event-level move from the recorded run to the shared one — and
+every step beneath it already stood at the recorded run. So the recorded form is that proof with
+its first line deleted. The structural charge crosses the other way, by `recorderOf_eq_rom`,
+because `GrowthCharge.Bad` reads only the result and the cache.
+
+The general rule: **a charge should conclude at the richest presentation its proof already
+passes through, not the poorest one its first consumer happened to want.** Concluding early
+costs nothing — a consumer that wants less can always forget more — and concluding late throws
+away the state that a later conjunct will need, after which the only repair is to find the line
+where the state was dropped and stop dropping it.
+
+The corollary for a reviewer: when a hypothesis "cannot be threaded", check whether the thing it
+talks about still exists where the statement lives. Often it does not, and the fix is a move
+rather than an argument.
+
+## A recorder's state is a parameter, and its one law buys the bridges too
+
+`RecorderView.CacheView` asks a recorder's state for `cacheOf`, `update`, and the single law
+`cacheOf (update s i a) = (cacheOf s).cacheQuery i a`. The question when re-threading the
+coverage stack over the handler's carrier was whether that law is enough, or whether the
+tape-reading and budget arguments need something the class does not give.
+
+It is enough, and not by luck. The two facts those arguments actually use are that the recorded
+run is a run of the shared oracle (`mem_support_rom_of_recorderOf`) and that an event about the
+result and the cache cannot see the recordings (`recorderOf_eq_rom`). Both were proved at the
+cache in `SplitPrefix`; both follow at a general view from `cache_update` alone, by the same
+inductions. So they are new **lemmas**, not a second law, and the carrier may carry a flag and a
+served set beside its cache while staying invisible to every charge.
+
+One friction is worth naming. `SplitPrefix`'s inductions never had to write down the ascription
+`ProbComp (OracleWorld.Range (Sum.inr input) × …)`, because both sides of each step were spelled
+at one state and so elaborated at one type. At a view the two sides are spelled at different
+states, `rw` meets `HashSpec.Range input` where the goal has `OracleWorld.Range (Sum.inr input)`,
+and the rewrite fails under `instances` transparency. `CoverageCount.rom_run_inr_some/none` are
+the shared oracle's two branches with that ascription written down, and they exist only for this.
