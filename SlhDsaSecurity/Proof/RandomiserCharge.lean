@@ -14,10 +14,16 @@ graph and nothing else, a canonical input opens with `PK.seed` and a `PRF_msg` i
 `SK.prf`, and the two seeds differ on a good walk. So a `PRF_msg` entry in the final cache was
 made during the tail.
 
-The rest of the provenance is not here. Key generation and the verifier make no `PRF_msg` query,
-and the signer makes exactly one per request — which, given that no request framed to this
-message, is what leaves the adversary. That argument reads the run's phases and belongs with the
-recorded presentation of the game.
+The rest of the provenance is not here, and it has one case that is easy to miss. Key generation
+makes no `PRF_msg` query, and the signer's own `PRF_msg` query for a request it served is at
+that request's framing, which is not this message. But the *digest* queries are a different
+matter: a message input **is** a `PRF_msg` input, at its own randomiser read as the seed
+(`RandomizerGate.messageInput_eq_randomizerInput`), so a digest query matches this event's input
+exactly when the randomiser it was made under is `SK.prf` itself. For the signer that is one
+coincidence per request, and since every request costs at least one counted hash it is paid at
+one unit of `2 ^ -128` per request out of the same budget; for the verifier it is the forgery's
+own randomiser hitting the seed, which is one more guess. Neither is a hole, but a provenance
+argument that forgets the overlap will look like it closes and will not.
 
 What it then takes to charge the event is a deferral, and it is worth saying why nothing shorter
 will do. The adversary's queries are not independent of `SK.prf` — the randomisers it sees are
