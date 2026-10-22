@@ -188,4 +188,57 @@ theorem splitCacheOf_splitOf_of_clear (prfSeed : Digest) (carrier : HandlerCarri
     if_neg (fun hboth => hboth.1 rfl)]
   rfl
 
+/-! ## The counter, at this view's own tupling
+
+**The one place the table's placement costs something, and it is a trade rather than a snag.**
+The view needs the table to compute `cacheOf`, so the table lives inside the view's state; and
+`RecorderView.StateOf` then puts the carrier *behind* it, so the state is
+`(HandlerCarrier.State × QueryCache) × Record × Record`. `CountedHandler.withCount` hard-codes
+the carrier **first**, so it cannot see past the pair and does not apply.
+
+That is the price of the decision that made everything else cheap — the modification being a
+view is why `recorderOf`, `noticingRecorderOf` and every lemma about them were reused verbatim.
+Paying it here, at one definition, is cheaper than paying it at the recorder.
+
+`CountedHandler.run_reencode` is the general tool for exactly this and stays the right answer
+when someone needs the counted shape itself. What is wanted here is narrower: a counter for one
+handler, at one tupling, outside any induction. So it is written out, eight lines, with its run
+equation by `rfl` — a failure here is a type error rather than a silent disagreement, which is
+the property the re-encoding route would have given up.
+-/
+
+/-- The modified game's disclosing test: the real one, read at the carrier inside. -/
+def splitDisclosingKeep (pk : PublicKey) : Bytes → SplitCarrier → Prop :=
+  fun input state => CarriedWitness.disclosingKeep pk input state.1
+
+/-- And its target test, lifted the same way. -/
+def splitRightKeep (rightKeep : Bytes → HandlerCarrier.State → Prop) :
+    Bytes → SplitCarrier → Prop :=
+  fun input state => rightKeep input state.1
+
+open scoped Classical in
+/-- **The modified game's counted recorder.** `CountedHandler.withCount` at this view's tupling,
+written out because the wrapper's own type cannot express it. -/
+noncomputable def countedSplitRecorder (pk : PublicKey) (prfSeed : Digest)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop) :
+    QueryImpl OracleWorld
+      (StateT (SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)) ProbComp) :=
+  fun queried state => do
+    let step ← ((@noticingRecorderOf SplitCarrier (splitView pk prfSeed)
+      (splitDisclosingKeep pk) (splitRightKeep rightKeep)) queried).run (state.1, state.2.1)
+    pure (step.1, (step.2.1, (step.2.2, state.2.2 + Security.hashCost queried)))
+
+open scoped Classical in
+/-- **Its run, as the comparison reads it.** By `rfl`, as `CountedHandler.withCount_run` is. -/
+theorem countedSplitRecorder_run (pk : PublicKey) (prfSeed : Digest)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop) (queried : OracleWorld.Domain)
+    (state : SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)) :
+    ((countedSplitRecorder pk prfSeed rightKeep) queried).run state =
+      ((@noticingRecorderOf SplitCarrier (splitView pk prfSeed)
+          (splitDisclosingKeep pk) (splitRightKeep rightKeep)) queried).run
+            (state.1, state.2.1) >>= fun step =>
+        (pure (step.1, (step.2.1, (step.2.2, state.2.2 + Security.hashCost queried))) :
+          ProbComp (OracleWorld.Range queried ×
+            (SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)))) := rfl
+
 end SlhDsaSecurity.SplitSeedView

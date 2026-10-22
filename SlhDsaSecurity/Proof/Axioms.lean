@@ -16451,3 +16451,7 @@ info: 'SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_framing' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_framing
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.countedSplitRecorder_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.countedSplitRecorder_run
