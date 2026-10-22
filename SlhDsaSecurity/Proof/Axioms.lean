@@ -16364,3 +16364,7 @@ info: 'SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge' depends o
 /-- info: 'SlhDsaSecurity.TargetColumn.filed_nowhere_at_inflight_randomizer' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.filed_nowhere_at_inflight_randomizer
+
+/-- info: 'SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target
