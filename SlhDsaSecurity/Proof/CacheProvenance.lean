@@ -178,7 +178,42 @@ theorem queriesUnder_sign_randomizer (cache : QueryCache HashSpec) (sk : SecretK
   rw [Scheme.signInternal]
   exact queriesUnder_shortHash cache _ _
 
-/-- **And leaves its answer in the cache**, read at any cache extending the one it left. -/
+/-- **And leaves its answer in the cache, with the answer named.**
+
+**The name is the point.** A conclusion that the entry is merely present leaves the consumer to
+recover the value through `CacheReplay.replay`, which answers a miss with `default` — so a
+statement built on presence alone cannot distinguish the signer's own randomiser from
+`Hashing.truncate default`, and an adversary that queries at that byte string refutes it. The
+third component says what `replay` returns here, which is what makes the distinction expressible
+at all; a consumer that only wants presence has `sign_randomizer_cached` below.
+
+Read at any cache extending the one the sub-run left: the value is the same at both, which is
+the containment the consumers need beside the answer. -/
+theorem sign_randomizer_answer (sk : SecretKey) (request : Message) (framed : Bytes)
+    (hframe : request.frame = some framed)
+    (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
+    (hmem : (answer, finalCache) ∈ support ((simulateQ KeygenUniform.rom
+      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run initialCache))
+    (hlater : ∀ (input : Bytes) (output : HashOutput),
+      finalCache input = some output → laterCache input = some output) :
+    ∃ value : HashOutput,
+      finalCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some value ∧
+        laterCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some value ∧
+          HonestProbes.replayRandomizer laterCache sk framed = Hashing.truncate value := by
+  rw [StrippedGame.sign_lift, StrippedGame.run_liftComp] at hmem
+  have hcached := cached_of_queriesUnder (Scheme.sign (m := OracleComp HashSpec) sk request)
+    initialCache finalCache answer _
+    (queriesUnder_sign_randomizer finalCache sk request framed hframe) hmem
+  cases hentry : finalCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) with
+  | none => exact absurd hentry hcached
+  | some value =>
+    refine ⟨value, rfl, hlater _ value hentry, ?_⟩
+    rw [HonestProbes.replayRandomizer]
+    simp [replay, hlater _ value hentry]
+
+/-- **And leaves its answer in the cache**, read at any cache extending the one it left. The
+presence-only reading of `sign_randomizer_answer`, kept because several consumers want no more
+than this. -/
 theorem sign_randomizer_cached (sk : SecretKey) (request : Message) (framed : Bytes)
     (hframe : request.frame = some framed)
     (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
@@ -187,15 +222,11 @@ theorem sign_randomizer_cached (sk : SecretKey) (request : Message) (framed : By
     (hlater : ∀ (input : Bytes) (output : HashOutput),
       finalCache input = some output → laterCache input = some output) :
     laterCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) ≠ none := by
-  rw [StrippedGame.sign_lift, StrippedGame.run_liftComp] at hmem
-  have hcached := cached_of_queriesUnder (Scheme.sign (m := OracleComp HashSpec) sk request)
-    initialCache finalCache answer _
-    (queriesUnder_sign_randomizer finalCache sk request framed hframe) hmem
-  cases hentry : finalCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) with
-  | none => exact absurd hentry hcached
-  | some output =>
-    rw [hlater _ output hentry]
-    exact Option.some_ne_none output
+  obtain ⟨value, -, hvalue, -⟩ :=
+    sign_randomizer_answer sk request framed hframe initialCache finalCache laterCache answer
+      hmem hlater
+  rw [hvalue]
+  exact Option.some_ne_none value
 
 /-! ## The signer's own digest query
 
@@ -235,15 +266,18 @@ Stated at `laterCache` on both sides, which matters: the randomiser the digest i
 from is itself read off the cache, so the input named here is the later cache's and not the
 sub-run's. The two agree because the randomiser's own entry persists, which is
 `sign_randomizer_cached`. -/
-theorem sign_digest_cached (sk : SecretKey) (request : Message) (framed : Bytes)
+theorem sign_digest_answer (sk : SecretKey) (request : Message) (framed : Bytes)
     (hframe : request.frame = some framed)
     (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
     (hmem : (answer, finalCache) ∈ support ((simulateQ KeygenUniform.rom
       (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run initialCache))
     (hlater : ∀ (input : Bytes) (output : HashOutput),
       finalCache input = some output → laterCache input = some output) :
-    laterCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
-      sk.publicKey framed) ≠ none := by
+    ∃ digest : HashOutput,
+      finalCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
+          sk.publicKey framed) = some digest ∧
+        laterCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
+          sk.publicKey framed) = some digest := by
   rw [StrippedGame.sign_lift, StrippedGame.run_liftComp] at hmem
   have hrandomiser : HonestProbes.replayRandomizer laterCache sk framed =
       HonestProbes.replayRandomizer finalCache sk framed := by
@@ -262,9 +296,25 @@ theorem sign_digest_cached (sk : SecretKey) (request : Message) (framed : Bytes)
   cases hentry : finalCache (Hashing.messageInput
       (HonestProbes.replayRandomizer finalCache sk framed) sk.publicKey framed) with
   | none => exact absurd hentry hcached
-  | some output =>
-    rw [hlater _ output hentry]
-    exact Option.some_ne_none output
+  | some digest =>
+    exact ⟨digest, rfl, hlater _ digest hentry⟩
+
+/-- **The digest query's entry is there**, which is the presence-only reading of
+`sign_digest_answer`. -/
+theorem sign_digest_cached (sk : SecretKey) (request : Message) (framed : Bytes)
+    (hframe : request.frame = some framed)
+    (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
+    (hmem : (answer, finalCache) ∈ support ((simulateQ KeygenUniform.rom
+      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run initialCache))
+    (hlater : ∀ (input : Bytes) (output : HashOutput),
+      finalCache input = some output → laterCache input = some output) :
+    laterCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
+      sk.publicKey framed) ≠ none := by
+  obtain ⟨digest, -, hvalue⟩ :=
+    sign_digest_answer sk request framed hframe initialCache finalCache laterCache answer
+      hmem hlater
+  rw [hvalue]
+  exact Option.some_ne_none digest
 
 /-! ## One query of the game's own world
 

@@ -13240,3 +13240,15 @@ info: 'SlhDsaSecurity.BracketedRun.run_bracketed_map' depends on axioms: [propex
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BracketedRun.run_bracketed_map
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.sign_randomizer_answer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.sign_randomizer_answer
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.sign_digest_answer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.sign_digest_answer

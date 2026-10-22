@@ -284,6 +284,11 @@ theorem record_prefix_padded {α : Type} (leftKeep rightKeep : Bytes → QueryCa
 
 /-! ## The cache along a recorded run -/
 
+/-- Cache entries are never removed along a recorded run.
+
+Presence only. `recorder_cache_value_persists` below is the same fact with the **value** named;
+prefer it wherever the answer has to be related to anything, since a presence-only conclusion
+sends the consumer through `CacheReplay.replay`, whose answer at a miss is `default`. -/
 theorem recorder_cache_mono {α : Type} (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
     (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
     (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))

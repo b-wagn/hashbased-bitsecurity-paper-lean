@@ -756,7 +756,11 @@ theorem witnessKey_spec (prfSeed : Digest) (pk : PublicKey) (cache : QueryCache 
   exact ⟨hsigner.choose, prfAnswer, rfl, hcached, hinput⟩
 
 open scoped Classical in
-/-- The witness is a `PRF_msg` input at the real seed, and it is cached. -/
+/-- The witness is a `PRF_msg` input at the real seed, and it is cached.
+
+Presence only. `witnessKey_spec` above hands back the **answer** and the input it determines,
+and is the one to use wherever the cached value has to be related to the witness — which is
+most places, since the randomiser the witness carries is that value's truncation. -/
 theorem witnessKey_prfClass_cached (prfSeed : Digest) (pk : PublicKey)
     (cache : QueryCache HashSpec) (input : Bytes)
     (hsigner : CacheAvailability.SignerRandomised prfSeed pk cache input) :

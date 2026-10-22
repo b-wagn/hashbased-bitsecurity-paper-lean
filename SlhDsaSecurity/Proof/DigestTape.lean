@@ -301,7 +301,12 @@ the experiment already carries: `ClassCharge.GrowthAtMostOn` is the per-class ob
 class-split charges are stated against, so the coverage term is charged at one unit per
 message-class query rather than per query. -/
 
-/-- Cache entries are never removed along a recorded run. -/
+/-- Cache entries are never removed along a recorded run.
+
+Presence only. `recorder_cache_value_persists` below is the same fact with the **value** named,
+and is the one to reach for wherever the answer has to be related to anything: a conclusion that
+an entry is there leaves a consumer to recover the value through `CacheReplay.replay`, which
+answers a miss with `default`. -/
 theorem recorder_cache_mono {α : Type} (keep : Bytes → Prop)
     (computation : OracleComp OracleWorld α) (state : RecordState) (result : α × RecordState)
     (hmem : result ∈ support ((simulateQ (recorder keep) computation).run state))
