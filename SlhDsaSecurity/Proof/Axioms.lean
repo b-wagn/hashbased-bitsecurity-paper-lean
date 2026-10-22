@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.CanonicalSplit
+import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.WriterState
 import SlhDsaSecurity.Proof.LinkedPhase
 import SlhDsaSecurity.Proof.ClassExpectation
@@ -5268,3 +5269,28 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_canonical_of_verified
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.VerifierProbes.deviatingCollision_or_canonical_of_verified
+
+/-- info: 'SlhDsaSecurity.WalkDefects.probEvent_bind_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.probEvent_bind_le
+
+/-- info: 'SlhDsaSecurity.WalkDefects.probEvent_bind_le_of_prefix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.probEvent_bind_le_of_prefix
+
+/-- info: 'SlhDsaSecurity.WalkDefects.probEvent_bind_pair_split_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.probEvent_bind_pair_split_le
+
+/-- info: 'SlhDsaSecurity.WalkDefects.prob_prf_eq_publicSeed_seeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.prob_prf_eq_publicSeed_seeds
+
+/-- info: 'SlhDsaSecurity.WalkDefects.prob_prf_eq_publicSeed_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.prob_prf_eq_publicSeed_walk
+
+/-- info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_seeds_ne' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_seeds_ne
+
