@@ -442,4 +442,41 @@ theorem splitUpdate_splitOf (pk : PublicKey) (prfSeed : Digest)
         exact hclass hpc
       · rw [if_neg hpc, if_neg hpc]
 
+/-! ## Reaching the two views through their instances
+
+Four `rfl` lemmas, and they are not decoration. Both views' `cacheOf` and `update` appear in
+goals as instance projections, which `rw` and `simp` cannot see past: a goal can read
+`CacheView.cacheOf state` on one side and `state.cache` on the other and be closed by neither.
+Naming each projection is what lets a rewrite reach it, and it is the fourth time in this file
+that the obstacle between two true statements has been an instance rather than a fact.
+-/
+
+/-- The modified view's cache, under its own name. -/
+@[simp] theorem cacheOf_splitView (pk : PublicKey) (prfSeed : Digest) (state : SplitCarrier) :
+    @RecorderView.CacheView.cacheOf SplitCarrier (splitView pk prfSeed) state =
+      splitCacheOf prfSeed state := rfl
+
+/-- And its update. -/
+@[simp] theorem update_splitView (pk : PublicKey) (prfSeed : Digest) (state : SplitCarrier)
+    (input : Bytes) (answer : HashOutput) :
+    @RecorderView.CacheView.update SplitCarrier (splitView pk prfSeed) state input answer =
+      splitUpdate prfSeed state input answer := rfl
+
+/-- The real view's cache, so both sides of a comparison read the same name. -/
+@[simp] theorem cacheOf_servingView (pk : PublicKey) (state : HandlerCarrier.State) :
+    @RecorderView.CacheView.cacheOf HandlerCarrier.State (CarriedWitness.servingView pk) state =
+      state.cache := rfl
+
+/-- And its update. -/
+@[simp] theorem update_servingView (pk : PublicKey) (state : HandlerCarrier.State)
+    (input : Bytes) (answer : HashOutput) :
+    @RecorderView.CacheView.update HandlerCarrier.State (CarriedWitness.servingView pk) state
+        input answer = HandlerCarrier.cacheAnswer state input answer := rfl
+
+/-- The split, at the recorder's own state — the map the step agreement is stated through. -/
+noncomputable def splitRecState (prfSeed : Digest)
+    (state : RecorderView.StateOf HandlerCarrier.State) :
+    RecorderView.StateOf SplitCarrier :=
+  (splitOf prfSeed state.1, state.2)
+
 end SlhDsaSecurity.SplitSeedView
