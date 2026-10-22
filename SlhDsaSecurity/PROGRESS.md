@@ -3564,6 +3564,21 @@ and the attribute had been added by reflex from the rule above.
 
 > Having the rule is not the same as asking whether this is the shape the rule is about.
 
+**And the sharper form, found by applying it both ways inside one file.** The attribute is not
+right *here* and wrong *there* by file. Exactly one lemma has to see through the run into the
+stages it is built from; every lemma after it must not. Put the boundary immediately below that
+one lemma:
+
+> Make the one lemma that does the seeing-through, then mark the run irreducible, then write
+> everything downstream against it.
+
+Applied file-wide it blocks that lemma and the search diverges; omitted entirely it leaves every
+later lemma unfolding the run. In the instance that found this, the downstream lemma went from
+*no completion at two million heartbeats* to **instant** at the boundary, while the lemma above
+it stayed cheap because `congrArg` isolates the two forgetting **functions** and never unfolds
+the run at all. That is also the cure for the timeouts the boundary does not fix: compare
+functions, not terms built over the run.
+
 Two further corrections from the same diagnosis, both worth more than the fix:
 
 * A **`whnf` timeout reported at the `theorem` line does not mean the statement is at fault.**
