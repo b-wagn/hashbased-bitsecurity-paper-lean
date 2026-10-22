@@ -3430,3 +3430,58 @@ established by an exhaustive check.** `| head -5` on a grep whose hits were domi
 file, and `grep -v` filtering on line *content* when the intent was to exclude a *file*, both
 produced confident negatives that were wrong. Count first, read second; and when the conclusion
 is "nothing anywhere", say how the search was bounded.
+
+## A charge that costs nothing where the rate is spent is a warning, not a saving
+
+Splitting `LateRate`'s filing predicate from its firing predicate produced what looked like a
+bonus: at the carrier, `endKeep` would be `Served`, which does not read the cache, so a fresh
+answer cannot change it and `hrecord` and `hentry` both discharge by `probEvent_eq_zero`. The
+per-query charge did not move to the other side — it **vanished**. That was reported as an
+improvement, and recorded here as one.
+
+**It was a defect, and the widening of `PotentialCharge.prob_fired_le` is what exposed it.** If
+the firing predicate never changes where a fresh answer is drawn, it changes somewhere else —
+at the notice. The notice is **deterministic**: its firing probability is one or zero, and a
+deterministic step cannot be paid for out of `potential * rate`. The third invariance condition
+the notice parameter now carries is exactly what rules that out, and `endKeep := Served` fails
+it.
+
+> A charge whose per-step cost is zero everywhere the rate is spent is not cheap. It means the
+> event fires somewhere the charge is not looking. Ask where the firing went before banking the
+> saving.
+
+### The split is three-way, not two
+
+Two of the three had been collapsed, and each is needed by a different consumer:
+
+* **what files** — the flag (`HandlerCarrier.FilesLeft`). Unforgeable, because the adversary
+  cannot set the framing; down again at every step boundary.
+* **what fires** — the cache-readable `SignerRandomised`. It must change *only* at fresh draws,
+  or the rate cannot pay for it. This is what `LateRate` already uses, so nothing there moves.
+* **what is recorded** — the served set. It must be faithful to the log, because that is what
+  `ForgeryCoveredBy` reads at the end.
+
+No two of these can be the same predicate, and the first bounds the third through the second:
+**served ⇒ signer-randomised at the end**, because a filed entry had the flag up, so by
+`not_filesLeft_adversary` the query was the signer's, so it used the real randomiser and that
+randomiser's `PRF_msg` entry is in the final cache.
+
+## The projection trap, three sightings and one fix
+
+`rw` cannot solve for a metavariable that sits under a projection, and it cannot see through a
+redex. Three forms of the same obstruction have now cost a build each:
+
+1. a lemma whose conclusion is a projection of a structure the rewrite has to infer;
+2. `ForgetsAlong`'s projection **applied as a lambda** — an instance of it is a redex, so the
+   rewrite does not fire and the error points at the goal rather than at the application;
+3. a lemma that has to be applied at a state the *previous* rewrite produces, so its implicit
+   type arguments are determined only after that rewrite lands — a `bind_congr` attempted
+   before then has nothing to resolve and reports a stuck `Bind ?m`.
+
+**The fix in all three is the same: name the instance at the state it is used at**, as a `have`,
+rather than asking `rw` to find it. Three lines. The diagnosis is the expensive part and the
+symptom is misleading in every case — the error names the goal, not the application.
+
+Related and already recorded: `simp only` fails silently in the files that set
+`backward.isDefEq.respectTransparency false`, and `lake env lean` reads oleans rather than
+sources. All three are cases of a tactic failing in a way that does not name its own cause.
