@@ -240,4 +240,171 @@ theorem evalDist_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
     OracleComp.DeferredSampling.evalDist_bind_const_neverFails (padding lastRight)
       (padding_neverFails lastRight)]
 
+/-! ## The two facts the charge composes by itself
+
+Never failing and never shortening the target recording both compose across a bind without a
+continuation parameter, so they are ordinary inductions. The brackets are invisible to the
+second for the reason they are invisible to everything else here: `onCarrierTape` changes the
+carrier and nothing else, so the recordings it leaves are the ones it was given.
+-/
+
+open scoped Classical in
+/-- **The fused tape-reading run never fails.** -/
+theorem fusedSplitTapeRun_neverFails (leftKeep rightKeep : Bytes → σ → Prop)
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    {α : Type} (phase : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ state : ω × SigningLog × SplitTapeState σ,
+      Pr[⊥ | (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+        (fun request => onCarrierTape (before request)) (onCarrierTape afterMap)) phase).run
+          state] = 0 := by
+  classical
+  induction phase using OracleComp.inductionOn with
+  | pure value => intro state; simp
+  | query_bind queried next ih =>
+    intro state
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    refine probFailure_bind_eq_zero_iff _ _ |>.mpr ⟨?_, fun step _ => ih step.1 step.2⟩
+    rcases queried with world | request
+    · rw [fuseServing_run_inl]
+      exact probFailure_bind_eq_zero_iff _ _ |>.mpr
+        ⟨noticingSplitTapeRun_neverFails leftKeep rightKeep _ _, fun _ _ => by simp⟩
+    · rw [fuseServing_run_inr]
+      exact probFailure_bind_eq_zero_iff _ _ |>.mpr
+        ⟨noticingSplitTapeRun_neverFails leftKeep rightKeep _ _, fun _ _ => by simp⟩
+
+open scoped Classical in
+/-- **The target recording only grows under the fused run.** -/
+theorem fusedRightOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    {α : Type} (phase : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ (state : ω × SigningLog × SplitTapeState σ)
+      (result : α × (ω × SigningLog × SplitTapeState σ)),
+      result ∈ support ((simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep)
+        inner (fun request => onCarrierTape (before request)) (onCarrierTape afterMap))
+          phase).run state) ->
+      rightOf state.2.2 <+: rightOf result.2.2.2 := by
+  classical
+  induction phase using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+  | query_bind queried next ih =>
+    intro state result hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine List.IsPrefix.trans ?_ (ih step.1 step.2 result hrest)
+    rcases queried with world | request
+    · rw [fuseServing_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨z, hz, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact noticingRightOf_prefix leftKeep rightKeep _ _ z hz
+    · rw [fuseServing_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨z, hz, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact noticingRightOf_prefix leftKeep rightKeep _
+        (onCarrierTape (before request) state.2.2) z hz
+
+/-! ## The selection's causality at the fused handler
+
+The third member of the family, and the same shape as the first two: every case is one nested
+run followed by the rest of the phase, so every case is one application of
+`NoticingTape.probEvent_length_set_cont` with this induction's own hypothesis at the tail.
+
+The brackets are again invisible. `setRightTape` and `onCarrierTape` touch different components
+of the state, so the two commute definitionally and the bracketed case needs nothing said about
+it.
+-/
+
+/-- Overwrite one cell of the target block, leaving everything else alone. -/
+def setRightTape (cell : Nat) (value : HashOutput) (state : SplitTapeState σ) :
+    SplitTapeState σ :=
+  (state.1, (state.2.1.1, state.2.1.2.set cell value), state.2.2)
+
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **Overwriting an unread cell does not move the selection, at the fused handler.** -/
+theorem probEvent_length_set_fused (leftKeep rightKeep : Bytes → σ → Prop)
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    {α γ : Type} (phase : OracleComp (OracleWorld + SigningSpec) α)
+    (cont : α × (ω × SigningLog × SplitTapeState σ) → ProbComp γ)
+    (finalRight : γ → Record)
+    (hgrow : ∀ (z : α × (ω × SigningLog × SplitTapeState σ))
+        (w : γ), w ∈ support (cont z) ->
+      (rightOf z.2.2.2).length ≤ (finalRight w).length)
+    (hfail : ∀ z, Pr[⊥ | cont z] = 0)
+    (hcont : ∀ (index : Nat) (newValue : HashOutput)
+        (z : α × (ω × SigningLog × SplitTapeState σ)),
+      Pr[fun w => (rightOf z.2.2.2).length + index < (finalRight w).length | cont z] =
+        Pr[fun w => (rightOf z.2.2.2).length + index < (finalRight w).length |
+          cont (z.1, (z.2.1, z.2.2.1, setRightTape index newValue z.2.2.2))]) :
+    ∀ (index : Nat) (newValue : HashOutput) (accumulated : ω) (log : SigningLog)
+      (cache : σ) (leftTape rightTape : List HashOutput) (leftRecord rightRecord : Record),
+      Pr[fun w => rightRecord.length + index < (finalRight w).length |
+          (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+            (fun request => onCarrierTape (before request)) (onCarrierTape afterMap))
+            phase).run (accumulated, log, (cache, (leftTape, rightTape),
+              (leftRecord, rightRecord))) >>= cont] =
+        Pr[fun w => rightRecord.length + index < (finalRight w).length |
+          (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+            (fun request => onCarrierTape (before request)) (onCarrierTape afterMap))
+            phase).run (accumulated, log, (cache, (leftTape, rightTape.set index newValue),
+              (leftRecord, rightRecord))) >>= cont] := by
+  classical
+  induction phase using OracleComp.inductionOn with
+  | pure value =>
+    intro index newValue accumulated log cache leftTape rightTape leftRecord rightRecord
+    simp only [simulateQ_pure, StateT.run_pure, pure_bind]
+    exact hcont index newValue
+      (value, (accumulated, log, (cache, (leftTape, rightTape), (leftRecord, rightRecord))))
+  | query_bind queried next ih =>
+    intro index newValue accumulated log cache leftTape rightTape leftRecord rightRecord
+    simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
+    rcases queried with world | request
+    · simp only [fuseServing_run_inl, bind_assoc, pure_bind]
+      exact NoticingTape.probEvent_length_set_cont leftKeep rightKeep
+        (((inner (Sum.inl world)).run).run log)
+        (fun z => (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+            (fun r => onCarrierTape (before r)) (onCarrierTape afterMap)) (next z.1.1.1)).run
+            (accumulated * z.1.1.2, z.1.2, z.2) >>= cont)
+        finalRight
+        (fun z w hw => by
+          rw [mem_support_bind_iff] at hw
+          obtain ⟨r, hr, hw2⟩ := hw
+          exact le_trans (fusedRightOf_prefix leftKeep rightKeep inner before afterMap _
+            (accumulated * z.1.1.2, z.1.2, z.2) r hr).length_le (hgrow r w hw2))
+        (fun z => probFailure_bind_eq_zero_iff _ _ |>.mpr
+          ⟨fusedSplitTapeRun_neverFails leftKeep rightKeep inner before afterMap _ _,
+            fun r _ => hfail r⟩)
+        (fun idx v z => ih z.1.1.1 idx v (accumulated * z.1.1.2) z.1.2 z.2.1 z.2.2.1.1
+          z.2.2.1.2 z.2.2.2.1 z.2.2.2.2)
+        index newValue cache leftTape rightTape leftRecord rightRecord
+    · simp only [fuseServing_run_inr, bind_assoc, pure_bind]
+      exact NoticingTape.probEvent_length_set_cont leftKeep rightKeep
+        (((inner (Sum.inr request)).run).run log)
+        (fun z => (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+            (fun r => onCarrierTape (before r)) (onCarrierTape afterMap)) (next z.1.1.1)).run
+            (accumulated * z.1.1.2, z.1.2, onCarrierTape afterMap z.2) >>= cont)
+        finalRight
+        (fun z w hw => by
+          rw [mem_support_bind_iff] at hw
+          obtain ⟨r, hr, hw2⟩ := hw
+          exact le_trans (fusedRightOf_prefix leftKeep rightKeep inner before afterMap _
+            (accumulated * z.1.1.2, z.1.2, onCarrierTape afterMap z.2) r hr).length_le
+            (hgrow r w hw2))
+        (fun z => probFailure_bind_eq_zero_iff _ _ |>.mpr
+          ⟨fusedSplitTapeRun_neverFails leftKeep rightKeep inner before afterMap _ _,
+            fun r _ => hfail r⟩)
+        (fun idx v z => ih z.1.1.1 idx v (accumulated * z.1.1.2) z.1.2
+          (afterMap z.2.1) z.2.2.1.1 z.2.2.1.2 z.2.2.2.1 z.2.2.2.2)
+        index newValue (before request cache) leftTape rightTape leftRecord rightRecord
+
 end SlhDsaSecurity.FusedTape

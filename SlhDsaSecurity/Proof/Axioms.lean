@@ -14715,3 +14715,21 @@ info: 'SlhDsaSecurity.NoticingTape.probEvent_length_set_cont' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.probEvent_length_set_cont
+
+/--
+info: 'SlhDsaSecurity.FusedTape.fusedSplitTapeRun_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.fusedSplitTapeRun_neverFails
+
+/--
+info: 'SlhDsaSecurity.FusedTape.fusedRightOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.fusedRightOf_prefix
+
+/--
+info: 'SlhDsaSecurity.FusedTape.probEvent_length_set_fused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.probEvent_length_set_fused
