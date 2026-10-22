@@ -89,6 +89,22 @@ theorem simulateQ_hash {σ : Type} (impl : QueryImpl OracleWorld (StateT σ Prob
   simp
 
 set_option maxHeartbeats 800000 in
+/-- **The signer, cut at its randomiser query, under any handler.** Nothing in the cut is about
+the recorder: `signInternal`'s first line is the randomiser query and everything after it reads
+the randomiser as a value, so the equation holds of whatever answers the query. -/
+theorem run_signInternal_at {σ : Type} (impl : QueryImpl OracleWorld (StateT σ ProbComp))
+    (sk : SecretKey) (message : Bytes) (state : σ) :
+    (simulateQ impl (Scheme.signInternal (m := OracleComp OracleWorld) sk message)).run state =
+      (impl (Sum.inr (Hashing.randomizerInput sk.prf sk.publicKey.seed message))).run state >>=
+        fun step =>
+          (simulateQ impl (signInternalAt (m := OracleComp OracleWorld)
+            (Hashing.truncate step.1) sk message)).run step.2 := by
+  rw [signInternal_eq sk message]
+  simp only [Hashing.randomizer, Hashing.shortHash, bind_assoc, pure_bind,
+    simulateQ_bind, StateT.run_bind, simulateQ_hash]
+  rfl
+
+set_option maxHeartbeats 800000 in
 /-- **The signer, cut at its randomiser query, under the recorder.** -/
 theorem run_signInternal (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
     (sk : SecretKey) (message : Bytes) (state : SplitState) :

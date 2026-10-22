@@ -73,15 +73,18 @@ theorem step_right_mem (rightKeep : Bytes → HandlerCarrier.State → Prop)
         exact (files_countedCarrierRecorder pk rightKeep).hashCached input state step hstep
 
 open scoped Classical in
-/-- **The target recording after a step, as a list.** The shape reading of the step, which an
-invariant about multiplicity needs and membership cannot give. -/
+/-- **The target recording after a step, as a list**, with the appended entry's freshness and
+the test it passed. The shape reading of the step, which an invariant about multiplicity needs
+and membership cannot give — and the test besides, because the witness lemma built on this one
+has to say what the entry was filed for. -/
 theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
     (queried : OracleWorld.Domain) (state : CountedState)
     (step : OracleWorld.Range queried × CountedState)
     (hstep : step ∈ support (((countedCarrierRecorder pk rightKeep) queried).run state)) :
     step.2.2.1.2 = state.2.1.2 ∨
       ∃ pair : Bytes × HashOutput, step.2.2.1.2 = state.2.1.2 ++ [pair] ∧
-        state.1.cache pair.1 = none := by
+        state.1.cache pair.1 = none ∧
+          rightKeep pair.1 (servingNotice pk state.1 pair.1) := by
   classical
   obtain ⟨inner, hinner, hvalue, -, hcarried⟩ := withCount_step _ queried state step hstep
   rcases queried with coin | input
@@ -97,9 +100,9 @@ theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
     rw [hcarried, @recorderOf_step_record HandlerCarrier.State (servingView pk)
       (disclosingKeep pk) rightKeep input _ inner hinr]
     rcases @appendedOf_right_shape HandlerCarrier.State (servingView pk) (disclosingKeep pk)
-      rightKeep input _ inner.1 with hsame | ⟨hshape, hfresh, -⟩
+      rightKeep input _ inner.1 with hsame | ⟨hshape, hfresh, hright⟩
     · exact Or.inl hsame
-    · refine Or.inr ⟨(input, inner.1), hshape, ?_⟩
+    · refine Or.inr ⟨(input, inner.1), hshape, ?_, hright⟩
       show HandlerCarrier.cacheOf state.1 input = none
       rw [← cacheOf_servingNotice pk state.1 input]
       exact hfresh
@@ -193,7 +196,7 @@ theorem step_recordFreshNodup (rightKeep : Bytes → HandlerCarrier.State → Pr
   classical
   refine ⟨step_recordCached pk rightKeep queried state step hstep hinv.1, ?_⟩
   rcases step_right_shape pk rightKeep queried state step hstep with
-    hsame | ⟨pair, hshape, hfresh⟩
+    hsame | ⟨pair, hshape, hfresh, -⟩
   · rw [hsame]
     exact hinv.2
   · rw [hshape, List.map_append]
