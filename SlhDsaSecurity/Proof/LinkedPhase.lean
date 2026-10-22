@@ -70,4 +70,110 @@ theorem run_link_phaseHandler {α σ : Type} (sk : SecretKey)
         (simulateQ inner ((simulateQ (phaseHandler sk) computation).run (1, log))).run state :=
   QueryImpl.Stateful.simulateQ_link_run (phaseHandler sk) inner computation (1, log) state
 
+/-! ## The charge, moved into the computation
+
+A handler charges every query that reaches it. That is harmless while it answers the adversary
+alone, and wrong as soon as the phases are put under one handler: the verifier's queries, which
+the experiment counts as verification work, would be charged as the adversary's hash work on top
+of it, and `Counts.work` adds the two.
+
+So the charge moves first. The experiment's pair of oracles *is* an uncharged pair with a cost
+told in front of it — a hash call for the adversary's own queries, one signing request for each
+request it makes — and `WriterState.run_simulateQ_withAddCost` then puts that cost inside the
+computation, where it counts the adversary's phase and nothing else. What is left answering is
+`unchargedPhase`, which tells nothing and keeps only the log, so it is already the stateful
+handler the composition wants, with no writer left to move.
+
+The one thing the equality needs is that the signer's body may be lifted into the writer as a
+whole rather than a step at a time. That is not definitional — the experiment writes it step by
+step — but at the level of runs both sides compute, so the proof is extensionality and then
+arithmetic, not a search for a lifting law. -/
+
+/-- What the adversary's phase charges, query by query. -/
+def phaseCost : (OracleWorld + SigningSpec).Domain → Counts
+  | .inl input => Counts.single .hash (hashCost input)
+  | .inr _ => Counts.single .signing 1
+
+/-- The signer with nothing charged: it answers and records, and tells nothing. -/
+noncomputable def unchargedSigner (sk : SecretKey) :
+    QueryImpl SigningSpec (StateT SigningLog (OracleComp OracleWorld)) := fun request => do
+  let answer ← liftM (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))
+  modify (fun signed => signed ++ [⟨request, answer⟩])
+  return answer
+
+/-- The experiment's pair of oracles with nothing charged: the world forwarded, and the signer
+answering and recording. -/
+noncomputable def unchargedPhase (sk : SecretKey) :
+    QueryImpl (OracleWorld + SigningSpec) (StateT SigningLog (OracleComp OracleWorld)) :=
+  QueryImpl.ofLift OracleWorld (StateT SigningLog (OracleComp OracleWorld)) + unchargedSigner sk
+
+/-- The counted run of a lifted state computation, written out. -/
+theorem run_liftM_state {α : Type} (x : StateT SigningLog (OracleComp OracleWorld) α)
+    (log : SigningLog) :
+    ((WriterT.run (liftM x : CountedRun α)).run log) =
+      (fun step => ((step.1, (1 : Multiplicative Counts)), step.2)) <$> x.run log := rfl
+
+/-- The counted run of a lifted world computation, written out. -/
+theorem run_liftM_world {α : Type} (x : OracleComp OracleWorld α) (log : SigningLog) :
+    ((WriterT.run (liftM x : CountedRun α)).run log) =
+      (fun value => ((value, (1 : Multiplicative Counts)), log)) <$> x := by
+  show (fun step : α × SigningLog => ((step.1, (1 : Multiplicative Counts)), step.2)) <$>
+    (x >>= fun value => pure (value, log)) = _
+  simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
+
+/-- A cost told in front of a lifted state computation. -/
+theorem run_tell_liftM {α : Type} (cost : Counts)
+    (x : StateT SigningLog (OracleComp OracleWorld) α) (log : SigningLog) :
+    ((WriterT.run ((do tell (Multiplicative.ofAdd cost); liftM x : CountedRun α))).run log) =
+      (fun step => ((step.1, Multiplicative.ofAdd cost), step.2)) <$> x.run log := by
+  rw [WriterT.run_bind, WriterT.run_tell, StateT.run_bind, StateT.run_pure, pure_bind,
+    StateT.run_map, run_liftM_state]
+  simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def, mul_one]
+
+/-- The uncharged phase's run at a signing request: it signs, appends, and returns. -/
+theorem run_unchargedPhase_inr (sk : SecretKey) (request : Message) (log : SigningLog) :
+    ((unchargedPhase sk (Sum.inr request)).run log) =
+      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes)) >>= fun answer =>
+        pure (answer, log ++ [⟨request, answer⟩]) := by
+  show ((unchargedSigner sk request).run log) = _
+  rw [unchargedSigner]
+  simp only [StateT.run_bind, StateT.run_liftM, StateT.run_modify, StateT.run_pure,
+    bind_assoc, pure_bind]
+
+/-- The experiment's signer's run: it charges one request, signs, appends, and returns. -/
+theorem run_charged_signer (sk : SecretKey) (request : Message) (log : SigningLog) :
+    ((WriterT.run (signingOracle sk request)).run log) =
+      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes)) >>= fun answer =>
+        pure ((answer, Multiplicative.ofAdd (Counts.single .signing 1)),
+          log ++ [⟨request, answer⟩]) := by
+  rw [signingOracle]
+  simp only [AddWriterT.addTell, WriterT.run_bind, WriterT.run_tell, WriterT.run_monadLift,
+    WriterT.run_pure, StateT.run_bind, StateT.run_pure, StateT.run_modify,
+    map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def,
+    mul_one, run_liftM_world]
+
+/-- **The experiment's pair of oracles is the uncharged pair, charged in front.** -/
+theorem phase_eq (sk : SecretKey) :
+    adversaryImpl + signingOracle sk = (unchargedPhase sk).withAddCost phaseCost := by
+  funext queried
+  cases queried with
+  | inl input => rfl
+  | inr request =>
+    funext log
+    show (WriterT.run (signingOracle sk request)).run log =
+      (WriterT.run (((unchargedPhase sk).withAddCost phaseCost) (Sum.inr request))).run log
+    rw [QueryImpl.withAddCost, QueryImpl.withCost_apply, run_charged_signer, run_tell_liftM,
+      run_unchargedPhase_inr]
+    simp [phaseCost]
+
+/-- **The phase with its cost inside the computation.** What answers is `unchargedPhase`, which
+tells nothing, so a computation lifted alongside the adversary's is not charged for being
+there. -/
+theorem run_phase_counted (sk : SecretKey) {α : Type}
+    (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    (WriterT.run (simulateQ (adversaryImpl + signingOracle sk) computation)) =
+      simulateQ (unchargedPhase sk)
+        ((simulateQ (addCostOracle phaseCost) computation).run) := by
+  rw [phase_eq, WriterState.run_simulateQ_withAddCost]
+
 end SlhDsaSecurity.LinkedPhase
