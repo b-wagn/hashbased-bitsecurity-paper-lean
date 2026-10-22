@@ -262,6 +262,50 @@ theorem narrowTarget_of_not_forgerySeedRandomised
       hforgery ⟨message, parsed, hframe, hparsed,
         filesRandomiser_prfClass walk.1.1.2.1 _ view _ hfiles⟩⟩
 
+/-! ## And what it is worth once the demand is read where it is used
+
+`SplitWitness.Served.NarrowTargetAt` is the repair: the same demand with the views cut down to
+the ones a run can be at. At the carrier the predicate to cut them down by is the **clear
+framing**, and it is the right one twice over — it survives a cache update, which is the only
+move the recorder makes, and it makes the clause free by `not_filesRandomiser_of_clear`.
+
+So the leftover does not become a smaller charge. It becomes **no charge at all**, and in its
+place a statement about the run rather than about the forgery: that the views this recorder is
+run at have no request in flight. That is not a probability bound and nothing pays for it; it is
+discharged or it is not, per stage, by the bracketing. The adversary's stage has it by
+construction, since the flag is down at every boundary.
+
+**This is the seed charge retiring for real on this route**, conditional on the stage hypothesis
+and on nothing else. `Obligations.SharedChargedLate` at this tail may then be taken at
+`seedUnits := 0` — not by assertion, but because `AnswerCarrier.narrowTargetAt_clear` below has
+no hypotheses. -/
+
+/-- **The clear framing survives the recorder's one move**, so it is a legitimate `reaches`. -/
+theorem clearFraming_cacheAnswer (state : HandlerCarrier.State) (probe : Bytes)
+    (answer : HashOutput) (hclear : state.framing = none) :
+    (RecorderView.CacheView.update state probe answer).framing = none := by
+  show (HandlerCarrier.cacheAnswer state probe answer).framing = none
+  rw [HandlerCarrier.framing_cacheAnswer]
+  exact hclear
+
+/-- **At views with no request in flight the carrier's target demand is free.** No hypothesis,
+no charge, and in particular no `ForgerySeedRandomised`: the clause that
+`not_narrowTarget_of_forgerySeedRandomised` refuted at an arbitrary view is vacuous at every
+view the recorder is actually run at. -/
+theorem narrowTargetAt_clear
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (result : (Outcome × Nat) × RecorderView.StateOf HandlerCarrier.State) :
+    SplitWitness.Served.NarrowTargetAt
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+      (fun input state => CombinedCharge.IsMessageInput
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input ∧
+        ¬ FilesRandomiser walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) state input)
+      (fun state => state.framing = none) result :=
+  fun message parsed view _ _ hclear _ =>
+    ⟨⟨parsed.randomizer, message, rfl⟩,
+      not_filesRandomiser_of_clear walk.1.1.2.1 _ view hclear _⟩
+
 /-! ## The answer half's bound at this run, from three charges and a split
 
 This is the composition side, and it is finished: given the two charges and the fact that their
