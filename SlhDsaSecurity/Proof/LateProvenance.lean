@@ -180,7 +180,15 @@ noncomputable def secretKeyOf (pair : LateProbes.SplitPair) : SecretKey :=
 
 /-- **The branch provenance leaves**: no target-recorded input is a served request's own digest
 input. True because such a query is signer-randomised when it is made, and so is taken by the
-left test. -/
+left test.
+
+It is named here because the left test reads the *cache*, and what the cache says at the step a
+sub-run is in the middle of is not something the probe lemmas report. A left test that reads the
+handler's **flag** instead says it outright: the flag is set for as long as the request is being
+served, so the digest query meets the test at the state it is made from, with no ordering to
+establish and no cache to consult. That is what retires this hypothesis rather than a
+step-indexed reading of the probe lemmas, which would be a second framework saying the same
+thing about a test that is being replaced. -/
 def SignerDigestFree (adversary : Adversary) : Prop :=
   ∀ pair ∈ support (LateProbes.pairedOf FusedCoverage.fusedTail adversary),
     ∀ entry ∈ pair.2.2.2.2, ∀ framed : Bytes,
