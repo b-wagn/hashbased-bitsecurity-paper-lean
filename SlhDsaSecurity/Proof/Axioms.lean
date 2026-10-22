@@ -16318,3 +16318,19 @@ info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_eq_probEvent' depends 
 /-- info: 'SlhDsaSecurity.GraphStakes.not_available_wotsHashNode_child' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GraphStakes.not_available_wotsHashNode_child
+
+/--
+info: 'SlhDsaSecurity.CarrierLeftRecord.signerRandomised_of_servedLog' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.signerRandomised_of_servedLog
+
+/--
+info: 'SlhDsaSecurity.CarrierLeftRecord.not_servedLog_rightRecord_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.not_servedLog_rightRecord_carrierTail

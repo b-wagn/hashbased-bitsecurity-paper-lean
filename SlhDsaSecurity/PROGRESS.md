@@ -5163,3 +5163,28 @@ every query at it — at which point the count is the whole record and the bound
 discharges the column exactly when the blind-order count transfers to the real one, and that
 transfer is the open hop. **An arithmetic obstruction has become an ordering one**, which is a
 better place to be but is not the same as being done.
+
+### The ordering fact, from the invariant that was already there
+
+`CarrierLeftRecord.not_servedLog_rightRecord_carrierTail` closes `hrightClass`: **no
+target-recorded entry of the carrier tail is in the signed log**, off `¬ LateDisclosure` — which
+is already one of the three hypotheses `hjoin` is handed.
+
+What was missing was not an invariant but the step between two notions of disclosure.
+`LateDisclosure` is stated at `SplitWitness.disclosingKeep`, which reads the **cache**;
+`hrightClass` is stated at `ServedLog.servedLog`, which reads the **log**.
+`ServedAgreement.LogFiled` is exactly that step — a logged request carries its signature's
+randomiser and the `PRF_msg` entry it truncates — so a served input *is* signer-randomised at
+the final cache, which is `disclosingKeep` on the nose. `signerRandomised_of_servedLog` is four
+lines of unpacking once the entry's two answers are matched through
+`Signature.fromBytes_toBytes`.
+
+**So the ordering fact needed no new invariant, only the one proved for the containment, read
+in the other direction.** The containment used `LogFiled` to put the carrier's served set below
+the log; this uses it to put the log's inputs inside the cache's disclosure. *Same lemma, both
+ways* — which is the second payoff of having separated the invariants from the containment,
+and one I did not anticipate when arguing for the separation.
+
+**Both recording-class hypotheses of `CarrierSplit` are now theorems.** What remains there is
+freshness at the walk's own cache, which is the same hypothesis the cache route takes and is
+not a carrier question at all.
