@@ -65,9 +65,11 @@ theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache Has
       (Scheme.signInternal (m := OracleComp OracleWorld) sk message)).run state)) :
     ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨
       entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed message ∨
-      ∃ mid : QueryCache HashSpec,
-        mid (Hashing.randomizerInput sk.prf sk.publicKey.seed message) ≠ none ∧
-          mid entry.1 = none ∧ rightKeep entry.1 mid := by
+      ∃ (mid : QueryCache HashSpec) (answer : HashOutput),
+        mid (Hashing.randomizerInput sk.prf sk.publicKey.seed message) = some answer ∧
+          (∀ (probe : Bytes) (value : HashOutput),
+            mid probe = some value → result.2.1 probe = some value) ∧
+            mid entry.1 = none ∧ rightKeep entry.1 mid := by
   classical
   rw [run_signInternal, mem_support_bind_iff] at hresult
   obtain ⟨step, hstep, hrest⟩ := hresult
@@ -113,7 +115,55 @@ theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache Has
             (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state step.1 hleftProbe
             hrightProbe] at hold
           exact Or.inl hold
-  · obtain ⟨mid, hstart, -, habsent, hkeep, -⟩ := hentries entry hnew
-    exact Or.inr (Or.inr ⟨mid, by rw [hstart _ _ hcached]; simp, habsent, hkeep⟩)
+  · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries entry hnew
+    exact Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hlater, habsent, hkeep⟩)
+
+/-! ## At the request, which is where provenance names it
+
+`Scheme.sign` is the framing test and then `signInternal`, so a served request files exactly what
+its `signInternal` files and a rejected one files nothing. Stated here so that whoever mirrors
+the phase decomposition at the recorder can apply it at the step provenance already attributes.
+
+**The randomiser probe is named, not excluded by a syntactic class.** It is the one entry the
+first query can file, and the honest reason it is not a target is the frame it was made under
+— `HandlerCarrier.not_filesLeft_randomizerInput` — and not that its bytes happen to lie in a
+class the narrowing removes. A clause added to a class to keep one query out of a recording is a
+provenance fact wearing a syntactic disguise, and it works only while the syntax happens to
+separate the two. -/
+
+set_option maxHeartbeats 800000 in
+/-- **A rejected request files nothing**, because it makes no query. -/
+theorem sign_right_record_none (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (sk : SecretKey) (request : Message) (hframe : request.frame = none)
+    (state : SplitState) (result : Option Bytes × SplitState)
+    (hresult : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
+      (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state)) :
+    result.2 = state := by
+  rw [Scheme.sign, hframe] at hresult
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
+  rw [hresult]
+
+set_option maxHeartbeats 800000 in
+/-- **A served request files what its `signInternal` files.** -/
+theorem sign_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (sk : SecretKey) (request : Message) (framed : Bytes)
+    (hframe : request.frame = some framed)
+    (state : SplitState) (result : Option Bytes × SplitState)
+    (hresult : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
+      (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state)) :
+    ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨
+      entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∨
+      ∃ (mid : QueryCache HashSpec) (answer : HashOutput),
+        mid (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some answer ∧
+          (∀ (probe : Bytes) (value : HashOutput),
+            mid probe = some value → result.2.1 probe = some value) ∧
+            mid entry.1 = none ∧ rightKeep entry.1 mid := by
+  classical
+  rw [Scheme.sign, hframe] at hresult
+  simp only [simulateQ_bind, simulateQ_pure, StateT.run_bind, StateT.run_pure,
+    mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult
+  obtain ⟨inner, hinner, hvalue⟩ := hresult
+  rw [show result.2 = inner.2 from by rw [hvalue]]
+  exact signInternal_right_record leftKeep rightKeep sk framed state inner hinner
 
 end SlhDsaSecurity.SignerRightRecord

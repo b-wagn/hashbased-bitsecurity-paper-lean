@@ -12095,6 +12095,18 @@ info: 'SlhDsaSecurity.SignerRightRecord.signInternal_right_record' depends on ax
 #guard_msgs in
 #print axioms SlhDsaSecurity.SignerRightRecord.signInternal_right_record
 
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.sign_right_record_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.sign_right_record_none
+
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.sign_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.sign_right_record
+
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog
