@@ -15923,3 +15923,11 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk' depends on axioms: [
 /-- info: 'SlhDsaSecurity.InputBullet.probEvent_inputBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.InputBullet.probEvent_inputBad_le
+
+/-- info: 'SlhDsaSecurity.ServingTable.evalDist_honest_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.evalDist_honest_serving
+
+/-- info: 'SlhDsaSecurity.ServingTable.expected_honest_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.expected_honest_serving

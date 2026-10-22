@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.HonestTail
 import SlhDsaSecurity.Proof.CanonicalGraph.Separation
 import SlhDsaSecurity.Proof.HandlerLenient
+import SlhDsaSecurity.Proof.RecordedWalkTable
 
 /-!
 # The game's run, answered by the handler that files
@@ -416,6 +417,56 @@ theorem lenient_servingProgram_keysOf (prfSeed publicSeed : Digest)
   agree table queried state hnot :=
     (HandlerFacts.lenient_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
       availableAt).agree table queried state hnot
+
+/-! ## The same crossing, as laws
+
+`probEvent_honest_serving` is the probability's half. The charge needs the **count** to cross
+too — its bound is an expectation, not a cap — and a probability equality that holds at every
+event is an equality of laws, which an expectation crosses by `expected_map`. Stating it at the
+law rather than twice, once per reader, is what keeps the honest chain from doubling the way the
+stripped one did. -/
+
+open WalkTable TableTail HonestTail in
+/-- **The honest game's run is the serving handler's run, as laws.** -/
+theorem evalDist_honest_serving (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : Cells × Padding) (record : List (Bytes × HandlerCarrier.State)) (count : Nat) :
+    𝒟[honestRun adversary prfSeed publicSeed table] =
+      𝒟[(fun z => (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) <$>
+        servingHandlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, count)] := by
+  classical
+  refine SPMF.ext fun value => ?_
+  rw [show 𝒟[honestRun adversary prfSeed publicSeed table] value =
+      Pr[= value | honestRun adversary prfSeed publicSeed table] from (probOutput_def _ _).symm,
+    show 𝒟[(fun z => (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) <$>
+        servingHandlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, count)] value =
+      Pr[= value | (fun z => (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) <$>
+        servingHandlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, count)] from (probOutput_def _ _).symm,
+    (probEvent_eq_eq_probOutput (honestRun adversary prfSeed publicSeed table) value).symm,
+    probEvent_honest_serving adversary prfSeed publicSeed table (fun result => result = value)
+      record count,
+    ← probEvent_eq_eq_probOutput, probEvent_map]
+  rfl
+
+open WalkTable TableTail HonestTail in
+/-- **And the count crosses with it.** -/
+theorem expected_honest_serving (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : Cells × Padding)
+    (weight : ((((Forgery × Multiplicative RecordedQueries.Tally) ×
+      (Bool × RecordedQueries.Tally)) × SigningLog)) × QueryCache HashSpec → Nat)
+    (record : List (Bytes × HandlerCarrier.State)) (start : Nat) :
+    ClassExpectation.expected (honestRun adversary prfSeed publicSeed table) weight =
+      ClassExpectation.expected (servingHandlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, start))
+        (fun z => weight (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) := by
+  classical
+  haveI : DecidableEq (((((Forgery × Multiplicative RecordedQueries.Tally) ×
+    (Bool × RecordedQueries.Tally)) × SigningLog)) × QueryCache HashSpec) := Classical.decEq _
+  rw [RecordedWalkTable.expected_congr
+    (evalDist_honest_serving adversary prfSeed publicSeed table record start) weight,
+    ClassExpectation.expected_map]
 
 /-! ## And at the availability the table determines
 
