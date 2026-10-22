@@ -128,7 +128,10 @@ there is one instance of it: generalise when the second exists.
 
 What made it fight was not the content. `run_withAddCost_apply` is stated at the handler and
 this proof has a state in hand, so nothing rewrote until the same fact was named one level
-down, as `WriterState.run_withAddCost_run`. -/
+down, as `WriterState.run_withAddCost_run`.
+
+It is now `run_reencode` at one encoding, the induction having moved there once the flag turned
+out to need the same thing. -/
 
 /-- **A wrapper that is `withExtra` at a different tupling is `withExtra`'s run, re-encoded.**
 
@@ -194,19 +197,16 @@ theorem run_toStateful_withAddCost {ω : Type} [AddCommMonoid ω]
           (w, (carrier, t)) =
       (simulateQ (withExtra impl
         (fun queried x => x * Multiplicative.ofAdd (cost queried))) computation).run
-        (carrier, (t, w)) := by
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro w carrier t
-    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
-  | query_bind queried next ih =>
-    intro w carrier t
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-      simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-      WriterState.toStateful_run, WriterState.run_withAddCost_run, withExtra_run]
-    simp only [bind_assoc, pure_bind, map_eq_bind_pure_comp, Function.comp_apply]
-    refine congrArg (Bind.bind ((impl queried).run (carrier, t))) (funext fun step => ?_)
-    exact ih step.1 (w * Multiplicative.ofAdd (cost queried)) step.2.1 step.2.2
+        (carrier, (t, w)) := fun w carrier t =>
+  run_reencode (WriterState.toStateful (impl.withAddCost cost)) impl
+    (fun queried x => x * Multiplicative.ofAdd (cost queried))
+    (fun p => (p.2.1, (p.2.2, p.1)))
+    (fun queried st => by
+      rw [WriterState.toStateful_run, WriterState.run_withAddCost_run, withExtra_run,
+        map_eq_bind_pure_comp, bind_assoc, bind_assoc]
+      exact congrArg (Bind.bind ((impl queried).run st.2))
+        (funext fun step => by rw [pure_bind, pure_bind]; rfl))
+    computation (w, (carrier, t))
 
 /-! ## The step facts the wrapped handler needs
 
