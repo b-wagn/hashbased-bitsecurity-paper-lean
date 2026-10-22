@@ -171,6 +171,7 @@ import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.OffClassBlind
 import SlhDsaSecurity.Proof.RandomiserRecord
 import SlhDsaSecurity.Proof.AnswerCoverage
+import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.ServedDisclosure
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
@@ -8500,3 +8501,9 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerCharged_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerCharged_of_parts

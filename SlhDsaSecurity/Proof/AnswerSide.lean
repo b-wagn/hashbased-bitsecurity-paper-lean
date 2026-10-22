@@ -445,8 +445,9 @@ own coincidence is the key's (`not_possible_generatedKey`), and the budget bound
 count (`WarmedCharges.count_le_of_budget_tail`) — so this is that chain with the coverage
 hypothesis gone.
 
-The `2 ^ -126` the target allows is not spent. It is the target's own defect allowance and
-nothing on this route needs it; it is left in rather than tightened away. -/
+The bound is stated tight, at `q / 2 ^ 128 + 2 ^ -141`. The target's `2 ^ -126` is its defect
+allowance and nothing on this route needs it, so it is left for whatever does — which, as it
+turns out, is the narrowing's leftover when the obligation is finally assembled. -/
 
 set_option maxHeartbeats 1000000 in
 /-- **The answer side at a good walk**, with the coverage charge closed and the narrowing's
@@ -483,9 +484,7 @@ theorem prob_answerBad_good_le_of_caps (adversary : Adversary) (q : Nat)
         ¬ SplitWitness.SeedRandomised walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result.2 |
       tail adversary walk] ≤
-      (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-          (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+      (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
   have hpublic := not_possible_generatedKey hwalk hgood
   have hcharge := prob_answerBad_le_of_caps adversary
     (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) hne hwalk hpublic
@@ -494,14 +493,11 @@ theorem prob_answerBad_good_le_of_caps (adversary : Adversary) (q : Nat)
       withinBounds_structural input hmessage)
     leftLength hcap hlate hleftBound q
     (fun result hresult => WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult)
-  refine le_trans (le_trans (probEvent_mono ?_) hcharge) ?_
-  · rintro result hresult ⟨hbad, hseed⟩
-    refine ⟨?_, hseed⟩
-    rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
-      generatedKey_eq_walk adversary hwalk hresult] at hbad
-    exact hbad
-  · refine add_le_add le_rfl ?_
-    rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
-    exact le_add_self
+  refine le_trans (probEvent_mono ?_) hcharge
+  rintro result hresult ⟨hbad, hseed⟩
+  refine ⟨?_, hseed⟩
+  rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
+    generatedKey_eq_walk adversary hwalk hresult] at hbad
+  exact hbad
 
 end SlhDsaSecurity.AnswerSide
