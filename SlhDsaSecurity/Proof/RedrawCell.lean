@@ -224,7 +224,11 @@ open OpenCache ChargedProbe
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
 open scoped Classical in
-/-- **The charge against one cell.** -/
+/-- **The charge against one cell.** The weight is the number of **distinct** probes aiming at
+it — the record is de-duplicated before it is weighed — because a repeated probe is one chance
+at the cell and because the containment that pays for this weight speaks of the entry a probe
+installed, which a repeat does not install twice. Read "the record" here as the handler's own
+list, which is one `List.dedup` away from the multiset the join counts. -/
 theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
@@ -255,7 +259,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
             (computation (cells, pad))).run state)] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup :
             Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   -- Stalling at the cell leaves the chance of a charge against it alone.
@@ -329,6 +333,14 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
         pure (result, cell)) := by
     simp only [bind_assoc]
   rw [hassoc]
+  refine le_trans (le_of_eq (probEvent_congr' (fun pair _ =>
+    show (∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
+        (fun cache node => ¬ availableAt cache node) index pair.2 entry) ↔
+      ∃ entry ∈ pair.1.2.1.2.1.dedup, ChargedBy stakes
+        (fun cache node => ¬ availableAt cache node) index pair.2 entry from
+    ⟨fun ⟨entry, hentry, hcharged⟩ => ⟨entry, List.mem_dedup.mpr hentry, hcharged⟩,
+      fun ⟨entry, hentry, hcharged⟩ =>
+        ⟨entry, List.mem_dedup.mp hentry, hcharged⟩⟩) rfl)) ?_
   refine le_trans (prob_run_cell_le stakes
     (fun cache node => ¬ availableAt cache node) index
     (do
@@ -337,7 +349,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
       (simulateQ (StalledRun.stalled
         (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
         (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
-    (fun z => z.2.1.2.1)) ?_
+    (fun z => z.2.1.2.1.dedup)) ?_
   refine ENNReal.div_le_div_right (le_of_eq ?_) _
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
   refine tsum_congr fun cells => congrArg _ ?_
@@ -352,7 +364,7 @@ open scoped Classical in
 /-- **The charge against one cell, for the claims the run returns.** The same three steps as for
 the probes — stall, redraw, weigh — with the stall carried by the claims' own vanishing rather
 than by a quiet step, since a claim is read at the cache the run ends with and so aims nowhere
-once that cache has the cell. -/
+once that cache has the cell. The weight counts **distinct** claims, as the probes' does. -/
 theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
@@ -386,7 +398,7 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
             (computation (cells, pad))).run state)] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z).dedup :
             Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   -- Stalling at the cell leaves the chance of a claim's charge against it alone.
@@ -460,6 +472,14 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
         pure (result, cell)) := by
     simp only [bind_assoc]
   rw [hassoc]
+  refine le_trans (le_of_eq (probEvent_congr' (fun pair _ =>
+    show (∃ entry ∈ claims pair.1, ChargedBy stakes
+        (fun cache node => ¬ availableAt cache node) index pair.2 entry) ↔
+      ∃ entry ∈ (claims pair.1).dedup, ChargedBy stakes
+        (fun cache node => ¬ availableAt cache node) index pair.2 entry from
+    ⟨fun ⟨entry, hentry, hcharged⟩ => ⟨entry, List.mem_dedup.mpr hentry, hcharged⟩,
+      fun ⟨entry, hentry, hcharged⟩ =>
+        ⟨entry, List.mem_dedup.mp hentry, hcharged⟩⟩) rfl)) ?_
   refine le_trans (prob_run_cell_le stakes
     (fun cache node => ¬ availableAt cache node) index
     (do
@@ -468,7 +488,7 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
       (simulateQ (StalledRun.stalled
         (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
         (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
-    claims) ?_
+    (fun z => (claims z).dedup)) ?_
   refine ENNReal.div_le_div_right (le_of_eq ?_) _
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
   refine tsum_congr fun cells => congrArg _ ?_
@@ -697,7 +717,7 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
         (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
           (computation (cells, pad))).run state),
       ∑ index : CanonicalGraph.Node, ChargedProbe.aiming stakes
-        (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 ≤ weight z) :
+        (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup ≤ weight z) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed stakes
           (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
@@ -747,7 +767,7 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
             let pad ← ($ᵗ Padding : ProbComp Padding)
             (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
               (computation (cells, pad))).run state)] *
-            ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
+            ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup :
               Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
     intro index
     by_cases hi : touched index
@@ -785,7 +805,7 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
         (computation (cells, pad))).run state)
-    (fun z => z.2.1.2.1) weight hweight
+    (fun z => z.2.1.2.1.dedup) weight hweight
 
 set_option maxHeartbeats 8000000 in
 set_option maxRecDepth 1000000 in
@@ -821,7 +841,7 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
         (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
           (computation (cells, pad))).run state),
       ∑ index : CanonicalGraph.Node, ChargedProbe.aiming stakes
-        (fun cache node => ¬ availableAt cache node) index (claims z) ≤ weight z) :
+        (fun cache node => ¬ availableAt cache node) index (claims z).dedup ≤ weight z) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ claims pair.1, SensitiveOffSeed stakes
           (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
@@ -871,8 +891,8 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
             let pad ← ($ᵗ Padding : ProbComp Padding)
             (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
               (computation (cells, pad))).run state)] *
-            ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
-              Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+            ((aiming stakes (fun cache node => ¬ availableAt cache node) index
+              (claims z).dedup : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
     intro index
     by_cases hi : touched index
     · refine le_trans (probEvent_mono (q := fun _ => False)
@@ -909,7 +929,7 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
         (computation (cells, pad))).run state)
-    claims weight hweight
+    (fun z => (claims z).dedup) weight hweight
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -949,8 +969,9 @@ theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
   le_trans
     (prob_claimed_run_le_expected publicSeed availableAt hclosed hmono stakes stall computation
       touched htouched hopen state claims hcache (fun z => (claims z).length)
-      fun z _ => ChargedProbe.sum_targets_length_le stakes
-        (fun cache node => ¬ availableAt cache node) (claims z))
+      fun z _ => le_trans (ChargedProbe.sum_targets_length_le stakes
+        (fun cache node => ¬ availableAt cache node) (claims z).dedup)
+        (List.Sublist.length_le (List.dedup_sublist _)))
     (ChargedProbe.tsum_weight_le _
       (fun z : α × (HandlerState × Bool) => (claims z).length) limit fun z _ => hlength z)
 
@@ -993,8 +1014,9 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
   le_trans
     (prob_sensitive_run_le_expected publicSeed availableAt hclosed hmono stakes stall computation
       touched htouched hopen state (fun z => z.2.1.2.1.length)
-      fun z _ => ChargedProbe.sum_targets_length_le stakes
-        (fun cache node => ¬ availableAt cache node) z.2.1.2.1)
+      fun z _ => le_trans (ChargedProbe.sum_targets_length_le stakes
+        (fun cache node => ¬ availableAt cache node) z.2.1.2.1.dedup)
+        (List.Sublist.length_le (List.dedup_sublist _)))
     (ChargedProbe.tsum_weight_le _
       (fun z : α × (HandlerState × Bool) => z.2.1.2.1.length) limit hlimit)
 
@@ -1003,7 +1025,13 @@ open scoped Classical in
 /-- **The charge at the record's canonical part**, which is the count the shared budget grants
 this half. The weight is a whole class of inputs rather than a share of one, so it is a count an
 input-indexed cost can report, and it is left at its expectation so that the four charges
-sharing the budget can be added. -/
+sharing the budget can be added.
+
+The probes are counted **distinctly**: the record is de-duplicated before it is filtered, since
+a repeated probe is one chance at the cell and since the containment that pays for this count —
+the probes being among the run's recorded queries — is a statement about the entry a probe
+installed, which a repeat does not install twice. The join's own count has multiplicity, so a
+distinct count is contained in it and the bound only improves. -/
 theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
@@ -1037,13 +1065,13 @@ theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
             (computation (cells, pad))).run state)] *
-          (((z.2.1.2.1.filter keep).length : Nat) : ℝ≥0∞)) /
+          (((z.2.1.2.1.dedup.filter keep).length : Nat) : ℝ≥0∞)) /
         ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   prob_sensitive_run_le_expected publicSeed availableAt hclosed hmono
     (GraphStakes.stakes publicSeed) stall computation touched htouched hopen state
-    (fun z => (z.2.1.2.1.filter keep).length)
+    (fun z => (z.2.1.2.1.dedup.filter keep).length)
     fun z _ => sum_aiming_le_canonical publicSeed
-      (fun cache node => ¬ availableAt cache node) keep hkeep z.2.1.2.1
+      (fun cache node => ¬ availableAt cache node) keep hkeep z.2.1.2.1.dedup
 
 
 /-! ## The game's run is this one with the record forgotten

@@ -2630,3 +2630,32 @@ they probe, or they time out on the game's definitions rather than on the questi
   run, so statements about it compose; the run's is a function of the result and drags
   `AnswerSide.generatedKey_eq_walk` into every use. Applied once, in the join, where the support
   is in hand.
+## Where the containment's honest phase has to be read
+
+With the weights now at distinct probes, the containment's shape is settled and one interface is
+not. The invariant to prove is
+
+    every targeting input in the handler's cache is in the recorded multiset
+
+which suffices because the handler starts empty, so each distinct probe installs its input the
+first time it is made, and because every probe is cached once it is answered.
+
+**Stripping disposes of the honest phase's canonical probes for free.** `strippedKeygen` and
+`strippedSign` answer from the walk's table *inside the computation*, so a canonical probe never
+reaches the handler and never enters its record. Key generation therefore contributes nothing at
+all, and the signer contributes only what the table cannot answer: the randomiser and the
+message digest, which `RedrawCell.locate_randomizerInput` and `locate_messageInput` show aim
+nowhere.
+
+**The interface that is not settled is which cache that shape argument is read at.**
+`SignerRandomiser.probes_signInternalAt` is stated along `QueriesUnder cache`, which follows the
+replay path at `cache`, and the stripped signer's actual path is: the walk's table where it can
+answer, the oracle elsewhere. That path is the replay path at neither the table nor the
+handler's cache — it is the replay path at their **union**, which is exactly
+`RedrawCell.unionCache`, the game's own cache. So the provenance machinery
+(`CacheProvenance.queriesUnder_sign_of_fresh`, `PhaseProvenance.provenance_phase_subset`), which
+lives on the game's side, applies there and not directly at the handler's.
+
+What is left is therefore an interface rather than an argument: state the invariant at the
+game's cache, where provenance applies, and carry it to the handler's record through
+`unionCache`, which `probEvent_rom_eq_lazy` already maintains step by step.
