@@ -812,6 +812,53 @@ theorem probesIn_recordAiming (adversary : Adversary) :
   fun _ _ => le_refl _
 
 
+
+/-! ## The forgery's claims never stake the secret seed
+
+The half is charged at `RedrawCell.SensitiveOffSeed`, the avenue whose staked cell is not the
+secret seed; the seed's own avenue is charged elsewhere and must not be paid for twice. For the
+forgery's claims the distinction costs nothing, and structurally rather than by hypothesis:
+every claimed candidate is the canonical input of a FORS leaf or a WOTS chain step, whose staked
+cell is a **structural** node — a signature carries no claim about the seed. So a sensitive
+claim is a sensitive claim off the seed, and the seed term does not arise on this side at all.
+-/
+
+/-- **Every claim is the input of a node that stakes a structural cell.** -/
+theorem claimedCandidates_cases (publicSeed : Digest) (forsKey : ForsKey)
+    (indices : SlhDsaSecurity.Fors.Indices) (signature : Signature)
+    (keyAt : Fin layers → WotsKey) (stepAt : Fin layers → Fin chains → Fin (w - 1))
+    (candidate : Bytes)
+    (hmem : candidate ∈
+      GraphStakes.claimedCandidates publicSeed forsKey indices signature keyAt stepAt) :
+    ∃ (node : GraphStakes.SensitiveNode) (cell : SensitiveQuery.Cell),
+      node.child ≠ Node.secretSeed ∧ GraphStakes.inputOf publicSeed node cell = candidate := by
+  rw [GraphStakes.claimedCandidates, List.mem_append] at hmem
+  rcases hmem with hfors | hwots
+  · obtain ⟨tree, -, htree⟩ := List.mem_map.mp hfors
+    exact ⟨GraphStakes.forsLeafNode forsKey (GraphStakes.forsIndex indices tree),
+      (signature.fors tree).secret, by simp [GraphStakes.forsLeafNode], htree⟩
+  · obtain ⟨layer, -, hlayer⟩ := List.mem_flatMap.mp hwots
+    obtain ⟨chain, -, hchain⟩ := List.mem_map.mp hlayer
+    exact ⟨GraphStakes.wotsHashNode (keyAt layer) chain (stepAt layer chain),
+      ((signature.hypertree layer).wots chain), by simp [GraphStakes.wotsHashNode], hchain⟩
+
+/-- **A sensitive claim is sensitive off the seed.** -/
+theorem sensitiveOffSeed_of_claim (publicSeed : Digest)
+    (unavailable : HandlerCarrier.State → Node → Prop) (table : Cells)
+    (state : HandlerCarrier.State) (candidate : Bytes)
+    (hclaim : ∃ (node : GraphStakes.SensitiveNode) (cell : SensitiveQuery.Cell),
+      node.child ≠ Node.secretSeed ∧ GraphStakes.inputOf publicSeed node cell = candidate)
+    (hsensitive : SensitiveQuery.Sensitive (GraphStakes.stakes publicSeed) unavailable table
+      state candidate) :
+    RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed) unavailable table state
+      candidate := by
+  obtain ⟨node, cell, hchild, hinput⟩ := hclaim
+  obtain ⟨witness, hunavailable, hwitness⟩ := hsensitive
+  have hsame : witness = node :=
+    (GraphStakes.inputOf_inj publicSeed (hwitness.trans hinput.symm)).1
+  exact ⟨witness, by rw [show (GraphStakes.stakes publicSeed).stake witness =
+      witness.child from rfl, hsame]; exact hchild, hunavailable, hwitness⟩
+
 /-! ## The shape this half owes the join
 
 Pinned by elaboration rather than by eye, because a mismatch between what an owner proves and
