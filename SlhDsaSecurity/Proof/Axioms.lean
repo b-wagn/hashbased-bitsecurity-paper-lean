@@ -245,6 +245,7 @@ import SlhDsaSecurity.Proof.SplitCounted
 import SlhDsaSecurity.Proof.SplitTail
 import SlhDsaSecurity.Proof.SplitCarrierTail
 import SlhDsaSecurity.Proof.CarrierCover
+import SlhDsaSecurity.Proof.CarrierJoin
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15589,3 +15590,11 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record' depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record
+
+/-- info: 'SlhDsaSecurity.CarrierJoin.targetCovered_of_forgeryCoveredBy' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierJoin.targetCovered_of_forgeryCoveredBy
+
+/-- info: 'SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail
