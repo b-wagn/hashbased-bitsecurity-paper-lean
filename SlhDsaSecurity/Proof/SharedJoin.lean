@@ -5,6 +5,7 @@ import SlhDsaSecurity.Proof.ClassGrowth
 import SlhDsaSecurity.Proof.AnswerSide
 import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.RecordedBudget
+import SlhDsaSecurity.Proof.PairedAverage
 
 /-!
 # The shared side's charges, added
@@ -288,11 +289,8 @@ theorem probEvent_recordedPairedRun (adversary : Adversary) (event : RecordedPai
     Pr[event | recordedPairedRun adversary] =
       ∑' walk, Pr[= walk | graphWalk] *
         Pr[fun result => event (walk, result) |
-          RecordedTail.recordedTail adversary walk] := by
-  rw [recordedPairedRun, probEvent_bind_eq_tsum]
-  refine tsum_congr fun walk => congrArg _ ?_
-  rw [bind_pure_comp, probEvent_map]
-  rfl
+          RecordedTail.recordedTail adversary walk] :=
+  PairedAverage.probEvent_pairedWith (RecordedTail.recordedTail adversary) event
 
 open scoped Classical in
 /-- **The same, read at a count.** -/
@@ -300,12 +298,8 @@ theorem expected_recordedPairedRun (adversary : Adversary) (count : RecordedPair
     expected (recordedPairedRun adversary) count =
       ∑' walk, Pr[= walk | graphWalk] *
         expected (RecordedTail.recordedTail adversary walk)
-          (fun result => count (walk, result)) := by
-  classical
-  haveI : DecidableEq RecordedPair := Classical.decEq _
-  rw [recordedPairedRun, expected_bind]
-  refine tsum_congr fun walk => congrArg _ ?_
-  rw [bind_pure_comp, expected_map]
+          (fun result => count (walk, result)) :=
+  PairedAverage.expected_pairedWith (RecordedTail.recordedTail adversary) count
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -320,37 +314,9 @@ theorem prob_le_expected_of_perWalk (adversary : Adversary) (event : RecordedPai
           (fun result => count (walk, result)) + extra) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     Pr[event | recordedPairedRun adversary] ≤
       (expected (recordedPairedRun adversary) count + extra) /
-        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [probEvent_recordedPairedRun, expected_recordedPairedRun]
-  calc ∑' walk, Pr[= walk | graphWalk] *
-        Pr[fun result => event (walk, result) | RecordedTail.recordedTail adversary walk]
-      ≤ ∑' walk, Pr[= walk | graphWalk] *
-          ((expected (RecordedTail.recordedTail adversary walk)
-            (fun result => count (walk, result)) + extra) / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
-        refine ENNReal.tsum_le_tsum fun walk => ?_
-        by_cases hmem : walk ∈ support graphWalk
-        · exact mul_le_mul' le_rfl (hwalkwise walk hmem)
-        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
-    _ = ∑' walk, (Pr[= walk | graphWalk] *
-            expected (RecordedTail.recordedTail adversary walk)
-              (fun result => count (walk, result)) +
-          Pr[= walk | graphWalk] * extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        refine tsum_congr fun walk => ?_
-        simp only [div_eq_mul_inv]
-        ring
-    _ = ((∑' walk, Pr[= walk | graphWalk] *
-            expected (RecordedTail.recordedTail adversary walk)
-              (fun result => count (walk, result))) +
-          (∑' walk, Pr[= walk | graphWalk]) * extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        simp only [div_eq_mul_inv]
-        rw [ENNReal.tsum_mul_right, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-    _ ≤ ((∑' walk, Pr[= walk | graphWalk] *
-            expected (RecordedTail.recordedTail adversary walk)
-              (fun result => count (walk, result))) + extra) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        refine ENNReal.div_le_div_right (add_le_add le_rfl ?_) _
-        exact le_of_le_of_eq (mul_le_mul' tsum_probOutput_le_one le_rfl) (one_mul extra)
+        ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  PairedAverage.prob_le_expected_of_perWalk (RecordedTail.recordedTail adversary) event count
+    extra hwalkwise
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in

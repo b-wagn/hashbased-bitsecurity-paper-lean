@@ -187,6 +187,7 @@ import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.FusedCoverage
 import SlhDsaSecurity.Proof.RecorderView
 import SlhDsaSecurity.Proof.LateProvenance
+import SlhDsaSecurity.Proof.PairedAverage
 import SlhDsaSecurity.Proof.SharedAssembly
 import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.RecordedStripping
@@ -11928,3 +11929,21 @@ info: 'SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeedsAt' depends on
 /-- info: 'SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at
+
+/--
+info: 'SlhDsaSecurity.PairedAverage.probEvent_pairedWith' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PairedAverage.probEvent_pairedWith
+
+/--
+info: 'SlhDsaSecurity.PairedAverage.expected_pairedWith' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PairedAverage.expected_pairedWith
+
+/--
+info: 'SlhDsaSecurity.PairedAverage.prob_le_expected_of_perWalk' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PairedAverage.prob_le_expected_of_perWalk

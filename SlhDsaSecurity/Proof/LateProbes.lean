@@ -181,23 +181,16 @@ theorem probEvent_pairedOf (fused : FusedTail) (adversary : Adversary)
     (event : SplitPair → Prop) :
     Pr[event | pairedOf fused adversary] =
       ∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-        Pr[fun result => event (walk, result) | fused adversary walk] := by
-  rw [pairedOf, probEvent_bind_eq_tsum]
-  refine tsum_congr fun walk => congrArg _ ?_
-  rw [bind_pure_comp, probEvent_map]
-  rfl
+        Pr[fun result => event (walk, result) | fused adversary walk] :=
+  PairedAverage.probEvent_pairedWith (fused adversary) event
 
 open scoped Classical in
 theorem expected_pairedOf (fused : FusedTail) (adversary : Adversary)
     (count : SplitPair → Nat) :
     expected (pairedOf fused adversary) count =
       ∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-        expected (fused adversary walk) (fun result => count (walk, result)) := by
-  classical
-  haveI : DecidableEq SplitPair := Classical.decEq _
-  rw [pairedOf, expected_bind]
-  refine tsum_congr fun walk => congrArg _ ?_
-  rw [bind_pure_comp, expected_map]
+        expected (fused adversary walk) (fun result => count (walk, result)) :=
+  PairedAverage.expected_pairedWith (fused adversary) count
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -209,35 +202,8 @@ theorem prob_le_expected_of_perWalk (fused : FusedTail) (adversary : Adversary)
         (expected (fused adversary walk) (fun result => count (walk, result)) + extra) /
           ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     Pr[event | pairedOf fused adversary] ≤
-      (expected (pairedOf fused adversary) count + extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [probEvent_pairedOf, expected_pairedOf]
-  calc ∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-        Pr[fun result => event (walk, result) | fused adversary walk]
-      ≤ ∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-          ((expected (fused adversary walk) (fun result => count (walk, result)) + extra) /
-            ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
-        refine ENNReal.tsum_le_tsum fun walk => ?_
-        by_cases hmem : walk ∈ support WarmedGame.graphWalk
-        · exact mul_le_mul' le_rfl (hwalkwise walk hmem)
-        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
-    _ = ∑' walk, (Pr[= walk | WarmedGame.graphWalk] *
-            expected (fused adversary walk) (fun result => count (walk, result)) +
-          Pr[= walk | WarmedGame.graphWalk] * extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        refine tsum_congr fun walk => ?_
-        simp only [div_eq_mul_inv]
-        ring
-    _ = ((∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-            expected (fused adversary walk) (fun result => count (walk, result))) +
-          (∑' walk, Pr[= walk | WarmedGame.graphWalk]) * extra) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        simp only [div_eq_mul_inv]
-        rw [ENNReal.tsum_mul_right, ENNReal.tsum_add, ENNReal.tsum_mul_right]
-    _ ≤ ((∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-            expected (fused adversary walk) (fun result => count (walk, result))) + extra) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        refine ENNReal.div_le_div_right (add_le_add le_rfl ?_) _
-        exact le_of_le_of_eq (mul_le_mul' tsum_probOutput_le_one le_rfl) (one_mul extra)
+      (expected (pairedOf fused adversary) count + extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  PairedAverage.prob_le_expected_of_perWalk (fused adversary) event count extra hwalkwise
 
 /-! ## What the forgetting map buys
 
