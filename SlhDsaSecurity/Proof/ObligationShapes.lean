@@ -129,7 +129,8 @@ the coverage join is the target and nothing else. -/
 theorem cover_of_served_or_narrow (narrow : Bytes → Prop)
     (served : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
     (cache : QueryCache HashSpec) (hcover : served input cache ∨ narrow input) :
-    served input cache ∨ SplitWitness.Served.targetKeep narrow served input cache := by
+    served input cache ∨
+      SplitWitness.Served.targetKeep (fun probe _ => narrow probe) served input cache := by
   classical
   by_cases hserved : served input cache
   · exact Or.inl hserved

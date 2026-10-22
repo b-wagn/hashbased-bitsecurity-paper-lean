@@ -309,8 +309,8 @@ free, so what is left is exactly the `PRF_msg` half, which is `ForgerySeedRandom
 theorem narrowTarget_of_not_forgerySeedRandomised (prfSeed : Digest) (pk : PublicKey)
     (result : (Outcome × Nat) × SplitPrefix.SplitState)
     (hforgery : ¬ ForgerySeedRandomised prfSeed pk (result.1, result.2.1)) :
-    SplitWitness.Served.NarrowTarget pk (SplitWitness.narrowClass prfSeed pk) result :=
-  fun message parsed hframe hparsed =>
+    SplitWitness.Served.NarrowTarget pk (fun probe _ => SplitWitness.narrowClass prfSeed pk probe) result :=
+  fun message parsed _ hframe hparsed _ =>
     ⟨⟨parsed.randomizer, message, rfl⟩,
       fun hprf => hforgery ⟨message, parsed, hframe, hparsed, hprf⟩⟩
 
@@ -326,7 +326,8 @@ theorem targetCovered_of_forgeryDisclosedCovered_narrow (prfSeed : Digest) (pk :
       (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
       (countQueries (splitCost inClass inside outside) computation) cache))
     (hcover : SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
-      (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.narrowClass prfSeed pk)
+      (SplitWitness.disclosingKeep prfSeed pk)
+        (fun probe _ => SplitWitness.narrowClass prfSeed pk probe)
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hcovered : SplitWitness.CoveredAtKeep prfSeed pk
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1))
@@ -377,7 +378,8 @@ theorem prob_bad_or_coverage_le_of_caps_recorded_witnessCover (prfSeed : Digest)
         (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
         (countQueries (splitCost inClass inside outside) computation) initialCache),
       SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
-        (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.narrowClass prfSeed pk)
+        (SplitWitness.disclosingKeep prfSeed pk)
+        (fun probe _ => SplitWitness.narrowClass prfSeed pk probe)
         ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
@@ -436,8 +438,8 @@ the `PRF_msg` clause of `SplitWitness.narrowClass` and nothing else; remove the 
 `NarrowTarget` is discharged by this, with no hypothesis and no charge. -/
 theorem narrowTarget_messageClass (pk : PublicKey)
     (result : (Outcome × Nat) × SplitPrefix.SplitState) :
-    SplitWitness.Served.NarrowTarget pk (CombinedCharge.IsMessageInput pk) result :=
-  fun message parsed _ _ => ⟨parsed.randomizer, message, rfl⟩
+    SplitWitness.Served.NarrowTarget pk (fun probe _ => CombinedCharge.IsMessageInput pk probe) result :=
+  fun message parsed _ _ _ _ => ⟨parsed.randomizer, message, rfl⟩
 
 /-! ## The same charge with the narrowed class a parameter
 
@@ -466,14 +468,14 @@ theorem targetCovered_of_forgeryDisclosedCovered_class (prfSeed : Digest) (pk : 
     (result : (Outcome × Counts) × SplitPrefix.SplitState)
     (hmem : result ∈ support (BlockViews.recordedRun
       (SplitWitness.disclosingKeep prfSeed pk)
-      (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+      (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep prfSeed pk))
       (countQueries (splitCost inClass inside outside) computation) cache))
     (hcover : SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
-      (SplitWitness.disclosingKeep prfSeed pk) narrow
+      (SplitWitness.disclosingKeep prfSeed pk) (fun probe _ => narrow probe)
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hcovered : SplitWitness.CoveredAtKeep prfSeed pk
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1))
-    (hnarrowTarget : SplitWitness.Served.NarrowTarget pk narrow
+    (hnarrowTarget : SplitWitness.Served.NarrowTarget pk (fun probe _ => narrow probe)
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hlate : ¬ SplitWitness.LateDisclosure prfSeed pk
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)) :
@@ -484,7 +486,7 @@ theorem targetCovered_of_forgeryDisclosedCovered_class (prfSeed : Digest) (pk : 
       (countAllHashes computation) cache
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)
       (mem_support_recorder_countAllHashes (SplitWitness.disclosingKeep prfSeed pk)
-        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep prfSeed pk))
         inClass hne computation (cache, [], []) result hmem)
       hfresh hcover hnarrowTarget hlate hcovered
   refine ⟨target, htarget, fun tree => ?_⟩
@@ -509,14 +511,14 @@ theorem prob_bad_or_coverage_le_of_caps_recorded_class (prfSeed : Digest) (pk : 
     (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
     (hcover : ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep prfSeed pk)
-        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep prfSeed pk))
         (countQueries (splitCost inClass inside outside) computation) initialCache),
       SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
-        (SplitWitness.disclosingKeep prfSeed pk) narrow
+        (SplitWitness.disclosingKeep prfSeed pk) (fun probe _ => narrow probe)
         ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep prfSeed pk)
-        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep prfSeed pk))
         (countQueries (splitCost inClass inside outside) computation) initialCache),
       result.2.2.1.length ≤ leftLength)
     (budget : Nat)
@@ -525,20 +527,20 @@ theorem prob_bad_or_coverage_le_of_caps_recorded_class (prfSeed : Digest) (pk : 
     Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
         GrowthCharge.Bad bad (result.1, result.2.1) ∨
           (SplitWitness.CoveredAtKeep prfSeed pk (result.1, result.2.1) ∧
-            SplitWitness.Served.NarrowTarget pk narrow result ∧
+            SplitWitness.Served.NarrowTarget pk (fun probe _ => narrow probe) result ∧
             ¬ SplitWitness.LateDisclosure prfSeed pk result) |
         BlockViews.recordedRun (SplitWitness.disclosingKeep prfSeed pk)
-          (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+          (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep prfSeed pk))
           (countAllHashes computation) initialCache] ≤
       ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
   classical
   refine prob_bad_or_coverage_le_of_join_recorded inClass hne
     (SplitWitness.disclosingKeep prfSeed pk)
-    (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+    (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep prfSeed pk))
     (fun input inner hkeep => hrightClass input hkeep.1) bad hrate hbadClass computation
     initialCache hclean
     (fun result => SplitWitness.CoveredAtKeep prfSeed pk (result.1, result.2.1) ∧
-      SplitWitness.Served.NarrowTarget pk narrow result ∧
+      SplitWitness.Served.NarrowTarget pk (fun probe _ => narrow probe) result ∧
       ¬ SplitWitness.LateDisclosure prfSeed pk result)
     leftLength budget hcap
     (fun result hmem hcoverage =>

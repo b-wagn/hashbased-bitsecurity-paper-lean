@@ -3605,3 +3605,35 @@ recording is a provenance fact wearing a syntactic disguise**, and the way to un
 ask the handler *which query this is*, not what the bytes look like. But check the sign: the
 disclosing side and the target side read the same flag with opposite polarity, and a lemma that
 excludes an input from one of them admits it to the other.
+
+## A parameter widened where it is read, and the two ways I nearly got it wrong
+
+`Served.targetKeep`'s `narrow` now reads the view: `Bytes → σ → Prop`. The argument for it is
+that `narrow` is consulted at **one input and one view** — the view in force when that input was
+answered fresh — so nothing in the development depends on its being a property of the bytes
+alone. A class that is state-free costs nothing by `fun input _ => …`, and the old family keeps
+its signatures by exactly that lift, so nothing downstream moved. A carrier's class is not
+state-free: `AnswerCarrier.carrierRightKeep` excludes the signer's randomiser probe by the frame
+in flight, which no predicate on bytes can see.
+
+`NarrowTarget` gains the view and a freshness side condition with it — the demand is "narrow at
+every view where the target is still fresh", which is where `mem_recordOf_of_cache_fresh` reads
+the cover. Its class argument is state-free, so the two call sites that used to pass `narrow`
+now pass `fun probe => probe = <the target input>` and take the class from the hypothesis at the
+view instead.
+
+**Two methodological failures in one sitting, both mine, both caught by looking rather than by
+anything downstream.**
+
+First: I grepped the build output for `File.lean:NN:NN: error` when Lean emits `error: File.lean:NN:NN:`.
+Three "green" builds in a row were nothing of the kind. The pattern matters as much as the search:
+**a filter that can only ever match zero things reports success indistinguishably from one that
+matched none.** Count the total too, and sanity-check the count against something you know is
+non-zero.
+
+Second: a `str.replace` whose pattern never occurred, because the file held ASCII `->` where I
+had written `→` — left there by an earlier script of my own. `replace` is silent on a miss. Every
+replacement now asserts its count, and the stray arrows are normalised.
+
+Both are the absence rule in a new costume: **the check that something did not happen has to be
+able to fail.**

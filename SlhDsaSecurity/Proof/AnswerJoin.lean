@@ -396,7 +396,7 @@ noncomputable def answerRecordedRunAt (narrow : Bytes → Prop) (adversary : Adv
   BlockViews.recordedRun
     (SplitWitness.disclosingKeep walk.1.1.2.1
       (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-    (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep walk.1.1.2.1
+    (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep walk.1.1.2.1
       (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
     (countAllHashes (afterSeeds adversary walk.1.1)) walk.2
 
@@ -422,7 +422,7 @@ theorem answerRecordedBound_class_of_parts
       ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep (narrow walk) (SplitWitness.disclosingKeep walk.1.1.2.1
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow walk probe) (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
@@ -432,7 +432,7 @@ theorem answerRecordedBound_class_of_parts
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
           (SplitWitness.disclosingKeep walk.1.1.2.1
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-          (narrow walk)
+          (fun probe _ => narrow walk probe)
           ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hleftBound : ∀ (adversary : Adversary)
       (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
@@ -440,7 +440,7 @@ theorem answerRecordedBound_class_of_parts
       ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep (narrow walk) (SplitWitness.disclosingKeep walk.1.1.2.1
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow walk probe) (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
@@ -462,7 +462,7 @@ theorem answerRecordedBound_class_of_parts
             AnswerBad ((walk.1, result.1), result.2.1) ∧
               SplitWitness.Served.NarrowTarget
                 (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-                (narrow walk) result ∧
+                (fun probe _ => narrow walk probe) result ∧
               ¬ SplitWitness.LateDisclosure walk.1.1.2.1
                 (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
           answerRecordedRunAt (narrow walk) adversary walk] ≤
@@ -488,8 +488,8 @@ theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : in
       ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep (CombinedCharge.IsMessageInput
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.Served.targetKeep (fun probe _ => CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) probe)
           (SplitWitness.disclosingKeep walk.1.1.2.1
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
@@ -500,8 +500,8 @@ theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : in
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
           (SplitWitness.disclosingKeep walk.1.1.2.1
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-          (CombinedCharge.IsMessageInput
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          (fun probe _ => CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) probe)
           ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hleftBound : ∀ (adversary : Adversary)
       (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
@@ -509,8 +509,8 @@ theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : in
       ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep (CombinedCharge.IsMessageInput
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.Served.targetKeep (fun probe _ => CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) probe)
           (SplitWitness.disclosingKeep walk.1.1.2.1
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput

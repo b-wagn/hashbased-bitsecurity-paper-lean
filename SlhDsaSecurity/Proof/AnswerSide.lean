@@ -848,7 +848,7 @@ theorem prob_answerBad_good_le_of_caps_recorded_class (adversary : Adversary) (q
     (hcover : ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep walk.1.1.2.1
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
@@ -857,12 +857,13 @@ theorem prob_answerBad_good_le_of_caps_recorded_class (adversary : Adversary) (q
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
         (SplitWitness.disclosingKeep walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)) narrow
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (fun probe _ => narrow probe)
         ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
     (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep walk.1.1.2.1
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
@@ -871,7 +872,7 @@ theorem prob_answerBad_good_le_of_caps_recorded_class (adversary : Adversary) (q
     (hdisclosing : ∀ result ∈ support (BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep walk.1.1.2.1
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countAllHashes (afterSeeds adversary walk.1.1)) walk.2), ∀ input : Bytes,
       ServedLog.servedLog
@@ -884,13 +885,13 @@ theorem prob_answerBad_good_le_of_caps_recorded_class (adversary : Adversary) (q
         RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
           SplitWitness.Served.NarrowTarget
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            narrow result ∧
+            (fun probe _ => narrow probe) result ∧
           ¬ SplitWitness.LateDisclosure walk.1.1.2.1
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
       BlockViews.recordedRun
         (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep walk.1.1.2.1
+        (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
         (countAllHashes (afterSeeds adversary walk.1.1)) walk.2] ≤
       (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
