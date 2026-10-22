@@ -60,8 +60,10 @@ theorem targetCovered_of_forgeryCoveredBy
         (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2)
     (hleftClass : ∀ entry ∈ result.2.2.1, disclosing entry.1)
     (hrightClass : ∀ entry ∈ result.2.2.2, ¬ disclosing entry.1)
-    (hclass : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → inClass input)
-    (hdisclosingClass : ∀ input : Bytes, disclosing input → inClass input)
+    (hclass : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input →
+      result.2.1 input ≠ none → inClass input)
+    (hdisclosingMessage : ∀ input : Bytes, disclosing input →
+      CombinedCharge.IsMessageInput pk input)
     (hcovered : ForgeryCoveredBy disclosing pk (value, result.2.1)) :
     BlockViews.TargetCovered (σ := QueryCache HashSpec) result := by
   classical
@@ -69,13 +71,16 @@ theorem targetCovered_of_forgeryCoveredBy
   -- The forgery's own digest is in the target recording, because it does not disclose.
   have htarget : (Hashing.messageInput parsed.randomizer pk message, answer) ∈ result.2.2.2 := by
     rcases hcover (Hashing.messageInput parsed.randomizer pk message) answer
-      (hclass _ ⟨parsed.randomizer, message, rfl⟩) hentry with hleft | hright
+      (hclass _ ⟨parsed.randomizer, message, rfl⟩ (Option.ne_none_iff_exists'.mpr ⟨answer, hentry⟩))
+      hentry with hleft | hright
     · exact absurd (hleftClass _ hleft) hnotself
     · exact hright
   refine ⟨(Hashing.messageInput parsed.randomizer pk message, answer), htarget, fun tree => ?_⟩
   -- And each witness is in the disclosing recording, because it does.
   obtain ⟨other, otherAnswer, hne, hdisclosing, hother, hinstance, hleaf⟩ := hcoveredAt tree
-  rcases hcover other otherAnswer (hdisclosingClass other hdisclosing) hother with
+  rcases hcover other otherAnswer
+    (hclass other (hdisclosingMessage other hdisclosing)
+      (Option.ne_none_iff_exists'.mpr ⟨otherAnswer, hother⟩)) hother with
     hleft | hright
   · exact ⟨(other, otherAnswer), hleft, hinstance, hleaf⟩
   · exact absurd hdisclosing (hrightClass _ hright)
@@ -100,8 +105,10 @@ theorem targetCovered_carrierTail
     (hfreshWalk : ∀ input : Bytes, inClass input → walk.2 input = none)
     (hleftClass : ∀ entry ∈ result.2.2.1, disclosing entry.1)
     (hrightClass : ∀ entry ∈ result.2.2.2, ¬ disclosing entry.1)
-    (hclass : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input → inClass input)
-    (hdisclosingClass : ∀ input : Bytes, disclosing input → inClass input)
+    (hclass : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
+      result.2.1 input ≠ none → inClass input)
+    (hdisclosingMessage : ∀ input : Bytes, disclosing input →
+      CombinedCharge.IsMessageInput (keyAt walk) input)
     (value : Outcome × Nat) (hvalue : value.1 = result.1.1.1)
     (hcovered : ForgeryCoveredBy disclosing (keyAt walk) (value, result.2.1)) :
     BlockViews.TargetCovered (σ := QueryCache HashSpec) result :=
@@ -109,6 +116,6 @@ theorem targetCovered_carrierTail
     (fun input answer hin hfinal =>
       CarrierCover.cover_carrierTail rightKeep inClass adversary walk hcoverTests result hresult
         input answer hin (hfreshWalk input hin) hfinal)
-    hleftClass hrightClass hclass hdisclosingClass hcovered
+    hleftClass hrightClass hclass hdisclosingMessage hcovered
 
 end SlhDsaSecurity.CarrierJoin

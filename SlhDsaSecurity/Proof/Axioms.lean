@@ -245,6 +245,7 @@ import SlhDsaSecurity.Proof.SplitCounted
 import SlhDsaSecurity.Proof.SplitTail
 import SlhDsaSecurity.Proof.SplitCarrierTail
 import SlhDsaSecurity.Proof.CarrierCover
+import SlhDsaSecurity.Proof.CarrierSplit
 import SlhDsaSecurity.Proof.CarrierJoin
 
 /--
@@ -15598,3 +15599,35 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record' depend
 /-- info: 'SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail
+
+/-- info: 'SlhDsaSecurity.CarrierSplit.narrow_of_not_seedRandomised' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSplit.narrow_of_not_seedRandomised
+
+/--
+info: 'SlhDsaSecurity.CarrierSplit.targetCovered_carrierTail_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSplit.targetCovered_carrierTail_narrow
+
+/--
+info: 'SlhDsaSecurity.CarrierSplit.exists_carrierTail_of_answerCarrierRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSplit.exists_carrierTail_of_answerCarrierRun
+
+/-- info: 'SlhDsaSecurity.CarrierSplit.hjoin_answerCarrierRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSplit.hjoin_answerCarrierRun
+
+/-- info: 'SlhDsaSecurity.CarrierSplit.hsplit_answerCarrierRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSplit.hsplit_answerCarrierRun
+
+/-- info: 'SlhDsaSecurity.CarrierSplit.hsplit_splitCarrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSplit.hsplit_splitCarrierTail
