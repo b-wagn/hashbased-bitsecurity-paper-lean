@@ -3580,3 +3580,28 @@ consumes, and the margin is 251 rather than 247.
 The rule: **a weakening added to match an expected shape is a silent reservation.** If the proof
 ends on something tighter, say so and let the consumer weaken — the consumer knows what it can
 afford and the producer does not.
+
+## The exclusion clause had the sign the wrong way round, and the fix reads the state
+
+`not_filesLeft_randomizerInput` keeps the signer's own `PRF_msg` probe out of the **disclosing**
+recording. The target test is `narrow ∧ ¬ FilesLeft`, so that same lemma says the probe *passes*
+the second conjunct — it is `¬ FilesLeft` that sends an input to the target side. Retiring
+`narrowClass`'s `¬ PrfClass` on the strength of it would have made the probe target-recorded, and
+a target-recorded signer query is one `SharedJoin.recordOf` does not hold, which is exactly what
+`LateProvenance.hrecord` needs.
+
+The honest clause is `AnswerCarrier.FilesRandomiser`: the `PRF_msg` input for the frame **in
+flight**, the exact counterpart of `FilesLeft`, which is the digest input for that same frame.
+It is false at every adversary query because the flag is down at every boundary
+(`not_filesRandomiser_of_clear`), true at the probe itself (`filesRandomiser_probe`), and
+unforgeable for the same reason `FilesLeft` is, since only the signing oracle sets the flag.
+
+`filesRandomiser_prfClass` is the check that was missing the first time a clause was swapped
+here: the flag's version is **implied by** the syntactic one, so the new target test keeps
+everything the old one kept and more — a weakening, not a different test.
+
+The general shape, now with its repair: **a clause added to a class to keep one query out of a
+recording is a provenance fact wearing a syntactic disguise**, and the way to undress it is to
+ask the handler *which query this is*, not what the bytes look like. But check the sign: the
+disclosing side and the target side read the same flag with opposite polarity, and a lemma that
+excludes an input from one of them admits it to the other.

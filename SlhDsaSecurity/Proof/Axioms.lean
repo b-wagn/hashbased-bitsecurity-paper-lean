@@ -10253,6 +10253,36 @@ info: 'SlhDsaSecurity.AnswerCarrier.answerCarrierRun_eq' depends on axioms: [pro
 #print axioms SlhDsaSecurity.AnswerCarrier.answerCarrierRun_eq
 
 /--
+info: 'SlhDsaSecurity.AnswerCarrier.filesRandomiser_probe' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.filesRandomiser_probe
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.filesRandomiser_prfClass' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.filesRandomiser_prfClass
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.not_filesRandomiser_of_clear' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.not_filesRandomiser_of_clear
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.carrierRightKeep_class' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.carrierRightKeep_class
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.not_carrierRightKeep_randomizerInput' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.not_carrierRightKeep_randomizerInput
+
+/--
 info: 'SlhDsaSecurity.CoverageCount.prob_coverage_le_expected_recorded' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]
