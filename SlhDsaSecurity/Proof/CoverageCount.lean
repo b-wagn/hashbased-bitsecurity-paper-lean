@@ -607,4 +607,62 @@ theorem prob_bad_or_coverage_le_of_join_recorded
         (RecorderView.CacheView.cacheOf initialCache) result hmem)
     omega
 
+/-! ## The two charges, generic in the run
+
+Everything above is stated at `BlockViews.recordedRun`, which is one computation under
+`RecorderView.recorderOf` from a cache. The carrier tail is not of that shape — it is bracketed,
+three-stage, under `RecorderView.noticingRecorderOf`, and records against the frame in flight
+rather than against the cache — so no map carries one run to the other and the charge has to be
+restated rather than transported.
+
+**What has to be restated is less than the chain suggests.** The place where the two charges
+*meet* mentions nothing about how either was proved: it takes the structural clause at its own
+expected count, the coverage clause at its own, and the pathwise fact that the two counts share
+one budget. `prob_bad_or_coverage_le_of_charges` below is exactly that, over an arbitrary run,
+and it is three lines. Everything run-specific lives in the two charges handed to it.
+
+So the interface a new run has to meet is three propositions, not a recorder. For
+`BlockViews.recordedRun` they are what the sections above prove; for the carrier tail they are
+what remains, and the coverage one is the only hard half — it is the tape factorisation, which
+has to be redone at a bracketed noticing run rather than adapted.
+
+**On one thing that does *not* have to be re-argued.** `noticingRecorderOf` runs `recorderOf` at
+`CacheView.onQuery state.1 input`, and `cacheOf_onQuery` says the notice leaves the cache alone.
+So `appendedOf`'s guard is still `CacheView.cacheOf state.1 input = none`: the carrier files on a
+**fresh draw only**, exactly as the cache recorder does. Every step above that rests on a filed
+entry being a fresh uniform answer — `rightRecord_length_le_count`, and the tape factorisation's
+per-entry rate — keeps its premise. What the notice changes is which state the two *tests* are
+read at, which is the whole point of the repair and costs those steps nothing. -/
+
+open scoped Classical in
+/-- **Where the two charges meet, with no recorder in sight.** The structural clause at its own
+expected count, the coverage clause at its own with a constant beside it, and one budget bounding
+their sum on every supported run.
+
+This is the interface a run has to meet for the answer half's bound to be taken at it. -/
+theorem prob_bad_or_coverage_le_of_charges {α : Type} {σ : Type} [RecorderView.CacheView σ]
+    (bad : Bytes → HashOutput → Prop) (inside outside : QueryKind)
+    (run : ProbComp ((α × Counts) × RecorderView.StateOf σ))
+    (coverage : (α × Counts) × RecorderView.StateOf σ → Prop) (constant : ℝ≥0∞)
+    (hstructural : Pr[fun result => GrowthCharge.Bad bad
+          (((result.1.1, result.1.2 inside + result.1.2 outside) :
+            α × Nat), RecorderView.CacheView.cacheOf result.2.1) | run] ≤
+      ClassExpectation.expected run (fun result => result.1.2 outside) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hcoverage : Pr[coverage | run] ≤
+      constant + ClassExpectation.expected run (fun result => result.1.2 inside) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (budget : Nat)
+    (hshare : ∀ result ∈ support run,
+      result.1.2 outside + result.1.2 inside ≤ budget) :
+    Pr[fun result => GrowthCharge.Bad bad
+          (((result.1.1, result.1.2 inside + result.1.2 outside) : α × Nat),
+            RecorderView.CacheView.cacheOf result.2.1) ∨ coverage result | run] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + constant := by
+  classical
+  refine le_trans (probEvent_or_le _ _ _) ?_
+  exact ClassExpectation.add_le_of_shared_budget_const run _ _ constant
+    (fun result => result.1.2 outside) (fun result => result.1.2 inside) budget
+    hstructural hcoverage hshare
+
 end SlhDsaSecurity.CoverageCount

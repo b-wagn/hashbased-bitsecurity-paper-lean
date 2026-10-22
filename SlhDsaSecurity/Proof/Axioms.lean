@@ -211,6 +211,7 @@ import SlhDsaSecurity.Proof.HonestTail
 import SlhDsaSecurity.Proof.ServingForget
 import SlhDsaSecurity.Proof.BracketedRun
 import SlhDsaSecurity.Proof.CarrierTail
+import SlhDsaSecurity.Proof.AnswerCarrier
 import SlhDsaSecurity.Proof.HandlerStall
 import SlhDsaSecurity.Proof.HandlerCharge
 import SlhDsaSecurity.Proof.HandlerLenient
@@ -10227,6 +10228,28 @@ info: 'SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_parts' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_parts
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_charges' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_charges
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.answerChargedLate_of_carrierBound' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.answerChargedLate_of_carrierBound
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.answerCarrierRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.answerCarrierRun_eq
 
 /--
 info: 'SlhDsaSecurity.CoverageCount.prob_coverage_le_expected_recorded' depends on axioms: [propext,

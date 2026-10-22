@@ -349,7 +349,7 @@ theorem answerRecordedBound_narrow_of_parts {inside outside : QueryKind} (hne : 
                 (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
           answerRecordedRun adversary walk] ≤
           (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) := by
   classical
   intro q adversary _ hbudget walk hwalk hgood
   refine le_trans (prob_answerBad_good_le_of_caps_recorded_narrow adversary q hne hbudget hwalk
@@ -360,8 +360,6 @@ theorem answerRecordedBound_narrow_of_parts {inside outside : QueryKind} (hne : 
         (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem))
     (hdisclosing adversary walk hwalk hgood)) ?_
   rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
-  rw [add_comm ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)), ← add_assoc]
-  exact le_add_right le_rfl
 
 /-! ## The bound with the narrowed class a parameter, and the retirement it makes an `exact`
 
@@ -379,6 +377,8 @@ is a rewrite of the other:
 
 When the clause goes, the second is what the assembly instantiates. If the two ever disagree
 about anything but the class, the second stops elaborating.
+
+Both state `q / 2 ^ 128 + 1 / 2 ^ 141`, which is what they prove — `Target.answerDefectProved`.
 
 **The disclosing cap is a parameter for the same reason.** `CarrierFiles.leftRecord_length_le_cap`
 concludes at `5 * 2 ^ 62` — the concentration's own cap — and `signingLimit = 2 ^ 64` is
@@ -467,7 +467,7 @@ theorem answerRecordedBound_class_of_parts
                 (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
           answerRecordedRunAt (narrow walk) adversary walk] ≤
           (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) := by
   classical
   intro q adversary _ hbudget walk hwalk hgood
   refine le_trans (prob_answerBad_good_le_of_caps_recorded_class adversary q (narrow walk) hne hbudget
@@ -475,8 +475,6 @@ theorem answerRecordedBound_class_of_parts
     (hcover adversary walk hwalk hgood) (hleftBound adversary walk hwalk hgood)
     (hdisclosing adversary walk hwalk hgood)) ?_
   rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
-  rw [add_comm ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)), ← add_assoc]
-  exact le_add_right le_rfl
 
 set_option maxHeartbeats 1000000 in
 /-- **The answer half's bound with no leftover at all**, at the widened class. The class demand
@@ -541,7 +539,7 @@ theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : in
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
             adversary walk] ≤
           (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) := by
   classical
   intro q adversary hq hbudget walk hwalk hgood
   refine le_trans (probEvent_mono ?_)
