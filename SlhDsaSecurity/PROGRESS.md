@@ -4272,7 +4272,6 @@ The generic transport lemmas `withExtra_step_map`, `run_withExtra_map` and
 `forgetsAlong_withExtra` now carry the `withCount` ones as one-line corollaries, which is the
 third instance the `withExtra` note asked for.
 
-<<<<<<< HEAD
 ## `hsplit` at the carrier, and the two sides of the `irreducible` judgement
 
 `AnswerCarrier.hsplit_of_join` is the split in the shape `answerBoundSeed_of_charges` consumes:
@@ -4303,7 +4302,6 @@ The other half of the same episode: a `whnf` timeout reported at a `theorem` lin
 proof, exactly as warned, and the cure was the same both times — replace a `rfl` or an anonymous
 constructor that compares terms built over the run with a lemma that compares only the functions
 (`Set.mem_image_of_mem`, `congrArg`).
-=======
 ### The split tail, and the length bound into the inside slot
 
 `SlhDsaSecurity/Proof/SplitTail.lean` is the tail at the split handler: the same three stages,
@@ -4337,4 +4335,3 @@ and could not, which is why the bound runs this way round and not as an equality
 counterpart has too. Chaining it across the tail's three stages — in particular through the fused
 middle stage — is a further step and is not done; `prob_splitCarrierTail_targetCovered_le` takes
 its two record bounds as hypotheses for the same reason the tail-level charge does.
->>>>>>> worktree-agent-a25e806846bb76079
