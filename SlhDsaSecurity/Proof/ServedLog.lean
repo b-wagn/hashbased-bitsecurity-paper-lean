@@ -64,20 +64,38 @@ theorem entry_of_servedLog (pk : PublicKey)
   subst hmessage
   exact ⟨entry, hentry, bytes, parsed, hframe, hanswer, hparsed, hrandomizer.symm⟩
 
-/-- The FORS positions the log's served requests disclose. -/
-noncomputable def disclosedByLog [HasQuery HashSpec Id] (pk : PublicKey)
+open scoped Classical in
+/-- The FORS positions the log's served requests disclose. Written out rather than taken from
+`ServedDisclosure.servedAt`, which it agrees with, so that it unfolds at the same depth as the
+notion it replaces. -/
+noncomputable def disclosedByLog (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec) (key : CanonicalGraph.ForsKey) :
     Finset (Fin (forsTrees * 2 ^ forsHeight)) :=
-  ServedDisclosure.servedAt (servedLog pk) Prod.snd result key
+  Finset.univ.filter fun index =>
+    ∃ (input : Bytes) (answer : HashOutput), servedLog pk result input ∧
+      result.2 input = some answer ∧ SplitCharged.forsKeyOfDigest answer = key ∧
+      ∃ tree : Fin forsTrees,
+        GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree = index
 
-theorem mem_disclosedByLog [HasQuery HashSpec Id] (pk : PublicKey)
+theorem mem_disclosedByLog (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec) (key : CanonicalGraph.ForsKey)
     (index : Fin (forsTrees * 2 ^ forsHeight)) :
     index ∈ disclosedByLog pk result key ↔
       ∃ (input : Bytes) (answer : HashOutput), servedLog pk result input ∧
         result.2 input = some answer ∧ SplitCharged.forsKeyOfDigest answer = key ∧
         ∃ tree : Fin forsTrees,
-          GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree = index :=
-  ServedDisclosure.mem_servedAt (servedLog pk) Prod.snd result key index
+          GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree = index := by
+  classical
+  rw [disclosedByLog, Finset.mem_filter]
+  exact ⟨fun hmem => hmem.2, fun hwitness => ⟨Finset.mem_univ _, hwitness⟩⟩
+
+/-- It is `ServedDisclosure`'s notion, at this carrier. -/
+theorem disclosedByLog_eq (pk : PublicKey)
+    (result : (Outcome × Nat) × QueryCache HashSpec) (key : CanonicalGraph.ForsKey) :
+    disclosedByLog pk result key =
+      ServedDisclosure.servedAt (servedLog pk) Prod.snd result key := by
+  classical
+  ext index
+  rw [mem_disclosedByLog, ServedDisclosure.mem_servedAt]
 
 end SlhDsaSecurity.ServedLog

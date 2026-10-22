@@ -109,6 +109,16 @@ theorem answerCharged_of_parts {inside outside : QueryKind} (hne : inside ≠ ou
       walk ∈ support graphWalk → GoodWalk walk →
       ∀ result ∈ support (answerRecordedRun adversary walk),
         result.2.2.1.length ≤ signingLimit)
+    (hdisclosing : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (tail adversary walk), ∀ input : Bytes,
+        ServedLog.servedLog
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2) input ↔
+          SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            input result.2)
     (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       ∀ walk ∈ support graphWalk, GoodWalk walk →
         Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
@@ -151,7 +161,8 @@ theorem answerCharged_of_parts {inside outside : QueryKind} (hne : inside ≠ ou
                 (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem))
             (fun result hmem => hleftBound adversary walk hwalk hgood _
               (CoverageCount.mem_support_recorder_countAllHashes _ _ _ hne
-                (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem)))
+                (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem))
+            (hdisclosing adversary walk hwalk hgood))
           (hseed q adversary hbudget walk hwalk hgood)
     _ = (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +

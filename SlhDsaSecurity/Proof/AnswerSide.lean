@@ -160,7 +160,7 @@ theorem prob_answerBad_le_of_budget (adversary : Adversary) (pk : PublicKey)
   rintro result hresult (⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered)
   · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
       parent result output hdeviates hentry hcollision)
-  · exact Or.inr (CoverageRouted.forgeryCovered_of_disclosed _ pk result hcovered)
+  · exact Or.inr (CoverageRouted.forgeryCovered_of_disclosed pk result hcovered)
 
 /-! ## The answer side with its coverage charge closed
 
@@ -173,7 +173,18 @@ the cache holding a message input whose randomiser is `SK.prf` — and it cannot
 at all: the seed belongs to the walk, this statement is read at a fixed walk where it is
 already determined, and an adversary may carry it as a constant. It is conjoined so that the
 shared half can charge it where the seed is still random, and so that nobody mistakes it for
-something this side paid. -/
+something this side paid.
+
+`hdisclosing` is the other thing left visible. The split states disclosure at the signing log —
+a digest discloses when the signer served the request it belongs to — while the recorder has to
+decide a query when it answers it, with only the cache in hand, so its test is that the cache
+holds the `PRF_msg` entry the randomiser comes from. Both occurrences of the notion move at
+once, the witnesses and the target's negation, so the two have to agree rather than be ordered.
+Left to right is the log's faithfulness: the signer queried `PRF_msg` for what it served and
+the cache keeps the answer. Right to left is the randomiser defect's absence: a cached
+`PRF_msg` entry at the real seed for a framing no request produced would be disclosing to the
+recorder and served by nobody. Charging that is the shared half's business, where the seed is
+still random, which is why it is a hypothesis here rather than a step. -/
 
 set_option maxHeartbeats 1000000 in
 /-- **The answer side at the tail, with the coverage charge closed and the leftover visible.** -/
@@ -198,6 +209,9 @@ theorem prob_answerBad_le_of_caps (adversary : Adversary) (pk : PublicKey)
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput pk) inside outside)
           (afterSeeds adversary walk.1.1)) walk.2),
       result.2.2.1.length ≤ leftLength)
+    (hdisclosing : ∀ result ∈ support (tail adversary walk), ∀ input : Bytes,
+      ServedLog.servedLog pk (result.1, result.2) input ↔
+        SplitWitness.disclosingKeep walk.1.1.2.1 pk input result.2)
     (budget : Nat)
     (hbudget : ∀ result ∈ support (tail adversary walk), result.1.2 ≤ budget) :
     Pr[fun result => RoutedSplit.AnswerBadAt pk ((walk.1, result.1), result.2) ∧
@@ -224,7 +238,8 @@ theorem prob_answerBad_le_of_caps (adversary : Adversary) (pk : PublicKey)
     ⟨⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered, hseed⟩
   · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
       parent result output hdeviates hentry hcollision)
-  · exact Or.inr ⟨hcovered, hseed⟩
+  · exact Or.inr ⟨CoverageRouted.forgeryCoveredBy_congr pk result
+      (hdisclosing result hresult) hcovered, hseed⟩
 
 /-! ## The two charges, added
 
@@ -253,7 +268,7 @@ theorem prob_answerBad_le (adversary : Adversary) (pk : PublicKey) (qs qm : Nat)
             StructuralTerm.DeviatingCollision walk.1.1.2.2 walk.1.2 result ∨
               CoverageTail.ForgeryCovered pk result | tail adversary walk] :=
         probEvent_mono fun result _ hbad =>
-          hbad.imp id (CoverageRouted.forgeryCovered_of_disclosed walk.1.1.2.1 pk result)
+          hbad.imp id (CoverageRouted.forgeryCovered_of_disclosed pk result)
     _ ≤ Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
             StructuralTerm.DeviatingCollision walk.1.1.2.2 walk.1.2 result |
           tail adversary walk] +
@@ -479,7 +494,14 @@ theorem prob_answerBad_good_le_of_caps (adversary : Adversary) (q : Nat)
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
           inside outside) (afterSeeds adversary walk.1.1)) walk.2),
-      result.2.2.1.length ≤ leftLength) :
+      result.2.2.1.length ≤ leftLength)
+    (hdisclosing : ∀ result ∈ support (tail adversary walk), ∀ input : Bytes,
+      ServedLog.servedLog
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+          (result.1, result.2) input ↔
+        SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+          input result.2) :
     Pr[fun result => RoutedSplit.AnswerBad ((walk.1, result.1), result.2) ∧
         ¬ SplitWitness.SeedRandomised walk.1.1.2.1
           (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result.2 |
@@ -491,7 +513,7 @@ theorem prob_answerBad_good_le_of_caps (adversary : Adversary) (q : Nat)
     (fun input hmessage => CombinedCharge.separated_of_not_possible walk.1.1.2.2
       (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) walk.1.2 hpublic
       withinBounds_structural input hmessage)
-    leftLength hcap hlate hleftBound q
+    leftLength hcap hlate hleftBound hdisclosing q
     (fun result hresult => WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult)
   refine le_trans (probEvent_mono ?_) hcharge
   rintro result hresult ⟨hbad, hseed⟩

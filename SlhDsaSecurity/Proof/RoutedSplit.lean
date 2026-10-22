@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.CanonicalSplit
 import SlhDsaSecurity.Proof.CoverageRouted
 import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.ClaimedProbes
+import SlhDsaSecurity.Proof.ServedLog
 
 /-!
 # The win's branches, at the two predicates the target names
@@ -69,12 +70,12 @@ def resultOf (x : Trace) : (Outcome × Nat) × QueryCache HashSpec := (x.1.2, x.
 
 /-- **The answer side, at a public key held fixed.** A structural collision that deviates from
 the walk's cells, or the forgery's own message digest covered by the digests that disclose —
-those the signer randomised, which are the only ones that reveal a FORS secret. The key is a
-parameter because the charge needs it fixed before the tail runs: both clauses are charged per
-query, and which class a query falls in is decided by the key its bytes name. -/
+the digests of requests the signer served, which are the only ones that reveal a FORS secret.
+The key is a parameter because the charge needs it fixed before the tail runs: both clauses are
+charged per query, and which class a query falls in is decided by the key its bytes name. -/
 def AnswerBadAt (pk : PublicKey) (x : Trace) : Prop :=
   StructuralTerm.DeviatingCollision x.1.1.1.2.2 x.1.1.2 (resultOf x) ∨
-    CoverageRouted.ForgeryDisclosedCovered x.1.1.1.2.1 pk (resultOf x)
+    CoverageRouted.ForgeryDisclosedCovered pk (resultOf x)
 
 /-- **The answer side**, at the key this run's own cache generates. -/
 def AnswerBad (x : Trace) : Prop := AnswerBadAt (keyOf x) x
@@ -90,8 +91,8 @@ def InputBad (x : Trace) : Prop :=
           SensitiveQuery.Sensitive (GraphStakes.stakes x.1.1.1.2.2)
             (GraphStakes.unavailableAt
               (@GraphStakes.honestRevealed (replayQuery x.2) x.1.1.1.1 x.1.1.1.2.2)
-              (CacheAvailability.signedAt x.1.1.1.2.1 (keyOf x)))
-            x.1.1.2 x.2 candidate
+              (ServedLog.disclosedByLog (keyOf x)))
+            x.1.1.2 (resultOf x) candidate
 
 /-- The forgery's FORS part and its hypertree are both the ones the signer writes for the
 digest it carries. -/
@@ -110,11 +111,11 @@ def CanonicalAt (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
         (honestForsKey x.1.1.1.1 x.1.1.1.2.2 x.2
           (Scheme.forsAddress (digestOf x.2 (keyOf x) message parsed)))
 
-/-- Every cached message-class input whose digest selects one of the forgery's own FORS
-positions, at the forgery's own FORS instance, *is* the forgery's own input. -/
+/-- Every served input whose digest selects one of the forgery's own FORS positions, at the
+forgery's own FORS instance, *is* the forgery's own input. -/
 def OnlySelfAt (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
   ∃ tree : MessageDigest.ForsTree, ∀ (input : Bytes) (answer : HashOutput),
-    CacheAvailability.SignerRandomised x.1.1.1.2.1 (keyOf x) x.2 input →
+    ServedLog.servedLog (keyOf x) (resultOf x) input →
       x.2 input = some answer →
         forsKeyOfDigest answer = forsKeyOfDigest (digestOf x.2 (keyOf x) message parsed) →
           (∃ other : MessageDigest.ForsTree,
@@ -130,45 +131,46 @@ def CanonicalForgery (x : Trace) : Prop :=
       Signature.fromBytes? x.1.2.1.forgery.signature = some parsed ∧
         CanonicalAt x message parsed
 
-/-- Every one of the fourteen positions the forgery's digest selects is disclosed by some
-cached digest of the signer's own. -/
+/-- Every one of the fourteen positions the forgery's digest selects is disclosed by the digest
+of some request the signer served. -/
 def Disclosed (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
   ∀ tree : MessageDigest.ForsTree,
     GraphStakes.forsIndex
         (MessageDigest.forsIndices (digestOf x.2 (keyOf x) message parsed)) tree ∈
-      CacheAvailability.signedAt x.1.1.1.2.1 (keyOf x) x.2
+      ServedLog.disclosedByLog (keyOf x) (resultOf x)
         (forsKeyOfDigest (digestOf x.2 (keyOf x) message parsed))
 
-/-- The forgery reads its digest at an input the signer randomised: its own randomiser is the
-one the signer derives for its own message. -/
-def SelfRandomised (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
-  CacheAvailability.SignerRandomised x.1.1.1.2.1 (keyOf x) x.2
+/-- The forgery reads its digest at an input the signer served: the log holds a request whose
+own framing and own published randomiser name that very input. -/
+def SelfServed (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
+  ServedLog.servedLog (keyOf x) (resultOf x)
     (Hashing.messageInput parsed.randomizer (keyOf x) message)
 
-/-- **A forgery whose positions are disclosed only by itself reads a signer-randomised
-input.** The disclosure supplies a disclosing input that selects one of the positions, and
+/-- **A forgery whose positions are disclosed only by itself reads an input the signer
+served.** The disclosure supplies a served input that selects one of the positions, and
 `OnlySelfAt` says every such input is the forgery's own. -/
-theorem selfRandomised_of_only_self {x : Trace} {message : Bytes} {parsed : Signature}
+theorem selfServed_of_only_self {x : Trace} {message : Bytes} {parsed : Signature}
     (hdisclosed : Disclosed x message parsed) (honly : OnlySelfAt x message parsed) :
-    SelfRandomised x message parsed := by
+    SelfServed x message parsed := by
   obtain ⟨tree, honly⟩ := honly
   obtain ⟨input, answer, hsigner, hentry, hkey, other, hindex⟩ :=
-    (CacheAvailability.mem_signedAt _ _ _ _ _).mp (hdisclosed tree)
-  rw [SelfRandomised, ← honly input answer hsigner hentry hkey ⟨other, hindex⟩]
+    (ServedLog.mem_disclosedByLog _ _ _ _).mp (hdisclosed tree)
+  rw [SelfServed, ← honly input answer hsigner hentry hkey ⟨other, hindex⟩]
   exact hsigner
 
 /-- **The replay case**, which is the canonical branch with its coverage side closed off: the
 forgery is the signer's own signature on its own message, read at the signer's own randomiser.
 
-`SelfRandomised` is what the replay argument needs — the randomiser the forgery carries is the
-one the cache says the signer derived — and it is also what separates this case from coverage:
-a forgery that reads a signer-randomised input is not a target the coverage charge has to
-carry, because the charge counts targets outside the disclosing class. -/
+`SelfServed` is what the replay argument needs — the log holds a request at the forgery's own
+digest input, which pins both its randomiser and its message — and it is also what separates
+this case from coverage: a forgery that reads an input the signer served is not a target the
+coverage charge has to carry, because the charge counts targets outside the disclosing
+class. -/
 def ReplayForgery (x : Trace) : Prop :=
   ∃ (message : Bytes) (parsed : Signature),
     x.1.2.1.forgery.message.frame = some message ∧
       Signature.fromBytes? x.1.2.1.forgery.signature = some parsed ∧
-        CanonicalAt x message parsed ∧ SelfRandomised x message parsed
+        CanonicalAt x message parsed ∧ SelfServed x message parsed
 
 /-! ## The record holds both kinds of claim
 
@@ -282,18 +284,18 @@ theorem cases_of_canonical (adversary : Adversary)
       GraphStakes.forsIndex (MessageDigest.forsIndices
           (digestOf result.2 (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2)
             message parsed)) tree ∈
-        CacheAvailability.signedAt walk.1.1.2.1
-          (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result.2
+        ServedLog.disclosedByLog
+          (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result
           (forsKeyOfDigest (digestOf result.2
             (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) message parsed))
-  · by_cases hself : SelfRandomised ((walk.1, result.1), result.2) message parsed
+  · by_cases hself : SelfServed ((walk.1, result.1), result.2) message parsed
     · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical, hself⟩)
-    · rcases CoverageRouted.forgeryDisclosedCovered_or_only_self walk.1.1.2.1
+    · rcases CoverageRouted.forgeryDisclosedCovered_or_only_self
           (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result message parsed _
           hframe hparsed (cached_digest adversary hresult message parsed hframe hparsed)
           hself hsigned with hcovered | honly
       · exact Or.inl (Or.inr hcovered)
-      · exact absurd (selfRandomised_of_only_self (x := ((walk.1, result.1), result.2))
+      · exact absurd (selfServed_of_only_self (x := ((walk.1, result.1), result.2))
           hsigned honly) hself
   · push Not at hsigned
     obtain ⟨tree, hunsigned⟩ := hsigned
@@ -309,9 +311,9 @@ theorem cases_of_canonical (adversary : Adversary)
       rfl
     rcases SplitRouted.signed_or_sensitive_of_secrets walk.1.1.1
         walk.1.1.2.2 (@GraphStakes.honestRevealed (replayQuery result.2) walk.1.1.1 walk.1.1.2.2)
-        (CacheAvailability.signedAt walk.1.1.2.1
+        (ServedLog.disclosedByLog
           (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2))
-        result.2 result.2 walk.1.2
+        result result.2 walk.1.2
         (WarmedCharges.value_replay_eq_walk_cells adversary hwalk hresult)
         (forsKeyOfDigest (digestOf result.2
           (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) message parsed))
@@ -341,8 +343,8 @@ theorem cases_of_win_routed (adversary : Adversary)
   · refine Or.inr (Or.inl ⟨message, parsed, hframe, hparsed, ?_⟩)
     obtain ⟨layer, chain, hsensitive⟩ :=
       @SplitRouted.sensitive_of_residue (replayQuery result.2) _ walk.1.1.1 walk.1.1.2.2
-        (CacheAvailability.signedAt walk.1.1.2.1 (keyOf ((walk.1, result.1), result.2)))
-        result.2 walk.1.2
+        (ServedLog.disclosedByLog (keyOf ((walk.1, result.1), result.2)))
+        result walk.1.2
         (WarmedCharges.value_replay_eq_walk_cells adversary hwalk hresult)
         (MessageDigest.treeIndex (digestOf result.2 (keyOf ((walk.1, result.1), result.2))
           message parsed)).toFin
