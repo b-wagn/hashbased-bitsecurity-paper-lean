@@ -4121,6 +4121,25 @@ Neither thread was wrong, neither produced bad work, and nothing is lost but the
 restating one set of charges on the other's shape. The fix is the ordinary one: **one canonical
 object, with a map to the other presentation if anything still wants it.**
 
+## "New file" is a belief about the repository
+
+A thread wrote a new file at a path that already held a tracked file owned by another thread.
+`Write` overwrote it. The signal was in the tool's own response — *updated*, not *created* — and
+was missed.
+
+**What caught it was the axiom guards.** The build failed with `Unknown constant` on three
+`#guard_msgs` entries whose declarations the clobber had deleted. The guard list is therefore
+load-bearing against **destructive edits**, not only against axiom drift — an argument for
+keeping it that has nothing to do with axioms.
+
+> Before writing to a path not read in this session, **check whether it exists.** "New file" is a
+> belief about the repository, and it gets the same treatment as every other belief about the
+> repository today: check, do not assume.
+
+Nothing was lost: the file was restored from HEAD and the duplicate draft left in the scratchpad.
+The duplication itself was the second signal — the thread discovered the collision by
+independently re-deriving a result that was already proved in the file it had overwritten.
+
 ## A proof that proves more than its statement says
 
 A counting fact was reported missing, correctly as far as the *stated* lemmas go: the one that
