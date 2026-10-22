@@ -112,34 +112,6 @@ theorem cover_of_served_or_narrow (narrow : Bytes → Prop)
   · exact Or.inl hserved
   · exact Or.inr ⟨hcover.resolve_left hserved, hserved⟩
 
-/-! ## The two obligations, as they have to be stated
-
-Both are read at the fused presentation. The answer side is per walk, at the tail that carries
-the recordings; the shared side is at the paired run over it. Neither bound changes. -/
-
-/-- **The answer half, with late disclosure ruled out rather than assumed away.** The event
-carries `¬ LateDisclosure`, which is what the coverage join needs pointwise and what the old
-`hlate` asserted of the whole support; the bound is the one `AnswerSide` already proves. -/
-def AnswerChargedLate : Prop :=
-  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    ∀ walk ∈ support graphWalk, GoodWalk walk →
-      Pr[fun result : ((Outcome × Multiset Bytes) × Nat) × SplitState =>
-          AnswerBad ((walk.1, (result.1.1.1, result.1.2)), result.2.1) ∧
-            ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-        FusedCoverage.fusedTail adversary walk] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
-
-/-- **The shared half, paying the ordering defect alongside the input event.** The two are
-covered by the split's own excluded middle, and their counts are the two parts of one record. -/
-def SharedChargedLate : Prop :=
-  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧
-        (InputBad (SharedAssembly.splitTraceOf pair) ∨ LateProbes.Ordering pair) |
-      LateProbes.pairedOf FusedCoverage.fusedTail adversary] ≤
-      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
-
 /-! ## The shared half of the new shape is already proved
 
 Nothing in `SharedAssembly`'s argument has to change for it: its proof already splits the shared
@@ -149,12 +121,13 @@ input half's bullet is claims-only costs nothing here either — a bullet that s
 none of the record satisfies a hypothesis that allows the aiming part besides. -/
 
 set_option maxHeartbeats 1000000 in
-/-- **The shared obligation at its new shape, from the same two hypotheses.** -/
+/-- **The shared obligation at its adopted shape, from the same two hypotheses.** -/
 theorem sharedChargedLate_of_parts
     (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       SharedAssembly.InputBullet adversary LateProbes.Ordering)
     (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary) :
-    SharedChargedLate := by
+    Obligations.SharedChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
+      LateProbes.Ordering := by
   classical
   intro q adversary _ hbudget
   have hforget := FusedCoverage.forgetsTo adversary
@@ -191,5 +164,21 @@ theorem sharedChargedLate_of_parts
     _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((259 : Nat) : ℝ≥0∞) :=
         add_le_add (SharedAssembly.expected_parts_le_budget q adversary hbudget) le_rfl
     _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
+
+/-! ## The whole of it, from what is still owed
+
+One hypothesis of the three below is an obligation and two are leaves. The obligation is the
+answer half's, restated with late disclosure ruled out; the leaves are the input half's bullet
+and the provenance branch the carrier's test retires. Nothing else is assumed. -/
+
+/-- **The target, from the answer obligation and the shared half's two leaves.** -/
+theorem target_of_answer_and_leaves
+    (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
+      LateProbes.Ordering)
+    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      SharedAssembly.InputBullet adversary LateProbes.Ordering)
+    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary) :
+    HasTotalSecurityBits .strong 127 :=
+  FinalAssembly.target_of_producers hanswer (sharedChargedLate_of_parts hinput hsigner)
 
 end SlhDsaSecurity.ObligationShapes
