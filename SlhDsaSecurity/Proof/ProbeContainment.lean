@@ -315,4 +315,74 @@ theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
         exact QueriesUnder.head _ _
       · exact QueriesUnder.tail input entry.1 _ (by rw [hreplay]; exact hprobes entry htail)
 
+
+/-! ## The honest phase appends nothing that aims
+
+The two halves meet here: what the handler records while the honest phase runs is what that
+phase consults, and what it consults that the table does not answer aims nowhere. The cache both
+halves are read at is the game's own, and the hypothesis that it extends the handler's is the
+compatibility `RedrawCell.probEvent_rom_eq_lazy` maintains step by step. -/
+
+set_option linter.constructorNameAsVariable false in
+set_option maxHeartbeats 1000000 in
+/-- **A run of the stripped signer appends no aiming probe to the record.** -/
+theorem strippedSign_adds_no_aiming (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (hseed : sk.seed = table.1 Node.secretSeed)
+    (hpk : sk.publicKey.seed = publicSeed) (hprf : sk.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    (request : Message) (state : OpenCache.HandlerState)
+    (z : Option Bytes × OpenCache.HandlerState)
+    (hz : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      (StrippedGame.strippedSign (OpenCache.openCache publicSeed (fun _ => True) table) sk
+        request)).run state))
+    (hcompatible : ∀ (input : Bytes) (value : HashOutput), z.2.1 input = some value →
+      RedrawCell.unionCache publicSeed table z.2.1 input = some value) :
+    ∃ added : List (Bytes × QueryCache HashSpec),
+      z.2.2.1 = state.2.1 ++ added ∧
+        ∀ entry ∈ added, ¬ RedrawCell.AimsSomewhere publicSeed entry.1 := by
+  obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed availableAt table
+    (OpenCache.openCache publicSeed (fun _ => True) table)
+    (Scheme.sign (m := OracleComp HashSpec) sk request) state z hz
+    (RedrawCell.unionCache publicSeed table z.2.1)
+    (fun input value hvalue =>
+      RedrawCell.unionCache_of_open publicSeed table z.2.1 input value hvalue)
+    hcompatible
+  refine ⟨added, hadded, fun entry hentry => ?_⟩
+  by_cases hcold : OpenCache.openCache publicSeed (fun _ => True) table entry.1 = none
+  · exact not_aims_of_strippedSign_probe publicSeed table z.2.1 sk hseed hpk hprf hpublic request
+      entry.1 (hprobes entry hentry) hcold
+  · exact absurd (StripCached.queriesUnder_strip_none
+      (Scheme.sign (m := OracleComp HashSpec) sk request) _ _ entry.1 (hprobes entry hentry))
+      hcold
+
+set_option linter.constructorNameAsVariable false in
+set_option maxHeartbeats 1000000 in
+/-- **A run of the stripped key generation appends nothing at all.** -/
+theorem strippedKeygen_adds_nothing (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (sds : Digest × Digest × Digest) (hseed : sds.1 = table.1 Node.secretSeed)
+    (hpublic : sds.2.2 = publicSeed) (state : OpenCache.HandlerState)
+    (z : (SecretKey × PublicKey) × OpenCache.HandlerState)
+    (hz : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      (StrippedGame.strippedKeygen (OpenCache.openCache publicSeed (fun _ => True) table)
+        sds)).run state))
+    (hcompatible : ∀ (input : Bytes) (value : HashOutput), z.2.1 input = some value →
+      RedrawCell.unionCache publicSeed table z.2.1 input = some value) :
+    z.2.2.1 = state.2.1 := by
+  obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed availableAt table
+    (OpenCache.openCache publicSeed (fun _ => True) table)
+    (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) state z hz
+    (RedrawCell.unionCache publicSeed table z.2.1)
+    (fun input value hvalue =>
+      RedrawCell.unionCache_of_open publicSeed table z.2.1 input value hvalue)
+    hcompatible
+  rw [hadded, show added = [] from ?_, List.append_nil]
+  refine List.eq_nil_iff_forall_not_mem.mpr fun entry hentry => ?_
+  exact no_cold_strippedKeygen_probe publicSeed table z.2.1 sds hseed hpublic entry.1
+    (hprobes entry hentry)
+    (StripCached.queriesUnder_strip_none
+      (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) _ _ entry.1
+      (hprobes entry hentry))
+
 end SlhDsaSecurity.ProbeContainment
