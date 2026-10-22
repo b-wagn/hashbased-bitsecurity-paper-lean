@@ -100,7 +100,7 @@ noncomputable def defects : ℝ≥0∞ :=
 /-- **The allowance closes, with every number concrete.** -/
 theorem allowance (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
     ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
   have hdefects : defects ≤ ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
     rw [defects, show (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
@@ -111,7 +111,7 @@ theorem allowance (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
       ring]
     exact Assembly.defects_le_six
   rw [← add_assoc]
-  exact Assembly.le_target_of_counts q (2 ^ subtreeHeight) 259 6 hkeygen
+  exact Assembly.le_target_of_full q (2 ^ subtreeHeight) 259 6 hkeygen
     (by simp only [subtreeHeight]; omega) defects hdefects
 
 /-! ## The target -/
@@ -135,7 +135,7 @@ theorem target_of_obligations
     (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
       ∀ walk ∈ support graphWalk, GoodWalk walk →
         Pr[fun result => answerBad ((walk.1, result.1), result.2) | tail adversary walk] ≤
-          ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
             ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
               (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))
     (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
@@ -151,7 +151,7 @@ theorem target_of_obligations
   refine le_trans (probEvent_le_of_good_walk adversary
     (fun result => Wins .strong result.1.2.1)
     (((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-      (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+      ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
           (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))) ?_) ?_
   · intro walk hwalk hgood
@@ -165,7 +165,7 @@ theorem target_of_obligations
             Pr[fun result => inputBad ((walk.1, result.1), result.2) ∨
               randomiserBad ((walk.1, result.1), result.2) | tail adversary walk] :=
           probEvent_or_le _ _ _
-      _ ≤ (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+      _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
               ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
                 (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
             ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
@@ -173,12 +173,12 @@ theorem target_of_obligations
             (hshared q adversary hq hbudget walk hwalk hgood)
       _ = _ := by ring
   · rw [show ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
             (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
         (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞)) =
       ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) from by
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) from by
       rw [defects]; ring]
     exact allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
 

@@ -387,4 +387,31 @@ theorem le_target_of_counts (queries slack extra defectUnits : Nat)
         rw [show ((2 * queries : Nat) : ℝ≥0∞) = (queries : ℝ≥0∞) + (queries : ℝ≥0∞) from by
           push_cast; ring, ← ENNReal.div_add_div_same, half_add_half]
 
+/-- **The target, with the answer side charged the whole count.** The reserve the other side
+keeps is what pays for it: the answer half never has to subtract key generation's own hashes,
+because the input half's `slack` already covers the extra and the defects. -/
+theorem le_target_of_full (queries slack extra defectUnits : Nat)
+    (hslack : slack ≤ queries) (hfits : extra + defectUnits ≤ slack)
+    (defect : ℝ≥0∞)
+    (hdefect : defect ≤ (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    ((queries - slack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect ≤
+      (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+  have hsum : (queries - slack + extra) + queries + defectUnits ≤ 2 * queries := by omega
+  calc ((queries - slack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect
+      ≤ ((queries - slack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by gcongr
+    _ = (((queries - slack + extra) + queries + defectUnits : Nat) : ℝ≥0∞) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        rw [ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+        push_cast
+        ring_nf
+    _ ≤ ((2 * queries : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        ENNReal.div_le_div_right (Nat.cast_le.mpr hsum) _
+    _ = (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+        rw [show ((2 * queries : Nat) : ℝ≥0∞) = (queries : ℝ≥0∞) + (queries : ℝ≥0∞) from by
+          push_cast; ring, ← ENNReal.div_add_div_same, half_add_half]
+
 end SlhDsaSecurity.Assembly

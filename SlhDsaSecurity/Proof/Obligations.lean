@@ -31,7 +31,7 @@ def AnswerCharged : Prop :=
   ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
     ∀ walk ∈ support graphWalk, GoodWalk walk →
       Pr[fun result => AnswerBad ((walk.1, result.1), result.2) | tail adversary walk] ≤
-        ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
 
 /-- The input half and the randomiser defect against one budget. -/
