@@ -14695,3 +14695,11 @@ info: 'SlhDsaSecurity.NoticingTape.noticingCausal' depends on axioms: [propext, 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.noticingCausal
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_reencode' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_reencode
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_withFlag_withExtra' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_withFlag_withExtra
