@@ -9083,3 +9083,15 @@ info: 'SlhDsaSecurity.LateProbes.prob_lateDisclosure_le_probes' depends on axiom
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateProbes.prob_lateDisclosure_le_probes
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.cover_of_em' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.cover_of_em
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_two' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_two
