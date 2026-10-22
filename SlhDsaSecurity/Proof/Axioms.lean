@@ -155,6 +155,9 @@ import SlhDsaSecurity.Proof.RandomiserProvenance
 import SlhDsaSecurity.Proof.PhaseProvenance
 import SlhDsaSecurity.Proof.CacheProvenance
 import SlhDsaSecurity.Proof.SplitWitness
+import SlhDsaSecurity.Proof.RandomiserDeferral
+import SlhDsaSecurity.Proof.RecordedTail
+import SlhDsaSecurity.Proof.RandomiserRecord
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7293,3 +7296,125 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.withPrf_prf' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.withPrf_prf
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.mem_support_withPrf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.mem_support_withPrf
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.goodWalk_withPrf' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.goodWalk_withPrf
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.graphWalk_expand' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.graphWalk_expand
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.evalDist_graphWalk_late' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.evalDist_graphWalk_late
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.evalDist_resample_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.evalDist_resample_prf
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_bind_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_bind_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_le_of_prfTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_le_of_prfTail
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.prob_record_meets_prfClass_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.prob_record_meets_prfClass_le
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.map_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.map_recordedAfterSeeds
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.card_eq_work' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.card_eq_work
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.card_toFinset_le_work' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.card_toFinset_le_work
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.countAllHashes_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.countAllHashes_map
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.tail_eq_map_recordedTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.tail_eq_map_recordedTail
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.mem_support_tail_of_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.mem_support_tail_of_recorded
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.card_toFinset_le_count' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.card_toFinset_le_count
+
+/--
+info: 'SlhDsaSecurity.RecordedTail.probEvent_tail_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedTail.probEvent_tail_eq
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record
