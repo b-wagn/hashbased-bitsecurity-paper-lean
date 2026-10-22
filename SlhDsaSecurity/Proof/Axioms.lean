@@ -11815,6 +11815,24 @@ info: 'SlhDsaSecurity.CarrierSignRecord.sign_right_record' depends on axioms: [p
 #print axioms SlhDsaSecurity.CarrierSignRecord.sign_right_record
 
 /--
+info: 'SlhDsaSecurity.CarrierSignRecord.mem_support_rom_of_carrier' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSignRecord.mem_support_rom_of_carrier
+
+/--
+info: 'SlhDsaSecurity.CarrierSignRecord.keygen_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSignRecord.keygen_right_record
+
+/--
+info: 'SlhDsaSecurity.CarrierSignRecord.verify_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSignRecord.verify_right_record
+
+/--
 info: 'SlhDsaSecurity.CarrierRecordings.step_recordFreshNodup' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in

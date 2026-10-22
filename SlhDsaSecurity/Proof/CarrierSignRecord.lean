@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.CarrierRecordings
 import SlhDsaSecurity.Proof.SignerRightRecord
+import SlhDsaSecurity.Proof.LateProvenance
 
 /-!
 # What a signing sub-run can file as a target, at the carrier
@@ -20,7 +21,7 @@ open OracleComp OracleSpec
 namespace SlhDsaSecurity.CarrierSignRecord
 
 open Security BracketedRun CarrierFiles CarrierRecordings SignerRightRecord CountedHandler
-  CarriedWitness
+  CarriedWitness RecordedQueries
 
 variable (pk : PublicKey)
 
@@ -64,7 +65,7 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
       · refine Or.inr (Or.inl ?_)
         rw [List.mem_singleton.mp hself]
         exact (Sum.inr.injEq _ _).mp hqueried.symm
-  · obtain ⟨mid, hstart, hlater, habsent, hkeep⟩ := hentries entry hnew
+  · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries entry hnew
     exact Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hlater, habsent, hkeep⟩)
 
 set_option maxHeartbeats 1000000 in
@@ -104,5 +105,87 @@ theorem sign_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
   have hstate : result.2 = inner.2 := by rw [hvalue]
   rw [hstate] at hentry ⊢
   exact signInternal_right_record pk rightKeep sk framed state inner hinner entry hentry
+
+/-! ## The two outer phases
+
+Each asks its question of the object that can answer it, as at the shared oracle — key
+generation's is about an input's shape and the verifier's is about who asked, and both are the
+shared oracle's to answer. The projection is **stronger** here than `SplitPrefix.mem_support_rom`
+was: `ServingForget.ForgetsAlong` is an equality of computations, so the shared oracle's run is
+not merely reachable from the carrier's but equal to its image. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **A carrier run projects onto the shared oracle's**, by the equality the handler was given. -/
+theorem mem_support_rom_of_carrier (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : CountedState)
+    (result : α × CountedState)
+    (hresult : result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep)
+      computation).run state)) :
+    (result.1, result.2.1.cache) ∈
+      support ((simulateQ KeygenUniform.rom computation).run state.1.cache) := by
+  have hforget := forgetsAlong_countedCarrierRecorder pk rightKeep computation state
+  rw [show ((simulateQ KeygenUniform.rom computation).run state.1.cache) =
+    (simulateQ KeygenUniform.rom computation).run
+      ((fun state : CountedState =>
+        RecorderView.CacheView.cacheOf (state.1, state.2.1).1) state) from rfl,
+    ← hforget, support_map]
+  exact ⟨result, hresult, rfl⟩
+
+set_option maxHeartbeats 1000000 in
+/-- **An entry key generation files as a target is one of its own probes.** -/
+theorem keygen_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (secretSeed prfSeed publicSeed : Digest) (state : CountedState)
+    (result : (SecretKey × PublicKey) × CountedState)
+    (hresult : result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep)
+      (Scheme.keygenInternal (m := OracleComp OracleWorld)
+        secretSeed prfSeed publicSeed)).run state))
+    (later : QueryCache HashSpec)
+    (hlater : ∀ (probe : Bytes) (value : HashOutput),
+      result.2.1.cache probe = some value → later probe = some value)
+    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.1.2) :
+    entry ∈ state.2.1.2 ∨ CacheReplay.QueriesUnder later
+      (Scheme.keygenInternal (m := OracleComp HashSpec) secretSeed prfSeed publicSeed)
+      entry.1 := by
+  classical
+  obtain ⟨suffix, hsuffix, hentries⟩ := run_right_suffix pk rightKeep _ state result hresult
+  rw [hsuffix] at hentry
+  rcases List.mem_append.mp hentry with hprior | hnew
+  · exact Or.inl hprior
+  · obtain ⟨mid, hstart, -, habsent, -, hfinal⟩ := hentries entry hnew
+    have hfresh : state.1.cache entry.1 = none := by
+      rcases hstate : state.1.cache entry.1 with _ | value
+      · rfl
+      · rw [hstart entry.1 value hstate] at habsent
+        exact absurd habsent (by simp)
+    exact Or.inr (CacheProvenance.queriesUnder_keygenInternal_of_fresh secretSeed prfSeed
+      publicSeed state.1.cache result.2.1.cache later result.1
+      (mem_support_rom_of_carrier pk rightKeep _ state result hresult) hlater entry.1 hfresh
+      (Option.ne_none_iff_exists'.mpr ⟨entry.2, hfinal⟩))
+
+set_option maxHeartbeats 1000000 in
+/-- **An entry the verifier files as a target is one of its own queries**, hence in the record it
+keeps. -/
+theorem verify_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (key : PublicKey) (message : Message) (signature : Bytes) (state : CountedState)
+    (result : (Bool × Tally) × CountedState)
+    (hresult : result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep)
+      (countRecorded verifierCost (Scheme.verify key message signature))).run state))
+    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.1.2) :
+    entry ∈ state.2.1.2 ∨ entry.1 ∈ result.1.2.2 := by
+  classical
+  obtain ⟨suffix, hsuffix, hentries⟩ := run_right_suffix pk rightKeep _ state result hresult
+  rw [hsuffix] at hentry
+  rcases List.mem_append.mp hentry with hprior | hnew
+  · exact Or.inl hprior
+  · obtain ⟨mid, hstart, -, habsent, -, hfinal⟩ := hentries entry hnew
+    have hfresh : state.1.cache entry.1 = none := by
+      rcases hstate : state.1.cache entry.1 with _ | value
+      · rfl
+      · rw [hstart entry.1 value hstate] at habsent
+        exact absurd habsent (by simp)
+    exact Or.inr (LateProvenance.mem_record_countRecorded _ state.1.cache
+      (result.1, result.2.1.cache)
+      (mem_support_rom_of_carrier pk rightKeep _ state result hresult) entry.1 hfresh
+      (Option.ne_none_iff_exists'.mpr ⟨entry.2, hfinal⟩))
 
 end SlhDsaSecurity.CarrierSignRecord
