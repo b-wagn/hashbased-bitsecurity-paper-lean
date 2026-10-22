@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.ClassExpectation
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.ClassGrowth
 import SlhDsaSecurity.Proof.SensitiveExpectation
@@ -5164,3 +5165,27 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_bind
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_map
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_const_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_const_add
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.run_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.run_neverFails
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.prob_bad_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.prob_bad_le_expected
+
+/-- info: 'SlhDsaSecurity.RecordedBudget.card_add_served_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.card_add_served_le_of_budget

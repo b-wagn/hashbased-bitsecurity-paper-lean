@@ -200,6 +200,24 @@ theorem work_add_pow_add_served_le_of_budget_recorded {adversary : Adversary} {q
     mem_support_countAllHashes _ walk.2 (result.1.1, result.2) hstripped
   exact work_add_pow_add_served_le_of_budget_tail hbudget hwalk hcounted
 
+/-- **The record and the signer's reserve fit inside the budget together.** This is the
+inequality the two charges share: the record's entries are what the input half pays for, the
+reserve is what the defect proportional to the served requests is paid out of, and they add to
+no more than the budget less what key generation spent. It is pathwise, and the per-request
+terms cancel here rather than after a uniform bound is taken. -/
+theorem card_add_served_le_of_budget {adversary : Adversary} {q : Nat}
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : (Outcome × Multiset Bytes) × QueryCache HashSpec}
+    (hresult : result ∈ support ((simulateQ KeygenUniform.rom
+      (RecordedQueries.recordedAfterSeeds adversary walk.1.1 walk.2)).run walk.2)) :
+    Multiset.card result.1.2 +
+      2 * AdversaryQueries.servedCount result.1.1.signed + 2 ^ subtreeHeight ≤ q := by
+  rw [RecordedQueries.card_eq_work adversary walk.1.1 walk.2 walk.2 result hresult]
+  have hbound := work_add_pow_add_served_le_of_budget_recorded hbudget hwalk hresult
+  omega
+
 /-- **The record, with the forgery's claimed cells appended, fits the budget with the signer's
 spend reserved too.** -/
 theorem card_toFinset_append_le_of_budget_served {adversary : Adversary} {q : Nat}
