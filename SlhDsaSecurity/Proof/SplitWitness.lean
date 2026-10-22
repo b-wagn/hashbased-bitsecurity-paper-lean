@@ -478,6 +478,74 @@ theorem mem_records_of_covered_narrow (pk : PublicKey)
       (hfresh other (hdisclosedClass other result.2.1 hservedOther)),
     hne, hinstance, hleaf⟩
 
+/-! ## The shape to aim a carrier at
+
+`WitnessCover` above is a correct weakening of `hnarrowCached` and it is **not** the shape a
+serving flag discharges. `HandlerCarrier.FilesLeft` reads the framing *in flight*, so it is false
+at every view outside the request's own signing step — including views where the witness is still
+fresh. A flag gives "disclosing at the end implies **filed**", not "implies keeping at every
+earlier fresh view", and those differ exactly where the quantifier is.
+
+What a flag gives is `hdisclosedRecorded` outright, and `mem_records_of_covered` already takes
+that as a parameter. So the clean weakening is this one: the original with `hnarrowCached` cut
+down to `NarrowTarget` and nothing else touched. `WitnessCover` survives as one sufficient
+condition for `hdisclosedRecorded` off the ordering defect, useful at a cache test and not the
+route a carrier should take.
+
+Stating both, with this note between them, is the point: a weakening aimed at the wrong
+quantifier is a bridge that does not meet, and that is only visible from the side that has to
+supply it. -/
+
+set_option maxHeartbeats 800000 in
+/-- **The covered forgery, with the narrowed class asked at the forgery's digest and nowhere
+else.** Everything the witnesses need is `hdisclosedRecorded`, exactly as before. -/
+theorem mem_records_of_covered_narrowTarget (pk : PublicKey)
+    (served endKeep : Bytes → σ → Prop) (narrow : Bytes → Prop)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (start : σ)
+    (result : (Outcome × Nat) × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf served (targetKeep narrow served))
+      computation).run (start, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input ->
+      CacheView.cacheOf start input = none)
+    (hfile : ∀ (input : Bytes) (view : σ) (answer : HashOutput),
+      CacheView.cacheOf view input = none → served input view ->
+        endKeep input (CacheView.update view input answer))
+    (hkeeps : ∀ (input probe : Bytes) (view : σ) (answer : HashOutput),
+      CacheView.cacheOf view probe = none → endKeep input view ->
+        endKeep input (CacheView.update view probe answer))
+    (hnarrowTarget : NarrowTarget pk narrow result)
+    (hdisclosedRecorded : ∀ (input : Bytes) (answer : HashOutput),
+      endKeep input result.2.1 → CacheView.cacheOf result.2.1 input = some answer ->
+        (input, answer) ∈ result.2.2.1)
+    (hcovered : CoverageRouted.ForgeryCoveredBy (fun input => endKeep input result.2.1) pk
+      (result.1, CacheView.cacheOf result.2.1)) :
+    ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
+      ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
+        witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
+          (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
+            (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree := by
+  classical
+  obtain ⟨message, parsed, answer, hframe, hparsed, hentry, hnotself, hcoveredAt⟩ := hcovered
+  have hnarrow := hnarrowTarget message parsed hframe hparsed
+  have hside := mem_recordOf_of_cache_fresh served (targetKeep narrow served) narrow
+    (fun probe view hprobe hviewFresh => by
+      by_cases hkeep : served probe view
+      · exact Or.inl hkeep
+      · exact Or.inr ⟨hprobe, hkeep⟩)
+    computation (start, [], []) result hmem
+    (Hashing.messageInput parsed.randomizer pk message) answer hnarrow
+    (hfresh _ ⟨parsed.randomizer, message, rfl⟩) hentry
+  have htarget : (Hashing.messageInput parsed.randomizer pk message, answer) ∈ result.2.2.2 := by
+    rcases hside with hleft | hright
+    · exact absurd (left_recordOf_endKeep_final served (targetKeep narrow served) endKeep
+        hfile hkeeps computation (start, [], []) result hmem
+        (fun entry hentry => absurd hentry (by simp)) _ hleft) hnotself
+    · exact hright
+  refine ⟨(Hashing.messageInput parsed.randomizer pk message, answer), htarget, fun tree => ?_⟩
+  obtain ⟨other, otherAnswer, hne, hservedOther, hother, hinstance, hleaf⟩ := hcoveredAt tree
+  exact ⟨(other, otherAnswer), hdisclosedRecorded other otherAnswer hservedOther hother,
+    hne, hinstance, hleaf⟩
+
 end Served
 
 /-! ## The signer instantiation
@@ -754,5 +822,35 @@ theorem mem_records_of_covered_of_not_late_narrow (prfSeed : Digest) (pk : Publi
         (RecorderView.persists_update view probe answer hviewFresh) hkeep)
     (fun input inner hkeep => disclosingKeep_class prfSeed pk input inner hkeep)
     hcover hnarrowTarget hlate hcovered
+
+set_option maxHeartbeats 800000 in
+/-- **The join with the narrowing at the forgery alone, taking the witnesses' containment
+directly.** This is the one a carrier discharges: `hdisclosedRecorded` is what a serving flag
+gives, and `NarrowTarget` is the leftover the shared half charges. -/
+theorem mem_records_of_covered_narrowTarget (prfSeed : Digest) (pk : PublicKey)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
+    (result : (Outcome × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (RecorderView.recorderOf (disclosingKeep prfSeed pk)
+      (targetKeep prfSeed pk)) computation).run (cache, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hnarrowTarget : Served.NarrowTarget pk (narrowClass prfSeed pk) result)
+    (hdisclosedRecorded : ∀ (input : Bytes) (answer : HashOutput),
+      SignerRandomised prfSeed pk result.2.1 input → result.2.1 input = some answer →
+        (input, answer) ∈ result.2.2.1)
+    (hcovered : CoveredAtKeep prfSeed pk (result.1, result.2.1)) :
+    ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
+      ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
+        witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
+          (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
+            (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree :=
+  Served.mem_records_of_covered_narrowTarget pk (disclosingKeep prfSeed pk)
+    (disclosingKeep prfSeed pk) (narrowClass prfSeed pk) computation cache result hmem hfresh
+    (fun input view answer hviewFresh hkeep =>
+      disclosingKeep_mono prfSeed pk input view (RecorderView.CacheView.update view input answer)
+        (RecorderView.persists_update view input answer hviewFresh) hkeep)
+    (fun input probe view answer hviewFresh hkeep =>
+      disclosingKeep_mono prfSeed pk input view (RecorderView.CacheView.update view probe answer)
+        (RecorderView.persists_update view probe answer hviewFresh) hkeep)
+    hnarrowTarget hdisclosedRecorded hcovered
 
 end SlhDsaSecurity.SplitWitness
