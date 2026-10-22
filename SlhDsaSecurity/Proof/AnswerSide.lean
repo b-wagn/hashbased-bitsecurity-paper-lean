@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.AddressBounds
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.ClassExpectation
+import SlhDsaSecurity.Proof.AnswerCoverage
 
 /-!
 # The answer side, as one predicate against one budget
@@ -160,6 +161,70 @@ theorem prob_answerBad_le_of_budget (adversary : Adversary) (pk : PublicKey)
   · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
       parent result output hdeviates hentry hcollision)
   · exact Or.inr (CoverageRouted.forgeryCovered_of_disclosed _ pk result hcovered)
+
+/-! ## The answer side with its coverage charge closed
+
+`prob_answerBad_le_of_budget` above takes the coverage charge in expectation form as a
+hypothesis, because when it was written nobody had it. `AnswerCoverage` has it now, at the
+game's own recorder tests, and this is the same statement with that hypothesis discharged.
+
+What the conclusion carries instead is `¬ SeedRandomised`. That is the narrowing's leftover —
+the cache holding a message input whose randomiser is `SK.prf` — and it cannot be charged here
+at all: the seed belongs to the walk, this statement is read at a fixed walk where it is
+already determined, and an adversary may carry it as a constant. It is conjoined so that the
+shared half can charge it where the seed is still random, and so that nobody mistakes it for
+something this side paid. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side at the tail, with the coverage charge closed and the leftover visible.** -/
+theorem prob_answerBad_le_of_caps (adversary : Adversary) (pk : PublicKey)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
+    (hseparated : ∀ input, CombinedCharge.IsMessageInput pk input →
+      CanonicalTarget.canonicalTarget walk.1.1.2.2 walk.1.2 input = none)
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hlate : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1 pk)
+        (SplitWitness.targetKeep walk.1.1.2.1 pk)
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput pk) inside outside)
+          (afterSeeds adversary walk.1.1)) walk.2),
+      ¬ SplitWitness.LateDisclosure walk.1.1.2.1 pk
+        ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1 pk)
+        (SplitWitness.targetKeep walk.1.1.2.1 pk)
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput pk) inside outside)
+          (afterSeeds adversary walk.1.1)) walk.2),
+      result.2.2.1.length ≤ leftLength)
+    (budget : Nat)
+    (hbudget : ∀ result ∈ support (tail adversary walk), result.1.2 ≤ budget) :
+    Pr[fun result => RoutedSplit.AnswerBadAt pk ((walk.1, result.1), result.2) ∧
+        ¬ SplitWitness.SeedRandomised walk.1.1.2.1 pk result.2 |
+      tail adversary walk] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
+  have hcharge := AnswerCoverage.prob_bad_or_coverage_le_of_caps walk.1.1.2.1 pk
+    (CombinedCharge.IsMessageInput pk) hne
+    (fun input inner hkeep => SplitWitness.targetKeep_class walk.1.1.2.1 pk input inner hkeep)
+    (CanonicalBad walk.1.1.2.2 walk.1.2)
+    (fun input => prob_canonicalBad_le walk.1.1.2.2 walk.1.2 input)
+    (fun input answer hbad hmember => by
+      rw [CanonicalBad, hseparated input hmember] at hbad
+      exact absurd hbad (by simp))
+    (afterSeeds adversary walk.1.1) walk.2
+    (CanonicalTarget.clean_of_canonical_cache walk.1.1.2.2 walk.1.2 walk.2
+      (WarmedCharges.walk_cache_canonical hwalk))
+    (fun input hmessage => CoverageTail.walk_cache_fresh pk hpublic withinBounds_structural
+      hwalk input hmessage)
+    leftLength hcap hlate hleftBound budget hbudget
+  rw [tail]
+  refine le_trans (probEvent_mono ?_) hcharge
+  rintro result hresult
+    ⟨⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered, hseed⟩
+  · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
+      parent result output hdeviates hentry hcollision)
+  · exact Or.inr ⟨hcovered, hseed⟩
 
 /-! ## The two charges, added
 

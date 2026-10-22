@@ -8325,3 +8325,9 @@ info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps
