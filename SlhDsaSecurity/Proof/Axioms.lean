@@ -187,6 +187,7 @@ import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.FusedCoverage
 import SlhDsaSecurity.Proof.RecorderView
 import SlhDsaSecurity.Proof.LateProvenance
+import SlhDsaSecurity.Proof.SharedAssembly
 import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.RecordedStripping
 
@@ -11469,3 +11470,21 @@ info: 'SlhDsaSecurity.RecordedStripping.evalDist_run_recordedAfterSeeds' depends
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedStripping.evalDist_run_recordedAfterSeeds
+
+/--
+info: 'SlhDsaSecurity.SharedAssembly.inputBullet_of_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.inputBullet_of_recorded
+
+/--
+info: 'SlhDsaSecurity.SharedAssembly.expected_parts_le_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.expected_parts_le_budget
+
+/--
+info: 'SlhDsaSecurity.SharedAssembly.sharedCharged_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.sharedCharged_of_parts
