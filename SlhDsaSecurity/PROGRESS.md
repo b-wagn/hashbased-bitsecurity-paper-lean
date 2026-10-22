@@ -2104,3 +2104,43 @@ secret seed is what the obligation may not do.
 **Nothing stated per-walk has to be restated.** `WalkTable.mem_support_graphWalk_walkOfTable`
 says a drawn table names a walk in `support graphWalk`, so `WarmProbes.length_record_le_of_budget`,
 the walk's cache being clean, and every other per-walk fact apply at the new shape unchanged.
+
+## Two things that make a tape factorisation cheap, and one that VCVio does not give you
+
+These came out of the coverage charge but none of them is about coverage. Anything in this
+development that wants to move a run onto a tape drawn in advance will meet all three.
+
+**A tape-reading oracle that draws for itself when its tape is spent factorises for every tape
+length.** The expensive-looking version of a factorisation carries a "the tape is long enough"
+side condition, threaded through the induction from whatever budget bounds the run's queries.
+There is nothing to thread. Give the tape-reading oracle a fallback — once its block is empty it
+draws its own answer, exactly as the un-factorised oracle would — and the identity holds for
+*every* length, with no hypothesis and nothing owed when the block is too long.
+`TapeFactor.evalDist_tapeRun` and `evalDist_splitTapeRun` are stated that way. The uniform cap
+comes back later as a cap on the *count*, which is where a cap is harmless; put it in the
+identity and it is a cap on the charge, which is the thing being avoided.
+
+**Causality is not determinism, and the difference is a whole layer.** Read
+`ForsLeaveOneOut.independent_tape_mixture_coverage_le` literally and it asks for a *function*
+from auxiliary randomness to a policy. Supplying one means presampling every draw the run makes,
+including the adversary's `unifSpec` coins, whose answer type varies with the query — a
+derandomisation of the game. But the resampling argument underneath needs only that three things
+survive overwriting one tape cell: the disclosure set, which can be put on a separately drawn
+block; the test, which reads that cell and nothing else; and the selection of the cell. Only the
+selection touches the run, and what it needs is that its **probability** is unchanged
+(`TapeFactor.probEvent_length_set`), not that it is a function of anything. A conditional
+statement survives the run keeping its own randomness, so the coins and the out-of-class answers
+never leave it and only the class blocks are front-loaded. This is what separated the real cost
+from the estimate, by about an order of magnitude.
+
+**`DeferredSampling.Factorizes` and `evalDist_step_commute_tape` have no instances anywhere in
+VCVio, and the worked example their docstrings name does not exist in the package.** The
+vocabulary is there; the content is not. `evalDist_step_commute_tape`'s `proj`/`tapeCont`
+signature did not fit the two-headed state shape here either, and doing the induction directly
+on `evalDist_bind_comm`, `evalDist_bind_congr_left` and `evalDist_bind_const_neverFails` was
+shorter than bending the state to fit. Budget against those three, not against the framework.
+
+Note for whoever takes the *input* side's deferral — the until-first-hit seed, recorded under
+"What is not done" as a `Factorizes` obligation. It is a different shape from this one (a secret
+drawn **last**, not answers read off a block drawn **first**), so `TapeFactor` does not discharge
+it. The two observations above should still apply, and the three primitives are the same.
