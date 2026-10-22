@@ -3261,3 +3261,29 @@ Nothing is blocked meanwhile, since `right_record_suffix` already hands back the
 **And a smaller rule from the same round: duplication is a symptom of a missing pointer.** The
 four-case analysis over `appended` was written inline twice before anyone noticed, by the same
 person, for the same reason a wrapper is invisible to someone reading the name they were given.
+
+## Each branch asks its question of the object that can answer it
+
+The recorder-side decomposition of the game looked as though it would need the recorder
+everywhere, and therefore a recorder mirror of every input-shape lemma that keygen and the
+verifier already have at the ROM. It does not.
+
+`SplitPrefix.mem_support_rom` projects a recorder sub-run to a ROM sub-run, so each phase can be
+asked its question at whichever object answers it:
+
+* **keygen and the verifier** are questions about *input shapes* — is this probe canonical, is it
+  in the record. The ROM answers those, and `queriesUnder_keygenInternal_of_fresh`,
+  `probes_keygenInternal` and `mem_record_countRecorded` apply unchanged.
+* **the signer** is a question about the *recording* — which entries were filed, and at what
+  cache. Only the recorder answers that, and that is the one branch with a recorder-side lemma.
+
+So the decomposition is three counted-bind splits, `right_record_suffix` on each to say which
+part filed an entry, the recorder mirror for the middle, and the ROM lemmas for the outer two —
+**with no matching anywhere**, because nothing is ever asked of an object that would have to be
+lined up with another first.
+
+This is the general form of the escape recorded above. *Quantify over the states instead of
+naming one* is this rule applied to a single lemma; *ask each branch of the object that can
+answer it* is the same rule applied to a decomposition. Both avoid a bridge rather than building
+one, and the tell in both cases is the same: when a proof starts needing two objects to be
+identified, ask whether one of them was the wrong object to have asked.
