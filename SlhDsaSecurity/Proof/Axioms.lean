@@ -154,6 +154,7 @@ import SlhDsaSecurity.Proof.SplitPrefix
 import SlhDsaSecurity.Proof.RandomiserProvenance
 import SlhDsaSecurity.Proof.PhaseProvenance
 import SlhDsaSecurity.Proof.CacheProvenance
+import SlhDsaSecurity.Proof.RandomiserDeferral
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7170,3 +7171,53 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserProvenance.randomiserBad_source
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.withPrf_prf' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.withPrf_prf
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.mem_support_withPrf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.mem_support_withPrf
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.goodWalk_withPrf' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.goodWalk_withPrf
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.graphWalk_expand' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.graphWalk_expand
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.evalDist_graphWalk_late' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.evalDist_graphWalk_late
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.evalDist_resample_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.evalDist_resample_prf
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_bind_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_bind_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_le_of_prfTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_le_of_prfTail
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.prob_record_meets_prfClass_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.prob_record_meets_prfClass_le
