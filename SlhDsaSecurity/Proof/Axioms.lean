@@ -15931,3 +15931,19 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk' depends on axioms: [
 /-- info: 'SlhDsaSecurity.ServingTable.expected_honest_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingTable.expected_honest_serving
+
+/--
+info: 'SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all
+
+/-- info: 'SlhDsaSecurity.RecordSlot.isMessageInput_messageInput' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.isMessageInput_messageInput
+
+/-- info: 'SlhDsaSecurity.RecordSlot.two_targets_disjoint' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.two_targets_disjoint
