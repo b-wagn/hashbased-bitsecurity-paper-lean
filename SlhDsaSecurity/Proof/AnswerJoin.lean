@@ -275,4 +275,86 @@ theorem answerRecordedBound_of_parts {inside outside : QueryKind} (hne : inside 
         rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
         ring
 
+/-! ## The same bound with no `hseed` at all
+
+`answerRecordedBound_of_parts` still takes the leftover as a probability bound at a fixed walk,
+where it has none. The repair is the one `hlate` already had: make it a **conjunct** and let the
+shared half charge the complement where the seed is still random.
+
+What makes that affordable here and not for the disclosing cap is what the event is indexed by.
+`SplitWitness.SeedRandomised` ranges over the whole cache, so its complement costs one unit per
+query, and the ledger's `q` coefficient is exactly two with both units spent.
+`AnswerCoverage.ForgerySeedRandomised` names the **forgery's** published randomiser, and the
+forgery is one object — one guess at a 128-bit secret the signer never publishes, hence one
+constant, against 247 spare.
+
+The bound is unchanged to the digit, including the `2 ^ -126` this side still does not spend; it
+is stated so that the restated `Obligations.AnswerChargedLate` consumes it without an adapter. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer half's bound with both unpayable clauses conjoined.** No probability hypothesis
+at a fixed walk survives: the ordering defect and the narrowed leftover are both conjuncts, and
+both complements are the shared half's. -/
+theorem answerRecordedBound_narrow_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hjoinNarrow : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.targetKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+        SplitWitness.CoveredAtKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1) →
+          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1) →
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2) →
+          BlockViews.TargetCovered result)
+    (hleftBound : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (answerRecordedRun adversary walk),
+        result.2.2.1.length ≤ signingLimit)
+    (hdisclosing : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (answerRecordedRun adversary walk), ∀ input : Bytes,
+        ServedLog.servedLog
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) input ↔
+          SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            input result.2.1) :
+    ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                (result.1, result.2.1) ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+          answerRecordedRun adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+  classical
+  intro q adversary _ hbudget walk hwalk hgood
+  refine le_trans (prob_answerBad_good_le_of_caps_recorded_narrow adversary q hne hbudget hwalk
+    hgood.2 signingLimit ForsLeaveOneOut.signingLimit_le_tapeBound
+    (hjoinNarrow adversary walk hwalk hgood)
+    (fun result hmem => hleftBound adversary walk hwalk hgood _
+      (CoverageCount.mem_support_recorder_countAllHashes _ _ _ hne
+        (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem))
+    (hdisclosing adversary walk hwalk hgood)) ?_
+  rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
+  rw [add_comm ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)), ← add_assoc]
+  exact le_add_right le_rfl
+
 end SlhDsaSecurity.AnswerJoin
