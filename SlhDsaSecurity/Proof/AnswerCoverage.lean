@@ -431,6 +431,118 @@ theorem narrowTarget_messageClass (pk : PublicKey)
     SplitWitness.Served.NarrowTarget pk (CombinedCharge.IsMessageInput pk) result :=
   fun message parsed _ _ => ⟨parsed.randomizer, message, rfl⟩
 
+/-! ## The same charge with the narrowed class a parameter
+
+The leftover is `narrowClass`'s `PRF_msg` clause and its retirement is commissioned, so the chain
+below leaves the class free and carries `SplitWitness.Served.NarrowTarget` as a **conjunct** of
+the charged event rather than naming the leftover.
+
+That is what makes the retirement an instantiation. At `narrowClass` the conjunct is the leftover
+— `narrowTarget_of_not_forgerySeedRandomised` turns `¬ ForgerySeedRandomised` into it, so the
+chargeable reading is a case of this one. At `CombinedCharge.IsMessageInput` the conjunct is
+`narrowTarget_messageClass`, which holds of every result, so it drops by `probEvent_mono` and
+nothing is left to charge. Neither reading is a rewrite of the other and a mismatch between them
+would fail to elaborate.
+
+`hcover` is `WitnessCover` as before: a presentation demand, not a charge, and the carrier's to
+discharge. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The join at the game's tests, with the target class a parameter.** -/
+theorem targetCovered_of_forgeryDisclosedCovered_class (prfSeed : Digest) (pk : PublicKey)
+    (narrow : Bytes → Prop)
+    (inClass : Bytes → Prop) {inside outside : QueryKind} (hne : inside ≠ outside)
+    (computation : OracleComp OracleWorld Outcome) (cache : QueryCache HashSpec)
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (result : (Outcome × Counts) × SplitPrefix.SplitState)
+    (hmem : result ∈ support (BlockViews.recordedRun
+      (SplitWitness.disclosingKeep prfSeed pk)
+      (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+      (countQueries (splitCost inClass inside outside) computation) cache))
+    (hcover : SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
+      (SplitWitness.disclosingKeep prfSeed pk) narrow
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hcovered : SplitWitness.CoveredAtKeep prfSeed pk
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1))
+    (hnarrowTarget : SplitWitness.Served.NarrowTarget pk narrow
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hlate : ¬ SplitWitness.LateDisclosure prfSeed pk
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)) :
+    BlockViews.TargetCovered result := by
+  classical
+  obtain ⟨target, htarget, hwitness⟩ :=
+    SplitWitness.mem_records_of_covered_of_not_late_class prfSeed pk narrow
+      (countAllHashes computation) cache
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)
+      (mem_support_recorder_countAllHashes (SplitWitness.disclosingKeep prfSeed pk)
+        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+        inClass hne computation (cache, [], []) result hmem)
+      hfresh hcover hnarrowTarget hlate hcovered
+  refine ⟨target, htarget, fun tree => ?_⟩
+  obtain ⟨witness, hmember, -, hinstance, hleaf⟩ := hwitness tree
+  exact ⟨witness, hmember, hinstance, hleaf⟩
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The answer half's two charges, with the narrowed class a parameter.** -/
+theorem prob_bad_or_coverage_le_of_caps_recorded_class (prfSeed : Digest) (pk : PublicKey)
+    (narrow : Bytes → Prop)
+    (inClass : Bytes → Prop) {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hrightClass : ∀ input : Bytes, narrow input → inClass input)
+    (bad : Bytes → HashOutput → Prop)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
+    (computation : OracleComp OracleWorld Outcome) (initialCache : QueryCache HashSpec)
+    (hclean : GrowthCharge.CleanBad bad initialCache)
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input →
+      initialCache input = none)
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hcover : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep prfSeed pk)
+        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+        (countQueries (splitCost inClass inside outside) computation) initialCache),
+      SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
+        (SplitWitness.disclosingKeep prfSeed pk) narrow
+        ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep prfSeed pk)
+        (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+        (countQueries (splitCost inClass inside outside) computation) initialCache),
+      result.2.2.1.length ≤ leftLength)
+    (budget : Nat)
+    (hbudget : ∀ result ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes computation)).run initialCache), result.1.2 ≤ budget) :
+    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+        GrowthCharge.Bad bad (result.1, result.2.1) ∨
+          (SplitWitness.CoveredAtKeep prfSeed pk (result.1, result.2.1) ∧
+            SplitWitness.Served.NarrowTarget pk narrow result ∧
+            ¬ SplitWitness.LateDisclosure prfSeed pk result) |
+        BlockViews.recordedRun (SplitWitness.disclosingKeep prfSeed pk)
+          (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+          (countAllHashes computation) initialCache] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
+  classical
+  refine prob_bad_or_coverage_le_of_join_recorded inClass hne
+    (SplitWitness.disclosingKeep prfSeed pk)
+    (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep prfSeed pk))
+    (fun input inner hkeep => hrightClass input hkeep.1) bad hrate hbadClass computation
+    initialCache hclean
+    (fun result => SplitWitness.CoveredAtKeep prfSeed pk (result.1, result.2.1) ∧
+      SplitWitness.Served.NarrowTarget pk narrow result ∧
+      ¬ SplitWitness.LateDisclosure prfSeed pk result)
+    leftLength budget hcap
+    (fun result hmem hcoverage =>
+      targetCovered_of_forgeryDisclosedCovered_class prfSeed pk narrow inClass hne computation
+        initialCache hfresh result hmem (hcover result hmem) hcoverage.1 hcoverage.2.1
+        hcoverage.2.2)
+    hleftBound
+    (fun result hmem => rightRecord_length_le_budget _ _ inClass hne
+      (fun input inner hkeep => hrightClass input hkeep.1) computation initialCache result hmem
+      budget hbudget)
+    budget hbudget
+
 /-! ## The disclosing cap
 
 `hleftBound` says the disclosing recording is short. It is not true that every signer-randomised

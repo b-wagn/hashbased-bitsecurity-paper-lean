@@ -12958,3 +12958,61 @@ info: 'SlhDsaSecurity.HandlerLenient.probEvent_sensitiveFlagged_eq_withFlag' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerLenient.probEvent_sensitiveFlagged_eq_withFlag
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.targetKeep_class_of' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.targetKeep_class_of
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerRecordedRunAt_narrowClass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerRecordedRunAt_narrowClass
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_wide_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_wide_of_parts
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late_class' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late_class
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered_class' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered_class
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_class' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_class
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_class' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_class
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_class_of_parts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_class_of_parts

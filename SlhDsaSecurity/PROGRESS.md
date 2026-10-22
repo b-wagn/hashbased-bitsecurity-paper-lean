@@ -3181,3 +3181,28 @@ until a second consumer appears.** That is also why every one of them was found 
 had to *supply* the hypothesis rather than by the side that wrote it, and why building a second
 instance of anything keeps paying: an assumption that is invisible rather than absent is the
 worst kind of missing one.
+## Land both readings of a pending change, not the one you expect to win
+
+`narrowClass`'s `PRF_msg` clause is going, and the answer half's leftover goes with it. The
+temptation is to wait, or to write the post-retirement version and rewrite the chain when it
+lands. Both are worse than leaving the class a **parameter** and carrying the demand it makes —
+`Served.NarrowTarget` — as a conjunct of the charged event.
+
+Then the two readings are instantiations of one theorem rather than versions of each other:
+
+* at `narrowClass`, `narrowTarget_of_not_forgerySeedRandomised` turns the leftover into the
+  conjunct, and the chargeable bound is a case of the general one;
+* at `CombinedCharge.IsMessageInput`, `narrowTarget_messageClass` holds of every result, so the
+  conjunct drops by `probEvent_mono` and `answerRecordedBound_wide_of_parts` has the obligation's
+  own event with nothing left to charge.
+
+`answerRecordedRunAt_narrowClass` is `rfl`, so the run does not move either. The retirement is an
+`exact` at one call site, and if the two readings ever disagree about anything but the class, the
+second stops elaborating. That is the same discipline as probing a hypothesis before handing it
+over, applied to a change that has not happened yet.
+
+One trap worth naming: the widened class is `IsMessageInput` **at the walk's own key**, so the
+parameter has to be walk-indexed (`walk → Bytes → Prop`). A class parameter fixed across walks
+type-checks at the narrow instantiation and fails at the wide one, which is the sort of thing
+that only shows up when the second instantiation is actually written — which is the argument for
+writing it now.

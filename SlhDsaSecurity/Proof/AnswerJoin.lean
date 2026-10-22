@@ -357,4 +357,184 @@ theorem answerRecordedBound_narrow_of_parts {inside outside : QueryKind} (hne : 
   rw [add_comm ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)), ← add_assoc]
   exact le_add_right le_rfl
 
+/-! ## The bound with the narrowed class a parameter, and the retirement it makes an `exact`
+
+The answer half's leftover is one conjunct of `SplitWitness.narrowClass`, and its retirement is
+commissioned. So the bound below leaves the class free and carries
+`SplitWitness.Served.NarrowTarget` as a conjunct of the event. Two readings follow, and neither
+is a rewrite of the other:
+
+* at `SplitWitness.narrowClass` the conjunct **is** the leftover, and
+  `answerRecordedBound_narrow_of_parts` above charges it;
+* at `CombinedCharge.IsMessageInput` the conjunct holds of every result, by
+  `AnswerCoverage.narrowTarget_messageClass`, so `answerRecordedBound_wide_of_parts` drops it and
+  there is nothing left to charge — the event is `AnswerBad ∧ ¬ late` and the bound is unchanged
+  to the digit, with the `2 ^ -126` unspent.
+
+When the clause goes, the second is what the assembly instantiates. If the two ever disagree
+about anything but the class, the second stops elaborating. -/
+
+/-- The recorded run at a target class left free. At `SplitWitness.narrowClass` it is
+`answerRecordedRun`, definitionally. -/
+noncomputable def answerRecordedRunAt (narrow : Bytes → Prop) (adversary : Adversary)
+    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
+    ProbComp ((Outcome × Nat) × SplitPrefix.SplitState) :=
+  BlockViews.recordedRun
+    (SplitWitness.disclosingKeep walk.1.1.2.1
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+    (SplitWitness.Served.targetKeep narrow (SplitWitness.disclosingKeep walk.1.1.2.1
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
+    (countAllHashes (afterSeeds adversary walk.1.1)) walk.2
+
+/-- **At the class the game uses today, it is the run the obligation is read at.** -/
+theorem answerRecordedRunAt_narrowClass (adversary : Adversary)
+    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
+    answerRecordedRunAt (SplitWitness.narrowClass walk.1.1.2.1
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+      adversary walk = answerRecordedRun adversary walk := rfl
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer half's bound with the class a parameter.** -/
+theorem answerRecordedBound_class_of_parts
+    (narrow : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hrightClass : ∀ (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec)
+      (input : Bytes), narrow walk input → CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input)
+    (hcover : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.Served.targetKeep (narrow walk) (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+        SplitWitness.Served.WitnessCover
+          (SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          (SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          (narrow walk)
+          ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hleftBound : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.Served.targetKeep (narrow walk) (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+        result.2.2.1.length ≤ signingLimit)
+    (hdisclosing : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (answerRecordedRunAt (narrow walk) adversary walk), ∀ input : Bytes,
+        ServedLog.servedLog
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) input ↔
+          SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            input result.2.1) :
+    ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            AnswerBad ((walk.1, result.1), result.2.1) ∧
+              SplitWitness.Served.NarrowTarget
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                (narrow walk) result ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+          answerRecordedRunAt (narrow walk) adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+  classical
+  intro q adversary _ hbudget walk hwalk hgood
+  refine le_trans (prob_answerBad_good_le_of_caps_recorded_class adversary q (narrow walk) hne hbudget
+    hwalk hgood.2 (hrightClass walk) signingLimit ForsLeaveOneOut.signingLimit_le_tapeBound
+    (hcover adversary walk hwalk hgood) (hleftBound adversary walk hwalk hgood)
+    (hdisclosing adversary walk hwalk hgood)) ?_
+  rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
+  rw [add_comm ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)), ← add_assoc]
+  exact le_add_right le_rfl
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer half's bound with no leftover at all**, at the widened class. The class demand
+is `AnswerCoverage.narrowTarget_messageClass`, which holds of every result, so the conjunct drops
+and the event is the obligation's own. This is what the clause's retirement instantiates. -/
+theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hcover : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.Served.targetKeep (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          (SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+        SplitWitness.Served.WitnessCover
+          (SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          (SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hleftBound : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.Served.targetKeep (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          (SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+        result.2.2.1.length ≤ signingLimit)
+    (hdisclosing : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (answerRecordedRunAt (CombinedCharge.IsMessageInput
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        adversary walk), ∀ input : Bytes,
+        ServedLog.servedLog
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) input ↔
+          SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            input result.2.1) :
+    ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+          answerRecordedRunAt (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+            adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+  classical
+  intro q adversary hq hbudget walk hwalk hgood
+  refine le_trans (probEvent_mono ?_)
+    (answerRecordedBound_class_of_parts
+      (fun w => CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey w.1.1.1 w.1.1.2.1 w.1.1.2.2 w.2))
+      hne (fun _ input hinput => hinput) hcover hleftBound hdisclosing q adversary hq
+      hbudget walk hwalk hgood)
+  exact fun result _ hbad =>
+    ⟨hbad.1, AnswerCoverage.narrowTarget_messageClass _ result, hbad.2⟩
+
 end SlhDsaSecurity.AnswerJoin

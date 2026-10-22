@@ -853,4 +853,48 @@ theorem mem_records_of_covered_narrowTarget (prfSeed : Digest) (pk : PublicKey)
         (RecorderView.persists_update view probe answer hviewFresh) hkeep)
     hnarrowTarget hdisclosedRecorded hcovered
 
+/-! ## The join with the narrowed class left as a parameter
+
+`narrowClass`'s `PRF_msg` clause is the whole of the answer half's leftover, and its retirement
+is commissioned. The chain below leaves the class a parameter so that the retirement arrives as
+an instantiation: at `narrowClass` the demand is the leftover and has to be charged, at
+`CombinedCharge.IsMessageInput` it is discharged by `AnswerCoverage.narrowTarget_messageClass`
+and there is nothing to charge. Neither reading rewrites the other. -/
+
+set_option maxHeartbeats 800000 in
+/-- **The join at the signer's disclosing test, with the target class a parameter.** -/
+theorem mem_records_of_covered_of_not_late_class (prfSeed : Digest) (pk : PublicKey)
+    (narrow : Bytes → Prop)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
+    (result : (Outcome × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (RecorderView.recorderOf (disclosingKeep prfSeed pk)
+      (Served.targetKeep narrow (disclosingKeep prfSeed pk))) computation).run (cache, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hcover : Served.WitnessCover (disclosingKeep prfSeed pk) (disclosingKeep prfSeed pk)
+      narrow result)
+    (hnarrowTarget : Served.NarrowTarget pk narrow result)
+    (hlate : ¬ LateDisclosure prfSeed pk result)
+    (hcovered : CoveredAtKeep prfSeed pk (result.1, result.2.1)) :
+    ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
+      ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
+        witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
+          (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
+            (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree :=
+  Served.mem_records_of_covered_narrow pk (disclosingKeep prfSeed pk) (disclosingKeep prfSeed pk)
+    narrow computation cache result hmem hfresh
+    (fun input view answer hviewFresh hkeep =>
+      disclosingKeep_mono prfSeed pk input view (RecorderView.CacheView.update view input answer)
+        (RecorderView.persists_update view input answer hviewFresh) hkeep)
+    (fun input probe view answer hviewFresh hkeep =>
+      disclosingKeep_mono prfSeed pk input view (RecorderView.CacheView.update view probe answer)
+        (RecorderView.persists_update view probe answer hviewFresh) hkeep)
+    (fun input inner hkeep => disclosingKeep_class prfSeed pk input inner hkeep)
+    hcover hnarrowTarget hlate hcovered
+
+/-- **The target test keeps the class it is built from**, whatever that class is. -/
+theorem targetKeep_class_of (prfSeed : Digest) (pk : PublicKey) (narrow : Bytes → Prop)
+    (input : Bytes) (cache : QueryCache HashSpec)
+    (hkeep : Served.targetKeep narrow (disclosingKeep prfSeed pk) input cache) : narrow input :=
+  hkeep.1
+
 end SlhDsaSecurity.SplitWitness
