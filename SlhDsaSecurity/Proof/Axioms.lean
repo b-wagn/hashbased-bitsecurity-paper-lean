@@ -13464,3 +13464,19 @@ info: 'SlhDsaSecurity.CarrierTail.middle_forget' depends on axioms: [propext, Cl
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.middle_forget
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.tableFacts_of_facts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.tableFacts_of_facts
+
+/-- info: 'SlhDsaSecurity.ServingTable.availBlind_honestAvailableAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.availBlind_honestAvailableAt
+
+/--
+info: 'SlhDsaSecurity.ServingTable.tableFacts_servingProgram_keysOf' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.tableFacts_servingProgram_keysOf

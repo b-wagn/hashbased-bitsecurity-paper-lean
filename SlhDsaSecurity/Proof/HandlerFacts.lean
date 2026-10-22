@@ -279,4 +279,70 @@ theorem lenient_servingProgram (publicSeed : Digest) (pk : PublicKey)
       by_contra hunavailable
       exact hnot ⟨input, rfl, parent, ⟨child, hchild, hunavailable⟩, hparent⟩
 
+/-! ## The availability the charge actually has
+
+`Facts` fixes one availability across the whole statement. The charge **draws the table inside
+itself**, and the availability the chain reads is a function of that table: the honest reveal
+count is `GraphStakes.honestRevealed (table.1 Node.secretSeed) publicSeed`. So a statement that
+fixes it is stating against something it does not have, and the honest variant of the charge
+cannot be instantiated at all.
+
+`TableFacts` is the same interface with the availability indexed by the table, which is the
+honest statement. `Facts` is the case of it at a constant availability — `tableFacts_of_facts` —
+so nothing that already reads `Facts` has to move, and a reader outside the charge cluster never
+notices.
+
+**One field is new, and it is forced by the stall rather than by taste.**
+`StalledRun.evalDist_stalled_congr` takes a *single* `Frozen` predicate and compares the handler
+at two tables against it. With a table-indexed availability the two sides would stall at
+different moments — `availableAt left` on one and `availableAt right` on the other — and the
+comparison would not be between stalled runs of the same shape at all. `availBlind` is what
+rules that out: at an index the comparison is allowed at, the availability itself does not read
+the cells that distinguish the two tables. It is `blind` one layer down, with the same guard and
+for the same reason, and at the chain's availability it is closed by the same fact — that
+`seedAndRoot` names the seed, so tables agreeing off an untouched index agree at it. -/
+
+/-- **The four facts, at an availability the drawn table determines.** -/
+structure TableFacts (publicSeed : Digest)
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
+    (allowed : Node → Prop)
+    (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp)) : Prop where
+  /-- The handler never fails. -/
+  neverFails : ∀ (table : Cells × Padding) (queried : OracleWorld.Domain)
+    (state : HandlerState), Pr[⊥ | ((impl table) queried).run state] = 0
+  /-- A step grows the carrier. -/
+  grows : ∀ (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState)
+    (step : OracleWorld.Range queried × HandlerState),
+    step ∈ support (((impl table) queried).run state) →
+      HandlerCarrier.Grows state.1 step.2.1
+  /-- A step appends one probe, or none. -/
+  record : ∀ (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState)
+    (step : OracleWorld.Range queried × HandlerState),
+    step ∈ support (((impl table) queried).run state) →
+      step.2.2.1 = state.2.1 ++ appended queried state.1
+  /-- **The availability does not read the cell either.** Without this the two sides of a
+  comparison would stall at different moments. -/
+  availBlind : ∀ (index : Node), allowed index → ∀ (left right : Cells × Padding),
+    AgreeOff index left right → availableAt left = availableAt right
+  /-- A step at a state where a cell is unavailable does not read that cell — at the indices
+  `allowed` admits, and no others. -/
+  blind : ∀ (index : Node), allowed index → ∀ (left right : Cells × Padding),
+    AgreeOff index left right →
+    ∀ (queried : OracleWorld.Domain) (state : HandlerState),
+      ¬ availableAt left state.1 index →
+        ((impl left) queried).run state = ((impl right) queried).run state
+
+/-- **A fixed availability is the constant case.** So every existing `Facts` instance is a
+`TableFacts` instance, and `availBlind` is `rfl` there — a constant reads no cell. -/
+theorem tableFacts_of_facts (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (allowed : Node → Prop)
+    (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    (hfacts : Facts publicSeed availableAt allowed impl) :
+    TableFacts publicSeed (fun _ => availableAt) allowed impl where
+  neverFails := hfacts.neverFails
+  grows := hfacts.grows
+  record := hfacts.record
+  availBlind _ _ _ _ _ := rfl
+  blind := hfacts.blind
+
 end SlhDsaSecurity.HandlerFacts
