@@ -72,6 +72,28 @@ so no branch reaches it. With it went the four-term shared accounting, the three
 classification of the record by first block, and the signer's coincidence — which was paying for
 a cache proxy that the carrier's served set has replaced.
 
+### One rule, three times paid for
+
+**State a lemma against what it actually uses, and it survives the thing it was written for
+changing.** This is not a style preference; it is the difference between a feared restatement
+and an `exact`, and it has decided three changes in a single day:
+
+* the **writer**: `StrippedGame.evalDist_countedRun_congr`'s proof never reads the monoid the
+  phase carries, so the recorded game's stripping law is the counted game's with the writer
+  freed — one argument, not two (`RecordedStripping.evalDist_writerRun_congr`);
+* the **carrier**: the stalled stack consumes monotonicity at exactly two call sites and uses no
+  property of the relation beyond what the step lemma hands it, so availability becoming
+  carrier-valued cost a rebase rather than a redesign;
+* the **disclosed set**: `CanonicalGraph.available_of_children_available` takes it as a
+  parameter, so closure holds at the served log without a line of new proof
+  (`ProbeContainment.closed_disclosedByLog`).
+
+The converse is the warning: a lemma stated against the *occasion* rather than the content —
+the warm filter for the input half's weights, `recordCanonical` for its part — looks right,
+survives review, and is wrong in the direction that reads as a simplification. Both of those
+narrowings kept only the probes that **succeed**, and both were caught by asking what the
+statement actually quantifies over.
+
 ## Source audit
 
 - [FIPS 205](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf),
