@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.RandomiserProvenance
+import SlhDsaSecurity.Proof.AnswerCoverage
 
 /-!
 # The randomiser defect, at a record the run returns
@@ -297,6 +298,30 @@ theorem recordMeetsPrfClass_of_forgeryDigest (adversary : Adversary)
   rw [hkey]
   exact RandomiserProvenance.mem_forgeryDigestRecord _ result.1.1.1.forgery framed parsed
     hframe hparsed
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side's leftover enters here, and nowhere else is needed.**
+`AnswerCoverage.ForgerySeedRandomised` says the forgery's published randomiser is `SK.prf`,
+which is exactly `hclass` above at the forgery's own digest input — so the leftover implies the
+record-level event, with no side condition about the signing log and no unit of its own.
+
+This is why `RecordMeetsPrfClass` was factored out of the randomiser defect's reduction rather
+than left inside it. `ReplayGate.RandomiserBad` additionally asks that nothing was signed at the
+frame, and `PK.root ‖ m` is a legal frame, so the containment into *that* event needs a
+hypothesis this one does not. The charge already has its slot: `SharedJoin`'s `hrecord` at
+`qp`, inside `qc + qp + qm + qs ≤ q - 2 ^ subtreeHeight`, counted by `card_chargedRecord_le`
+with no `+ 1`. -/
+theorem recordMeetsPrfClass_of_forgerySeedRandomised (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    {result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (RecordedTail.recordedTail adversary walk))
+    (hseed : AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+      (RoutedSplit.keyOf ((walk.1, (result.1.1.1, result.1.2)), result.2))
+      ((result.1.1.1, result.1.2), result.2)) :
+    RecordMeetsPrfClass walk.1.1.2.1 result := by
+  obtain ⟨framed, parsed, hframe, hparsed, hclass⟩ := hseed
+  exact recordMeetsPrfClass_of_forgeryDigest adversary hresult framed parsed hframe hparsed
+    hclass
 
 /-! ## The randomiser defect lands in the charged record
 
