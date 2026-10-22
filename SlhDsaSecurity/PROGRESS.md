@@ -4082,6 +4082,27 @@ and a copy would compile, nothing external stops the copy — only noticing what
   and the error named the *arguments whose types mentioned them* rather than the names. Qualify
   both.
 
+## A pathwise hypothesis and a probability bound fail differently
+
+Three rounds were spent asking whether the seed residue was *small enough* to let `hsplit` be
+taken in its strong form. That was the wrong question, and no amount of sharpening the residue
+could have answered it.
+
+`hsplit` is **pathwise** — `∀ result ∈ support …` — so it gets no relief from an exception set
+being small. The runs where the forgery's published randomiser is the secret are *in the
+support*, so the strong form is **false**, not expensive. Every bound around it is a
+probability statement, where a small exception set is exactly the thing that helps; the two
+sit next to each other and read alike.
+
+> When a hypothesis is `∀ result ∈ support`, ask whether the exception set is **empty**. If it
+> is not, the hypothesis **moves** rather than shrinks.
+
+Moving it cost nothing: the same two charges and the same proof, with the exception carried as a
+conjunct of the event, and a smaller event bounded by the same quantity. It also removed a
+`probEvent_mono` from the composition — the step where the strong assumption had been hiding in
+the plumbing rather than in a hypothesis. **A weakening step in a proof is where an assumption
+goes to avoid being written down.**
+
 ## The dual: a hypothesis stronger than any proof could supply
 
 `BracketedOrdering.prob_ordering_le`'s per-walk hypothesis was missing `Target.GoodWalk`, which
