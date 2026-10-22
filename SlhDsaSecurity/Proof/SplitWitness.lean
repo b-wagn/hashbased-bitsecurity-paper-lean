@@ -253,6 +253,231 @@ theorem mem_records_of_covered_of_mono (pk : PublicKey)
         (persists_update view probe answer hviewFresh) hkeep)
     hnarrowCached hdisclosedRecorded hcovered
 
+
+/-! ## The weakening, and where the narrowed class is really needed
+
+`mem_records_of_covered` asks `hnarrowCached` of **every** cached message input. That is one
+demand per query, and `ObligationShapes.cover_of_served_or_narrow` was meant to retire all but
+one of them: an input the left test already keeps is filed for that reason, so the class is
+needed only at the target.
+
+**The retirement works, but not where the design note put it.** `cover` is read inside
+`RecorderView.mem_recordOf_of_cache` at the view in force when the input was answered *fresh*,
+and that is earlier than the end. A witness disclosing at the **end** need not have been
+disclosing **then**, and if it was neither disclosing nor narrow when answered it was filed on
+neither side — a case `¬ Late` does not exclude, because `Late` speaks only of what the *target*
+recording holds.
+
+So the witnesses' demand does not vanish; it becomes `WitnessCover` below, which asks that an
+input disclosing at the end was already keeping at every view where it was still fresh — or else
+narrow. That is false of a cache test, by the same adversary that breaks the disclosing cap, and
+**true by construction of a serving flag**, which is set when the request's own query is answered
+and never cleared. It is therefore the sharp statement of what the carrier buys, and the reason
+the carrier is not optional.
+
+What is left over after it is one demand at one input: `NarrowTarget`, the forgery's own digest.
+`narrowTarget_of_narrowCached` and `witnessCover_of_narrowCached` prove both are cases of the old
+hypothesis, so this is visibly a weakening and not a different claim. -/
+
+open scoped Classical in
+/-- `RecorderView.mem_recordOf_of_cache` with the cover read only where it is used — at a view
+where the input is still fresh. The proof is that one, unchanged but for passing the freshness it
+already had in scope; it is here rather than beside the original only because this is the file
+that needs it. -/
+theorem mem_recordOf_of_cache_fresh {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (inClass : Bytes → Prop)
+    (hcover : ∀ (input : Bytes) (view : σ), inClass input ->
+      CacheView.cacheOf view input = none → leftKeep input view ∨ rightKeep input view)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ)
+    (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
+    (input : Bytes) (answer : HashOutput) (hclass : inClass input)
+    (hfresh : CacheView.cacheOf state.1 input = none)
+    (hfinal : CacheView.cacheOf result.2.1 input = some answer) :
+    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at hfinal
+    rw [hfresh] at hfinal
+    simp at hfinal
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | probe
+    · refine ih step.1 step.2 result hrest ?_ hfinal
+      rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
+      exact hfresh
+    · by_cases hsame : input = probe
+      · subst hsame
+        have hpersist : CacheView.cacheOf result.2.1 input = some step.1 :=
+          recorderOf_cache_value_persists leftKeep rightKeep (next step.1) step.2 result hrest
+            input step.1 (recorderOf_step_cache_self leftKeep rightKeep input state step hstep)
+        have hvalue : step.1 = answer := by
+          rw [hpersist] at hfinal
+          exact Option.some.inj hfinal
+        obtain ⟨hgrowLeft, hgrowRight⟩ :=
+          recordOf_prefix leftKeep rightKeep (next step.1) step.2 result hrest
+        have hrecStep := recorderOf_step_record leftKeep rightKeep input state step hstep
+        by_cases hleft : leftKeep input state.1
+        · refine Or.inl (hgrowLeft.subset ?_)
+          rw [hrecStep, appendedOf_of_left leftKeep rightKeep input state step.1 hfresh hleft,
+            hvalue]
+          simp
+        · have hright : rightKeep input state.1 := by
+            rcases hcover input state.1 hclass hfresh with hcase | hcase
+            · exact absurd hcase hleft
+            · exact hcase
+          refine Or.inr (hgrowRight.subset ?_)
+          rw [hrecStep,
+            appendedOf_of_right leftKeep rightKeep input state step.1 hfresh hleft hright,
+            hvalue]
+          simp
+      · refine ih step.1 step.2 result hrest ?_ hfinal
+        rcases recorderOf_step leftKeep rightKeep probe state step hstep with
+          ⟨-, hshape⟩ | ⟨-, hshape⟩
+        · rw [show step.2.1 = state.1 from by rw [hshape]]
+          exact hfresh
+        · rw [show step.2.1 = CacheView.update state.1 probe step.1 from by rw [hshape],
+            cacheOf_update_of_ne state.1 probe input step.1 hsame]
+          exact hfresh
+
+/-- **The witnesses' demand.** An input the run discloses at the end, and whose answer the final
+view holds, was already keeping at every view where it was still fresh -- or else is narrow. A
+serving flag satisfies the left disjunct outright; a cache test does not. -/
+def WitnessCover {α : Type} (served endKeep : Bytes → σ → Prop) (narrow : Bytes → Prop)
+    (result : α × StateOf σ) : Prop :=
+  ∀ (input : Bytes) (answer : HashOutput) (view : σ),
+    endKeep input result.2.1 → CacheView.cacheOf result.2.1 input = some answer ->
+      CacheView.cacheOf view input = none → served input view ∨ narrow input
+
+/-- **The target's demand**, and the whole of what is left over: the forgery's own digest input
+is narrow. One input, named by a single published object. -/
+def NarrowTarget (pk : PublicKey) (narrow : Bytes → Prop)
+    (result : (Outcome × Nat) × StateOf σ) : Prop :=
+  ∀ (message : Bytes) (parsed : Signature),
+    result.1.1.forgery.message.frame = some message ->
+      Signature.fromBytes? result.1.1.forgery.signature = some parsed ->
+        narrow (Hashing.messageInput parsed.randomizer pk message)
+
+/-- **Both new demands are cases of the old one**, first half: the target's. -/
+theorem narrowTarget_of_narrowCached (pk : PublicKey) (narrow : Bytes → Prop)
+    (result : (Outcome × Nat) × StateOf σ)
+    (hnarrowCached : ∀ (input : Bytes) (answer : HashOutput),
+      CacheView.cacheOf result.2.1 input = some answer ->
+        CombinedCharge.IsMessageInput pk input → narrow input)
+    (hcached : ∀ (message : Bytes) (parsed : Signature),
+      result.1.1.forgery.message.frame = some message ->
+        Signature.fromBytes? result.1.1.forgery.signature = some parsed ->
+          ∃ answer : HashOutput, CacheView.cacheOf result.2.1
+            (Hashing.messageInput parsed.randomizer pk message) = some answer) :
+    NarrowTarget pk narrow result := by
+  intro message parsed hframe hparsed
+  obtain ⟨answer, hentry⟩ := hcached message parsed hframe hparsed
+  exact hnarrowCached _ answer hentry ⟨parsed.randomizer, message, rfl⟩
+
+/-- **Both new demands are cases of the old one**, second half: the witnesses'. The old
+hypothesis gives the right disjunct at every input it applies to, so nothing about the left test
+is used -- which is the sense in which `WitnessCover` is weaker rather than different. -/
+theorem witnessCover_of_narrowCached {α : Type} (pk : PublicKey)
+    (served endKeep : Bytes → σ → Prop) (narrow : Bytes → Prop)
+    (result : α × StateOf σ)
+    (hdisclosedClass : ∀ (input : Bytes) (inner : σ),
+      endKeep input inner → CombinedCharge.IsMessageInput pk input)
+    (hnarrowCached : ∀ (input : Bytes) (answer : HashOutput),
+      CacheView.cacheOf result.2.1 input = some answer ->
+        CombinedCharge.IsMessageInput pk input → narrow input) :
+    WitnessCover served endKeep narrow result :=
+  fun input answer _ hend hentry _ =>
+    Or.inr (hnarrowCached input answer hentry (hdisclosedClass input result.2.1 hend))
+
+set_option maxHeartbeats 800000 in
+/-- **Off the defect, every disclosing entry is in the disclosing recording** -- asking the
+narrowed class of no input at all, only `WitnessCover`. -/
+theorem disclosedRecorded_of_not_late_narrow {α : Type}
+    (served endKeep : Bytes → σ → Prop)
+    (narrow : Bytes → Prop) (computation : OracleComp OracleWorld α) (start : StateOf σ)
+    (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf served (targetKeep narrow served))
+      computation).run start))
+    (hcover : WitnessCover served endKeep narrow result)
+    (hlate : ¬ Late endKeep result)
+    (input : Bytes) (answer : HashOutput) (hserved : endKeep input result.2.1)
+    (hentry : CacheView.cacheOf result.2.1 input = some answer)
+    (hfresh : CacheView.cacheOf start.1 input = none) :
+    (input, answer) ∈ result.2.2.1 := by
+  classical
+  rcases mem_recordOf_of_cache_fresh served (targetKeep narrow served)
+    (fun probe => probe = input)
+    (fun probe view hprobe hviewFresh => by
+      subst hprobe
+      rcases hcover probe answer view hserved hentry hviewFresh with hleft | hnarrow
+      · exact Or.inl hleft
+      · by_cases hkeep : served probe view
+        · exact Or.inl hkeep
+        · exact Or.inr ⟨hnarrow, hkeep⟩)
+    computation start result hmem input answer rfl hfresh hentry with hleft | hright
+  · exact hleft
+  · exact absurd ⟨(input, answer), hright, hserved⟩ hlate
+
+set_option maxHeartbeats 800000 in
+/-- **The covered forgery, as coordinates of the two recordings, with the narrowing at one
+input.** The witnesses pass through `WitnessCover`; only the forgery's own digest is asked to be
+narrow, and that is the whole of what the shared half has to charge. -/
+theorem mem_records_of_covered_narrow (pk : PublicKey)
+    (served endKeep : Bytes → σ → Prop) (narrow : Bytes → Prop)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (start : σ)
+    (result : (Outcome × Nat) × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf served (targetKeep narrow served))
+      computation).run (start, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input ->
+      CacheView.cacheOf start input = none)
+    (hfile : ∀ (input : Bytes) (view : σ) (answer : HashOutput),
+      CacheView.cacheOf view input = none → served input view ->
+        endKeep input (CacheView.update view input answer))
+    (hkeeps : ∀ (input probe : Bytes) (view : σ) (answer : HashOutput),
+      CacheView.cacheOf view probe = none → endKeep input view ->
+        endKeep input (CacheView.update view probe answer))
+    (hdisclosedClass : ∀ (input : Bytes) (inner : σ),
+      endKeep input inner → CombinedCharge.IsMessageInput pk input)
+    (hcover : WitnessCover served endKeep narrow result)
+    (hnarrowTarget : NarrowTarget pk narrow result)
+    (hlate : ¬ Late endKeep result)
+    (hcovered : CoverageRouted.ForgeryCoveredBy (fun input => endKeep input result.2.1) pk
+      (result.1, CacheView.cacheOf result.2.1)) :
+    ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
+      ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
+        witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
+          (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
+            (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree := by
+  classical
+  obtain ⟨message, parsed, answer, hframe, hparsed, hentry, hnotself, hcoveredAt⟩ := hcovered
+  have hclass : CombinedCharge.IsMessageInput pk
+      (Hashing.messageInput parsed.randomizer pk message) := ⟨parsed.randomizer, message, rfl⟩
+  have hnarrow := hnarrowTarget message parsed hframe hparsed
+  have hside := mem_recordOf_of_cache_fresh served (targetKeep narrow served) narrow
+    (fun probe view hprobe hviewFresh => by
+      by_cases hkeep : served probe view
+      · exact Or.inl hkeep
+      · exact Or.inr ⟨hprobe, hkeep⟩)
+    computation (start, [], []) result hmem
+    (Hashing.messageInput parsed.randomizer pk message) answer hnarrow
+    (hfresh _ hclass) hentry
+  have htarget : (Hashing.messageInput parsed.randomizer pk message, answer) ∈ result.2.2.2 := by
+    rcases hside with hleft | hright
+    · exact absurd (left_recordOf_endKeep_final served (targetKeep narrow served) endKeep
+        hfile hkeeps computation (start, [], []) result hmem
+        (fun entry hentry => absurd hentry (by simp)) _ hleft) hnotself
+    · exact hright
+  refine ⟨(Hashing.messageInput parsed.randomizer pk message, answer), htarget, fun tree => ?_⟩
+  obtain ⟨other, otherAnswer, hne, hservedOther, hother, hinstance, hleaf⟩ := hcoveredAt tree
+  exact ⟨(other, otherAnswer),
+    disclosedRecorded_of_not_late_narrow served endKeep narrow computation (start, [], []) result
+      hmem hcover hlate other otherAnswer hservedOther hother
+      (hfresh other (hdisclosedClass other result.2.1 hservedOther)),
+    hne, hinstance, hleaf⟩
+
 end Served
 
 /-! ## The signer instantiation
@@ -492,5 +717,42 @@ theorem mem_records_or_seedRandomised (prfSeed : Digest) (pk : PublicKey)
   · exact Or.inl hseed
   · exact Or.inr (mem_records_of_covered_of_not_late prfSeed pk computation cache result hmem
       hfresh hseed hlate hcovered)
+
+/-! ## The weakened join at the signer instantiation
+
+The witnesses' demand and the target's, at the tests the game actually runs. `WitnessCover` stays
+a hypothesis because it is what the serving flag is for: at a cache test it is false, by the
+adversary that queries `randomizerInput prfSeed pk.seed m` and then
+`messageInput (truncate answer) pk m` — the second input is disclosing when it is answered only
+if the first was already cached, which is the adversary's own doing and not the signer's. -/
+
+set_option maxHeartbeats 800000 in
+/-- **The join with the narrowing at the forgery alone.** -/
+theorem mem_records_of_covered_of_not_late_narrow (prfSeed : Digest) (pk : PublicKey)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
+    (result : (Outcome × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (RecorderView.recorderOf (disclosingKeep prfSeed pk)
+      (targetKeep prfSeed pk)) computation).run (cache, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hcover : Served.WitnessCover (disclosingKeep prfSeed pk) (disclosingKeep prfSeed pk)
+      (narrowClass prfSeed pk) result)
+    (hnarrowTarget : Served.NarrowTarget pk (narrowClass prfSeed pk) result)
+    (hlate : ¬ LateDisclosure prfSeed pk result)
+    (hcovered : CoveredAtKeep prfSeed pk (result.1, result.2.1)) :
+    ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
+      ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
+        witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
+          (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
+            (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree :=
+  Served.mem_records_of_covered_narrow pk (disclosingKeep prfSeed pk) (disclosingKeep prfSeed pk)
+    (narrowClass prfSeed pk) computation cache result hmem hfresh
+    (fun input view answer hviewFresh hkeep =>
+      disclosingKeep_mono prfSeed pk input view (RecorderView.CacheView.update view input answer)
+        (RecorderView.persists_update view input answer hviewFresh) hkeep)
+    (fun input probe view answer hviewFresh hkeep =>
+      disclosingKeep_mono prfSeed pk input view (RecorderView.CacheView.update view probe answer)
+        (RecorderView.persists_update view probe answer hviewFresh) hkeep)
+    (fun input inner hkeep => disclosingKeep_class prfSeed pk input inner hkeep)
+    hcover hnarrowTarget hlate hcovered
 
 end SlhDsaSecurity.SplitWitness

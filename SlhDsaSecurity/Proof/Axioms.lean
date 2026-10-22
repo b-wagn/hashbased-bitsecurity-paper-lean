@@ -12505,6 +12505,72 @@ info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_na
 #print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_narrow
 
 /--
+info: 'SlhDsaSecurity.SplitWitness.Served.witnessCover_of_narrowCached' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.witnessCover_of_narrowCached
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.narrowTarget_of_narrowCached' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.narrowTarget_of_narrowCached
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.narrowTarget_of_not_forgerySeedRandomised' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.narrowTarget_of_not_forgerySeedRandomised
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_recordOf_of_cache_fresh' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_recordOf_of_cache_fresh
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.disclosedRecorded_of_not_late_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.disclosedRecorded_of_not_late_narrow
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrow
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_witnessCover' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_witnessCover
+
+/--
 info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]

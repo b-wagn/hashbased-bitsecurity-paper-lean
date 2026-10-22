@@ -3016,3 +3016,31 @@ served set is the image of the signing log, so the recording is one entry per re
 construction, with no seed secrecy anywhere. The same move repairs `hdisclosing`, whose false
 direction is the same event read at the forgery's digest — at the carrier the disclosing test
 *is* the log, and `ServedAgreement.agreesWithLog_run` is the iff.
+
+## A cover is read where the query was answered, not where the event is read
+
+The plan for retiring `hnarrowCached` was that `cover_of_served_or_narrow` makes the witnesses'
+half free: an input the left test already keeps is filed for that reason, so the narrowed class
+is needed only at the target. The conclusion is right and the route is not, and the gap is worth
+remembering because it is invisible from the statement.
+
+`RecorderView.mem_recordOf_of_cache` reads its cover **at the view in force when the input was
+answered fresh**. The coverage event reads disclosure **at the end**. A witness disclosing at the
+end need not have been disclosing then; and if it was neither disclosing nor narrow when
+answered, it was filed on neither side. `¬ Late` does not exclude that case, because `Late`
+speaks only of what the *target* recording holds, and this entry is in no recording at all.
+
+So the witnesses' demand does not vanish. It becomes `Served.WitnessCover`: an input disclosing
+at the end was already keeping at every view where it was still fresh, or else is narrow. That is
+not a charge and must not be turned into one — it is a **presentation defect**, the gap between a
+test read at answer time and an event read at the end. Charging it would be paying for the wrong
+thing, and it is q-proportional anyway.
+
+A serving flag closes it outright: the flag is set when the request's own query is answered and
+never cleared, so end-served implies keeping-when-fresh by construction. That is the third of the
+three hypotheses the carrier settles, beside the disclosing cap and the log/test iff — and it is
+the same statement about the same object each time.
+
+The rule: **when a hypothesis quantifies over a run, check which state it is read at before
+concluding that something else implies it.** Two predicates that agree at the end can disagree at
+every earlier view, and a filing decision is made at the earlier view.
