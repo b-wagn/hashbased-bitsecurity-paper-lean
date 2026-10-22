@@ -43,4 +43,46 @@ theorem not_carrierRightKeep_digest (walk : Walk) (sk : SecretKey)
     exact hframing
   · rw [hdigest, hpk]
 
+/-! ## The key the run generated is the one the walk fixed
+
+Key generation at the warm cache is a `pure`, so both facts the signer's branches need come off
+the walk directly and neither has to be matched against anything. -/
+
+set_option maxHeartbeats 1000000 in
+theorem keys_eq_replay (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    (hwalk : walk ∈ support WarmedGame.graphWalk)
+    (keys : (SecretKey × PublicKey) × CountedState)
+    (hkeys : keys ∈ support ((simulateQ (handlerAt rightKeep walk)
+      (Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2)).run
+        (startAt walk.2, (([], []), 0)))) :
+    keys.1 = @Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery walk.2)
+      walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 := by
+  obtain ⟨outputs, hwarm⟩ := HonestGrowth.walk_cache_eq_warmCache hwalk
+  have hrom := mem_support_rom_of_carrier (keyAt walk) (rightKeep walk) _
+    (startAt walk.2, (([], []), 0)) keys hkeys
+  rw [show (startAt walk.2, (([], []), (0 : Nat))).1.cache = walk.2 from rfl, hwarm,
+    HonestProbes.run_keygenInternal_world_eq_pure, support_pure, Set.mem_singleton_iff] at hrom
+  rw [hwarm]
+  exact (Prod.ext_iff.mp hrom).1
+
+theorem keys_prf (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    (hwalk : walk ∈ support WarmedGame.graphWalk)
+    (keys : (SecretKey × PublicKey) × CountedState)
+    (hkeys : keys ∈ support ((simulateQ (handlerAt rightKeep walk)
+      (Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2)).run
+        (startAt walk.2, (([], []), 0)))) :
+    keys.1.1.prf = walk.1.1.2.1 := by
+  rw [keys_eq_replay rightKeep walk hwalk keys hkeys]
+  exact LateProvenance.keygen_prf walk.2 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
+
+theorem keys_publicKey (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    (hwalk : walk ∈ support WarmedGame.graphWalk)
+    (keys : (SecretKey × PublicKey) × CountedState)
+    (hkeys : keys ∈ support ((simulateQ (handlerAt rightKeep walk)
+      (Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2)).run
+        (startAt walk.2, (([], []), 0)))) :
+    keys.1.1.publicKey = keyAt walk := by
+  rw [keys_eq_replay rightKeep walk hwalk keys hkeys]
+  exact LateProvenance.keygen_publicKey walk.2 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
+
 end SlhDsaSecurity.CarrierRecord
