@@ -194,6 +194,7 @@ import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.InputBullet
+import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
@@ -12465,3 +12466,19 @@ info: 'SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.facts_lazyProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.facts_lazyProgram
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.facts_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.facts_servingProgram
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_congr
