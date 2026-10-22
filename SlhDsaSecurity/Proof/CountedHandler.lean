@@ -208,6 +208,31 @@ theorem run_toStateful_withAddCost {ω : Type} [AddCommMonoid ω]
         (funext fun step => by rw [pure_bind, pure_bind]; rfl))
     computation (w, (carrier, t))
 
+/-- **Both wrappers at once.** The charge's run carries a flag and counts the verifier's
+queries, so the handler it is read under is the filing handler inside a flag inside a cost
+writer, with the carrier buried two tuplings deep. It is `withExtra` twice, re-encoded once. -/
+theorem run_toStateful_withFlag_withAddCost {ω : Type} [AddCommMonoid ω]
+    (impl : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (cost : OracleWorld.Domain → ω) {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (w : Multiplicative ω) (state : OpenCache.HandlerState × Bool),
+      (fun p : α × (Multiplicative ω × (OpenCache.HandlerState × Bool)) =>
+          (p.1, (p.2.2.1.1, ((p.2.2.1.2, p.2.2.2), p.2.1)))) <$>
+        (simulateQ (WriterState.toStateful ((OpenCache.withFlag impl).withAddCost cost))
+          computation).run (w, state) =
+      (simulateQ (withExtra (withExtra impl (fun _ flag => flag))
+        (fun queried x => x * Multiplicative.ofAdd (cost queried))) computation).run
+        (state.1.1, ((state.1.2, state.2), w)) := fun w state =>
+  run_reencode (WriterState.toStateful ((OpenCache.withFlag impl).withAddCost cost))
+    (withExtra impl (fun _ flag => flag))
+    (fun queried x => x * Multiplicative.ofAdd (cost queried))
+    (fun p => (p.2.1.1, ((p.2.1.2, p.2.2), p.1)))
+    (fun queried st => by
+      rw [WriterState.toStateful_run, WriterState.run_withAddCost_run,
+        OpenCache.withFlag_run, withExtra_run, withExtra_run,
+        map_eq_bind_pure_comp, bind_assoc, bind_assoc, bind_assoc]
+      simp only [bind_assoc, pure_bind, Function.comp_apply])
+    computation (w, state)
+
 /-! ## The step facts the wrapped handler needs
 
 `Files` does not carry a step-level "served if the framing admitted it", because `queryStep`
