@@ -193,8 +193,11 @@ import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.RecordedChain
+import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
+import SlhDsaSecurity.Proof.ObligationShapes
+import SlhDsaSecurity.Proof.AnswerShape
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -8917,6 +8920,14 @@ info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_not_late' de
 #print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_not_late
 
 /--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_mono' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_mono
+
+/--
 info: 'SlhDsaSecurity.SplitWitness.disclosingKeep_mono' does not depend on any axioms
 -/
 #guard_msgs in
@@ -12062,6 +12073,138 @@ info: 'SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput
 
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_forget_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_forget_step
+
+/--
+info: 'SlhDsaSecurity.RecorderView.run_recorderOf_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.run_recorderOf_forget
+
+/--
+info: 'SlhDsaSecurity.RecorderView.right_recordOf_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.right_recordOf_witness
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord
+
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.seedRandomised_of_signer_query' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.seedRandomised_of_signer_query
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.cover_of_served_or_narrow' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.cover_of_served_or_narrow
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.claimsOf_carrier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.claimsOf_carrier
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_claimsOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_claimsOf
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.mem_claimsOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.mem_claimsOf
+
+/-- info: 'SlhDsaSecurity.InputBullet.bullet_of_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.bullet_of_bound
+
+/-- info: 'SlhDsaSecurity.InputBullet.bullet_of_claimsCharged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.bullet_of_claimsCharged
+
+/--
+info: 'SlhDsaSecurity.Target.prob_bad_walk_pairedFused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.prob_bad_walk_pairedFused
+
+/--
+info: 'SlhDsaSecurity.Target.pairedRun_eq_map_pairedFused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.pairedRun_eq_map_pairedFused
+
+/--
+info: 'SlhDsaSecurity.Target.target_of_obligations_fused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations_fused
+
+/--
+info: 'SlhDsaSecurity.Obligations.target_of_charges_fused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Obligations.target_of_charges_fused
+
+/--
+info: 'SlhDsaSecurity.FinalAssembly.forgetFused_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FinalAssembly.forgetFused_map
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.forgetFused_eq' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.forgetFused_eq
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.recordedRun_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.recordedRun_map
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.map_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.map_fusedTail
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.probEvent_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.probEvent_fusedTail
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound

@@ -243,4 +243,161 @@ theorem target_of_obligations
     _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
         allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
 
+/-! ## The same, at a tail that carries more than the game's result
+
+One of the answer side's events is not a predicate of the game's result at all: late disclosure
+says which of the recorder's two recordings an entry was filed on, and a result of `tail` carries
+no recordings. So the target is restated here at an arbitrary tail that *refines* the game's —
+any `fused` whose results forget to `tail`'s — with the forgetting map a parameter and the one
+equation it has to satisfy a hypothesis.
+
+Nothing about the presentation enters: the type is free, the map is free, and what makes the
+restatement sound is `hforget` alone, an equality of computations. The numbers are the same
+numbers, by `allowance`, and the walk's own two coincidences are paid inside the refined paired
+run exactly as they are inside the plain one.
+
+The events split the same way they always did, except that the answer side's now carries
+`¬ late` — the defect is *ruled out* there and *paid* on the shared side, instead of being
+assumed away on both. -/
+
+/-- The walk and a refining tail played from it. -/
+noncomputable def pairedFused {γ : Type}
+    (fused : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → ProbComp γ) :
+    ProbComp ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) × γ) := do
+  let walk ← graphWalk
+  let result ← fused walk
+  pure (walk, result)
+
+/-- **The walk's own coincidences, read at the refined paired run.** -/
+theorem prob_bad_walk_pairedFused {γ : Type}
+    (fused : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → ProbComp γ) :
+    Pr[fun pair => ¬ GoodWalk pair.1 | pairedFused fused] ≤
+      1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞) := by
+  classical
+  refine le_trans (WalkDefects.probEvent_bind_pair_split_le graphWalk fused
+    (fun walk _ => ¬ GoodWalk walk) (fun walk => ¬ GoodWalk walk) 0
+    fun walk _ hgood => ?_) ?_
+  · rw [show (fun _ : γ => ¬ GoodWalk walk) = fun _ => False from by
+      funext _; simp [not_not.mp hgood]]
+    simp
+  · rw [zero_add]
+    exact prob_bad_walk
+
+/-- **The refined paired run forgets to the plain one.** -/
+theorem pairedRun_eq_map_pairedFused {γ : Type} (adversary : Adversary)
+    (fused : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (hforget : ∀ walk, forget <$> fused walk = tail adversary walk) :
+    pairedRun adversary = (fun pair => (pair.1, forget pair.2)) <$> pairedFused fused := by
+  rw [pairedRun, pairedFused, map_bind]
+  refine bind_congr fun walk => ?_
+  rw [← hforget walk, map_eq_bind_pure_comp, map_eq_bind_pure_comp, bind_assoc, bind_assoc]
+  exact bind_congr fun result => by rw [pure_bind]; rfl
+
+set_option linter.constructorNameAsVariable false in
+set_option maxHeartbeats 1000000 in
+/-- **The target, from two obligations at a refining tail.** The answer side rules the defect
+out, the shared side pays for it, and the walk's own coincidences are paid once beside them. -/
+theorem target_of_obligations_fused {γ : Type}
+    (fused : Adversary → (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) →
+      ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (hforget : ∀ (adversary : Adversary) (walk : (((Digest × Digest × Digest) × Cells) ×
+      QueryCache HashSpec)), forget <$> fused adversary walk = tail adversary walk)
+    (answerBad inputBad :
+      (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) × QueryCache HashSpec → Prop)
+    (late : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) × γ) → Prop)
+    (hsplit : ∀ (adversary : Adversary), ∀ walk ∈ support graphWalk, GoodWalk walk →
+      ∀ result ∈ support (tail adversary walk), Wins .strong result.1.1 →
+        answerBad ((walk.1, result.1), result.2) ∨ inputBad ((walk.1, result.1), result.2))
+    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : γ =>
+            answerBad ((walk.1, (forget result).1), (forget result).2) ∧
+              ¬ late (walk, result) | fused adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))
+    (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[fun pair => GoodWalk pair.1 ∧
+          (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
+        pairedFused (fused adversary)] ≤
+        ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    HasTotalSecurityBits .strong 127 := by
+  classical
+  refine MainTheorem.totalSecurityBits_of_bound
+    (fun q => (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞)) (fun q _ => le_rfl)
+    fun q adversary hq hbudget => ?_
+  rw [WarmedGame.warmedRun_eq, probEvent_map,
+    show (do let walk ← graphWalk; let result ← tail adversary walk; pure (walk, result)) =
+      pairedRun adversary from rfl,
+    pairedRun_eq_map_pairedFused adversary (fused adversary) forget (hforget adversary),
+    probEvent_map]
+  have hgoodAnswer :
+      Pr[fun pair => GoodWalk pair.1 ∧
+          answerBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∧ ¬ late pair |
+        pairedFused (fused adversary)] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+    refine Averaging.probEvent_bind_pair_le graphWalk (fused adversary)
+      (fun walk result => GoodWalk walk ∧
+        answerBad ((walk.1, (forget result).1), (forget result).2) ∧ ¬ late (walk, result)) _
+      fun walk hwalk => ?_
+    by_cases hgood : GoodWalk walk
+    · exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
+        (hanswer q adversary hq hbudget walk hwalk hgood)
+    · rw [show (fun result : γ => GoodWalk walk ∧
+        answerBad ((walk.1, (forget result).1), (forget result).2) ∧
+          ¬ late (walk, result)) = fun _ => False from by funext _; simp [hgood]]
+      simp
+  calc Pr[fun pair => Wins .strong (forget pair.2).1.1 | pairedFused (fused adversary)]
+      ≤ Pr[fun pair => (GoodWalk pair.1 ∧
+            answerBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∧ ¬ late pair) ∨
+          ((GoodWalk pair.1 ∧
+            (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair)) ∨
+              ¬ GoodWalk pair.1) | pairedFused (fused adversary)] := by
+        refine probEvent_mono fun pair hpair hwin => ?_
+        by_cases hgood : GoodWalk pair.1
+        · obtain ⟨walk, hwalk, result, hresult, hpair⟩ : ∃ walk ∈ support graphWalk,
+              ∃ result ∈ support (fused adversary walk), (walk, result) = pair := by
+            simpa [pairedFused, eq_comm] using hpair
+          subst hpair
+          have hforgetMem : forget result ∈ support (tail adversary walk) := by
+            rw [← hforget adversary walk, support_map]
+            exact ⟨result, hresult, rfl⟩
+          by_cases hlate : late (walk, result)
+          · exact Or.inr (Or.inl ⟨hgood, Or.inr hlate⟩)
+          · rcases hsplit adversary walk hwalk hgood (forget result) hforgetMem hwin with
+              hanswerBad | hinputBad
+            · exact Or.inl ⟨hgood, hanswerBad, hlate⟩
+            · exact Or.inr (Or.inl ⟨hgood, Or.inl hinputBad⟩)
+        · exact Or.inr (Or.inr hgood)
+    _ ≤ Pr[fun pair => GoodWalk pair.1 ∧
+            answerBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∧ ¬ late pair |
+            pairedFused (fused adversary)] +
+          Pr[fun pair => (GoodWalk pair.1 ∧
+            (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair)) ∨
+              ¬ GoodWalk pair.1 | pairedFused (fused adversary)] := probEvent_or_le _ _ _
+    _ ≤ Pr[fun pair => GoodWalk pair.1 ∧
+            answerBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∧ ¬ late pair |
+            pairedFused (fused adversary)] +
+          (Pr[fun pair => GoodWalk pair.1 ∧
+              (inputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
+              pairedFused (fused adversary)] +
+            Pr[fun pair => ¬ GoodWalk pair.1 | pairedFused (fused adversary)]) :=
+        add_le_add le_rfl (probEvent_or_le _ _ _)
+    _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
+          (((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞))) :=
+        add_le_add hgoodAnswer
+          (add_le_add (hshared q adversary hq hbudget)
+            (prob_bad_walk_pairedFused (fused adversary)))
+    _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) := by rw [defects]; ring
+    _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
+        allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
+
 end SlhDsaSecurity.Target

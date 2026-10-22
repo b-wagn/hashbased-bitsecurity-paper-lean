@@ -2,28 +2,28 @@ import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.SharedAssembly
 
 /-!
-# The target, from the hypotheses that are left
+# The target, from the obligations that are left
 
-`AnswerJoin` closes the answer obligation from four hypotheses and `SharedAssembly` the shared
-one from two. `Obligations.target_of_charges` closes the target from the two obligations. This
-file composes all three, which is the only statement that tests whether the three fit.
+`Obligations.target_of_charges_fused` closes the target from two obligations at a refining tail.
+This file supplies the tail — the fused presentation — and composes the two, which is the only
+statement that tests whether the pieces fit.
 
-**It is a seam check, and it is written as one.** Each hypothesis below is copied from the file
-that consumes it, in that file's spelling, and the composition is a single application with
+**It is a seam check, and it is written as one.** Each hypothesis is the obligation its owner
+has to meet, in the spelling the consumer uses, and the composition is a single application with
 nothing in between: no rewriting, no `convert`, no adapter. If a producer's shape and a
 consumer's drift apart, this stops elaborating, and it stops at the seam rather than three files
 later. The places where one file's output feeds its own next lemma are not covered here, and do
 not need to be — the mismatches have all been between owners.
 
-What the statement says, read as a list, is what the proof still rests on:
+**The refining tail is the recorder's**, and the one equation it owes the target is that its
+results forget to the game's. That is `forgetFused_map`, and it holds as an equality of
+computations: the recorder answers every query exactly as the shared oracle does and writes its
+recordings beside the answer, so dropping them returns the game.
 
-* `hlate`, `hleftBound`, `hdisclosing`, `hseed` — the answer half's four, at the split recorder's
-  run and the walk's key;
-* `hinput` — the input half's bullet, at the pair that carries the recordings;
-* `hsigner` — that no target-recorded input is a served request's own digest input.
-
-Six, two of which — `hdisclosing` and `hsigner` — retire together when the disclosing test stops
-reading the cache and starts reading the handler's flag.
+What the statement says, read as a list, is what the proof rests on: the answer half's
+obligation with late disclosure ruled out, and the shared half's with it paid. The second is
+discharged in `ObligationShapes`; the first is the answer side's, and is the one whose
+restatement is outstanding.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -32,42 +32,30 @@ namespace SlhDsaSecurity.FinalAssembly
 
 open Security CanonicalGraph WarmedGame RoutedSplit Target AnswerSide
 
+/-- What a fused result forgets to: the game's own outcome, count and cache. -/
+def forgetFused (result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) :
+    (Outcome × Nat) × QueryCache HashSpec :=
+  ((result.1.1.1, result.1.2), result.2.1)
+
+/-- **The fused tail forgets to the game's tail**, as an equality of computations. The record
+goes with the value and the recordings with the state, and what is left is the run the target is
+stated at. -/
+theorem forgetFused_map (adversary : Adversary)
+    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
+    forgetFused <$> FusedCoverage.fusedTail adversary walk = tail adversary walk := by
+  rw [RecordedTail.tail_eq_map_recordedTail, ← FusedCoverage.forget_fusedTail adversary walk,
+    Functor.map_map]
+  rfl
+
 set_option maxHeartbeats 1000000 in
-/-- **The target, from the six hypotheses that remain.** -/
-theorem target_of_producers {inside outside : QueryKind} (hne : inside ≠ outside)
-    (hlate : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk),
-        ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result)
-    (hleftBound : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk),
-        result.2.2.1.length ≤ signingLimit)
-    (hdisclosing : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (tail adversary walk), ∀ input : Bytes,
-        ServedLog.servedLog
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2) input ↔
-          SplitWitness.disclosingKeep walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            input result.2)
-    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      ∀ walk ∈ support graphWalk, GoodWalk walk →
-        Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
-            SplitWitness.SeedRandomised walk.1.1.2.1
-              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result.2 |
-          tail adversary walk] ≤ (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞))
-    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      SharedAssembly.InputBullet adversary LateProbes.Ordering)
-    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary) :
+/-- **The target, from the two obligations.** -/
+theorem target_of_producers
+    (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail forgetFused
+      LateProbes.Ordering)
+    (hshared : Obligations.SharedChargedLate FusedCoverage.fusedTail forgetFused
+      LateProbes.Ordering) :
     HasTotalSecurityBits .strong 127 :=
-  Obligations.target_of_charges
-    (AnswerJoin.answerCharged_of_parts hne hlate hleftBound hdisclosing hseed)
-    (SharedAssembly.sharedCharged_of_parts hinput hsigner)
+  Obligations.target_of_charges_fused FusedCoverage.fusedTail forgetFused LateProbes.Ordering
+    forgetFused_map hanswer hshared
 
 end SlhDsaSecurity.FinalAssembly

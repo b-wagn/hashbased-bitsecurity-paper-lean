@@ -556,4 +556,124 @@ theorem left_recordOf_keep_final {α : Type} (leftKeep rightKeep : Bytes → σ 
         (persists_update view probe answer hfresh) hkeep)
     computation state result hmem hstart
 
+/-! ## The instrumentation is invisible, at any view
+
+`SplitPrefix.run_recorder_forget` at the cache, and the one place where the single law does the
+whole of the work: the cached branch leaves the view alone and the fresh branch installs, and
+the law says installing is what the shared oracle's own caching does. Anything else the view
+carries — a served set, a flag — is dropped by the forgetting and never seen. This is what a
+fused presentation over a carrier will owe, and it owes nothing more. -/
+
+open scoped Classical in
+/-- **One step of the recorder, with the recordings dropped, is one step of the shared
+oracle.** The single law is the whole of it: a hit leaves the view alone, a miss installs, and
+installing is by definition what the shared oracle's caching does. Whatever else the view
+carries — a served set, a flag — is dropped here and never seen again. -/
+theorem recorderOf_forget_step (leftKeep rightKeep : Bytes → σ → Prop)
+    (queried : OracleWorld.Domain) (state : StateOf σ) :
+    (fun z : OracleWorld.Range queried × StateOf σ => (z.1, CacheView.cacheOf z.2.1)) <$>
+        ((recorderOf leftKeep rightKeep) queried).run state =
+      (KeygenUniform.rom queried).run (CacheView.cacheOf state.1) := by
+  classical
+  rcases queried with coin | input
+  · rw [recorderOf_run_inl, DigestTape.rom_run_inl]
+    simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
+  · rw [DigestTape.rom_run_inr]
+    cases hcached : CacheView.cacheOf state.1 input with
+    | some cached =>
+      rw [recorderOf_run_inr_some leftKeep rightKeep input state cached hcached,
+        QueryImpl.withCaching_run_some _ hcached, map_pure]
+      rfl
+    | none =>
+      rw [recorderOf_run_inr_none leftKeep rightKeep input state hcached,
+        QueryImpl.withCaching_run_none _ hcached]
+      simp only [uniformSampleImpl, map_eq_bind_pure_comp, bind_assoc, pure_bind,
+        Function.comp_def, CacheView.cache_update]
+      rfl
+
+set_option maxHeartbeats 800000 in
+open scoped Classical in
+/-- **Dropping the recordings and reading the view's cache returns the shared oracle's run**, as
+an equality of computations. This is what a fused presentation over a carrier owes, and it owes
+nothing more. -/
+theorem run_recorderOf_forget (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) :
+    ∀ state : StateOf σ,
+      (fun z : α × StateOf σ => (z.1, CacheView.cacheOf z.2.1)) <$>
+          (simulateQ (recorderOf leftKeep rightKeep) computation).run state =
+        (simulateQ KeygenUniform.rom computation).run (CacheView.cacheOf state.1) := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
+  | query_bind queried next ih =>
+    intro state
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind, simulateQ_bind,
+      simulateQ_spec_query, StateT.run_bind,
+      ← recorderOf_forget_step leftKeep rightKeep queried state]
+    simp only [map_eq_bind_pure_comp, bind_assoc]
+    exact bind_congr fun step => ih step.1 step.2
+
+/-! ## What a target recording's entry says about the state it was filed from
+
+The mirror of the left recording's fact, and the one the ordering defect needs. An entry of the
+target recording came with a state at which the *right* test held — so, the tests being
+exclusive by priority, a state at which the left test did **not**. At a cache-readable left test
+that is a statement about what the cache held, which is why it has been hard to use: nothing
+reports the cache partway through a sub-run. At a flag it is a statement about the flag, and a
+query made under the flag is simply not one of these. -/
+
+open scoped Classical in
+/-- **Every target-recorded entry has a state it was filed from**, fresh there and passing the
+right test there. -/
+theorem right_recordOf_witness {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state)) :
+    ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨ ∃ mid : σ,
+      (∀ (probe : Bytes) (value : HashOutput),
+        CacheView.cacheOf mid probe = some value →
+          CacheView.cacheOf result.2.1 probe = some value) ∧
+        CacheView.cacheOf mid entry.1 = none ∧ rightKeep entry.1 mid := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact fun entry hentry => Or.inl hentry
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    intro entry hentry
+    rcases ih step.1 step.2 result hrest entry hentry with hold | hwitness
+    · rcases queried with coin | input
+      · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep] at hold
+        exact Or.inl hold
+      · rw [recorderOf_step_record leftKeep rightKeep input state step hstep] at hold
+        cases hcached : CacheView.cacheOf state.1 input with
+        | some cached =>
+          rw [appendedOf_of_cached leftKeep rightKeep input state step.1 cached hcached] at hold
+          exact Or.inl hold
+        | none =>
+          by_cases hleft : leftKeep input state.1
+          · rw [appendedOf_of_left leftKeep rightKeep input state step.1 hcached hleft] at hold
+            exact Or.inl hold
+          · by_cases hright : rightKeep input state.1
+            · rw [appendedOf_of_right leftKeep rightKeep input state step.1 hcached hleft
+                hright] at hold
+              rcases List.mem_append.mp hold with hprior | hnew
+              · exact Or.inl hprior
+              · refine Or.inr ⟨state.1, fun probe value hvalue => ?_, ?_, ?_⟩
+                · exact recorderOf_cache_value_persists leftKeep rightKeep (next step.1) step.2
+                    result hrest probe value
+                    (recorderOf_step_persists leftKeep rightKeep input state step hstep probe
+                      value hvalue)
+                · rw [show entry.1 = input from by rw [List.mem_singleton.mp hnew]]
+                  exact hcached
+                · rw [show entry.1 = input from by rw [List.mem_singleton.mp hnew]]
+                  exact hright
+            · rw [appendedOf_of_neither leftKeep rightKeep input state step.1 hleft hright] at hold
+              exact Or.inl hold
+    · exact Or.inr hwitness
+
 end SlhDsaSecurity.RecorderView
