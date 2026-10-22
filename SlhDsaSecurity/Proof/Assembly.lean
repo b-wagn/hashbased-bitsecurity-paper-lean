@@ -279,6 +279,24 @@ theorem defects_le_five :
   refine ENNReal.div_le_div_right ?_ _
   exact Nat.cast_le.mpr (by norm_num)
 
+/-- **Four small defects cost under six units of `2 ^ -128`.** The fourth is the coincidence
+`SK.prf = PK.seed`, which is what the `PRF_msg` class separation excludes: a canonical input
+begins with the public seed and a `PRF_msg` input with the PRF seed, so unless the two agree no
+query is in both classes and the two charges share one record rather than doubling it. -/
+theorem defects_le_six :
+    (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [cast_pow, cast_pow, cast_pow, cast_pow,
+    show (1 : ℝ≥0∞) = ((1 : Nat) : ℝ≥0∞) from by push_cast; ring,
+    div_pow_eq 1 126 165 (by norm_num), div_pow_eq 1 141 165 (by norm_num),
+    div_pow_eq 1 165 165 (by norm_num), div_pow_eq 1 128 165 (by norm_num),
+    div_pow_eq 6 128 165 (by norm_num),
+    ENNReal.div_add_div_same, ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+  rw [← Nat.cast_add, ← Nat.cast_add, ← Nat.cast_add]
+  refine ENNReal.div_le_div_right ?_ _
+  exact Nat.cast_le.mpr (by norm_num)
+
 /-- **The target, from the two counts and a defect allowance.** -/
 theorem le_target_of_counts (queries slack extra defectUnits : Nat)
     (hslack : slack ≤ queries) (hfits : extra + defectUnits ≤ 2 * slack)
