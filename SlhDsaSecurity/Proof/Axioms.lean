@@ -212,6 +212,7 @@ import SlhDsaSecurity.Proof.HandlerCharge
 import SlhDsaSecurity.Proof.HandlerLenient
 import SlhDsaSecurity.Proof.ServingTable
 import SlhDsaSecurity.Proof.CarrierFiles
+import SlhDsaSecurity.Proof.CountedHandler
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -13260,3 +13261,59 @@ info: 'SlhDsaSecurity.CacheProvenance.sign_digest_answer' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheProvenance.sign_digest_answer
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.files_countedCarrierRecorder' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.files_countedCarrierRecorder
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.forgetsAlong_countedCarrierRecorder' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.forgetsAlong_countedCarrierRecorder
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.withCount_run' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withCount_run
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.withCount_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withCount_step
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.stepServedSelf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.stepServedSelf
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.files_withCount' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.files_withCount
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.withCount_step_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withCount_step_map
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.run_withCount_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_withCount_map
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.forgetsAlong_withCount' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.forgetsAlong_withCount
