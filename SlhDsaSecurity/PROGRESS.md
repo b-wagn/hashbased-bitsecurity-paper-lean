@@ -4824,3 +4824,32 @@ set below the log's. So the remaining obligation is `Served → servedLog`, with
 it — but it has to be stated **before** `BracketedRun.forgetCarrier`, which drops the carrier
 the tail ends at. That is why it is not in this file, and it is where `ServedAgreement`'s own
 run laws already live.
+
+## The cap, standing on the walk and the budget
+
+`CarrierCap.leftRecord_le_cap_of_walk` is the disclosing cap at `CarrierTail.carrierTail` with
+no hypotheses left but the walk's support, `Security.HasTotalBudget`, and the key's
+non-separation. The two that were open closed the same way, and it is worth recording *how*
+they were found rather than only that they are closed.
+
+**The log's length.** `Security.HasTotalBudget` is a conjunction — the signing count inside
+`signingLimit` and the work count inside `q` — and `WholeGameStructural.count_le_of_budget`
+takes its second conjunct. The first was never taken, so `signing_le_of_budget` is that lemma at
+the other projection, three lines. `SigningFaithful.signed_length_le_signing_tail` then relates
+the outcome's log to that count, and the three maps carry it to the carrier tail. **The
+connection I had declined to assert was already proved on a warmed tail**; one grep against the
+*consumer's* need — "log length versus signing count" rather than a guessed lemma name — found
+it.
+
+**The generated key.** `hkey` — that the key the first stage generates is the walk's — is
+`CarrierRecord.keys_publicKey`, which exists and needs only `hwalk`. Same search, same result.
+That is twice in one round that the thing to build was already there, and both times the search
+that found it was phrased as what the hypothesis was *for*.
+
+**One mechanical note worth keeping.** The three new statements timed out at `whnf` on their own
+signatures, not in their proofs — `WarmedGame.tail` unfolds to the whole game. The cure is
+`WarmedCharges`' own: `attribute [local irreducible] WarmedGame.afterSeeds` from that point in
+the file, plus the `constructorNameAsVariable` linter off for the statements that name a tail.
+Same shape as the `answerCarrierRun` boundary: **make the object opaque at the point where
+nothing below has to see through it**, and the timeouts are a symptom of the object's size
+rather than of any name in the statement.

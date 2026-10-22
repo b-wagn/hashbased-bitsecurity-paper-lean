@@ -15875,3 +15875,43 @@ info: 'SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves_proved' depends o
 /-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftFramed_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierLeftRecord.leftFramed_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.signing_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.signing_le_of_budget
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.signing_le_of_budget_tail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.signing_le_of_budget_tail
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.signed_length_le_signingLimit_tail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.signed_length_le_signingLimit_tail
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.signed_length_le_signingLimit_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.signed_length_le_signingLimit_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_budget
+
+/--
+info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk
