@@ -4859,3 +4859,19 @@ info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depen
 /-- info: 'SlhDsaSecurity.RedrawCell.unionCache_empty' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.unionCache_empty
+
+/-- info: 'SlhDsaSecurity.RedrawCell.splitTable_fst_secretSeed' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.splitTable_fst_secretSeed
+
+/-- info: 'SlhDsaSecurity.RedrawCell.splitTable_fullOutput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.splitTable_fullOutput
+
+/-- info: 'SlhDsaSecurity.RedrawCell.openCache_total_eq_warmCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.openCache_total_eq_warmCache
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_game_sensitive_honest_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_game_sensitive_honest_le

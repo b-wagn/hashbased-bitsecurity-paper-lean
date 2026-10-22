@@ -567,6 +567,40 @@ theorem openCache_total (publicSeed : Digest) (table : Cells × Padding) :
         (CanonicalGraph.fullOutput table.1 table.2) CanonicalGraph.Programming.order ∅ := by
   rw [openCache, openNodes_total]
 
+/-! ## The walk's own table
+
+`WarmedGame.mem_support_graphWalk` hands the walk's cache as a programmed table over an
+arbitrary output table; the handler wants a cells-and-padding pair. `Programming.splitTable` is
+the bijection between the two, and the match is a reindexing along it. The secret seed is where
+a mismatch would sit, and there is none: the bijection puts it in the table's own `secretSeed`
+cell and leaves it there. -/
+
+theorem splitTable_fst_secretSeed (secretSeed : Digest)
+    (outputs : CanonicalGraph.Programming.Outputs) :
+    (CanonicalGraph.Programming.splitTable (secretSeed, outputs)).1 CanonicalGraph.Node.secretSeed =
+      secretSeed := rfl
+
+/-- **Every cells-and-padding pair is a seed and an output table.** -/
+theorem splitTable_fullOutput (table : Cells × Padding) :
+    CanonicalGraph.Programming.splitTable
+        (table.1 CanonicalGraph.Node.secretSeed,
+          CanonicalGraph.fullOutput table.1 table.2) = table := by
+  refine Prod.ext (funext fun node => ?_) (funext fun parent => ?_)
+  · cases node with
+    | secretSeed => rfl
+    | structural parent => exact CanonicalGraph.truncate_fullOutput _ _ _
+  · exact BitVec.extractLsb'_append_eq_right
+
+/-- **The entries the handler may serve at total availability are the walk's cache.** -/
+theorem openCache_total_eq_warmCache (publicSeed secretSeed : Digest)
+    (outputs : CanonicalGraph.Programming.Outputs) :
+    openCache publicSeed (fun _ => True)
+        (CanonicalGraph.Programming.splitTable (secretSeed, outputs)) =
+      HonestProbes.warmCache publicSeed secretSeed outputs := by
+  rw [openCache_total, HonestProbes.warmCache]
+  exact OpenCache.cacheFrom_congr publicSeed _ _ _ _ _ ∅ (fun parent _ => rfl)
+    (fun parent _ => BitVec.extractLsb'_append_extractLsb')
+
 /-- The programmed entries, with whatever the handler has drawn beside them. -/
 noncomputable def unionCache (publicSeed : Digest) (table : Cells × Padding)
     (cache : QueryCache HashSpec) : QueryCache HashSpec :=
@@ -872,5 +906,46 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
       signedAt pair.2 entry hsensitive⟩
   · exact prob_sensitive_run_le publicSeed _ hclosed hmono (GraphStakes.stakes publicSeed) stall
       computation (inner, false) limit hlimit
+
+open scoped Classical in
+/-- **The charge at the honest reveal count.** The digit a signature discloses never exceeds
+`w - 1`, so that hypothesis is discharged and the handover is back to four: closure,
+monotonicity, the record's limit, and the empty starting record. -/
+theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
+    (publicSeed secretSeed : Digest)
+    (signedAt : QueryCache HashSpec → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+      (∀ child ∈ parent.children,
+          CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
+            (signedAt cache) child) →
+        CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
+          (signedAt cache) (.structural parent))
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
+          (signedAt left) node →
+        CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
+          (signedAt right) node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : OracleComp OracleWorld α) (inner : HandlerState) (hinner : inner.2.1 = [])
+    (limit : Nat)
+    (hlimit : ∀ z ∈ support (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        (simulateQ (withFlag (lazyProgram publicSeed
+          (fun cache node => CanonicalGraph.Available
+            (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+          (cells, pad))) computation).run (inner, false)), z.2.1.2.1.length ≤ limit) :
+    Pr[fun pair : (α × (HandlerState × Bool)) × Cells => pair.1.2.2 = true | (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (ChargedProbe.sensitiveFlagged publicSeed
+          (fun cache node => CanonicalGraph.Available
+            (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+          (fun _ _ => True) (cells, pad)) computation).run (inner, false)
+        pure (result, cells))] ≤
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_game_sensitive_le publicSeed (GraphStakes.honestRevealed secretSeed publicSeed)
+    (GraphStakes.honestRevealed_le secretSeed publicSeed) signedAt hclosed hmono stall
+    computation inner hinner limit hlimit
 
 end SlhDsaSecurity.RedrawCell
