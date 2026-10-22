@@ -315,6 +315,45 @@ theorem allowanceWithPrfUnit (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
   allowanceOf 260 q (by simp only [subtreeHeight]; omega) hkeygen
 
+/-- **The fallback allowance, if the shared half has to carry two records.**
+
+The `Nat` line is `2 * (q - 512) + 259 + q + 6 ≤ 3 * q`, i.e. **`265 ≤ 1024`**, with **759**
+units spare. The price of the room is the target: this closes against `3 * q / 2 ^ 128`, which
+is `q / 2 ^ 126.415…` and rounds to `q / 2 ^ 126` — **not** `q / 2 ^ 127`.
+
+**Which of the two lines is live is decided by one question**, and not by anything in this file:
+whether the assembly needs `E[card recordPrfClass]` in the real order, or only
+`Pr[RecordMeetsPrfClass]`. Only the event, and `allowanceWithPrfUnit` stands at `q / 2 ^ 127`
+with 246 spare; the count, and the blind-order bound is false in the real order, so this is the
+line.
+
+**Nothing is instantiated at this one.** It is stated so that neither answer waits on
+arithmetic. -/
+theorem allowanceDoubled (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
+      ((3 * q : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [← add_assoc]
+  exact Assembly.le_target_doubled q (2 ^ subtreeHeight) 259 6 hkeygen
+    (by simp only [subtreeHeight]; omega) defects defects_le_six_units
+
+/-- **The same, rounded to the bit count it would be quoted at.** -/
+theorem allowanceDoubled_le_126 (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
+      (q : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) :=
+  le_trans (allowanceDoubled q hkeygen) (Assembly.doubled_le_126 q)
+
+/-- **The fallback's line**, so it too need not be reconstructed: `259 + 6 ≤ 1024`. -/
+theorem allowanceDoubled_line : (259 : Nat) + 6 ≤ 2 * 2 ^ subtreeHeight := by
+  simp only [subtreeHeight]
+  omega
+
+/-- **And its spare**, which is three times the other line's and bought with a bit. -/
+theorem allowanceDoubled_margin : 2 * 2 ^ subtreeHeight - ((259 : Nat) + 6) = 759 := by
+  simp only [subtreeHeight]
+  omega
+
 /-- **The line itself**, so a reader need not reconstruct it: `260 + 6 ≤ 512`. -/
 theorem allowanceWithPrfUnit_line : (260 : Nat) + 6 ≤ 2 ^ subtreeHeight := by
   simp only [subtreeHeight]

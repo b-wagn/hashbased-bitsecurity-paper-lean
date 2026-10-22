@@ -16352,3 +16352,39 @@ info: 'SlhDsaSecurity.Target.allowanceWithPrfUnit_margin' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.allowanceWithPrfUnit_margin
+
+/--
+info: 'SlhDsaSecurity.Assembly.le_target_doubled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.le_target_doubled
+
+/--
+info: 'SlhDsaSecurity.Assembly.doubled_le_126' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.doubled_le_126
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled_le_126' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled_le_126
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled_line' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled_line
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled_margin' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled_margin
