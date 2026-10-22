@@ -302,7 +302,12 @@ It is a second counted handler rather than `withCount` again because the two sta
 differently: `ServedAgreement.Files` needs the carrier first, so the carrier's counted state is
 `carrier × (recordings × count)`, while the shared oracle's is just `cache × count`. The
 definitions are the same three lines and the proofs are the same two inductions; what cannot be
-shared is the bracketing of the pair. -/
+shared is the bracketing of the pair.
+
+**It looks like duplication and the next reader will want to merge them, so: do not.** Merging
+them means a reassociation lemma, and that lemma would have to be threaded through every call
+site of both. *Duplication a reader can see beats an abstraction every call site has to pay
+for* — six lines and two short inductions, against a rewrite in every use. -/
 
 /-- The shared oracle with a hash counter beside its cache. -/
 noncomputable def romWithCount :

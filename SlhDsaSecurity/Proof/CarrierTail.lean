@@ -220,4 +220,125 @@ theorem middle_forget {α : Type} (rightKeep : Walk → Bytes → HandlerCarrier
     stopServingOn_cacheCount (forgetsAlong_counted rightKeep walk) computation accumulated log
     state
 
+/-! ## The assembly
+
+Both sides are now runs of a counted handler over the same three stages, which is what makes the
+composition a composition. `recordedTail_eq_counted` puts the recorded tail at
+`CountedHandler.romWithCount` — the count moves from `countAllHashes`, wrapped around the
+computation, into the handler's own state, which is where the carrier tail keeps it. After that
+the two sides differ only in the handler, and the three stages are matched by the two laws
+already proved. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The recorded game splits at its three sequencing points**, under any handler. This is
+`FusedGame.run_afterSeeds_split` at the game that keeps the record, and like it the split is the
+definition read out: `simulateQ` distributes over the `do` block's binds and `StateT.run`
+distributes over those. -/
+theorem run_recordedAfterSeeds_split {S : Type}
+    (outer : QueryImpl OracleWorld (StateT S ProbComp)) (adversary : Adversary)
+    (sds : Digest × Digest × Digest) (state : S) :
+    (simulateQ outer (RecordedTail.recordedAfterSeeds adversary sds)).run state =
+      (simulateQ outer (Scheme.keygenInternal sds.1 sds.2.1 sds.2.2)).run state >>= fun keys =>
+        (simulateQ outer ((((simulateQ (recordedAdversaryImpl +
+              recordedSigningOracle (Scheme.sign keys.1.1)) (adversary.main keys.1.2)).run).run
+            []))).run keys.2 >>= fun phase =>
+          (simulateQ outer (countRecorded verifierCost (Scheme.verify keys.1.2
+              phase.1.1.1.message phase.1.1.1.signature))).run phase.2 >>= fun verified =>
+            (pure (({
+                forgery := phase.1.1.1
+                signed := phase.1.2
+                verified := verified.1.1
+                counts := (Multiplicative.toAdd phase.1.1.2).1 + verified.1.2.1 },
+              (Multiplicative.toAdd phase.1.1.2).2 + verified.1.2.2), verified.2) :
+              ProbComp ((Outcome × Multiset Bytes) × S)) := by
+  unfold RecordedTail.recordedAfterSeeds
+  simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure, StateT.run_pure]
+
+attribute [local irreducible] RecordedTail.recordedAfterSeeds Scheme.keygenInternal
+  Scheme.verify Scheme.sign Security.countQueries
+
+set_option maxHeartbeats 1000000 in
+/-- **The recorded tail is a counted run of the shared oracle.** Nothing changes but where the
+count is kept: `countAllHashes` wraps the computation, the counted handler carries it in the
+state, and `run_romWithCount_count` says the two agree. -/
+theorem recordedTail_eq_counted (adversary : Adversary) (walk : Walk) :
+    RecordedTail.recordedTail adversary walk =
+      (fun z : (Outcome × Multiset Bytes) × (QueryCache HashSpec × Nat) =>
+          ((z.1, z.2.2), z.2.1)) <$>
+        (simulateQ CountedHandler.romWithCount
+          (RecordedTail.recordedAfterSeeds adversary walk.1.1)).run (walk.2, 0) := by
+  rw [RecordedTail.recordedTail,
+    CountedHandler.run_romWithCount_count
+      (RecordedTail.recordedAfterSeeds adversary walk.1.1) (walk.2, 0),
+    show (fun r : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec =>
+        ((r.1.1, 0 + r.1.2), r.2)) = id from funext fun r => by rw [Nat.zero_add]; rfl,
+    id_map]
+
+/-- The first stage's projection, with the start spelled out so that it matches syntactically.
+The projection in `ForgetsAlong` is applied as a lambda, so an instance of it has to be given a
+name before `rw` can see through it — the projection trap, at a redex rather than a
+metavariable. -/
+theorem first_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) {α : Type} (computation : OracleComp OracleWorld α) :
+    (fun z : α × CountedState => (z.1, (z.2.1.cache, z.2.2.2))) <$>
+        (simulateQ (handlerAt rightKeep walk) computation).run
+          (startAt walk.2, (([], []), 0)) =
+      (simulateQ CountedHandler.romWithCount computation).run (walk.2, 0) :=
+  forgetsAlong_counted rightKeep walk computation (startAt walk.2, (([], []), 0))
+
+set_option maxHeartbeats 1000000 in
+/-- The middle stage's projection, named at the state it is used at. Same reason as
+`first_stage_forget`, one step later: `PhaseFusion.run_phase_fused`'s writer and state are
+determined only once the previous stage's rewrite has landed, so a rewrite that has to find them
+has nothing to find. Naming the instance costs three lines. -/
+theorem middle_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) (adversary : Adversary)
+    (keys : (SecretKey × PublicKey) × CountedState) :
+    (simulateQ CountedHandler.romWithCount
+        (((simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          (adversary.main keys.1.2)).run).run [])).run (keys.2.1.cache, keys.2.2.2) =
+      (fun step : Forgery × (Multiplicative Tally × SigningLog × CountedState) =>
+          (((step.1, step.2.1), step.2.2.1), (step.2.2.2.1.cache, step.2.2.2.2.2))) <$>
+        (simulateQ (fuseServing (handlerAt rightKeep walk)
+          (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          ServedAgreement.startServingOn ServedAgreement.stopServingOn)
+          (adversary.main keys.1.2)).run (1, [], keys.2) := by
+  rw [PhaseFusion.run_phase_fused CountedHandler.romWithCount
+      (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+      (adversary.main keys.1.2) [] (keys.2.1.cache, keys.2.2.2),
+    ← middle_forget rightKeep walk
+      (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+      (adversary.main keys.1.2) 1 [] keys.2, Functor.map_map]
+
+set_option maxHeartbeats 1000000 in
+/-- The third stage's projection, named the same way. -/
+theorem last_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) (pk : PublicKey) (forgery : Forgery) (state : CountedState) :
+    (fun z : (Bool × Tally) × CountedState => (z.1, (z.2.1.cache, z.2.2.2))) <$>
+        (simulateQ (handlerAt rightKeep walk) (countRecorded verifierCost
+          (Scheme.verify pk forgery.message forgery.signature))).run state =
+      (simulateQ CountedHandler.romWithCount (countRecorded verifierCost
+        (Scheme.verify pk forgery.message forgery.signature))).run
+        (state.1.cache, state.2.2) :=
+  forgetsAlong_counted rightKeep walk
+    (countRecorded verifierCost (Scheme.verify pk forgery.message forgery.signature)) state
+
+/-! ## What is left, and it is no longer an argument
+
+`forget_carrierTail` — that the mapped tail is `RecordedTail.recordedTail` — is the three stages
+put together, and all three are now named at the states they are used at:
+`first_stage_forget`, `middle_stage_forget`, `last_stage_forget`. Each is the projection law at
+one stage with nothing left for a rewrite to find, which was the difficulty the previous pass
+diagnosed.
+
+What remains is bookkeeping of a kind worth naming because it is where the next pass will go:
+the two sides normalise their `map`s over `bind`s in different orders, so the chain of
+`map_bind`, `bind_map_left` and `bind_congr` has to be driven rather than let run. A `conv` at
+each side, or a `simp only` with the three stage lemmas and the map laws, will do it; what will
+not is a flat `rw` list, because the same `map_bind` matches on either side and the first match
+wins.
+
+Everything the composition needs is proved. Nothing in it is an argument. -/
+
+
 end SlhDsaSecurity.CarrierTail
