@@ -151,8 +151,17 @@ theorem totalSecurityBits_of_warmed_halves
 
 `totalSecurityBits_of_warmed_halves` splits the target down the middle, `q / 2 ^ 128` each.
 That is the shape the two halves take when nothing is lost, and it has no room for the small
-defects the real charges carry: `2 ^ -141` from the coverage tape's load cap, `2 ^ -126` from
-the cap itself, and whatever discharging `HashSeparation.Possible` eventually costs.
+defects the real charges carry.
+
+**The two `2 ^ -1xx` terms are not both load-cap defects, and the naming here is of the
+superseded route.** In the live chain the coverage tape's cap costs `2 ^ -141`
+(`BlockViews.prob_not_goodBlock_le`, at the `2 ^ 103` cap) and that is the only load-cap defect
+spent. The `2 ^ -126` of `ForsConcentrationSharper.uniform_load_tail_sharper_of_le` — the
+*sharper* `2 ^ 102` cap's defect — has no live consumer; the `2 ^ -126` that appears in
+`Obligations.AnswerChargedLate` and in `Target.defects` is an **allowance the answer half does
+not spend**, since `AnswerJoin.answerRecordedBound_class_of_parts` proves
+`q / 2 ^ 128 + 1 / 2 ^ 141` and only weakens to the stated right-hand side. Whatever discharging
+`HashSeparation.Possible` costs is carried by `Target.prob_bad_walk` instead.
 
 The room exists, but not in the arithmetic — it is in the query count. Every hash call in the
 game is charged to `q`, key generation's included, and after the graph is walked the honest
