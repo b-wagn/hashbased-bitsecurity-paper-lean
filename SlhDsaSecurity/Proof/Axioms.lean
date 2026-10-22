@@ -15561,3 +15561,19 @@ info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail' depends on axi
 /-- info: 'SlhDsaSecurity.ChargedHalf.cached_forsQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedHalf.cached_forsQueries
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.count_le_of_budget_splitTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.count_le_of_budget_splitTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail
