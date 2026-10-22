@@ -24,9 +24,16 @@ two recorder tests, a notion of an entry being *settled*, a notion of its being 
 query*, and the rate, and asks of them only what the potential argument uses. The rate enters in
 one place: a fresh answer makes a given recorded entry disclosing with probability at most the
 rate. Nothing asks the right test to be the left one's complement in some class, or to have any
-shape at all: `hexcludes` — a query the right test keeps is one the left test does not — is the
-only link between the two, so a presentation that changes what the tests read changes the
-hypotheses it discharges and not the argument. Nothing in the core mentions a key, a seed or a `PRF_msg` input, so the carrier's served
+shape at all: `hexcludes` — a query the right test keeps at a cache where it is fresh has not
+already fired — is the only link between them, so a presentation that changes what the tests
+read changes the hypotheses it discharges and not the argument.
+
+**The test that files and the predicate that fires are two things**, and `Fired` reads the
+second. A filing test may be read at the state a query is made from and be false again later;
+a flag the signing oracle holds up while it serves is exactly that, and with one predicate in
+both roles "has fired" would be false at every step boundary and the charge would come out
+bounded for the wrong reason. Passing the same predicate twice recovers the cache-readable
+case, which is what the signer instantiation below does. Nothing in the core mentions a key, a seed or a `PRF_msg` input, so the carrier's served
 test will be another application of these lemmas rather than a rewrite of them; the key is named
 once, by whoever instantiates, and the convention there is the walk's.
 
@@ -80,9 +87,15 @@ decided, and `becomes` says this query decides it. The rate is whatever one entr
 
 namespace Served
 
-/-- The event: some target-recorded entry is disclosing. -/
-def Fired (left : Bytes → QueryCache HashSpec → Prop) (state : SplitState) : Prop :=
-  ∃ entry ∈ state.2.2, left entry.1 state.1
+/-- The event: some target-recorded entry is disclosing **at the end**.
+
+The predicate is `endKeep`, not the filing test. A filing test may be read at the state a query
+is made from and be false again later — a flag the signing oracle holds up while it serves is
+exactly that — and then "has fired" would be false at every step boundary and the charge would
+come out bounded for the wrong reason. What fires has to be monotone and readable at the end;
+what files has to be unforgeable. One predicate cannot be both. -/
+def Fired (endKeep : Bytes → QueryCache HashSpec → Prop) (state : SplitState) : Prop :=
+  ∃ entry ∈ state.2.2, endKeep entry.1 state.1
 
 /-- The gauge: how long the target recording is. -/
 def gauge (state : SplitState) : Nat := state.2.2.length
@@ -200,46 +213,46 @@ open scoped Classical in
 
 A query the left test keeps adds nothing to the target recording, so the gauge stands and the
 potential only loses what the query settles. A query the right test keeps adds one entry, which
-costs one unit of the rate — the new entry is not disclosing when it is filed, by `hexcludes`,
-so `hentry` bounds the chance this very answer discloses it. Everything else is the record's own
+costs one unit of the rate — the new entry has not fired when it is filed, by `hexcludes` at a
+cache where it is fresh, so `hentry` bounds the chance this very answer makes it fire. Everything else is the record's own
 loss, bounded by `hrecord`. -/
-theorem step_bound (left right : Bytes → QueryCache HashSpec → Prop)
+theorem step_bound (left right endKeep : Bytes → QueryCache HashSpec → Prop)
     (spent : QueryCache HashSpec → Bytes → Prop)
     (becomes : QueryCache HashSpec → Bytes → Bytes → Prop) (rate : ℝ≥0∞)
     (hexcludes : ∀ (input : Bytes) (cache : QueryCache HashSpec),
-      right input cache → ¬ left input cache)
+      cache input = none → right input cache → ¬ endKeep input cache)
     (hbecomes : ∀ (cache : QueryCache HashSpec) (input entry : Bytes),
       spent cache entry → becomes cache input entry)
     (hsettles : ∀ (cache : QueryCache HashSpec) (input entry : Bytes) (answer : HashOutput),
       cache input = none →
         (spent (cache.cacheQuery input answer) entry ↔ becomes cache input entry))
     (hleftSpent : ∀ (cache : QueryCache HashSpec) (entry : Bytes),
-      left entry cache → spent cache entry)
+      endKeep entry cache → spent cache entry)
     (hrecord : ∀ (cache : QueryCache HashSpec) (input : Bytes)
         (record : List (Bytes × HashOutput)), cache input = none →
-      (∀ entry ∈ record, ¬ left entry.1 cache) →
+      (∀ entry ∈ record, ¬ endKeep entry.1 cache) →
         Pr[fun answer : HashOutput => ∃ entry ∈ record,
-            left entry.1 (cache.cacheQuery input answer) |
+            endKeep entry.1 (cache.cacheQuery input answer) |
           ($ᵗ HashOutput : ProbComp HashOutput)] ≤
           (((record.filter (fun entry => decide (¬ spent cache entry.1 ∧
               becomes cache input entry.1))).length : Nat) : ℝ≥0∞) * rate)
     (hentry : ∀ (cache : QueryCache HashSpec) (input entry : Bytes),
-      ¬ left entry cache →
-        Pr[fun answer : HashOutput => left entry (cache.cacheQuery input answer) |
+      ¬ endKeep entry cache →
+        Pr[fun answer : HashOutput => endKeep entry (cache.cacheQuery input answer) |
           ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
     (state : SplitState) (input : Bytes) (hfresh : state.1 input = none)
-    (hnotfired : ¬ Fired left state) :
+    (hnotfired : ¬ Fired endKeep state) :
     ∃ bound after : Nat,
-      (∀ answer : HashOutput, ¬ Fired left (stepOf left right state input answer) →
+      (∀ answer : HashOutput, ¬ Fired endKeep (stepOf left right state input answer) →
           potential spent (stepOf left right state input answer) ≤ bound) ∧
         (∀ answer : HashOutput, gauge (stepOf left right state input answer) = after) ∧
           Pr[fun answer : HashOutput =>
-              Fired left (stepOf left right state input answer) |
+              Fired endKeep (stepOf left right state input answer) |
             ($ᵗ HashOutput : ProbComp HashOutput)] + ((bound : Nat) : ℝ≥0∞) * rate ≤
             ((potential spent state : Nat) : ℝ≥0∞) * rate +
               ((after - gauge state : Nat) : ℝ≥0∞) * rate := by
   classical
-  have hnot : ∀ entry ∈ state.2.2, ¬ left entry.1 state.1 :=
+  have hnot : ∀ entry ∈ state.2.2, ¬ endKeep entry.1 state.1 :=
     fun entry hentryMem hleft => hnotfired ⟨entry, hentryMem, hleft⟩
   have hpot : potential spent state =
       (state.2.2.filter (fun entry => decide (¬ spent state.1 entry.1 ∧
@@ -248,7 +261,7 @@ theorem step_bound (left right : Bytes → QueryCache HashSpec → Prop)
           decide (¬ becomes state.1 input entry.1))).length :=
     potential_split spent becomes hbecomes state.1 input state.2.2
   have hold : Pr[fun answer : HashOutput => ∃ entry ∈ state.2.2,
-        left entry.1 (state.1.cacheQuery input answer) |
+        endKeep entry.1 (state.1.cacheQuery input answer) |
       ($ᵗ HashOutput : ProbComp HashOutput)] ≤
       (((state.2.2.filter (fun entry => decide (¬ spent state.1 entry.1 ∧
           becomes state.1 input entry.1))).length : Nat) : ℝ≥0∞) * rate :=
@@ -276,16 +289,16 @@ theorem step_bound (left right : Bytes → QueryCache HashSpec → Prop)
           rw [appended_of_right left right input state answer hfresh hleft hright]
       have hsplit : ∀ answer : HashOutput,
           Pr[fun answer : HashOutput =>
-              Fired left (stepOf left right state input answer) |
+              Fired endKeep (stepOf left right state input answer) |
             ($ᵗ HashOutput : ProbComp HashOutput)] ≤
             Pr[fun answer : HashOutput => ∃ entry ∈ state.2.2,
-                left entry.1 (state.1.cacheQuery input answer) |
+                endKeep entry.1 (state.1.cacheQuery input answer) |
               ($ᵗ HashOutput : ProbComp HashOutput)] +
-              Pr[fun answer : HashOutput => left input (state.1.cacheQuery input answer) |
+              Pr[fun answer : HashOutput => endKeep input (state.1.cacheQuery input answer) |
                 ($ᵗ HashOutput : ProbComp HashOutput)] := fun _ => by
         refine le_trans (probEvent_mono (q := fun answer : HashOutput =>
-          (∃ entry ∈ state.2.2, left entry.1 (state.1.cacheQuery input answer)) ∨
-          left input (state.1.cacheQuery input answer))
+          (∃ entry ∈ state.2.2, endKeep entry.1 (state.1.cacheQuery input answer)) ∨
+          endKeep input (state.1.cacheQuery input answer))
           fun answer _ hfired => ?_) (probEvent_or_le _ _ _)
         obtain ⟨entry, hentryMem, hleftEntry⟩ := hfired
         rw [show (stepOf left right state input answer).2.2 =
@@ -305,10 +318,10 @@ theorem step_bound (left right : Bytes → QueryCache HashSpec → Prop)
           rw [hshape answer]
           simp
         · have hone : Pr[fun answer : HashOutput =>
-              left input (state.1.cacheQuery input answer) |
+              endKeep input (state.1.cacheQuery input answer) |
             ($ᵗ HashOutput : ProbComp HashOutput)] ≤ ((1 : Nat) : ℝ≥0∞) * rate := by
             rw [Nat.cast_one, one_mul]
-            exact hentry state.1 input input (hexcludes input state.1 hright)
+            exact hentry state.1 input input (hexcludes input state.1 hfresh hright)
           rw [hpot]
           refine le_trans (add_le_add (le_trans (hsplit default)
             (add_le_add hold hone)) le_rfl) ?_
@@ -324,7 +337,7 @@ theorem step_bound (left right : Bytes → QueryCache HashSpec → Prop)
           rw [hshape answer]
           simp
         · have hzero : Pr[fun answer : HashOutput =>
-              left input (state.1.cacheQuery input answer) |
+              endKeep input (state.1.cacheQuery input answer) |
             ($ᵗ HashOutput : ProbComp HashOutput)] = 0 :=
             probEvent_eq_zero fun answer _ hleftSelf => hself
               ((hsettles state.1 input input answer hfresh).mp
@@ -355,32 +368,32 @@ open scoped Classical in
 /-- **The ordering defect's rate, at the tests.** The run holds a target-recorded entry that it
 later made disclosing with probability at most one unit of the rate per entry of the target
 recording. -/
-theorem prob_fired_le (left right : Bytes → QueryCache HashSpec → Prop)
+theorem prob_fired_le (left right endKeep : Bytes → QueryCache HashSpec → Prop)
     (spent : QueryCache HashSpec → Bytes → Prop)
     (becomes : QueryCache HashSpec → Bytes → Bytes → Prop) (rate : ℝ≥0∞)
     (hexcludes : ∀ (input : Bytes) (cache : QueryCache HashSpec),
-      right input cache → ¬ left input cache)
+      cache input = none → right input cache → ¬ endKeep input cache)
     (hbecomes : ∀ (cache : QueryCache HashSpec) (input entry : Bytes),
       spent cache entry → becomes cache input entry)
     (hsettles : ∀ (cache : QueryCache HashSpec) (input entry : Bytes) (answer : HashOutput),
       cache input = none →
         (spent (cache.cacheQuery input answer) entry ↔ becomes cache input entry))
     (hleftSpent : ∀ (cache : QueryCache HashSpec) (entry : Bytes),
-      left entry cache → spent cache entry)
+      endKeep entry cache → spent cache entry)
     (hrecord : ∀ (cache : QueryCache HashSpec) (input : Bytes)
         (record : List (Bytes × HashOutput)), cache input = none →
-      (∀ entry ∈ record, ¬ left entry.1 cache) →
+      (∀ entry ∈ record, ¬ endKeep entry.1 cache) →
         Pr[fun answer : HashOutput => ∃ entry ∈ record,
-            left entry.1 (cache.cacheQuery input answer) |
+            endKeep entry.1 (cache.cacheQuery input answer) |
           ($ᵗ HashOutput : ProbComp HashOutput)] ≤
           (((record.filter (fun entry => decide (¬ spent cache entry.1 ∧
               becomes cache input entry.1))).length : Nat) : ℝ≥0∞) * rate)
     (hentry : ∀ (cache : QueryCache HashSpec) (input entry : Bytes),
-      ¬ left entry cache →
-        Pr[fun answer : HashOutput => left entry (cache.cacheQuery input answer) |
+      ¬ endKeep entry cache →
+        Pr[fun answer : HashOutput => endKeep entry (cache.cacheQuery input answer) |
           ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
     {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    Pr[fun result : α × SplitState => Fired left result.2 |
+    Pr[fun result : α × SplitState => Fired endKeep result.2 |
         (simulateQ (recorder left right) computation).run (cache, [], [])] ≤
       expected ((simulateQ (recorder left right) computation).run (cache, [], []))
         (fun result => result.2.2.2.length) * rate := by
@@ -389,11 +402,11 @@ theorem prob_fired_le (left right : Bytes → QueryCache HashSpec → Prop)
     (fun state => state.1) (stepOf left right)
     (run_inl left right) (run_inl_mass left right) (run_inr_cached left right)
     (run_inr_fresh left right) (run_mass left right)
-    (Fired left) (potential spent) gauge rate
+    (Fired endKeep) (potential spent) gauge rate
     (gauge_stepOf left right) (gauge_run left right)
     (fun state input hcache hnotfired =>
-      step_bound left right spent becomes rate hexcludes hbecomes hsettles hleftSpent hrecord
-        hentry state input hcache hnotfired)
+      step_bound left right endKeep spent becomes rate hexcludes hbecomes hsettles hleftSpent
+        hrecord hentry state input hcache hnotfired)
     computation (cache, [], [])
     (by rintro ⟨entry, hentryMem, -⟩; simp at hentryMem)
   simpa [potential, gauge] using hmain
@@ -440,8 +453,8 @@ theorem prob_lateDisclosure_le (prfSeed : Digest) (pk : PublicKey)
           computation).run (cache, [], []))
         (fun result => result.2.2.2.length) * rate :=
   Served.prob_fired_le (disclosingKeep prfSeed pk) (targetKeep prfSeed pk)
-    (Spent prfSeed pk) (BecomesSpent prfSeed pk) rate
-    (fun _ _ hkeep => hkeep.2)
+    (disclosingKeep prfSeed pk) (Spent prfSeed pk) (BecomesSpent prfSeed pk) rate
+    (fun _ _ _ hkeep => hkeep.2)
     (fun cache input entry hspent => becomesSpent_of_spent prfSeed pk cache input entry hspent)
     (fun cache input entry answer hfresh =>
       spent_cacheQuery_iff prfSeed pk cache input entry answer hfresh)
