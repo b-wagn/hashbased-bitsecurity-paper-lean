@@ -208,7 +208,13 @@ message input to the forgery's digest alone — which lives in another file. Sta
 that weakening will have, so the two meet by `exact` when it lands. -/
 
 /-- **The narrowing's leftover, at the forgery alone.** The forgery's published randomiser is the
-signer's `PRF_msg` seed. One object, one guess, one constant. -/
+signer's `PRF_msg` seed.
+
+One object, which is what makes it statable at the paired run at all — but **not one unit**. The
+randomiser a signature publishes is `Hashing.truncate` of the oracle's answer at the seed's own
+`PRF_msg` input (`ObligationShapes.publishedRandomizer_eq_truncate`), so one signing request
+makes the seed checkable at one candidate per query. The shared half charges it at `seedUnits`,
+not at `1`. -/
 def ForgerySeedRandomised (prfSeed : Digest) (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec) : Prop :=
   ∃ (message : Bytes) (parsed : Signature),

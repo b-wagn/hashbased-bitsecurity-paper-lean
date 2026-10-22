@@ -181,9 +181,19 @@ tweakable at `PK.seed` bar its one digest call. What survives is the adversary's
 the digest overlap, which is carried.
 
 **The overlap has two sources and they are charged differently.** The verifier's is the
-forgery's own randomiser being `SK.prf`, which is one guess at the seed and nothing more; so it
-is folded into the record as one extra element rather than named as a separate case, and the
-same deferral that pays for the adversary's own queries pays for it at one more unit. The
+forgery's own randomiser being `SK.prf`; it is folded into the record as one extra element
+rather than named as a separate case, and the same deferral that pays for the adversary's own
+queries pays for it at one more unit.
+
+**The `+ 1` is right as a *count*, and not because the adversary gets one guess at the seed.**
+A guess at `SK.prf` is checkable — a signature publishes `Hashing.truncate` of the answer at the
+seed's own `PRF_msg` input — so "one object, one unit" is not an argument anywhere in this
+development, and `ObligationShapes`' section on why `seedUnits` is not `1` is where that was
+settled. What makes the `+ 1` sound *here* is that it is literally **one query**, the verifier's
+digest call, and the deferral pays per recorded query: with the seed drawn after the run, every
+recorded input hits it with probability `2 ^ -128` whether the adversary chose that input or
+not, so being able to test buys nothing. Anyone restating this should preserve the count; the
+unit is not a budget for a guess. The
 signer's is an *answer* hitting the seed — the randomiser it derived for a request it served
 happening to be `SK.prf` — and that is a different kind of event, chargeable against the run's
 own randomness without any deferral, so it is named and charged separately below.

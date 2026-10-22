@@ -400,14 +400,19 @@ theorem strippedKeygen_adds_nothing (publicSeed : Digest)
 
 /-! ## Counting the aiming probes against the record's aiming part
 
-**Nothing in the input half uses anything from here to the end of the containment.** The count
-below — and `aimCount_*`, `weight_le_recordAim*`, and the honest-phase lemmas they rest on —
-was written to pay the half against the record's **canonical part**. That count is slack:
-`RoutedSplit.InputBad` is an existential over the forgery's `259` claims and quantifies over no
-probe of the run, so the half owes a constant and spends no part of the record. What would use
-this again is a split that moved the run's own sensitive queries into the input bullet; that
-version's weight is exactly `weight_le_recordAim_at`, already proved against the part the join
-carries. It is all true and all proved; it is simply not on the half's path today.
+**Nothing on the half's path uses anything from here to the end of the containment today — but
+not because the half owes a constant.** It does not. `InputBullet` at the end of this file pays
+`expected (card recordAiming) + 259`, because a claimed cell is checkable against the
+authentication path and the adversary's chances are its queries. The record's aiming part *is*
+precisely the probes whose address locates a cell, which is to say precisely those tests, so
+that expected count is the half's payment and this machinery is where to look first when
+`InputBullet.ClaimsCharged` is proved.
+
+What has no consumer is the particular route. `aimCount_*`, `weight_le_recordAim*` and the
+honest-phase lemmas they rest on were written to pay the half against the record's **canonical**
+part, and they bound the handler's own probe list rather than the run's recorded multiset. It is
+all true and all proved; `weight_le_recordAim_at` is the one already stated against the part the
+join carries, and it is the one to reach for.
 
 The weight is a count of the handler's list; the budget pays out of the run's recorded multiset.
 Both sides are counted by the same test, and a step moves them together: a hash call appends one
@@ -1020,13 +1025,16 @@ theorem closed_disclosedByLog [HasQuery HashSpec Id] (secretSeed publicSeed : Di
       (ServedLog.disclosedByLog pk state) (.structural parent) :=
   available_of_children_available _ _ hchildren
 
-/-! ## Why the claims charge stands alone, and the run that looks like it breaks it
+/-! ## What `hclosed` rules out, and the test it does not rule out
 
-**The objection, which is worth stating because it will be re-proposed.** An adversary queries
-the canonical input of an unavailable node, reads the cell off the answer, claims it, and
-`InputBad` holds with probability one — so no constant bound on it can be right.
+**The half does not owe a constant.** This section exists so that nobody re-derives that it
+does, which is easy to do from `hclosed` alone and is how the earlier version of this text went
+wrong. Two questions get asked at once here and they have different answers: *can the adversary
+read an unavailable cell off an answer* — no, and `hclosed` is why — and *can it guess one and
+find out whether it guessed right* — yes, at one query per candidate, and that is what makes the
+charge `q`-shaped.
 
-**It cannot do that, and the reason is in the charge's first hypothesis.** A node's canonical
+**Reading a cell off an answer is impossible, and `hclosed` is why.** A node's canonical
 input *contains its children's cells as its payload*:
 `canonicalInput publicSeed cells parent = tweakableInput publicSeed parent.address
 (childBytes cells parent.children)`. So forming that input already requires holding the children's
@@ -1035,16 +1043,26 @@ contrapositive of `hclosed`, the closure hypothesis every charge here takes — 
 requires an unavailable cell. The recursion bottoms out at the secret seed, which no signature
 discloses. "Query it and read the cell off" presupposes the cell it was supposed to produce.
 
-What the adversary can do instead is **guess**: write `tweakableInput publicSeed addr payload`
-with a payload it hopes is the cell. The handler serves a canonical answer only where
+**Guessing is possible, and the guess is checkable, which is the half's whole cost.** The
+adversary writes `tweakableInput publicSeed addr payload` with a payload it hopes is the cell.
+Inside the handler that teaches it nothing: a canonical answer is served only where
 `OpenCache.openCache publicSeed (availableAt state) table` has one, which by `hclosed` is only
-where every child is available — so at an unavailable node it draws fresh and the run learns
-nothing. A lucky guess lower down cannot cascade upward either, for the same reason: serving the
-node above needs the node below available.
+where every child is available, so at an unavailable node it draws fresh, and a lucky guess
+lower down cannot cascade upward either, since serving the node above needs the node below
+available. But the handler is not the adversary's only source. A FORS signature **publishes**
+the level-0 sibling `F(PK.seed ‖ ADRS ‖ sk)` of a secret it did not reveal and whose cell is
+unavailable: the adversary queries `F(PK.seed ‖ ADRS ‖ x)` for a candidate `x` and compares with
+that published sibling. One query per candidate, and on a hit it places the recovered secret
+among its claims and `InputBad` holds with certainty.
 
-**So the claims charge is sound on its own and `hclosed` is what makes it so.** The probes' own
-weight pays for a different event — that some *probe* of the run is sensitive — and
-`RoutedSplit.InputBad` does not quantify over the run's probes at all. -/
+**So `hclosed` does not make the charge a constant, and nothing else does either.** The `259`
+claims `InputBad` quantifies over are the forgery's *outputs*; a guess that can be checked costs
+the adversary its queries, and counting outputs instead is wrong by a factor of `q`.
+`InputBullet` at the end of this file therefore pays
+`expected (card recordAiming) + 259` over `2 ^ 128`, with the expected count paying for exactly
+these tests. `InputBullet.bullet_of_bound` keeps the constant-hypothesis implication, because it
+is true and costs nothing; what is false is that anything proves its hypothesis, and in
+particular `hclosed` does not. -/
 
 /-! ## The shape this half owes the join
 
