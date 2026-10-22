@@ -166,12 +166,31 @@ are the record. Key generation's are canonical, and a canonical input is not a m
 once the key is no coincidence. The signer asks at canonical inputs, at its request's own
 `PRF_msg` input — which the narrowing excludes — and at its request's own digest input.
 
-That last one is the branch left standing, and it is left standing for a reason worth stating.
-The signer's digest query is signer-randomised at the moment it is made, by the answer it has
-just drawn, so the left test takes it and the right recording never holds it. What the present
-API cannot say is *at which cache* a query inside a sub-run is made: provenance names the input
-and the party, and `HonestProbes` names the probes of a replayed path, but neither hands back
-the cache in force at the step. So the fact is true, and it is named rather than assumed away. -/
+That last one is the branch left standing, and it is left standing for a reason worth stating
+exactly, because getting it wrong is what made the first version of the hypothesis false.
+
+**Replay is faithful to a run only at the run's final cache.** That is the invariant inside
+`CacheReplay.cached_of_queriesUnder` — each query's answer is in the final cache, so replaying
+there reproduces the continuations the run took — and it is why provenance is stated at
+`result.2`. At any *intermediate* cache the replay diverges, since a miss replays to `default`.
+That divergence is not an aside: it is the whole of the counterexample in
+`ObligationShapes`, where the replayed randomiser of a message that was never signed is the
+fixed constant `truncate default`, which an adversary can compute and query.
+
+So the three settled cases are settled because they read the **input alone** — "not
+message-class" and "in the `PRF_msg` class at the real seed" are predicates on bytes, and a
+replay-at-the-final-cache statement settles them with the cache never entering. The digest case
+is the one that reads the **state**, and it has to be read at the step the query was made at.
+`SignerDigestStep.signerRandomised_digest` is that fact about the run, and it costs two
+unfoldings rather than an induction, because `Scheme.signInternal`'s randomiser and digest
+queries are adjacent and the second's input is built from the first's answer.
+
+What is still missing is the bridge between them: provenance names the party that installed an
+entry, `SplitPrefix.right_record_witness` names the cache the recorder filed it at, and nothing
+yet says these are the same step. They are — an input is installed exactly once, and both
+lemmas speak of that occasion — but neither hands back an object the other can be matched
+against. That is the same discipline `ProbeContainment.claimsOf_carrier` keeps on the input
+half: entries and the state they are read at, instantiated at one object. -/
 
 /-- The secret key the walk's seeds generate, read from the run's own cache. -/
 noncomputable def secretKeyOf (pair : LateProbes.SplitPair) : SecretKey :=
@@ -179,22 +198,31 @@ noncomputable def secretKeyOf (pair : LateProbes.SplitPair) : SecretKey :=
     pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2).1
 
 /-- **The branch provenance leaves**: no target-recorded input is a served request's own digest
-input. True because such a query is signer-randomised when it is made, and so is taken by the
-left test.
+input.
 
-It is named here because the left test reads the *cache*, and what the cache says at the step a
-sub-run is in the middle of is not something the probe lemmas report. A left test that reads the
-handler's **flag** instead says it outright: the flag is set for as long as the request is being
-served, so the digest query meets the test at the state it is made from, with no ordering to
-establish and no cache to consult. That is what retires this hypothesis rather than a
-step-indexed reading of the probe lemmas, which would be a second framework saying the same
-thing about a test that is being replaced. -/
+**The guard is not decoration, and its absence made the earlier version false.**
+`HonestProbes.replayRandomizer` reads the randomiser off the final cache through
+`CacheReplay.replay`, which answers a miss with `default`. Without the guard the statement
+therefore says something about `messageInput (truncate default) pk m` for every `m`, including
+messages never signed — a byte string the adversary can compute and query, and
+`ObligationShapes.targetKeep_default` shows the target test takes it. A one-query adversary
+refuted it. The guard says the final cache really does hold the request's `PRF_msg` answer, so
+the replayed randomiser is the signer's own and not a fabricated constant; it is supplied where
+this is used, from `PhaseProvenance.SignerMade`'s second conjunct, which carries exactly that
+from where the sub-run was in hand.
+
+What remains is true for the reason the old docstring gave — such a query is signer-randomised
+when it is made, so the left test takes it — and what is still missing to prove it is named in
+the section note above: the cache in force at a step inside a sub-run. Guarded, its only
+counterexample is the ordering defect itself, which is what `LateProbes.Ordering` charges. -/
 def SignerDigestFree (adversary : Adversary) : Prop :=
   ∀ pair ∈ support (LateProbes.pairedOf FusedCoverage.fusedTail adversary),
     ∀ entry ∈ pair.2.2.2.2, ∀ framed : Bytes,
-      entry.1 ≠ Hashing.messageInput
-        (HonestProbes.replayRandomizer pair.2.2.1 (secretKeyOf pair) framed)
-        (secretKeyOf pair).publicKey framed
+      pair.2.2.1 (Hashing.randomizerInput (secretKeyOf pair).prf
+          (secretKeyOf pair).publicKey.seed framed) ≠ none →
+        entry.1 ≠ Hashing.messageInput
+          (HonestProbes.replayRandomizer pair.2.2.1 (secretKeyOf pair) framed)
+          (secretKeyOf pair).publicKey framed
 
 set_option maxHeartbeats 1000000 in
 /-- **Every target-recorded input is a query the record holds.** -/
@@ -253,7 +281,9 @@ theorem hrecord_of_signerDigestFree (adversary : Adversary)
         · refine absurd ⟨keys.1.publicKey.seed, framed, ?_⟩ hnarrow.2
           rw [hrandomiser, show keys.1.prf = walk.1.1.2.1 from by
             rw [hkeys]; exact keygen_prf result.2.1 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2]
-        · refine absurd ?_ (hsigner (walk, result) hpair entry hentry framed)
-          rw [hdigest, hsk]
+        · refine absurd ?_ (hsigner (walk, result) hpair entry hentry framed ?_)
+          · rw [hdigest, hsk]
+          · rw [← hsk]
+            exact hmade.2 framed hframe
 
 end SlhDsaSecurity.LateProvenance

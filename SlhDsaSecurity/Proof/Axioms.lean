@@ -11927,22 +11927,22 @@ info: 'SlhDsaSecurity.RecorderView.left_recordOf_endKeep_final' depends on axiom
 #print axioms SlhDsaSecurity.RecorderView.left_recordOf_endKeep_final
 
 /--
-info: 'SlhDsaSecurity.CarriedWitness.cacheOf_servingUpdate' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CarriedWitness.cacheOf_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.CarriedWitness.cacheOf_servingUpdate
+#print axioms SlhDsaSecurity.CarriedWitness.cacheOf_servingNotice
 
 /--
-info: 'SlhDsaSecurity.CarriedWitness.served_servingUpdate_self' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CarriedWitness.served_servingNotice_self' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.CarriedWitness.served_servingUpdate_self
+#print axioms SlhDsaSecurity.CarriedWitness.served_servingNotice_self
 
 /--
-info: 'SlhDsaSecurity.CarriedWitness.served_servingUpdate' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CarriedWitness.served_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.CarriedWitness.served_servingUpdate
+#print axioms SlhDsaSecurity.CarriedWitness.served_servingNotice
 
 /--
 info: 'SlhDsaSecurity.CarriedWitness.mem_served_of_mem_leftRecord' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -11987,6 +11987,66 @@ info: 'SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord
+
+/-- info: 'SlhDsaSecurity.RecorderView.cacheOf_onQuery' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.cacheOf_onQuery
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inl
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_eq
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_some' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_some
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_none
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.framing_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.framing_servingNotice
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.filesLeft_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.filesLeft_servingNotice
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.served_cacheAnswer_iff' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.served_cacheAnswer_iff
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticing_left_recordOf_endKeep_final' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticing_left_recordOf_endKeep_final
 
 /--
 info: 'SlhDsaSecurity.SignerDigestStep.signInternalAt_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
