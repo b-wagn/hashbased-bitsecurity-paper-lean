@@ -16549,3 +16549,11 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 /-- info: 'SlhDsaSecurity.ServingCounted.withCount_servingUncounted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingCounted.withCount_servingUncounted
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.splitOf_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.splitOf_servingNotice
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf
