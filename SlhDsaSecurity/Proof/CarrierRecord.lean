@@ -107,8 +107,11 @@ lemmas carry views rather than cache values.
 
 Each stage is read at its *own* cache. Nothing here needs an entry filed early to survive to the
 end, because every fact a branch uses is a fact about the stage that filed it. -/
-theorem hrecord (adversary : Adversary) :
-    ∀ pair ∈ support (LateProbes.pairedOf (carrierTail carrierRightKeep) adversary),
+theorem hrecord (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (hright : ∀ (walk : Walk) (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep walk input view → carrierRightKeep walk input view)
+    (adversary : Adversary) :
+    ∀ pair ∈ support (LateProbes.pairedOf (carrierTail rightKeep) adversary),
       Target.GoodWalk pair.1 → ∀ entry ∈ pair.2.2.2.2,
         entry.1 ∈ SharedJoin.recordOf (LateProbes.forgetRecordings pair) := by
   classical
@@ -118,9 +121,10 @@ theorem hrecord (adversary : Adversary) :
   have hpublic := AnswerSide.not_possible_generatedKey hwalk hgood.2
   -- The entry is of the message class, because the target test keeps nothing else.
   have hmessage : CombinedCharge.IsMessageInput (keyAt walk) entry.1 :=
-    CarrierTailRecordings.recordClass_carrierTail carrierRightKeep
+    CarrierTailRecordings.recordClass_carrierTail rightKeep
       (fun walk input => CombinedCharge.IsMessageInput (keyAt walk) input)
-      (fun walk input view hright => carrierRightKeep_class walk input view hright)
+      (fun walk input view hkeep =>
+        carrierRightKeep_class walk input view (hright walk input view hkeep))
       adversary walk result hresult entry hentry
   -- The tail, split at its three sequencing points.
   rw [carrierTail, mem_support_bind_iff] at hresult
@@ -130,21 +134,21 @@ theorem hrecord (adversary : Adversary) :
   rw [mem_support_bind_iff] at hrest2
   obtain ⟨final, hfinal, hpure⟩ := hrest2
   rw [support_pure, Set.mem_singleton_iff] at hpure
-  have hprf : keys.1.1.prf = walk.1.1.2.1 := keys_prf carrierRightKeep walk hwalk keys hkeys
+  have hprf : keys.1.1.prf = walk.1.1.2.1 := keys_prf rightKeep walk hwalk keys hkeys
   have hpk : keys.1.1.publicKey = keyAt walk :=
-    keys_publicKey carrierRightKeep walk hwalk keys hkeys
+    keys_publicKey rightKeep walk hwalk keys hkeys
   have hrecordEq : result.1.1.2 = (Multiplicative.toAdd middle.2.1).2 + final.1.2.2 := by
     rw [hpure]
   rw [show result.2 = forgetCarrier final.2 from by rw [hpure]] at hentry
   show entry.1 ∈ result.1.1.2
   rw [hrecordEq]
-  rcases verify_right_record (keyAt walk) (carrierRightKeep walk) keys.1.2 middle.1.message
+  rcases verify_right_record (keyAt walk) (rightKeep walk) keys.1.2 middle.1.message
       middle.1.signature middle.2.2.2 final hfinal entry hentry with hphaseMem | hrec
-  · rcases right_record_phase (keyAt walk) (carrierRightKeep walk) keys.1.1
+  · rcases right_record_phase (keyAt walk) (rightKeep walk) keys.1.1
         (adversary.main keys.1.2) (1 : Multiplicative Tally) [] keys.2 middle hmiddle
         middle.2.2.2.1.cache (fun _ _ hprobe => hprobe) entry hphaseMem with hkeyMem | hsource
     · -- Key generation's probes are canonical, which a message input is not.
-      rcases keygen_right_record (keyAt walk) (carrierRightKeep walk) walk.1.1.1 walk.1.1.2.1
+      rcases keygen_right_record (keyAt walk) (rightKeep walk) walk.1.1.1 walk.1.1.2.1
           walk.1.1.2.2 (startAt walk.2, (([], []), 0)) keys hkeys keys.2.1.cache
           (fun _ _ hprobe => hprobe) entry hkeyMem with hstart | hkeygenQuery
       · exact absurd hstart (by simp)
@@ -159,7 +163,7 @@ theorem hrecord (adversary : Adversary) :
           ⟨mid, answer, -, -, -, hkeep, hframing, hqueries⟩⟩
       · exact Multiset.mem_add.mpr (Or.inl hrecMem)
       · -- The signer's own randomiser probe, refuted at the view it was filed at.
-        refine absurd hviewKeep ?_
+        refine absurd (hright walk entry.1 view hviewKeep) ?_
         rw [hrandomiser, hprf, hpk]
         exact not_carrierRightKeep_randomizerInput walk view framed hviewFraming
       · -- Its digest probe, refuted at the carrier the sub-run reached.
@@ -169,8 +173,9 @@ theorem hrecord (adversary : Adversary) :
         · obtain ⟨randomizer, message, hinput⟩ := hmessage
           exact absurd (hinput ▸ hparent)
             (HashSeparation.message_tweakable_ne hpublic (withinBounds_structural parent))
-        · exact absurd hkeep (not_carrierRightKeep_digest walk keys.1.1 hpk framed answer mid
-            hframing entry hdigest)
+        · exact absurd (hright walk entry.1 _ hkeep)
+            (not_carrierRightKeep_digest walk keys.1.1 hpk framed answer mid hframing entry
+              hdigest)
   · exact Multiset.mem_add.mpr (Or.inr hrec)
 
 end SlhDsaSecurity.CarrierRecord

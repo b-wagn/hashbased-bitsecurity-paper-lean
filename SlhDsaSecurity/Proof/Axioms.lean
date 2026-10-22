@@ -14859,3 +14859,11 @@ info: 'SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.chargedRightKeep_left' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.chargedRightKeep_left
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep

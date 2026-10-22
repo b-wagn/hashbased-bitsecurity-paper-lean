@@ -27,6 +27,12 @@ part of the assembly has to be revisited then.
 
 Both lemmas are stated for an arbitrary `LateProbes.FusedTail`. The instantiation at the carrier
 tail follows, for the containment, which is the half whose inputs exist.
+
+The carrier instantiation is stated at **any** test implying
+`AnswerCarrier.carrierRightKeep`, because the charge one layer down needs a strictly stronger
+one: `CarrierCharge.chargedRightKeep` adds the exclusion the step bound asks for. A stronger test
+only shrinks the recording, so both recording invariants and `hrecord` hold at it with the
+implication threaded through and nothing reproved.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -110,27 +116,30 @@ invariants were stated at the tail's own final state, which is the object the hy
 
 set_option maxHeartbeats 1000000 in
 /-- **The carrier tail's probes sit inside the join's message-class part.** -/
-theorem probes_le_recordMessageClass_carrierTail (adversary : Adversary)
-    (hforget : LateProbes.ForgetsTo (CarrierTail.carrierTail AnswerCarrier.carrierRightKeep)
-      adversary) :
-    ∀ pair ∈ support (LateProbes.pairedOf
-        (CarrierTail.carrierTail AnswerCarrier.carrierRightKeep) adversary),
+theorem probes_le_recordMessageClass_carrierTail
+    (rightKeep : BracketedRun.Walk → Bytes → HandlerCarrier.State → Prop)
+    (hright : ∀ (walk : BracketedRun.Walk) (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep walk input view → AnswerCarrier.carrierRightKeep walk input view)
+    (adversary : Adversary)
+    (hforget : LateProbes.ForgetsTo (CarrierTail.carrierTail rightKeep) adversary) :
+    ∀ pair ∈ support (LateProbes.pairedOf (CarrierTail.carrierTail rightKeep) adversary),
       LateProbes.probes pair ≤
         SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair) := by
   classical
-  refine probes_le_recordMessageClass hforget ?_ ?_ (CarrierRecord.hrecord adversary)
+  refine probes_le_recordMessageClass hforget ?_ ?_
+    (CarrierRecord.hrecord rightKeep hright adversary)
   · intro pair hpair
     obtain ⟨walk, hwalk, result, hresult, hvalue⟩ := LateProbes.mem_support_pairedOf hpair
     subst hvalue
-    exact (CarrierTailRecordings.recordFreshNodup_carrierTail AnswerCarrier.carrierRightKeep
+    exact (CarrierTailRecordings.recordFreshNodup_carrierTail rightKeep
       adversary walk result hresult).2
   · intro pair hpair entry hentry
     obtain ⟨walk, hwalk, result, hresult, hvalue⟩ := LateProbes.mem_support_pairedOf hpair
     subst hvalue
-    exact CarrierTailRecordings.recordClass_carrierTail AnswerCarrier.carrierRightKeep
+    exact CarrierTailRecordings.recordClass_carrierTail rightKeep
       (fun walk input => CombinedCharge.IsMessageInput (CarrierTail.keyAt walk) input)
-      (fun walk input view hright =>
-        AnswerCarrier.carrierRightKeep_class walk input view hright)
+      (fun walk input view hkeep =>
+        AnswerCarrier.carrierRightKeep_class walk input view (hright walk input view hkeep))
       adversary walk result hresult entry hentry
 
 end SlhDsaSecurity.BracketedOrdering

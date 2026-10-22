@@ -305,4 +305,57 @@ theorem prob_fired_le_threeStage (rightKeep : Bytes → HandlerCarrier.State →
     (neutral_of_bracket prfSeed key spent hafterMap)
     inner first phase last outcome firedFinal gaugeFinal hfiredFinal hgaugeFinal start hstart
 
+/-! ## What the target test has to exclude, and why the carrier's own does not
+
+The step bound's first hypothesis on the cache route is
+`LateRate.Served.step_bound`'s `hexcludes`: an entry the right test keeps at a cache where it is
+fresh **has not already fired**. Without it an entry could be filed already disclosing, and then
+it fires at probability one and no rate pays for it.
+
+On the cache route that hypothesis is free, because `SplitWitness.Served.targetKeep` *is*
+`narrow ∧ ¬ served` and `served` is the same predicate as `endKeep`. The target test excludes
+exactly what fires.
+
+**At the carrier it is not free, and this is the one place the two routes genuinely differ.**
+`AnswerCarrier.carrierRightKeep`'s exclusion is `¬ CarriedWitness.disclosingKeep`, which is the
+**flag** — `HandlerCarrier.FilesLeft`, read off the framing in flight. What fires is the
+**cache-side** disclosure, `SplitWitness.disclosingKeep`, read off the randomiser entry; and a
+view can have the flag down while the cache already discloses. So an entry can be target-filed
+while already disclosing, and the carrier's test does not rule it out.
+
+The run never actually reaches such a view — the signer caches a request's randomiser and its
+digest inside one sub-run, so after the sub-run the digest is not fresh, and an adversary cannot
+cache a randomiser input without `SK.prf` — but that is a *run invariant*, conditional on the
+seed event, and it would un-retire the seed charge this route just discharged.
+
+**So the test the charge is instantiated at carries the exclusion, exactly as the cache route's
+does.** That is not a weakening of the carrier's test: it only shrinks the recording, so every
+fact already proved about it — `AnswerCarrier.carrierRightKeep_class`,
+`CarrierRecord.not_carrierRightKeep_digest`, `AnswerCarrier.not_carrierRightKeep_randomizerInput`
+— survives by projecting the first conjunct, and `hrecord` and the two recording invariants go
+through unchanged. -/
+
+/-- **The target test the charge needs**: the carrier's own, and not already disclosing at the
+view's cache. -/
+def chargedRightKeep (prfSeed : Digest) (key : PublicKey)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop) (input : Bytes)
+    (state : HandlerCarrier.State) : Prop :=
+  rightKeep input state ∧ ¬ SplitWitness.disclosingKeep prfSeed key input state.cache
+
+/-- **It is the carrier's test**, so everything proved about that test still applies. -/
+theorem chargedRightKeep_left (prfSeed : Digest) (key : PublicKey)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop) (input : Bytes)
+    (state : HandlerCarrier.State)
+    (hkeep : chargedRightKeep prfSeed key rightKeep input state) : rightKeep input state :=
+  hkeep.1
+
+/-- **And the exclusion the step bound asks for is free at it**, by construction and with no run
+invariant and no charge. -/
+theorem not_disclosing_of_chargedRightKeep (prfSeed : Digest) (key : PublicKey)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop) (input : Bytes)
+    (state : HandlerCarrier.State)
+    (hkeep : chargedRightKeep prfSeed key rightKeep input state) :
+    ¬ SplitWitness.disclosingKeep prfSeed key input state.cache :=
+  hkeep.2
+
 end SlhDsaSecurity.CarrierCharge
