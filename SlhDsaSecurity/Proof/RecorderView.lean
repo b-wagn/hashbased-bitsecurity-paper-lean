@@ -158,7 +158,12 @@ theorem appendedOf_of_neither (leftKeep rightKeep : Bytes → σ → Prop) (inpu
   rw [appendedOf, if_neg (fun hboth => hleft hboth.2), if_neg (fun hboth => hright hboth.2)]
 
 open scoped Classical in
-/-- **The recorder at a general view.** The two branches are the shared oracle's own — a hit
+/-- **The recorder at a general view.** See `noticingRecorderOf` for the widening that tells the
+view about *every* query rather than only the ones it drew; a view with something to record
+about a cache hit needs that one, and at a view that notices nothing the two are the same query
+implementation.
+
+The two branches are the shared oracle's own — a hit
 returns the cached answer and leaves the state, a miss draws and installs — so at the cache this
 is `SplitPrefix.recorder` and not merely something with its law. -/
 noncomputable def recorderOf (leftKeep rightKeep : Bytes → σ → Prop) :

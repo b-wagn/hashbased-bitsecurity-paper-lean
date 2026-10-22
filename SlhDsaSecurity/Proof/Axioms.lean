@@ -198,6 +198,7 @@ import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.SignerRightRecord
+import SlhDsaSecurity.Proof.PhaseRightRecord
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -12108,6 +12109,54 @@ info: 'SlhDsaSecurity.SignerRightRecord.sign_right_record' depends on axioms: [p
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SignerRightRecord.sign_right_record
+
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.appended_right_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.appended_right_mem
+
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.recorderRun_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.recorderRun_bind
+
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.persists_of_mem_recorderRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.persists_of_mem_recorderRun
+
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.simulateQ_worldQuery' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.simulateQ_worldQuery
+
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.right_record_adversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.right_record_adversaryImpl
+
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record
+
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record_right' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.RightSource.mono_record_right
+
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.right_record_phase' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.right_record_phase
 
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
