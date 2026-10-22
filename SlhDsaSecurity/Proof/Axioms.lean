@@ -12007,6 +12007,18 @@ info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_eq' depends on axioms: [pr
 #print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_eq
 
 /--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_some' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_some
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_none
+
+/--
 info: 'SlhDsaSecurity.CarriedWitness.framing_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in

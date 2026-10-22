@@ -752,6 +752,43 @@ theorem noticingRecorderOf_eq (leftKeep rightKeep : Bytes → σ → Prop)
     rw [hblind state.1 input]
     rfl
 
+/-! ### The two step laws a potential charge reads
+
+`PotentialCharge.prob_fired_le` is already generic in the state and the implementation: it asks
+for a cached branch and a fresh branch in closed form and nothing else about the oracle. These
+are those two branches for the recorder that notices. The only difference from `recorderOf`'s
+is in the **cached** one — where that oracle returns the state untouched, this one returns the
+noticed state — so a charge stated against these two reads one extra parameter and is otherwise
+the argument already proved. -/
+
+open scoped Classical in
+theorem noticingRecorderOf_run_inr_some (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (cached : HashOutput)
+    (hcached : CacheView.cacheOf state.1 input = some cached) :
+    ((noticingRecorderOf leftKeep rightKeep) (Sum.inr input)).run state =
+      (pure (cached, (CacheView.onQuery state.1 input,
+        appendedOf leftKeep rightKeep input (CacheView.onQuery state.1 input, state.2) cached)) :
+        ProbComp (OracleWorld.Range (Sum.inr input) × StateOf σ)) := by
+  classical
+  rw [noticingRecorderOf_run_inr]
+  exact recorderOf_run_inr_some leftKeep rightKeep input
+    (CacheView.onQuery state.1 input, state.2) cached (by rw [cacheOf_onQuery]; exact hcached)
+
+open scoped Classical in
+theorem noticingRecorderOf_run_inr_none (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (hfresh : CacheView.cacheOf state.1 input = none) :
+    ((noticingRecorderOf leftKeep rightKeep) (Sum.inr input)).run state =
+      (((fun answer => (answer,
+        (CacheView.update (CacheView.onQuery state.1 input) input answer,
+          appendedOf leftKeep rightKeep input
+            (CacheView.onQuery state.1 input, state.2) answer))) <$>
+        ($ᵗ HashOutput : ProbComp _)) :
+          ProbComp (OracleWorld.Range (Sum.inr input) × StateOf σ)) := by
+  classical
+  rw [noticingRecorderOf_run_inr]
+  exact recorderOf_run_inr_none leftKeep rightKeep input
+    (CacheView.onQuery state.1 input, state.2) (by rw [cacheOf_onQuery]; exact hfresh)
+
 /-! ### What its recordings satisfy at the end
 
 The filing test is read at the state the notice has already reached, which is the whole point:
