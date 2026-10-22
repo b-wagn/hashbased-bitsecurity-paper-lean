@@ -311,12 +311,13 @@ open WalkTable TableTail in
 two handlers at the **same** table, so they carry the same key and the key's dependence on the
 table never enters. -/
 theorem lenient_servingProgram_keysOf (prfSeed publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) :
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop) :
     HandlerFacts.Lenient publicSeed availableAt
       (fun table => servingProgram publicSeed (keysOf prfSeed publicSeed table).2
         (fun _ _ => True) table)
       (fun table =>
-        servingProgram publicSeed (keysOf prfSeed publicSeed table).2 availableAt table) where
+        servingProgram publicSeed (keysOf prfSeed publicSeed table).2 (availableAt table)
+          table) where
   agree table queried state hnot :=
     (HandlerFacts.lenient_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
       availableAt).agree table queried state hnot

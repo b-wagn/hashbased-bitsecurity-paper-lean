@@ -33,32 +33,32 @@ open CanonicalGraph SensitiveQuery OpenCache ChargedProbe HandlerFacts
 open scoped Classical in
 /-- The handler, with a flag set at a query where the two availabilities can differ. -/
 noncomputable def sensitiveFlagged (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     (table : Cells × Padding) :
     QueryImpl OracleWorld (StateT (HandlerState × Bool) ProbComp) :=
   fun queried state => do
     let step ← ((impl table) queried).run state.1
     pure (step.1, (step.2, state.2 ||
-      decide (SensitiveQueryAt publicSeed availableAt table.1 state.1 queried)))
+      decide (SensitiveQueryAt publicSeed (availableAt table) table.1 state.1 queried)))
 
 open scoped Classical in
 theorem sensitiveFlagged_run (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     ((sensitiveFlagged publicSeed availableAt impl table) queried).run state =
       ((impl table) queried).run state.1 >>= fun step =>
         (pure (step.1, (step.2, state.2 ||
-          decide (SensitiveQueryAt publicSeed availableAt table.1 state.1 queried))) :
+          decide (SensitiveQueryAt publicSeed (availableAt table) table.1 state.1 queried))) :
           ProbComp _) := rfl
 
 open scoped Classical in
 theorem sensitiveFlagged_neverFails (publicSeed : Digest)
-    (availableAt flagAt : HandlerCarrier.State → Node → Prop)
+    (availableAt flagAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl) (table : Cells × Padding)
+    (hfacts : TableFacts publicSeed availableAt allowed impl) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     Pr[⊥ | ((sensitiveFlagged publicSeed flagAt impl table) queried).run state] = 0 := by
   rw [sensitiveFlagged_run, probFailure_bind_eq_add_tsum,
@@ -67,7 +67,7 @@ theorem sensitiveFlagged_neverFails (publicSeed : Digest)
 
 open scoped Classical in
 theorem sensitiveFlagged_sticky (publicSeed : Digest)
-    (flagAt : HandlerCarrier.State → Node → Prop)
+    (flagAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     (table : Cells × Padding) (queried : OracleWorld.Domain) (inner : HandlerState)
     (step : OracleWorld.Range queried × (HandlerState × Bool))
@@ -82,10 +82,10 @@ theorem sensitiveFlagged_sticky (publicSeed : Digest)
 
 open scoped Classical in
 theorem sensitiveFlagged_fires (publicSeed : Digest)
-    (flagAt : HandlerCarrier.State → Node → Prop)
+    (flagAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     (table : Cells × Padding) (queried : OracleWorld.Domain) (inner : HandlerState) (flag : Bool)
-    (hbad : SensitiveQueryAt publicSeed flagAt table.1 inner queried)
+    (hbad : SensitiveQueryAt publicSeed (flagAt table) table.1 inner queried)
     (step : OracleWorld.Range queried × (HandlerState × Bool))
     (hstep : step ∈ support (((sensitiveFlagged publicSeed flagAt impl table)
       queried).run (inner, flag))) : step.2.2 = true := by
@@ -100,13 +100,14 @@ set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The lenient presentation and the strict one flag a sensitive query equally often.** -/
 theorem probEvent_sensitiveFlagged_eq {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed availableAt allowed strictImpl)
+    (hstrictFacts : TableFacts publicSeed availableAt allowed strictImpl)
     (hlenient : Lenient publicSeed availableAt lenientImpl strictImpl)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (state : HandlerState × Bool) :
@@ -118,7 +119,7 @@ theorem probEvent_sensitiveFlagged_eq {α : Type} (publicSeed : Digest)
           computation).run state] := by
   classical
   refine LazyBridge.probEvent_flag_two_handlers_eq _ _
-    (fun inner queried => SensitiveQueryAt publicSeed availableAt table.1 inner queried)
+    (fun inner queried => SensitiveQueryAt publicSeed (availableAt table) table.1 inner queried)
     (fun queried p => sensitiveFlagged_neverFails publicSeed _ availableAt lenientImpl
       hlenientFacts table queried p)
     (fun queried p => sensitiveFlagged_neverFails publicSeed availableAt availableAt strictImpl
@@ -139,18 +140,18 @@ theorem probEvent_sensitiveFlagged_eq {α : Type} (publicSeed : Digest)
 open scoped Classical in
 /-- **The comparison's flag says a recorded query was sensitive.** -/
 theorem sensitiveFlagged_flag_iff_record {α : Type} (publicSeed : Digest)
-    (availableAt flagAt : HandlerCarrier.State → Node → Prop)
+    (availableAt flagAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl) (table : Cells × Padding)
+    (hfacts : TableFacts publicSeed availableAt allowed impl) (table : Cells × Padding)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool)
     (hstate : state.2 = true ↔ ∃ entry ∈ state.1.2.1,
-      SensitiveEntry publicSeed flagAt table.1 entry)
+      SensitiveEntry publicSeed (flagAt table) table.1 entry)
     (result : α × (HandlerState × Bool))
     (hresult : result ∈ support ((simulateQ
       (sensitiveFlagged publicSeed flagAt impl table) computation).run state)) :
     result.2.2 = true ↔ ∃ entry ∈ result.2.1.2.1,
-      SensitiveEntry publicSeed flagAt table.1 entry := by
+      SensitiveEntry publicSeed (flagAt table) table.1 entry := by
   classical
   induction computation using OracleComp.inductionOn generalizing state result with
   | pure value =>
@@ -166,24 +167,23 @@ theorem sensitiveFlagged_flag_iff_record {α : Type} (publicSeed : Digest)
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rcases queried with coin | probe
     · have hsame : inner.2.2.1 = state.1.2.1 :=
-        HandlerStall.record_inl publicSeed (fun _ => availableAt) impl
-          (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) table coin state.1
-          inner hinner
-      have hnone : ¬ SensitiveQueryAt publicSeed flagAt table.1 state.1 (Sum.inl coin) := by
+        HandlerStall.record_inl publicSeed availableAt impl hfacts table coin state.1 inner
+          hinner
+      have hnone : ¬ SensitiveQueryAt publicSeed (flagAt table) table.1 state.1
+          (Sum.inl coin) := by
         rintro ⟨candidate, hcandidate, -⟩
         simp [probeOf] at hcandidate
       rw [hpure]
-      show (state.2 || decide (SensitiveQueryAt publicSeed flagAt table.1 state.1
+      show (state.2 || decide (SensitiveQueryAt publicSeed (flagAt table) table.1 state.1
           (Sum.inl coin))) = true ↔
-        ∃ entry ∈ inner.2.2.1, SensitiveEntry publicSeed flagAt table.1 entry
+        ∃ entry ∈ inner.2.2.1, SensitiveEntry publicSeed (flagAt table) table.1 entry
       rw [decide_eq_false hnone, Bool.or_false, hsame]
       exact hstate
     · have hrec : inner.2.2.1 = state.1.2.1 ++ [(probe, state.1.1)] :=
-        HandlerStall.record_inr publicSeed (fun _ => availableAt) impl
-          (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) table probe state.1
-          inner hinner
-      have hhere : SensitiveQueryAt publicSeed flagAt table.1 state.1 (Sum.inr probe) ↔
-          SensitiveEntry publicSeed flagAt table.1 (probe, state.1.1) := by
+        HandlerStall.record_inr publicSeed availableAt impl hfacts table probe state.1 inner
+          hinner
+      have hhere : SensitiveQueryAt publicSeed (flagAt table) table.1 state.1 (Sum.inr probe) ↔
+          SensitiveEntry publicSeed (flagAt table) table.1 (probe, state.1.1) := by
         constructor
         · rintro ⟨candidate, hcandidate, hsensitive⟩
           have hsame : candidate = probe := by
@@ -195,9 +195,9 @@ theorem sensitiveFlagged_flag_iff_record {α : Type} (publicSeed : Digest)
         · intro hsensitive
           exact ⟨probe, rfl, hsensitive⟩
       rw [hpure]
-      show (state.2 || decide (SensitiveQueryAt publicSeed flagAt table.1 state.1
+      show (state.2 || decide (SensitiveQueryAt publicSeed (flagAt table) table.1 state.1
           (Sum.inr probe))) = true ↔
-        ∃ entry ∈ inner.2.2.1, SensitiveEntry publicSeed flagAt table.1 entry
+        ∃ entry ∈ inner.2.2.1, SensitiveEntry publicSeed (flagAt table) table.1 entry
       rw [hrec, Bool.or_eq_true, decide_eq_true_eq, hhere, hstate]
       simp [or_comm]
 
@@ -206,7 +206,7 @@ open scoped Classical in
 handler carrying it is not blind to the table and the charge is not proved about it; the two
 differ only in what they write to the flag. -/
 theorem probEvent_sensitiveFlagged_eq_withFlag {α : Type} (publicSeed : Digest)
-    (flagAt : HandlerCarrier.State → Node → Prop)
+    (flagAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (event : α × HandlerState → Prop) :
@@ -235,13 +235,14 @@ open scoped Classical in
 /-- **The comparison's flag is the charge's event.** At a state whose record is empty, the
 lenient presentation flags exactly as often as the blind wrapper records a sensitive query. -/
 theorem probEvent_flag_eq_record {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed availableAt allowed strictImpl)
+    (hstrictFacts : TableFacts publicSeed availableAt allowed strictImpl)
     (hlenient : Lenient publicSeed availableAt lenientImpl strictImpl)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (inner : HandlerState) (hinner : inner.2.1 = []) :
@@ -249,14 +250,14 @@ theorem probEvent_flag_eq_record {α : Type} (publicSeed : Digest)
       (simulateQ (sensitiveFlagged publicSeed availableAt lenientImpl table)
         computation).run (inner, false)] =
       Pr[fun z : α × (HandlerState × Bool) => ∃ entry ∈ z.2.1.2.1,
-          SensitiveEntry publicSeed availableAt table.1 entry |
+          SensitiveEntry publicSeed (availableAt table) table.1 entry |
         (simulateQ (withFlag (strictImpl table)) computation).run (inner, false)] := by
   classical
   rw [probEvent_sensitiveFlagged_eq publicSeed availableAt lenientImpl strictImpl hlenientFacts
       hstrictFacts hlenient table computation (inner, false),
     ← probEvent_sensitiveFlagged_eq_withFlag publicSeed availableAt strictImpl table computation
       (fun z : α × HandlerState => ∃ entry ∈ z.2.2.1,
-        SensitiveEntry publicSeed availableAt table.1 entry) inner false false]
+        SensitiveEntry publicSeed (availableAt table) table.1 entry) inner false false]
   refine probEvent_congr' (fun z hz => ?_) rfl
   exact sensitiveFlagged_flag_iff_record publicSeed availableAt availableAt strictImpl
     hstrictFacts table computation (inner, false) (by simp [hinner]) z hz
@@ -275,23 +276,24 @@ avenue or the other and the record pays for it once.
 `prob_game_sensitive_le_canonical` below is this with the charge left at its expectation, and
 that is the one the input half reads. -/
 theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
-    (revealed : WotsKey → Fin chains → Nat)
-    (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
+    (revealed : Cells × Padding → WotsKey → Fin chains → Nat)
     (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed
-      (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node) allowed
-      strictImpl)
+    (hstrictFacts : TableFacts publicSeed
+      (fun table cache node =>
+        CanonicalGraph.Available (revealed table) (signedAt cache) node) allowed strictImpl)
     (hlenient : Lenient publicSeed
-      (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+      (fun table cache node => CanonicalGraph.Available (revealed table) (signedAt cache) node)
       lenientImpl strictImpl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, CanonicalGraph.Available revealed (signedAt left) node →
-        CanonicalGraph.Available revealed (signedAt right) node)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, CanonicalGraph.Available (revealed table) (signedAt left) node →
+          CanonicalGraph.Available (revealed table) (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
@@ -299,8 +301,13 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (revealedOf : α → WotsKey → Fin chains → Nat)
+    (hrevealedOf : ∀ value key chain, revealedOf value key chain ≤ w - 1)
+    (hreadsRevealed : ∀ (table : Cells × Padding) (value : α),
+      value ∈ support (computation table) → revealedOf value = revealed table)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, CanonicalGraph.Available revealed (signedAt cache) node)
+      ∀ (value : α) (cache : HandlerCarrier.State),
+        CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = []) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -312,13 +319,15 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (sensitiveFlagged publicSeed
-          (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+          (fun table cache node =>
+            CanonicalGraph.Available (revealed table) (signedAt cache) node)
           lenientImpl (cells, pad)) (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
             ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-              (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+              (fun cache node =>
+                ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
               pair.2 entry.2 entry.1 | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -328,37 +337,46 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
   classical
   rw [RedrawCell.probEvent_table_congr
     (fun table => (simulateQ (sensitiveFlagged publicSeed
-      (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+      (fun table cache node =>
+        CanonicalGraph.Available (revealed table) (signedAt cache) node)
       lenientImpl table) (computation table)).run (inner, false))
     (fun table => (simulateQ (withFlag (strictImpl table))
       (computation table)).run (inner, false))
     _ (fun pair => ∃ entry ∈ pair.1.2.1.2.1,
       SensitiveEntry publicSeed
-        (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+        (fun cache node => CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
         pair.2 entry)
-    (fun cells pad => probEvent_flag_eq_record publicSeed _ lenientImpl strictImpl
-      hlenientFacts hstrictFacts hlenient (cells, pad) (computation (cells, pad)) inner hinner)]
+    (fun cells pad => Eq.trans (probEvent_flag_eq_record publicSeed _ lenientImpl strictImpl
+        hlenientFacts hstrictFacts hlenient (cells, pad) (computation (cells, pad)) inner hinner)
+      (probEvent_congr' (fun z hz => by
+        rw [hreadsRevealed (cells, pad) z.1
+          (HandlerCharge.value_mem_support _ _ _ z hz)]) rfl))]
   refine le_trans (probEvent_mono (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
     (∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed)
-        (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+        (fun cache node =>
+          ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
         pair.2 entry.2 entry.1) ∨
       ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-        (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+        (fun cache node =>
+          ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
         pair.2 entry.2 entry.1) ?_) ?_
   · rintro pair - ⟨entry, hentry, hsensitive⟩
     rcases (RedrawCell.sensitive_iff_off_or_at_seed (GraphStakes.stakes publicSeed) _ pair.2
-      entry.2 entry.1).mp (ChargedProbe.sensitive_of_sensitiveEntry publicSeed revealed hrevealed
-        signedAt pair.2 entry hsensitive) with hoff | hatseed
+      entry.2 entry.1).mp (ChargedProbe.sensitive_of_sensitiveEntry publicSeed
+        (revealedOf pair.1.1) (hrevealedOf pair.1.1) signedAt pair.2 entry hsensitive)
+      with hoff | hatseed
     · exact Or.inl ⟨entry, hentry, hoff⟩
     · exact Or.inr ⟨entry, hentry, hatseed⟩
   refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ le_rfl)
   exact HandlerCharge.prob_sensitive_run_le publicSeed
-    (fun _ cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-    strictImpl (tableFacts_of_facts publicSeed _ allowed strictImpl hstrictFacts)
-    (fun _ => hmono) (GraphStakes.stakes publicSeed) stall computation touched hcover htouched
-    (fun _ cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
-    (fun _ node htouch hne cache hun => hun (hopen node htouch hne cache))
-    (fun _ _ _ => rfl) (inner, false) limit hlimit
+    (fun table cache node => CanonicalGraph.Available (revealed table) (signedAt cache) node)
+    strictImpl hstrictFacts hmono (GraphStakes.stakes publicSeed) stall computation touched
+    hcover htouched
+    (fun value cache node =>
+      ¬ CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
+    (fun value node htouch hne cache hun => hun (hopen node htouch hne value cache))
+    (fun table value hvalue => by rw [hreadsRevealed table value hvalue])
+    (inner, false) limit hlimit
 
 set_option maxRecDepth 1000000 in
 open scoped Classical in
@@ -371,23 +389,24 @@ four expectations add pathwise. `prob_game_sensitive_le` above is the capped for
 capped form. The difference is deliberate and it is here rather than there because this is the
 copy the input half reads, and `InputBullet.ClaimsCharged` is stated at an expectation. -/
 theorem prob_game_sensitive_le_canonical {α : Type} (publicSeed : Digest)
-    (revealed : WotsKey → Fin chains → Nat)
-    (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
+    (revealed : Cells × Padding → WotsKey → Fin chains → Nat)
     (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed
-      (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node) allowed
-      strictImpl)
+    (hstrictFacts : TableFacts publicSeed
+      (fun table cache node =>
+        CanonicalGraph.Available (revealed table) (signedAt cache) node) allowed strictImpl)
     (hlenient : Lenient publicSeed
-      (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+      (fun table cache node => CanonicalGraph.Available (revealed table) (signedAt cache) node)
       lenientImpl strictImpl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, CanonicalGraph.Available revealed (signedAt left) node →
-        CanonicalGraph.Available revealed (signedAt right) node)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, CanonicalGraph.Available (revealed table) (signedAt left) node →
+          CanonicalGraph.Available (revealed table) (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
@@ -395,8 +414,13 @@ theorem prob_game_sensitive_le_canonical {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (revealedOf : α → WotsKey → Fin chains → Nat)
+    (hrevealedOf : ∀ value key chain, revealedOf value key chain ≤ w - 1)
+    (hreadsRevealed : ∀ (table : Cells × Padding) (value : α),
+      value ∈ support (computation table) → revealedOf value = revealed table)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, CanonicalGraph.Available revealed (signedAt cache) node)
+      ∀ (value : α) (cache : HandlerCarrier.State),
+        CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = [])
     (keep : Bytes × HandlerCarrier.State → Bool)
     (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
@@ -405,7 +429,8 @@ theorem prob_game_sensitive_le_canonical {α : Type} (publicSeed : Digest)
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (sensitiveFlagged publicSeed
-          (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+          (fun table cache node =>
+            CanonicalGraph.Available (revealed table) (signedAt cache) node)
           lenientImpl (cells, pad)) (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
       (∑' z : α × (HandlerState × Bool),
@@ -418,7 +443,8 @@ theorem prob_game_sensitive_le_canonical {α : Type} (publicSeed : Digest)
           ((2 ^ 128 : Nat) : ℝ≥0∞) +
         Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
             ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-              (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+              (fun cache node =>
+                ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
               pair.2 entry.2 entry.1 | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -428,37 +454,45 @@ theorem prob_game_sensitive_le_canonical {α : Type} (publicSeed : Digest)
   classical
   rw [RedrawCell.probEvent_table_congr
     (fun table => (simulateQ (sensitiveFlagged publicSeed
-      (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+      (fun table cache node =>
+        CanonicalGraph.Available (revealed table) (signedAt cache) node)
       lenientImpl table) (computation table)).run (inner, false))
     (fun table => (simulateQ (withFlag (strictImpl table))
       (computation table)).run (inner, false))
     _ (fun pair => ∃ entry ∈ pair.1.2.1.2.1,
       SensitiveEntry publicSeed
-        (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+        (fun cache node => CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
         pair.2 entry)
-    (fun cells pad => probEvent_flag_eq_record publicSeed _ lenientImpl strictImpl
-      hlenientFacts hstrictFacts hlenient (cells, pad) (computation (cells, pad)) inner hinner)]
+    (fun cells pad => Eq.trans (probEvent_flag_eq_record publicSeed _ lenientImpl strictImpl
+        hlenientFacts hstrictFacts hlenient (cells, pad) (computation (cells, pad)) inner hinner)
+      (probEvent_congr' (fun z hz => by
+        rw [hreadsRevealed (cells, pad) z.1
+          (HandlerCharge.value_mem_support _ _ _ z hz)]) rfl))]
   refine le_trans (probEvent_mono (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
     (∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed)
-        (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+        (fun cache node =>
+          ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
         pair.2 entry.2 entry.1) ∨
       ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-        (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+        (fun cache node =>
+          ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
         pair.2 entry.2 entry.1) ?_) ?_
   · rintro pair - ⟨entry, hentry, hsensitive⟩
     rcases (RedrawCell.sensitive_iff_off_or_at_seed (GraphStakes.stakes publicSeed) _ pair.2
-      entry.2 entry.1).mp (ChargedProbe.sensitive_of_sensitiveEntry publicSeed revealed hrevealed
-        signedAt pair.2 entry hsensitive) with hoff | hatseed
+      entry.2 entry.1).mp (ChargedProbe.sensitive_of_sensitiveEntry publicSeed
+        (revealedOf pair.1.1) (hrevealedOf pair.1.1) signedAt pair.2 entry hsensitive)
+      with hoff | hatseed
     · exact Or.inl ⟨entry, hentry, hoff⟩
     · exact Or.inr ⟨entry, hentry, hatseed⟩
   refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ le_rfl)
   exact HandlerCharge.prob_sensitive_run_le_canonical publicSeed
-    (fun _ cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-    strictImpl (tableFacts_of_facts publicSeed _ allowed strictImpl hstrictFacts)
-    (fun _ => hmono) stall computation touched hcover htouched
-    (fun _ cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
-    (fun _ node htouch hne cache hun => hun (hopen node htouch hne cache))
-    (fun _ _ _ => rfl) (inner, false) keep hkeep
+    (fun table cache node => CanonicalGraph.Available (revealed table) (signedAt cache) node)
+    strictImpl hstrictFacts hmono stall computation touched hcover htouched
+    (fun value cache node =>
+      ¬ CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
+    (fun value node htouch hne cache hun => hun (hopen node htouch hne value cache))
+    (fun table value hvalue => by rw [hreadsRevealed table value hvalue])
+    (inner, false) keep hkeep
 
 open scoped Classical in
 /-- **The charge at the honest reveal count.** The digit a signature discloses never exceeds
@@ -468,26 +502,30 @@ record's limit, and the empty starting record.
 Capped, so not the form a half sharing its budget may use:
 `prob_game_sensitive_honest_le_canonical` is that one. -/
 theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
-    (publicSeed secretSeed : Digest)
+    (publicSeed : Digest)
     (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node) allowed
-      strictImpl)
+    (hstrictFacts : TableFacts publicSeed
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+        (signedAt cache) node) allowed strictImpl)
     (hlenient : Lenient publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
-      lenientImpl strictImpl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-          (signedAt left) node →
-        CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-          (signedAt right) node)
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+        (signedAt cache) node) lenientImpl strictImpl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+            (signedAt left) node →
+          CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+            (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
@@ -495,9 +533,14 @@ theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (revealedOf : α → WotsKey → Fin chains → Nat)
+    (hrevealedOf : ∀ value key chain, revealedOf value key chain ≤ w - 1)
+    (hreadsRevealed : ∀ (table : Cells × Padding) (value : α),
+      value ∈ support (computation table) → revealedOf value =
+        GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-        (signedAt cache) node)
+      ∀ (value : α) (cache : HandlerCarrier.State),
+        CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = []) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -509,25 +552,27 @@ theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (sensitiveFlagged publicSeed
-          (fun cache node => CanonicalGraph.Available
-            (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+          (fun table cache node => CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+            (signedAt cache) node)
           lenientImpl (cells, pad)) (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
             ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-              (fun cache node => ¬ CanonicalGraph.Available
-                (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+              (fun cache node =>
+                ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
               pair.2 entry.2 entry.1 | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (withFlag (strictImpl (cells, pad)))
             (computation (cells, pad))).run (inner, false)
           pure (result, cells))] :=
-  prob_game_sensitive_le publicSeed (GraphStakes.honestRevealed secretSeed publicSeed)
-    (GraphStakes.honestRevealed_le secretSeed publicSeed) signedAt lenientImpl strictImpl
-    hlenientFacts hstrictFacts hlenient hmono stall computation touched hcover htouched hopen
-    inner hinner limit hlimit
+  prob_game_sensitive_le publicSeed
+    (fun table => GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+    signedAt lenientImpl strictImpl
+    hlenientFacts hstrictFacts hlenient hmono stall computation touched hcover htouched
+    revealedOf hrevealedOf hreadsRevealed hopen inner hinner limit hlimit
 
 open scoped Classical in
 /-- **The charge at the honest reveal count, left at its expectation.** The digit a signature
@@ -535,26 +580,30 @@ discloses never exceeds `w - 1`, so that hypothesis is discharged and the handov
 facts, monotonicity, the class the count is taken over, and the empty starting record. This is
 the shape `InputBullet.ClaimsCharged` is stated at. -/
 theorem prob_game_sensitive_honest_le_canonical [HasQuery HashSpec Id] {α : Type}
-    (publicSeed secretSeed : Digest)
+    (publicSeed : Digest)
     (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
+    {lenientAvail : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop}
     {lenientAllowed : CanonicalGraph.Node → Prop}
-    (hlenientFacts : Facts publicSeed (fun _ _ => True) lenientAllowed lenientImpl)
+    (hlenientFacts : TableFacts publicSeed lenientAvail lenientAllowed lenientImpl)
     {allowed : CanonicalGraph.Node → Prop}
-    (hstrictFacts : Facts publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node) allowed
-      strictImpl)
+    (hstrictFacts : TableFacts publicSeed
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+        (signedAt cache) node) allowed strictImpl)
     (hlenient : Lenient publicSeed
-      (fun cache node => CanonicalGraph.Available
-        (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
-      lenientImpl strictImpl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-          (signedAt left) node →
-        CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-          (signedAt right) node)
+      (fun table cache node => CanonicalGraph.Available
+        (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+        (signedAt cache) node) lenientImpl strictImpl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+            (signedAt left) node →
+          CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+            (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
@@ -562,9 +611,14 @@ theorem prob_game_sensitive_honest_le_canonical [HasQuery HashSpec Id] {α : Typ
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (revealedOf : α → WotsKey → Fin chains → Nat)
+    (hrevealedOf : ∀ value key chain, revealedOf value key chain ≤ w - 1)
+    (hreadsRevealed : ∀ (table : Cells × Padding) (value : α),
+      value ∈ support (computation table) → revealedOf value =
+        GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
-        (signedAt cache) node)
+      ∀ (value : α) (cache : HandlerCarrier.State),
+        CanonicalGraph.Available (revealedOf value) (signedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = [])
     (keep : Bytes × HandlerCarrier.State → Bool)
     (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
@@ -573,8 +627,9 @@ theorem prob_game_sensitive_honest_le_canonical [HasQuery HashSpec Id] {α : Typ
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (sensitiveFlagged publicSeed
-          (fun cache node => CanonicalGraph.Available
-            (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+          (fun table cache node => CanonicalGraph.Available
+            (GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+            (signedAt cache) node)
           lenientImpl (cells, pad)) (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
       (∑' z : α × (HandlerState × Bool),
@@ -587,17 +642,18 @@ theorem prob_game_sensitive_honest_le_canonical [HasQuery HashSpec Id] {α : Typ
           ((2 ^ 128 : Nat) : ℝ≥0∞) +
         Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
             ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
-              (fun cache node => ¬ CanonicalGraph.Available
-                (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+              (fun cache node =>
+                ¬ CanonicalGraph.Available (revealedOf pair.1.1) (signedAt cache) node)
               pair.2 entry.2 entry.1 | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (withFlag (strictImpl (cells, pad)))
             (computation (cells, pad))).run (inner, false)
           pure (result, cells))] :=
-  prob_game_sensitive_le_canonical publicSeed (GraphStakes.honestRevealed secretSeed publicSeed)
-    (GraphStakes.honestRevealed_le secretSeed publicSeed) signedAt lenientImpl strictImpl
-    hlenientFacts hstrictFacts hlenient hmono stall computation touched hcover htouched hopen
-    inner hinner keep hkeep
+  prob_game_sensitive_le_canonical publicSeed
+    (fun table => GraphStakes.honestRevealed (table.1 CanonicalGraph.Node.secretSeed) publicSeed)
+    signedAt lenientImpl strictImpl hlenientFacts hstrictFacts hlenient hmono stall computation
+    touched hcover htouched revealedOf hrevealedOf hreadsRevealed hopen inner hinner keep
+    hkeep
 
 end SlhDsaSecurity.HandlerLenient
