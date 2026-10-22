@@ -17,12 +17,20 @@ Everything the walk owes is discharged. A walk whose seeds coincide costs one un
 charges that carried those as hypotheses may take them from the walk; `WalkDefects` proves both
 and `probEvent_le_of_good_walk` applies them together.
 
-The arithmetic is discharged too, and every number in it is concrete. Key generation's
-`2 ^ subtreeHeight = 512` calls are reserved on both halves, the forgery's `259` claimed cells
-are the input half's excess, and six units of `2 ^ -128` cover the four small defects — the
-load cap at `2 ^ -126`, the coverage tape at `2 ^ -141`, the input-format coincidence at
-`2 ^ -165` and the seed coincidence at `2 ^ -128`. `259 + 6 ≤ 1024` is the whole of it, and the
-margin is `759` units.
+The arithmetic is discharged too, and every number in it is concrete. `allowance` reads
+`Assembly.le_target_of_full`, whose content is the `Nat` line `(q - slack + extra) + q +
+defectUnits ≤ 2 * q`: key generation's `2 ^ subtreeHeight = 512` calls are the `slack`, the
+forgery's `259` claimed cells are the `extra`, and six units of `2 ^ -128` are the
+`defectUnits` covering the four small defects — the load cap at `2 ^ -126`, the coverage tape
+at `2 ^ -141`, the input-format coincidence at `2 ^ -165` and the seed coincidence at
+`2 ^ -128`. So what has to hold is `259 + 6 ≤ 512`, and the margin is `247` units. (The
+`1024` of a `759`-unit margin belongs to `le_target_of_counts` and `le_target_of_two_slacks`,
+which reserve on both halves; `allowance` does not call them.)
+
+The `q` coefficient has no margin at all: the same `Nat` line is `2 * q` on the right and
+`q + q` on the left, so the two halves have one budget each and a third `q`-proportional term
+cannot be added. Constants can, up to the `247`, which is why `allowanceOf` takes the claims
+numeral as a parameter.
 
 The budget's own lower bound is discharged as well. `KeygenBudget.pow_le_of_budget` shows that a
 budget an adversary can be run under is at least the `2 ^ subtreeHeight` key generation spends,
