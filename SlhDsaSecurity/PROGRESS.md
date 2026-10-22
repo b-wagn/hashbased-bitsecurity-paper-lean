@@ -3522,6 +3522,10 @@ redex. Three forms of the same obstruction have now cost a build each:
    (result, cells index)) z` — so `rw` finds no occurrence of the pattern until
    `simp only [Function.comp_apply]` has run.
 
+6. A `refine` whose continuation is left as `_` fails higher-order unification against a nested
+   expected form, and the error reports a **pair-eta mismatch** rather than the missing
+   continuation. Supplying it explicitly elaborates at once.
+
 So the repair generalises past rewriting: **name the instance instead of asking a tactic to find
 it**, whether the tactic is searching for a pattern or unifying a term. Five obstructions, one
 fix, and every one of them reports the goal rather than the cause.
