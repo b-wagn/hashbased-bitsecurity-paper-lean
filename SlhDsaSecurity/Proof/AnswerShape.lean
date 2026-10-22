@@ -153,4 +153,92 @@ theorem answerChargedLate_of_parts {inside outside : QueryKind} (hne : inside �
   answerChargedLate_of_recordedBound
     (AnswerJoin.answerRecordedBound_of_parts hne hleftBound hdisclosing hseed)
 
+/-! ## The same move at the defect the target now instantiates
+
+`FinalAssembly.lateOrSeed` is `LateProbes.Ordering ∨ AnswerCoverage.ForgerySeedRandomised`, so
+`AnswerChargedLate`'s `¬ late` is two conjuncts by `not_or` — exactly the two the answer side
+carries. Nothing about the presentation changes: the same `map_fusedTail` equality moves the
+event, and the only work is reordering a conjunction.
+
+What this buys is that **`hseed` leaves the obligation entirely.** The answer half no longer
+owes a probability bound at a fixed walk, where it has none; the complement is charged on the
+shared side, at `seedUnits`, where the seed is still random. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer obligation at `lateOrSeed`, from the bound at the answer side's own run.** -/
+theorem answerChargedLateSeed_of_recordedBound
+    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                (result.1, result.2.1) ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+          AnswerJoin.answerRecordedRun adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) :
+    Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
+      FinalAssembly.lateOrSeed := by
+  intro q adversary hq hbudget walk hwalk hgood
+  refine le_trans (le_of_eq ?_) (hbound q adversary hq hbudget walk hwalk hgood)
+  rw [← map_fusedTail, probEvent_map]
+  refine probEvent_congr' (fun result _ => ?_) rfl
+  simp only [Function.comp_def, FinalAssembly.lateOrSeed, not_or]
+  constructor
+  · rintro ⟨hbad, hlate, hseed⟩; exact ⟨hbad, hseed, hlate⟩
+  · rintro ⟨hbad, hseed, hlate⟩; exact ⟨hbad, hlate, hseed⟩
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer obligation from two parts, with no `hseed`.** Both are facts about the game that
+the carrier proves: the disclosing recording is one entry per served request, and the recorder's
+disclosing test is the signing log. The narrowed class demand rides in `hjoinNarrow`, which the
+weakening of `SplitWitness.Served.mem_records_of_covered` discharges.
+
+Compare `answerChargedLate_of_parts` above, which still owes `hseed`; this is that with the
+leftover moved into the event, where `FinalAssembly.lateOrSeed` collects it. -/
+theorem answerChargedLateSeed_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hjoinNarrow : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.targetKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+        SplitWitness.CoveredAtKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1) →
+          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1) →
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2) →
+          BlockViews.TargetCovered result)
+    (hleftBound : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk),
+        result.2.2.1.length ≤ signingLimit)
+    (hdisclosing : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk), ∀ input : Bytes,
+        ServedLog.servedLog
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) input ↔
+          SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            input result.2.1) :
+    Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
+      FinalAssembly.lateOrSeed :=
+  answerChargedLateSeed_of_recordedBound
+    (AnswerJoin.answerRecordedBound_narrow_of_parts hne hjoinNarrow hleftBound hdisclosing)
+
 end SlhDsaSecurity.AnswerShape
