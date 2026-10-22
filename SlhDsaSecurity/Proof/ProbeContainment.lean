@@ -385,4 +385,119 @@ theorem strippedKeygen_adds_nothing (publicSeed : Digest)
       (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) _ _ entry.1
       (hprobes entry hentry))
 
+
+/-! ## Counting the aiming probes against the record's aiming part
+
+The weight is a count of the handler's list; the budget pays out of the run's recorded multiset.
+Both sides are counted by the same test, and a step moves them together: a hash call appends one
+probe and records one input, and a probe that aims is an input that aims. -/
+
+open scoped Classical in
+/-- The aiming probes a handler's record holds. -/
+noncomputable def aimCount (publicSeed : Digest)
+    (record : List (Bytes × HandlerCarrier.State)) : Nat :=
+  record.countP (fun entry => decide (RedrawCell.AimsSomewhere publicSeed entry.1))
+
+open scoped Classical in
+/-- The aiming inputs a run's record holds. -/
+noncomputable def recordAim (publicSeed : Digest) (record : Multiset Bytes) : Nat :=
+  Multiset.card (record.filter (RedrawCell.AimsSomewhere publicSeed))
+
+open scoped Classical in
+theorem aimCount_append (publicSeed : Digest)
+    (left right : List (Bytes × HandlerCarrier.State)) :
+    aimCount publicSeed (left ++ right) =
+      aimCount publicSeed left + aimCount publicSeed right := List.countP_append
+
+open scoped Classical in
+theorem recordAim_add (publicSeed : Digest) (left right : Multiset Bytes) :
+    recordAim publicSeed (left + right) =
+      recordAim publicSeed left + recordAim publicSeed right := by
+  rw [recordAim, recordAim, recordAim, Multiset.filter_add, Multiset.card_add]
+
+open scoped Classical in
+/-- **A step appends exactly what it records**, counted by the aiming test. -/
+theorem aimCount_step (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (queried : OracleWorld.Domain) (state : OpenCache.HandlerState)
+    (z : OracleWorld.Range queried × OpenCache.HandlerState)
+    (hz : z ∈ support
+      (((OpenCache.lazyProgram publicSeed availableAt table) queried).run state)) :
+    aimCount publicSeed z.2.2.1 =
+      aimCount publicSeed state.2.1 +
+        recordAim publicSeed (RecordedQueries.recordOf queried) := by
+  classical
+  rcases queried with coin | input
+  · rw [OpenCache.lazyProgram_run_inl, mem_support_bind_iff] at hz
+    obtain ⟨value, -, hpure⟩ := hz
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [show z.2 = state from by rw [hpure]]
+    simp [RecordedQueries.recordOf, recordAim]
+  · rw [ChargedProbe.lazyProgram_step_inr publicSeed availableAt table input state z hz,
+      aimCount_append]
+    refine congrArg _ ?_
+    by_cases haims : RedrawCell.AimsSomewhere publicSeed input
+    · rw [aimCount, List.countP_singleton, if_pos (by simpa using haims), recordAim,
+        show RecordedQueries.recordOf (Sum.inr input) = ({input} : Multiset Bytes) from rfl,
+        Multiset.filter_singleton, if_pos haims]
+      rfl
+    · rw [aimCount, List.countP_singleton, if_neg (by simpa using haims), recordAim,
+        show RecordedQueries.recordOf (Sum.inr input) = ({input} : Multiset Bytes) from rfl,
+        Multiset.filter_singleton, if_neg haims]
+      rfl
+
+
+open scoped Classical in
+/-- **One of the adversary's own queries appends exactly what it records.** -/
+theorem aimCount_recordedAdversaryImpl (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (queried : OracleWorld.Domain) (log : SigningLog) (state : OpenCache.HandlerState)
+    (outer : ((OracleWorld.Range queried × Multiplicative RecordedQueries.Tally) × SigningLog) ×
+      OpenCache.HandlerState)
+    (houter : outer ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      ((WriterT.run (RecordedQueries.recordedAdversaryImpl queried)).run log)).run state)) :
+    aimCount publicSeed outer.2.2.1 =
+      aimCount publicSeed state.2.1 +
+        recordAim publicSeed (Multiplicative.toAdd outer.1.1.2).2 := by
+  classical
+  rw [RecordedQueries.run_recordedAdversaryImpl, simulateQ_map, StateT.run_map,
+    support_map] at houter
+  obtain ⟨inner, hinner, heq⟩ := houter
+  rw [simulateQ_spec_query] at hinner
+  rw [show outer.1.1.2 = Multiplicative.ofAdd
+      ((Counts.single .hash (hashCost queried) : Counts), RecordedQueries.recordOf queried) from by
+      rw [← heq],
+    show outer.2 = inner.2 from by rw [← heq], toAdd_ofAdd]
+  exact aimCount_step publicSeed availableAt table queried state inner hinner
+
+open scoped Classical in
+/-- **A signing request appends nothing that aims, and records nothing.** -/
+theorem aimCount_recordedSigningOracle (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (hseed : sk.seed = table.1 Node.secretSeed)
+    (hpk : sk.publicKey.seed = publicSeed) (hprf : sk.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    (request : Message) (log : SigningLog) (state : OpenCache.HandlerState)
+    (outer : ((Option Bytes × Multiplicative RecordedQueries.Tally) × SigningLog) ×
+      OpenCache.HandlerState)
+    (houter : outer ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      ((WriterT.run (RecordedQueries.recordedSigningOracle
+        (StrippedGame.strippedSign (OpenCache.openCache publicSeed (fun _ => True) table) sk)
+        request)).run log)).run state))
+    (hcompatible : ∀ (input : Bytes) (value : HashOutput), outer.2.1.cache input = some value →
+      RedrawCell.unionCache publicSeed table outer.2.1.cache input = some value) :
+    aimCount publicSeed outer.2.2.1 = aimCount publicSeed state.2.1 := by
+  classical
+  rw [RecordedQueries.run_recordedSigningOracle, simulateQ_bind, StateT.run_bind,
+    mem_support_bind_iff] at houter
+  obtain ⟨step, hstep, hrest⟩ := houter
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hrest
+  rw [show outer.2 = step.2 from by rw [hrest]]
+  obtain ⟨added, hadded, hprobes⟩ := strippedSign_adds_no_aiming publicSeed availableAt table sk
+    hseed hpk hprf hpublic request state step hstep
+    (by rw [show step.2 = outer.2 from by rw [hrest]]; exact hcompatible)
+  rw [hadded, aimCount_append, show aimCount publicSeed added = 0 from ?_, Nat.add_zero]
+  refine List.countP_eq_zero.mpr fun entry hentry => ?_
+  simpa using hprobes entry hentry
+
 end SlhDsaSecurity.ProbeContainment

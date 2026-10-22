@@ -11097,3 +11097,31 @@ info: 'SlhDsaSecurity.ProbeContainment.not_aims_of_strippedSign_probe' depends o
 /-- info: 'SlhDsaSecurity.ProbeContainment.strippedKeygen_adds_nothing' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.strippedKeygen_adds_nothing
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.aimCount_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_step
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.aimCount_append' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_append
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.recordAim_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.recordAim_add
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.aimCount_recordedAdversaryImpl' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_recordedAdversaryImpl
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.aimCount_recordedSigningOracle' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_recordedSigningOracle
