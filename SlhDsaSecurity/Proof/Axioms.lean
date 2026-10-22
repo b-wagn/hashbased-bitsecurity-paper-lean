@@ -258,6 +258,7 @@ import SlhDsaSecurity.Proof.SharedOracleScaling
 import SlhDsaSecurity.Proof.HandlerEvent
 import SlhDsaSecurity.Proof.CarrierServedLog
 import SlhDsaSecurity.Proof.LedgerThird
+import SlhDsaSecurity.Proof.SeedFlag
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16242,3 +16243,11 @@ info: 'SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail' depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail
+
+/-- info: 'SlhDsaSecurity.SeedFlag.record_le_of_mul' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedFlag.record_le_of_mul
+
+/-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_sticky' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedFlag.recordFlag_sticky
