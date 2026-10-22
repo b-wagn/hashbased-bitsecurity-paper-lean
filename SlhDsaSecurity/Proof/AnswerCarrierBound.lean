@@ -55,14 +55,7 @@ theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outsi
     (adversary : Adversary) {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
     (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
     (hpublic : ¬ HashSeparation.Possible ((keyAt walk).seed, (keyAt walk).root))
-    (hleftClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.1,
-        ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1)
-    (hrightClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.2,
-        ¬ ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1) :
+    :
     Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
         (RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord z.1).1),
               (AnswerShape.forgetRecord z.1).2.1) ∧
@@ -102,6 +95,6 @@ theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outsi
       (CombinedCharge.IsMessageInput (keyAt walk)) hne AnswerCarrier.carrierRightKeep hbudget
       hwalk result hresult
   · exact CarrierSplit.hsplit_splitCarrierTail (CombinedCharge.IsMessageInput (keyAt walk)) hne
-      adversary walk hwalk hgood hleftClass hrightClass
+      adversary walk hwalk hgood
 
 end SlhDsaSecurity.AnswerCarrierBound

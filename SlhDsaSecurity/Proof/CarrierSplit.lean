@@ -135,14 +135,7 @@ set_option linter.constructorNameAsVariable false in
 /-- **`hjoin`, at `answerCarrierRun`.** -/
 theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
     (hwalk : walk ∈ support WarmedGame.graphWalk)
-    (hleftClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.1,
-        ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1)
-    (hrightClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.2,
-        ¬ ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1) :
+    :
     ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       Target.GoodWalk walk →
@@ -191,18 +184,11 @@ theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
 
 set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
-/-- **`hsplit` at `answerCarrierRun`**, with every piece but the leftover and the two recording
-facts discharged. -/
+/-- **`hsplit` at `answerCarrierRun`**, with everything discharged but the leftover the
+conclusion carries. -/
 theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (hleftClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.1,
-        ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1)
-    (hrightClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.2,
-        ¬ ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1) :
+    :
     ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
@@ -215,7 +201,7 @@ theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
             SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1 :=
   AnswerCarrier.hsplit_of_join_extra AnswerCarrier.carrierRightKeep adversary walk hwalk hgood
     (fun result => SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
-    (hjoin_answerCarrierRun adversary walk hwalk hleftClass hrightClass)
+    (hjoin_answerCarrierRun adversary walk hwalk)
 
 set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
@@ -225,14 +211,7 @@ end. -/
 theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
     (hne : inside ≠ outside) (adversary : Adversary) (walk : Walk)
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (hleftClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.1,
-        ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1)
-    (hrightClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.2,
-        ¬ ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1) :
+    :
     ∀ z ∈ support (SplitTail.splitCarrierTail inClass inside outside
         AnswerCarrier.carrierRightKeep adversary walk),
       RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord z.1).1),
@@ -247,8 +226,8 @@ theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : Que
             SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk)
               (AnswerShape.forgetRecord z.1).2.1 := by
   intro z hz
-  refine hsplit_answerCarrierRun adversary walk hwalk hgood hleftClass
-    hrightClass (AnswerShape.forgetRecord z.1) ?_
+  refine hsplit_answerCarrierRun adversary walk hwalk hgood
+    (AnswerShape.forgetRecord z.1) ?_
   rw [← SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun inClass hne
     AnswerCarrier.carrierRightKeep adversary walk, support_map]
   exact ⟨z, hz, rfl⟩
