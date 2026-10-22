@@ -406,4 +406,122 @@ theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOut
     (fun input hmember => by rw [classCost_inr_hash, if_pos hmember]) hrate hclass computation
 
 
+/-! ## The two classes, added before the uniform bound is taken
+
+Two charges on the two sides of one split, combined against one budget. What makes this an
+addition rather than a doubling is that the two counts are counts of the *same* run — the
+split-counted run, which `ClassGrowth.run_splitCost_eq_map` identifies with the plain one — so
+the budget's pathwise inequality on the total is available before either charge has been
+bounded uniformly.
+
+Taking the uniform bound first is what costs the second budget. Each charge's limit is chosen
+by the adversary, run by run, and the only number that bounds either on *every* run is the
+whole budget; so a pair of fixed limits can only be `budget, budget`, which is the target twice
+over. Here the two expectations are added first and the one uniform bound is taken at the end,
+where the per-run split cancels inside the pathwise inequality rather than after it. -/
+
+/-- **Two charges and a constant share one budget.** Each charge is bounded by its own expected
+number of chances on one run, one of them with a constant beside it, and on every supported run
+the two counts together stay inside the budget — so the two charges together cost what one
+budget buys. -/
+theorem add_le_of_shared_budget_const {β : Type} (run : ProbComp β)
+    (firstCharge secondCharge constant : ℝ≥0∞)
+    (firstChances secondChances : β → Nat) (budget : Nat)
+    (hfirst : firstCharge ≤ expected run firstChances / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hsecond : secondCharge ≤
+      constant + expected run secondChances / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hshare : ∀ value ∈ support run, firstChances value + secondChances value ≤ budget) :
+    firstCharge + secondCharge ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + constant := by
+  calc firstCharge + secondCharge
+      ≤ expected run firstChances / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (constant + expected run secondChances / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        add_le_add hfirst hsecond
+    _ = constant + (expected run firstChances / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          expected run secondChances / ((2 ^ 128 : Nat) : ℝ≥0∞)) := add_left_comm _ _ _
+    _ = constant +
+          expected run (fun value => firstChances value + secondChances value) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        rw [ENNReal.div_add_div_same, expected_add]
+    _ ≤ constant + ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        add_le_add le_rfl (ENNReal.div_le_div_right
+          (expected_le_of_le run (fun value => firstChances value + secondChances value) budget
+            hshare) _)
+    _ = _ := add_comm _ _
+
+open scoped Classical in
+/-- **The charge on the outside class, stated at the plain run.** The structural half of a
+split: the bad answer is witnessed only outside the class, so only the outside slot pays for
+it, and the count is read off the split-counted run rather than bounded in advance. -/
+theorem prob_bad_le_expected_outside (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (bad : Bytes → HashOutput → Prop) (rate : ℝ≥0∞)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
+    (hclass : ∀ input answer, bad input answer → ¬ inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α)
+    (initialCache : QueryCache HashSpec) (hclean : CleanBad bad initialCache) :
+    Pr[Bad bad |
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
+      expected ((simulateQ KeygenUniform.rom
+          (countQueries (splitCost inClass inside outside) computation)).run initialCache)
+        (fun result => (result.1.2) outside) * rate := by
+  classical
+  rw [probEvent_splitCost inClass hne computation initialCache (Bad bad)]
+  exact prob_bad_le_expected_cost (fun input => ¬ inClass input) bad rate
+    (splitCost inClass inside outside) outside
+    (fun input hmember => by rw [splitCost_outside inClass inside outside input hmember])
+    hrate hclass computation initialCache hclean
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The two-class bound.** One budget, two charges, and no `qs + qm ≤ budget` left to
+discharge: the structural charge is paid by the outside slot and the coverage charge by the
+inside slot of one and the same counter, and the budget bounds their sum on every run.
+
+The coverage charge enters in expectation form — `constant + expected inside count / 2 ^ 128` —
+because that is the only form in which it can be added to the other without spending a second
+budget. A coverage charge stated at a *fixed* limit cannot be put in this form by averaging:
+`Pr[cov] ≤ constant + limit / 2 ^ 128` holding for every limit says nothing about
+`constant + expected count / 2 ^ 128`, because the per-run weight has already been spent inside
+the fixed-limit bound.
+
+`inClass` is left free. Nothing below reads the class, so the bound survives the class being
+narrowed; an instantiated counter would not. -/
+theorem prob_bad_or_coverage_le (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (bad : Bytes → HashOutput → Prop)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hclass : ∀ input answer, bad input answer → ¬ inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α)
+    (initialCache : QueryCache HashSpec) (hclean : CleanBad bad initialCache)
+    (coverage : (α × Nat) × QueryCache HashSpec → Prop) (constant : ℝ≥0∞)
+    (hcoverage : Pr[coverage |
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
+      constant + expected ((simulateQ KeygenUniform.rom
+          (countQueries (splitCost inClass inside outside) computation)).run initialCache)
+        (fun result => (result.1.2) inside) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (budget : Nat)
+    (hbudget : ∀ result ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes computation)).run initialCache), result.1.2 ≤ budget) :
+    Pr[fun result : (α × Nat) × QueryCache HashSpec => Bad bad result ∨ coverage result |
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + constant := by
+  classical
+  refine le_trans (probEvent_or_le _ _ _) ?_
+  refine add_le_of_shared_budget_const
+    ((simulateQ KeygenUniform.rom
+      (countQueries (splitCost inClass inside outside) computation)).run initialCache)
+    _ _ constant (fun result => (result.1.2) outside) (fun result => (result.1.2) inside)
+    budget ?_ hcoverage ?_
+  · rw [← mul_one_div]
+    exact prob_bad_le_expected_outside inClass hne bad _ hrate hclass computation initialCache
+      hclean
+  · intro result hmem
+    have hplain : result.1.2 inside + result.1.2 outside ≤ budget :=
+      hbudget _ (mem_support_countAllHashes_of_splitCost inClass hne computation
+        initialCache result hmem)
+    omega
+
 end SlhDsaSecurity.ClassExpectation

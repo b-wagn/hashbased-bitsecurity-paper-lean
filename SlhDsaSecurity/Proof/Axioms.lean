@@ -6615,3 +6615,31 @@ info: 'SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_cost' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_cost
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget_const' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget_const
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_outside' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_outside
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.prob_bad_or_coverage_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.prob_bad_or_coverage_le
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget
