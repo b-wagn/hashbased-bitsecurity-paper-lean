@@ -196,6 +196,7 @@ import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
+import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
@@ -12927,3 +12928,111 @@ info: 'SlhDsaSecurity.HandlerLenient.probEvent_sensitiveFlagged_eq_withFlag' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerLenient.probEvent_sensitiveFlagged_eq_withFlag
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.grows_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.grows_servingNotice
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.step_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.step_inl
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.step_inr_cases' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.step_inr_cases
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.step_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.step_cached
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.step_framing' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.step_framing
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.step_grows' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.step_grows
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.step_served_self' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.step_served_self
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.step_served' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.step_served
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.stepGrows' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.stepGrows
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.runGrows' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.runGrows
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.stepFraming' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.stepFraming
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.runFraming' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.runFraming
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.stepInvariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.stepInvariant
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.runInvariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.runInvariant
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.queryStep' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.queryStep
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.files_carrierRecorder' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.files_carrierRecorder
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.agreesWithLog_carrierRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.agreesWithLog_carrierRun
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.leftRecord_length_le_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.leftRecord_length_le_cap
