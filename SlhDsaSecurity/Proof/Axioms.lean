@@ -11663,6 +11663,12 @@ info: 'SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree' depends on axi
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree
 
+/--
+info: 'SlhDsaSecurity.LateProvenance.hrecord' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.hrecord
+
 /-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind
