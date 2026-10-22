@@ -181,4 +181,59 @@ theorem target_of_answer_and_leaves
     HasTotalSecurityBits .strong 127 :=
   FinalAssembly.target_of_producers hanswer (sharedChargedLate_of_parts hinput hsigner)
 
+/-! ## `hsigner` is false, and it is false for a reason worth writing down
+
+`LateProvenance.SignerDigestFree` says no target-recorded input is a request's own digest
+input. Its docstring's justification is right — such a query is signer-randomised **when it is
+made**, so the left test takes it — but the statement reads the randomiser off the **final**
+cache, through `HonestProbes.replayRandomizer`. The two differ exactly where the adversary
+queries a digest input before the request that would make it served, which is the case the
+ordering defect exists for.
+
+Worse, `CacheReplay.replay` answers a miss with `default`, so on a message that is never signed
+the replayed randomiser is a value the adversary knows. The two theorems below are the two steps
+of a one-query refutation:
+
+* `targetKeep_default` — the input `messageInput (truncate default) pk m` is target-recorded at
+  any cache holding no `PRF_msg` entry at the real seed. It is message-class by construction,
+  it is outside the `PRF_msg` class except under the byte-format coincidence, and it cannot be
+  signer-randomised at a cache with no `PRF_msg` entry to randomise it.
+* `messageInput_default_eq_replay` — at such a cache that input **is**
+  `messageInput (replayRandomizer cache sk m) pk m`.
+
+So an adversary that queries that one input, for a message it never has signed, produces a
+target-recorded entry that `SignerDigestFree` forbids. No carrier, no ordering, no budget.
+
+**What this does not threaten is the consequence.** `LateProvenance.hrecord_of_signerDigestFree`
+only wants every target-recorded input to be in `SharedJoin.recordOf` — the adversary's and the
+verifier's own queries — and the refuting input is an adversary query, so it is in the record.
+The hypothesis is a sufficient condition far stronger than what it is used for, and the repair
+is to prove the consequence by provenance instead: the signer's canonical probes are not
+message-class, its randomiser probe is removed by `narrowClass`'s `PRF_msg` clause, and its
+digest probe is signer-randomised at the state it is made at. Only the last needs the signer's
+two probes **in order**, which is where the honest statement lives. -/
+
+/-- **The input a one-query adversary files as a target.** Message-class by construction, and
+not signer-randomised at a cache that holds no `PRF_msg` entry at the real seed. -/
+theorem targetKeep_default (prfSeed : Digest) (pk : PublicKey) (cache : QueryCache HashSpec)
+    (message : Bytes)
+    (hprf : ¬ RandomizerGate.PrfClass prfSeed
+      (Hashing.messageInput (Hashing.truncate (default : HashOutput)) pk message))
+    (hcold : ∀ m : Bytes, cache (Hashing.randomizerInput prfSeed pk.seed m) = none) :
+    SplitWitness.targetKeep prfSeed pk
+      (Hashing.messageInput (Hashing.truncate (default : HashOutput)) pk message) cache := by
+  refine ⟨⟨⟨Hashing.truncate (default : HashOutput), message, rfl⟩, hprf⟩, ?_⟩
+  rintro ⟨m, answer, hcached, -⟩
+  rw [hcold m] at hcached
+  exact absurd hcached (by simp)
+
+/-- **And at that same cache it is the replayed digest input the hypothesis forbids.** -/
+theorem messageInput_default_eq_replay (cache : QueryCache HashSpec) (sk : SecretKey)
+    (message : Bytes)
+    (hmiss : cache (Hashing.randomizerInput sk.prf sk.publicKey.seed message) = none) :
+    Hashing.messageInput (Hashing.truncate (default : HashOutput)) sk.publicKey message =
+      Hashing.messageInput (HonestProbes.replayRandomizer cache sk message) sk.publicKey
+        message := by
+  rw [HonestProbes.replayRandomizer, CacheReplay.replay, hmiss, Option.getD_none]
+
 end SlhDsaSecurity.ObligationShapes

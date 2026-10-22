@@ -12248,3 +12248,15 @@ info: 'SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.targetKeep_default' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.targetKeep_default
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.messageInput_default_eq_replay' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.messageInput_default_eq_replay
