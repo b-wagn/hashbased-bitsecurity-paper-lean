@@ -16290,3 +16290,21 @@ info: 'SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceWithPrfUnit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceWithPrfUnit
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceWithPrfUnit_line' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceWithPrfUnit_line
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceWithPrfUnit_margin' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceWithPrfUnit_margin

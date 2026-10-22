@@ -294,6 +294,37 @@ theorem allowance (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
   allowanceOf 259 q (by simp only [subtreeHeight]; omega) hkeygen
 
+/-- **The allowance with the `PRF_msg` column's unit**, which is `allowance` at one more claim.
+
+The `Nat` line is `(q - 512 + 260) + q + 6 ≤ 2 * q`, i.e. **`266 ≤ 512`**, so the column costs
+one unit and the ledger keeps **246** of its 247 spare.
+
+**One unit is what the column costs and not a chosen round number.**
+`PrfClassCount.expected_card_filter_prfClass_le` bounds the expected class count by
+`card record / 2 ^ 128`, which is below one for every budget up to `2 ^ 128`
+(`LedgerThird.prf_column_within_one_unit`). It is a count, so it enters the `claims` column,
+where the units are counts; it is not a probability and does not belong in `defects`.
+
+**What this does not settle.** That bound is proved with the seed drawn *after* the record. In
+the real order the walk fixes the seed first and an adversary may aim every query at it, where
+the count is the whole record. So this line is the ledger's side of the column and the hop is
+the rest of it. -/
+theorem allowanceWithPrfUnit (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((q - 2 ^ subtreeHeight + 260 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
+      (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
+  allowanceOf 260 q (by simp only [subtreeHeight]; omega) hkeygen
+
+/-- **The line itself**, so a reader need not reconstruct it: `260 + 6 ≤ 512`. -/
+theorem allowanceWithPrfUnit_line : (260 : Nat) + 6 ≤ 2 ^ subtreeHeight := by
+  simp only [subtreeHeight]
+  omega
+
+/-- **And what is left of the spare.** -/
+theorem allowanceWithPrfUnit_margin : 2 ^ subtreeHeight - ((260 : Nat) + 6) = 246 := by
+  simp only [subtreeHeight]
+  omega
+
 /-! ## The target -/
 
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedGame.tail

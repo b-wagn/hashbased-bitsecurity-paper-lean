@@ -5163,3 +5163,24 @@ every query at it — at which point the count is the whole record and the bound
 discharges the column exactly when the blind-order count transfers to the real one, and that
 transfer is the open hop. **An arithmetic obstruction has become an ordering one**, which is a
 better place to be but is not the same as being done.
+## The ledger side of the `PRF_msg` column is finished, at `266 ≤ 512`
+
+`Target.allowanceWithPrfUnit` is `allowanceOf` at `claims = 260`: one unit for the `PRF_msg`
+column beside the forgery's 259 cells. The `Nat` line is
+
+    (q - 512 + 260) + q + 6 ≤ 2 * q,   i.e.   266 ≤ 512
+
+and `allowanceWithPrfUnit_line` and `allowanceWithPrfUnit_margin` state it and the **246** units
+that remain, so a reader never has to reconstruct either.
+
+**One unit is what the column costs, not a chosen round number.** The expected class count is at
+most `card record / 2 ^ 128`, which is below one for every budget up to `2 ^ 128`. And it is a
+*count*, so it belongs in the `claims` column where the units are counts — not in `defects`,
+which are probabilities. Putting it in the wrong column would have been the altitude error in
+its ledger form.
+
+**What is finished and what is not.** The ledger now has a line that accommodates the column
+with margin to spare, and `Target.allowance` at 259 is untouched for its existing consumers.
+What the line does **not** supply is the column's bound in the real order: the count bound is
+proved with the seed drawn after the record, and in the real order it is false, with an explicit
+adversary. So the ledger side is done and the hop carries the column entire.
