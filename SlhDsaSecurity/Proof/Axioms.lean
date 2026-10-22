@@ -12208,3 +12208,43 @@ info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.signInternalAt_shape_hash' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.signInternalAt_shape_hash
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.sign_shape_hash' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.sign_shape_hash
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.strippedSign_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.strippedSign_shape
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.openCache_randomizerInput_eq_none' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.openCache_randomizerInput_eq_none
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.openCache_messageInput_eq_none' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.openCache_messageInput_eq_none
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good

@@ -995,4 +995,151 @@ theorem not_filesLeft_randomizerInput (pk : PublicKey) (sk : SecretKey) (hpk : s
   rw [← Option.some.inj hinFlight] at hinput
   exact ServedBridge.randomizerInput_ne_messageInput sk.prf randomizer sk.publicKey framed hinput
 
+/-! ## The same two queries, under stripping
+
+The agreement is proved at a presentation whose signer is unstripped. The input half's
+containment is proved at a stripped one, and its honest-phase argument *turns on* stripping:
+`StrippedGame.strippedSign` answers canonical probes from the walk's table inside the
+computation, so they never reach the handler and the only probes that do are the randomiser's
+and the digest's. Moving the containment up to an unstripped signer would mean redoing that
+argument against probes that now arrive; moving the agreement down means checking one thing.
+
+**That one thing is here.** Stripping removes a query only where the walk's table answers it,
+and the two queries the agreement rests on are not of that kind: a randomiser input and a
+message input aim nowhere, so the table is silent at both and they reach the handler exactly as
+before. The coldness is taken as a hypothesis, in the shape `ProbeContainment` already threads
+it, because that is where the walk's `hpublic` and `hprf` are in hand.
+
+What this says is that the agreement's *proof* transports: the two-query shape it chains
+`servingProgram_query_step` along survives stripping unchanged, so `served_of_sign` and
+everything above it do too. -/
+
+/-- The signer's two queries at the hash-only monad, which is where stripping acts. -/
+theorem signInternalAt_shape_hash (randomizer : Digest) (sk : SecretKey) (message : Bytes) :
+    ∃ rest : HashOutput → OracleComp HashSpec Signature,
+      SignerRandomiser.signInternalAt (m := OracleComp HashSpec) randomizer sk message =
+        (query (spec := HashSpec) (Hashing.messageInput randomizer sk.publicKey message) :
+          OracleComp HashSpec HashOutput) >>= rest :=
+  ⟨_, rfl⟩
+
+open scoped Classical in
+/-- **`Scheme.sign` asks its randomiser and then its digest**, at the hash-only monad. -/
+theorem sign_shape_hash (sk : SecretKey) (request : Message) (framed : Bytes)
+    (hframe : request.frame = some framed) :
+    ∃ rest : HashOutput → HashOutput → OracleComp HashSpec (Option Bytes),
+      Scheme.sign (m := OracleComp HashSpec) sk request =
+        (query (spec := HashSpec) (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) :
+          OracleComp HashSpec HashOutput) >>= fun seed =>
+            (query (spec := HashSpec)
+                (Hashing.messageInput (Hashing.truncate seed) sk.publicKey framed) :
+              OracleComp HashSpec HashOutput) >>= rest seed := by
+  classical
+  refine ⟨fun seed digest =>
+    (signInternalAt_shape_hash (Hashing.truncate seed) sk framed).choose digest >>=
+      fun signature => (pure (some signature.toBytes) : OracleComp HashSpec (Option Bytes)),
+    ?_⟩
+  simp only [Scheme.sign, hframe, SignerRandomiser.signInternal_eq, Hashing.randomizer,
+    Hashing.shortHash, Hashing.hash, bind_assoc, pure_bind]
+  refine congrArg (Bind.bind _) (funext fun seed => ?_)
+  have hchoose := (signInternalAt_shape_hash (Hashing.truncate seed) sk framed).choose_spec
+  generalize (signInternalAt_shape_hash (Hashing.truncate seed) sk framed).choose = rest
+    at hchoose ⊢
+  rw [hchoose, bind_assoc]
+
+open scoped Classical in
+/-- **Stripping leaves the signer's two queries in place**, when the walk's table is silent at
+them — which on a good walk it is, since neither aims anywhere. So the stripped signer has the
+shape `served_of_sign` chains along, and the agreement transports to the stripped run. -/
+theorem strippedSign_shape (warm : QueryCache HashSpec) (sk : SecretKey) (request : Message)
+    (framed : Bytes) (hframe : request.frame = some framed)
+    (hrand : warm (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = none)
+    (hdigest : ∀ seed : HashOutput,
+      warm (Hashing.messageInput (Hashing.truncate seed) sk.publicKey framed) = none) :
+    ∃ rest : HashOutput → HashOutput → OracleComp OracleWorld (Option Bytes),
+      StrippedGame.strippedSign warm sk request =
+        (query (spec := OracleWorld)
+            (Sum.inr (Hashing.randomizerInput sk.prf sk.publicKey.seed framed)) :
+          OracleComp OracleWorld HashOutput) >>= fun seed =>
+            (query (spec := OracleWorld)
+                (Sum.inr (Hashing.messageInput (Hashing.truncate seed) sk.publicKey framed)) :
+              OracleComp OracleWorld HashOutput) >>= rest seed := by
+  classical
+  obtain ⟨rest, hshape⟩ := sign_shape_hash sk request framed hframe
+  refine ⟨fun seed digest =>
+    OracleComp.liftComp (simulateQ (StripCached.stripImpl warm) (rest seed digest)) OracleWorld,
+    ?_⟩
+  rw [StrippedGame.strippedSign, hshape]
+  rw [simulateQ_bind,
+    show simulateQ (StripCached.stripImpl warm)
+        (query (spec := HashSpec) (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) :
+          OracleComp HashSpec HashOutput) =
+      (query (spec := HashSpec) (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) :
+        OracleComp HashSpec HashOutput) from by
+      simp [StripCached.stripImpl, hrand]]
+  rw [OracleComp.liftComp_bind]
+  refine congrArg (Bind.bind _) (funext fun seed => ?_)
+  rw [simulateQ_bind,
+    show simulateQ (StripCached.stripImpl warm)
+        (query (spec := HashSpec)
+            (Hashing.messageInput (Hashing.truncate seed) sk.publicKey framed) :
+          OracleComp HashSpec HashOutput) =
+      (query (spec := HashSpec)
+          (Hashing.messageInput (Hashing.truncate seed) sk.publicKey framed) :
+        OracleComp HashSpec HashOutput) from by
+      simp [StripCached.stripImpl, hdigest seed]]
+  rw [OracleComp.liftComp_bind]
+  rfl
+
+/-! ### And the coldness is the walk's own hypotheses
+
+The two conditions `strippedSign_shape` asks for are not new assumptions. The walk's table is
+keyed by canonical inputs, and a canonical input is a tweakable input at a structural address;
+the two the signer asks are a randomiser's and a message digest's, and `HashSeparation` keeps
+those apart from tweakable inputs under exactly the two coincidences a good walk excludes. So
+the hypotheses discharge from `hprf` and `hpublic`, which the containment already carries. -/
+
+/-- **The walk's table is silent at a randomiser input**, the seeds differing. -/
+theorem openCache_randomizerInput_eq_none (publicSeed prf seed : Digest) (message : Bytes)
+    (hne : prf ≠ publicSeed) (available : CanonicalGraph.Node → Prop)
+    (table : CanonicalGraph.Cells × CanonicalGraph.Padding) :
+    OpenCache.openCache publicSeed available table
+      (Hashing.randomizerInput prf seed message) = none :=
+  OpenCache.openCache_eq_none_of_not_canonical (publicSeed := publicSeed)
+    (available := available) table _
+    (fun _ => Ne.symm (HashSeparation.randomizer_tweakable_ne hne))
+
+/-- **And at a message-digest input**, the key being no coincidence. -/
+theorem openCache_messageInput_eq_none (publicSeed randomizer : Digest) (pk : PublicKey)
+    (message : Bytes) (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
+    (available : CanonicalGraph.Node → Prop)
+    (table : CanonicalGraph.Cells × CanonicalGraph.Padding) :
+    OpenCache.openCache publicSeed available table
+      (Hashing.messageInput randomizer pk message) = none :=
+  OpenCache.openCache_eq_none_of_not_canonical (publicSeed := publicSeed)
+    (available := available) table _
+    (fun parent => Ne.symm
+      (HashSeparation.message_tweakable_ne hpublic (withinBounds_structural parent)))
+
+/-- **The stripped signer keeps its two queries, on a good walk.** `strippedSign_shape` with
+both coldness conditions discharged, which is the statement the transport actually uses. -/
+theorem strippedSign_shape_of_good (publicSeed : Digest)
+    (available : CanonicalGraph.Node → Prop)
+    (table : CanonicalGraph.Cells × CanonicalGraph.Padding) (sk : SecretKey)
+    (hprf : sk.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    (request : Message) (framed : Bytes) (hframe : request.frame = some framed) :
+    ∃ rest : HashOutput → HashOutput → OracleComp OracleWorld (Option Bytes),
+      StrippedGame.strippedSign (OpenCache.openCache publicSeed available table) sk request =
+        (query (spec := OracleWorld)
+            (Sum.inr (Hashing.randomizerInput sk.prf sk.publicKey.seed framed)) :
+          OracleComp OracleWorld HashOutput) >>= fun seed =>
+            (query (spec := OracleWorld)
+                (Sum.inr (Hashing.messageInput (Hashing.truncate seed) sk.publicKey framed)) :
+              OracleComp OracleWorld HashOutput) >>= rest seed :=
+  strippedSign_shape _ sk request framed hframe
+    (openCache_randomizerInput_eq_none publicSeed sk.prf sk.publicKey.seed framed hprf available
+      table)
+    (fun seed => openCache_messageInput_eq_none publicSeed (Hashing.truncate seed) sk.publicKey
+      framed hpublic available table)
+
 end SlhDsaSecurity.ServedAgreement
