@@ -2050,3 +2050,29 @@ Connecting it to `CoverageTail` is instantiation, not new argument:
 
 Then `ClassExpectation.prob_bad_or_coverage_le` takes it and the answer side has no hypothesis
 left but the budget.
+
+## Where the two obligations stand
+
+`Obligations.target_of_charges` reduces the theorem to `AnswerCharged` and `SharedCharged`.
+Neither has an open problem left; what remains in both is instantiation.
+
+**The answer half.** `AnswerSide.prob_answerBad_le_of_budget` wants the budget and one coverage
+bound in expectation form, and that bound is now proved — `TapeFactor.prob_exists_hit_le_expected`
+charges the coverage event at the *expected* recording length rather than at a cap. Two things
+made it cheap, and both are reusable. A tape-reading oracle that draws for itself once its block
+is spent factorises for every block length, so there is no "long enough" side condition to thread
+from the budget. And causality is not determinism: the resampling needs only the *probability* of
+the selection to be unchanged, so the run's coins and out-of-class answers never have to be
+front-loaded, and only the two class blocks do.
+
+**The shared half.** Four terms, partitioning the record by class plus one per request; the
+accounting is above. The input half has its congruence (`cellSign`); the randomiser defect has
+its provenance and needs the handler-level identical-until-bad for the signer's randomiser; the
+ordering defect has its general charge (`PotentialCharge.prob_fired_le`) and needs instantiating.
+
+That general charge is worth naming for its own sake: a potential on the state paid down against
+a gauge read off the state, which covers "a fresh answer landing in a set the cache named
+earlier" — the shape neither `prob_badWithin_le` nor `SecretGuessCharge` reaches, and the third
+place in this development that wanted it. The count has to be a gauge on the *state* rather than
+a counter on the queries: with the counter in the value, a step's own increase can only be
+recovered by cancelling across an `ℝ≥0∞` inequality, which needs a finiteness nothing supplies.
