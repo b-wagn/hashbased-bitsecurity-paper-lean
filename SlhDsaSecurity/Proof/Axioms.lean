@@ -14661,3 +14661,37 @@ info: 'SlhDsaSecurity.FusedTape.evalDist_threeStage' depends on axioms: [propext
 /-- info: 'SlhDsaSecurity.TouchedKeys.honestLinked_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TouchedKeys.honestLinked_eq
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.prob_selected_hit_le_of_causal' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.prob_selected_hit_le_of_causal
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.sum_prob_selected_le_expected_of' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.sum_prob_selected_le_expected_of
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.prob_exists_hit_le_expected_of_causal' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.prob_exists_hit_le_expected_of_causal
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingBlockRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingBlockRun_eq
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingCausal' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingCausal
