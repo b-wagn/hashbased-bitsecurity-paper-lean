@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.CarrierCoverage
 import SlhDsaSecurity.Proof.CountedView
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
@@ -14996,3 +14997,21 @@ info: 'SlhDsaSecurity.ServingForget.bind_of_fuseServing_conj' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingForget.bind_of_fuseServing_conj
+
+/--
+info: 'SlhDsaSecurity.CarrierCoverage.reassociate_startServingOn' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCoverage.reassociate_startServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierCoverage.reassociate_stopServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCoverage.reassociate_stopServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage
