@@ -95,4 +95,37 @@ the first place.
 to be rediscovered, since the paragraph reads as though it settles the case.
 -/
 
+/-! ## The answer half cannot pay for it either, on two independent grounds
+
+The last place a payer could have been hiding. It is not there.
+
+**Structurally the answer half is relieved of this event, not charged for it.**
+`Obligations.AnswerChargedAt` bounds `AnswerBad ∧ ¬ late`, and at this tail `late` is
+`FinalAssembly.lateOrSeed`, which *contains* `AnswerCoverage.ForgerySeedRandomised`. So the seed
+event is excluded from the answer half's event by hypothesis — that exclusion is precisely why
+the shared half carries it. Asking the answer half to pay would mean restating it at
+`late := LateProbes.Ordering`, which is the door `CarrierTail.answerChargedLate_carrier_of_bound`
+provides and whose hypothesis nobody has discharged.
+
+**And budgetarily there is nothing to pay with.** The answer half's allowance is
+`(q : ℝ≥0∞) / 2 ^ 128 + answerDefect`: one `q`, already spent on its own event, with
+`answerDefect` the constant part. `Target`'s own line says what follows:
+
+> *The `q` coefficient has no margin at all: the same `Nat` line is `2 * q` on the right and
+> `q + q` on the left, so the two halves have one budget each and a third `q`-proportional term
+> cannot be added. Constants can, up to the margin.*
+
+Two `q`-proportional terms are allowed and two are used. The second unit per message-class entry
+is a third, bounded by `E[card recordMessageClass] ≤ counts.work ≤ q - 2 ^ subtreeHeight` and by
+nothing smaller — nothing in the development bounds the message class below the whole record, and
+an adversary all of whose queries are message inputs aiming nowhere attains it.
+
+**So the arithmetic of the shortfall is `3q` where the line allows `2q`**, a factor of `3/2`,
+which is `log2 (3/2) ≈ 0.585` of a bit. On this route the honest statement is therefore about
+`126.4` bits rather than `127` — a smaller number, not a longer proof.
+
+This is recorded here rather than left as an absence because every other avenue is closed above,
+and an unexamined quarter reads the same as an examined one once the file is quiet.
+-/
+
 end SlhDsaSecurity.RecordSlot
