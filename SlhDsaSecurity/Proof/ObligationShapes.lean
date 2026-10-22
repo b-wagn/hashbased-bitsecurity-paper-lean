@@ -547,4 +547,59 @@ theorem target_of_answer_and_leaves_proved (claims seedUnits : Nat)
   FinalAssembly.target_of_producers_proved claims hfits hanswer
     (sharedChargedLate_of_parts claims seedUnits hclaims hinput hseed)
 
+/-! ## The leftover's own slot, so the seed parameter is not inherited as a question
+
+`sharedChargedLate_of_parts_at` takes `seedEvent` and `seedUnits` because when it was written
+nobody knew what the leftover cost. Now they do, and the parameter is the wrong shape for it:
+`seedUnits : Nat` makes the charge constant, and the leftover is `q`-shaped. The parametric form
+stays — a *different* leftover, at some future tail, may well be constant — but the forgery-seed
+leftover does not go through it any more.
+
+`RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised` sends it instead to
+`RecordMeetsPrfClass`, the event the randomiser defect's reduction was factored around, and that
+event has had a slot in the shared side's budget all along: `SharedJoin`'s `hrecord` at `qp`,
+inside `qc + qp + qm + qs ≤ q - 2 ^ subtreeHeight`, with the count read off the run's own record
+by `card_chargedRecord_le` and **no `+ 1`**, because the verifier's digest query is instrumented
+like every other. So the leftover costs no new units and nothing from the margin.
+
+The containment is free of side conditions, which is the test it passed and
+`randomiserBad_of_forgerySeed` did not: that one reaches `ReplayGate.RandomiserBad`, which
+additionally asks that nothing was signed at the frame, and `PK.root ‖ m` is a legal frame. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The shared obligation with the leftover sent to the record charge**, which is the form the
+assembly should take. `qp` is the record slot's units, not a cost invented here. -/
+theorem sharedChargedLate_of_parts_record (fused : LateProbes.FusedTail)
+    (claims qp : Nat) (late : LateProbes.SplitPair → Prop)
+    (hclaims : 259 + qp ≤ claims)
+    (hlate : ∀ pair : LateProbes.SplitPair, late pair →
+      LateProbes.Ordering pair ∨
+        AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+          (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+          (FinalAssembly.forgetFused pair.2))
+    (hforget : ∀ adversary : Adversary, LateProbes.ForgetsTo fused adversary)
+    (hordering : ∀ adversary : Adversary,
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧ LateProbes.Ordering pair |
+          LateProbes.pairedOf fused adversary] ≤
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      SharedAssembly.InputBulletAt fused adversary LateProbes.Ordering)
+    (hrecord : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : SharedJoin.RecordedPair => GoodWalk pair.1 ∧
+          RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 |
+        RandomiserRecord.recordedPairedRun adversary] ≤
+        ((qp : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    Obligations.SharedChargedLate claims fused FinalAssembly.forgetFused late :=
+  sharedChargedLate_of_parts_at fused claims qp late
+    (fun pair => AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+      (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+      (FinalAssembly.forgetFused pair.2))
+    hclaims hlate hforget hordering hinput
+    (fun q adversary hbudget =>
+      le_trans (SharedAssembly.prob_forgerySeed_le_record fused adversary (hforget adversary))
+        (hrecord q adversary hbudget))
+
 end SlhDsaSecurity.ObligationShapes

@@ -15577,3 +15577,15 @@ info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail' depen
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail
+
+/-- info: 'SlhDsaSecurity.SharedAssembly.prob_forgerySeed_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.prob_forgerySeed_le_record
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record
