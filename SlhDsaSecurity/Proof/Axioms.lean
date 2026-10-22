@@ -4992,3 +4992,24 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.Assembly.le_target_of_served' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.le_target_of_served
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.prob_truncate_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.prob_truncate_eq
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_le
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.cleanBad_of_canonical' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.cleanBad_of_canonical
+
+/--
+info: 'SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_run_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_run_le
+
