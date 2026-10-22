@@ -5096,9 +5096,6 @@ info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_expected_le' depen
 #guard_msgs in
 #print axioms SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'
 
-/-- info: 'SlhDsaSecurity.AdversaryQueries.one_le_count_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.AdversaryQueries.one_le_count_sign
 
 /--
 info: 'SlhDsaSecurity.AdversaryQueries.work_add_served_le_count_adversary' depends on axioms: [propext,
