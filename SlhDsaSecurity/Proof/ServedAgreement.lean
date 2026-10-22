@@ -893,6 +893,57 @@ Read at a later cache, because that is the only cache at which they do agree: th
 its answers and the replay reads them back, so a cache that does not yet hold them replays
 something else. -/
 
+/-- **An input a run's computation consults is one the run left cached.**
+
+The converse direction to `served_queriesUnder`, and the one a *replayed* quantity needs: a
+value recomputed from the carrier's cache agrees with what the run computed, because every
+input the recomputation asks was asked for real and its answer kept. The two halves are
+`hashCached` — the step leaves its own input cached, holding what it answered — and
+`runPersists`, which carries that entry to the end.
+
+It is stated here rather than beside its first consumer because it is a consequence of the
+handler interface and of nothing else, so anything reading a replayed quantity at a carrier can
+have it. The first consumer is the forgery's claimed candidates, which the charge reads at the
+carrier and the obligation reads at the game's cache; with `ServingTable.unionCache_of_cached`
+this is what makes those two readings the same list. -/
+theorem cached_queriesUnder (pk : PublicKey)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl) (finalCarrier : HandlerCarrier.State) (probe : Bytes)
+    {α : Type} {computation : OracleComp HashSpec α}
+    (hquery : CacheReplay.QueriesUnder finalCarrier.cache computation probe) :
+    ∀ (state : HandlerCarrier.State × τ) (z : α × (HandlerCarrier.State × τ)),
+      z ∈ support ((simulateQ impl
+        (OracleComp.liftComp computation OracleWorld)).run state) →
+      z.2.1 = finalCarrier → finalCarrier.cache probe ≠ none := by
+  induction hquery with
+  | head input next =>
+    intro state z hz hfinal
+    have hz' : z ∈ support ((simulateQ impl
+        (liftM (OracleWorld.query (Sum.inr input)) >>=
+          fun answer : HashOutput =>
+            OracleComp.liftComp (next answer) OracleWorld)).run state) := hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz'
+    obtain ⟨step, hstepRun, hrest⟩ := hz'
+    rw [← hfinal, (hfiles.runPersists _ step.2 z hrest).1 input step.1
+      (hfiles.hashCached input state step hstepRun)]
+    simp
+  | tail input candidate next _ ih =>
+    intro state z hz hfinal
+    have hz' : z ∈ support ((simulateQ impl
+        (liftM (OracleWorld.query (Sum.inr input)) >>=
+          fun answer : HashOutput =>
+            OracleComp.liftComp (next answer) OracleWorld)).run state) := hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz'
+    obtain ⟨step, hstepRun, hrest⟩ := hz'
+    have hentry : finalCarrier.cache input = some step.1 := by
+      rw [← hfinal]
+      exact (hfiles.runPersists _ step.2 z hrest).1 input step.1
+        (hfiles.hashCached input state step hstepRun)
+    have hreplay : CacheReplay.replay finalCarrier.cache input = step.1 := by
+      simp [CacheReplay.replay, hentry]
+    rw [← hreplay] at hrest
+    exact ih step.2 z hrest hfinal
+
 /-- **An input a run files is one the computation consults**, read at any cache the run's own
 extends. -/
 theorem served_queriesUnder {α : Type} (pk : PublicKey)
