@@ -177,6 +177,7 @@ import SlhDsaSecurity.Proof.SplitRecorder
 import SlhDsaSecurity.Proof.ServingCarrier
 import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.PhaseFusion
+import SlhDsaSecurity.Proof.ServedBridge
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8717,3 +8718,31 @@ info: 'SlhDsaSecurity.ServingCarrier.disclosedAt_eq_logDisclosed' depends on axi
 /-- info: 'SlhDsaSecurity.PhaseFusion.run_phase_fused' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseFusion.run_phase_fused
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.randomizerInput_ne_messageInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.randomizerInput_ne_messageInput
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.sign_messageShape_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.sign_messageShape_randomizer
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.disclosedAt_subset_disclosedByLog' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.disclosedAt_subset_disclosedByLog
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt
