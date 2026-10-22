@@ -1,4 +1,4 @@
-import SlhDsaSecurity.Proof.SplitPrefix
+import SlhDsaSecurity.Proof.RecorderView
 import SlhDsaSecurity.Proof.CoverageRouted
 import SlhDsaSecurity.Proof.RandomizerGate
 
@@ -41,62 +41,74 @@ open Security CacheAvailability SplitPrefix
 
 /-! ## The join over an abstract disclosing test
 
-Everything the join does is here. `served` is the left test, read at the cache in force when a
+Everything the join does is here. `served` is the left test, read at the state in force when a
 query is answered; `narrow` is the class the right recording keeps, which is the charged class
-less whatever the instantiation cannot file. -/
+less whatever the instantiation cannot file.
+
+The state is a parameter, at `RecorderView.CacheView`. The reason is the disclosing test itself:
+read at the cache, "the signer served this" is a question an adversary holding `SK.prf` can make
+true with no request behind it, so `served` has to be allowed to read a state the signing oracle
+alone writes. Nothing in this section cares which; it asks of the state only what the recorder
+asks, which is how to see that a query is fresh and how to install an answer.
+
+At `σ := QueryCache HashSpec` this is the join as it stood, because `RecorderView.recorderOf_cache`
+says the recorder is the same one. -/
 
 namespace Served
 
+open RecorderView
+
+variable {σ : Type} [CacheView σ]
+
 /-- The right test: an input of the narrowed class that is not disclosing. -/
-def targetKeep (narrow : Bytes → Prop) (served : Bytes → QueryCache HashSpec → Prop) :
-    Bytes → QueryCache HashSpec → Prop :=
-  fun input cache => narrow input ∧ ¬ served input cache
+def targetKeep (narrow : Bytes → Prop) (served : Bytes → σ → Prop) : Bytes → σ → Prop :=
+  fun input view => narrow input ∧ ¬ served input view
 
 /-- **The two tests cover the narrowed class**, so every fresh answer in it lands in exactly one
 recording. -/
-theorem cover (narrow : Bytes → Prop) (served : Bytes → QueryCache HashSpec → Prop)
-    (input : Bytes) (cache : QueryCache HashSpec) (hnarrow : narrow input) :
-    served input cache ∨ targetKeep narrow served input cache := by
+theorem cover (narrow : Bytes → Prop) (served : Bytes → σ → Prop)
+    (input : Bytes) (view : σ) (hnarrow : narrow input) :
+    served input view ∨ targetKeep narrow served input view := by
   classical
-  by_cases hserved : served input cache
+  by_cases hserved : served input view
   · exact Or.inl hserved
   · exact Or.inr ⟨hnarrow, hserved⟩
 
 /-- The right test keeps the narrowed class. -/
-theorem targetKeep_narrow (narrow : Bytes → Prop)
-    (served : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (hkeep : targetKeep narrow served input cache) :
+theorem targetKeep_narrow (narrow : Bytes → Prop) (served : Bytes → σ → Prop) (input : Bytes)
+    (view : σ) (hkeep : targetKeep narrow served input view) :
     narrow input := hkeep.1
 
 /-- **The ordering defect.** Some target-recorded input is disclosing at the end. -/
-def Late {α : Type} (served : Bytes → QueryCache HashSpec → Prop)
-    (result : α × SplitState) : Prop :=
+def Late {α : Type} (served : Bytes → σ → Prop) (result : α × StateOf σ) : Prop :=
   ∃ entry ∈ result.2.2.2, served entry.1 result.2.1
 
 set_option maxHeartbeats 800000 in
 /-- **Off the defect, every disclosing entry is in the disclosing recording.** This is the
 hypothesis `mem_records_of_covered` carries. -/
 theorem disclosedRecorded_of_not_late (pk : PublicKey)
-    (served : Bytes → QueryCache HashSpec → Prop) (narrow : Bytes → Prop)
-    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
-    (result : (Outcome × Nat) × SplitState)
-    (hmem : result ∈ support ((simulateQ (recorder served (targetKeep narrow served))
-      computation).run (cache, [], [])))
-    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
-    (hservedClass : ∀ (input : Bytes) (inner : QueryCache HashSpec),
+    (served : Bytes → σ → Prop) (narrow : Bytes → Prop)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (start : σ)
+    (result : (Outcome × Nat) × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf served (targetKeep narrow served))
+      computation).run (start, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input →
+      CacheView.cacheOf start input = none)
+    (hservedClass : ∀ (input : Bytes) (inner : σ),
       served input inner → CombinedCharge.IsMessageInput pk input)
     (hnarrowCached : ∀ (input : Bytes) (answer : HashOutput),
-      result.2.1 input = some answer → CombinedCharge.IsMessageInput pk input → narrow input)
+      CacheView.cacheOf result.2.1 input = some answer →
+        CombinedCharge.IsMessageInput pk input → narrow input)
     (hlate : ¬ Late served result) :
     ∀ (input : Bytes) (answer : HashOutput),
-      served input result.2.1 → result.2.1 input = some answer →
+      served input result.2.1 → CacheView.cacheOf result.2.1 input = some answer →
         (input, answer) ∈ result.2.2.1 := by
   classical
   intro input answer hserved hentry
   have hclass : CombinedCharge.IsMessageInput pk input := hservedClass input result.2.1 hserved
-  rcases mem_record_of_cache served (targetKeep narrow served) narrow
+  rcases mem_recordOf_of_cache served (targetKeep narrow served) narrow
     (fun probe inner hinner => cover narrow served probe inner hinner)
-    computation (cache, [], []) result hmem input answer
+    computation (start, [], []) result hmem input answer
     (hnarrowCached input answer hentry hclass) (hfresh input hclass) hentry with hleft | hright
   · exact hleft
   · exact absurd ⟨(input, answer), hright, hserved⟩ hlate
@@ -105,23 +117,26 @@ set_option maxHeartbeats 800000 in
 /-- **The covered forgery, as coordinates of the two recordings.** Its own digest is an entry of
 the target recording and each of its covering witnesses is an entry of the disclosing one. -/
 theorem mem_records_of_covered (pk : PublicKey)
-    (served : Bytes → QueryCache HashSpec → Prop) (narrow : Bytes → Prop)
-    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
-    (result : (Outcome × Nat) × SplitState)
-    (hmem : result ∈ support ((simulateQ (recorder served (targetKeep narrow served))
-      computation).run (cache, [], [])))
-    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
-    (hmono : ∀ (input : Bytes) (inner later : QueryCache HashSpec),
+    (served : Bytes → σ → Prop) (narrow : Bytes → Prop)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (start : σ)
+    (result : (Outcome × Nat) × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf served (targetKeep narrow served))
+      computation).run (start, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input →
+      CacheView.cacheOf start input = none)
+    (hmono : ∀ (input : Bytes) (inner later : σ),
       (∀ (probe : Bytes) (value : HashOutput),
-        inner probe = some value → later probe = some value) →
+        CacheView.cacheOf inner probe = some value →
+          CacheView.cacheOf later probe = some value) →
       served input inner → served input later)
     (hnarrowCached : ∀ (input : Bytes) (answer : HashOutput),
-      result.2.1 input = some answer → CombinedCharge.IsMessageInput pk input → narrow input)
+      CacheView.cacheOf result.2.1 input = some answer →
+        CombinedCharge.IsMessageInput pk input → narrow input)
     (hdisclosedRecorded : ∀ (input : Bytes) (answer : HashOutput),
-      served input result.2.1 → result.2.1 input = some answer →
+      served input result.2.1 → CacheView.cacheOf result.2.1 input = some answer →
         (input, answer) ∈ result.2.2.1)
     (hcovered : CoverageRouted.ForgeryCoveredBy (fun input => served input result.2.1) pk
-      (result.1, result.2.1)) :
+      (result.1, CacheView.cacheOf result.2.1)) :
     ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
       ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
         witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
@@ -133,16 +148,16 @@ theorem mem_records_of_covered (pk : PublicKey)
       (Hashing.messageInput parsed.randomizer pk message) := ⟨parsed.randomizer, message, rfl⟩
   have hnarrow := hnarrowCached (Hashing.messageInput parsed.randomizer pk message) answer
     hentry hclass
-  have hside := mem_record_of_cache served (targetKeep narrow served) narrow
+  have hside := mem_recordOf_of_cache served (targetKeep narrow served) narrow
     (fun input inner hinner => cover narrow served input inner hinner)
-    computation (cache, [], []) result hmem
+    computation (start, [], []) result hmem
     (Hashing.messageInput parsed.randomizer pk message) answer hnarrow
     (hfresh _ hclass) hentry
   have htarget : (Hashing.messageInput parsed.randomizer pk message, answer) ∈ result.2.2.2 := by
     rcases hside with hleft | hright
-    · exact absurd (left_record_keep_final served (targetKeep narrow served)
+    · exact absurd (left_recordOf_keep_final served (targetKeep narrow served)
         (fun input inner later hpersist hkeep => hmono input inner later hpersist hkeep)
-        computation (cache, [], []) result hmem (fun entry hentry => absurd hentry (by simp))
+        computation (start, [], []) result hmem (fun entry hentry => absurd hentry (by simp))
         _ hleft) hnotself
     · exact hright
   refine ⟨(Hashing.messageInput parsed.randomizer pk message, answer), htarget, fun tree => ?_⟩
@@ -155,31 +170,34 @@ set_option maxHeartbeats 800000 in
 entry of the target recording and its witnesses are entries of the disclosing one, with nothing
 left to assume about which query came first. -/
 theorem mem_records_of_covered_of_not_late (pk : PublicKey)
-    (served : Bytes → QueryCache HashSpec → Prop) (narrow : Bytes → Prop)
-    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
-    (result : (Outcome × Nat) × SplitState)
-    (hmem : result ∈ support ((simulateQ (recorder served (targetKeep narrow served))
-      computation).run (cache, [], [])))
-    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
-    (hmono : ∀ (input : Bytes) (inner later : QueryCache HashSpec),
+    (served : Bytes → σ → Prop) (narrow : Bytes → Prop)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (start : σ)
+    (result : (Outcome × Nat) × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf served (targetKeep narrow served))
+      computation).run (start, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input →
+      CacheView.cacheOf start input = none)
+    (hmono : ∀ (input : Bytes) (inner later : σ),
       (∀ (probe : Bytes) (value : HashOutput),
-        inner probe = some value → later probe = some value) →
+        CacheView.cacheOf inner probe = some value →
+          CacheView.cacheOf later probe = some value) →
       served input inner → served input later)
-    (hservedClass : ∀ (input : Bytes) (inner : QueryCache HashSpec),
+    (hservedClass : ∀ (input : Bytes) (inner : σ),
       served input inner → CombinedCharge.IsMessageInput pk input)
     (hnarrowCached : ∀ (input : Bytes) (answer : HashOutput),
-      result.2.1 input = some answer → CombinedCharge.IsMessageInput pk input → narrow input)
+      CacheView.cacheOf result.2.1 input = some answer →
+        CombinedCharge.IsMessageInput pk input → narrow input)
     (hlate : ¬ Late served result)
     (hcovered : CoverageRouted.ForgeryCoveredBy (fun input => served input result.2.1) pk
-      (result.1, result.2.1)) :
+      (result.1, CacheView.cacheOf result.2.1)) :
     ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
       ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
         witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
           (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
             (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree :=
-  mem_records_of_covered pk served narrow computation cache result hmem hfresh hmono
+  mem_records_of_covered pk served narrow computation start result hmem hfresh hmono
     hnarrowCached
-    (disclosedRecorded_of_not_late pk served narrow computation cache result hmem hfresh
+    (disclosedRecorded_of_not_late pk served narrow computation start result hmem hfresh
       hservedClass hnarrowCached hlate)
     hcovered
 
@@ -303,11 +321,11 @@ theorem disclosedRecorded_of_not_late (prfSeed : Digest) (pk : PublicKey)
       SignerRandomised prfSeed pk result.2.1 input → result.2.1 input = some answer →
         (input, answer) ∈ result.2.2.1 :=
   Served.disclosedRecorded_of_not_late pk (disclosingKeep prfSeed pk) (narrowClass prfSeed pk)
-    computation cache result hmem hfresh
+    computation cache result (by rw [RecorderView.recorderOf_cache]; exact hmem) hfresh
     (fun input inner hkeep => disclosingKeep_class prfSeed pk input inner hkeep)
     (fun input answer hentry hclass =>
       not_prfClass_of_not_seedRandomised prfSeed pk result.2.1 hseed input
-        (by rw [hentry]; simp) hclass)
+        (Option.ne_none_iff_exists'.mpr ⟨answer, hentry⟩) hclass)
     hlate
 
 set_option maxHeartbeats 800000 in
@@ -362,12 +380,12 @@ theorem mem_records_of_covered (prfSeed : Digest) (pk : PublicKey)
           (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
             (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree :=
   Served.mem_records_of_covered pk (disclosingKeep prfSeed pk) (narrowClass prfSeed pk)
-    computation cache result hmem hfresh
+    computation cache result (by rw [RecorderView.recorderOf_cache]; exact hmem) hfresh
     (fun input inner later hpersist hkeep =>
       disclosingKeep_mono prfSeed pk input inner later hpersist hkeep)
     (fun input answer hentry hclass =>
       not_prfClass_of_not_seedRandomised prfSeed pk result.2.1 hseed input
-        (by rw [hentry]; simp) hclass)
+        (Option.ne_none_iff_exists'.mpr ⟨answer, hentry⟩) hclass)
     hdisclosedRecorded hcovered
 
 set_option maxHeartbeats 800000 in
