@@ -255,6 +255,28 @@ theorem probEvent_tail_serving (adversary : Adversary) (prfSeed publicSeed : Dig
     probEvent_honest_serving adversary prfSeed publicSeed table
       (fun result => event ((LinkedGame.outcomeOf result.1).1, result.2)) record count]
 
+/-! ## Where the two caches agree
+
+The game's cache is the union — the programmed entries with whatever the handler has drawn
+beside them — and the handler's own is the carrier's. They differ at a canonical input the
+handler has **not** drawn: the union answers it from the table, the carrier not at all. They
+agree everywhere the carrier *has* an entry, because `Compatible` says the carrier never
+contradicts the table.
+
+That is the whole of the reduction the claims need. A quantity computed by replaying a
+computation against a cache is read at the union in the obligation and at the carrier in the
+charge; the two readings coincide as soon as every input the replay asks is one the run already
+drew. Nothing else about the union is involved. -/
+
+/-- **The union and the carrier agree wherever the carrier has an entry.** -/
+theorem unionCache_of_cached (publicSeed : Digest) (table : Cells × Padding)
+    (cache : QueryCache HashSpec) (hcompat : RedrawCell.Compatible publicSeed table cache)
+    (input : Bytes) (hcached : cache input ≠ none) :
+    RedrawCell.unionCache publicSeed table cache input = cache input := by
+  cases hvalue : cache input with
+  | none => exact absurd hvalue hcached
+  | some value => exact hcompat input value hvalue
+
 /-! ## The facts, at the key the table itself determines
 
 The handler the chain ends at takes its public key from the table, so it is a **family** of

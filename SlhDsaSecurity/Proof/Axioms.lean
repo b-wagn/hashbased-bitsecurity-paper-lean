@@ -14223,3 +14223,7 @@ info: 'SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected' depends 
 /-- info: 'SlhDsaSecurity.ChargedHalf.prob_claimed_strict_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedHalf.prob_claimed_strict_le
+
+/-- info: 'SlhDsaSecurity.ServingTable.unionCache_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.unionCache_of_cached
