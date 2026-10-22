@@ -358,23 +358,31 @@ theorem files_withCount
 
 `ServingForget.ForgetsAlong` is the other thing a bracketed phase asks of its handler. Counting
 cannot disturb it, for the reason the counter was put where it was: the projection reads the
-carrier and the counter is not in it. -/
+carrier and the counter is not in it.
 
-theorem withCount_step_map
+**Stated at `withExtra`, not at the counter.** Nothing below reads the update, only that the
+wrapper puts the step underneath back unchanged — so the counter's projection law is the
+wrapper's, at `ω := Nat`. That matters because the counter is not the only extra the tail will
+carry: a *split* counter is the same wrapper at `ω := Counts`, and it inherits these three
+rather than repeating their inductions. -/
+
+theorem withExtra_step_map {ω : Type}
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × Nat)) :
-    (fun z : OracleWorld.Range queried × (HandlerCarrier.State × (τ × Nat)) =>
-        (z.1, (z.2.1, z.2.2.1))) <$> ((withCount impl) queried).run state =
+    (update : OracleWorld.Domain → ω → ω)
+    (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × ω)) :
+    (fun z : OracleWorld.Range queried × (HandlerCarrier.State × (τ × ω)) =>
+        (z.1, (z.2.1, z.2.2.1))) <$> ((withExtra impl update) queried).run state =
       (impl queried).run (state.1, state.2.1) := by
-  rw [withCount_run, map_eq_bind_pure_comp, bind_assoc]
+  rw [withExtra_run, map_eq_bind_pure_comp, bind_assoc]
   simp [Function.comp_def]
 
-theorem run_withCount_map {α : Type}
+theorem run_withExtra_map {ω : Type} {α : Type}
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (update : OracleWorld.Domain → ω → ω)
     (computation : OracleComp OracleWorld α) :
-    ∀ state : HandlerCarrier.State × (τ × Nat),
-      (fun z : α × (HandlerCarrier.State × (τ × Nat)) => (z.1, (z.2.1, z.2.2.1))) <$>
-          (simulateQ (withCount impl) computation).run state =
+    ∀ state : HandlerCarrier.State × (τ × ω),
+      (fun z : α × (HandlerCarrier.State × (τ × ω)) => (z.1, (z.2.1, z.2.2.1))) <$>
+          (simulateQ (withExtra impl update) computation).run state =
         (simulateQ impl computation).run (state.1, state.2.1) := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
@@ -383,9 +391,39 @@ theorem run_withCount_map {α : Type}
   | query_bind queried next ih =>
     intro state
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind, simulateQ_bind,
-      simulateQ_spec_query, StateT.run_bind, ← withCount_step_map impl queried state,
+      simulateQ_spec_query, StateT.run_bind, ← withExtra_step_map impl update queried state,
       bind_map_left]
     exact bind_congr fun step => ih step.1 step.2
+
+/-- **A wrapped handler forgets wherever the handler underneath does**, whatever the extra
+component is. -/
+theorem forgetsAlong_withExtra {ω : Type} {S' : Type} (π : HandlerCarrier.State × τ → S')
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (update : OracleWorld.Domain → ω → ω)
+    (outer' : QueryImpl OracleWorld (StateT S' ProbComp))
+    (hforget : ServingForget.ForgetsAlong π impl outer') :
+    ServingForget.ForgetsAlong (fun state : HandlerCarrier.State × (τ × ω) =>
+      π (state.1, state.2.1)) (withExtra impl update) outer' := by
+  intro β computation state
+  rw [← hforget computation (state.1, state.2.1),
+    ← run_withExtra_map impl update computation state, Functor.map_map]
+
+theorem withCount_step_map
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × Nat)) :
+    (fun z : OracleWorld.Range queried × (HandlerCarrier.State × (τ × Nat)) =>
+        (z.1, (z.2.1, z.2.2.1))) <$> ((withCount impl) queried).run state =
+      (impl queried).run (state.1, state.2.1) :=
+  withExtra_step_map impl (fun queried count => count + hashCost queried) queried state
+
+theorem run_withCount_map {α : Type}
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (computation : OracleComp OracleWorld α) :
+    ∀ state : HandlerCarrier.State × (τ × Nat),
+      (fun z : α × (HandlerCarrier.State × (τ × Nat)) => (z.1, (z.2.1, z.2.2.1))) <$>
+          (simulateQ (withCount impl) computation).run state =
+        (simulateQ impl computation).run (state.1, state.2.1) :=
+  run_withExtra_map impl (fun queried count => count + hashCost queried) computation
 
 /-- **A counted handler forgets wherever the handler underneath does.** -/
 theorem forgetsAlong_withCount {S' : Type} (π : HandlerCarrier.State × τ → S')
@@ -393,10 +431,8 @@ theorem forgetsAlong_withCount {S' : Type} (π : HandlerCarrier.State × τ → 
     (outer' : QueryImpl OracleWorld (StateT S' ProbComp))
     (hforget : ServingForget.ForgetsAlong π impl outer') :
     ServingForget.ForgetsAlong (fun state : HandlerCarrier.State × (τ × Nat) =>
-      π (state.1, state.2.1)) (withCount impl) outer' := by
-  intro β computation state
-  rw [← hforget computation (state.1, state.2.1), ← run_withCount_map impl computation state,
-    Functor.map_map]
+      π (state.1, state.2.1)) (withCount impl) outer' :=
+  forgetsAlong_withExtra π impl (fun queried count => count + hashCost queried) outer' hforget
 
 /-! ## The counter is `countAllHashes`
 
