@@ -4780,3 +4780,15 @@ info: 'SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.CanonicalSignature.not_fresh_of_canonical
 
+/-- info: 'SlhDsaSecurity.CacheAvailability.isMessageInput_of_signerRandomised' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.isMessageInput_of_signerRandomised
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.signerRandomised_mono' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.signerRandomised_mono
+
+/-- info: 'SlhDsaSecurity.CacheAvailability.randomizer_eq_of_signerRandomised' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheAvailability.randomizer_eq_of_signerRandomised
+

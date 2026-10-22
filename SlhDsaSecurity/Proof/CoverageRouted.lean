@@ -17,23 +17,20 @@ witness at *some* tree is a witness at *that* tree. The FORS key a digest select
 instance, repackaged. And two message inputs are equal only when their randomiser, key and
 message all are.
 
-**What is left open, and it is a real case.** `CoveredAt` asks for witnesses *other than the
-forgery's own* message input. The disclosed set does not supply that: the forgery's own digest
-query is itself a cached message-class entry, and it selects its own positions. So whenever the
-only witness is the forgery's own input, the coverage event does not fire.
+**The case that is left over.** `CoveredAt` asks for witnesses *other than the forgery's own*
+message input, and the disclosed set does not supply that: the forgery's own digest query, if
+the signer's randomiser made it, is itself a disclosing entry and it selects its own positions.
+So whenever the only witness is the forgery's own input, the coverage event does not fire.
 
-That is not an artefact. Under strong freshness a forgery may repeat a message that was signed,
-reusing the signer's own randomiser, and change the signature elsewhere; then the forgery's
-message input *is* the signer's, one cached entry accounts for all fourteen positions, and no
-other message input need exist. The forgery is a win, the FORS secrets it opens are honestly
-held, and nothing about them is rare. Such a win has to be charged on the structural side — the
-rest of the signature must differ, and a different signature reaching the same root is a
-collision or a fault — and `WarmedSplit.cases_of_win` does not currently keep that information
-in this branch, because the recovered FORS key being genuine satisfies its left disjunct
-outright.
+Under strong freshness that case is reachable — a forgery may repeat a signed message with the
+signer's randomiser and change the signature elsewhere — and it is charged structurally rather
+than by coverage. The disclosed set being the signer's own digests is what makes it so: the
+witness being the forgery's input forces the forgery's randomiser to be the signer's, which is
+the hypothesis `CanonicalSignature.eq_signInternal` needs to identify the forgery with the
+signature a request returned.
 
 `forgeryCovered_or_only_self` is therefore stated as a fork rather than an implication, with the
-open case named rather than assumed away.
+leftover case named rather than assumed away.
 -/
 
 open OracleComp OracleSpec
@@ -107,7 +104,7 @@ theorem forgeryCovered_of_witnesses (pk : PublicKey)
 case is the one strong freshness permits: a forgery that repeats a signed message with the
 signer's own randomiser shares its message input with the signature that disclosed the secrets,
 and then there is no other input to cover it. -/
-theorem forgeryCovered_or_only_self (pk : PublicKey)
+theorem forgeryCovered_or_only_self (prfSeed : Digest) (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec) (message : Bytes) (parsed : Signature)
     (answer : HashOutput)
     (hframe : result.1.1.forgery.message.frame = some message)
@@ -115,10 +112,10 @@ theorem forgeryCovered_or_only_self (pk : PublicKey)
     (hentry : result.2 (Hashing.messageInput parsed.randomizer pk message) = some answer)
     (hsigned : ∀ tree : MessageDigest.ForsTree,
       GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree ∈
-        CacheAvailability.signedAt pk result.2 (SplitCharged.forsKeyOfDigest answer)) :
+        CacheAvailability.signedAt prfSeed pk result.2 (SplitCharged.forsKeyOfDigest answer)) :
     CoverageTail.ForgeryCovered pk result ∨
       ∃ tree : MessageDigest.ForsTree, ∀ (input : Bytes) (a : HashOutput),
-        CombinedCharge.IsMessageInput pk input → result.2 input = some a →
+        CacheAvailability.SignerRandomised prfSeed pk result.2 input → result.2 input = some a →
           SplitCharged.forsKeyOfDigest a = SplitCharged.forsKeyOfDigest answer →
             (∃ other : MessageDigest.ForsTree,
               GraphStakes.forsIndex (MessageDigest.forsIndices a) other =
@@ -126,7 +123,7 @@ theorem forgeryCovered_or_only_self (pk : PublicKey)
               input = Hashing.messageInput parsed.randomizer pk message := by
   classical
   by_cases hself : ∃ tree : MessageDigest.ForsTree, ∀ (input : Bytes) (a : HashOutput),
-      CombinedCharge.IsMessageInput pk input → result.2 input = some a →
+      CacheAvailability.SignerRandomised prfSeed pk result.2 input → result.2 input = some a →
         SplitCharged.forsKeyOfDigest a = SplitCharged.forsKeyOfDigest answer →
           (∃ other : MessageDigest.ForsTree,
             GraphStakes.forsIndex (MessageDigest.forsIndices a) other =
@@ -136,8 +133,10 @@ theorem forgeryCovered_or_only_self (pk : PublicKey)
   refine Or.inl (forgeryCovered_of_witnesses pk result message parsed answer hframe hparsed
     hentry fun tree => ?_)
   push Not at hself
-  obtain ⟨input, a, hclass, hcached, hkey, ⟨other, hother⟩, hne⟩ := hself tree
+  obtain ⟨input, a, hsigner, hcached, hkey, ⟨other, hother⟩, hne⟩ := hself tree
   obtain ⟨htree, hleaf⟩ := forsIndex_inj hother
-  exact ⟨input, a, hne, hclass, hcached, hkey, htree ▸ hleaf⟩
+  exact ⟨input, a, hne,
+    CacheAvailability.isMessageInput_of_signerRandomised prfSeed pk result.2 input hsigner,
+    hcached, hkey, htree ▸ hleaf⟩
 
 end SlhDsaSecurity.CoverageRouted
