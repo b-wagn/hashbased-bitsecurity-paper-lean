@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.CarrierCover
 import SlhDsaSecurity.Proof.SplitCarrierTail
 import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.AddressBounds
+import SlhDsaSecurity.Proof.CarrierLeftRecord
 
 /-!
 # `hsplit`, end to end, and the one seam that does not meet
@@ -160,10 +161,16 @@ theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
   by_cases hseedAt : SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1
   · exact Or.inr hseedAt
   refine Or.inl ?_
-  have hleftAt := hleftClass result hresult
   have hrightAt := hrightClass result hresult
   obtain ⟨rich, hrich, hstate, hfst⟩ :=
     exists_carrierTail_of_answerCarrierRun adversary walk result hresult
+  have hvalue : (rich.1.1.1, result.1.2) = result.1 := by rw [← hfst]
+  have hleftAt : ∀ entry ∈ result.2.2.1,
+      ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1 := by
+    have hleft := CarrierLeftRecord.servedLog_leftRecord_carrierTail
+      AnswerCarrier.carrierRightKeep adversary walk hwalk hgood.2 rich hrich result.1.2
+    rw [hvalue, hstate] at hleft
+    exact hleft
   have hcov : BlockViews.TargetCovered (σ := QueryCache HashSpec) rich :=
     targetCovered_carrierTail_narrow adversary walk rich hrich (by rw [hstate]; exact hseedAt)
       hfreshWalk result.1 (by rw [hstate]; exact hleftAt) (by rw [hstate]; exact hrightAt) hfst
