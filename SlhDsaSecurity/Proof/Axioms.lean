@@ -166,6 +166,7 @@ import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
 import SlhDsaSecurity.Proof.SharedJoin
 import SlhDsaSecurity.Proof.CoverageCount
+import SlhDsaSecurity.Proof.AnswerCoverage
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8118,3 +8119,39 @@ info: 'SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.mem_support_recorder_countAllHashes' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.mem_support_recorder_countAllHashes
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.inside_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.inside_le_of_budget
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps
