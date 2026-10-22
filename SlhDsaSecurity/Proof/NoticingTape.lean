@@ -1541,4 +1541,23 @@ theorem prob_leftBlock_of {ρ : Type}
     probEvent_const, blockRunOf_tail_neverFails run hfail leftTape rightLength, tsub_zero]
   split <;> simp
 
+open scoped Classical in
+/-- **A supported outcome of a blocked run is a supported run against its own two blocks.** -/
+theorem mem_support_blockRunOf {ρ : Type}
+    (run : List HashOutput → List HashOutput → ProbComp ρ)
+    (leftLength rightLength : Nat)
+    (outcome : (List HashOutput × List HashOutput) × ρ)
+    (hmem : outcome ∈ support (blockRunOf run leftLength rightLength)) :
+    outcome.1.1 ∈ support (padding leftLength) ∧
+      outcome.1.2 ∈ support (padding rightLength) ∧
+        outcome.2 ∈ support (run outcome.1.1 outcome.1.2) := by
+  rw [blockRunOf, mem_support_bind_iff] at hmem
+  obtain ⟨leftTape, hleftTape, hrest⟩ := hmem
+  rw [mem_support_bind_iff] at hrest
+  obtain ⟨rightTape, hrightTape, hinner⟩ := hrest
+  rw [support_map] at hinner
+  obtain ⟨result, hresult, hshape⟩ := hinner
+  rw [← hshape]
+  exact ⟨hleftTape, hrightTape, hresult⟩
+
 end SlhDsaSecurity.NoticingTape

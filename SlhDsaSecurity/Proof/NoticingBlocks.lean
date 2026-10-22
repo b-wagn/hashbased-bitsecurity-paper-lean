@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.NoticingTape
+import SlhDsaSecurity.Proof.FusedTape
 import SlhDsaSecurity.Proof.BlockViews
 
 /-!
@@ -218,6 +219,164 @@ theorem prob_noticingTargetCovered_le (leftKeep rightKeep : Bytes → σ → Pro
       exact noticingProb_exists_hit_le_expected leftKeep rightKeep computation cache
         leftLength rightLength (GoodBlock leftLength) (BlockHit leftLength) _
         (fun block hgood => prob_blockHit_le leftLength block hgood)
+
+
+/-! ## The coverage charge, with the pair of runs a parameter
+
+The charge above is stated at the recorded run of one computation. The carrier's tail is a
+bracketed three-stage run and no map carries one to the other, so the charge would have to be
+written twice — and a second copy of it is a second place where the `2 ^ -141`, the per-entry
+`2 ^ -128` or the index set could drift.
+
+So it is stated once more, over a **pair** of runs and the five facts it uses of them: that their
+laws agree once the blocks are kept, that the tape run never fails, the two cell correspondences,
+and the causality of the selection. Nothing else about either run appears. The repaired
+recorder's instance and the bracketed run's are then applications.
+-/
+
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **The coverage charge at any pair of runs with a common blocked law.** One unit of
+`2 ^ -141` for the disclosing block's concentration, and one unit of `2 ^ -128` per *expected*
+target recorded. -/
+theorem prob_blockedTargetCovered_le {δ : Type}
+    (handlerRun : ProbComp (δ × SplitPrefix.SplitState))
+    (tapeRun : List HashOutput → List HashOutput →
+      ProbComp (δ × SplitPrefix.SplitState))
+    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hlaw : 𝒟[handlerRun] =
+      𝒟[Prod.snd <$> NoticingTape.blockRunOf tapeRun leftLength rightLength])
+    (hfail : ∀ leftTape rightTape, Pr[⊥ | tapeRun leftTape rightTape] = 0)
+    (hright : ∀ (leftTape rightTape : List HashOutput) (w : δ × SplitPrefix.SplitState),
+      w ∈ support (tapeRun leftTape rightTape) → ∀ index : Nat,
+        index < w.2.2.2.length → index < rightTape.length →
+        (w.2.2.2[index]?).map Prod.snd = rightTape[index]?)
+    (hleft : ∀ (leftTape rightTape : List HashOutput) (w : δ × SplitPrefix.SplitState),
+      w ∈ support (tapeRun leftTape rightTape) → ∀ index : Nat,
+        index < w.2.2.1.length → index < leftTape.length →
+        (w.2.2.1[index]?).map Prod.snd = leftTape[index]?)
+    (hcausal : ∀ (index : Nat) (leftTape rightTape : List HashOutput) (v : HashOutput),
+      Pr[fun w : δ × SplitPrefix.SplitState => index < w.2.2.2.length |
+          tapeRun leftTape (rightTape.set index v)] =
+        Pr[fun w : δ × SplitPrefix.SplitState => index < w.2.2.2.length |
+          tapeRun leftTape rightTape])
+    (hleftBound : ∀ result ∈ support handlerRun, result.2.2.1.length ≤ leftLength)
+    (hrightBound : ∀ result ∈ support handlerRun, result.2.2.2.length ≤ rightLength) :
+    Pr[TargetCovered | handlerRun] ≤
+      (1 : ℝ≥0∞) / 2 ^ 141 +
+        (∑' result, Pr[= result | handlerRun] * ((result.2.2.2.length : Nat) : ℝ≥0∞)) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  have hsupport : support handlerRun =
+      support (Prod.snd <$> NoticingTape.blockRunOf tapeRun leftLength rightLength) :=
+    Averaging.support_eq_of_evalDist_eq hlaw
+  have hevent : Pr[TargetCovered | handlerRun] =
+      Pr[fun outcome => TargetCovered outcome.2 |
+        NoticingTape.blockRunOf tapeRun leftLength rightLength] := by
+    rw [probEvent_congr' (fun _ _ => Iff.rfl) hlaw, probEvent_map]
+    rfl
+  have hexpect : (∑' result, Pr[= result | handlerRun] *
+        ((result.2.2.2.length : Nat) : ℝ≥0∞)) =
+      ∑' outcome, Pr[= outcome | NoticingTape.blockRunOf tapeRun leftLength rightLength] *
+        ((outcome.2.2.2.2.length : Nat) : ℝ≥0∞) := by
+    rw [show (∑' result, Pr[= result | handlerRun] *
+          ((result.2.2.2.length : Nat) : ℝ≥0∞)) =
+        ∑' result, Pr[= result |
+            Prod.snd <$> NoticingTape.blockRunOf tapeRun leftLength rightLength] *
+          ((result.2.2.2.length : Nat) : ℝ≥0∞) from
+      tsum_congr fun result => by rw [probOutput_def, probOutput_def, hlaw]]
+    haveI : DecidableEq (δ × SplitPrefix.SplitState) := Classical.decEq _
+    exact tsum_probOutput_map _ Prod.snd _
+  rw [hevent, hexpect]
+  refine le_trans (probEvent_mono (q := fun outcome =>
+      (¬ GoodBlock leftLength outcome.1.1) ∨
+        ∃ index : Fin rightLength, index.val < outcome.2.2.2.2.length ∧
+          GoodBlock leftLength outcome.1.1 ∧
+          ∃ v, outcome.1.2[index.val]? = some v ∧
+            BlockHit leftLength outcome.1.1 v) ?_) ?_
+  · rintro outcome hmem ⟨ entry, hentry, hcovers ⟩
+    by_cases hgood : GoodBlock leftLength outcome.1.1
+    · refine Or.inr ?_
+      obtain ⟨ hleftTape, hrightTape, hrun ⟩ :=
+        NoticingTape.mem_support_blockRunOf tapeRun leftLength rightLength outcome hmem
+      have hplain : outcome.2 ∈ support handlerRun := by
+        rw [hsupport, support_map]
+        exact ⟨ outcome, hmem, rfl ⟩
+      obtain ⟨ index, hindex, hvalue ⟩ := List.mem_iff_getElem.mp hentry
+      have hrightLen : outcome.2.2.2.2.length ≤ rightLength := hrightBound _ hplain
+      have hleftLen : outcome.2.2.2.1.length ≤ leftLength := hleftBound _ hplain
+      refine ⟨⟨index, lt_of_lt_of_le hindex hrightLen⟩,
+        show index < outcome.2.2.2.2.length from hindex, hgood, entry.2, ?_, ?_⟩
+      · have hcell : (outcome.2.2.2.2[index]?).map Prod.snd = outcome.1.2[index]? :=
+          hright outcome.1.1 outcome.1.2 outcome.2 hrun index hindex
+            (by rw [padding_length rightLength outcome.1.2 hrightTape]
+                exact lt_of_lt_of_le hindex hrightLen)
+        have hget : outcome.2.2.2.2[index]? = some entry := by
+          rw [List.getElem?_eq_getElem (show index < outcome.2.2.2.2.length from hindex)]
+          exact congrArg some (show outcome.2.2.2.2[index] = entry from hvalue)
+        rw [← hcell, hget]
+        rfl
+      · refine covered_of_recordCovers leftLength outcome.1.1 outcome.2.2.2.1
+          (MessageDigest.parse entry.2) (fun position hposition => ?_) hleftLen hcovers
+        exact hleft outcome.1.1 outcome.1.2 outcome.2 hrun position hposition
+          (by rw [padding_length leftLength outcome.1.1 hleftTape]
+              exact lt_of_lt_of_le hposition hleftLen)
+    · exact Or.inl hgood
+  · refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ ?_)
+    · rw [NoticingTape.prob_leftBlock_of tapeRun hfail leftLength rightLength
+        (fun block => ¬ GoodBlock leftLength block)]
+      exact prob_not_goodBlock_le leftLength hcap
+    · rw [← mul_one_div]
+      exact NoticingTape.prob_exists_hit_le_expected_of_causal tapeRun (fun w => w.2.2.2)
+        leftLength rightLength (GoodBlock leftLength) (BlockHit leftLength) _
+        (fun block hgood => prob_blockHit_le leftLength block hgood) hcausal
+
+/-! ## The bracketed three-stage run's instance
+
+(3) in one application. Everything it needs was proved at the bracketed run: the law, the two
+cell correspondences, the causality of the selection, and never-failing. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The coverage charge at the bracketed three-stage run.** -/
+theorem prob_threeStageTargetCovered_le (leftKeep rightKeep : Bytes → σ → Prop)
+    {ω : Type} [Monoid ω] {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + Security.SigningSpec)
+      (WriterT ω (StateT Security.SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + Security.SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → Security.SigningLog → γ → δ)
+    (cache : σ) (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hleftBound : ∀ result ∈ support (FusedTape.threeStageHandlerRun leftKeep rightKeep inner
+        before afterMap first phase last value cache [] []),
+      result.2.2.1.length ≤ leftLength)
+    (hrightBound : ∀ result ∈ support (FusedTape.threeStageHandlerRun leftKeep rightKeep inner
+        before afterMap first phase last value cache [] []),
+      result.2.2.2.length ≤ rightLength) :
+    Pr[TargetCovered | FusedTape.threeStageHandlerRun leftKeep rightKeep inner before afterMap
+        first phase last value cache [] []] ≤
+      (1 : ℝ≥0∞) / 2 ^ 141 +
+        (∑' result, Pr[= result | FusedTape.threeStageHandlerRun leftKeep rightKeep inner before
+            afterMap first phase last value cache [] []] *
+          ((result.2.2.2.length : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_blockedTargetCovered_le _ _ leftLength rightLength hcap
+    (FusedTape.evalDist_threeStageHandlerRun_eq leftKeep rightKeep inner before afterMap first
+      phase last value cache [] [] leftLength rightLength)
+    (fun leftTape rightTape => FusedTape.threeStageTapeRun_neverFails leftKeep rightKeep inner
+      before afterMap first phase last value cache [] [] leftTape rightTape)
+    (fun leftTape rightTape w hw index hreach hcell => by
+      simpa using FusedTape.threeStageRightOf_getElem? leftKeep rightKeep inner before afterMap
+        first phase last value cache [] [] leftTape rightTape w hw index (by simpa using hreach)
+        hcell)
+    (fun leftTape rightTape w hw index hreach hcell => by
+      simpa using FusedTape.threeStageLeftOf_getElem? leftKeep rightKeep inner before afterMap
+        first phase last value cache [] [] leftTape rightTape w hw index (by simpa using hreach)
+        hcell)
+    (fun index leftTape rightTape v => FusedTape.threeStageCausal leftKeep rightKeep inner
+      before afterMap first phase last value cache index leftTape rightTape v)
+    hleftBound hrightBound
 
 
 end SlhDsaSecurity.NoticingBlocks

@@ -14865,3 +14865,23 @@ info: 'SlhDsaSecurity.FusedTape.threeStageTapeRun_neverFails' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedTape.threeStageTapeRun_neverFails
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.mem_support_blockRunOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.mem_support_blockRunOf
+
+/--
+info: 'SlhDsaSecurity.NoticingBlocks.prob_blockedTargetCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlocks.prob_blockedTargetCovered_le
+
+/--
+info: 'SlhDsaSecurity.NoticingBlocks.prob_threeStageTargetCovered_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlocks.prob_threeStageTargetCovered_le
