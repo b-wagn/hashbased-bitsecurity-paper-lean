@@ -8118,3 +8118,11 @@ info: 'SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected

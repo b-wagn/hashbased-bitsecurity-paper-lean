@@ -1955,6 +1955,30 @@ charges, the signer's coincidence included — its charge holds at every constan
 the growth is a conjunct of its event rather than a hypothesis, but whoever supplies that
 conjunct can only supply `2 · served`, which is again a property of the run.
 
+**What the conversion to expectations costs, and the one count it cannot reach.** Three of the
+four move with no new machinery: `ClassGrowth.run_splitCost_eq_map` identifies the split-counted
+run with the plain one, so a charge may be read at the instrumented presentation and the bound
+carried back, which is what `SharedJoin.prob_signerHitsSeed_tail_le_expected` does for the
+signer's coincidence. But `ClassGrowth.splitCost` is indexed by the **input** — one unit for a
+hash call at an in-class input, whoever makes it — and the adversary's in-class call and the
+signer's are calls at the *same* input. That is not an accident of the instrumentation; it is
+the search attack restated. So no input-indexed cost can charge the signer's call and not the
+adversary's, and what the conversion gives is the expectation of **every** in-class hash call,
+pathwise at most the record's `PRF_msg` part plus twice the served requests — the randomiser
+defect's allotment and the signer's together, not the signer's alone.
+
+The overshoot lies entirely on the branch the record half already pays for: where the adversary
+makes no in-class call, the in-class calls are the signer's alone and `2 · served` is exact. Two
+things would close it, and neither is a missing lemma. An expectation **restricted** to a
+monotone side condition — "no in-class call has been made by the adversary", which only ever goes
+from true to false along a run — would be a genuine generalisation of
+`ClassExpectation.prob_bad_le_expected_cost`'s induction, and the obstacle is that the condition
+is not visible at the world oracle, which is blind to the caller. Or a count that can tell the
+two callers apart, which an input-indexed cost cannot be and an instrumentation wrapped around
+the signer's own sub-computation could: a presentation change of `RecordedTail`'s kind, whose
+slot must be at least one per in-class call the signer makes and at most twice the served
+requests.
+
 **What this forbids.** No charge on the shared side may be stated against `q` or against the
 whole record. Three of them currently are, or were: the randomiser defect against the record's
 whole cardinality, the signer's coincidence against `q`, and the ordering defect against every
