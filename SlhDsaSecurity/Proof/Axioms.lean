@@ -15947,3 +15947,23 @@ info: 'SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all' depends on
 /-- info: 'SlhDsaSecurity.RecordSlot.two_targets_disjoint' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordSlot.two_targets_disjoint
+
+/-- info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_records' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_two_records
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.recordPrfClass_eq_zero_of_not_recordMeets' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.recordPrfClass_eq_zero_of_not_recordMeets
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
