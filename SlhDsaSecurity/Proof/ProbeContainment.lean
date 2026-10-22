@@ -184,4 +184,135 @@ theorem not_aims_of_strippedSign_probe (publicSeed : Digest) (table : Cells × P
   · rw [RedrawCell.AimsSomewhere]
     simp [RedrawCell.locate_messageInput publicSeed randomizer sk.publicKey message hpublic]
 
+
+/-! ## What the handler records while the honest phase runs
+
+The per-probe facts above are about what a computation *consults*, read along the replay path at
+a cache; the handler's record holds what a **run** forwarded. `strip_probes_queriesUnder` is the
+bridge, and it is the `laterCache` pattern once more: the statement is read at any cache
+extending both the table's entries and the handler's own, because that is the only cache at
+which the run's answers and the replayed ones agree — the table's where the table answered, the
+handler's where it drew. -/
+
+open scoped Classical in
+/-- **A hash step leaves its own input cached.** -/
+theorem lazyProgram_hash_cached (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (input : Bytes) (state : OpenCache.HandlerState)
+    (z : OracleWorld.Range (Sum.inr input) × OpenCache.HandlerState)
+    (hz : z ∈ support (((OpenCache.lazyProgram publicSeed availableAt table)
+      (Sum.inr input)).run state)) : z.2.1 input = some z.1 := by
+  classical
+  have hbind : z ∈ support
+      ((match state.1 input with
+        | some cached => (pure (cached, state.1) : ProbComp _)
+        | none =>
+          match OpenCache.openCache publicSeed (availableAt state.1) table input with
+          | some answer => pure (answer, state.1.cacheQuery input answer)
+          | none =>
+            (fun answer => (answer, state.1.cacheQuery input answer)) <$>
+              ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun step =>
+        (pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
+          ProbComp _)) := hz
+  rw [mem_support_bind_iff] at hbind
+  obtain ⟨step, hstep, hpure⟩ := hbind
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [show z.1 = step.1 from by rw [hpure], show z.2.1 = step.2 from by rw [hpure]]
+  cases hcached : state.1 input with
+  | some cached =>
+    simp only [hcached, support_pure, Set.mem_singleton_iff] at hstep
+    rw [hstep]
+    exact hcached
+  | none =>
+    cases hopen : OpenCache.openCache publicSeed (availableAt state.1) table input with
+    | some answer =>
+      simp only [hcached, hopen, support_pure, Set.mem_singleton_iff] at hstep
+      rw [hstep]
+      exact QueryCache.cacheQuery_self _ _ _
+    | none =>
+      simp only [hcached, hopen, support_map] at hstep
+      obtain ⟨answer, -, hanswer⟩ := hstep
+      rw [← hanswer]
+      exact QueryCache.cacheQuery_self _ _ _
+
+
+open scoped Classical in
+/-- **A probe the handler records while a stripped hash-only computation runs is one that
+computation consults.** The statement is read at any cache extending both what stripping answers
+from and what the handler ends with, because that is the only cache at which the run's answers
+and the replayed ones agree: the table's where the table answered, the handler's where it drew.
+-/
+theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (warm : QueryCache HashSpec) (computation : OracleComp HashSpec α) :
+    ∀ (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
+      z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+        (OracleComp.liftComp (simulateQ (StripCached.stripImpl warm) computation)
+          OracleWorld)).run state) →
+      ∀ later : QueryCache HashSpec,
+        (∀ (input : Bytes) (value : HashOutput), warm input = some value →
+          later input = some value) →
+        (∀ (input : Bytes) (value : HashOutput), z.2.1 input = some value →
+          later input = some value) →
+        ∃ added : List (Bytes × QueryCache HashSpec),
+          z.2.2.1 = state.2.1 ++ added ∧
+            ∀ entry ∈ added,
+              QueriesUnder later (simulateQ (StripCached.stripImpl warm) computation) entry.1 := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state z hz later _ _
+    rw [simulateQ_pure, OracleComp.liftComp_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hz
+    exact ⟨[], by rw [show z.2 = state from by rw [hz], List.append_nil], by simp⟩
+  | query_bind input next ih =>
+    intro state z hz later hwarm hfinal
+    have hstripped : simulateQ (StripCached.stripImpl warm)
+        (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) =
+        StripCached.stripImpl warm input := by simp
+    rw [simulateQ_bind, hstripped] at hz
+    cases hcache : warm input with
+    | some value =>
+      rw [show StripCached.stripImpl warm input = (pure value : OracleComp HashSpec HashOutput)
+          from by simp [StripCached.stripImpl, hcache], pure_bind] at hz
+      obtain ⟨added, hadded, hprobes⟩ := ih value state z hz later hwarm hfinal
+      refine ⟨added, hadded, fun entry hentry => ?_⟩
+      rw [simulateQ_bind, hstripped,
+        show StripCached.stripImpl warm input = (pure value : OracleComp HashSpec HashOutput)
+          from by simp [StripCached.stripImpl, hcache], pure_bind]
+      exact hprobes entry hentry
+    | none =>
+      rw [show StripCached.stripImpl warm input =
+          (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) from by
+        simp [StripCached.stripImpl, hcache]] at hz
+      have hcold : simulateQ (StripCached.stripImpl warm)
+          (liftM (OracleSpec.query input) >>= next) =
+          (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) >>= fun answer =>
+            simulateQ (StripCached.stripImpl warm) (next answer) := by
+        rw [simulateQ_bind, hstripped,
+          show StripCached.stripImpl warm input =
+            (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) from by
+          simp [StripCached.stripImpl, hcache]]
+      have hz' : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+          (liftM (OracleWorld.query (Sum.inr input)) >>=
+            fun answer : HashOutput => OracleComp.liftComp
+              (simulateQ (StripCached.stripImpl warm) (next answer)) OracleWorld)).run state) := hz
+      rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz'
+      obtain ⟨step, hstepRun, hrest⟩ := hz'
+      have hrecord : step.2.2.1 = state.2.1 ++ [(input, state.1)] :=
+        ChargedProbe.lazyProgram_step_inr publicSeed availableAt table input state step hstepRun
+      have hcached : step.2.1 input = some step.1 :=
+        lazyProgram_hash_cached publicSeed availableAt table input state step hstepRun
+      have hpersists : CacheAvailability.Persists step.2.1 z.2.1 :=
+        CacheAvailability.lazyProgram_run_persists publicSeed availableAt table _ step.2 z hrest
+      have hreplay : replay later input = step.1 := by
+        simp [replay, hfinal input step.1 (hpersists input step.1 hcached)]
+      obtain ⟨added, hadded, hprobes⟩ := ih step.1 step.2 z hrest later hwarm hfinal
+      refine ⟨(input, state.1) :: added, by rw [hadded, hrecord, List.append_assoc]; rfl, ?_⟩
+      intro entry hentry
+      rw [hcold]
+      rcases List.mem_cons.mp hentry with hhead | htail
+      · rw [hhead]
+        exact QueriesUnder.head _ _
+      · exact QueriesUnder.tail input entry.1 _ (by rw [hreplay]; exact hprobes entry htail)
+
 end SlhDsaSecurity.ProbeContainment
