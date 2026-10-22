@@ -12061,3 +12061,7 @@ info: 'SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput' depends
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog
