@@ -10241,6 +10241,20 @@ info: 'SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_charges' depends 
 #print axioms SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_charges
 
 /--
+info: 'SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_two_charges' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_two_charges
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.answerBound_of_charges' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.answerBound_of_charges
+
+/--
 info: 'SlhDsaSecurity.AnswerCarrier.answerChargedLate_of_carrierBound' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]

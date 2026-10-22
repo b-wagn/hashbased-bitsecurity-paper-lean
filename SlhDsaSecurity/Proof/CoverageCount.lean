@@ -635,6 +635,32 @@ per-entry rate — keeps its premise. What the notice changes is which state the
 read at, which is the whole point of the repair and costs those steps nothing. -/
 
 open scoped Classical in
+/-- **Where the two charges meet, with nothing in it at all.** Two events, two counts, one
+budget: the first event at its own expected count, the second at its own with a constant beside
+it, and the two counts inside one budget on every supported run.
+
+There is no recorder here, no state, no `Counts`, and no `σ` — the run is an arbitrary
+`ProbComp β`. That is the whole interface a new presentation has to meet for the answer half's
+bound to be taken at it, and it is three lines, because the place where two charges meet cannot
+see how either was proved.
+
+**It cannot spend concentration margin.** It adds two expectations and a constant; nothing in it
+is a tail bound. Whatever margin the factorisation has is still there afterwards. -/
+theorem prob_bad_or_coverage_le_of_two_charges {β : Type}
+    (run : ProbComp β) (first second : β → Prop) (constant : ℝ≥0∞)
+    (firstCount secondCount : β → Nat) (budget : Nat)
+    (hfirst : Pr[first | run] ≤
+      ClassExpectation.expected run firstCount / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hsecond : Pr[second | run] ≤
+      constant + ClassExpectation.expected run secondCount / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hshare : ∀ value ∈ support run, firstCount value + secondCount value ≤ budget) :
+    Pr[fun value => first value ∨ second value | run] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + constant :=
+  le_trans (probEvent_or_le _ _ _)
+    (ClassExpectation.add_le_of_shared_budget_const run _ _ constant firstCount secondCount
+      budget hfirst hsecond hshare)
+
+open scoped Classical in
 /-- **Where the two charges meet, with no recorder in sight.** The structural clause at its own
 expected count, the coverage clause at its own with a constant beside it, and one budget bounding
 their sum on every supported run.

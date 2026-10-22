@@ -3798,3 +3798,28 @@ a state where the answer is known to be non-zero.
 Related, already recorded: an absence established an hour ago is not an absence now, because the
 thing that invalidates it is usually something that arrived rather than something that was
 missed; and a grep establishing an absence must not be truncated.
+
+## The composition side is finished, and it is margin-free
+
+`CoverageCount.prob_bad_or_coverage_le_of_two_charges` is where the answer half's two charges
+meet, and it has nothing in it: two events, two count functions, one budget, over an arbitrary
+`ProbComp β`. No recorder, no state, no `Counts`, no `σ`. Three lines, because the place two
+charges meet cannot see how either was proved.
+
+That matters for the concentration margin, which is **0.24 bits** on the sharper chain. The
+composition adds two expectations and a constant and contains no tail bound, so it cannot spend
+any of it. The margin lives entirely in whatever proves the coverage charge — the tape
+factorisation — and the one thing that would change what that sums, or at what rate, has been
+checked and does not: filing is fresh-only under `noticingRecorderOf`, so the per-entry rate is
+still a fresh uniform answer and the index set is still the target recording.
+
+`AnswerCarrier.answerBound_of_charges` is the same composition stated at the carrier's own run,
+with the four things it needs named: `hsplit` (the charged event implies one of the two clauses),
+`hstructural`, `hcoverage`, `hshare`. Each is a thing somebody owns, and naming them is what
+lets two sides meet by `exact` rather than by a second shape appearing — the habit that has now
+paid four times.
+
+The general lesson, which is the fourth instance this week: **the right abstraction was smaller
+than the one asked for.** "Abstract over the run" would have meant carrying a recorder; what the
+charges actually share is three propositions, and finding that out took reading what the
+composition reads rather than what the chain carries.

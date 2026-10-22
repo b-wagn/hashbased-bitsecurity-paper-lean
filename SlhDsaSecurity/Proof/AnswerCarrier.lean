@@ -185,4 +185,62 @@ theorem not_carrierRightKeep_randomizerInput
       state :=
   fun hkeep => hkeep.1.2 (filesRandomiser_probe walk.1.1.2.1 _ state framed hframing)
 
+/-! ## The answer half's bound at this run, from three charges and a split
+
+This is the composition side, and it is finished: given the two charges and the fact that their
+counts share one budget, the bound follows. What it is **not** is the charges themselves — those
+are run-specific, and the coverage one is the tape factorisation at a bracketed noticing run,
+which is being proved elsewhere.
+
+The four hypotheses are named so that the two sides meet by `exact` rather than by a second
+shape appearing:
+
+* `hsplit` — the charged event implies one of the two clauses. At the cache this is
+  `AnswerSide`'s `probEvent_mono` step, where `hdisclosing` moves the coverage clause from the
+  signing log to the recorder's own test; at the carrier the two agree by
+  `ServingCarrier.AgreesWithLog`, which `CarrierFiles.agreesWithLog_carrierRun` proves.
+* `hstructural` — the structural clause at its own expected count.
+* `hcoverage` — the coverage clause at its own, with the flat `2 ^ -141` beside it.
+* `hshare` — the two counts inside one budget, pathwise.
+
+**None of this can spend concentration margin.** `CoverageCount.prob_bad_or_coverage_le_of_two_charges`
+adds two expectations and a constant and contains no tail bound; the margin lives entirely in
+whatever proves `hcoverage`. -/
+
+open scoped ENNReal in
+/-- **The answer half's bound at the carrier's run.** -/
+theorem answerBound_of_charges
+    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
+      HandlerCarrier.State → Prop)
+    (adversary : Adversary)
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (structuralBad coverageBad : ((Outcome × Nat) × SplitPrefix.SplitState) → Prop)
+    (outsideCount insideCount : ((Outcome × Nat) × SplitPrefix.SplitState) → Nat)
+    (budget : Nat)
+    (hsplit : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
+        structuralBad result ∨ coverageBad result)
+    (hstructural : Pr[structuralBad | answerCarrierRun rightKeep adversary walk] ≤
+      ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) outsideCount /
+        ((2 ^ 128 : Nat) : ENNReal))
+    (hcoverage : Pr[coverageBad | answerCarrierRun rightKeep adversary walk] ≤
+      (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) +
+        ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) insideCount /
+          ((2 ^ 128 : Nat) : ENNReal))
+    (hshare : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      outsideCount result + insideCount result ≤ budget) :
+    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+        RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+      answerCarrierRun rightKeep adversary walk] ≤
+      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
+        (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) :=
+  le_trans (probEvent_mono hsplit)
+    (CoverageCount.prob_bad_or_coverage_le_of_two_charges
+      (answerCarrierRun rightKeep adversary walk) structuralBad coverageBad _
+      outsideCount insideCount budget hstructural hcoverage hshare)
+
 end SlhDsaSecurity.AnswerCarrier
