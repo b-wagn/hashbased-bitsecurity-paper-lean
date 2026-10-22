@@ -744,6 +744,18 @@ theorem lazyProgram_step_inr (availableAt : HandlerCarrier.State → CanonicalGr
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
 
+/-- **And advances the counter by one.** -/
+theorem lazyProgram_step_inr_count
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (input : Bytes) (state : HandlerState)
+    (step : OracleWorld.Range (Sum.inr input) × HandlerState)
+    (hstep : step ∈ support (((lazyProgram publicSeed availableAt table)
+      (Sum.inr input)).run state)) : step.2.2.2 = state.2.2 + 1 := by
+  rw [lazyProgram_run_inr, mem_support_bind_iff] at hstep
+  obtain ⟨inner, -, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+
 /-! ## What the stalled comparison takes
 
 Three facts, each for a concrete reason: the handler never fails, availability only grows along

@@ -183,6 +183,20 @@ theorem card_three_parts_le_two_records (pair : SharedJoin.RecordedPair) :
   have hfirst := SharedJoin.card_parts_le_record pair
   omega
 
+open scoped Classical in
+/-- **And so they fit in twice anything the record fits in.** The half that pays against the
+handler's probe list rather than against the record reads it at `n := probe list length`, which
+`ProbeContainment.card_record_le_probes` supplies: each part is a part of the record, the record
+is a part of the list, and the doubling is already paid for above. -/
+theorem card_three_parts_le_two_of_record_le (pair : SharedJoin.RecordedPair) (n : Nat)
+    (hn : Multiset.card (SharedJoin.recordOf pair) ≤ n) :
+    Multiset.card (SharedJoin.recordAiming pair) +
+        Multiset.card (SharedJoin.recordMessageClass pair) +
+      Multiset.card (RecordColumn.recordPrfClass pair) ≤ 2 * n := by
+  classical
+  have h := card_three_parts_le_two_records pair
+  omega
+
 /-! ## And so `hparts` holds, at two records' worth
 
 The pathwise ceiling above is half of it; the other half is `SharedJoin.card_record_le_budget`,
