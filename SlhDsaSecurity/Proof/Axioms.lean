@@ -11365,3 +11365,34 @@ info: 'SlhDsaSecurity.RecorderView.recorderOf_cache' depends on axioms: [propext
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecorderView.recorderOf_cache
 
+/-- info: 'SlhDsaSecurity.ProbeContainment.aimCount_adversary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_adversary
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.aimCount_countRecorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_countRecorded
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.dedup_filter_length_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.dedup_filter_length_le
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.weight_le_recordAim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.probesIn_recordAiming' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.probesIn_recordAiming
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming
