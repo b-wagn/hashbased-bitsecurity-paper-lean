@@ -3554,6 +3554,27 @@ So the repair generalises past rewriting: **name the instance instead of asking 
 it**, whether the tactic is searching for a pattern or unifying a term. Five obstructions, one
 fix, and every one of them reports the goal rather than the cause.
 
+### A counter-case: `irreducible` can be the cause rather than the cure
+
+`attribute [local irreducible]` is the right move where a rewrite must **avoid** unfolding. At a
+join where the unifier has to **see through** two runs in order to match them, it is the
+opposite: blocking the unfolding makes the search diverge instead of succeed. One statement went
+from *four million heartbeats, no elaboration* to **two seconds** when the attribute was removed,
+and the attribute had been added by reflex from the rule above.
+
+> Having the rule is not the same as asking whether this is the shape the rule is about.
+
+Two further corrections from the same diagnosis, both worth more than the fix:
+
+* A **`whnf` timeout reported at the `theorem` line does not mean the statement is at fault.**
+  The event, the `tsum` and both bound hypotheses each elaborated in two seconds alone; the cost
+  was in the proof. The error's location was as misleading here as everywhere else in this family.
+* The remaining cost was **six implicit arguments left as `_` under a three-stage run.** Supplying
+  them is the same repair again — name the instance rather than asking the elaborator to find it.
+
+The order that found all this was: **positive control first** (does removing the suspect change
+the symptom — one `#check`), then bisect. The bisect came back negative and that was its value.
+
 **The fix in all three is the same: name the instance at the state it is used at**, as a `have`,
 rather than asking `rw` to find it. Three lines. The diagnosis is the expensive part and the
 symptom is misleading in every case — the error names the goal, not the application.
