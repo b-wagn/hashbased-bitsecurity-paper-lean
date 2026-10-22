@@ -4390,3 +4390,65 @@ still takes its two record bounds (`leftLength`, `rightLength`). Those are caps 
 recordings' *lengths* and belong to the factorisation's own accounting, not to the share; they
 are the same hypotheses the tail-level coverage charge takes. What is no longer assumed is the
 one `hshare` needs.
+## `hstructural` at the outside slot, and what a mirror costs when the original was written generically
+
+`SplitCarrierTail.prob_bad_splitCarrierTail_le` is the structural charge at the carrier's tail
+with the counter split in two, read at the **outside** slot — the shape
+`CoverageCount.prob_bad_or_coverage_le_of_charges` takes. It is not a new argument about the
+tail. `forget_splitCarrierTail` says the tail *is* a run of the shared oracle under
+`countQueries (splitCost …)` once its recordings are dropped, `GrowthCharge.Bad` reads only the
+cache, and the slot is read off the value — so the event transports by `probEvent_map`, the
+count by `ClassExpectation.expected_map`, and the charge itself is
+`ClassExpectation.prob_bad_le_expected_cost` at the complementary class. The bracketing, the
+notice and the filing are invisible to it.
+
+**The charge was checked against its consumer by applying it, not by matching it by eye.**
+`answerBound_splitCarrierTail` hands it to `prob_bad_or_coverage_le_of_charges` with the
+coverage clause as a hypothesis and typechecks. Three things had to agree and only an
+application could tell: the slot, the *summed* counter inside the event — the consumer writes
+`(result.1.1, result.1.2 inside + result.1.2 outside)` where the run carries a pair — and which
+cache the event reads. After a fortnight of shapes that nearly fit, a three-line theorem whose
+only content is "these two compose" is worth its line count.
+
+**It does not need `inside ≠ outside`.** `ClassExpectation.prob_bad_le_expected_outside` needs
+distinctness because it crosses from the plainly counted run to the split one and the crossing
+adds the slots. This charge never leaves the split run, so it needs only that an out-of-class
+query charges the outside slot, which `splitCost_outside` gives whatever the other slot is.
+Distinctness is still needed where the two counts are **added** — a shared slot would be paid
+for twice — and that is `hshare`'s business. Worth stating because the opposite mistake, carrying
+a hypothesis that is not needed, is the one that makes a lemma look unavailable at a call site
+that cannot supply it.
+
+**On the cost of the mirror.** The split tail is nineteen declarations mirroring
+`CarrierTail`'s, with `Nat` replaced by `Counts` and `hashCost` by `splitCost`, and it compiled
+essentially unchanged: the only correction in the whole file was a missing `rfl` after a
+`zero_add`. That is not luck. `SplitCounted.withSplit` is `CountedHandler.withExtra` at a pair,
+every counted lemma was already stated through `ForgetsAlong` rather than against the counter,
+and `CountedHandler`'s own docstring argues *against* merging `withCount` and `romWithCount`
+into one reassociated wrapper. That refusal is exactly what made the mirror mechanical — a
+merged abstraction would have had to be re-threaded here. **Duplication a reader can see beats
+an abstraction every call site has to pay for**, and the bill came due in the mirror's favour.
+
+**A charge at a run nothing else is stated at is not finished, so the bridge is here too.**
+`sum_splitCarrierTail` says the split tail *is* the tail: summing the two slots carries one onto
+the other, by `SplitCounted.forgetsAlong_sumSlots` at each stage and
+`ServingForget.run_fuseServing_conj` at the bracketed one — bracketed to bracketed, because the
+far side brackets too, which is why `run_fuseServing_map` is the wrong lemma there and the
+`_conj` variant exists. `map_splitCarrierTail_eq_answerCarrierRun` composes that with
+`AnswerShape.forgetRecord`, so everything already stated at `answerCarrierRun` — `hsplit`, the
+coverage charge — travels to the split run along one map by `probEvent_map`, with no new
+argument at either end.
+
+**Here the slots must be distinct**, and only here: `forgetsAlong_sumSlots` is
+`run_withSplit_withCount`, which adds them. The same place the budget needs it. A hypothesis
+that is needed in the bridge and not in the charge is worth separating, because carrying it into
+the charge is what makes a lemma look unavailable at a call site that cannot supply it.
+
+**One note for the consumer side.** `AnswerCarrier.answerBound_of_charges` and
+`answerBoundSeed_of_charges` are stated at `answerCarrierRun`, whose counter is a single `Nat`:
+the outside slot cannot be read off their results. Instantiating them therefore means either
+taking `outsideCount` to be the whole count — which spends the budget twice, the thing the split
+exists to prevent — or taking the bound at the split tail, where `answerBound_splitCarrierTail`
+already takes it and where the bridge now puts both other charges. The abstract meeting point
+`prob_bad_or_coverage_le_of_two_charges` is indifferent; the choice of run is where it is
+decided.
