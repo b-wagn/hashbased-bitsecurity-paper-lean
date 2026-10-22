@@ -65,9 +65,11 @@ theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache Has
       (Scheme.signInternal (m := OracleComp OracleWorld) sk message)).run state)) :
     ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨
       entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed message ∨
-      ∃ mid : QueryCache HashSpec,
-        mid (Hashing.randomizerInput sk.prf sk.publicKey.seed message) ≠ none ∧
-          mid entry.1 = none ∧ rightKeep entry.1 mid := by
+      ∃ (mid : QueryCache HashSpec) (answer : HashOutput),
+        mid (Hashing.randomizerInput sk.prf sk.publicKey.seed message) = some answer ∧
+          (∀ (probe : Bytes) (value : HashOutput),
+            mid probe = some value → result.2.1 probe = some value) ∧
+            mid entry.1 = none ∧ rightKeep entry.1 mid := by
   classical
   rw [run_signInternal, mem_support_bind_iff] at hresult
   obtain ⟨step, hstep, hrest⟩ := hresult
@@ -113,8 +115,8 @@ theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache Has
             (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state step.1 hleftProbe
             hrightProbe] at hold
           exact Or.inl hold
-  · obtain ⟨mid, hstart, -, habsent, hkeep, -⟩ := hentries entry hnew
-    exact Or.inr (Or.inr ⟨mid, by rw [hstart _ _ hcached]; simp, habsent, hkeep⟩)
+  · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries entry hnew
+    exact Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hlater, habsent, hkeep⟩)
 
 /-! ## At the request, which is where provenance names it
 
@@ -151,9 +153,11 @@ theorem sign_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec �
       (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state)) :
     ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨
       entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∨
-      ∃ mid : QueryCache HashSpec,
-        mid (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) ≠ none ∧
-          mid entry.1 = none ∧ rightKeep entry.1 mid := by
+      ∃ (mid : QueryCache HashSpec) (answer : HashOutput),
+        mid (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some answer ∧
+          (∀ (probe : Bytes) (value : HashOutput),
+            mid probe = some value → result.2.1 probe = some value) ∧
+            mid entry.1 = none ∧ rightKeep entry.1 mid := by
   classical
   rw [Scheme.sign, hframe] at hresult
   simp only [simulateQ_bind, simulateQ_pure, StateT.run_bind, StateT.run_pure,
