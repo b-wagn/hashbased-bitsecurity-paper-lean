@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.AddressBounds
+import SlhDsaSecurity.Proof.WalkDefects
 
 /-!
 # The answer side, as one predicate against one budget
@@ -191,5 +192,79 @@ theorem prob_answerBad_generated_le (adversary : Adversary) (qs qm : Nat)
   rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
     generatedKey_eq_walk adversary hwalk hresult] at hbad
   exact hbad
+
+/-! ## The hypothesis on the key is the walk's own
+
+`hpublic` is a statement about the key the game generates, and the walk already pays for it:
+its public seed is the seed the walk drew and its root is the walk's own cell at the top node.
+So the charge's hypothesis is the walk defect `WalkDefects.prob_possible_walk` charges, and
+nothing further is owed for it. -/
+
+/-- **The walk's cache computes the walk's cells.** -/
+theorem value_replay_walk_eq_cells
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk) :
+    @CanonicalGraph.value (CacheReplay.replayQuery walk.2) walk.1.1.1 walk.1.1.2.2 =
+      walk.1.2 := by
+  obtain ⟨outputs, hcells, hcache⟩ := mem_support_graphWalk hwalk
+  rw [hcells]
+  refine GameBridge.value_eq_cellsOfOutputs walk.1.1.2.2 walk.1.1.1 outputs walk.2
+    fun input output hentry => ?_
+  rw [hcache, hcells]
+  exact hentry
+
+/-- **The generated key is the walk's seed and the walk's top cell.** -/
+theorem generatedKey_eq_walk_pair
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk) :
+    ((SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed,
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).root) =
+      (walk.1.1.2.2, walk.1.2 (.structural WalkDefects.topNode)) := by
+  have hseed : (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed =
+      walk.1.1.2.2 :=
+    (GameBridge.keygen_publicKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).1
+  have hroot : (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).root =
+      walk.1.2 (.structural WalkDefects.topNode) := by
+    rw [SplitCharged.generatedKey,
+      (GameBridge.keygen_publicKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).2,
+      ← @WalkDefects.value_topNode (CacheReplay.replayQuery walk.2) walk.1.1.1 walk.1.1.2.2,
+      value_replay_walk_eq_cells hwalk]
+  rw [hseed, hroot]
+
+/-- **The key is no coincidence as soon as the walk is not one.** -/
+theorem not_possible_generatedKey
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hgood : ¬ HashSeparation.Possible
+      (walk.1.1.2.2, walk.1.2 (.structural WalkDefects.topNode))) :
+    ¬ HashSeparation.Possible
+      ((SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed,
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).root) := by
+  rw [generatedKey_eq_walk_pair hwalk]
+  exact hgood
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side on a good walk.** This is the target's `hanswer` but for the budget: what
+is left is the number the two class counts add to. -/
+theorem prob_answerBad_good_le (adversary : Adversary) (qs qm : Nat)
+    (hqm : qm ≤ 5 * 2 ^ 62)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hgood : ¬ HashSeparation.Possible
+      (walk.1.1.2.2, walk.1.2 (.structural WalkDefects.topNode)))
+    (hinside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        walk.2 result.2 qm)
+    (houtside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (fun input => ¬ CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input)
+        walk.2 result.2 qs) :
+    Pr[fun result => RoutedSplit.AnswerBad ((walk.1, result.1), result.2) |
+      tail adversary walk] ≤
+      ((qs + qm : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) :=
+  prob_answerBad_generated_le adversary qs qm hqm hwalk
+    (not_possible_generatedKey hwalk hgood) hinside houtside
 
 end SlhDsaSecurity.AnswerSide

@@ -5433,3 +5433,19 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_generated_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_generated_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.value_replay_walk_eq_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.value_replay_walk_eq_cells
+
+/-- info: 'SlhDsaSecurity.AnswerSide.generatedKey_eq_walk_pair' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.generatedKey_eq_walk_pair
+
+/-- info: 'SlhDsaSecurity.AnswerSide.not_possible_generatedKey' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.not_possible_generatedKey
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le
