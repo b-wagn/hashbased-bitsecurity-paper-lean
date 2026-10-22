@@ -195,6 +195,7 @@ import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.HandlerFacts
+import SlhDsaSecurity.Proof.HonestLinked
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
@@ -12482,3 +12483,19 @@ info: 'SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run' depends on axi
 /-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_congr
+
+/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with
+
+/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq
+
+/-- info: 'SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq
