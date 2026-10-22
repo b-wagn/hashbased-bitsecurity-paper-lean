@@ -63,4 +63,71 @@ theorem target_of_charges (hanswer : AnswerCharged) (hshared : SharedCharged) :
       le_trans (probEvent_mono fun _ _ hbad => ⟨hbad.1, hbad.2.resolve_right id⟩)
         (hshared q adversary hq hbudget)
 
+/-! ## The two obligations at a refining tail
+
+Two of the hypotheses the earlier shapes left standing are false. `hseed` is false by a byte
+format: the signer's own randomiser query on a request framed as `PK.root ‖ m` *is* a message
+input at the secret seed, so the event it bounds is certain on a `1 / 256` slice of key
+generation. `hlate` is false because late disclosure happens, which is what it is charged for.
+
+The repair is the same in both cases — stop assuming the event away — and differs only in what
+replaces it. The seed leftover narrows to a single guess, at the forgery's own published
+randomiser, which the answer side's unspent `2 ^ -126` carries. Late disclosure is **ruled out**
+on the answer side and **paid** on the shared side, where the record's message-class part has
+the room because the input half's bullet is claims-only.
+
+The defect is a predicate of the recorder's recordings, which a result of `tail` does not carry,
+so both obligations are stated at a refining tail — and at *an arbitrary one*, because nothing
+below this file can name the presentation. The instantiation is an application, made where the
+presentation is defined. -/
+
+/-- The answer half at a refining tail, with late disclosure ruled out rather than assumed. -/
+def AnswerChargedLate {γ : Type}
+    (fused : Adversary →
+      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
+      Prop) : Prop :=
+  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+    ∀ walk ∈ support graphWalk, GoodWalk walk →
+      Pr[fun result : γ => AnswerBad ((walk.1, (forget result).1), (forget result).2) ∧
+          ¬ late (walk, result) | fused adversary walk] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
+
+/-- The input half and the ordering defect, paid together at the refined paired run. Their
+counts are the two parts of one record, so one budget carries both. -/
+def SharedChargedLate {γ : Type}
+    (fused : Adversary →
+      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
+      Prop) : Prop :=
+  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+    Pr[fun pair => GoodWalk pair.1 ∧
+        (InputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
+      Target.pairedFused (fused adversary)] ≤
+      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+
+set_option maxHeartbeats 1000000 in
+/-- **The target, from the two obligations at a refining tail.** The split is the two-way one:
+a win is the answer side or the input side, and the defect is what the answer side is allowed to
+rule out. -/
+theorem target_of_charges_fused {γ : Type}
+    (fused : Adversary →
+      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
+      Prop)
+    (hforget : ∀ (adversary : Adversary) (walk : (((Digest × Digest × Digest) ×
+      CanonicalGraph.Cells) × QueryCache HashSpec)),
+      forget <$> fused adversary walk = tail adversary walk)
+    (hanswer : AnswerChargedLate fused forget late)
+    (hshared : SharedChargedLate fused forget late) :
+    HasTotalSecurityBits .strong 127 :=
+  Target.target_of_obligations_fused fused forget hforget AnswerBad InputBad late
+    (fun adversary _ hwalk _ _ hresult hwin =>
+      SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin)
+    hanswer hshared
+
 end SlhDsaSecurity.Obligations

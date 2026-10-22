@@ -12084,3 +12084,39 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts' depends on ax
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts
+
+/--
+info: 'SlhDsaSecurity.Target.prob_bad_walk_pairedFused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.prob_bad_walk_pairedFused
+
+/--
+info: 'SlhDsaSecurity.Target.pairedRun_eq_map_pairedFused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.pairedRun_eq_map_pairedFused
+
+/--
+info: 'SlhDsaSecurity.Target.target_of_obligations_fused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations_fused
+
+/--
+info: 'SlhDsaSecurity.Obligations.target_of_charges_fused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Obligations.target_of_charges_fused
+
+/--
+info: 'SlhDsaSecurity.FinalAssembly.forgetFused_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FinalAssembly.forgetFused_map
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves
