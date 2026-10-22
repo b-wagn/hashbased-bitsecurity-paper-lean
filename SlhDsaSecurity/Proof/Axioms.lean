@@ -7464,3 +7464,15 @@ info: 'SlhDsaSecurity.Target.prob_bad_walk_paired' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent
+
+/-- info: 'SlhDsaSecurity.RedrawCell.forsKeyOf_eq' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.forsKeyOf_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.forsRoots_key' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.forsRoots_key
+
+/-- info: 'SlhDsaSecurity.RedrawCell.signInternal_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.signInternal_congr

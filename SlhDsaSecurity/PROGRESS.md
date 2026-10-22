@@ -1526,6 +1526,12 @@ way it declines points away from the cause.
 2. **Rewriting under a binder.** The symptom is `rw` reporting its pattern missing on a goal
    where the pattern is plainly visible — inside a `fun`. `simp only` goes under binders; `rw`
    does not.
+
+   A variant with the same symptom and a different cause: **a rewrite that fires first can move
+   the term a later rewrite was going to match.** Normalising a signature's randomiser before
+   its digest makes one side's digest the digest of the *other* side's randomiser, so the
+   digest's own congruence can no longer fire. The cure is ordering, not tactics: normalise the
+   term everything else is indexed by first.
 3. **A choice-based lookup.** The symptom is a congruence that will not close: two invocations
    of `Classical.choose` on propositionally equal inputs are not equal terms, so anything built
    over them is incomparable. The fix is to avoid choice in the definition rather than to fight
@@ -1569,6 +1575,14 @@ way it declines points away from the cause.
    pin the instance in one definition and route everything through it, and let a law relating
    the pinned construction to the original be the check, since the pin itself cannot be checked
    by `rfl` when the terms genuinely differ.
+
+6. **Two spellings of one value.** `BitVec.toFin x` and `⟨x.toNat, x.isLt⟩` are the same `Fin`
+   and not the same term, so a lemma stated about a key spelled one way will not rewrite a goal
+   that spells it the other. The symptom is the familiar one — a pattern plainly present and
+   not found — but the cause is different from the rest and so is the cure: **a convention, not
+   a tactic.** Name the preferred spelling, which is whichever the obligations are stated in,
+   prove the crossing once in a named lemma, and arrive in it. Three ad-hoc normalisations in
+   one proof is the signal that the convention is missing.
 
 The habit that catches the first four early is to ask what the *goal's* shape is before writing
 the lemma, rather than writing the lemma one would like and making the goal fit.
