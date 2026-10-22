@@ -259,6 +259,7 @@ import SlhDsaSecurity.Proof.HandlerEvent
 import SlhDsaSecurity.Proof.CarrierServedLog
 import SlhDsaSecurity.Proof.LedgerThird
 import SlhDsaSecurity.Proof.SeedFlag
+import SlhDsaSecurity.Proof.SplitSeedView
 import SlhDsaSecurity.Proof.PrfClassCount
 
 /--
@@ -16368,3 +16369,15 @@ info: 'SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge' depends o
 /-- info: 'SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.framing_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.framing_splitUpdate
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.fromTable_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.fromTable_splitUpdate
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate
