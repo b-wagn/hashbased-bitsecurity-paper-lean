@@ -260,6 +260,7 @@ import SlhDsaSecurity.Proof.CarrierServedLog
 import SlhDsaSecurity.Proof.LedgerThird
 import SlhDsaSecurity.Proof.SeedFlag
 import SlhDsaSecurity.Proof.PrfClassCount
+import SlhDsaSecurity.Proof.SplitSeedView
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16271,7 +16272,6 @@ info: 'SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin
 
-
 /--
 info: 'SlhDsaSecurity.PrfClassCount.prob_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
@@ -16419,3 +16419,15 @@ info: 'SlhDsaSecurity.Target.target_of_obligations_doubled' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.target_of_obligations_doubled
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.framing_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.framing_splitUpdate
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.fromTable_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.fromTable_splitUpdate
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate
