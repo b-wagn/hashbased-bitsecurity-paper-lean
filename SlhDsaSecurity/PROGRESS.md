@@ -4007,3 +4007,15 @@ The cache route inherits the repair and **not** the benefit: its class reads the
 cutting the views down changes nothing, and it still owes its seed charge. What it gains is the
 diagnosis — the leftover there is an artefact of the class being *syntactic*, not of the forgery
 being one object.
+
+## Never substitute a string that is a substring of a tactic name
+
+A generator script substituted ASCII placeholders for Unicode and rewrote `omega` into `ω`,
+turning a tactic into a type variable. It failed as `unknown tactic` at a column in the middle of
+a line, **naming neither the tactic nor the substitution**.
+
+> Never make a substitution whose source is a substring of a Lean identifier or tactic name.
+
+`omega`, `beta`, `delta`, `gamma`, `sigma` and `alpha` are all live tactic or lemma fragments, so
+the Greek-letter mapping is the dangerous one. This joins the family of tactics that fail without
+naming their own cause — and it is the only member whose cause is outside Lean entirely.
