@@ -12212,6 +12212,138 @@ info: 'SlhDsaSecurity.ProbeContainment.disclosedAt_eq_disclosedByLog' depends on
 #print axioms SlhDsaSecurity.ProbeContainment.disclosedAt_eq_disclosedByLog
 
 /--
+info: 'SlhDsaSecurity.AnswerCoverage.seedRandomised_of_forgerySeedRandomised' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.seedRandomised_of_forgerySeedRandomised
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.facts_lazyProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.facts_lazyProgram
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.facts_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.facts_servingProgram
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_congr
+
+/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with
+
+/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq
+
+/-- info: 'SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.honestKeys_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.honestKeys_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.keysOf_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.keysOf_congr
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.touched_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.touched_honestLinked
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_recorded
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_honest_handler
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_step_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_step_map
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_map
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.files_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.files_servingProgram
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.framing_stopServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.framing_stopServingOn
+
+/--
 info: 'SlhDsaSecurity.ServedAgreement.servingPhaseWith_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -12230,7 +12362,7 @@ info: 'SlhDsaSecurity.ServedAgreement.sign_shape' depends on axioms: [propext, C
 #print axioms SlhDsaSecurity.ServedAgreement.sign_shape
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.served_of_signer' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.served_of_signer' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.served_of_signer
@@ -12334,7 +12466,7 @@ info: 'SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono' depends on axioms: [pr
 #print axioms SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.servedShape_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_run' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedShape_run
@@ -12372,7 +12504,7 @@ info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder_lift' depends on axiom
 #print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder_lift
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.servedFramed_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.servedFramed_run' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedFramed_run
@@ -12384,7 +12516,7 @@ info: 'SlhDsaSecurity.ServedAgreement.servedLog_signer' depends on axioms: [prop
 #print axioms SlhDsaSecurity.ServedAgreement.servedLog_signer
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.servedClear_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.servedClear_run' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedClear_run
@@ -12554,123 +12686,3 @@ info: 'SlhDsaSecurity.ServedAgreement.servedAgree_run' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedAgree_run
-
-/--
-info: 'SlhDsaSecurity.AnswerCoverage.seedRandomised_of_forgerySeedRandomised' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.AnswerCoverage.seedRandomised_of_forgerySeedRandomised
-
-/--
-info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_narrow' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_narrow
-
-/--
-info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow
-
-/--
-info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow
-
-/--
-info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts
-
-/-- info: 'SlhDsaSecurity.HandlerFacts.facts_lazyProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerFacts.facts_lazyProgram
-
-/-- info: 'SlhDsaSecurity.HandlerFacts.facts_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerFacts.facts_servingProgram
-
-/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails
-
-/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_congr
-
-/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with
-
-/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq
-
-/-- info: 'SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds
-
-/-- info: 'SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq
-
-/-- info: 'SlhDsaSecurity.TouchedKeys.honestKeys_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TouchedKeys.honestKeys_eq
-
-/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TouchedKeys.keysOf_eq
-
-/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TouchedKeys.keysOf_congr
-
-/-- info: 'SlhDsaSecurity.TouchedKeys.touched_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TouchedKeys.touched_honestLinked
-
-/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_recorded
-
-/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked
-
-/-- info: 'SlhDsaSecurity.HonestTail.probEvent_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestTail.probEvent_honest_handler
-
-/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler
-
-/--
-info: 'SlhDsaSecurity.ServingForget.run_fuseServing_step_map' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_step_map
-
-/--
-info: 'SlhDsaSecurity.ServingForget.run_fuseServing_map' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_map
-
-/--
-info: 'SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map
