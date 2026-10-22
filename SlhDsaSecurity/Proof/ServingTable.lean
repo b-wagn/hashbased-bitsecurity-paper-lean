@@ -255,4 +255,70 @@ theorem probEvent_tail_serving (adversary : Adversary) (prfSeed publicSeed : Dig
     probEvent_honest_serving adversary prfSeed publicSeed table
       (fun result => event ((LinkedGame.outcomeOf result.1).1, result.2)) record count]
 
+/-! ## The facts, at the key the table itself determines
+
+The handler the chain ends at takes its public key from the table, so it is a **family** of
+handlers rather than one, and `HandlerFacts.Facts.blind` — the only field that compares two
+tables — is not available at every index for it. `allowed` is where that is said. -/
+
+open WalkTable TableTail in
+/-- **The serving handler at the table's own key satisfies the facts, off the seed and the
+root.**
+
+The `allowed` set is `¬ RedrawCell.seedAndRoot`, and the four steps that make it both necessary
+and sufficient are these.
+
+* The handler's filing test reads `pk.root`, by `HandlerCarrier.FilesLeft` and
+  `Hashing.messageInput`, and at a drawn table `pk.root` is the cell
+  `table.1 (.structural topRoot)`, by `TouchedKeys.keysOf_eq`. So at `index = topRoot` the two
+  sides of `blind` are different handlers and the field is **false**.
+* Away from there it holds, and by one rewrite. `¬ seedAndRoot index` says `index` is neither
+  the seed nor the root, so a `node` with `seedAndRoot node` has `node ≠ index`;
+* `OpenCache.AgreeOff index left right` then gives `left.1 node = right.1 node` at both of them,
+  which is exactly what `TouchedKeys.keysOf_congr` consumes, so `keysOf … left = keysOf … right`
+  and the two sides are **one** handler;
+* at which point `HandlerFacts.facts_servingProgram` at that common key finishes it.
+
+Nothing is lost by the restriction: the charge only ever uses `blind` at an index it has shown
+untouched, and `touched` is `seedAndRoot`, which `RedrawCell.open_seedAndRoot` already pays
+for. So the consumer's `hcover` is `fun _ h => h`. -/
+theorem facts_servingProgram_keysOf (prfSeed publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop)
+    (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt carrier child) →
+        availableAt carrier (.structural parent)) :
+    HandlerFacts.Facts publicSeed availableAt (fun index => ¬ RedrawCell.seedAndRoot index)
+      (fun table =>
+        servingProgram publicSeed (keysOf prfSeed publicSeed table).2 availableAt table) where
+  neverFails table queried state :=
+    (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+      availableAt hclosed).neverFails table queried state
+  grows table queried state step hstep :=
+    (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+      availableAt hclosed).grows table queried state step hstep
+  record table queried state step hstep :=
+    (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+      availableAt hclosed).record table queried state step hstep
+  blind index hallowed left right hagree queried state hindex := by
+    rw [show keysOf prfSeed publicSeed left = keysOf prfSeed publicSeed right from
+      TouchedKeys.keysOf_congr prfSeed publicSeed left right
+        fun node hnode => hagree.1 node fun heq => hallowed (heq ▸ hnode)]
+    exact (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed right).2
+      availableAt hclosed).blind index trivial left right hagree queried state hindex
+
+open WalkTable TableTail in
+/-- **And the lenient one against it.** No restriction is needed here: `Lenient` compares the
+two handlers at the **same** table, so they carry the same key and the key's dependence on the
+table never enters. -/
+theorem lenient_servingProgram_keysOf (prfSeed publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) :
+    HandlerFacts.Lenient publicSeed availableAt
+      (fun table => servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+        (fun _ _ => True) table)
+      (fun table =>
+        servingProgram publicSeed (keysOf prfSeed publicSeed table).2 availableAt table) where
+  agree table queried state hnot :=
+    (HandlerFacts.lenient_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+      availableAt).agree table queried state hnot
+
 end SlhDsaSecurity.ServingTable

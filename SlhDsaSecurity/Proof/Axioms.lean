@@ -13354,3 +13354,11 @@ info: 'SlhDsaSecurity.CarrierTail.isBracketedRecorderRun' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.isBracketedRecorderRun
+
+/-- info: 'SlhDsaSecurity.ServingTable.facts_servingProgram_keysOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.facts_servingProgram_keysOf
+
+/-- info: 'SlhDsaSecurity.ServingTable.lenient_servingProgram_keysOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.lenient_servingProgram_keysOf
