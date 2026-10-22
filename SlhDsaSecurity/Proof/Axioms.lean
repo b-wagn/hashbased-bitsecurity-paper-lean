@@ -14739,3 +14739,9 @@ info: 'SlhDsaSecurity.FusedTape.probEvent_length_set_threeStage' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedTape.probEvent_length_set_threeStage
+
+/--
+info: 'SlhDsaSecurity.FusedTape.threeStageCausal' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.threeStageCausal

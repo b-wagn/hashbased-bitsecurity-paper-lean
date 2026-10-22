@@ -520,4 +520,28 @@ theorem probEvent_length_set_threeStage (leftKeep rightKeep : Bytes → σ → P
       · intro idx3 v3 t
         rfl
 
+/-- **The causality hypothesis at the three-stage run, in the shape the charge asks for.**
+`NoticingTape.prob_exists_hit_le_expected_of_causal` takes this and `fun w => w.2.2.2` and gives
+the coverage charge at the bracketed run with nothing further proved. -/
+theorem threeStageCausal (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (index : Nat) (leftTape rightTape : List HashOutput) (newValue : HashOutput) :
+    Pr[fun w : δ × SplitPrefix.SplitState => index < w.2.2.2.length |
+        threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value cache
+          [] [] leftTape (rightTape.set index newValue)] =
+      Pr[fun w : δ × SplitPrefix.SplitState => index < w.2.2.2.length |
+        threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value cache
+          [] [] leftTape rightTape] := by
+  have h := probEvent_length_set_threeStage leftKeep rightKeep inner before afterMap first phase
+    last value index newValue cache [] [] leftTape rightTape
+  simpa only [List.length_nil, Nat.zero_add] using h.symm
+
+
 end SlhDsaSecurity.FusedTape
