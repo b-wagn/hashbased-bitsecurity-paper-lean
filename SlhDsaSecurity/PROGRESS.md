@@ -4169,3 +4169,52 @@ So the question is not "how do I prove `hstructural`" but **"what counts the car
 admits"**, and it is a question about the counted handler rather than about the charge. Recording
 it here because it is the kind of thing that looks like a proof obligation and is really an
 interface decision.
+
+### What counts the counted handler admits — answered
+
+**A counted handler admits exactly the per-query accumulations of a cost into a component beside
+the carrier**, which is to say the `CountedHandler.withExtra` instances, and nothing else. It
+does *not* admit the cache side's count as it stands: that one is installed on a computation
+(`countQueries cost computation` under the plain shared oracle) and `ClassExpectation.
+prob_bad_le_expected_cost` inducts over that computation, which is the original reason
+`withCount` exists — a bracketed game is not one computation.
+
+That answer is enough, because **the split is such an accumulation**. `ClassGrowth.splitCost` is
+already a `Domain → Counts`, so the split counter is `withExtra` at `ω := Counts` with the
+update `(· + splitCost inClass inside outside queried)` — the *same cost function the cache side
+installs*, moved from the computation to the handler. No new notion of cost, and the `hcost`
+side comes back as `splitCost_inside` / `splitCost_outside` with the step law in front
+(`SplitCounted.withSplit_step_inside`, `withSplit_step_outside`, `withSplit_step_coin`).
+
+**The interface change costs nothing downstream, and that is the part worth recording.** The
+obvious move is to widen `BracketedRun.CountedState` from `… × Nat` to `… × Counts`, and that is
+a shape change under four readers plus the whole carrier-tail stack. It is not needed.
+`SplitCounted.run_withSplit_withCount` says the split-counted run **is** the counted run with its
+counter split: map a state's two slots to their sum and the split handler becomes `withCount`,
+started at the summed counter. So a split tail sits *above* the existing tail rather than
+replacing it, and
+
+* the coverage charge transports **up** the map for free — `probEvent` and `expected` of a mapped
+  run are the run's own, so nothing about the tape factorisation is redone;
+* `hstructural` is stated at the `outside` slot, which is the proposition
+  `CoverageCount.prob_bad_or_coverage_le_of_charges` already takes, so the cache side's shape
+  transports rather than being restated;
+* `hshare` carries no new content: `splitCost_add_eq_hashCost` makes `inside + outside` the count
+  the tail already has, so "the two counts share one budget" is the budget hypothesis that is
+  already there.
+
+`BracketedRun.CountedState`, `IsBracketedRecorderRun`, `CarrierTail.carrierTail` and everything
+read off them are untouched. The two substitutes recorded above stay rejected for the reasons
+given; what was missing was not a cleverer derived quantity but the observation that the counter
+slot is a parameter of a wrapper that was already generic.
+
+**On the two riders.** The seed charge is not retired and nothing here assumes it is: the split
+partitions the *hash* calls of a run and sums to that run's own hash count, so whatever is
+charged in seed units is charged elsewhere and neither slot touches it. And `hcoverage`
+transporting free is the same fact as before — `AnswerShape.forgetRecord` drops the record from
+the value and keeps the whole recorder state, and the map here drops a counter slot and keeps
+the carrier, so both charges read what they always read.
+
+The generic transport lemmas `withExtra_step_map`, `run_withExtra_map` and
+`forgetsAlong_withExtra` now carry the `withCount` ones as one-line corollaries, which is the
+third instance the `withExtra` note asked for.

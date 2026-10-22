@@ -241,6 +241,7 @@ import SlhDsaSecurity.Proof.CarrierShared
 import SlhDsaSecurity.Proof.CarrierDemand
 import SlhDsaSecurity.Proof.NoticingCover
 import SlhDsaSecurity.Proof.FusedCover
+import SlhDsaSecurity.Proof.SplitCounted
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15197,3 +15198,83 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 /-- info: 'SlhDsaSecurity.FusedCover.mem_recordOf_of_cache_reaches' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedCover.mem_recordOf_of_cache_reaches
+
+/-- info: 'SlhDsaSecurity.CountedHandler.withExtra_step_map' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withExtra_step_map
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_withExtra_map' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_withExtra_map
+
+/-- info: 'SlhDsaSecurity.CountedHandler.forgetsAlong_withExtra' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.forgetsAlong_withExtra
+
+/-- info: 'SlhDsaSecurity.SplitCounted.withSplit_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.withSplit_run
+
+/-- info: 'SlhDsaSecurity.SplitCounted.withSplit_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.withSplit_step
+
+/-- info: 'SlhDsaSecurity.SplitCounted.files_withSplit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.files_withSplit
+
+/-- info: 'SlhDsaSecurity.SplitCounted.forgetsAlong_withSplit' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.forgetsAlong_withSplit
+
+/-- info: 'SlhDsaSecurity.SplitCounted.run_withSplit_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.run_withSplit_map
+
+/-- info: 'SlhDsaSecurity.SplitCounted.run_withSplit_withCount' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.run_withSplit_withCount
+
+/-- info: 'SlhDsaSecurity.SplitCounted.withSplit_step_inside' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.withSplit_step_inside
+
+/-- info: 'SlhDsaSecurity.SplitCounted.withSplit_step_outside' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.withSplit_step_outside
+
+/-- info: 'SlhDsaSecurity.SplitCounted.withSplit_step_coin' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.withSplit_step_coin
+
+/-- info: 'SlhDsaSecurity.SplitCounted.files_splitCarrierRecorder' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.files_splitCarrierRecorder
+
+/--
+info: 'SlhDsaSecurity.SplitCounted.forgetsAlong_splitCarrierRecorder' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.forgetsAlong_splitCarrierRecorder
+
+/--
+info: 'SlhDsaSecurity.SplitCounted.run_splitCarrierRecorder_counted' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.run_splitCarrierRecorder_counted
+
+/-- info: 'SlhDsaSecurity.SplitCounted.forgetsAlong_sumSlots' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.forgetsAlong_sumSlots
+
+/-- info: 'SlhDsaSecurity.SplitCounted.sumSlots_startServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.sumSlots_startServingOn
+
+/-- info: 'SlhDsaSecurity.SplitCounted.sumSlots_stopServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.sumSlots_stopServingOn
