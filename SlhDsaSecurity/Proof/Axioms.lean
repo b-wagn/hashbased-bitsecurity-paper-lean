@@ -203,6 +203,7 @@ import SlhDsaSecurity.Proof.ServedRandomised
 import SlhDsaSecurity.Proof.RecordInvariant
 import SlhDsaSecurity.Proof.CarrierRecordings
 import SlhDsaSecurity.Proof.CarrierTailRecordings
+import SlhDsaSecurity.Proof.CarrierSignRecord
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -11793,6 +11794,24 @@ info: 'SlhDsaSecurity.CarrierRecordings.run_right_suffix' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierRecordings.run_right_suffix
+
+/--
+info: 'SlhDsaSecurity.CarrierSignRecord.signInternal_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSignRecord.signInternal_right_record
+
+/--
+info: 'SlhDsaSecurity.CarrierSignRecord.sign_right_record_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSignRecord.sign_right_record_none
+
+/--
+info: 'SlhDsaSecurity.CarrierSignRecord.sign_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierSignRecord.sign_right_record
 
 /--
 info: 'SlhDsaSecurity.CarrierRecordings.step_recordFreshNodup' depends on axioms: [propext, Classical.choice, Quot.sound]
