@@ -474,4 +474,113 @@ theorem answerBoundSeed_of_charges
       (answerCarrierRun rightKeep adversary walk) structuralBad coverageBad _
       outsideCount insideCount budget hstructural hcoverage hshare)
 
+/-! ## `hsplit` at this run
+
+The charged event is `RoutedSplit.AnswerBad`, a disjunction already: a deviating collision, or
+the forgery's digest covered by digests the signing log names. The structural branch needs
+nothing — `CanonicalTarget.hit_of_deviating_collision` turns it into the charge's own event. The
+coverage branch needs the **join**: from "covered by served digests" to "the forgery's digest is
+in the target recording and its witnesses in the disclosing one", which is
+`BlockViews.TargetCovered`.
+
+**The join cannot be done from a result of this run**, and the reason is worth stating rather
+than discovering. `CarrierTail.carrierTail` applies `forgetCarrier` inside itself, so by the time
+a result reaches here the carrier — the thing whose served set the recordings were filed by — is
+already a cache. The recordings were filed by `HandlerCarrier.FilesLeft` and `carrierRightKeep`,
+which read the frame in flight, and no predicate on the surviving cache reconstructs them. So the
+join is proved by reaching into the three stages, as `CarrierRecord.hrecord` does, and is taken
+here as a hypothesis stated **entirely at this run** so that its producer may reach in however it
+likes.
+
+Its producer needs `Target.GoodWalk` — the exhaustiveness of the sub-run's cases closes through
+the message/structural separation, which is the walk's second conjunct, not through the signer's
+shape — so the hypothesis carries it rather than leaving it to be discovered.
+
+**The conjunct stays.** The strong form, without `¬ ForgerySeedRandomised`, is false pathwise and
+the exceptional runs are in the support; `answerBoundSeed_of_charges` takes this shape and costs
+nothing for it. -/
+
+/-- **Forgetting twice is forgetting once.** The carrier tail drops its recordings to the
+recorded tail and the recorded tail drops its record to the game's tail; composed, that is one
+map out of this run.
+
+Stated as an equality of *computations*, because the only thing to be compared is the two
+forgetting **functions** — `congrArg` isolates them and the three stages are never unfolded. -/
+theorem map_answerCarrierRun_eq_tail
+    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
+      HandlerCarrier.State → Prop)
+    (adversary : Adversary)
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec)) :
+    (fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) <$>
+        answerCarrierRun rightKeep adversary walk = WarmedGame.tail adversary walk := by
+  rw [answerCarrierRun, Functor.map_map, RecordedTail.tail_eq_map_recordedTail,
+    ← CarrierTail.forget_carrierTail rightKeep adversary walk, Functor.map_map]
+  exact congrArg (fun f => f <$> CarrierTail.carrierTail rightKeep adversary walk) rfl
+
+/-! `map_answerCarrierRun_eq_tail` is the only thing that has to see through this run into the
+three stages, and it is proved. Everything after it may treat the run as opaque — and must, or
+the unifier walks into `carrierTail` at every membership and finishes at no number of heartbeats.
+This is the side of the `irreducible` judgement where it is right: nothing below has to match two
+runs against each other. -/
+attribute [local irreducible] answerCarrierRun
+
+open scoped Classical in
+/-- **A supported result of this run is a supported result of the game's tail.** -/
+theorem mem_support_tail_of_answerCarrierRun
+    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
+      HandlerCarrier.State → Prop)
+    (adversary : Adversary)
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (result : (Outcome × Nat) × SplitPrefix.SplitState)
+    (hmem : result ∈ support (answerCarrierRun rightKeep adversary walk)) :
+    (result.1, result.2.1) ∈ support (WarmedGame.tail adversary walk) := by
+  classical
+  have hmapped : ((fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) result) ∈
+      support ((fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) <$>
+        answerCarrierRun rightKeep adversary walk) := by
+    rw [support_map]
+    exact Set.mem_image_of_mem
+      (fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) hmem
+  rwa [map_answerCarrierRun_eq_tail rightKeep adversary walk] at hmapped
+
+set_option maxHeartbeats 4000000 in
+open scoped Classical in
+/-- **`hsplit` at the carrier's run**, in the shape `answerBoundSeed_of_charges` consumes. -/
+theorem hsplit_of_join
+    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
+      HandlerCarrier.State → Prop)
+    (adversary : Adversary)
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
+    (hjoin : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      Target.GoodWalk walk →
+        ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) →
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
+            CoverageRouted.ForgeryDisclosedCovered
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                (result.1, result.2.1) →
+              BlockViews.TargetCovered result) :
+    ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
+        GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
+            (result.1, result.2.1) ∨
+          BlockViews.TargetCovered result := by
+  classical
+  rintro result hmem ⟨hbad, hseed, hlate⟩
+  rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
+    AnswerSide.generatedKey_eq_walk adversary hwalk
+      (mem_support_tail_of_answerCarrierRun rightKeep adversary walk result hmem)] at hbad
+  rcases hbad with ⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered
+  · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
+      parent (result.1, result.2.1) output hdeviates hentry hcollision)
+  · exact Or.inr (hjoin result hmem hgood hseed hlate hcovered)
+
 end SlhDsaSecurity.AnswerCarrier

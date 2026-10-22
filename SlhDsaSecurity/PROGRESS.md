@@ -4241,3 +4241,34 @@ the carrier, so both charges read what they always read.
 The generic transport lemmas `withExtra_step_map`, `run_withExtra_map` and
 `forgetsAlong_withExtra` now carry the `withCount` ones as one-line corollaries, which is the
 third instance the `withExtra` note asked for.
+
+## `hsplit` at the carrier, and the two sides of the `irreducible` judgement
+
+`AnswerCarrier.hsplit_of_join` is the split in the shape `answerBoundSeed_of_charges` consumes:
+the charged event implies the structural charge's own event or `BlockViews.TargetCovered`. The
+structural branch is `CanonicalTarget.hit_of_deviating_collision` and needs nothing. The coverage
+branch is the join, and the join is a hypothesis — stated entirely at this run so its producer
+may reach into the three stages however it likes, and carrying `Target.GoodWalk`, because the
+sub-run's exhaustiveness closes through the message/structural separation and not through the
+signer's shape.
+
+The conjunct stays: the strong form is **false pathwise**, not merely hard, and the exceptional
+runs are in the support.
+
+**The `irreducible` judgement cut both ways inside one file, which is the useful part.**
+`map_answerCarrierRun_eq_tail` — the carrier tail forgets to the recorded tail forgets to the
+game's tail, composed into one map — is the *only* thing that has to see through this run into
+the three stages, and it must not be blocked: it is proved by `congrArg` isolating the two
+forgetting **functions** so the run underneath is never unfolded at all. Everything after it must
+not see through, and `attribute [local irreducible] answerCarrierRun` placed immediately below it
+is what makes the membership lemma cheap. Without it the unifier walks into `carrierTail` at
+every membership and finishes at no number of heartbeats; with it the same proof is instant.
+
+So the rule is not "irreducible is right here and wrong there" but **place the boundary at the
+one lemma that does the seeing-through, and make everything downstream opaque.** The failure
+mode is applying the attribute file-wide, which blocks that lemma too.
+
+The other half of the same episode: a `whnf` timeout reported at a `theorem` line meant the
+proof, exactly as warned, and the cure was the same both times — replace a `rfl` or an anonymous
+constructor that compares terms built over the run with a lemma that compares only the functions
+(`Set.mem_image_of_mem`, `congrArg`).
