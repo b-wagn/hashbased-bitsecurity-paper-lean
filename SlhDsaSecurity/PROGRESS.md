@@ -3206,3 +3206,27 @@ parameter has to be walk-indexed (`walk → Bytes → Prop`). A class parameter 
 type-checks at the narrow instantiation and fails at the wide one, which is the sort of thing
 that only shows up when the second instantiation is actually written — which is the argument for
 writing it now.
+
+## Two harness traps, and a pointer rule
+
+**`simp only` can fail silently in the stalled files.** `RedrawCell`, `ChargedProbe` and
+`StalledRun` set `backward.isDefEq.respectTransparency false` at file level. Without it,
+`simp only [..., map_pure, ...]` does not fire on these `ProbComp` goals — no error, just an
+unsolved goal with the `<$> pure` still standing, which reads like a missing rewrite rather than
+a missing option. A proof mirrored out of those files needs the option as much as it needs the
+lemmas.
+
+**`lake env lean` reads oleans, not sources** — see the note above; the two interact, because a
+probe that passes against a stale olean is checking a statement that no longer exists.
+
+**And a pointer rule, from a round lost to it.** When a definition is widened by *wrapping* it —
+`recorderOf` to `noticingRecorderOf`, a fixed handler to a parameterised one — the wrapped thing
+gets a forward pointer in its docstring. A wrapper is invisible to someone reading the name they
+were given: they find a statement that will not go through, and nothing in front of them says a
+repair exists. That is the same failure as a hypothesis that is invisible rather than absent,
+seen from the other side, and a one-line `see <name>` is cheaper than a convention of reading
+whole files.
+
+The same applies wherever a poorer statement survives beside a richer sibling — a `≠ none` next
+to a `= some a`, a cache-monotonicity next to a value-persistence. Whoever finds the poorer name
+first has no way to know the richer one exists.
