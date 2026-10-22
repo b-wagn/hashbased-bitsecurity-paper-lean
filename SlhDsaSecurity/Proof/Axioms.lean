@@ -161,6 +161,7 @@ import SlhDsaSecurity.Proof.LateCharge
 import SlhDsaSecurity.Proof.TapeFactor
 import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.WalkTable
+import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.LateRate
 import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
@@ -11396,3 +11397,19 @@ info: 'SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.expected_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.expected_congr
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.evalDist_recordedPairedRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.evalDist_recordedPairedRun
+
+/-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_seeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_seeds
