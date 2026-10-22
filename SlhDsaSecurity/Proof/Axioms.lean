@@ -206,6 +206,7 @@ import SlhDsaSecurity.Proof.CarrierTailRecordings
 import SlhDsaSecurity.Proof.CarrierSignRecord
 import SlhDsaSecurity.Proof.CarrierPhaseRecord
 import SlhDsaSecurity.Proof.ObligationShapes
+import SlhDsaSecurity.Proof.CarrierRecord
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.HonestLinked
@@ -14379,3 +14380,27 @@ info: 'SlhDsaSecurity.NoticingTape.noticingRecorderOf_eq_rom' depends on axioms:
 /-- info: 'SlhDsaSecurity.ServingTable.claimedCandidatesOf_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingTable.claimedCandidatesOf_unionCache
+
+/--
+info: 'SlhDsaSecurity.CarrierRecord.not_carrierRightKeep_digest' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecord.not_carrierRightKeep_digest
+
+/--
+info: 'SlhDsaSecurity.CarrierRecord.keys_eq_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecord.keys_eq_replay
+
+/--
+info: 'SlhDsaSecurity.CarrierRecord.keys_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecord.keys_prf
+
+/--
+info: 'SlhDsaSecurity.CarrierRecord.keys_publicKey' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecord.keys_publicKey
