@@ -1455,3 +1455,39 @@ signer makes thousands; the margin is `2 ^ 9` even counting one.
 The lesson generalises past this case: a defect proportional to the adversary's use of an oracle
 must be set against the honest work that use provokes, not against a constant. Charging every
 hash call in the game is what makes that available.
+
+## The signer walks through the cells the charge protects
+
+The deepest obstruction so far, and it is about where the honest signer *lives* rather than
+about any probability.
+
+The off-seed charge needs the computation blind to the staked cell. The honest signer computes
+each WOTS chain from its start, so for a chain with revealed digit `d` it touches `wotsPrf` and
+`wotsHash` at every step below `d - 1` — cells `Available` calls unavailable at *every* state,
+since the revealed digit is fixed before the run. Those are exactly the cells the off-seed
+charge is about. Stripped, the signer *reads* them and blindness fails; unstripped, it *queries*
+them, those queries are off-seed sensitive, and the sticky flag fires with probability one.
+Replacing it by its value does not help, the way it helped key generation: a signature's
+components are available cells, but the walk that produces them is not.
+
+**What rescues it is stalling, which is already built — one level up.** The charge is per index
+and the run is stalled the moment that index becomes available; the signer reads a disclosed
+cell only *after* the signature that discloses it, hence only after the stall, so the stalled
+run never reads it. That is the content for the FORS secrets, whose availability follows the
+signing log, and vacuous for the WOTS cells, whose availability is static.
+
+But stalling freezes the **handler**, not the computation. So the signer has to move into the
+handler stack the charge simulates, where its reads are frozen with everything else and
+`lazyProgram`'s existing step condition — answer only what the signatures have made available —
+is exactly the condition it must meet. In the computation no hypothesis of the `htouched` kind
+can express "available at the state where it is read", because the computation is not stepped.
+
+Two things that have to hold and are being checked rather than assumed: that the digest query
+precedes the FORS reads, since `signedAt` is what makes those cells available; and that moving
+the signing oracle out of its nesting is a `simulateQ` identity rather than a redefinition of
+the experiment.
+
+The pattern across the last three obstructions is the same one: **a value that is available,
+computed by a walk that is not.** Key generation's root, the FORS public key, and now the
+signature. Each time the fix has been to replace the walk by the value — and this time the
+value has to be read at the right moment as well, which is what moving into the handler buys.
