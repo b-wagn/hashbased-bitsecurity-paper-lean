@@ -11692,126 +11692,6 @@ info: 'SlhDsaSecurity.ServingProgram.servingProgram_query_step' depends on axiom
 #print axioms SlhDsaSecurity.ServingProgram.servingProgram_query_step
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.signInternalAt_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.signInternalAt_shape
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.sign_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.sign_shape
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.served_of_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.served_of_sign
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.state_of_bind_pure' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.state_of_bind_pure
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servingPhase_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servingPhase_persists
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.LogFiled.mono' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.LogFiled.mono
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.LogFiled.append' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.LogFiled.append
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.logFiled_step' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.logFiled_step
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.logFiled_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.logFiled_run
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.logFiled_nil' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.logFiled_nil
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.replayRandomizer_of_cached' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.replayRandomizer_of_cached
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.logServed_subset_served' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.logServed_subset_served
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.logServed_subset_served_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.logServed_subset_served_run
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.FramingAdmitted.none' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.FramingAdmitted.none
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.FramingAdmitted.mono' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.FramingAdmitted.mono
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servedShape_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servedShape_run
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servedShape_step' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servedShape_step
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servedShape_phase_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servedShape_phase_run
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty
-
-/--
 info: 'SlhDsaSecurity.ServingProgram.servingProgram_hash_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -11822,66 +11702,6 @@ info: 'SlhDsaSecurity.ServingProgram.servingProgram_hash_served' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingProgram.servingProgram_hash_served
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder_sign
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servedFramed_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servedFramed_run
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servedLog_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servedLog_sign
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.servedClear_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.servedClear_run
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.logServed_append' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.logServed_append
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_step' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_step
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_run
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_empty' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_empty
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.agreesWithLog_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.agreesWithLog_run
 
 /-- info: 'SlhDsaSecurity.RecordedChain.run_recordedAfterSeeds_eq_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -11976,36 +11796,6 @@ info: 'SlhDsaSecurity.PairedAverage.prob_le_expected_of_perWalk' depends on axio
 /-- info: 'SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_claim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_claim
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.mem_map_servedOf' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.mem_map_servedOf
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.length_le_log_of_served' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.length_le_log_of_served
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.record_length_le_log' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.record_length_le_log
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.record_length_le_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.record_length_le_cap
-
-/--
-info: 'SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput
 
 /--
 info: 'SlhDsaSecurity.SharedAssembly.probesIn_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -12210,6 +12000,232 @@ info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound' depends on
 #print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound
 
 /--
+info: 'SlhDsaSecurity.ServedAgreement.servingPhaseWith_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servingPhaseWith_sign
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.signInternalAt_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.signInternalAt_shape
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.sign_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.sign_shape
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.served_of_signer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.served_of_signer
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.state_of_bind_pure' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.state_of_bind_pure
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servingPhaseWith_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servingPhaseWith_persists
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.framing_clear_step_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.framing_clear_step_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.LogFiled.mono' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.LogFiled.mono
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.LogFiled.append' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.LogFiled.append
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.logFiled_step_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.logFiled_step_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.logFiled_run_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.logFiled_run_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.logFiled_nil' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.logFiled_nil
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.replayRandomizer_of_cached' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.replayRandomizer_of_cached
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.logServed_subset_served' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.logServed_subset_served
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.logServed_subset_served_run_with' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.logServed_subset_served_run_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.FramingAdmitted.none' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.FramingAdmitted.none
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.FramingAdmitted.mono' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.FramingAdmitted.mono
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_step_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_step_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_phase_run_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_phase_run_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty_with' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder_lift' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder_lift
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedFramed_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedFramed_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedLog_signer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedLog_signer
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedClear_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedClear_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.logServed_append' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.logServed_append
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_step_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_step_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_run_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_run_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_empty' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_empty
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.agreesWithLogAt_run_with' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.agreesWithLogAt_run_with
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.mem_map_servedOf' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.mem_map_servedOf
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.length_le_log_of_served' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.length_le_log_of_served
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.record_length_le_log' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.record_length_le_log
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.record_length_le_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.record_length_le_cap
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput
+
+/--
 info: 'SlhDsaSecurity.ServedAgreement.signInternalAt_shape_hash' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -12248,3 +12264,57 @@ info: 'SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.signerShape_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.signerShape_sign
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.signerPins_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.signerPins_sign
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.signerShape_strippedSign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.signerShape_strippedSign
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.signerPins_strippedSign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.signerPins_strippedSign
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.agreesWithLog_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.agreesWithLog_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.agreesWithLogAt_run_stripped' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.agreesWithLogAt_run_stripped
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.lazyProgram_served' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.lazyProgram_served
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.lazyProgram_run_served' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.lazyProgram_run_served
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run
