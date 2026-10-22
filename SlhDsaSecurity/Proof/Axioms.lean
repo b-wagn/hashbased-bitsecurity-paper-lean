@@ -8802,3 +8802,63 @@ info: 'SlhDsaSecurity.ServedBridge.carrierBelowLog_of_filed' depends on axioms: 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedBridge.carrierBelowLog_of_filed
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.RandomiserCachedFrom.mono' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.RandomiserCachedFrom.mono
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_nil' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_nil
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.RandomiserCachedFrom.append' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.RandomiserCachedFrom.append
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_sign
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_adversaryImpl' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_adversaryImpl
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_signingOracle' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_signingOracle
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_countedRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.randomiserCachedFrom_countedRun
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.randomiserCached_tail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.randomiserCached_tail
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.signerRandomised_of_servedLog' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.signerRandomised_of_servedLog

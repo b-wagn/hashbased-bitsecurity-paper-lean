@@ -1571,13 +1571,31 @@ way it declines points away from the cause.
    (`work_le_count_adversaryImpl` applied at `Sum.inl`), and `SigningFaithful` follows it. So
    the rule has a second half: never rewrite across the index, convert by application.
 
-   **A third member of the family, which presents as a timeout rather than a mismatch.** When a
-   lemma's conclusion mentions an implicit argument only through a *projection* — as
-   `AnswerSide.generatedKey_eq_walk` mentions its result only as `result.2` — applying it leaves
-   the unifier solving `?r.2 =?= e`, which it cannot do by matching and will chase instead. The
-   symptom is a `whnf` timeout at the `exact`, not an error naming the argument. The fix is to
-   supply that argument by name. Worth checking for whenever a lemma about a run concludes about
-   one component of it.
+   **A third member of the family, which presents as a timeout rather than a mismatch, and
+   which is now confirmed rather than observed once.** When a term the unifier has to solve for
+   appears only under a *projection*, it leaves a constraint of the form `?x.2 =?= e`, which
+   cannot be matched and is chased instead. The symptom is a `whnf` timeout, attributed to
+   whichever step was running, and no heartbeat budget fixes it. The fix is always to supply the
+   argument by name.
+
+   Two distinct shapes have now been seen, which is what makes it a fact about the elaborator
+   rather than about one proof:
+
+   * an **implicit in a lemma's conclusion** — `AnswerSide.generatedKey_eq_walk` mentions its
+     result only as `result.2`, so applying it leaves `?r.2 =?= e`;
+   * a **placeholder at an application** — writing `_` for the secret key in
+     `ServedBridge.carrierBelowLog_of_filed` left `?sk.publicKey =?= RoutedSplit.keyOf …`.
+
+   The second caught the author of this note in his own file within a day of writing it. Both
+   times the statement elaborated fine and only the proof looped, so the way to separate them is
+   to stub the proof and check whether the declaration still times out: if it does, the
+   statement is the problem; if it does not, look for a `_` or an implicit that only a
+   projection determines.
+
+   A related habit for statements: a big term written out several times — `RoutedSplit.keyOf`
+   applied to a trace, say — makes the elaborator chase it at every occurrence. Taking it as a
+   parameter tied by an equation and `subst`ing it in the proof costs two lines and elaborates
+   instantly.
 
    The same transparency gap has a cousin that presents as a missing instance.
    `rw [Scheme.sign]` works at `m := OracleComp OracleWorld` and fails at `m := Id` with

@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.AdversaryQueries
+import SlhDsaSecurity.Proof.CacheProvenance
 
 /-!
 # What the signing log holds, and how long it is
@@ -208,6 +209,118 @@ theorem faithfulFrom_countedRun (sk : SecretKey) {α : Type}
       show result.2 = inner.2 from by rw [← hvalue]]
     exact ih step.1.1.1 step.1.2 step.2 inner hinner hhead
 
+/-! ## What the log's entries left in the cache
+
+Faithfulness says what the log *holds*; it says nothing about what the cache holds, because both
+sides of its equation are replayed and `CacheReplay.replay` answers `default` at an absent
+input. The disclosure notions need the other thing: that a logged request's own `PRF_msg` entry
+is in the cache, so that the randomiser read off it is a drawn value rather than a default.
+
+It is the same induction with the same invariant shape — quantified over every later cache up
+front, so that it is monotone by transitivity of `Persists` and nothing else — and the signing
+step establishes it from `CacheProvenance.sign_randomizer_cached`, whose conclusion already has
+that form. -/
+
+/-- Every logged request's own `PRF_msg` entry is in the cache, and in any cache extending it. -/
+def RandomiserCachedFrom (sk : SecretKey) (cache : QueryCache HashSpec) (log : SigningLog) :
+    Prop :=
+  ∀ later : QueryCache HashSpec, CacheAvailability.Persists cache later →
+    ∀ entry ∈ log, ∀ framed : Bytes, entry.1.frame = some framed →
+      later (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) ≠ none
+
+theorem RandomiserCachedFrom.mono {sk : SecretKey} {cache cache' : QueryCache HashSpec}
+    {log : SigningLog} (hcached : RandomiserCachedFrom sk cache log)
+    (hgrow : CacheAvailability.Persists cache cache') : RandomiserCachedFrom sk cache' log :=
+  fun later hlater => hcached later (hgrow.trans hlater)
+
+theorem randomiserCachedFrom_nil (sk : SecretKey) (cache : QueryCache HashSpec) :
+    RandomiserCachedFrom sk cache ([] : SigningLog) :=
+  fun _ _ entry hentry => absurd hentry (List.not_mem_nil (a := entry))
+
+theorem RandomiserCachedFrom.append {sk : SecretKey} {cache : QueryCache HashSpec}
+    {log log' : SigningLog} (hleft : RandomiserCachedFrom sk cache log)
+    (hright : RandomiserCachedFrom sk cache log') :
+    RandomiserCachedFrom sk cache (log ++ log') := by
+  intro later hlater entry hentry
+  rcases List.mem_append.mp hentry with hmem | hmem
+  · exact hleft later hlater entry hmem
+  · exact hright later hlater entry hmem
+
+/-- **A signing step leaves its own `PRF_msg` entry behind.** -/
+theorem randomiserCachedFrom_sign (sk : SecretKey) (request : Message) (answer : Option Bytes)
+    (cache mid : QueryCache HashSpec)
+    (hmem : (answer, mid) ∈ support ((simulateQ KeygenUniform.rom
+      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run cache)) :
+    RandomiserCachedFrom sk mid [⟨request, answer⟩] := by
+  intro later hlater entry hentry framed hframe
+  rw [List.mem_singleton] at hentry
+  subst hentry
+  exact CacheProvenance.sign_randomizer_cached sk request framed hframe cache mid later answer
+    hmem fun input output hvalue => hlater input output hvalue
+
+/-- A query of the adversary's own leaves the log where it was. -/
+theorem randomiserCachedFrom_adversaryImpl (sk : SecretKey) (queried : OracleWorld.Domain)
+    (log : SigningLog) (cache : QueryCache HashSpec)
+    (step : ((OracleWorld.Range queried × Multiplicative Counts) × SigningLog) ×
+      QueryCache HashSpec)
+    (hstep : step ∈ support (countedRun (adversaryImpl queried) log cache))
+    (hcached : RandomiserCachedFrom sk cache log) :
+    RandomiserCachedFrom sk step.2 step.1.2 := by
+  have hgrow : CacheAvailability.Persists cache step.2 :=
+    fun probe value hvalue => extends_of_mem_support
+      ((WriterT.run (adversaryImpl queried)).run log) cache cache (Extends.refl cache) step hstep
+      probe value hvalue
+  rw [countedRun, run_adversaryImpl, simulateQ_map, StateT.run_map, support_map] at hstep
+  obtain ⟨value, -, hvalue⟩ := hstep
+  rw [show step.1.2 = log from by rw [← hvalue]]
+  exact hcached.mono hgrow
+
+/-- A signing request appends an entry whose `PRF_msg` answer it has just drawn. -/
+theorem randomiserCachedFrom_signingOracle (sk : SecretKey) (request : Message)
+    (log : SigningLog) (cache : QueryCache HashSpec)
+    (step : ((Option Bytes × Multiplicative Counts) × SigningLog) × QueryCache HashSpec)
+    (hstep : step ∈ support (countedRun (Security.signingOracle sk request) log cache))
+    (hcached : RandomiserCachedFrom sk cache log) :
+    RandomiserCachedFrom sk step.2 step.1.2 := by
+  rw [countedRun, StrippedGame.signingOracle_eq, StrippedGame.run_signingOracleWith,
+    simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hstep
+  obtain ⟨inner, hinner, hrest⟩ := hstep
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hrest
+  rw [show step.1.2 = log ++ [⟨request, inner.1⟩] from by rw [hrest],
+    show step.2 = inner.2 from by rw [hrest]]
+  exact RandomiserCachedFrom.append
+    (hcached.mono fun probe value hvalue =>
+      GrowthCharge.cache_value_persists _ cache inner.2 inner.1 hinner probe value hvalue)
+    (randomiserCachedFrom_sign sk request inner.1 cache inner.2 hinner)
+
+/-- **The adversary's phase leaves every logged request's `PRF_msg` entry in the cache.** -/
+theorem randomiserCachedFrom_countedRun (sk : SecretKey) {α : Type}
+    (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ (log : SigningLog) (cache : QueryCache HashSpec)
+      (result : ((α × Multiplicative Counts) × SigningLog) × QueryCache HashSpec),
+      result ∈ support (countedRun (simulateQ (phaseImpl sk) computation) log cache) →
+        RandomiserCachedFrom sk cache log → RandomiserCachedFrom sk result.2 result.1.2 := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro log cache result hresult hcached
+    rw [simulateQ_pure, countedRun, WriterT.run_pure, StateT.run_pure, simulateQ_pure,
+      StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
+    rw [show result.1.2 = log from by rw [hresult], show result.2 = cache from by rw [hresult]]
+    exact hcached
+  | query_bind t next ih =>
+    intro log cache result hresult hcached
+    rw [simulateQ_bind, simulateQ_spec_query, countedRun_bind, mem_support_bind_iff] at hresult
+    obtain ⟨step, hstep, hrest⟩ := hresult
+    rw [support_map] at hrest
+    obtain ⟨inner, hinner, hvalue⟩ := hrest
+    have hhead : RandomiserCachedFrom sk step.2 step.1.2 := by
+      rcases t with world | request
+      · exact randomiserCachedFrom_adversaryImpl sk world log cache step hstep hcached
+      · exact randomiserCachedFrom_signingOracle sk request log cache step hstep hcached
+    rw [show result.1.2 = inner.1.2 from by rw [← hvalue],
+      show result.2 = inner.2 from by rw [← hvalue]]
+    exact ih step.1.1.1 step.1.2 step.2 inner hinner hhead
+
 /-! ## How long the log is
 
 `HasTotalBudget` caps the `.signing` counter, and what the answer side needs capped is the
@@ -400,6 +513,35 @@ theorem logFaithful_tail (adversary : Adversary)
       hadv (faithfulFrom_nil keys.1 keyCache)
   intro entry hentry framed hframe
   exact hsk ▸ hfaithful result.2 hgrow entry hentry framed hframe
+
+/-- **Every logged request's own `PRF_msg` entry is in the run's cache.** The companion to
+`logFaithful_tail`: that one says what the log holds, this says what the signer left behind, and
+the disclosure notions need both. -/
+theorem randomiserCached_tail (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (WarmedGame.tail adversary walk))
+    (entry : (_ : Message) × Option Bytes) (hentry : entry ∈ result.1.1.signed)
+    (framed : Bytes) (hframe : entry.1.frame = some framed) :
+    result.2 (Hashing.randomizerInput
+      (ReplayGate.secretKeyOf ((walk.1, result.1), result.2)).prf
+      (ReplayGate.secretKeyOf ((walk.1, result.1), result.2)).publicKey.seed framed) ≠
+      none := by
+  unfold WarmedGame.tail at hresult
+  obtain ⟨keys, keyCache, advCache, value, hkeys, hpersist, hadv, hlog, hgrow, -⟩ :=
+    split_phase adversary walk.1.1 walk.2 result hresult
+  rw [WarmedSplit.keygenInternal_liftM, WarmedSplit.run_rom_liftM] at hkeys
+  have hkeyreplay : keys = @Scheme.keygenInternal Id Id.instMonad (replayQuery result.2)
+      walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 :=
+    WarmedSplit.keygenInternal_eq_replay_of_subset _ _ _ walk.2 keyCache result.2 keys hkeys
+      hpersist
+  have hsk : keys.1 = ReplayGate.secretKeyOf ((walk.1, result.1), result.2) := by
+    rw [hkeyreplay, keygen_secretKey]
+    rfl
+  have hcached : RandomiserCachedFrom keys.1 advCache result.1.1.signed :=
+    hlog ▸ randomiserCachedFrom_countedRun keys.1 (adversary.main keys.2) [] keyCache
+      (value, advCache) hadv (randomiserCachedFrom_nil keys.1 keyCache)
+  exact hsk ▸ hcached result.2 hgrow entry hentry framed hframe
 
 /-- **The outcome's log is no longer than its signing count.** -/
 theorem signed_length_le_signing (adversary : Adversary) (sds : Digest × Digest × Digest)
