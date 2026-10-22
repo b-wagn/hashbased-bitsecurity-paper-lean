@@ -214,7 +214,18 @@ from where the sub-run was in hand.
 What remains is true for the reason the old docstring gave — such a query is signer-randomised
 when it is made, so the left test takes it — and what is still missing to prove it is named in
 the section note above: the cache in force at a step inside a sub-run. Guarded, its only
-counterexample is the ordering defect itself, which is what `LateProbes.Ordering` charges. -/
+counterexample is the ordering defect itself, which is what `LateProbes.Ordering` charges.
+
+**The escape from that, now proved twice, is worth stating as a rule: when two lemmas cannot be
+matched at a step, look for one that quantifies over the states instead of naming one.**
+`SplitPrefix.right_record_suffix` hands back, for each entry a run files, *some* cache between
+the run's start and its end; applied one bind into the signer — after the query that installs
+the randomiser — it settles every later entry without naming the step any of them was filed at,
+which is `SignerRightRecord.signInternal_right_record`. The same move is what
+`CacheProvenance.queriesUnder_of_fresh_subset` makes when it quantifies the later cache rather
+than fixing it at the sub-run's own, and what `ServedAgreement.servedAgree_run` makes when it
+asks for the carrier's cache to be *contained* in the run's rather than equal to it at a named
+moment. Matching states is the thing to avoid, not the thing to do carefully. -/
 def SignerDigestFree (adversary : Adversary) : Prop :=
   ∀ pair ∈ support (LateProbes.pairedOf FusedCoverage.fusedTail adversary),
     ∀ entry ∈ pair.2.2.2.2, ∀ framed : Bytes,
