@@ -4156,6 +4156,16 @@ The same rule for a search of the tree, and it is the more frequent case:
 > An empty search is a statement about **the search**, and it goes into a report as *"I did not
 > find X"*, never as *"X is not there"*.
 
+And the third instance, which is the rule failing on its own second half: a thread checked that
+the intended **route** existed (`warmup_seed_uniform` and its consumers) and concluded a step was
+unbuilt. The step was built — `RandomiserDeferral` holds the commutation, the replacement
+transport, and the charge itself with the secret deferred. It had grepped for the route and not
+for the destination.
+
+> **Checking that the route exists is not checking that the destination does.** Grep for the
+> thing you would be about to write, under the name its *consumer* would use, not under the name
+> of the technique you would use to write it.
+
 A thread reported that nothing in the tree discharged a hypothesis; the supplier existed, under a
 name matching neither of the two patterns it had grepped. It had not skipped the search — it ran
 one and then reported the result in stronger terms than the search supported, in the same
