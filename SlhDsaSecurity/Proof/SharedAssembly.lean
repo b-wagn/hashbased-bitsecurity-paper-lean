@@ -110,9 +110,8 @@ theorem sharedCharged_of_parts
     (GoodWalk pair.1 ∧ InputBad (splitTraceOf pair) ∧ ¬ LateProbes.Ordering pair) ∨
       (GoodWalk pair.1 ∧ LateProbes.Ordering pair)) ?_) ?_
   · rintro pair hpair ⟨hgood, hshared⟩
-    by_cases hord : LateProbes.Ordering pair
-    · exact Or.inr ⟨hgood, hord⟩
-    · exact Or.inl ⟨hgood, hshared, hord⟩
+    exact (cover_of_em (fun pair : SplitPair => InputBad (splitTraceOf pair))
+      LateProbes.Ordering pair hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord => ⟨hgood, hord⟩
   refine le_trans (probEvent_or_le _ _ _) ?_
   refine le_trans (add_le_add (hinput q adversary hbudget) hordering) ?_
   rw [ENNReal.div_add_div_same]

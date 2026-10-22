@@ -534,8 +534,11 @@ Two things follow, and both are worth saying where the hypothesis used to sit.
   against the aiming part. -/
 
 /-- **The two-part cover of an event is excluded middle.** No property of `ordering` is used;
-in particular it need not be an event of the run at all. -/
-theorem cover_of_em (shared ordering : RecordedPair → Prop) (pair : RecordedPair)
+in particular it need not be an event of the run at all — and no property of the pair either,
+which is why it is stated at any type. The second caller reads a pair that carries the
+recorder's two recordings, since the ordering defect is not a predicate of the recorded pair,
+and a lemma that looked at nothing should not have to be restated for it. -/
+theorem cover_of_em {α : Type} (shared ordering : α → Prop) (pair : α)
     (hshared : shared pair) :
     (shared pair ∧ ¬ ordering pair) ∨ ordering pair := by
   classical
