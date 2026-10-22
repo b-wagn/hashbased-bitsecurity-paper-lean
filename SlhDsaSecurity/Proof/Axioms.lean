@@ -8085,3 +8085,11 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_parts' depends on axioms: [pro
 /-- info: 'SlhDsaSecurity.SplitWitness.mem_records_or_seedRandomised' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.mem_records_or_seedRandomised
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_record_suffix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_suffix
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_record_eq_of_never' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_eq_of_never
