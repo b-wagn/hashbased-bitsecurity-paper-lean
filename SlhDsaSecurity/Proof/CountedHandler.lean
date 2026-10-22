@@ -130,6 +130,60 @@ What made it fight was not the content. `run_withAddCost_apply` is stated at the
 this proof has a state in hand, so nothing rewrote until the same fact was named one level
 down, as `WriterState.run_withAddCost_run`. -/
 
+/-- **A wrapper that is `withExtra` at a different tupling is `withExtra`'s run, re-encoded.**
+
+Two wrappers in this development put the carrier somewhere other than first — the cost writer's
+`toStateful`, which puts its accumulator before it, and `OpenCache.withFlag`, which puts its
+flag after. Both are `withExtra` up to how the state is tupled, and `ServedAgreement.Files`
+reads the carrier first, so neither can be used through the interface until it is re-encoded.
+
+This is that re-encoding, from the step to the run. Everything it needs is the step relation,
+because the carrier moves the same way at every query. -/
+theorem run_reencode {ω σ : Type}
+    (handler : QueryImpl OracleWorld (StateT σ ProbComp))
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (update : OracleWorld.Domain → ω → ω)
+    (encode : σ → HandlerCarrier.State × (τ × ω))
+    (hstep : ∀ (queried : OracleWorld.Domain) (state : σ),
+      (fun p : OracleWorld.Range queried × σ => (p.1, encode p.2)) <$>
+          (handler queried).run state =
+        ((withExtra impl update) queried).run (encode state))
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ state : σ,
+      (fun p : α × σ => (p.1, encode p.2)) <$> (simulateQ handler computation).run state =
+        (simulateQ (withExtra impl update) computation).run (encode state) := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
+  | query_bind queried next ih =>
+    intro state
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      simulateQ_bind, simulateQ_spec_query, StateT.run_bind, ← hstep queried state,
+      bind_map_left, map_eq_bind_pure_comp, bind_assoc]
+    refine congrArg (Bind.bind ((handler queried).run state)) (funext fun step => ?_)
+    exact ih step.1 step.2
+
+/-- **The flag is an extra too**, carried untouched. `OpenCache.withFlag` puts it after the
+handler's state where `withExtra` puts it after the handler's own half; that is the whole
+difference, and `run_reencode` is all it takes. -/
+theorem run_withFlag_withExtra
+    (impl : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ state : OpenCache.HandlerState × Bool,
+      (fun p : α × (OpenCache.HandlerState × Bool) =>
+          (p.1, (p.2.1.1, (p.2.1.2, p.2.2)))) <$>
+        (simulateQ (OpenCache.withFlag impl) computation).run state =
+      (simulateQ (withExtra impl (fun _ flag => flag)) computation).run
+        (state.1.1, (state.1.2, state.2)) :=
+  run_reencode (OpenCache.withFlag impl) impl (fun _ flag => flag)
+    (fun p => (p.1.1, (p.1.2, p.2)))
+    (fun queried st => by
+      rw [OpenCache.withFlag_run, withExtra_run, map_eq_bind_pure_comp, bind_assoc]
+      exact congrArg (Bind.bind ((impl queried).run st.1))
+        (funext fun step => by rw [pure_bind]; rfl))
+    computation
+
 theorem run_toStateful_withAddCost {ω : Type} [AddCommMonoid ω]
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
     (cost : OracleWorld.Domain → ω) {α : Type} (computation : OracleComp OracleWorld α) :

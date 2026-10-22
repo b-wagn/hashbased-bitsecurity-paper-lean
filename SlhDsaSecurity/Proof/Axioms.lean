@@ -14661,3 +14661,11 @@ info: 'SlhDsaSecurity.FusedTape.evalDist_threeStage' depends on axioms: [propext
 /-- info: 'SlhDsaSecurity.TouchedKeys.honestLinked_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TouchedKeys.honestLinked_eq
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_reencode' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_reencode
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_withFlag_withExtra' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_withFlag_withExtra
