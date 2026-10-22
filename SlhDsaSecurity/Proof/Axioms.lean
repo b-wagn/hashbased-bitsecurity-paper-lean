@@ -5000,3 +5000,19 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.OpenCache.reading_step_congr' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.OpenCache.reading_step_congr
+
+/-- info: 'SlhDsaSecurity.HonestProbes.fors_sign_secret_cell' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.fors_sign_secret_cell
+
+/-- info: 'SlhDsaSecurity.HonestProbes.fors_sign_authentication_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.fors_sign_authentication_cell
+
+/-- info: 'SlhDsaSecurity.HonestProbes.merkle_sign_authentication_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.merkle_sign_authentication_cell
+
+/-- info: 'SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell
