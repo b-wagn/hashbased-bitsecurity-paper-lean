@@ -159,6 +159,7 @@ import SlhDsaSecurity.Proof.RandomiserDeferral
 import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.LateCharge
 import SlhDsaSecurity.Proof.TapeFactor
+import SlhDsaSecurity.Proof.PotentialCharge
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7689,3 +7690,15 @@ info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TapeFactor.rightOf_getElem?
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.expected_congr_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.expected_congr_support
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.tsum_const_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.tsum_const_add
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.prob_fired_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.prob_fired_le
