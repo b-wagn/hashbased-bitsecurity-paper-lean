@@ -4082,6 +4082,29 @@ and a copy would compile, nothing external stops the copy — only noticing what
   and the error named the *arguments whose types mentioned them* rather than the names. Qualify
   both.
 
+## A parameter is not a guard: `Nat` units against a `q`-shaped event
+
+`seedUnits` was introduced as a parameter precisely so that no constant would be asserted
+without proof. It did not help. `seedUnits : Nat` makes `seedUnits / 2 ^ 128` a constant
+however it is instantiated, and the event it was meant to pay for costs one query per
+candidate — so the probability is `q`-shaped and **no numeral is large enough.** The hypothesis
+was false, not open, and the arithmetic that made `251` fit was sound while bounding the wrong
+thing.
+
+> Parameterising a quantity records that you did not want to assert it. It does not check that
+> the shape is right. A `Nat` parameter against a `q`-shaped event is the same error as the
+> numeral, written more carefully.
+
+The check that would have caught it is one question asked of the parameter rather than of the
+proof: **does the thing being paid for grow with `q`?** If it does, no element of `Nat` is the
+answer and the obligation has to move, exactly as a pathwise hypothesis has to move when its
+exception set is non-empty.
+
+And the resolution was not a new charge: the event is **contained in a defect the ledger already
+carries**, by one rewrite reading the verifier's own digest query as a `PRF_msg` query at the
+real seed. The remaining question is whether that defect's count has the room — a question
+about an existing charge's slack, not about a new rate.
+
 ## A pathwise hypothesis and a probability bound fail differently
 
 Three rounds were spent asking whether the seed residue was *small enough* to let `hsplit` be
