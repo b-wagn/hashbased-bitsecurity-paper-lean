@@ -74,6 +74,32 @@ noncomputable def honestLinked (adversary : Adversary) (prfSeed publicSeed : Dig
   (simulateQ (RecordedPhase.unchargedPhase (Scheme.sign (keysOf prfSeed publicSeed table).1))
     (LinkedGame.linkedAfterSeeds adversary (keysOf prfSeed publicSeed table))).run []
 
+/-- **The verifier's sub-run, exposed.** The linked game is the adversary's phase, then the
+verifier, then a pure assembly, and the phase's handler forwards a lifted world computation
+untouched — so the verifier stands on its own as an ordinary `OracleComp OracleWorld` term with
+the adversary's final log threaded past it.
+
+This is what anything reasoning about *what the verifier asked* needs, because a fact about a
+sub-run cannot be read off a run that does not name it. -/
+theorem honestLinked_eq (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : Cells × Padding) :
+    honestLinked adversary prfSeed publicSeed table =
+      (simulateQ (RecordedPhase.unchargedPhase (Scheme.sign (keysOf prfSeed publicSeed table).1))
+          ((simulateQ (addCostOracle RecordedPhase.phaseCost)
+            (adversary.main (keysOf prfSeed publicSeed table).2)).run)).run [] >>=
+        fun adversaryStep =>
+          RecordedQueries.countRecorded RecordedQueries.verifierCost
+            (Scheme.verify (keysOf prfSeed publicSeed table).2 adversaryStep.1.1.message
+              adversaryStep.1.1.signature) >>= fun verifierStep =>
+            (pure ((adversaryStep.1, verifierStep), adversaryStep.2) :
+              OracleComp OracleWorld ((((Forgery × Multiplicative RecordedQueries.Tally) ×
+                (Bool × RecordedQueries.Tally)) × SigningLog))) := by
+  rw [honestLinked, LinkedGame.linkedAfterSeeds, simulateQ_bind, StateT.run_bind]
+  refine bind_congr fun adversaryStep => ?_
+  rw [simulateQ_bind, StateT.run_bind, LinkedGame.run_unchargedPhase_lift, bind_map_left]
+  refine bind_congr fun verifierStep => ?_
+  rw [simulateQ_pure, StateT.run_pure]
+
 /-- **The stall's blindness hypothesis, at the honest linked run.** The computation reads the
 table only through its keys, and those are the two cells `RedrawCell.seedAndRoot` names. -/
 theorem touched_honestLinked (adversary : Adversary) (prfSeed publicSeed : Digest)
