@@ -69,7 +69,8 @@ theorem map_fusedTail (adversary : Adversary)
     forgetRecord <$> FusedCoverage.fusedTail adversary walk =
       AnswerJoin.answerRecordedRun adversary walk := by
   rw [AnswerJoin.answerRecordedRun, ← RecordedTail.map_recordedAfterSeeds,
-    RecordedTail.countAllHashes_map, recordedRun_map]
+    RecordedTail.countAllHashes_map, recordedRun_map, BlockViews.recordedRun,
+    RecorderView.recorderOf_cache]
   rfl
 
 /-- **An event that reads no record is the same event at either run.** -/

@@ -10142,6 +10142,36 @@ info: 'SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget' depends on axi
 #print axioms SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget
 
 /--
+info: 'SlhDsaSecurity.TapeFactor.recorderOf_run_inr_plain' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.recorderOf_run_inr_plain
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.rom_run_inr_some' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.rom_run_inr_some
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.rom_run_inr_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.rom_run_inr_none
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.mem_support_rom_of_recorderOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.mem_support_rom_of_recorderOf
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.recorderOf_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.recorderOf_eq_rom
+
+/--
 info: 'SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]

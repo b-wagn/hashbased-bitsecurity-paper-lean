@@ -54,8 +54,10 @@ theorem targetCovered_of_forgeryDisclosedCovered (prfSeed : Digest) (pk : Public
   classical
   rcases SplitWitness.mem_records_or_seedRandomised prfSeed pk (countAllHashes computation)
       cache ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)
-      (mem_support_recorder_countAllHashes (SplitWitness.disclosingKeep prfSeed pk)
-        (SplitWitness.targetKeep prfSeed pk) inClass hne computation (cache, [], []) result hmem)
+      (by
+        rw [← RecorderView.recorderOf_cache]
+        exact mem_support_recorder_countAllHashes (SplitWitness.disclosingKeep prfSeed pk)
+          (SplitWitness.targetKeep prfSeed pk) inClass hne computation (cache, [], []) result hmem)
       hfresh hlate hcovered with hleftover | ⟨target, htarget, hwitness⟩
   · exact absurd hleftover hseed
   · refine ⟨target, htarget, fun tree => ?_⟩
