@@ -1389,3 +1389,33 @@ against the 760 units of margin, and joins the defect list.
 This is the second place where an over-approximation of availability was sound-looking and
 wrong — the first was stripping every FORS leaf. Both failed the same way: a predicate loose
 enough to be convenient let the adversary reach a protected cell without being charged.
+
+## The secret seed is not a coordinate the charge can be blind to
+
+Landing the sensitive-query charge at the game ran into this, and it is sharp rather than
+fixable: the charge fixes the computation *before* the table is drawn, while the game's
+computation carries the secret seed as **data** — `afterSeeds` calls `keygenInternal sds.1 …`
+— and that seed is the table's own `.secretSeed` cell. Stripping does not help; it keeps the
+honest phase from *querying* canonical inputs precisely by having it *read* the warm cache
+instead, which is the same dependence.
+
+Blindness is needed per index, and `AgreeOff index` leaves every other coordinate alone, so for
+every `index ≠ .secretSeed` the two tables agree at `.secretSeed` and a computation depending
+only on that cell is literally the same computation on both. Exactly one term fails.
+
+So the sum runs over `Finset.univ.erase Node.secretSeed`, and the excluded term is charged by
+the machinery this development started with. The nodes staked on `.secretSeed` are exactly
+`wotsPrf` and `forsPrf`; their canonical inputs are `TrackedQueries.prfInput`; and
+`TrackedQueries.prob_meets_real_le` charges that event at `limit / 2 ^ 128` through
+`BlindComparison`'s exact comparison and `SeedDeferral`. That half was never wrong — it was
+waiting for the honest phase to be taken out of the computation, which `StrippedGame` has now
+done.
+
+The budget stays flat. A query's address determines its node, and a PRF node's address differs
+from every other shape's, so each query is charged in at most one of the two classes and the
+two counts add to the record's length. No new defect.
+
+Worth recording as a pattern: the input half ended up needing **both** techniques, not one
+replacing the other. The static blind comparison handles the one cell that is fixed before the
+run and that the computation reads; the dynamic stalled comparison handles the cells whose
+availability follows the signing log. Each is wrong for the other's case.
