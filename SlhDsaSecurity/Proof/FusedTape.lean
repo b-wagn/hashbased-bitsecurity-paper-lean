@@ -407,4 +407,117 @@ theorem probEvent_length_set_fused (leftKeep rightKeep : Bytes → σ → Prop)
           (afterMap z.2.1) z.2.2.1.1 z.2.2.1.2 z.2.2.2.1 z.2.2.2.2)
         index newValue (before request cache) leftTape rightTape leftRecord rightRecord
 
+/-! ## The three stages, and the selection's causality across all three
+
+The last application-level step of the family. Three nested applications again, in the same
+order and for the same reason: each layer's hypothesis is the next layer's conclusion. The
+innermost one is `rfl`, because the final `pure` reads its state through `forgetViewTape` and
+that drops the blocks — overwriting a cell of a block the answer no longer mentions cannot
+change the answer.
+-/
+
+/-- The tape-reading three-stage run, named so the charge can be stated at it. -/
+noncomputable def threeStageTapeRun (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (leftRecord rightRecord : Record)
+    (leftTape rightTape : List HashOutput) :
+    ProbComp (δ × SplitPrefix.SplitState) :=
+  (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) first).run
+      (cache, (leftTape, rightTape), (leftRecord, rightRecord)) >>= fun keys =>
+    (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) (inner keys.1)
+        (fun request => onCarrierTape (before request)) (onCarrierTape afterMap))
+      (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+      (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+          (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+        (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+          ProbComp (δ × SplitPrefix.SplitState))
+
+set_option maxHeartbeats 4000000 in
+open scoped Classical in
+/-- **Overwriting an unread cell does not move the selection, across all three stages.** -/
+theorem probEvent_length_set_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (index : Nat) (newValue : HashOutput) (cache : σ)
+    (leftRecord rightRecord : Record) (leftTape rightTape : List HashOutput) :
+    Pr[fun w : δ × SplitPrefix.SplitState =>
+        rightRecord.length + index < w.2.2.2.length |
+        threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value cache
+          leftRecord rightRecord leftTape rightTape] =
+      Pr[fun w : δ × SplitPrefix.SplitState =>
+        rightRecord.length + index < w.2.2.2.length |
+        threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value cache
+          leftRecord rightRecord leftTape (rightTape.set index newValue)] := by
+  classical
+  rw [threeStageTapeRun, threeStageTapeRun]
+  refine NoticingTape.probEvent_length_set_cont leftKeep rightKeep first
+    (fun keys => (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep)
+          (inner keys.1) (fun request => onCarrierTape (before request))
+          (onCarrierTape afterMap)) (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+        (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+            (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+            forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
+    (fun w => w.2.2.2) ?_ ?_ ?_ index newValue cache leftTape rightTape leftRecord rightRecord
+  · intro z w hw
+    rw [mem_support_bind_iff] at hw
+    obtain ⟨middle, hmiddle, hrest⟩ := hw
+    rw [mem_support_bind_iff] at hrest
+    obtain ⟨final, hfinal, hpure⟩ := hrest
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [hpure]
+    refine le_trans (fusedRightOf_prefix leftKeep rightKeep (inner z.1) before afterMap _
+      (1, [], z.2) middle hmiddle).length_le ?_
+    exact (noticingRightOf_prefix leftKeep rightKeep _ middle.2.2.2 final hfinal).length_le
+  · intro z
+    refine probFailure_bind_eq_zero_iff _ _ |>.mpr
+      ⟨fusedSplitTapeRun_neverFails leftKeep rightKeep (inner z.1) before afterMap _ _,
+        fun middle _ => ?_⟩
+    exact probFailure_bind_eq_zero_iff _ _ |>.mpr
+      ⟨noticingSplitTapeRun_neverFails leftKeep rightKeep _ _, fun _ _ => by simp⟩
+  · intro idx v z
+    refine probEvent_length_set_fused leftKeep rightKeep (inner z.1) before afterMap
+      (phase z.1)
+      (fun middle => (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+            (last z.1 middle.1)).run middle.2.2.2 >>= fun final =>
+          (pure (value z.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+            ProbComp (δ × SplitPrefix.SplitState)))
+      (fun w => w.2.2.2) ?_ ?_ ?_ idx v 1 [] z.2.1 z.2.2.1.1 z.2.2.1.2 z.2.2.2.1 z.2.2.2.2
+    · intro y w hw
+      rw [mem_support_bind_iff] at hw
+      obtain ⟨final, hfinal, hpure⟩ := hw
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact (noticingRightOf_prefix leftKeep rightKeep _ y.2.2.2 final hfinal).length_le
+    · intro y
+      exact probFailure_bind_eq_zero_iff _ _ |>.mpr
+        ⟨noticingSplitTapeRun_neverFails leftKeep rightKeep _ _, fun _ _ => by simp⟩
+    · intro idx2 v2 y
+      refine NoticingTape.probEvent_length_set_cont leftKeep rightKeep (last z.1 y.1)
+        (fun final => (pure (value z.1 y.1 y.2.1 y.2.2.1 final.1, forgetViewTape final.2) :
+          ProbComp (δ × SplitPrefix.SplitState)))
+        (fun w => w.2.2.2) ?_ ?_ ?_ idx2 v2 y.2.2.2.1 y.2.2.2.2.1.1 y.2.2.2.2.1.2
+        y.2.2.2.2.2.1 y.2.2.2.2.2.2
+      · intro t w hw
+        rw [support_pure, Set.mem_singleton_iff] at hw
+        rw [hw]
+        exact le_rfl
+      · intro t
+        simp
+      · intro idx3 v3 t
+        rfl
+
 end SlhDsaSecurity.FusedTape
