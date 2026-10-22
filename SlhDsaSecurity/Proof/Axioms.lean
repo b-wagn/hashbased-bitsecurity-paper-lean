@@ -148,6 +148,7 @@ import SlhDsaSecurity.Proof.KeygenFresh
 import SlhDsaSecurity.Proof.MessageDigest
 import SlhDsaSecurity.Proof.VerifierNaturality
 import SlhDsaSecurity.Proof.AnswerSide
+import SlhDsaSecurity.Proof.SigningFaithful
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -6638,3 +6639,129 @@ info: 'SlhDsaSecurity.RandomiserCharge.honest_probe_randomizerInput' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserCharge.honest_probe_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.FaithfulFrom.mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.FaithfulFrom.mono
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.faithfulFrom_nil' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.faithfulFrom_nil
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.FaithfulFrom.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.FaithfulFrom.append
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.sign_eq_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.sign_eq_map
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.sign_replay_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.sign_replay_eq
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.faithfulFrom_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.faithfulFrom_sign
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.faithfulFrom_adversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.faithfulFrom_adversaryImpl
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.faithfulFrom_signingOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.faithfulFrom_signingOracle
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.faithfulFrom_countedRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.faithfulFrom_countedRun
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.length_le_signing_adversaryImpl' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.length_le_signing_adversaryImpl
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.length_le_signing_signingOracle' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.length_le_signing_signingOracle
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.length_le_signing_countedRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.length_le_signing_countedRun
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.signing_countQueries_eq_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.signing_countQueries_eq_zero
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.verifierCost_signing' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.verifierCost_signing
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.keygen_secretKey' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.keygen_secretKey
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.split_phase' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.split_phase
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.logFaithful_tail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.logFaithful_tail
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.signed_length_le_signing' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.signed_length_le_signing
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.signed_length_le_signing_tail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.signed_length_le_signing_tail
+
+/--
+info: 'SlhDsaSecurity.SigningFaithful.cases_of_win_charged' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.cases_of_win_charged
