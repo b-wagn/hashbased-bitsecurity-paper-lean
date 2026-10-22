@@ -79,6 +79,99 @@ theorem neutral_id (fired : σ → Prop) (potential gauge : σ → Nat) :
     Neutral fired potential gauge (fun state => state) :=
   ⟨fun _ h => h, fun _ => le_rfl, fun _ => rfl⟩
 
+/-! ## Two facts a handler's runs inherit from its steps
+
+`PotentialCharge.prob_fired_le` asks for its two run-level facts at **every** result type, which
+no instantiation should discharge by its own induction: both follow from the three step equations
+the charge already has. Stated here so that a handler owes the charge steps and nothing else. -/
+
+/-- **A step of such a handler never fails**, in all three cases. -/
+theorem step_mass (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
+    (cacheOf : σ → QueryCache HashSpec) (stepOf : σ → Bytes → HashOutput → σ)
+    (noticeOf : σ → Bytes → σ)
+    (hinlMass : ∀ (coin : unifSpec.Domain) (state : σ),
+      Pr[⊥ | (oracle (Sum.inl coin)).run state] = 0)
+    (hcached : ∀ (input : Bytes) (state : σ) (answer : HashOutput),
+      cacheOf state input = some answer →
+        (oracle (Sum.inr input)).run state =
+          (pure (answer, noticeOf state input) : ProbComp _))
+    (hfresh : ∀ (input : Bytes) (state : σ), cacheOf state input = none →
+      (oracle (Sum.inr input)).run state =
+        (fun answer => (answer, stepOf state input answer)) <$>
+          ($ᵗ HashOutput : ProbComp HashOutput))
+    (queried : OracleWorld.Domain) (state : σ) :
+    Pr[⊥ | (oracle queried).run state] = 0 := by
+  rcases queried with coin | input
+  · exact hinlMass coin state
+  · cases hcache : cacheOf state input with
+    | some answer => rw [hcached input state answer hcache]; simp
+    | none => rw [hfresh input state hcache]; simp
+
+/-- **So a run never fails.** -/
+theorem mass_run (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
+    (hstepMass : ∀ (queried : OracleWorld.Domain) (state : σ),
+      Pr[⊥ | (oracle queried).run state] = 0)
+    {β : Type} (computation : OracleComp OracleWorld β) :
+    ∀ state : σ, Pr[⊥ | (simulateQ oracle computation).run state] = 0 := by
+  induction computation using OracleComp.inductionOn with
+  | pure value => intro state; rw [simulateQ_pure, StateT.run_pure]; simp
+  | query_bind queried next ih =>
+    intro state
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    exact (probFailure_bind_eq_zero_iff _ _).mpr
+      ⟨hstepMass queried state, fun step _ => ih step.1 step.2⟩
+
+/-- **And its gauge does not shrink**, given that neither a notice nor a fresh step shrinks it. -/
+theorem gauge_run (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
+    (cacheOf : σ → QueryCache HashSpec) (stepOf : σ → Bytes → HashOutput → σ)
+    (noticeOf : σ → Bytes → σ)
+    (hinl : ∀ (coin : unifSpec.Domain) (state : σ) (step : OracleWorld.Range (Sum.inl coin) × σ),
+      step ∈ support ((oracle (Sum.inl coin)).run state) → step.2 = state)
+    (hcached : ∀ (input : Bytes) (state : σ) (answer : HashOutput),
+      cacheOf state input = some answer →
+        (oracle (Sum.inr input)).run state =
+          (pure (answer, noticeOf state input) : ProbComp _))
+    (hfresh : ∀ (input : Bytes) (state : σ), cacheOf state input = none →
+      (oracle (Sum.inr input)).run state =
+        (fun answer => (answer, stepOf state input answer)) <$>
+          ($ᵗ HashOutput : ProbComp HashOutput))
+    (gauge : σ → Nat)
+    (hnoticeGauge : ∀ (state : σ) (input : Bytes), gauge (noticeOf state input) = gauge state)
+    (hstepGauge : ∀ (state : σ) (input : Bytes) (answer : HashOutput),
+      gauge state ≤ gauge (stepOf state input answer))
+    {β : Type} (computation : OracleComp OracleWorld β) :
+    ∀ (state : σ) (result : β × σ),
+      result ∈ support ((simulateQ oracle computation).run state) → gauge state ≤ gauge result.2 := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hresult
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
+    rw [hresult]
+  | query_bind queried next ih =>
+    intro state result hresult
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hresult
+    obtain ⟨step, hstep, hrest⟩ := hresult
+    refine le_trans ?_ (ih step.1 step.2 result hrest)
+    rcases queried with coin | input
+    · rw [hinl coin state step hstep]
+    · cases hcache : cacheOf state input with
+      | some answer =>
+        rw [hcached input state answer hcache] at hstep
+        have hvalue : step = (answer, noticeOf state input) := hstep
+        rw [hvalue, hnoticeGauge state input]
+      | none =>
+        -- The ascription matters: at `OracleWorld.Range (Sum.inr input)` rather than
+        -- `HashOutput`, `support_map` has nothing to match against.
+        have hstep' : step ∈ support
+            (((fun answer => (answer, stepOf state input answer)) <$>
+              ($ᵗ HashOutput : ProbComp HashOutput)) : ProbComp (HashOutput × σ)) := by
+          rw [← hfresh input state hcache]
+          exact hstep
+        rw [support_map] at hstep'
+        obtain ⟨answer, -, hvalue⟩ := hstep'
+        rw [← hvalue]
+        exact hstepGauge state input answer
+
 /-! ## Two facts the fused phase supplies about itself
 
 The charge's continuation hypotheses are read at the fused run, so the two things the

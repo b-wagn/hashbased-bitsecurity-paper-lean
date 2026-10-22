@@ -232,6 +232,7 @@ import SlhDsaSecurity.Proof.FusedTape
 import SlhDsaSecurity.Proof.BracketedOrdering
 import SlhDsaSecurity.Proof.CarrierClearFraming
 import SlhDsaSecurity.Proof.OrderingCompose
+import SlhDsaSecurity.Proof.CarrierCharge
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14814,3 +14815,35 @@ info: 'SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.OrderingCompose.prob_fired_le_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.OrderingCompose.prob_fired_le_threeStage
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.step_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.step_mass
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.mass_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.mass_run
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.gauge_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.gauge_run
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inl
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inl_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inl_mass
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inr_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inr_cached
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inr_fresh
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_mass
