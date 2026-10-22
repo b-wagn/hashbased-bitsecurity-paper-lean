@@ -172,6 +172,8 @@ import SlhDsaSecurity.Proof.OffClassBlind
 import SlhDsaSecurity.Proof.RandomiserRecord
 import SlhDsaSecurity.Proof.AnswerCoverage
 import SlhDsaSecurity.Proof.ServedDisclosure
+import SlhDsaSecurity.Proof.SplitRecorder
+import SlhDsaSecurity.Proof.ServingCarrier
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8494,3 +8496,249 @@ info: 'SlhDsaSecurity.CacheProvenance.sign_digest_cached' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.ServedDisclosure.closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedDisclosure.closed
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.run_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.run_neverFails
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.bad_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.bad_persists
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.prob_bad_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_one
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.evalDist_bind_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.evalDist_bind_congr
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.prob_bad_one_of_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_one_of_step
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.prob_bad_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_eq
+
+/--
+info: 'SlhDsaSecurity.SignerRandomiser.signInternal_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRandomiser.signInternal_eq
+
+/--
+info: 'SlhDsaSecurity.SignerRandomiser.probes_signInternalAt' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRandomiser.probes_signInternalAt
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.run_eq_graft' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.run_eq_graft
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.asksOff_signInternalAt' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.asksOff_signInternalAt
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.run_signInternalAt_eq_graft' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.run_signInternalAt_eq_graft
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.mem_record_head' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.mem_record_head
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.mem_verifierRecord' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.mem_verifierRecord
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.card_chargedRecord_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.card_chargedRecord_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.pairedRun_eq_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.pairedRun_eq_map
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.probEvent_pairedRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.probEvent_pairedRun_eq
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_dichotomy' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.randomiserBad_dichotomy
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.countRecorded_fst' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.countRecorded_fst
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.bind_countRecorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.bind_countRecorded
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_map
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_forget
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.run_splitSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.run_splitSigningOracle
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_map
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.map_splitAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.map_splitAfterSeeds
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.tail_eq_map_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.tail_eq_map_splitTail
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.probEvent_tail_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.probEvent_tail_eq
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.mem_signerRecord_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.mem_signerRecord_randomizer
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_pairedRun_prf_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_pairedRun_prf_le
+
+/-- info: 'SlhDsaSecurity.SignerRandomiser.not_prfClass_of_probes_signInternalAt' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRandomiser.not_prfClass_of_probes_signInternalAt
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgeryDigest' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgeryDigest
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_cached' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_cached
+
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.disclosedAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.disclosedAt_mono
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.servedAt_setFraming' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.servedAt_setFraming
+
+/-- info: 'SlhDsaSecurity.ServingCarrier.mem_disclosedAt_file_cacheAnswer' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.mem_disclosedAt_file_cacheAnswer
+
+
+/-- info: 'SlhDsaSecurity.ServingCarrier.grows_file' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.grows_file
+
+/-- info: 'SlhDsaSecurity.ServingCarrier.grows_cacheAnswer' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.grows_cacheAnswer
+
+/-- info: 'SlhDsaSecurity.ServingCarrier.not_filesLeft_of_clear' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.not_filesLeft_of_clear
+
+/-- info: 'SlhDsaSecurity.ServingCarrier.framed_of_filesLeft' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.framed_of_filesLeft
