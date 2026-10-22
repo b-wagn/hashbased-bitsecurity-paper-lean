@@ -394,6 +394,43 @@ theorem prob_bad_or_coverage_le_of_caps_recorded_witnessCover (prfSeed : Digest)
         initialCache hfresh result hmem (hwitnessCover result hmem) hcovered hforgery hlate)
     hleftBound budget hbudget
 
+/-! ## The leftover is a bookkeeping gap, and what it would cost to close it
+
+The leftover exists only because `SplitWitness.narrowClass` carries `¬ PrfClass`. Widen the class
+to the message class and it vanishes — `narrowTarget_messageClass` below is that, proved, so the
+claim is checkable rather than asserted. Everything else on the answer side is already generic in
+the two tests, so nothing of this file would move.
+
+**What the widening costs is not what its docstring says.** That docstring says the budget has no
+room for one target entry per served request. It has: `BlockViews.prob_targetCovered_le` caps
+only the *disclosing* recording (`leftLength ≤ 5 * 2 ^ 62`) and leaves the target recording's
+length free, and `rightRecord_length_le_count` charges target entries against the inside slot of
+the split counter, which the budget already covers — the signer's randomiser probe is a hash
+query and is counted. The extra entries are free.
+
+**What it really costs is a case in the provenance argument.**
+`LateProvenance.hrecord_of_signerDigestFree` has to show every target-recorded input is a query
+`SharedJoin.recordOf` holds, and it closes the signer's-randomiser-probe case by `¬ PrfClass`
+itself. Widen the class and up to `signingLimit` signer probes become target-recorded while the
+record holds only the adversary's and the verifier's queries, so that argument fails and the
+ordering charge's containment goes with it.
+
+**The repair is the framing, not the class.** `HandlerCarrier.not_filesLeft_randomizerInput`
+already excludes the signer's randomiser probe from the *disclosing* recording by comparing
+against the frame in flight, and `RecorderView.noticingRecorderOf` now lets a filing test read a
+state that has been told about the query. Excluding it from the *target* recording the same way
+removes the need for `¬ PrfClass` entirely, and then `NarrowTarget` is `narrowTarget_messageClass`
+and the leftover is gone rather than paid. That is the carrier again, and it is the fourth thing
+it settles. -/
+
+/-- **At the message class the narrowed demand is no demand at all.** So the leftover is exactly
+the `PRF_msg` clause of `SplitWitness.narrowClass` and nothing else; remove the clause and
+`NarrowTarget` is discharged by this, with no hypothesis and no charge. -/
+theorem narrowTarget_messageClass (pk : PublicKey)
+    (result : (Outcome × Nat) × SplitPrefix.SplitState) :
+    SplitWitness.Served.NarrowTarget pk (CombinedCharge.IsMessageInput pk) result :=
+  fun message parsed _ _ => ⟨parsed.randomizer, message, rfl⟩
+
 /-! ## The disclosing cap
 
 `hleftBound` says the disclosing recording is short. It is not true that every signer-randomised

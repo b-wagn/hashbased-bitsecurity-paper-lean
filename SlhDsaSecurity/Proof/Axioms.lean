@@ -12636,6 +12636,28 @@ info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_wi
 #print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_witnessCover
 
 /--
+info: 'SlhDsaSecurity.AnswerCoverage.narrowTarget_messageClass' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.narrowTarget_messageClass
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrowTarget' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrowTarget
+
+/--
+info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered_narrowTarget' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered_narrowTarget
+
+/--
 info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]
