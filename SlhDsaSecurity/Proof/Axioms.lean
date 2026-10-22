@@ -10284,6 +10284,26 @@ info: 'SlhDsaSecurity.AnswerCarrier.prob_targetCovered_answerCarrierRun_le' depe
 #print axioms SlhDsaSecurity.AnswerCarrier.prob_targetCovered_answerCarrierRun_le
 
 /--
+info: 'SlhDsaSecurity.AnswerCarrier.map_answerCarrierRun_eq_tail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.map_answerCarrierRun_eq_tail
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.hsplit_of_join' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.hsplit_of_join
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrier.mem_support_tail_of_answerCarrierRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.mem_support_tail_of_answerCarrierRun
+
+/--
 info: 'SlhDsaSecurity.NoticingBlockViews.evalDist_noticingRecordedRun_eq' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]
