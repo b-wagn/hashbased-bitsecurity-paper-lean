@@ -566,8 +566,20 @@ real seed.
 The last clause is what keeps a served request out of the target recording. The signer's own
 `PRF_msg` query on a request framed as `PK.root ‖ m` *is* a message input, by the FIPS 205
 format identity `FramingLeak.randomizerInput_eq_messageInput`, and it is not signer-randomised
-when it is made; without the clause the recorder would file it as a target and the target count
-would carry one unit per served request, which the budget has no room for. -/
+when it is made; without the clause the recorder files it as a target.
+
+**The reason is not the budget**, and the earlier claim here that it was is wrong.
+`BlockViews.prob_targetCovered_le` puts no constraint on the right recording's length at all,
+and target entries are charged against the split counter's inside slot, which `q` already
+covers — so one more entry per served request costs nothing that is not already paid.
+
+What the clause actually buys is `LateProvenance.hrecord`: a target-recorded input has to be one
+the record holds, and the signer's `PRF_msg` probe is not the adversary's query. **That is a
+provenance fact, and the clause is it in syntactic disguise** — it works only while the byte
+formats happen to separate the two, and it charges whoever meets the case where they do not. The
+honest exclusion is the frame the probe was made under,
+`HandlerCarrier.not_filesLeft_randomizerInput`, which is available at a carrier and not at a
+cache. -/
 def narrowClass (prfSeed : Digest) (pk : PublicKey) : Bytes → Prop :=
   fun input => CombinedCharge.IsMessageInput pk input ∧ ¬ RandomizerGate.PrfClass prfSeed input
 
