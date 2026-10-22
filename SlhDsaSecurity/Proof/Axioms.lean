@@ -14379,3 +14379,15 @@ info: 'SlhDsaSecurity.NoticingTape.noticingRecorderOf_eq_rom' depends on axioms:
 /-- info: 'SlhDsaSecurity.ServingTable.claimedCandidatesOf_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingTable.claimedCandidatesOf_unionCache
+
+/-- info: 'SlhDsaSecurity.CountedHandler.withExtra_run' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withExtra_run
+
+/-- info: 'SlhDsaSecurity.CountedHandler.withExtra_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withExtra_step
+
+/-- info: 'SlhDsaSecurity.CountedHandler.files_withExtra' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.files_withExtra
