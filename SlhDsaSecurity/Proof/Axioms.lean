@@ -8368,3 +8368,15 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_expected' depends on axioms: [
 /-- info: 'SlhDsaSecurity.StalledRun.expectation_stalled_eq_of_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.StalledRun.expectation_stalled_eq_of_zero
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_claimed_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_claimed_stalled_eq
+
+/--
+info: 'SlhDsaSecurity.ChargedProbe.expected_aiming_claimed_stalled_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.expected_aiming_claimed_stalled_eq
