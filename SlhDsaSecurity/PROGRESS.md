@@ -4060,3 +4060,27 @@ and a copy would compile, nothing external stops the copy — only noticing what
 * `SigningLog` and `SigningSpec` resolved to the wrong namespace in a file without `open Security`,
   and the error named the *arguments whose types mentioned them* rather than the names. Qualify
   both.
+
+## The dual: a hypothesis stronger than any proof could supply
+
+`BracketedOrdering.prob_ordering_le`'s per-walk hypothesis was missing `Target.GoodWalk`, which
+made it **unprovable**: off a good walk the probe multiset is empty, so the hypothesis read
+`Pr[Ordering] ≤ 0`. Nothing complained when it was written, because at the one layer where the
+bound is **read**, `GoodWalk` is in hand from the event being charged. It surfaced only when
+something had to **produce** the hypothesis for every walk.
+
+Same cause as the dropped-witness family — at one layer the general and the specific coincide —
+with the symptom reversed:
+
+| | symptom | found by |
+| --- | --- | --- |
+| dropped witness, over-quantified demand, untied hypothesis, hard-coded projection | a **conclusion weaker** than what the proof knows | the second **consumer** |
+| this | a **hypothesis stronger** than any proof could supply | the first **producer** |
+
+So the diff habit has a dual, and it fires earlier:
+
+> Write the hypothesis, then ask what would have to prove it — **before the consumer exists.**
+
+The consumer-side habit asks *what does my proof know that my conclusion drops*. This one asks
+*what would a caller need in order to hand me this*. Both are answered by writing one thing down
+and comparing; neither fires on its own.
