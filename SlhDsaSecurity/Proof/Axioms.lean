@@ -162,6 +162,7 @@ import SlhDsaSecurity.Proof.TapeFactor
 import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.WalkTable
 import SlhDsaSecurity.Proof.LateRate
+import SlhDsaSecurity.Proof.LateProbes
 import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
 import SlhDsaSecurity.Proof.SharedJoin
@@ -7241,6 +7242,19 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitPrefix.right_record_class
 
+/--
+info: 'SlhDsaSecurity.SplitPrefix.right_record_fresh_nodup' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_fresh_nodup
+
+/--
+info: 'SlhDsaSecurity.SplitPrefix.right_record_nodup' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_nodup
+
+
 /-- info: 'SlhDsaSecurity.SplitWitness.cover_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.cover_messageInput
@@ -9034,3 +9048,39 @@ info: 'SlhDsaSecurity.SplitRecorder.forget_narrow' depends on axioms: [Quot.soun
 /-- info: 'SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet
+
+/--
+info: 'SlhDsaSecurity.LateProbes.card_probesOf' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.card_probesOf
+
+/--
+info: 'SlhDsaSecurity.LateProbes.mem_probesOf' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.mem_probesOf
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probesOf_le' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probesOf_le
+
+/--
+info: 'SlhDsaSecurity.LateProbes.messageClass_of_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.messageClass_of_record
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probesOf_le_recordMessageClass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probesOf_le_recordMessageClass
+
+/--
+info: 'SlhDsaSecurity.LateProbes.prob_lateDisclosure_le_probes' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.prob_lateDisclosure_le_probes
