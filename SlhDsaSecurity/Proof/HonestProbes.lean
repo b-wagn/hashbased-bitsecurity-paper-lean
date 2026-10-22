@@ -1329,6 +1329,31 @@ theorem probes_signInternal (cache : QueryCache HashSpec) (sk : SecretKey) (mess
       fun _ hprobe => Or.inl hprobe) ?_
   exact probes_pure cache _ _
 
+/-! ## The request, not the frame
+
+The oracle is asked about a *request*; the signer works on its frame, which is partial. An
+overlong context is rejected before any query, and a served request consults only what signing
+its own frame consults. Keeping the two apart is what lets a cached probe be traced back to a
+request rather than to a byte string. -/
+
+/-- **A rejected request makes no query at all.** -/
+theorem probes_sign_none (cache : QueryCache HashSpec) (sk : SecretKey) (request : Message)
+    (hframe : request.frame = none) (predicate : Bytes → Prop) :
+    Probes cache (Scheme.sign (m := OracleComp HashSpec) sk request) predicate := by
+  rw [Scheme.sign, hframe]
+  exact probes_pure cache _ _
+
+/-- **A served request consults only canonical inputs and the two its own frame names.** -/
+theorem probes_sign (cache : QueryCache HashSpec) (sk : SecretKey) (request : Message)
+    (message : Bytes) (hframe : request.frame = some message) :
+    Probes cache (Scheme.sign (m := OracleComp HashSpec) sk request)
+      (fun probe =>
+        Canonical sk.publicKey.seed (replayCells cache sk.seed sk.publicKey.seed) probe ∨
+          MessageProbe cache sk message probe) := by
+  rw [Scheme.sign, hframe]
+  exact probes_bind_replay cache _ _ _ (probes_signInternal cache sk message)
+    (probes_pure cache _ _)
+
 /-! ## In the walk's cache
 
 The walk leaves `CanonicalGraph.Programming.cacheFrom` at the cells its own outputs determine.

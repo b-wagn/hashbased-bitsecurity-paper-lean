@@ -4900,3 +4900,20 @@ info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depen
 /-- info: 'SlhDsaSecurity.Assembly.defects_le_six' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.defects_le_six
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.messageInput_eq_randomizerInput' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.messageInput_eq_randomizerInput
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.messageInput_eq_randomizerInput_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.messageInput_eq_randomizerInput_iff
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_sign_none' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_sign_none
+
+/-- info: 'SlhDsaSecurity.HonestProbes.probes_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.probes_sign
+
