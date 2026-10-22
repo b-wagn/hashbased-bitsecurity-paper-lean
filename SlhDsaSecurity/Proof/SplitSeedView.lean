@@ -209,14 +209,38 @@ equation by `rfl` — a failure here is a type error rather than a silent disagr
 the property the re-encoding route would have given up.
 -/
 
-/-- The modified game's disclosing test: the real one, read at the carrier inside. -/
-def splitDisclosingKeep (pk : PublicKey) : Bytes → SplitCarrier → Prop :=
-  fun input state => CarriedWitness.disclosingKeep pk input state.1
+/-! **The lifted tests must read the view's cache, not the carrier's.**
+
+A test that reads the cache — and `AnswerCarrier.carrierRightKeep` strengthened with the
+exclusion the step bound needs is one, since `CacheAvailability.SignerRandomised` looks up a
+`PRF_msg` entry — would see the *split* carrier's cache, which is exactly the one the split has
+emptied of that class. The two recorders would then file different entries while answering
+identically, and nothing would complain until the correspondence failed several lemmas later.
+
+So the tests are lifted through `viewed`: the carrier as the modified view reads it, which is
+the real fields with the view's cache in place of the carrier's own. With a request in flight
+that is the real carrier exactly, which is `viewed_splitOf_of_framing`. -/
+
+/-- The carrier as the modified view reads it. -/
+noncomputable def viewed (prfSeed : Digest) (state : SplitCarrier) : HandlerCarrier.State :=
+  { cache := splitCacheOf prfSeed state, served := state.1.served, framing := state.1.framing }
+
+/-- **With a request in flight the view reads back the real carrier**, field for field. -/
+theorem viewed_splitOf_of_framing (prfSeed : Digest) (carrier : HandlerCarrier.State)
+    (framed : Bytes) (hframing : carrier.framing = some framed) :
+    viewed prfSeed (splitOf prfSeed carrier) = carrier := by
+  rw [viewed, splitCacheOf_splitOf_of_framing prfSeed carrier framed hframing]
+  rfl
+
+/-- The modified game's disclosing test, read through the view. -/
+noncomputable def splitDisclosingKeep (pk : PublicKey) (prfSeed : Digest) :
+    Bytes → SplitCarrier → Prop :=
+  fun input state => CarriedWitness.disclosingKeep pk input (viewed prfSeed state)
 
 /-- And its target test, lifted the same way. -/
-def splitRightKeep (rightKeep : Bytes → HandlerCarrier.State → Prop) :
-    Bytes → SplitCarrier → Prop :=
-  fun input state => rightKeep input state.1
+noncomputable def splitRightKeep (prfSeed : Digest)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop) : Bytes → SplitCarrier → Prop :=
+  fun input state => rightKeep input (viewed prfSeed state)
 
 open scoped Classical in
 /-- **The modified game's counted recorder.** `CountedHandler.withCount` at this view's tupling,
@@ -227,7 +251,7 @@ noncomputable def countedSplitRecorder (pk : PublicKey) (prfSeed : Digest)
       (StateT (SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)) ProbComp) :=
   fun queried state => do
     let step ← ((@noticingRecorderOf SplitCarrier (splitView pk prfSeed)
-      (splitDisclosingKeep pk) (splitRightKeep rightKeep)) queried).run (state.1, state.2.1)
+      (splitDisclosingKeep pk prfSeed) (splitRightKeep prfSeed rightKeep)) queried).run (state.1, state.2.1)
     pure (step.1, (step.2.1, (step.2.2, state.2.2 + Security.hashCost queried)))
 
 open scoped Classical in
@@ -237,7 +261,7 @@ theorem countedSplitRecorder_run (pk : PublicKey) (prfSeed : Digest)
     (state : SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)) :
     ((countedSplitRecorder pk prfSeed rightKeep) queried).run state =
       ((@noticingRecorderOf SplitCarrier (splitView pk prfSeed)
-          (splitDisclosingKeep pk) (splitRightKeep rightKeep)) queried).run
+          (splitDisclosingKeep pk prfSeed) (splitRightKeep prfSeed rightKeep)) queried).run
             (state.1, state.2.1) >>= fun step =>
         (pure (step.1, (step.2.1, (step.2.2, state.2.2 + Security.hashCost queried))) :
           ProbComp (OracleWorld.Range queried ×

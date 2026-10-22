@@ -16557,3 +16557,7 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 /-- info: 'SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.viewed_splitOf_of_framing' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.viewed_splitOf_of_framing
