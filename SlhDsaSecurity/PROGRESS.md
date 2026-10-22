@@ -1845,3 +1845,30 @@ its probability in the two is what keeps the charge from being paid a second tim
 is the analogue of `TrackedQueries.prob_meets_eq` for two **handlers** agreeing off a set rather
 than for two caches; `BlindComparison` has nothing at that generality, and writing it is a file
 of its own, not a step inside a proof.
+
+## A charge that defers its secret cannot be read at a fixed walk
+
+The shared obligation was stated per walk: for every walk in the support, a bound on the tail's
+probability. That form is **false**, and the counterexample is short. Conditioning on the walk
+fixes `SK.prf` and the cell table. The adversary is quantified before the walk, so it may be one
+that hashes a constant `PRF_msg` input; on the walk whose `SK.prf` is that constant — which is in
+the support, and good — the entry is in the final cache with no signing request behind it, so
+the defect holds with probability one while the obligation allows `2 ^ -128` a query.
+
+The same argument breaks the input half: `Sensitive` is a guess at one coordinate of the cell
+table, and the table is the walk's.
+
+Two threads reached this independently, from the two halves, which is what settled it. The clue
+in both cases was the same: every deferral in this development draws its secret *after* the run,
+and a secret the walk has already drawn cannot be deferred past anything.
+
+The repair is to read the shared obligation on `Target.pairedRun` — the walk and the game taken
+together, with the walk's value retained — and to keep `GoodWalk` as a conjunct of the event
+rather than a hypothesis about a parameter. The arithmetic does not move: the walk's own two
+coincidences are the same two units, now paid inside the paired run by `prob_bad_walk_paired`.
+
+**The answer side is untouched and stays per walk**, and the reason is worth stating because it
+is what makes the two halves genuinely different. Its charges are guesses at the *tail's own
+fresh answers* — a collision with a canonical target, a coverage pattern among digests drawn
+during the run. No choice of adversary biases an answer that has not been drawn. A charge may be
+read at a fixed walk exactly when the randomness it spends is drawn after the walk.
