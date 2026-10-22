@@ -1745,3 +1745,58 @@ without discarding conditional uniformity. A union over a `Finset` of bad words 
 discards it: it is consistent with a process putting all its mass on bad words of one length,
 for which the expectation form is false. Real runs are not like that because reaching a length
 leaves the word uniform, and that is the fact the transport has to keep.
+
+## A charge that defers its secret cannot be read at a fixed walk
+
+The randomiser defect is now reduced to exactly the charge that was meant to pay for it, and
+that is where a shape mismatch shows up which is not about the randomiser half alone.
+
+`RandomiserRecord.prob_randomiserBad_le_record` takes the defect at the warmed tail down to two
+named events at a presentation of the tail that returns the adversary's own record:
+the record meets the `PRF_msg` class at the real seed, or the digest overlap fires. The first is
+literally `RandomizerGate.prob_run_randomizerInput_le`'s event — and that lemma, like every
+deferral in this development, is stated at
+
+    do let result ← run; let secret ← $ᵗ Digest; pure (result, secret)
+
+with the secret drawn **after** the run. `SensitiveQuery.prob_probes_sensitive_le` and
+`RedrawCell.prob_game_sensitive_le` have the same shape with the cell table in place of the
+secret, and `TrackedQueries.prob_meets_real_le` draws its secret inside the experiment too.
+
+`Obligations.SharedCharged` — and `Target.target_of_obligations`'s `hshared` with it — is stated
+at a **fixed walk**, with the adversary quantified before it. The walk carries `SK.prf` as
+`walk.1.1.2.1` and the cell table as `walk.1.2`, so both secrets those charges defer are fixed
+before the adversary is chosen. `RandomiserDeferral.mem_support_withPrf` is the obstruction in
+one line: every walk stays in the support when its `SK.prf` is replaced by *any* digest, with
+the same cells and the same cache. An adversary whose first act is to hash a fixed
+`prf ‖ seed ‖ message` makes `ReplayGate.RandomiserBad` certain on the walk carrying that pair,
+at `signed = []`, while the obligation allows `(q - 512 + 259) / 2 ^ 128`. The input half is the
+same story at `walk.1.2`: `SensitiveQuery.Sensitive` is a guess at one coordinate of the cell
+table, and the table is the walk's.
+
+**The repair for the randomiser half is cheap, because nothing in the walk reads `SK.prf`.**
+`Presample.worldWarmup` is called at `sds.2.2` and `sds.1` only, so the draw commutes past the
+whole warm-up — `RandomiserDeferral.evalDist_resample_prf` — and
+`RandomiserDeferral.probEvent_le_of_prfTail` is `WarmedGame.probEvent_le_of_tail` with that one
+draw moved inside the tail. Everything else about the walk stays fixed before the adversary
+runs, so every charge that reads the walk as a fixed table reads it unchanged;
+`mem_support_withPrf` carries `AnswerCharged` across unaltered. What moves is
+`Target.GoodWalk`'s first clause, the seed coincidence, which becomes an event inside the tail
+at the `2 ^ -128` the allowance already carries for it.
+
+**The input half needs the same move at the cells, and that one is not free**, because the
+walk's cache depends on the secret seed through the PRF nodes' canonical inputs.
+`WarmedCharges.blindCache_indep_of_secret` is the lemma that makes it possible — the blind cache
+is the same table for every secret — and `RedrawCell.prob_game_sensitive_le`'s own shape, with
+`cells ← $ᵗ Cells` drawn inside, is where it has to land. So `SharedCharged` has to be restated
+with both secrets deferred, and `target_of_obligations` reproved against it.
+
+**And deferring is still not sufficient for the randomiser half.** With `SK.prf` drawn inside
+the tail the run is not independent of it: the signer derives each randomiser by querying
+`Hashing.randomizerInput SK.prf PK.seed framed`. The answers there are a random oracle's at
+inputs nobody else has queried — which is the event being charged — so the real game and the one
+whose signer draws its randomiser fresh are identical until that event, and the *equality* of
+its probability in the two is what keeps the charge from being paid a second time. That equality
+is the analogue of `TrackedQueries.prob_meets_eq` for two **handlers** agreeing off a set rather
+than for two caches; `BlindComparison` has nothing at that generality, and writing it is a file
+of its own, not a step inside a proof.
