@@ -203,6 +203,7 @@ import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.HonestLinked
 import SlhDsaSecurity.Proof.TouchedKeys
 import SlhDsaSecurity.Proof.HonestTail
+import SlhDsaSecurity.Proof.HandlerStall
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -12595,3 +12596,51 @@ info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts' depends on
 /-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler
+
+/-- info: 'SlhDsaSecurity.HandlerStall.record_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.record_inl
+
+/-- info: 'SlhDsaSecurity.HandlerStall.record_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.record_inr
+
+/-- info: 'SlhDsaSecurity.HandlerStall.withFlag_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.withFlag_neverFails
+
+/-- info: 'SlhDsaSecurity.HandlerStall.withFlag_frozen' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.withFlag_frozen
+
+/-- info: 'SlhDsaSecurity.HandlerStall.withFlag_aiming_dedup_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.withFlag_aiming_dedup_quiet
+
+/-- info: 'SlhDsaSecurity.HandlerStall.withFlag_charged_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.withFlag_charged_quiet
+
+/-- info: 'SlhDsaSecurity.HandlerStall.expected_aiming_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.expected_aiming_stalled_eq
+
+/-- info: 'SlhDsaSecurity.HandlerStall.prob_charged_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.prob_charged_stalled_eq
+
+/-- info: 'SlhDsaSecurity.HandlerStall.prob_claimed_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.prob_claimed_stalled_eq
+
+/-- info: 'SlhDsaSecurity.HandlerStall.evalDist_stalled_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.evalDist_stalled_congr
+
+/--
+info: 'SlhDsaSecurity.HandlerStall.expected_aiming_claimed_stalled_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerStall.expected_aiming_claimed_stalled_eq
