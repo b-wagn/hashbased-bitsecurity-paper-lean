@@ -182,6 +182,7 @@ import SlhDsaSecurity.Proof.LateProbes
 import SlhDsaSecurity.Proof.HandlerCarrier
 import SlhDsaSecurity.Proof.ServingProgram
 import SlhDsaSecurity.Proof.ServingPhase
+import SlhDsaSecurity.Proof.FusedGame
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11096,3 +11097,15 @@ info: 'SlhDsaSecurity.ServingPhase.framing_clear_run' depends on axioms: [propex
 /-- info: 'SlhDsaSecurity.ServingPhase.not_filesLeft_adversary' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingPhase.not_filesLeft_adversary
+
+/--
+info: 'SlhDsaSecurity.FusedGame.run_afterSeeds_split' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedGame.run_afterSeeds_split
+
+/--
+info: 'SlhDsaSecurity.FusedGame.run_afterSeeds_fused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedGame.run_afterSeeds_fused
