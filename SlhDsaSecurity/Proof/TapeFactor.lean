@@ -482,6 +482,49 @@ theorem splitRecorder_run_other
         (pure (step.1, (step.2, records)) : ProbComp _) :=
   recorderOf_run_inr_plain leftKeep rightKeep input cache records hskip hskip'
 
+/-! ### The priority the two recorders have to share
+
+Both recorders try the **left** test first. That is a property of two separately written
+if-else chains and nothing in the types enforces it, so an input that is fresh and accepted by
+*both* tests is where a future edit could make them disagree — and the disagreement would not be
+a failure, it would be two different recordings with the same law everywhere else.
+
+The two lemmas below are that case, named. They are instances of the branch lemmas above with
+`rightKeep` **present** rather than absent, which is the whole point: a reader can see that the
+contested case was considered, and an edit that reversed either priority stops here instead of
+inside `evalDist_splitTapeRun`'s induction. -/
+
+open scoped Classical in
+/-- **The drawing recorder files a contested input left.** -/
+theorem splitRecorder_contested_left
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (leftRecord rightRecord : Record)
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none) (hleft : leftKeep input cache)
+    (hright : rightKeep input cache) :
+    ((RecorderView.recorderOf leftKeep rightKeep) (Sum.inr input)).run
+        (cache, leftRecord, rightRecord) =
+      ($ᵗ HashOutput : ProbComp HashOutput) >>= fun value =>
+        (pure (value, (RecorderView.CacheView.update cache input value,
+          (leftRecord ++ [(input, value)], rightRecord))) : ProbComp _) :=
+  splitRecorder_run_left leftKeep rightKeep input cache leftRecord rightRecord hfresh hleft
+
+open scoped Classical in
+/-- **And so does the tape recorder, off the left block.** The two conclusions append to the
+same recording, which is what `evalDist_splitTapeRun` needs of the contested case and what a
+reversed priority on either side would break. -/
+theorem splitTapeRecorder_contested_left
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (head : HashOutput) (rest rightTape : List HashOutput)
+    (leftRecord rightRecord : Record)
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none) (hleft : leftKeep input cache)
+    (hright : rightKeep input cache) :
+    ((splitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run
+        (cache, (head :: rest, rightTape), (leftRecord, rightRecord)) =
+      (pure (head, (RecorderView.CacheView.update cache input head, (rest, rightTape),
+        (leftRecord ++ [(input, head)], rightRecord))) : ProbComp _) :=
+  splitTapeRecorder_run_left_cons leftKeep rightKeep input cache head rest rightTape
+    leftRecord rightRecord hfresh hleft
+
 /-! ### The two blocks commute past an irrelevant draw -/
 
 /-- A draw neither block answers commutes past both of them. -/
@@ -1220,6 +1263,70 @@ long as the signing limit allows — is everywhere the recording reaches. -/
 def leftOf (state : SplitTapeState σ) : Record := state.2.2.1
 
 open scoped Classical in
+/-- **One step appends at most one disclosing entry.** The `leftOf` half of
+`splitTapeRecorder_step`, named separately because the repaired recorder reuses it at the
+noticed carrier. -/
+theorem leftOf_step (leftKeep rightKeep : Bytes → σ → Prop)
+    (queried : OracleWorld.Domain) (state : SplitTapeState σ)
+    (step : OracleWorld.Range queried × SplitTapeState σ)
+    (hstep : step ∈ support (((splitTapeRecorder leftKeep rightKeep) queried).run state)) :
+    leftOf state <+: leftOf step.2 := by
+  classical
+  revert hstep
+  obtain ⟨cache, ⟨leftTape, rightTape⟩, ⟨leftRecord, rightRecord⟩⟩ := state
+  intro hstep
+  rcases queried with coin | input
+  · rw [splitTapeRecorder_run_inl, mem_support_bind_iff] at hstep
+    obtain ⟨value, -, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [hpure]
+  · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
+    · by_cases hleft : leftKeep input cache
+      · cases leftTape with
+        | nil =>
+          rw [splitTapeRecorder_run_left_nil leftKeep rightKeep input cache rightTape
+            leftRecord rightRecord hfresh hleft, mem_support_bind_iff] at hstep
+          obtain ⟨value, -, hpure⟩ := hstep
+          rw [support_pure, Set.mem_singleton_iff] at hpure
+          rw [hpure]
+          exact List.prefix_append _ _
+        | cons head rest =>
+          rw [splitTapeRecorder_run_left_cons leftKeep rightKeep input cache head rest
+            rightTape leftRecord rightRecord hfresh hleft, support_pure,
+            Set.mem_singleton_iff] at hstep
+          rw [hstep]
+          exact List.prefix_append _ _
+      · by_cases hright : rightKeep input cache
+        · cases rightTape with
+          | nil =>
+            rw [splitTapeRecorder_run_right_nil leftKeep rightKeep input cache leftTape
+              leftRecord rightRecord hfresh hleft hright, mem_support_bind_iff] at hstep
+            obtain ⟨value, -, hpure⟩ := hstep
+            rw [support_pure, Set.mem_singleton_iff] at hpure
+            rw [hpure]
+            exact List.prefix_rfl
+          | cons head rest =>
+            rw [splitTapeRecorder_run_right_cons leftKeep rightKeep input cache leftTape head
+              rest leftRecord rightRecord hfresh hleft hright, support_pure,
+              Set.mem_singleton_iff] at hstep
+            rw [hstep]
+            exact List.prefix_rfl
+        · rw [splitTapeRecorder_run_other leftKeep rightKeep input cache
+            (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hleft h.2)
+            (fun h => hright h.2), mem_support_bind_iff] at hstep
+          obtain ⟨value, -, hpure⟩ := hstep
+          rw [support_pure, Set.mem_singleton_iff] at hpure
+          rw [hpure]
+          exact List.prefix_rfl
+    · rw [splitTapeRecorder_run_other leftKeep rightKeep input cache
+        (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hfresh h.1)
+        (fun h => hfresh h.1), mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact List.prefix_rfl
+
+open scoped Classical in
 /-- The disclosing recording only grows. -/
 theorem leftOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
     {α : Type} (computation : OracleComp OracleWorld α) :
@@ -1236,58 +1343,8 @@ theorem leftOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
     intro state result hmem
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
     obtain ⟨step, hstep, hrest⟩ := hmem
-    refine List.IsPrefix.trans ?_ (ih step.1 step.2 result hrest)
-    obtain ⟨cache, ⟨leftTape, rightTape⟩, ⟨leftRecord, rightRecord⟩⟩ := state
-    rcases queried with coin | input
-    · rw [splitTapeRecorder_run_inl, mem_support_bind_iff] at hstep
-      obtain ⟨value, -, hpure⟩ := hstep
-      rw [support_pure, Set.mem_singleton_iff] at hpure
-      rw [hpure]
-    · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
-      · by_cases hleft : leftKeep input cache
-        · cases leftTape with
-          | nil =>
-            rw [splitTapeRecorder_run_left_nil leftKeep rightKeep input cache rightTape
-              leftRecord rightRecord hfresh hleft, mem_support_bind_iff] at hstep
-            obtain ⟨value, -, hpure⟩ := hstep
-            rw [support_pure, Set.mem_singleton_iff] at hpure
-            rw [hpure]
-            exact List.prefix_append _ _
-          | cons head rest =>
-            rw [splitTapeRecorder_run_left_cons leftKeep rightKeep input cache head rest
-              rightTape leftRecord rightRecord hfresh hleft, support_pure,
-              Set.mem_singleton_iff] at hstep
-            rw [hstep]
-            exact List.prefix_append _ _
-        · by_cases hright : rightKeep input cache
-          · cases rightTape with
-            | nil =>
-              rw [splitTapeRecorder_run_right_nil leftKeep rightKeep input cache leftTape
-                leftRecord rightRecord hfresh hleft hright, mem_support_bind_iff] at hstep
-              obtain ⟨value, -, hpure⟩ := hstep
-              rw [support_pure, Set.mem_singleton_iff] at hpure
-              rw [hpure]
-              exact List.prefix_rfl
-            | cons head rest =>
-              rw [splitTapeRecorder_run_right_cons leftKeep rightKeep input cache leftTape head
-                rest leftRecord rightRecord hfresh hleft hright, support_pure,
-                Set.mem_singleton_iff] at hstep
-              rw [hstep]
-              exact List.prefix_rfl
-          · rw [splitTapeRecorder_run_other leftKeep rightKeep input cache
-              (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hleft h.2)
-              (fun h => hright h.2), mem_support_bind_iff] at hstep
-            obtain ⟨value, -, hpure⟩ := hstep
-            rw [support_pure, Set.mem_singleton_iff] at hpure
-            rw [hpure]
-            exact List.prefix_rfl
-      · rw [splitTapeRecorder_run_other leftKeep rightKeep input cache
-          (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hfresh h.1)
-          (fun h => hfresh h.1), mem_support_bind_iff] at hstep
-        obtain ⟨value, -, hpure⟩ := hstep
-        rw [support_pure, Set.mem_singleton_iff] at hpure
-        rw [hpure]
-        exact List.prefix_rfl
+    exact List.IsPrefix.trans (leftOf_step leftKeep rightKeep queried state step hstep)
+      (ih step.1 step.2 result hrest)
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in

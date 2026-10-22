@@ -221,6 +221,7 @@ import SlhDsaSecurity.Proof.ChargedHalf
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.CountedHandler
 import SlhDsaSecurity.Proof.CarrierAvailability
+import SlhDsaSecurity.Proof.NoticingTape
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14057,3 +14058,119 @@ info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_centered_power' depends
 /-- info: 'SlhDsaSecurity.ChargedHalf.prob_charged_seededLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedHalf.prob_charged_seededLinked
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitRecorder_contested_left' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitRecorder_contested_left
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_contested_left' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_contested_left
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.leftOf_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.leftOf_step
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_run_inl' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_run_inl
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_run_inr' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_run_inr
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_eq
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingSplitTapeRecorder_step
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingSplitTapeRun_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingSplitTapeRun_neverFails
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingRightOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingRightOf_prefix
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingLeftOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingLeftOf_prefix
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingProbEvent_length_eq_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingProbEvent_length_eq_one
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingProbEvent_length_set' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingProbEvent_length_set
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingRightOf_getElem?' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingRightOf_getElem?
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingLeftOf_getElem?' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingLeftOf_getElem?
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingProb_selected_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingProb_selected_hit_le
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingSum_prob_selected_le_expected' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingSum_prob_selected_le_expected
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected
