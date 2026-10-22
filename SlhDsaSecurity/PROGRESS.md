@@ -11,6 +11,10 @@ SUF-CMA advantage at most q/2^127 for every almost-sure work budget q ≥ 1;
 
 ## Where the proof stands
 
+*About to change a parameter, a draw or a recorder? Read `REVIEW.md` first — it is one page of
+checks that are cheap to run and expensive to rediscover, and it points back here for the
+reasoning.*
+
 *Read this first, and read the rest knowing what it is.* The sections below are in the order
 they were written, so several of them record designs that were later replaced. Those are marked
 **Superseded** at the top, with one line saying what replaced them. Nothing is deleted: why a
