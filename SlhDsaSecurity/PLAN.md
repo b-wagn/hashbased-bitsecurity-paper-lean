@@ -14,10 +14,21 @@ Two `q`-columns, no more (`Target.lean:45`).
 
 Aiming and message-class are **disjoint**, so those two share one record. The seed clause
 cannot: its probability is `q/2^128` — guessing a 128-bit secret with `q` queries — so its
-count must be record-sized. Three `q`-columns against two: factor `3/2`, i.e. **126**.
+count must be record-sized, whatever the counts' disjointness. That is what makes our bound
+`3q/2^128` rather than `2q/2^128`, i.e. **126**.
 
-**127 therefore needs a reduction with fewer than three `q`-shaped clauses, not a tighter
-bound on any of them.** That is a different proof, not a sharper one.
+**The `3/2` is this reduction's loss, not the loss.** `Proof/PerQueryBudget.lean` counts the
+same thing from first principles and gets `5/4`: input-side rate `2` plus answer-side rate `3`
+against a target of `4`. More importantly it records that **no adversary attains either** — a
+query must be apportioned among the avenues, and the best single avenue is rate `2`, half the
+target. So **127 is not refuted**; what fails is a per-query union bound over avenues available
+to the same query.
+
+**127 therefore needs an accounting that does not union-bound over avenues** — the bridge named
+in `PerQueryBudget`, that a query spent guessing a secret is not simultaneously buying a
+structural preimage. `SharedOracleArithmetic.split_within_target` is that arithmetic already;
+what is missing is the bridge from the game to an apportionment. That is a different proof, not
+a sharper one.
 
 ## The four items between here and a hypothesis-free 126
 
