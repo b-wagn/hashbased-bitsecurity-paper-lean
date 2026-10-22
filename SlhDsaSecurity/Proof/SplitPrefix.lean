@@ -874,6 +874,132 @@ theorem right_record_witness {α : Type}
               exact Or.inl hold
     · exact Or.inr hwitness
 
+/-- **What a run adds to the target recording, with the cache each entry was filed at.** The
+suffix form of `right_record_witness`: it names the entries the run appended, so a caller that
+can rule out the right test at every cache the run reaches concludes the recording did not grow
+at all. -/
+theorem right_record_suffix {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state)) :
+    ∃ suffix : Record, result.2.2.2 = state.2.2 ++ suffix ∧
+      ∀ entry ∈ suffix, ∃ mid : QueryCache HashSpec,
+        (∀ (probe : Bytes) (value : HashOutput),
+            state.1 probe = some value → mid probe = some value) ∧
+          (∀ (probe : Bytes) (value : HashOutput),
+            mid probe = some value → result.2.1 probe = some value) ∧
+            mid entry.1 = none ∧ rightKeep entry.1 mid ∧
+              result.2.1 entry.1 = some entry.2 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact ⟨[], (List.append_nil _).symm, fun entry hentry => absurd hentry (by simp)⟩
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    obtain ⟨suffix, hsuffix, hentries⟩ := ih step.1 step.2 result hrest
+    have hpersistStep : ∀ (probe : Bytes) (value : HashOutput),
+        step.2.1 probe = some value → result.2.1 probe = some value := fun probe value hprobe =>
+      recorder_cache_value_persists leftKeep rightKeep (next step.1) step.2 result hrest probe
+        value hprobe
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      have hsame : step.2 = state := congrArg Prod.snd hpure
+      refine ⟨suffix, by rw [hsuffix, hsame], fun entry hentry => ?_⟩
+      obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal⟩ := hentries entry hentry
+      exact ⟨mid, by rw [← hsame]; exact hstart, hlater, habsent, hkeep, hfinal⟩
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      cases hcached : state.1 input with
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+          Set.mem_singleton_iff] at hinner
+        have hstate : step.2 = state := by
+          rw [hpure, hinner]
+          exact Prod.ext rfl (appended_of_cached leftKeep rightKeep input state cached cached
+            hcached)
+        refine ⟨suffix, by rw [hsuffix, hstate], fun entry hentry => ?_⟩
+        obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal⟩ := hentries entry hentry
+        exact ⟨mid, by rw [← hstate]; exact hstart, hlater, habsent, hkeep, hfinal⟩
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hinner
+        obtain ⟨answer, -, hpair⟩ := hinner
+        have hinnerCache : inner.2 = state.1.cacheQuery input answer :=
+          (Prod.ext_iff.mp hpair).2.symm
+        have hinnerAnswer : inner.1 = answer := (Prod.ext_iff.mp hpair).1.symm
+        have hcacheStep : step.2.1 = state.1.cacheQuery input answer := by
+          rw [hpure, ← hinnerCache]
+        have hrecStep : step.2.2 = appended leftKeep rightKeep input state answer := by
+          rw [hpure, ← hinnerAnswer]
+        have hstartStep : ∀ (probe : Bytes) (value : HashOutput),
+            state.1 probe = some value → step.2.1 probe = some value := by
+          intro probe value hprobe
+          rw [hcacheStep]
+          have hne : probe ≠ input := by
+            intro hsame
+            rw [hsame, hcached] at hprobe
+            simp at hprobe
+          rw [QueryCache.cacheQuery_of_ne state.1 answer hne]
+          exact hprobe
+        have hshift : ∀ entry ∈ suffix, ∃ mid : QueryCache HashSpec,
+            (∀ (probe : Bytes) (value : HashOutput),
+                state.1 probe = some value → mid probe = some value) ∧
+              (∀ (probe : Bytes) (value : HashOutput),
+                mid probe = some value → result.2.1 probe = some value) ∧
+                mid entry.1 = none ∧ rightKeep entry.1 mid ∧
+                  result.2.1 entry.1 = some entry.2 := by
+          intro entry hentry
+          obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal⟩ := hentries entry hentry
+          exact ⟨mid, fun probe value hprobe => hstart probe value (hstartStep probe value hprobe),
+            hlater, habsent, hkeep, hfinal⟩
+        by_cases hleft : leftKeep input state.1
+        · refine ⟨suffix, ?_, hshift⟩
+          rw [hsuffix, hrecStep,
+            appended_of_left leftKeep rightKeep input state answer hcached hleft]
+        · by_cases hright : rightKeep input state.1
+          · refine ⟨(input, answer) :: suffix, ?_, ?_⟩
+            · rw [hsuffix, hrecStep,
+                appended_of_right leftKeep rightKeep input state answer hcached hleft hright]
+              simp
+            · intro entry hentry
+              rcases List.mem_cons.mp hentry with hnew | hold
+              · refine ⟨state.1, fun _ _ hprobe => hprobe, ?_, ?_, ?_, ?_⟩
+                · intro probe value hprobe
+                  exact hpersistStep probe value (hstartStep probe value hprobe)
+                · rw [hnew]; exact hcached
+                · rw [hnew]; exact hright
+                · rw [hnew]
+                  refine hpersistStep input answer ?_
+                  rw [hcacheStep, QueryCache.cacheQuery_self]
+              · exact hshift entry hold
+          · refine ⟨suffix, ?_, hshift⟩
+            rw [hsuffix, hrecStep,
+              appended_of_neither leftKeep rightKeep input state answer hleft hright]
+
+/-- **A run that never passes the right test leaves the target recording alone.** -/
+theorem right_record_eq_of_never {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (hnever : ∀ (entry : Bytes × HashOutput) (mid : QueryCache HashSpec),
+      (∀ (probe : Bytes) (value : HashOutput),
+          state.1 probe = some value → mid probe = some value) →
+        (∀ (probe : Bytes) (value : HashOutput),
+          mid probe = some value → result.2.1 probe = some value) →
+          mid entry.1 = none → ¬ rightKeep entry.1 mid) :
+    result.2.2.2 = state.2.2 := by
+  obtain ⟨suffix, hsuffix, hentries⟩ :=
+    right_record_suffix leftKeep rightKeep computation state result hmem
+  rcases suffix with _ | ⟨head, rest⟩
+  · simpa using hsuffix
+  · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries head (by simp)
+    exact absurd hkeep (hnever head mid hstart hlater habsent)
+
 /-! ## Two independent draws, two events
 
 The run's own answers are what the induction charges; the two padding blocks are drawn
