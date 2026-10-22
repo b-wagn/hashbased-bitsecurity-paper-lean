@@ -7051,3 +7051,11 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget' depends on axioms:
 /-- info: 'SlhDsaSecurity.SplitPrefix.right_record_length_le_growth' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitPrefix.right_record_length_le_growth
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.left_record_keep_final' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.left_record_keep_final
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_record_class' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_class
