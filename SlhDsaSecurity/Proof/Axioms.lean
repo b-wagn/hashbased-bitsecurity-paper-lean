@@ -11396,3 +11396,35 @@ info: 'SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_narrow' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_narrow
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.narrow_splitAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.narrow_splitAfterSeeds
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.recordedTail_eq_map_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.recordedTail_eq_map_splitTail
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.mem_support_recordedTail_of_split' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.mem_support_recordedTail_of_split
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.card_eq_work_split' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.card_eq_work_split
