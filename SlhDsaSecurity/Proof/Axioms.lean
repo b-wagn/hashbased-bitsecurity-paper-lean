@@ -193,6 +193,7 @@ import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.RecordedChain
+import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.ObligationShapes
@@ -12096,3 +12097,11 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts' depends on ax
 /-- info: 'SlhDsaSecurity.ProbeContainment.mem_claimsOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.mem_claimsOf
+
+/-- info: 'SlhDsaSecurity.InputBullet.bullet_of_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.bullet_of_bound
+
+/-- info: 'SlhDsaSecurity.InputBullet.bullet_of_claimsCharged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.bullet_of_claimsCharged
