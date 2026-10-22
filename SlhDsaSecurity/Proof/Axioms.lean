@@ -6612,3 +6612,21 @@ info: 'SlhDsaSecurity.VerifierFormat.verify_probe_randomizerInput' depends on ax
 /-- info: 'SlhDsaSecurity.GraphStakes.honestMessage_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GraphStakes.honestMessage_succ
+
+/--
+info: 'SlhDsaSecurity.RandomiserCharge.queriesUnder_of_strip' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserCharge.queriesUnder_of_strip
+
+/--
+info: 'SlhDsaSecurity.RandomiserCharge.keygen_probe_ne_randomizerInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserCharge.keygen_probe_ne_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.RandomiserCharge.sign_probe_messageProbe' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserCharge.sign_probe_messageProbe
