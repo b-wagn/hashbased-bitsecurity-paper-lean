@@ -63,7 +63,9 @@ if uncovered:
           % len(uncovered))
     for path, full_name in uncovered:
         print("  %s  %s" % (path, full_name))
-    print("Add them with add_axioms.py, generated from kernel output, never by hand.")
+    print("Add an entry per name to SlhDsaSecurity/Proof/Axioms.lean: a #guard_msgs-guarded")
+    print("#print axioms, with the expected text copied from what the kernel actually prints")
+    print("(elaborate the #print axioms line first and paste its output), never written by hand.")
     sys.exit(1)
 
 print("guard sweep: %d guards, 0 uncovered" % len(covered))
