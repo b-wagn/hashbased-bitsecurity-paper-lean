@@ -200,6 +200,17 @@ def honestMessage (secretSeed publicSeed : Digest) (key : WotsKey) : Digest :=
   | layer + 1 => Extraction.HypertreeChain.honestNode secretSeed publicSeed layer
       (key.tree.tree.val * 2 ^ subtreeHeight + key.leaf.val)
 
+/-- **The base of the climb.** The key at the bottom layer signs the FORS public key, which is
+the cell at that key's roots node — so the entry invariant the climb carries is supplied by
+`CanonicalGraph.fors_publicKey_cell` and nothing else has to be arranged.
+
+The base is where a wrong message would enter if one did: the step above is pinned by the
+layer arithmetic, but the first message is whatever the caller hands in. -/
+theorem honestMessage_zero (secretSeed publicSeed : Digest) (hlayer : 0 < layers)
+    (tree : Fin (2 ^ (totalHeight - subtreeHeight))) (leaf : Fin (2 ^ subtreeHeight)) :
+    honestMessage secretSeed publicSeed ⟨⟨⟨0, hlayer⟩, tree⟩, leaf⟩ =
+      value secretSeed publicSeed (.structural (.forsRoots ⟨tree, leaf⟩)) := rfl
+
 /-- **The step that cannot be fudged.** Climbing one layer divides the subtree index and keeps
 its remainder as the leaf, and the message the climb carries up is the root of the subtree it
 has just left. The key it arrives at signs exactly that root: `honestMessage` at a key one layer

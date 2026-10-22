@@ -6830,3 +6830,15 @@ info: 'SlhDsaSecurity.RandomiserCharge.randomizerInput_injective_prf' depends on
 /-- info: 'SlhDsaSecurity.RoutedSplit.selfRandomised_of_only_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RoutedSplit.selfRandomised_of_only_self
+
+/-- info: 'SlhDsaSecurity.GraphStakes.honestMessage_zero' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.honestMessage_zero
+
+/-- info: 'SlhDsaSecurity.OpenCache.openCache_eq_none_of_not_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.openCache_eq_none_of_not_canonical
+
+/-- info: 'SlhDsaSecurity.RedrawCell.unionCache_of_not_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.unionCache_of_not_canonical

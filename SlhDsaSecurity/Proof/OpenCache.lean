@@ -156,6 +156,19 @@ theorem openCache_congr_of_not_sensitive (lenient strict : Node → Prop)
         fun parent hparent => hparent.symm)
     rw [hnone lenient, hnone strict]
 
+open scoped Classical in
+/-- **A non-canonical input is not among the entries a handler may serve.** The entries are
+keyed by canonical inputs, so anything of another shape — a randomiser's, a message digest's —
+falls through to whatever else is answering. -/
+theorem openCache_eq_none_of_not_canonical (table : Cells × Padding) (input : Bytes)
+    (hnot : ∀ parent : StructuralNode, canonicalInput publicSeed table.1 parent ≠ input) :
+    openCache publicSeed available table input = none := by
+  classical
+  by_contra hsome
+  obtain ⟨parent, hparent⟩ := cacheFrom_empty_canonical publicSeed table.1
+    (fullOutput table.1 table.2) (openNodes available) input hsome
+  exact hnot parent hparent.symm
+
 /-! ## The handler
 
 Its state is the cache, the inputs it has been asked for with the cache each was asked
