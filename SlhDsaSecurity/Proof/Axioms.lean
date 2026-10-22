@@ -158,6 +158,7 @@ import SlhDsaSecurity.Proof.SplitWitness
 import SlhDsaSecurity.Proof.RandomiserDeferral
 import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.LateCharge
+import SlhDsaSecurity.Proof.TapeFactor
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7484,3 +7485,207 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le' depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inl
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_other' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_other
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_cons' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_cons
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_nil' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.tapeRecorder_run_inr_nil
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.recorder_run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.recorder_run_inr_fresh
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.recorder_run_inr_other' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.recorder_run_inr_other
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.evalDist_tapeRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.evalDist_tapeRun
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.padding_zero_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.padding_zero_bind
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.padding_succ_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.padding_succ_bind
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_inl
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_left_cons' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_left_cons
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_left_nil' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_left_nil
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_right_cons' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_right_cons
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_right_nil' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_right_nil
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_other' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_run_other
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitRecorder_run_left' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitRecorder_run_left
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitRecorder_run_right' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitRecorder_run_right
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitRecorder_run_other' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitRecorder_run_other
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.evalDist_comm_blocks' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.evalDist_comm_blocks
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.evalDist_splitTapeRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.evalDist_splitTapeRun
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRecorder_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRecorder_step
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.splitTapeRun_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.splitTapeRun_neverFails
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.rightOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.rightOf_prefix
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.probEvent_length_eq_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.probEvent_length_eq_one
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.probEvent_length_set' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.probEvent_length_set
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.evalDist_padding_set' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.evalDist_padding_set
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.eq_of_getElem?_set' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.eq_of_getElem?_set
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.probEvent_const_and' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.probEvent_const_and
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.prob_selected_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.prob_selected_hit_le
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.sum_tsum_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.sum_tsum_comm
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.sum_prob_selected_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.sum_prob_selected_le_expected
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.prob_exists_hit_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.prob_exists_hit_le_expected
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.getElem?_of_prefix' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.getElem?_of_prefix
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.rightOf_getElem?

@@ -1913,3 +1913,140 @@ whole cardinality, the signer's coincidence against `q`, and the ordering defect
 message-class query rather than the recorded ones. Each is true and each is a factor of two or
 three too loose to add. The sharp form is the one above, and it is the one the statements have
 to carry.
+## The coverage charge in expectation: what it needs, and what it does not
+
+The two-class bound takes the coverage clause as `constant + expected inside count / 2 ^ 128`
+and `CoverageTail` supplies a fixed limit instead. The gap is not closable by averaging, for the
+reason recorded above. This is what closing it actually requires, written down before the work
+rather than after, because the first estimate of it was wrong by a wide margin.
+
+### The direct induction is not the cheaper option
+
+Charging the coverage clause at the recorded run, without going to a tape, means proving the
+run-level analogue of `ForsLeaveOneOut.selected_local_hit_le`:
+
+```
+Pr[run reaches target j ∧ good ∧ Covered(block, target j)] ≤ Pr[run reaches target j] · 2 ^ -128
+```
+
+That lemma is proved at the tape by *resampling coordinate `j`*, which is legitimate there
+because `hrevealed` holds: the disclosure set is an index-restricted function of the tape and
+does not read `j`. At the run it does read `j`. Resampling the `j`-th target answer changes what
+the adversary does next, hence which signing requests it makes, hence the block — so the
+disclosure set moves and the hypothesis fails. The symmetry the argument runs on is a property
+of the tape, not of the run, and a direct induction would have to recover it by hand. That is
+strictly more work than getting to the tape, not less.
+
+### What the tape actually needs, which is less than a derandomisation
+
+The obvious reading of "get to the tape" is `ForsLeaveOneOut.independent_tape_mixture_coverage_le`:
+auxiliary randomness drawn first, a *function* from it to a causal policy, a uniform tape second.
+Supplying that means presampling every random choice the run makes — including the adversary's
+`unifSpec` coins, whose answer type varies with the query, so the coin tape is a dependent
+object. That is a derandomisation of the whole game and it is not worth its price.
+
+It is also not needed. Reading the resampling argument for what it uses rather than for how it
+is packaged: the policy never has to be a function of anything. What has to hold is that the
+three parts of the event behave correctly when the `j`-th target coordinate is overwritten with
+a fresh value —
+
+* the disclosure set and its load condition must not move. They do not, if the disclosures are
+  taken from a **separate** tape drawn independently, which is exactly what the index split
+  already arranges: the block is the left recording and the targets are the right one.
+* the coverage test must read the `j`-th coordinate and nothing else of the right tape. It does.
+* "the run reaches target `j`" must have the same probability under the overwrite. It does, by
+  causality: the run reads right-tape position `j` only when it makes its `j + 1`-st target
+  query, and whether it makes that query is settled before.
+
+Causality is a statement about *conditional* probabilities and survives the run keeping its own
+randomness inline. So the coins and the non-class answers never have to be presampled, and the
+factorisation is needed only for the two class tapes. The chain is then
+
+```
+Pr[cov] ≤ Pr[¬good(left)] + Σ_j Pr[reaches j ∧ good(left) ∧ Covered(disc(left), right j)]
+        ≤ 2 ^ -141 + Σ_j Pr[reaches j] · 2 ^ -128
+        = 2 ^ -141 + E[right length] / 2 ^ 128
+```
+
+the last step because `Σ_j Pr[length > j]` is the expectation, which is where the per-run weight
+that averaging destroys is kept: it is carried by `Pr[reaches j]`, one factor per coordinate,
+exactly as `expectedUses` carries it at the tape.
+
+### The parts, and the one that is risky
+
+1. A two-headed tape-reading variant of `SplitPrefix.recorder`: a fresh class query takes its
+   answer off the head of its own tape instead of drawing one, with a fresh draw as the fallback
+   when a tape is spent, so the factorisation needs no side condition. Everything else —
+   coins, cached queries, fresh out-of-class queries — keeps drawing inline.
+2. `𝒟[paddedRun] = 𝒟[left ⊗ right >>= rest]`, by induction on the computation. Four of the five
+   cases are the answer-irrelevant commute, for which
+   `OracleComp.DeferredSampling.evalDist_step_commute_tape` is the generic form; the two drawing
+   cases splice a head off a uniform tape, which is the list-at-a-time shape `DigestTape.padding`
+   already has. **This is the part that can go wrong**, and the framework is less help than it
+   looks: `Factorizes` and `evalDist_step_commute_tape` have no instance anywhere in VCVio, and
+   the worked example their docstrings name does not exist in the package. The vocabulary is
+   there; the content is not.
+3. Causality: overwriting an unread right-tape position does not change the law of the run's
+   prefix. An induction in the style of `DigestTape.recorder_cache_value_persists`.
+4. The mixed-space resampling lemma — `selected_local_hit_le` with the disclosure set and its
+   load condition taken from the independent left tape and the policy replaced by a causal
+   event. The existing proof carries over nearly verbatim.
+5. Assembly: the load failure on the left tape is the existing `2 ^ -141`; the coverage event of
+   the cache is carried to the recordings by the transport that already exists; disclosures are
+   taken from the whole left tape including its unused suffix, which only adds disclosures and
+   so is sound.
+
+Items 1, 3, 4 and 5 are each in the range the existing modules occupy. Item 2 is the one with
+real risk, and it is the one to attempt first: if the factorisation does not go through, nothing
+downstream of it is worth writing.
+
+## The coverage charge in expectation: what it cost
+
+The estimate above was right about the route and wrong about the price. The factorisation was
+named as the part with real risk and the part to attempt first. It was attempted first and it
+did not resist: `TapeFactor.evalDist_tapeRun` and `evalDist_splitTapeRun` are the one-block and
+two-block identities, and between them they took one afternoon rather than the module-sized
+effort the estimate allowed for.
+
+Two things account for the difference, and both are worth keeping in mind the next time
+something is costed by the shape of its statement.
+
+**The fallback removes the side condition.** A tape-reading oracle that *draws for itself* once
+its block is spent factorises for every block length, with no hypothesis that the block is long
+enough and nothing owed when it is too long. The estimate assumed a "never runs out" invariant
+threaded through the induction from the budget; there is none to thread. The uniform cap comes
+back later, as a cap on the *count*, which is where it was always allowed to be.
+
+**Causality is not determinism.** The obvious reading of
+`ForsLeaveOneOut.independent_tape_mixture_coverage_le` asks for a *function* from auxiliary
+randomness to a policy, and supplying one means presampling every draw the run makes — including
+the adversary's `unifSpec` coins, whose answer type varies with the query. Reading the
+resampling argument for what it uses instead, the three things that must survive overwriting one
+target cell are: the disclosure set (which sits on the other block), the coverage test (which
+reads that cell and nothing else), and the selection. The selection is the only one that touches
+the run, and what it needs is that its *probability* is unchanged — `probEvent_length_set` — not
+that it is a function of anything. So the coins and the out-of-class answers never leave the
+run, and only the two class blocks are front-loaded.
+
+What came out is `TapeFactor.prob_exists_hit_le_expected`: a run whose disclosing block is good
+pays, for the event that some cell of its target recording is hit by that block, its expected
+recording length times the rate. The per-cell factor is `prob_selected_hit_le`, which is
+`ForsLeaveOneOut.selected_local_hit_le` at the run, and summing the factors is where the
+expectation appears — `∑ index, Pr[reached index]` is an expected length, not a block length.
+
+### What is left
+
+The machinery is generic in the two class tests, the block predicate and the hit relation.
+Connecting it to `CoverageTail` is instantiation, not new argument:
+
+* carry the game's recorded run to `blockRun` through `evalDist_splitTapeRun`, which is a
+  distribution identity and so moves any event;
+* instantiate the block predicate with the load condition and `Pr[¬good]` with
+  `BlockDisclosures.block_bad_load_probability`, the left block being uniform by construction;
+* instantiate the hit relation with `ForsCoverage.Covered` and its rate with
+  `ForsCoverage.fresh_coverage_le_of_loads`;
+* read the game's coverage event as a hit at a cell, for which `rightOf_getElem?` is the bridge:
+  the `index`-th recorded target answer *is* cell `index` of the block.
+
+Then `ClassExpectation.prob_bad_or_coverage_le` takes it and the answer side has no hypothesis
+left but the budget.
