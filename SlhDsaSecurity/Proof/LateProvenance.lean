@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.FusedCoverage
 import SlhDsaSecurity.Proof.RandomiserProvenance
+import SlhDsaSecurity.Proof.PhaseRightRecord
 
 /-!
 # Who made a target-recorded query
@@ -265,9 +266,16 @@ def SignerDigestFree (adversary : Adversary) : Prop :=
           (secretKeyOf pair).publicKey framed
 
 set_option maxHeartbeats 1000000 in
-/-- **Every target-recorded input is a query the record holds.** -/
-theorem hrecord_of_signerDigestFree (adversary : Adversary)
-    (hsigner : SignerDigestFree adversary) :
+/-- **Every target-recorded input is a query the record holds**, with no hypothesis.
+
+The game splits at its three sequencing points and each branch asks its question of the object
+that can answer it. Key generation's and the verifier's are about an input's shape and about who
+asked, so those sub-runs project to the shared oracle and the lemmas already proved there
+answer. The adversary's phase is about the *recording*, so it is asked of the recorder, and its
+signer branch is asked of the signer's own sub-run — which hands back the cache the entry was
+filed at, the randomiser answer in it, and what the sub-run queried, so the disclosure witness
+closes at the frame the entry itself names. -/
+theorem hrecord (adversary : Adversary) :
     ∀ pair ∈ support (LateProbes.pairedOf FusedCoverage.fusedTail adversary),
       Target.GoodWalk pair.1 → ∀ entry ∈ pair.2.2.2.2,
         entry.1 ∈ SharedJoin.recordOf (LateProbes.forgetRecordings pair) := by
@@ -277,7 +285,6 @@ theorem hrecord_of_signerDigestFree (adversary : Adversary)
   subst hvalue
   rw [FusedCoverage.fusedTail] at hresult
   have hpublic := AnswerSide.not_possible_generatedKey hwalk hgood.2
-  -- The entry is of the narrowed class, at the walk's key.
   have hnarrow : SplitWitness.narrowClass walk.1.1.2.1
       (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) entry.1 :=
     SplitPrefix.right_record_class (FusedCoverage.leftKeepAt walk) (FusedCoverage.rightKeepAt walk)
@@ -285,45 +292,107 @@ theorem hrecord_of_signerDigestFree (adversary : Adversary)
         (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
       (fun input inner hkeep => SplitWitness.Served.targetKeep_narrow _ _ input inner hkeep)
       _ (walk.2, [], []) result hresult (by simp) entry hentry
-  -- It was absent from the walk's cache and is present at the run's.
-  have hfreshwalk : walk.2 entry.1 = none :=
-    CoverageTail.walk_cache_fresh _ hpublic withinBounds_structural hwalk entry.1 hnarrow.1
-  have hpresent : result.2.1 entry.1 ≠ none :=
-    (SplitPrefix.right_record_fresh_nodup (FusedCoverage.leftKeepAt walk)
-      (FusedCoverage.rightKeepAt walk) _ (walk.2, [], []) result hresult (by simp) (by simp)).1
-      entry hentry
-  -- The run, read without its recordings.
-  have hrom : (result.1, result.2.1) ∈ support ((simulateQ KeygenUniform.rom
-      (countAllHashes (RecordedTail.recordedAfterSeeds adversary walk.1.1))).run walk.2) :=
-    SplitPrefix.mem_support_rom _ _ _ (walk.2, [], []) result hresult
-  obtain ⟨keys, hkeys, hprov⟩ :=
-    provenance_recordedAfterSeeds adversary walk.1.1 walk.2 (result.1, result.2.1) hrom
-  have hsk : keys.1 = secretKeyOf (walk, result) := congrArg Prod.fst hkeys
-  rcases hprov entry.1 hfreshwalk hpresent with hmem | hkeygen | ⟨request, hrequest, hmade⟩
-  · exact hmem
-  · obtain ⟨randomizer, message, hinput⟩ := hnarrow.1
-    obtain ⟨parent, hparent⟩ :=
-      HonestProbes.probes_keygenInternal result.2.1 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
-        entry.1 hkeygen
-    exact absurd (hinput ▸ hparent)
-      (HashSeparation.message_tweakable_ne hpublic (withinBounds_structural parent))
-  · cases hframe : request.1.frame with
-    | none =>
-      exact absurd (HonestProbes.probes_sign_none result.2.1 keys.1 request.1 hframe
-        (fun _ => False) entry.1 hmade.1) id
-    | some framed =>
-      rcases HonestProbes.probes_sign result.2.1 keys.1 request.1 framed hframe entry.1
-          hmade.1 with ⟨parent, hparent⟩ | hmessage
+  -- The game, split at its three sequencing points.
+  rw [RecordedTail.recordedAfterSeeds] at hresult
+  obtain ⟨keys, keyState, keyCount, keyCount', hkeysCounted, hrest1⟩ :=
+    PhaseRightRecord.mem_support_counted_bind _ _ _ _ (walk.2, [], []) result hresult
+  obtain ⟨phase, phaseState, phaseCount, phaseCount', hphaseCounted, hrest2⟩ :=
+    PhaseRightRecord.mem_support_counted_bind _ _ _ _ keyState _ hrest1
+  obtain ⟨verified, verifyState, verifyCount, verifyCount', hverifyCounted, hrest3⟩ :=
+    PhaseRightRecord.mem_support_counted_bind _ _ _ _ phaseState _ hrest2
+  rw [GrowthBudget.countAllHashes_pure, simulateQ_pure, StateT.run_pure, support_pure,
+    Set.mem_singleton_iff] at hrest3
+  simp only [Prod.mk.injEq] at hrest3
+  obtain ⟨⟨houtcome, -⟩, hcache⟩ := hrest3
+  -- The three sub-runs, with the count off.
+  have hkeygen := PhaseRightRecord.mem_support_of_countAllHashes _ _ _ (walk.2, [], [])
+    ((keys, keyCount), keyState) hkeysCounted
+  have hphase := PhaseRightRecord.mem_support_of_countAllHashes _ _ _ keyState
+    ((phase, phaseCount), phaseState) hphaseCounted
+  have hverify := PhaseRightRecord.mem_support_of_countAllHashes _ _ _ phaseState
+    ((verified, verifyCount), verifyState) hverifyCounted
+  -- Each phase's cache survives the ones after it.
+  have hverifyGrow : ∀ (probe : Bytes) (value : HashOutput),
+      phaseState.1 probe = some value → result.2.1 probe = some value := by
+    intro probe value hprobe
+    rw [show result.2 = verifyState from hcache]
+    exact SplitPrefix.recorder_cache_value_persists _ _ _ phaseState (verified, verifyState)
+      hverify probe value hprobe
+  have hphaseGrow : ∀ (probe : Bytes) (value : HashOutput),
+      keyState.1 probe = some value → result.2.1 probe = some value := fun probe value hprobe =>
+    hverifyGrow probe value (SplitPrefix.recorder_cache_value_persists _ _ _ keyState
+      (phase, phaseState) hphase probe value hprobe)
+  -- Where the entry was filed.
+  rw [show result.2 = verifyState from hcache] at hentry
+  rcases verify_right_record _ _ keys.2 phase.1.1.message phase.1.1.signature phaseState
+      (verified, verifyState) hverify entry hentry with hphaseMem | hrec
+  · rcases PhaseRightRecord.right_record_phase _ _ keys.1 (adversary.main keys.2) [] keyState
+        (phase, phaseState) hphase result.2.1 hverifyGrow entry hphaseMem with
+      hkeyMem | hsource
+    · -- Key generation's probes are canonical, which a message input is not.
+      rcases PhaseRightRecord.keygen_right_record _ _ walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
+          (walk.2, [], []) (keys, keyState) hkeygen result.2.1 hphaseGrow entry hkeyMem with
+        hstart | hkeygenQuery
+      · exact absurd hstart (by simp)
       · obtain ⟨randomizer, message, hinput⟩ := hnarrow.1
+        obtain ⟨parent, hparent⟩ :=
+          HonestProbes.probes_keygenInternal result.2.1 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
+            entry.1 hkeygenQuery
         exact absurd (hinput ▸ hparent)
           (HashSeparation.message_tweakable_ne hpublic (withinBounds_structural parent))
-      · rcases hmessage with hrandomiser | hdigest
-        · refine absurd ⟨keys.1.publicKey.seed, framed, ?_⟩ hnarrow.2
-          rw [hrandomiser, show keys.1.prf = walk.1.1.2.1 from by
-            rw [hkeys]; exact keygen_prf result.2.1 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2]
-        · refine absurd ?_ (hsigner (walk, result) hpair entry hentry framed ?_)
-          · rw [hdigest, hsk]
-          · rw [← hsk]
-            exact hmade.2 framed hframe
+    · -- The adversary's phase. The key the run generated is the one the walk fixed.
+      obtain ⟨outputs, hwarm⟩ := HonestGrowth.walk_cache_eq_warmCache hwalk
+      have hkeysRom : (keys, keyState.1) ∈ support ((simulateQ KeygenUniform.rom
+          (Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 :
+            OracleComp OracleWorld (SecretKey × PublicKey))).run walk.2) :=
+        SplitPrefix.mem_support_rom _ _ _ (walk.2, [], []) (keys, keyState) hkeygen
+      rw [hwarm, HonestProbes.run_keygenInternal_world_eq_pure, support_pure,
+        Set.mem_singleton_iff] at hkeysRom
+      have hvalue : keys = @Scheme.keygenInternal Id Id.instMonad
+          (CacheReplay.replayQuery walk.2) walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 := by
+        rw [hwarm]
+        exact (Prod.ext_iff.mp hkeysRom).1
+      have hprf : keys.1.prf = walk.1.1.2.1 := by
+        rw [hvalue]
+        exact keygen_prf walk.2 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
+      have hpk : keys.1.publicKey =
+          SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2 := by
+        rw [hvalue, SplitCharged.generatedKey]
+        exact keygen_publicKey walk.2 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
+      rcases hsource with hrecMem |
+        ⟨framed, hrandomiser | ⟨mid, answer, hmid, -, -, hkeep, hqueries⟩⟩
+      · show entry.1 ∈ result.1.1.2
+        rw [show result.1.1.2 = (Multiplicative.toAdd phase.1.2).2 + verified.2.2 from by
+          rw [houtcome]]
+        exact Multiset.mem_add.mpr (Or.inl hrecMem)
+      · -- The signer's randomiser probe is the `PRF_msg` class the narrowing removes.
+        refine absurd ⟨keys.1.publicKey.seed, framed, ?_⟩ hnarrow.2
+        rw [hrandomiser, hprf]
+      · -- Its digest probe is signer-randomised at the cache it was filed at.
+        rcases SignerRandomiser.probes_signInternalAt result.2.1 (Hashing.truncate answer)
+            keys.1 framed entry.1 hqueries with ⟨parent, hparent⟩ | hdigest
+        · obtain ⟨randomizer, message, hinput⟩ := hnarrow.1
+          exact absurd (hinput ▸ hparent)
+            (HashSeparation.message_tweakable_ne hpublic (withinBounds_structural parent))
+        · refine absurd (show CacheAvailability.SignerRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) mid entry.1
+            from ⟨framed, answer, ?_, ?_⟩) hkeep.2
+          · rw [hprf, hpk] at hmid
+            exact hmid
+          · rw [hdigest, hpk]
+  · show entry.1 ∈ result.1.1.2
+    rw [show result.1.1.2 = (Multiplicative.toAdd phase.1.2).2 + verified.2.2 from by
+      rw [houtcome]]
+    exact Multiset.mem_add.mpr (Or.inr hrec)
+
+/-- **The same, as the hypothesis-carrying form the obligations still name.** The hypothesis is
+ignored: `hrecord` proves the conclusion outright. Kept so that the consumer switch is a
+deliberate one-line change rather than something buried here. -/
+theorem hrecord_of_signerDigestFree (adversary : Adversary)
+    (_hsigner : SignerDigestFree adversary) :
+    ∀ pair ∈ support (LateProbes.pairedOf FusedCoverage.fusedTail adversary),
+      Target.GoodWalk pair.1 → ∀ entry ∈ pair.2.2.2.2,
+        entry.1 ∈ SharedJoin.recordOf (LateProbes.forgetRecordings pair) :=
+  hrecord adversary
 
 end SlhDsaSecurity.LateProvenance
