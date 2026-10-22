@@ -3106,3 +3106,15 @@ query out of a recording is a provenance fact wearing a syntactic disguise.** It
 the syntax happens to separate the two, it charges whoever meets the case where it does not, and
 the honest version asks the handler who made the query instead of asking what the bytes look
 like.
+
+## A harness trap: `lake env lean` reads oleans, not sources
+
+After editing a module, `lake env lean` on a file that **imports** it still type-checks against
+the old `.olean`. The new name is simply absent, `autoImplicit` turns it into a variable of
+unknown type, and the error surfaces as a type mismatch several lines from the real cause rather
+than as a missing identifier. Rebuild the edited module (`lake build <Module>`) before
+type-checking anything downstream of it.
+
+This has cost an hour once. It is worth knowing in the same breath as the probe-check discipline,
+because the two interact: a probe that "passes" against a stale olean is checking a statement
+that no longer exists.
