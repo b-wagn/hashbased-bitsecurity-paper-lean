@@ -34,29 +34,55 @@ namespace SlhDsaSecurity.RecorderView
 
 open SplitPrefix DigestTape
 
-/-- What a recorder's state must provide, and the only law it must satisfy. -/
+/-- What a recorder's state must provide, and the two laws it must satisfy.
+
+**Filing is not installing, which is why there are two operations and not one.** `update` runs
+on a miss, because that is where an answer is installed. `onQuery` runs at *every* hash query,
+because what a state may want to record about a query — that the signer was serving it, say —
+is true of a cache hit exactly as much as of a miss. Tying the two together would mean a state
+could only ever notice the queries the run itself drew; and the failure is not a missing entry
+but a silent one, because an input is installed once and is never fresh again, so a notice
+missed at a hit can never be taken later.
+
+A view that notices nothing takes `onQuery` to be the identity, and then
+`noticingRecorderOf_eq` says the recorder that notices **is** the one that does not. So this is
+a widening: `recorderOf` below is untouched, and everything proved about it stands.
+
+Both laws are about the cache alone, which is what keeps `run_recorderOf_forget` true: whatever
+else a view carries rides along and the forgetting never sees it. -/
 class CacheView (σ : Type) where
   /-- The cache the freshness test is read against. -/
   cacheOf : σ → QueryCache HashSpec
-  /-- How an answer is installed. -/
+  /-- How an answer is installed, on a miss. -/
   update : σ → Bytes → HashOutput → σ
+  /-- What the state does at **every** query, hit or miss. The identity, for a view with
+  nothing to notice. -/
+  onQuery : σ → Bytes → σ := fun state _ => state
   /-- Installing an answer caches it, and says nothing else. -/
   cache_update : ∀ (state : σ) (input : Bytes) (answer : HashOutput),
     cacheOf (update state input answer) = (cacheOf state).cacheQuery input answer
+  /-- Noticing a query does not touch the cache. -/
+  cache_onQuery : ∀ (state : σ) (input : Bytes),
+    cacheOf (onQuery state input) = cacheOf state := by intros; rfl
 
-/-- The cache is its own view. -/
+/-- The cache is its own view, and notices nothing. -/
 instance : CacheView (QueryCache HashSpec) where
   cacheOf := id
   update := fun cache input answer => cache.cacheQuery input answer
   cache_update := fun _ _ _ => rfl
 
-/-- And so is the handler's carrier, at the operations it already has. -/
+/-- And so is the handler's carrier, at the operations it already has. A view that *does*
+notice its queries is `CarriedWitness.servingView`; this one carries the carrier along. -/
 instance : CacheView HandlerCarrier.State where
   cacheOf := HandlerCarrier.cacheOf
   update := HandlerCarrier.cacheAnswer
   cache_update := fun _ _ _ => rfl
 
 variable {σ : Type} [CacheView σ]
+
+theorem cacheOf_onQuery (state : σ) (input : Bytes) :
+    CacheView.cacheOf (CacheView.onQuery state input) = CacheView.cacheOf state :=
+  CacheView.cache_onQuery state input
 
 /-- The state at a general view: the carrier and the two recordings. -/
 abbrev StateOf (σ : Type) := σ × Record × Record
@@ -675,5 +701,174 @@ theorem right_recordOf_witness {α : Type} (leftKeep rightKeep : Bytes → σ �
             · rw [appendedOf_of_neither leftKeep rightKeep input state step.1 hleft hright] at hold
               exact Or.inl hold
     · exact Or.inr hwitness
+
+/-! ## The recorder that notices every query
+
+`recorderOf` hands the view an answer only on a miss, because a miss is where an answer is
+installed. A view that wants to record something about the *query* — that the signer was
+serving it — needs telling on a hit as well, and this is that recorder: the view is notified
+first, and then the step proceeds exactly as before.
+
+It is a wrapper and not a second design. At a view that notices nothing the two are the same
+query implementation, by `noticingRecorderOf_eq`, so nothing proved about `recorderOf` is
+duplicated or at risk; and the extra notice cannot disturb the recordings or the freshness
+test, because the law says it leaves the cache alone. -/
+
+open scoped Classical in
+/-- The recorder, with the view told about each hash query before it is answered. -/
+noncomputable def noticingRecorderOf (leftKeep rightKeep : Bytes → σ → Prop) :
+    QueryImpl OracleWorld (StateT (StateOf σ) ProbComp) :=
+  fun queried state =>
+    match queried with
+    | Sum.inl coin => ((recorderOf leftKeep rightKeep) (Sum.inl coin)).run state
+    | Sum.inr input =>
+        ((recorderOf leftKeep rightKeep) (Sum.inr input)).run
+          (CacheView.onQuery state.1 input, state.2)
+
+open scoped Classical in
+theorem noticingRecorderOf_run_inl (leftKeep rightKeep : Bytes → σ → Prop)
+    (coin : unifSpec.Domain) (state : StateOf σ) :
+    ((noticingRecorderOf leftKeep rightKeep) (Sum.inl coin)).run state =
+      ((recorderOf leftKeep rightKeep) (Sum.inl coin)).run state := rfl
+
+open scoped Classical in
+theorem noticingRecorderOf_run_inr (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) :
+    ((noticingRecorderOf leftKeep rightKeep) (Sum.inr input)).run state =
+      ((recorderOf leftKeep rightKeep) (Sum.inr input)).run
+        (CacheView.onQuery state.1 input, state.2) := rfl
+
+open scoped Classical in
+/-- **At a view that notices nothing, it is the recorder already in hand.** So this is a
+widening and not a fork. -/
+theorem noticingRecorderOf_eq (leftKeep rightKeep : Bytes → σ → Prop)
+    (hblind : ∀ (view : σ) (input : Bytes), CacheView.onQuery view input = view) :
+    noticingRecorderOf leftKeep rightKeep = recorderOf leftKeep rightKeep := by
+  funext queried state
+  rcases queried with coin | input
+  · rfl
+  · show ((recorderOf leftKeep rightKeep) (Sum.inr input)).run
+        (CacheView.onQuery state.1 input, state.2) = _
+    rw [hblind state.1 input]
+    rfl
+
+/-! ### The two step laws a potential charge reads
+
+`PotentialCharge.prob_fired_le` is already generic in the state and the implementation: it asks
+for a cached branch and a fresh branch in closed form and nothing else about the oracle. These
+are those two branches for the recorder that notices. The only difference from `recorderOf`'s
+is in the **cached** one — where that oracle returns the state untouched, this one returns the
+noticed state — so a charge stated against these two reads one extra parameter and is otherwise
+the argument already proved. -/
+
+open scoped Classical in
+theorem noticingRecorderOf_run_inr_some (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (cached : HashOutput)
+    (hcached : CacheView.cacheOf state.1 input = some cached) :
+    ((noticingRecorderOf leftKeep rightKeep) (Sum.inr input)).run state =
+      (pure (cached, (CacheView.onQuery state.1 input,
+        appendedOf leftKeep rightKeep input (CacheView.onQuery state.1 input, state.2) cached)) :
+        ProbComp (OracleWorld.Range (Sum.inr input) × StateOf σ)) := by
+  classical
+  rw [noticingRecorderOf_run_inr]
+  exact recorderOf_run_inr_some leftKeep rightKeep input
+    (CacheView.onQuery state.1 input, state.2) cached (by rw [cacheOf_onQuery]; exact hcached)
+
+open scoped Classical in
+theorem noticingRecorderOf_run_inr_none (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (hfresh : CacheView.cacheOf state.1 input = none) :
+    ((noticingRecorderOf leftKeep rightKeep) (Sum.inr input)).run state =
+      (((fun answer => (answer,
+        (CacheView.update (CacheView.onQuery state.1 input) input answer,
+          appendedOf leftKeep rightKeep input
+            (CacheView.onQuery state.1 input, state.2) answer))) <$>
+        ($ᵗ HashOutput : ProbComp _)) :
+          ProbComp (OracleWorld.Range (Sum.inr input) × StateOf σ)) := by
+  classical
+  rw [noticingRecorderOf_run_inr]
+  exact recorderOf_run_inr_none leftKeep rightKeep input
+    (CacheView.onQuery state.1 input, state.2) (by rw [cacheOf_onQuery]; exact hfresh)
+
+/-! ### What its recordings satisfy at the end
+
+The filing test is read at the state the notice has already reached, which is the whole point:
+`hfile` is about `CacheView.onQuery view input`, so a view may make the test true *by* noticing
+and still answer for it. -/
+
+open scoped Classical in
+/-- **Every entry of the disclosing recording satisfies the end predicate at the end of the
+run**, for the recorder that notices. -/
+theorem noticing_left_recordOf_endKeep_final {α : Type}
+    (leftKeep rightKeep endKeep : Bytes → σ → Prop)
+    (hfile : ∀ (input : Bytes) (view : σ),
+      leftKeep input (CacheView.onQuery view input) →
+        endKeep input (CacheView.onQuery view input))
+    (hkeepsQuery : ∀ (input probe : Bytes) (view : σ),
+      endKeep input view → endKeep input (CacheView.onQuery view probe))
+    (hkeepsUpdate : ∀ (input probe : Bytes) (view : σ) (answer : HashOutput),
+      CacheView.cacheOf view probe = none → endKeep input view →
+        endKeep input (CacheView.update view probe answer))
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈
+      support ((simulateQ (noticingRecorderOf leftKeep rightKeep) computation).run state))
+    (hstart : ∀ entry ∈ state.2.1, endKeep entry.1 state.1) :
+    ∀ entry ∈ result.2.2.1, endKeep entry.1 result.2.1 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at *
+    exact hstart
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | input
+    · rw [noticingRecorderOf_run_inl] at hstep
+      rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
+      exact hstart
+    · rw [noticingRecorderOf_run_inr] at hstep
+      set noticed : StateOf σ := (CacheView.onQuery state.1 input, state.2) with hnoticed
+      have hcarry : ∀ entry ∈ noticed.2.1, endKeep entry.1 noticed.1 := by
+        intro entry hentry
+        exact hkeepsQuery entry.1 input state.1 (hstart entry hentry)
+      have hrecStep := recorderOf_step_record leftKeep rightKeep input noticed step hstep
+      cases hcached : CacheView.cacheOf noticed.1 input with
+      | some cached =>
+        rcases recorderOf_step leftKeep rightKeep input noticed step hstep with
+          ⟨-, hshape⟩ | ⟨hbad, -⟩
+        · rw [show step.2.1 = noticed.1 from by rw [hshape],
+            show step.2.2 = noticed.2 from by
+              rw [hshape,
+                appendedOf_of_cached leftKeep rightKeep input noticed step.1 cached hcached]]
+          exact hcarry
+        · rw [hcached] at hbad
+          simp at hbad
+      | none =>
+        have hinstalled : step.2.1 = CacheView.update noticed.1 input step.1 := by
+          rcases recorderOf_step leftKeep rightKeep input noticed step hstep with
+            ⟨hbad, -⟩ | ⟨-, hshape⟩
+          · rw [hcached] at hbad
+            simp at hbad
+          · rw [hshape]
+        have hcarry' : ∀ entry ∈ noticed.2.1, endKeep entry.1 step.2.1 := by
+          intro entry hentry
+          rw [hinstalled]
+          exact hkeepsUpdate entry.1 input noticed.1 step.1 hcached (hcarry entry hentry)
+        by_cases hleft : leftKeep input noticed.1
+        · rw [hrecStep, appendedOf_of_left leftKeep rightKeep input noticed step.1 hcached hleft]
+          intro entry hentry
+          rcases List.mem_append.mp hentry with hold | hnew
+          · exact hcarry' entry hold
+          · rw [List.mem_singleton.mp hnew, hinstalled]
+            exact hkeepsUpdate input input noticed.1 step.1 hcached
+              (hfile input state.1 hleft)
+        · by_cases hright : rightKeep input noticed.1
+          · rw [hrecStep,
+              appendedOf_of_right leftKeep rightKeep input noticed step.1 hcached hleft hright]
+            exact hcarry'
+          · rw [hrecStep,
+              appendedOf_of_neither leftKeep rightKeep input noticed step.1 hleft hright]
+            exact hcarry'
 
 end SlhDsaSecurity.RecorderView

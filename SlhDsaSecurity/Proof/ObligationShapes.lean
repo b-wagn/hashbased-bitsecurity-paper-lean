@@ -99,6 +99,29 @@ theorem seedRandomised_of_signer_query (prfSeed : Digest) (pk : PublicKey)
     ⟨prfSeed, message, FramingLeak.randomizerInput_eq_messageInput prfSeed pk message⟩,
     ⟨pk.seed, bytesBE n pk.root ++ message, rfl⟩⟩
 
+/-- **A guess at `SK.prf` is testable at one query**, which is why the forgery's published
+randomiser is not a one-shot guess at a secret the adversary never sees.
+
+The randomiser the signer publishes for a framing is `Hashing.truncate` of the oracle's answer
+at `Hashing.randomizerInput SK.prf PK.seed framed` — that is this equation, and
+`ReplayGate.randomizer_eq_of_replay` is the same fact about a *published* signature, read off
+the log. An adversary holding one signature can therefore test a candidate `x` by asking at
+`Hashing.randomizerInput x PK.seed framed` and comparing the truncation with what the signature
+carries, at one query per candidate.
+
+So "never sees it" is true and "cannot check a guess" is false, and the second is what would be
+needed for a constant. The event's probability is the probability of *finding* the seed, which
+is one unit of `2 ^ -128` per query and not one unit in total. `RandomiserDeferral`'s module
+docstring is the same obstruction read from the other end: deferring the draw is necessary and
+not sufficient, because the tail's signer derives every randomiser by querying at the seed, and
+what closes that gap is an identical-until-bad hop whose bad flag is exactly a query at a
+`PRF_msg` input at the real seed. -/
+theorem publishedRandomizer_eq_truncate (cache : QueryCache HashSpec) (sk : SecretKey)
+    (framed : Bytes) :
+    HonestProbes.replayRandomizer cache sk framed =
+      Hashing.truncate (CacheReplay.replay cache
+        (Hashing.randomizerInput sk.prf sk.publicKey.seed framed)) := rfl
+
 /-- **A disclosing input needs no class.** `SplitWitness.Served.cover` asks for the narrowed
 class to conclude that an input is filed on one side or the other; an input the left test keeps
 is filed for that reason alone. So the class is needed only where the left test fails, which in
@@ -121,13 +144,29 @@ input half's bullet is claims-only costs nothing here either — a bullet that s
 none of the record satisfies a hypothesis that allows the aiming part besides. -/
 
 set_option maxHeartbeats 1000000 in
-/-- **The shared obligation at its adopted shape, from the same two hypotheses.** -/
-theorem sharedChargedLate_of_parts
+/-- **The shared obligation at its adopted shape**, with the narrowing's leftover carried at
+whatever it costs.
+
+`seedUnits` is a parameter and not a numeral on purpose. The obligation's room is `claims`
+units of `2 ^ -128`, of which the forgery's own claims take `259`, so a leftover that costs a
+fixed number of units fits and one that costs a number growing with `q` does not — and at the
+call site that is the difference between passing a numeral and being unable to. The shape
+therefore records the question rather than answering it, which is the one thing a hypothesis
+asserting `1 / 2 ^ 128` would not do. See the section below for why I believe the answer is the
+second kind. -/
+theorem sharedChargedLate_of_parts (claims seedUnits : Nat) (hclaims : 259 + seedUnits ≤ claims)
     (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       SharedAssembly.InputBullet adversary LateProbes.Ordering)
-    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary) :
-    Obligations.SharedChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
-      LateProbes.Ordering := by
+    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary)
+    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧
+          AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+            (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+            (FinalAssembly.forgetFused pair.2) |
+        LateProbes.pairedOf FusedCoverage.fusedTail adversary] ≤
+        ((seedUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    Obligations.SharedChargedLate claims FusedCoverage.fusedTail FinalAssembly.forgetFused
+      FinalAssembly.lateOrSeed := by
   classical
   intro q adversary _ hbudget
   have hforget := FusedCoverage.forgetsTo adversary
@@ -138,32 +177,80 @@ theorem sharedChargedLate_of_parts
   refine le_trans (probEvent_mono (q := fun pair : LateProbes.SplitPair =>
     (GoodWalk pair.1 ∧ InputBad (SharedAssembly.splitTraceOf pair) ∧
         ¬ LateProbes.Ordering pair) ∨
-      (GoodWalk pair.1 ∧ LateProbes.Ordering pair)) ?_) ?_
-  · rintro pair - ⟨hgood, hshared | hordered⟩
+      ((GoodWalk pair.1 ∧ LateProbes.Ordering pair) ∨
+        (GoodWalk pair.1 ∧ AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+          (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+          (FinalAssembly.forgetFused pair.2)))) ?_) ?_
+  · rintro pair - ⟨hgood, hshared | hordered | hseeded⟩
     · exact (SharedJoin.cover_of_em
         (fun pair : LateProbes.SplitPair => InputBad (SharedAssembly.splitTraceOf pair))
-        LateProbes.Ordering pair hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord => ⟨hgood, hord⟩
-    · exact Or.inr ⟨hgood, hordered⟩
+        LateProbes.Ordering pair hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord =>
+          Or.inl ⟨hgood, hord⟩
+    · exact Or.inr (Or.inl ⟨hgood, hordered⟩)
+    · exact Or.inr (Or.inr ⟨hgood, hseeded⟩)
   refine le_trans (probEvent_or_le _ _ _) ?_
-  refine le_trans (add_le_add (hinput q adversary hbudget) hordering) ?_
-  rw [ENNReal.div_add_div_same]
+  refine le_trans (add_le_add (hinput q adversary hbudget)
+    (le_trans (probEvent_or_le _ _ _)
+      (add_le_add hordering (hseed q adversary hbudget)))) ?_
+  rw [← add_assoc, ENNReal.div_add_div_same, ENNReal.div_add_div_same]
   refine ENNReal.div_le_div_right ?_ _
-  calc ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
-          (fun pair => Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair)))
-        + ((259 : Nat) : ℝ≥0∞) +
+  calc (ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+        ((259 : Nat) : ℝ≥0∞) +
         ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
           (fun pair =>
-            Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair)))
+            Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair)))) +
+        ((seedUnits : Nat) : ℝ≥0∞)
       = ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
             (fun pair =>
               Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
           ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
             (fun pair =>
               Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
-          ((259 : Nat) : ℝ≥0∞) := by ring
-    _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((259 : Nat) : ℝ≥0∞) :=
-        add_le_add (SharedAssembly.expected_parts_le_budget q adversary hbudget) le_rfl
-    _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
+          ((259 + seedUnits : Nat) : ℝ≥0∞) := by push_cast; ring
+    _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((claims : Nat) : ℝ≥0∞) :=
+        add_le_add (SharedAssembly.expected_parts_le_budget q adversary hbudget)
+          (Nat.cast_le.mpr hclaims)
+    _ = ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
+
+/-! ## Why `seedUnits` is a parameter and not `1`
+
+The leftover is `AnswerCoverage.ForgerySeedRandomised`: the forgery's published randomiser is
+`SK.prf`. The reading that makes it a constant is that the forgery is one object and `SK.prf` a
+secret the adversary never sees, so it is one guess. **The first half is true and the second does
+not follow, because a guess is checkable.**
+
+`publishedRandomizer_eq_truncate` is the check: the randomiser the signer publishes for a
+framing is `Hashing.truncate` of the oracle's answer at `Hashing.randomizerInput SK.prf PK.seed
+framed`. So an adversary that asks for one signature, on any framing at all, can test a
+candidate `x` by querying at `Hashing.randomizerInput x PK.seed framed` and comparing the
+truncation with what that signature carries. Each candidate costs one query, a hit identifies
+the seed, and the forgery then publishes it. The event's probability is the probability of
+*finding* the seed, which is one unit of `2 ^ -128` per query — `q`-shaped, not constant.
+
+The same thing seen from the formal side: a constant can only come from an identical-until-bad
+hop against a game that does not read the seed, which is `HandlerComparison.prob_bad_eq`, and
+its bad flag is *a query at a `PRF_msg` input at the real seed*. `RandomiserDeferral`'s module
+docstring states the obstruction in those terms already — deferring the draw past the walk is
+necessary and **not sufficient**, because the tail's signer derives every randomiser by querying
+at the seed. The flag's probability is the randomiser defect's, which the two-way split retired
+and for which the budget has no room: `Target.allowanceOf`'s `Nat` line is `2 * q` with one `q`
+on each half.
+
+So `seedUnits` stays a parameter. A caller with a constant bound passes a numeral and
+`hclaims : 259 + seedUnits ≤ claims` fits inside the `247` units `allowanceOf` leaves; a caller
+with a `q`-shaped bound finds it cannot, which is the obstruction made visible rather than
+assumed away.
+
+**Where I would look instead of for a bound.** The leftover only arises through the FIPS 205
+format identity, which makes the signer's own randomiser query a *message* input; and in the
+case where it bites, the forgery's digest input was first queried by the signer, so its answer
+was drawn inside the signer and only its truncation was ever published. The digest itself is a
+uniform value the adversary has not seen — which is exactly the position the coverage charge is
+designed for. The case is therefore a bookkeeping gap rather than a probability one: the
+recorder files on fresh draws, and this draw was not the adversary's. That points at the
+recorder's filing seeing the signer, not at a charge. -/
 
 /-! ## The whole of it, from what is still owed
 
@@ -171,15 +258,24 @@ One hypothesis of the three below is an obligation and two are leaves. The oblig
 answer half's, restated with late disclosure ruled out; the leaves are the input half's bullet
 and the provenance branch the carrier's test retires. Nothing else is assumed. -/
 
-/-- **The target, from the answer obligation and the shared half's two leaves.** -/
-theorem target_of_answer_and_leaves
+/-- **The target, from the answer obligation and the shared half's three leaves.** -/
+theorem target_of_answer_and_leaves (claims seedUnits : Nat)
+    (hclaims : 259 + seedUnits ≤ claims) (hfits : claims + 6 ≤ 2 ^ subtreeHeight)
     (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
-      LateProbes.Ordering)
+      FinalAssembly.lateOrSeed)
     (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       SharedAssembly.InputBullet adversary LateProbes.Ordering)
-    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary) :
+    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary)
+    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧
+          AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+            (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+            (FinalAssembly.forgetFused pair.2) |
+        LateProbes.pairedOf FusedCoverage.fusedTail adversary] ≤
+        ((seedUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     HasTotalSecurityBits .strong 127 :=
-  FinalAssembly.target_of_producers hanswer (sharedChargedLate_of_parts hinput hsigner)
+  FinalAssembly.target_of_producers claims hfits hanswer
+    (sharedChargedLate_of_parts claims seedUnits hclaims hinput hsigner hseed)
 
 /-! ## `hsigner` is false, and it is false for a reason worth writing down
 

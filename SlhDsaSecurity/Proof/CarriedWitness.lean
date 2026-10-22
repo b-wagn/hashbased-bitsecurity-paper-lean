@@ -47,69 +47,81 @@ variable (pk : PublicKey)
 
 /-! ## The view
 
-Filing and caching in the same step: disclosure begins exactly where the answer does. A design
-that filed later would disclose after the signer's own reads, which is the failure this repairs.
--/
+**Filing is not installing.** The notice runs at every hash query, hit or miss; the install runs
+on a miss, as it always did. Tying them together was the gap recorded here earlier, and it was
+not a missing entry but a silent one: a served request whose digest input was already cached
+would go unfiled, and since an input is installed once and is never fresh again, it could never
+be filed later. The ordering defect would have been false by construction and the charge that
+bounds it would have looked discharged with its case defined away.
+
+Filing and caching still happen in the same step, which is what disclosure beginning exactly
+where the answer does means. What changed is that filing also happens in a step where nothing
+is cached, because the request was served all the same. -/
 
 open scoped Classical in
-/-- Install an answer, and file the input when the flag says the signer is serving it.
-
-**This definition is not yet the one the carrier needs, and the gap is recorded here so that
-nothing is built on it.** `RecorderView.recorderOf` calls `CacheView.update` on the *fresh*
-branch only — a cache hit returns the cached answer and leaves the state — so filing through the
-update files only inputs the run itself drew. That is exactly what `HandlerCarrier.FilesLeft`'s
-docstring forbids: a served request whose digest input is already cached is served all the same,
-and leaving it unfiled makes the signer's own reads unavailable at the carrier.
-
-The consequence is worse than a missing entry, which is why it is flagged rather than deferred.
-Filing only on fresh draws makes the ordering defect **vacuous**: a target-recorded input was
-not filed at its own query, it is installed in the cache by that query, so it is never fresh
-again, so it can never be filed later and `Served` can never reach it. `Late` would be false by
-construction, and the charge that bounds it would look discharged while the case it exists for —
-the adversary asking a digest input *before* the request that makes it a served one — had simply
-been defined away.
-
-The repair is one more operation on the view, applied at **every** hash query rather than only
-at a miss, with the single law that it does not touch the cache — which is all
-`run_recorderOf_forget` ever reads. At `σ := QueryCache HashSpec` it is the identity, so the
-cache instantiation and `recorderOf_cache` are unaffected. -/
-noncomputable def servingUpdate (state : State) (input : Bytes) (answer : HashOutput) : State :=
-  if FilesLeft pk state input then file (cacheAnswer state input answer) input
-  else cacheAnswer state input answer
+/-- Notice a query: file the input when the flag says the signer is serving it. -/
+noncomputable def servingNotice (state : State) (input : Bytes) : State :=
+  if FilesLeft pk state input then file state input else state
 
 open scoped Classical in
-/-- **Filing does not touch the cache**, so the view's one law holds. -/
-theorem cacheOf_servingUpdate (state : State) (input : Bytes) (answer : HashOutput) :
-    cacheOf (servingUpdate pk state input answer) =
-      (cacheOf state).cacheQuery input answer := by
+/-- **Filing does not touch the cache**, which is the law the view owes. -/
+theorem cacheOf_servingNotice (state : State) (input : Bytes) :
+    cacheOf (servingNotice pk state input) = cacheOf state := by
   classical
-  rw [servingUpdate]
+  rw [servingNotice]
   split <;> rfl
 
 open scoped Classical in
-/-- The carrier as a recorder state, with the signing oracle's own update. -/
-noncomputable def servingView : CacheView State where
-  cacheOf := cacheOf
-  update := servingUpdate pk
-  cache_update := cacheOf_servingUpdate pk
+/-- **Nor the framing**, so the test reads the same before and after the notice. -/
+theorem framing_servingNotice (state : State) (input : Bytes) :
+    (servingNotice pk state input).framing = state.framing := by
+  classical
+  rw [servingNotice]
+  split <;> rfl
 
 open scoped Classical in
-/-- **A filed input is served from that step on.** -/
-theorem served_servingUpdate_self (state : State) (input : Bytes) (answer : HashOutput)
-    (hfiles : FilesLeft pk state input) : Served (servingUpdate pk state input answer) input := by
+/-- **So the test is blind to the notice.** -/
+theorem filesLeft_servingNotice (state : State) (input probe : Bytes) :
+    FilesLeft pk (servingNotice pk state probe) input ↔ FilesLeft pk state input := by
   classical
-  rw [servingUpdate, if_pos hfiles]
+  constructor
+  · rintro ⟨framed, hframing, randomizer, hinput⟩
+    exact ⟨framed, by rw [← framing_servingNotice pk state probe]; exact hframing,
+      randomizer, hinput⟩
+  · rintro ⟨framed, hframing, randomizer, hinput⟩
+    exact ⟨framed, by rw [framing_servingNotice pk state probe]; exact hframing,
+      randomizer, hinput⟩
+
+open scoped Classical in
+/-- The carrier as a recorder state, with the signing oracle's own notice. -/
+noncomputable def servingView : CacheView State where
+  cacheOf := cacheOf
+  update := cacheAnswer
+  onQuery := servingNotice pk
+  cache_update := fun _ _ _ => rfl
+  cache_onQuery := cacheOf_servingNotice pk
+
+open scoped Classical in
+/-- **A filed input is served from that step on** — whether or not the step drew anything. -/
+theorem served_servingNotice_self (state : State) (input : Bytes)
+    (hfiles : FilesLeft pk state input) : Served (servingNotice pk state input) input := by
+  classical
+  rw [servingNotice, if_pos hfiles]
   exact Multiset.mem_cons_self _ _
 
 open scoped Classical in
-/-- **No step unserves anything.** -/
-theorem served_servingUpdate (state : State) (input probe : Bytes) (answer : HashOutput)
-    (hserved : Served state input) : Served (servingUpdate pk state probe answer) input := by
+/-- **No notice unserves anything.** -/
+theorem served_servingNotice (state : State) (input probe : Bytes)
+    (hserved : Served state input) : Served (servingNotice pk state probe) input := by
   classical
-  rw [servingUpdate]
+  rw [servingNotice]
   split
   · exact Multiset.mem_cons_of_mem hserved
   · exact hserved
+
+/-- **And installing an answer does not touch the served set.** -/
+theorem served_cacheAnswer_iff (state : State) (input probe : Bytes) (answer : HashOutput)
+    (hserved : Served state input) : Served (cacheAnswer state probe answer) input := hserved
 
 /-! ## The two tests at the carrier -/
 
@@ -122,18 +134,22 @@ def disclosedAtEnd : Bytes → State → Prop := fun input state => Served state
 
 open scoped Classical in
 /-- **Every entry of the disclosing recording was served**, read at the end of the run. The flag
-decided each entry when it was filed; the served set is what remembers. -/
+decided each entry when it was noticed; the served set is what remembers. -/
 theorem mem_served_of_mem_leftRecord {α : Type} (rightKeep : Bytes → State → Prop)
     (computation : OracleComp OracleWorld α) (state : StateOf State)
     (result : α × StateOf State)
-    (hmem : result ∈ support ((simulateQ
-      (@recorderOf State (servingView pk) (disclosingKeep pk) rightKeep) computation).run state))
+    (hmem : result ∈ support ((simulateQ (@noticingRecorderOf State (servingView pk)
+      (disclosingKeep pk) rightKeep) computation).run state))
     (hstart : ∀ entry ∈ state.2.1, Served state.1 entry.1) :
     ∀ entry ∈ result.2.2.1, Served result.2.1 entry.1 :=
-  @left_recordOf_endKeep_final State (servingView pk) α (disclosingKeep pk) rightKeep
-    (disclosedAtEnd)
-    (fun input view answer _ hkeep => served_servingUpdate_self pk view input answer hkeep)
-    (fun input probe view answer _ hkeep => served_servingUpdate pk view input probe answer hkeep)
+  @noticing_left_recordOf_endKeep_final State (servingView pk) α (disclosingKeep pk) rightKeep
+    disclosedAtEnd
+    (fun input view hkeep =>
+      served_servingNotice_self pk view input
+        ((filesLeft_servingNotice pk view input input).mp hkeep))
+    (fun input probe view hkeep => served_servingNotice pk view input probe hkeep)
+    (fun input probe view answer _ hkeep =>
+      served_cacheAnswer_iff view input probe answer hkeep)
     computation state result hmem hstart
 
 /-! ## What the flag rejects

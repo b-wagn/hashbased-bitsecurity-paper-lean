@@ -199,6 +199,11 @@ import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
+import SlhDsaSecurity.Proof.HandlerFacts
+import SlhDsaSecurity.Proof.HonestLinked
+import SlhDsaSecurity.Proof.TouchedKeys
+import SlhDsaSecurity.Proof.HonestTail
+import SlhDsaSecurity.Proof.ServingForget
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11923,22 +11928,22 @@ info: 'SlhDsaSecurity.RecorderView.left_recordOf_endKeep_final' depends on axiom
 #print axioms SlhDsaSecurity.RecorderView.left_recordOf_endKeep_final
 
 /--
-info: 'SlhDsaSecurity.CarriedWitness.cacheOf_servingUpdate' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CarriedWitness.cacheOf_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.CarriedWitness.cacheOf_servingUpdate
+#print axioms SlhDsaSecurity.CarriedWitness.cacheOf_servingNotice
 
 /--
-info: 'SlhDsaSecurity.CarriedWitness.served_servingUpdate_self' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CarriedWitness.served_servingNotice_self' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.CarriedWitness.served_servingUpdate_self
+#print axioms SlhDsaSecurity.CarriedWitness.served_servingNotice_self
 
 /--
-info: 'SlhDsaSecurity.CarriedWitness.served_servingUpdate' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CarriedWitness.served_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.CarriedWitness.served_servingUpdate
+#print axioms SlhDsaSecurity.CarriedWitness.served_servingNotice
 
 /--
 info: 'SlhDsaSecurity.CarriedWitness.mem_served_of_mem_leftRecord' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -11983,6 +11988,66 @@ info: 'SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord' dep
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord
+
+/-- info: 'SlhDsaSecurity.RecorderView.cacheOf_onQuery' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.cacheOf_onQuery
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inl
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_eq
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_some' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_some
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticingRecorderOf_run_inr_none
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.framing_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.framing_servingNotice
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.filesLeft_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.filesLeft_servingNotice
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.served_cacheAnswer_iff' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.served_cacheAnswer_iff
+
+/--
+info: 'SlhDsaSecurity.RecorderView.noticing_left_recordOf_endKeep_final' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.noticing_left_recordOf_endKeep_final
 
 /--
 info: 'SlhDsaSecurity.SignerDigestStep.signInternalAt_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -12593,3 +12658,95 @@ info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.facts_lazyProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.facts_lazyProgram
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.facts_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.facts_servingProgram
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_neverFails
+
+/-- info: 'SlhDsaSecurity.HandlerFacts.lazyAnswer_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerFacts.lazyAnswer_congr
+
+/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsAt_eq_with
+
+/-- info: 'SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.recordedAfterSeedsWith_eq
+
+/-- info: 'SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.run_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.honestKeys_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.honestKeys_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.keysOf_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.keysOf_congr
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.touched_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.touched_honestLinked
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_recorded
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_honest_handler
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_step_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_step_map
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_map
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_servingAfterSeeds_map
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceOf
+
+/-- info: 'SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate

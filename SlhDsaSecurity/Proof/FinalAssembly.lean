@@ -47,15 +47,27 @@ theorem forgetFused_map (adversary : Adversary)
     Functor.map_map]
   rfl
 
+/-- **The two events the answer side is allowed to rule out**, as one predicate of the refined
+pair: the ordering defect, and the narrowing's leftover at the forgery's own randomiser.
+
+`Obligations.AnswerChargedLate`'s event carries `¬ late`, so a disjunction here is a
+*conjunction* of exclusions there, which is what the answer side proves. Nothing in
+`Obligations` or `Target` has to know: `late` was a parameter of both, and this is the
+application. -/
+def lateOrSeed (pair : LateProbes.SplitPair) : Prop :=
+  LateProbes.Ordering pair ∨
+    AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
+      (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+      (forgetFused pair.2)
+
 set_option maxHeartbeats 1000000 in
 /-- **The target, from the two obligations.** -/
-theorem target_of_producers
-    (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail forgetFused
-      LateProbes.Ordering)
-    (hshared : Obligations.SharedChargedLate FusedCoverage.fusedTail forgetFused
-      LateProbes.Ordering) :
+theorem target_of_producers (claims : Nat) (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
+    (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail forgetFused lateOrSeed)
+    (hshared : Obligations.SharedChargedLate claims FusedCoverage.fusedTail forgetFused
+      lateOrSeed) :
     HasTotalSecurityBits .strong 127 :=
-  Obligations.target_of_charges_fused FusedCoverage.fusedTail forgetFused LateProbes.Ordering
-    forgetFused_map hanswer hshared
+  Obligations.target_of_charges_fused claims hclaims
+    FusedCoverage.fusedTail forgetFused lateOrSeed forgetFused_map hanswer hshared
 
 end SlhDsaSecurity.FinalAssembly

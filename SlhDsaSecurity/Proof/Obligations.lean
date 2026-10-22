@@ -97,7 +97,7 @@ def AnswerChargedLate {γ : Type}
 
 /-- The input half and the ordering defect, paid together at the refined paired run. Their
 counts are the two parts of one record, so one budget carries both. -/
-def SharedChargedLate {γ : Type}
+def SharedChargedLate {γ : Type} (claims : Nat)
     (fused : Adversary →
       (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
     (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
@@ -107,13 +107,14 @@ def SharedChargedLate {γ : Type}
     Pr[fun pair => GoodWalk pair.1 ∧
         (InputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
       Target.pairedFused (fused adversary)] ≤
-      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+      ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
 
 set_option maxHeartbeats 1000000 in
 /-- **The target, from the two obligations at a refining tail.** The split is the two-way one:
 a win is the answer side or the input side, and the defect is what the answer side is allowed to
 rule out. -/
-theorem target_of_charges_fused {γ : Type}
+theorem target_of_charges_fused {γ : Type} (claims : Nat)
+    (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
     (fused : Adversary →
       (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
     (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
@@ -123,9 +124,9 @@ theorem target_of_charges_fused {γ : Type}
       CanonicalGraph.Cells) × QueryCache HashSpec)),
       forget <$> fused adversary walk = tail adversary walk)
     (hanswer : AnswerChargedLate fused forget late)
-    (hshared : SharedChargedLate fused forget late) :
+    (hshared : SharedChargedLate claims fused forget late) :
     HasTotalSecurityBits .strong 127 :=
-  Target.target_of_obligations_fused fused forget hforget AnswerBad InputBad late
+  Target.target_of_obligations_fused claims hclaims fused forget hforget AnswerBad InputBad late
     (fun adversary _ hwalk _ _ hresult hwin =>
       SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin)
     hanswer hshared

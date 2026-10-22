@@ -2940,6 +2940,33 @@ against**:
 > a *constant*, and the constants have room. A charge against a query set *scales with `q`*, and
 > there is nothing to give.
 
+**That rule as stated is wrong, and the way it is wrong is the more useful fact.** Counting the
+adversary's *outputs* is not the same as counting its *chances*. A guess at a secret is a
+constant only when the adversary cannot tell a right guess from a wrong one; if some published
+value is a known function of that secret, each query is a **test**, and `q` queries buy `q`
+chances however few objects the adversary ever outputs.
+
+The forgery's published randomiser is the case that taught us this. It looked like one guess at
+`SK.prf` — the adversary never sees the seed, and the forgery is a single object. But
+`ObligationShapes.publishedRandomizer_eq_truncate` says the randomiser a signature carries for a
+framing is `Hashing.truncate` of the oracle's answer at `Hashing.randomizerInput SK.prf PK.seed
+framed`. So one signing request hands the adversary a *test*: for each candidate `x`, query
+`randomizerInput x PK.seed framed` and compare truncations. The seed is unseen and perfectly
+testable, and the charge is `(q - 1) / 2 ^ 128`, not `1 / 2 ^ 128`.
+
+So the question to ask of a leftover is in two parts, and the second is the one that gets missed:
+
+> What is it quantified over — and if it names a secret, is that secret **testable** from
+> anything the game publishes?
+
+The same obstruction is visible from the formal side, which is the check that the reading is
+right rather than merely plausible. A constant can only come from an identical-until-bad hop
+against a game that does not read the seed (`HandlerComparison.prob_bad_eq`), and that hop's bad
+flag is *a query at a `PRF_msg` input at the real seed* — whose probability is the randomiser
+defect's own, for which the ledger has no room. `RandomiserDeferral`'s docstring already said
+deferring the draw past the walk is necessary and **not sufficient**, "because the tail's signer
+derives every randomiser by querying at it".
+
 Two leftovers were settled by exactly this distinction, in opposite directions.
 
 **The forgery's randomiser being `SK.prf`** is one guess at a secret the adversary never sees —
