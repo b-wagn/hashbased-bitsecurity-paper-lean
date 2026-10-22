@@ -261,6 +261,7 @@ import SlhDsaSecurity.Proof.LedgerThird
 import SlhDsaSecurity.Proof.SeedFlag
 import SlhDsaSecurity.Proof.PrfClassCount
 import SlhDsaSecurity.Proof.SplitSeedView
+import SlhDsaSecurity.Proof.ForgetsOn
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16531,3 +16532,7 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 /-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedFlag.recordFlag_step_inl
+
+/-- info: 'SlhDsaSecurity.ForgetsOn.forgetsLawOn_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForgetsOn.forgetsLawOn_of_step
