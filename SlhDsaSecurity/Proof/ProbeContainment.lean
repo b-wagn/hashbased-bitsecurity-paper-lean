@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.SharedJoin
 import SlhDsaSecurity.Proof.KeygenValue
 import SlhDsaSecurity.Proof.ServedBridge
+import SlhDsaSecurity.Proof.HandlerFacts
 
 /-!
 # The probes the charge weighs are the run's own recorded queries
@@ -240,16 +241,97 @@ theorem lazyProgram_hash_cached (publicSeed : Digest)
 
 
 open scoped Classical in
+/-! ## What the containment reads of a handler
+
+The count is a fact about the handler's **probe list and its cache**, and about nothing else: a
+hash step appends one probe and leaves its own input cached, a coin step appends none, and a run
+keeps what it cached. `ServingProgram.servingProgram` is `OpenCache.lazyProgram` with one
+addition — a query the in-flight framing recognises is filed into the carrier in the same step —
+and filing touches neither the list nor the cache. So the containment holds at both, and the
+**second instance is what makes this an interface** rather than a generalisation written ahead of
+its use: the charge the containment pays is stated at the serving handler, and the containment
+was stated at the lazy one.
+
+`HandlerFacts.Facts` does not carry this. Its fields are about the carrier and the record; the
+cache is not among them, and `cached` is the field the replay argument turns on. -/
+
+/-- **The three facts the containment reads of a handler.** -/
+structure Probing (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp)) : Prop where
+  /-- A step appends one probe, or none for a coin. -/
+  record : ∀ (queried : OracleWorld.Domain) (state : OpenCache.HandlerState)
+    (step : OracleWorld.Range queried × OpenCache.HandlerState),
+    step ∈ support ((program queried).run state) →
+      step.2.2.1 = state.2.1 ++ HandlerFacts.appended queried state.1
+  /-- A hash step leaves its own input cached, holding the value it returned. -/
+  cached : ∀ (input : Bytes) (state : OpenCache.HandlerState)
+    (step : OracleWorld.Range (Sum.inr input) × OpenCache.HandlerState),
+    step ∈ support ((program (Sum.inr input)).run state) → step.2.1.cache input = some step.1
+  /-- A run keeps every cache entry. -/
+  persists : ∀ {α : Type} (computation : OracleComp OracleWorld α)
+    (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
+    z ∈ support ((simulateQ program computation).run state) → HandlerCarrier.Grows state.1 z.2.1
+
+/-- **The lazy handler is probing.** -/
+theorem probing_lazyProgram (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding) :
+    Probing publicSeed (OpenCache.lazyProgram publicSeed availableAt table) where
+  record queried state step hstep := by
+    rcases queried with coin | input
+    · rw [OpenCache.lazyProgram_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [show step.2 = state from by rw [hpure],
+        show HandlerFacts.appended (Sum.inl coin) state.1 = [] from rfl, List.append_nil]
+    · exact (ChargedProbe.lazyProgram_step_inr publicSeed availableAt table input state step
+        hstep).trans rfl
+  cached input state step hstep :=
+    lazyProgram_hash_cached publicSeed availableAt table input state step hstep
+  persists computation state z hz :=
+    CacheAvailability.lazyProgram_run_persists publicSeed availableAt table computation state z hz
+
+/-- **The filing handler is probing too.** -/
+theorem probing_servingProgram (publicSeed : Digest) (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding) :
+    Probing publicSeed (ServingProgram.servingProgram publicSeed pk availableAt table) where
+  record queried state step hstep := by
+    classical
+    rcases queried with coin | input
+    · rw [ServingProgram.servingProgram_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [show step.2 = state from by rw [hpure],
+        show HandlerFacts.appended (Sum.inl coin) state.1 = [] from rfl, List.append_nil]
+    · have hbind : step ∈ support
+        (LazyBudget.lazyAnswer publicSeed availableAt table input state.1 >>= fun inner =>
+          (pure (inner.1,
+            ((if HandlerCarrier.FilesLeft pk state.1 input then
+                HandlerCarrier.file inner.2 input else inner.2),
+              state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
+            ProbComp (OracleWorld.Range (Sum.inr input) × OpenCache.HandlerState))) := hstep
+      rw [mem_support_bind_iff] at hbind
+      obtain ⟨inner, -, hpure⟩ := hbind
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [show step.2.2.1 = state.2.1 ++ [(input, state.1)] from by rw [hpure]]
+      rfl
+  cached input state step hstep :=
+    ServingProgram.servingProgram_hash_cached publicSeed pk availableAt table input state step
+      hstep
+  persists computation state z hz :=
+    ServingProgram.servingProgram_run_persists publicSeed pk availableAt table computation state z
+      hz
+
 /-- **A probe the handler records while a stripped hash-only computation runs is one that
 computation consults.** The statement is read at any cache extending both what stripping answers
 from and what the handler ends with, because that is the only cache at which the run's answers
 and the replayed ones agree: the table's where the table answered, the handler's where it drew.
 -/
 theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (_table : Cells × Padding)
     (warm : QueryCache HashSpec) (computation : OracleComp HashSpec α) :
     ∀ (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
-      z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      z ∈ support ((simulateQ program
         (OracleComp.liftComp (simulateQ (StripCached.stripImpl warm) computation)
           OracleWorld)).run state) →
       ∀ later : QueryCache HashSpec,
@@ -295,18 +377,18 @@ theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
           show StripCached.stripImpl warm input =
             (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) from by
           simp [StripCached.stripImpl, hcache]]
-      have hz' : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      have hz' : z ∈ support ((simulateQ program
           (liftM (OracleWorld.query (Sum.inr input)) >>=
             fun answer : HashOutput => OracleComp.liftComp
               (simulateQ (StripCached.stripImpl warm) (next answer)) OracleWorld)).run state) := hz
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz'
       obtain ⟨step, hstepRun, hrest⟩ := hz'
       have hrecord : step.2.2.1 = state.2.1 ++ [(input, state.1)] :=
-        ChargedProbe.lazyProgram_step_inr publicSeed availableAt table input state step hstepRun
+        hprobing.record (Sum.inr input) state step hstepRun
       have hcached : step.2.1.cache input = some step.1 :=
-        lazyProgram_hash_cached publicSeed availableAt table input state step hstepRun
+        hprobing.cached input state step hstepRun
       have hpersists : HandlerCarrier.Grows step.2.1 z.2.1 :=
-        CacheAvailability.lazyProgram_run_persists publicSeed availableAt table _ step.2 z hrest
+        hprobing.persists _ step.2 z hrest
       have hreplay : replay later input = step.1 := by
         simp [replay, hfinal input step.1 hcache (hpersists.1 input step.1 hcached)]
       obtain ⟨added, hadded, hprobes⟩ := ih step.1 step.2 z hrest later hwarm hfinal
@@ -337,20 +419,21 @@ set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **A run of the stripped signer appends no aiming probe to the record.** -/
 theorem strippedSign_adds_no_aiming (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (sk : SecretKey) (hseed : sk.seed = table.1 Node.secretSeed)
     (hpk : sk.publicKey.seed = publicSeed) (hprf : sk.prf ≠ publicSeed)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
     (request : Message) (state : OpenCache.HandlerState)
     (z : Option Bytes × OpenCache.HandlerState)
-    (hz : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (hz : z ∈ support ((simulateQ program
       (StrippedGame.strippedSign (OpenCache.openCache publicSeed (fun _ => True) table) sk
         request)).run state))
     :
     ∃ added : List (Bytes × HandlerCarrier.State),
       z.2.2.1 = state.2.1 ++ added ∧
         ∀ entry ∈ added, ¬ RedrawCell.AimsSomewhere publicSeed entry.1 := by
-  obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed availableAt table
+  obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed program hprobing table
     (OpenCache.openCache publicSeed (fun _ => True) table)
     (Scheme.sign (m := OracleComp HashSpec) sk request) state z hz
     (RedrawCell.unionCache publicSeed table z.2.1.cache)
@@ -371,16 +454,17 @@ set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **A run of the stripped key generation appends nothing at all.** -/
 theorem strippedKeygen_adds_nothing (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (sds : Digest × Digest × Digest) (hseed : sds.1 = table.1 Node.secretSeed)
     (hpublic : sds.2.2 = publicSeed) (state : OpenCache.HandlerState)
     (z : (SecretKey × PublicKey) × OpenCache.HandlerState)
-    (hz : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (hz : z ∈ support ((simulateQ program
       (StrippedGame.strippedKeygen (OpenCache.openCache publicSeed (fun _ => True) table)
         sds)).run state))
     :
     z.2.2.1 = state.2.1 := by
-  obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed availableAt table
+  obtain ⟨added, hadded, hprobes⟩ := strip_probes_queriesUnder publicSeed program hprobing table
     (OpenCache.openCache publicSeed (fun _ => True) table)
     (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) state z hz
     (RedrawCell.unionCache publicSeed table z.2.1.cache)
@@ -400,23 +484,23 @@ theorem strippedKeygen_adds_nothing (publicSeed : Digest)
 
 /-! ## Counting the aiming probes against the record's aiming part
 
-**Nothing on the half's path uses anything from here to the end of the containment today — but
-not because the half owes a constant.** It does not. `InputBullet` at the end of this file pays
+**The half does not owe a constant here.** It does not. `InputBullet` at the end of this file pays
 `expected (card recordAiming) + 259`, because a claimed cell is checkable against the
 authentication path and the adversary's chances are its queries. The record's aiming part *is*
 precisely the probes whose address locates a cell, which is to say precisely those tests, so
 that expected count is the half's payment and this machinery is where to look first when
 `InputBullet.ClaimsCharged` is proved.
 
-What has no consumer is the particular route. `aimCount_*`, `weight_le_recordAim*` and the
-honest-phase lemmas they rest on were written to pay the half against the record's **canonical**
-part, and they bound the handler's own probe list rather than the run's recorded multiset. It is
-all true and all proved; `weight_le_recordAim_at` is the one already stated against the part the
-join carries, and it is the one to reach for.
-
 The weight is a count of the handler's list; the budget pays out of the run's recorded multiset.
 Both sides are counted by the same test, and a step moves them together: a hash call appends one
-probe and records one input, and a probe that aims is an input that aims. -/
+probe and records one input, and a probe that aims is an input that aims.
+
+**The route now runs to the handler the charge is stated at.** Everything from here to
+`weight_le_recordAim_at` was written against `OpenCache.lazyProgram`; the charge it pays is
+stated against `ServingProgram.servingProgram`. The two differ by a filing step, and filing
+touches neither the probe list nor the cache, which are the only two things this argument reads.
+So the route is stated against `Probing` instead of against a handler, and
+`weight_le_recordAim_serving` is the instance the half reaches for. -/
 
 open scoped Classical in
 /-- The aiming probes a handler's record holds. -/
@@ -444,23 +528,23 @@ theorem recordAim_add (publicSeed : Digest) (left right : Multiset Bytes) :
 open scoped Classical in
 /-- **A step appends exactly what it records**, counted by the aiming test. -/
 theorem aimCount_step (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (_table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : OpenCache.HandlerState)
     (z : OracleWorld.Range queried × OpenCache.HandlerState)
     (hz : z ∈ support
-      (((OpenCache.lazyProgram publicSeed availableAt table) queried).run state)) :
+      ((program queried).run state)) :
     aimCount publicSeed z.2.2.1 =
       aimCount publicSeed state.2.1 +
         recordAim publicSeed (RecordedQueries.recordOf queried) := by
   classical
   rcases queried with coin | input
-  · rw [OpenCache.lazyProgram_run_inl, mem_support_bind_iff] at hz
-    obtain ⟨value, -, hpure⟩ := hz
-    rw [support_pure, Set.mem_singleton_iff] at hpure
-    rw [show z.2 = state from by rw [hpure]]
+  · rw [show z.2.2.1 = state.2.1 from by
+      rw [hprobing.record (Sum.inl coin) state z hz,
+        show HandlerFacts.appended (Sum.inl coin) state.1 = [] from rfl, List.append_nil]]
     simp [RecordedQueries.recordOf, recordAim]
-  · rw [ChargedProbe.lazyProgram_step_inr publicSeed availableAt table input state z hz,
-      aimCount_append]
+  · rw [show z.2.2.1 = state.2.1 ++ [(input, state.1)] from
+      hprobing.record (Sum.inr input) state z hz, aimCount_append]
     refine congrArg _ ?_
     by_cases haims : RedrawCell.AimsSomewhere publicSeed input
     · rw [aimCount, List.countP_singleton, if_pos (by simpa using haims), recordAim,
@@ -476,11 +560,12 @@ theorem aimCount_step (publicSeed : Digest)
 open scoped Classical in
 /-- **One of the adversary's own queries appends exactly what it records.** -/
 theorem aimCount_recordedAdversaryImpl (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (log : SigningLog) (state : OpenCache.HandlerState)
     (outer : ((OracleWorld.Range queried × Multiplicative RecordedQueries.Tally) × SigningLog) ×
       OpenCache.HandlerState)
-    (houter : outer ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (houter : outer ∈ support ((simulateQ program
       ((WriterT.run (RecordedQueries.recordedAdversaryImpl queried)).run log)).run state)) :
     aimCount publicSeed outer.2.2.1 =
       aimCount publicSeed state.2.1 +
@@ -494,19 +579,20 @@ theorem aimCount_recordedAdversaryImpl (publicSeed : Digest)
       ((Counts.single .hash (hashCost queried) : Counts), RecordedQueries.recordOf queried) from by
       rw [← heq],
     show outer.2 = inner.2 from by rw [← heq], toAdd_ofAdd]
-  exact aimCount_step publicSeed availableAt table queried state inner hinner
+  exact aimCount_step publicSeed program hprobing table queried state inner hinner
 
 open scoped Classical in
 /-- **A signing request appends nothing that aims, and records nothing.** -/
 theorem aimCount_recordedSigningOracle (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (sk : SecretKey) (hseed : sk.seed = table.1 Node.secretSeed)
     (hpk : sk.publicKey.seed = publicSeed) (hprf : sk.prf ≠ publicSeed)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
     (request : Message) (log : SigningLog) (state : OpenCache.HandlerState)
     (outer : ((Option Bytes × Multiplicative RecordedQueries.Tally) × SigningLog) ×
       OpenCache.HandlerState)
-    (houter : outer ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (houter : outer ∈ support ((simulateQ program
       ((WriterT.run (RecordedQueries.recordedSigningOracle
         (StrippedGame.strippedSign (OpenCache.openCache publicSeed (fun _ => True) table) sk)
         request)).run log)).run state))
@@ -518,8 +604,8 @@ theorem aimCount_recordedSigningOracle (publicSeed : Digest)
   obtain ⟨step, hstep, hrest⟩ := houter
   rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hrest
   rw [show outer.2 = step.2 from by rw [hrest]]
-  obtain ⟨added, hadded, hprobes⟩ := strippedSign_adds_no_aiming publicSeed availableAt table sk
-    hseed hpk hprf hpublic request state step hstep
+  obtain ⟨added, hadded, hprobes⟩ := strippedSign_adds_no_aiming publicSeed program hprobing
+    table sk hseed hpk hprf hpublic request state step hstep
   rw [hadded, aimCount_append, show aimCount publicSeed added = 0 from ?_, Nat.add_zero]
   refine List.countP_eq_zero.mpr fun entry hentry => ?_
   simpa using hprobes entry hentry
@@ -531,7 +617,8 @@ open scoped Classical in
 /-- **The adversary's phase appends at most what it records.** Its own queries append exactly
 what they record; its signing requests append nothing that aims and record nothing. -/
 theorem aimCount_adversary (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (sk : SecretKey) (hseed : sk.seed = table.1 Node.secretSeed)
     (hpk : sk.publicKey.seed = publicSeed) (hprf : sk.prf ≠ publicSeed)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
@@ -539,7 +626,7 @@ theorem aimCount_adversary (publicSeed : Digest)
     ∀ (log : SigningLog) (state : OpenCache.HandlerState)
       (result : ((α × Multiplicative RecordedQueries.Tally) × SigningLog) ×
         OpenCache.HandlerState),
-      result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      result ∈ support ((simulateQ program
         ((WriterT.run (simulateQ (RecordedQueries.recordedAdversaryImpl +
           RecordedQueries.recordedSigningOracle
             (StrippedGame.strippedSign (OpenCache.openCache publicSeed (fun _ => True) table) sk))
@@ -571,10 +658,10 @@ theorem aimCount_adversary (publicSeed : Digest)
         aimCount publicSeed state.2.1 +
           recordAim publicSeed (Multiplicative.toAdd outer.1.1.2).2 := by
       rcases queried with world | request
-      · exact le_of_eq (aimCount_recordedAdversaryImpl publicSeed availableAt table world log
+      · exact le_of_eq (aimCount_recordedAdversaryImpl publicSeed program hprobing table world log
           state outer houter)
-      · rw [aimCount_recordedSigningOracle publicSeed availableAt table sk hseed hpk hprf hpublic
-          request log state outer houter]
+      · rw [aimCount_recordedSigningOracle publicSeed program hprobing table sk hseed hpk hprf
+          hpublic request log state outer houter]
         exact Nat.le_add_right _ _
     have hvalue : result.1.1.2 = outer.1.1.2 * inner.1.1.2 := by
       rw [← congrArg (fun z => z.1.1.2) heq]
@@ -593,11 +680,12 @@ open scoped Classical in
 the verifier's phase: it is handled by nobody, so every input it consults reaches the handler
 and is recorded in the same step. -/
 theorem aimCount_countRecorded (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     {α : Type} (computation : OracleComp OracleWorld α) :
     ∀ (state : OpenCache.HandlerState)
       (result : (α × RecordedQueries.Tally) × OpenCache.HandlerState),
-      result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      result ∈ support ((simulateQ program
         (RecordedQueries.countRecorded RecordedQueries.verifierCost computation)).run state) →
         aimCount publicSeed result.2.2.1 =
           aimCount publicSeed state.2.1 + recordAim publicSeed result.1.2.2 := by
@@ -618,7 +706,7 @@ theorem aimCount_countRecorded (publicSeed : Digest)
     rw [simulateQ_map, StateT.run_map, support_map] at hrest
     obtain ⟨inner, hinner, heq⟩ := hrest
     have htail := ih step.1 step.2 inner hinner
-    have hhead := aimCount_step publicSeed availableAt table queried state step hstep
+    have hhead := aimCount_step publicSeed program hprobing table queried state step hstep
     have hvalue : result.1.2 = RecordedQueries.verifierCost queried + inner.1.2 := by
       rw [← congrArg (fun z => z.1.2) heq]
     have hstate : result.2 = inner.2 := by rw [← congrArg Prod.snd heq]
@@ -638,7 +726,8 @@ Key generation appends nothing, the adversary's own queries append exactly what 
 signing requests append nothing that aims, and the verifier's calls append exactly what they
 record. -/
 theorem aimCount_recordedAfterSeeds (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (adversary : Adversary) (sds : Digest × Digest × Digest)
     (hsds : sds.1 = table.1 Node.secretSeed) (hpub : sds.2.2 = publicSeed)
     (sk : SecretKey) (pk : PublicKey)
@@ -647,12 +736,12 @@ theorem aimCount_recordedAfterSeeds (publicSeed : Digest)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
     (hkeygen : ∀ (inner : OpenCache.HandlerState)
       (keys : (SecretKey × PublicKey) × OpenCache.HandlerState),
-      keys ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      keys ∈ support ((simulateQ program
         (StrippedGame.strippedKeygen (OpenCache.openCache publicSeed (fun _ => True) table)
           sds)).run inner) → keys.1 = (sk, pk))
     (state : OpenCache.HandlerState)
     (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
-    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (hmem : result ∈ support ((simulateQ program
       (RecordedQueries.recordedAfterSeeds adversary sds
         (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
     aimCount publicSeed result.2.2.1 ≤
@@ -666,14 +755,14 @@ theorem aimCount_recordedAfterSeeds (publicSeed : Digest)
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
   obtain ⟨verify, hverify, hmem⟩ := hmem
   rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-  have hkeygen' := strippedKeygen_adds_nothing publicSeed availableAt table sds hsds hpub
+  have hkeygen' := strippedKeygen_adds_nothing publicSeed program hprobing table sds hsds hpub
     state keys hkeys
   have hkey := hkeygen state keys hkeys
-  have hphase' := aimCount_adversary publicSeed availableAt table sk hseed hpk hprf hpublic
+  have hphase' := aimCount_adversary publicSeed program hprobing table sk hseed hpk hprf hpublic
     (adversary.main pk) [] keys.2 phase (by
       rw [show pk = keys.1.2 from by rw [hkey], show sk = keys.1.1 from by rw [hkey]]
       exact hphase)
-  have hverify' := aimCount_countRecorded publicSeed availableAt table
+  have hverify' := aimCount_countRecorded publicSeed program hprobing table
     (Scheme.verify pk phase.1.1.1.message phase.1.1.1.signature) phase.2 verify (by
       rw [show pk = keys.1.2 from by rw [hkey]]
       exact hverify)
@@ -708,7 +797,8 @@ open scoped Classical in
 form the charge consumes it: the handler starts with an empty record, so what it accumulates is
 what the run records, counted by the same test. -/
 theorem weight_le_recordAim (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (adversary : Adversary) (sds : Digest × Digest × Digest)
     (hsds : sds.1 = table.1 Node.secretSeed) (hpub : sds.2.2 = publicSeed)
     (sk : SecretKey) (pk : PublicKey)
@@ -717,12 +807,12 @@ theorem weight_le_recordAim (publicSeed : Digest)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
     (hkeygen : ∀ (inner : OpenCache.HandlerState)
       (keys : (SecretKey × PublicKey) × OpenCache.HandlerState),
-      keys ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+      keys ∈ support ((simulateQ program
         (StrippedGame.strippedKeygen (OpenCache.openCache publicSeed (fun _ => True) table)
           sds)).run inner) → keys.1 = (sk, pk))
     (state : OpenCache.HandlerState) (hstart : state.2.1 = [])
     (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
-    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (hmem : result ∈ support ((simulateQ program
       (RecordedQueries.recordedAfterSeeds adversary sds
         (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
     (result.2.2.1.dedup.filter
@@ -730,8 +820,8 @@ theorem weight_le_recordAim (publicSeed : Digest)
       Multiset.card (result.1.2.filter (RedrawCell.AimsSomewhere publicSeed)) := by
   classical
   refine le_trans (dedup_filter_length_le publicSeed result.2.2.1) ?_
-  have hbound := aimCount_recordedAfterSeeds publicSeed availableAt table adversary sds hsds hpub
-    sk pk hseed hpk hprf hpublic hkeygen state result hmem
+  have hbound := aimCount_recordedAfterSeeds publicSeed program hprobing table adversary sds hsds
+    hpub sk pk hseed hpk hprf hpublic hkeygen state result hmem
   rw [hstart, show aimCount publicSeed [] = 0 from rfl, Nat.zero_add] at hbound
   exact hbound
 
@@ -749,14 +839,15 @@ set_option linter.constructorNameAsVariable false in
 open scoped Classical in
 /-- **The game with its keys handed in appends at most what it records.** -/
 theorem aimCount_recordedAfterSeedsAt (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (adversary : Adversary) (keys : SecretKey × PublicKey)
     (hseed : keys.1.seed = table.1 Node.secretSeed)
     (hpk : keys.1.publicKey.seed = publicSeed) (hprf : keys.1.prf ≠ publicSeed)
     (hpublic : ¬ HashSeparation.Possible (keys.1.publicKey.seed, keys.1.publicKey.root))
     (state : OpenCache.HandlerState)
     (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
-    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (hmem : result ∈ support ((simulateQ program
       (KeygenValue.recordedAfterSeedsAt adversary keys
         (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
     aimCount publicSeed result.2.2.1 ≤
@@ -768,9 +859,9 @@ theorem aimCount_recordedAfterSeedsAt (publicSeed : Digest)
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
   obtain ⟨verify, hverify, hmem⟩ := hmem
   rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-  have hphase' := aimCount_adversary publicSeed availableAt table keys.1 hseed hpk hprf hpublic
+  have hphase' := aimCount_adversary publicSeed program hprobing table keys.1 hseed hpk hprf hpublic
     (adversary.main keys.2) [] state phase hphase
-  have hverify' := aimCount_countRecorded publicSeed availableAt table
+  have hverify' := aimCount_countRecorded publicSeed program hprobing table
     (Scheme.verify keys.2 phase.1.1.1.message phase.1.1.1.signature) phase.2 verify hverify
   rw [show result.2 = verify.2 from by rw [hmem],
     show result.1.2 = (Multiplicative.toAdd phase.1.1.2).2 + verify.1.2.2 from by rw [hmem],
@@ -781,14 +872,15 @@ set_option maxHeartbeats 4000000 in
 open scoped Classical in
 /-- **The charge's weight is at most the record's aiming part**, with the keys handed in. -/
 theorem weight_le_recordAim_at (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (table : Cells × Padding)
     (adversary : Adversary) (keys : SecretKey × PublicKey)
     (hseed : keys.1.seed = table.1 Node.secretSeed)
     (hpk : keys.1.publicKey.seed = publicSeed) (hprf : keys.1.prf ≠ publicSeed)
     (hpublic : ¬ HashSeparation.Possible (keys.1.publicKey.seed, keys.1.publicKey.root))
     (state : OpenCache.HandlerState) (hstart : state.2.1 = [])
     (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
-    (hmem : result ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed availableAt table)
+    (hmem : result ∈ support ((simulateQ program
       (KeygenValue.recordedAfterSeedsAt adversary keys
         (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
     (result.2.2.1.dedup.filter
@@ -796,8 +888,8 @@ theorem weight_le_recordAim_at (publicSeed : Digest)
       Multiset.card (result.1.2.filter (RedrawCell.AimsSomewhere publicSeed)) := by
   classical
   refine le_trans (dedup_filter_length_le publicSeed result.2.2.1) ?_
-  have hbound := aimCount_recordedAfterSeedsAt publicSeed availableAt table adversary keys hseed
-    hpk hprf hpublic state result hmem
+  have hbound := aimCount_recordedAfterSeedsAt publicSeed program hprobing table adversary keys
+    hseed hpk hprf hpublic state result hmem
   rw [hstart, show aimCount publicSeed [] = 0 from rfl, Nat.zero_add] at hbound
   exact hbound
 
@@ -819,6 +911,29 @@ was free. It was not: it is the whole of this file, and it is proved against the
 The other owner of a containment is not in this position — its probe list is a function of a
 larger pair, with a forgetting map down to this one — so the two discharge the same obligation
 in different places, both soundly. -/
+
+open scoped Classical in
+/-- **The charge's weight is at most the record's aiming part, at the handler that files.**
+This is the seam the half's payment crosses: the charge is stated at
+`ServingProgram.servingProgram` and the containment was written at `OpenCache.lazyProgram`, and
+the two handlers differ by a filing step that touches neither the probe list nor the cache. -/
+theorem weight_le_recordAim_serving (publicSeed : Digest) (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (adversary : Adversary) (keys : SecretKey × PublicKey)
+    (hseed : keys.1.seed = table.1 Node.secretSeed)
+    (hpk : keys.1.publicKey.seed = publicSeed) (hprf : keys.1.prf ≠ publicSeed)
+    (hpublic : ¬ HashSeparation.Possible (keys.1.publicKey.seed, keys.1.publicKey.root))
+    (state : OpenCache.HandlerState) (hstart : state.2.1 = [])
+    (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
+    (hmem : result ∈ support
+      ((simulateQ (ServingProgram.servingProgram publicSeed pk availableAt table)
+        (KeygenValue.recordedAfterSeedsAt adversary keys
+          (OpenCache.openCache publicSeed (fun _ => True) table))).run state)) :
+    (result.2.2.1.dedup.filter
+        (fun entry => decide (RedrawCell.AimsSomewhere publicSeed entry.1))).length ≤
+      Multiset.card (result.1.2.filter (RedrawCell.AimsSomewhere publicSeed)) :=
+  weight_le_recordAim_at publicSeed _ (probing_servingProgram publicSeed pk availableAt table)
+    table adversary keys hseed hpk hprf hpublic state hstart result hmem
 
 /-- **The aiming part is the same test on both sides.** -/
 theorem recordAim_eq_card_recordAiming (pair : SharedJoin.RecordedPair) :

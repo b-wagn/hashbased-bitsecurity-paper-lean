@@ -15931,3 +15931,15 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk' depends on axioms: [
 /-- info: 'SlhDsaSecurity.ServingTable.expected_honest_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingTable.expected_honest_serving
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.probing_lazyProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.probing_lazyProgram
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.probing_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.probing_servingProgram
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.weight_le_recordAim_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim_serving
