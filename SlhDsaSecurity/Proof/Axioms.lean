@@ -6765,3 +6765,15 @@ info: 'SlhDsaSecurity.SigningFaithful.cases_of_win_charged' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SigningFaithful.cases_of_win_charged
+
+/--
+info: 'SlhDsaSecurity.RandomiserCharge.randomizerIndex_input' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserCharge.randomizerIndex_input
+
+/--
+info: 'SlhDsaSecurity.RandomiserCharge.randomizerInput_injective_prf' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserCharge.randomizerInput_injective_prf

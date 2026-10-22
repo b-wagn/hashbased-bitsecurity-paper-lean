@@ -163,4 +163,35 @@ theorem honest_probe_randomizerInput (warm current : QueryCache HashSpec)
       exact absurd (hequal ▸ hframe) hrequest
     · exact ⟨_, framed, hdigest⟩
 
+/-! ## The class, as a deferral consumes it
+
+`TrackedQueries.prob_meets_real_le` charges a run one unit of `2 ^ -128` per query for meeting an
+input that carries a secret, and it asks for the class in a particular shape: inputs indexed by
+a node, with the index readable off the bytes and the input injective in the secret. For the
+`PRF_msg` class the node is the pair the format carries beside the seed, and both conditions are
+the format's own injectivity. -/
+
+/-- The seed and message a `PRF_msg` input carries beside `SK.prf`. -/
+noncomputable def randomizerIndex (input : Bytes) : Option (Digest × Bytes) :=
+  open scoped Classical in
+  if h : ∃ node : Digest × Bytes, ∃ prf : Digest,
+    input = Hashing.randomizerInput prf node.1 node.2 then some h.choose else none
+
+/-- **The index is readable off the bytes.** -/
+theorem randomizerIndex_input (prf seed : Digest) (message : Bytes) :
+    randomizerIndex (Hashing.randomizerInput prf seed message) = some (seed, message) := by
+  classical
+  have hexists : ∃ node : Digest × Bytes, ∃ other : Digest,
+      Hashing.randomizerInput prf seed message =
+        Hashing.randomizerInput other node.1 node.2 := ⟨(seed, message), prf, rfl⟩
+  rw [randomizerIndex, dif_pos hexists]
+  obtain ⟨other, hother⟩ := hexists.choose_spec
+  obtain ⟨-, hseed, hmessage⟩ := Hashing.randomizerInput_injective hother
+  exact congrArg some (Prod.ext hseed.symm hmessage.symm)
+
+/-- **A `PRF_msg` input determines the seed it carries.** -/
+theorem randomizerInput_injective_prf (node : Digest × Bytes) :
+    Function.Injective fun prf : Digest => Hashing.randomizerInput prf node.1 node.2 :=
+  fun _ _ hequal => RandomizerGate.randomizerInput_prf_inj hequal
+
 end SlhDsaSecurity.RandomiserCharge
