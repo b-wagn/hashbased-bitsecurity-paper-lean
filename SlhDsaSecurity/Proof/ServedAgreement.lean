@@ -894,4 +894,105 @@ theorem agreesWithLog_run (pk : PublicKey)
       (logFiled_run publicSeed pk availableAt table sk hpk computation
         (accumulated, [], (HandlerCarrier.empty, probes, count)) (logFiled_nil sk _) z hz) input
 
+/-! ## How long the disclosing recording is
+
+The recording the load concentration is capped by is a list of **fresh** queries passing the
+left test, and the left test the repair installs is the carrier's served set. So its length is
+bounded by the number of *distinct* served inputs, and the agreement above says exactly what
+those are: the image of the log under one map, one input per logged request that has a framing.
+Hence the recording is no longer than the signing count, and the cap it has to meet is
+`signingLimit`, not twice it.
+
+**Freshness is what makes "distinct" the right word**, and it is the only place it is used here:
+a recorded query is not cached when it is recorded and is cached forever after, so no input is
+recorded twice. Nothing else about the recorder matters to the count.
+
+**The headroom is a factor of five over four and no more.** The concentration holds up to
+`5 * 2 ^ 62`; `signingLimit` is `2 ^ 64 = 4 * 2 ^ 62`, which fits, and `2 * signingLimit` is
+`2 ^ 65 = 8 * 2 ^ 62`, which does not — and not by a margin that sharpening could recover, since
+`2 ^ 65` is past the *mean* of the Poisson the coupling runs through, not merely past the proved
+tail. So an extra entry per served request would have to be excluded rather than paid for.
+
+It is excluded, by the filing test as it stands: a request's own `PRF_msg` query is
+`Hashing.randomizerInput` at the framing in flight, and
+`ServedBridge.randomizerInput_ne_messageInput` says that is never `Hashing.messageInput` at the
+same framing — the format identity inserts `PK.root` before the message, so the two differ in
+length. `HandlerCarrier.FilesLeft` compares against the framing in flight and nothing else, so
+it is false there. -/
+
+/-- The digest input a logged entry serves, when it has a framing. -/
+def servedOf (sk : SecretKey) (cache : QueryCache HashSpec)
+    (entry : (_ : Message) × Option Bytes) : Option Bytes :=
+  (entry.1.frame).map fun framed =>
+    Hashing.messageInput (HonestProbes.replayRandomizer cache sk framed) sk.publicKey framed
+
+/-- **The log's served inputs are the image of the log**, which is what bounds how many there
+are. -/
+theorem mem_map_servedOf (sk : SecretKey) (cache : QueryCache HashSpec) (log : SigningLog)
+    (input : Bytes) (hlog : ServingCarrier.logServed sk cache log input) :
+    some input ∈ log.map (servedOf sk cache) := by
+  obtain ⟨entry, hentry, framed, hframe, hinput⟩ := hlog
+  refine List.mem_map.mpr ⟨entry, hentry, ?_⟩
+  rw [servedOf, hframe, Option.map_some, hinput]
+
+/-- **A list of distinct served inputs is no longer than the log.** -/
+theorem length_le_log_of_served (sk : SecretKey) (log : SigningLog)
+    (carrier : HandlerCarrier.State)
+    (hagree : ServingCarrier.AgreesWithLog sk log carrier)
+    (inputs : List Bytes) (hnodup : inputs.Nodup)
+    (hserved : ∀ input ∈ inputs, HandlerCarrier.Served carrier input) :
+    inputs.length ≤ log.length := by
+  have hsub : inputs.map some ⊆ log.map (servedOf sk carrier.cache) := by
+    intro value hvalue
+    obtain ⟨input, hinput, rfl⟩ := List.mem_map.mp hvalue
+    exact mem_map_servedOf sk carrier.cache log input ((hagree input).mp (hserved input hinput))
+  have hnodupMap : (inputs.map some).Nodup :=
+    hnodup.map (fun _ _ h => Option.some.inj h)
+  simpa using (hnodupMap.subperm hsub).length_le
+
+/-- **The disclosing recording is no longer than the signing count.** The recorder's own
+freshness guard supplies the distinctness; the agreement supplies everything else. -/
+theorem record_length_le_log (sk : SecretKey) (log : SigningLog)
+    (carrier : HandlerCarrier.State)
+    (hagree : ServingCarrier.AgreesWithLog sk log carrier)
+    (record : List (Bytes × HashOutput)) (hnodup : (record.map Prod.fst).Nodup)
+    (hserved : ∀ entry ∈ record, HandlerCarrier.Served carrier entry.1) :
+    record.length ≤ log.length := by
+  have hbound := length_le_log_of_served sk log carrier hagree (record.map Prod.fst) hnodup
+    (fun input hinput => by
+      obtain ⟨entry, hentry, hvalue⟩ := List.mem_map.mp hinput
+      rw [← hvalue]
+      exact hserved entry hentry)
+  simpa using hbound
+
+/-- **And therefore inside the concentration's cap.** `signingLimit` is `4 * 2 ^ 62` and the
+concentration holds to `5 * 2 ^ 62`, so the disclosing cap is met with a quarter to spare — and
+would be missed, with no way back, at twice the signing limit. -/
+theorem record_length_le_cap (sk : SecretKey) (log : SigningLog)
+    (carrier : HandlerCarrier.State)
+    (hagree : ServingCarrier.AgreesWithLog sk log carrier)
+    (record : List (Bytes × HashOutput)) (hnodup : (record.map Prod.fst).Nodup)
+    (hserved : ∀ entry ∈ record, HandlerCarrier.Served carrier entry.1)
+    (hlimit : log.length ≤ signingLimit) : record.length ≤ 5 * 2 ^ 62 :=
+  le_trans (le_trans (record_length_le_log sk log carrier hagree record hnodup hserved) hlimit)
+    (by norm_num [signingLimit])
+
+/-- **A served request's own `PRF_msg` query is never filed**, so it never reaches the
+disclosing recording and the count stays one per request.
+
+This is the case that could have doubled the cap, and it is closed by length alone: the format
+identity reads a message input as a `PRF_msg` input at `PK.root ‖ m`, so a `PRF_msg` input at
+`m` itself is one block short of being a message input at `m`. `HandlerCarrier.FilesLeft`
+compares against the framing in flight, which is the signer's own `m`, so the two never meet. -/
+theorem not_filesLeft_randomizerInput (pk : PublicKey) (sk : SecretKey) (hpk : sk.publicKey = pk)
+    (carrier : HandlerCarrier.State) (framed : Bytes)
+    (hframing : carrier.framing = some framed) :
+    ¬ HandlerCarrier.FilesLeft pk carrier
+      (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) := by
+  subst hpk
+  rintro ⟨inFlight, hinFlight, randomizer, hinput⟩
+  rw [hframing] at hinFlight
+  rw [← Option.some.inj hinFlight] at hinput
+  exact ServedBridge.randomizerInput_ne_messageInput sk.prf randomizer sk.publicKey framed hinput
+
 end SlhDsaSecurity.ServedAgreement
