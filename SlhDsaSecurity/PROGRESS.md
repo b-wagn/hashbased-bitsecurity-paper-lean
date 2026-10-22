@@ -3186,6 +3186,27 @@ So, in the same words as the presentation rule one level down: a lemma should co
 most it knows, not the least its first consumer asked for. **A consumer that wants less can
 always forget more.**
 
+### Knowing the rule does not fire the rule
+
+Instances nine and ten of the dropped-witness class were written **one round after** the rule
+was corrected, by the person who corrected it, in the same file. Both times the carrier version's
+first consumer needed neither conjunct, so the conclusion was written to that consumer — which is
+precisely the judgement the two-case rule says not to make.
+
+> The rule is easy to state, easy to agree with, and does not fire on its own at the moment of
+> writing a conclusion.
+
+So it is not a belief to hold, it is a **step in the procedure**: *write the conclusion, then
+diff it against the proof's hypotheses before moving on.* Ten instances, and the only ones caught
+early were caught by running that diff deliberately rather than by knowing it was a good idea.
+
+### A second signal, about when to stop
+
+In the same sitting, a long single stretch produced a mangled edit — duplicated tactic lines and
+two `sorry`s — which was reverted. The author's note is the useful part: **the edit quality
+dropped before the judgement about edit quality did, and the signal was in the diff rather than
+in how it felt.** Reading the diff is therefore the check; feeling fine is not.
+
 ### The three failures are one failure
 
 Polarity (a hypothesis supplied in one direction and read in the other), granularity (two
