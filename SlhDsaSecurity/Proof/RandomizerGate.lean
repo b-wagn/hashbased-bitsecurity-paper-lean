@@ -25,6 +25,12 @@ first blocks are the two seeds, so unless the seeds coincide no input is both, a
 counts add to at most the record's size. The coincidence `SK.prf = PK.seed` is itself one unit
 of `2 ^ -128`, which is one of the five the assembly's allowance already carries against a
 margin of seven hundred and sixty.
+
+That sharing is what the input half has to be instantiated against: it must be charged on the
+record's **canonical** part rather than on the whole record, since the whole record is what the
+two classes together fill. Nothing is lost by the narrowing — a sensitive candidate is the
+canonical input of its node — but it is a change at the point of use rather than a restatement
+of the charge, so `card_add_card_le` is what the two instantiations have to be read against.
 -/
 
 open OracleComp OracleSpec ENNReal
