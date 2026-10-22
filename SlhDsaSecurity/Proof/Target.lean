@@ -47,6 +47,13 @@ The `q` coefficient has no margin at all: the same `Nat` line is `2 * q` on the 
 cannot be added. Constants can, up to the margin, which is why `allowanceAt` takes the claims
 numeral and the defect units as parameters.
 
+**What is still open is five leaves, not two obligations.** The fused target takes an answer
+obligation and a shared one, and each decomposes further: the answer side's into `hjoinNarrow`,
+`hleftBound` and `hdisclosing`, the shared side's into the input half's bullet and the seed
+charge at `seedUnits`. Counting the signature's hypotheses understates what is unproved, which
+is the same kind of error as counting a statement's witnesses instead of an adversary's
+chances.
+
 **What may be charged as a constant, and what may not.** An event whose witness is a single
 object of the run — the forgery, its randomiser, its claims — is not thereby a constant. What
 decides it is whether a candidate witness can be *checked* against something the game publishes:
