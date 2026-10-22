@@ -3566,3 +3566,53 @@ consumes, and the margin is 251 rather than 247.
 The rule: **a weakening added to match an expected shape is a silent reservation.** If the proof
 ends on something tighter, say so and let the consumer weaken — the consumer knows what it can
 afford and the producer does not.
+
+## The Poisson block: sound, and the margins are a quarter of a bit
+
+The concentration machinery under `prob_not_goodBlock_le` — `ForsMoments`,
+`ForsConcentrationPoisson`, `ForsConcentration`, `ForsConcentrationOccupancy`,
+`ForsConcentrationExtended`, `ForsConcentrationSharper` — was read line by line. **No leaf, no
+hypothesis discharged by something weaker, nothing vacuous.** The chain, so the next reader does
+not have to reconstruct it:
+
+```
+prob_not_goodBlock_le
+  ← ForsDisclosureTape.bad_load_probability
+  ← uniform_load_tail_extended_of_le
+  ← uniformLoads_monotone, uniform_load_tail_extended
+  ← uniformLoads_mul_poisson_tail_le, poisson_count_tail_extended_half, poisson_load_tail
+  ← poisson_sixth_sum_bound, poisson_centered_sum_moments
+  ← independent_sum_moments, centeredMoment_bounds
+  ← iIndepFun_pi, poisson_integral_centered_power, touchard_bounds
+```
+
+**Four places an error would have hidden, each closed by reading.** The sixth-moment partition
+formula is a *definition* whose value is pinned by `sumMoment_zero` and `sumMoment_succ`, both
+proved, so it never has to be trusted. `iIndepFun_pi` is Mathlib's, read from its statement and
+applied at the coordinate-composition shape it actually has. Integrability is unconditional —
+`poisson_integrable_power` and `poisson_integrable_centered_power` hold at every rate, degree,
+order and centre, so there is nothing to discharge. And the two rates match on both sides of the
+Poissonisation: `poissonLoads` is rate 3 per bin, the mixture and both Chebyshev steps are at
+`3 * 2 ^ 63`, and the singleton densities agree exactly, so `poissonLoads_eq_mixture` is an
+identity rather than an inequality in disguise.
+
+**The margins, which decide whether a parameter is re-tunable.** Both final divisions are
+verified exactly over rationals by `norm_num`, not estimated:
+
+| chain | bound | threshold | ratio | needed | slack |
+| --- | --- | --- | --- | --- | --- |
+| main | `≈ 2 ^ 468.91` | `2 ^ 612` | `2 ^ -143.09` | `< 2 ^ -142` | **1.09 bits** |
+| sharper | `≈ 2 ^ 468.91` | `≈ 2 ^ 596.14` | `2 ^ -127.24` | `< 2 ^ -127` | **0.24 bits** |
+
+A quarter of a bit is not room. **Anyone who changes `forsHeight`, the Poisson rate 3, or the
+`5 * 2 ^ 62` cap should expect `ForsConcentrationSharper` to break first**, and should check it
+before the main chain rather than after. The cap itself is already known not to be re-tunable
+upward: `2 * signingLimit = 2 ^ 65` is past the mean of the rate-3 Poisson.
+
+**Where the reading stopped**, named separately from the conclusion so the rest stays usable:
+the kernel numerics were not re-executed (confirmed `decide +kernel` over a Stirling table proved
+equal to Mathlib's, and magnitudes checked by hand); Mathlib was not audited beyond `iIndepFun_pi`,
+the one place a misapplication would have been invisible; and the presampling coupling
+(`DigestTape.padding`, `TapeFactor`, `BlockViews.evalDist_blockTape`) was read only far enough to
+confirm both joints are **equalities of laws** rather than bounds, so the block attaches to the
+game without slack.
