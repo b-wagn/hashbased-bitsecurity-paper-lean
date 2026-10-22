@@ -16052,3 +16052,7 @@ info: 'SlhDsaSecurity.SharedJoin.card_recordAiming_le_budget' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.card_recordAiming_le_budget
+
+/-- info: 'SlhDsaSecurity.TargetColumn.card_prf_le_indicator_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_prf_le_indicator_record

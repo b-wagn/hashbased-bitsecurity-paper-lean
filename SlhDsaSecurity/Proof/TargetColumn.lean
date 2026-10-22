@@ -405,4 +405,56 @@ theorem sharedChargedLate_weighed_at (fused : LateProbes.FusedTail)
         add_le_add (hparts q adversary hbudget) (Nat.cast_le.mpr hclaims)
     _ = ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
 
+/-! ## The count `hrecord` is stated at, and why no hop can produce it
+
+Building the socket for `hrecord` turned up a defect in `hrecord` itself, so the socket is not
+here and this section is what replaces it.
+
+`RecordColumn.sharedChargedLate_of_parts_record_at` asks for
+
+    Pr[GoodWalk ∧ seedEvent] ≤ expected (card (recordPrfClass …)) / 2 ^ 128
+
+and `sharedChargedLate_weighed_at` above inherits it. **That is the wrong count, and no game hop
+can supply it**, because the count is zero exactly off the event it is paying for.
+`recordPrfClass` filters the record by `PrfClass` *at the walk's own seed*, so by
+`recordPrfClass_eq_zero_of_not_recordMeets` it vanishes off the seed event and
+`card_prf_le_indicator_record` below bounds it by the whole record on the event. Writing `B` for
+a bound on the record's cardinality, that gives
+
+    expected (card recordPrfClass) ≤ B * Pr[GoodWalk ∧ seedEvent]
+
+so the hypothesis would read `Pr ≤ B * Pr / 2 ^ 128`, forcing `Pr = 0` for every adversary with
+`B < 2 ^ 128`. The seed event is not impossible — one query at a guessed seed hits with
+probability `2 ^ -128` — so the hypothesis is **false**, not unproved.
+
+**What the blind order actually gives** is `RecordPrfCharge.prob_recordMeetsPrfClass_blind`:
+`card` guesses from a record of `card` inputs, charged at the **whole** record and bounded by
+the run's work. So the honest count is `card (recordOf pair)`, not the `PRF_msg` part of it.
+
+**And that undoes the recovery.** With `hrecord` at the whole record, `hparts` becomes
+`aiming + weighed + record ≤ q - 2 ^ subtreeHeight`, and `aiming` is a part of the record, so the
+sum reaches two records' worth again. Restricting the seed union bound to the non-aiming entries
+does not help: it removes `aiming` from the third term and leaves `record` in it. The `3 / 2` is
+back, and `card_three_parts_le_two_records` is again the operative ceiling.
+
+So `sharedChargedLate_weighed_at` and `card_parts_weighed_le_record` are **sound and not
+usable**: the weighed count is the right way to spend the ordering column, and the column it was
+meant to save is spent elsewhere. They stay, labelled, as the record of an accounting that is
+correct about the ordering side and was built on a false hypothesis about the seed side. -/
+
+open scoped Classical in
+/-- **The `PRF_msg` part is bounded by the record on the event and by nothing off it.** This is
+what makes `hrecord`'s count self-defeating: it is large only where the event it pays for
+already holds. -/
+theorem card_prf_le_indicator_record (pair : SharedJoin.RecordedPair) :
+    Multiset.card (RecordColumn.recordPrfClass pair) ≤
+      (if RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 then
+        Multiset.card (SharedJoin.recordOf pair) else 0) := by
+  classical
+  by_cases hmeets : RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2
+  · rw [if_pos hmeets]
+    exact Multiset.card_le_card (Multiset.filter_le _ _)
+  · rw [if_neg hmeets, recordPrfClass_eq_zero_of_not_recordMeets pair hmeets]
+    simp
+
 end SlhDsaSecurity.TargetColumn
