@@ -399,10 +399,11 @@ theorem prob_fired_le (left right endKeep : Bytes → QueryCache HashSpec → Pr
         (fun result => result.2.2.2.length) * rate := by
   classical
   have hmain := PotentialCharge.prob_fired_le (recorder left right)
-    (fun state => state.1) (stepOf left right)
+    (fun state => state.1) (stepOf left right) (fun state _ => state)
     (run_inl left right) (run_inl_mass left right) (run_inr_cached left right)
     (run_inr_fresh left right) (run_mass left right)
     (Fired endKeep) (potential spent) gauge rate
+    (fun _ _ hfired => hfired) (fun _ _ => le_rfl) (fun _ _ => rfl)
     (gauge_stepOf left right) (gauge_run left right)
     (fun state input hcache hnotfired =>
       step_bound left right endKeep spent becomes rate hexcludes hbecomes hsettles hleftSpent
