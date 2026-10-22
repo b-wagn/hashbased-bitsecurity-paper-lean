@@ -179,6 +179,7 @@ import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.PhaseFusion
 import SlhDsaSecurity.Proof.ServedBridge
 import SlhDsaSecurity.Proof.LateProbes
+import SlhDsaSecurity.Proof.LateProvenance
 import SlhDsaSecurity.Proof.HandlerCarrier
 import SlhDsaSecurity.Proof.ServingProgram
 import SlhDsaSecurity.Proof.ServingPhase
@@ -11321,3 +11322,33 @@ info: 'SlhDsaSecurity.FusedCoverage.forgetsTo' depends on axioms: [propext, Clas
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedCoverage.forgetsTo
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.mem_record_countRecorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.mem_record_countRecorded
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.keygen_prf' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.keygen_prf
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.keygen_publicKey' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.keygen_publicKey
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.provenance_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.provenance_recordedAfterSeeds
+
+/--
+info: 'SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProvenance.hrecord_of_signerDigestFree
