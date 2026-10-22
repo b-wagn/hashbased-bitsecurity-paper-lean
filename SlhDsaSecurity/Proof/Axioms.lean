@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.BlockDisclosures
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
@@ -6547,3 +6548,39 @@ info: 'SlhDsaSecurity.RandomiserCharge.walk_cache_prf_fresh' depends on axioms: 
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageRouted.forgeryDisclosedCovered_of_witnesses
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.evalDist_leftTape_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.evalDist_leftTape_uniform
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.block_bad_load_probability' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.block_bad_load_probability
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_card_le_loads' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_card_le_loads
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_update_self' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_update_self
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.block_coverage_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.block_coverage_le
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.uses_le_of_declines_block' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.uses_le_of_declines_block
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.expectedUses_le_trials' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.expectedUses_le_trials
+
+/-- info: 'SlhDsaSecurity.BlockDisclosures.block_coverage_le_trials' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockDisclosures.block_coverage_le_trials
