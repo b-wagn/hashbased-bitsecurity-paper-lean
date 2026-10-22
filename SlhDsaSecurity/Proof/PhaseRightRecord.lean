@@ -186,7 +186,9 @@ def RightSource (sk : SecretKey) (rightKeep : Bytes → QueryCache HashSpec → 
           mid (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some answer ∧
             (∀ (probe : Bytes) (value : HashOutput),
               mid probe = some value → final probe = some value) ∧
-              mid entry.1 = none ∧ rightKeep entry.1 mid
+              mid entry.1 = none ∧ rightKeep entry.1 mid ∧
+                QueriesUnder final (SignerRandomiser.signInternalAt
+                  (m := OracleComp HashSpec) (Hashing.truncate answer) sk framed) entry.1
 
 theorem RightSource.mono_record {sk : SecretKey}
     {rightKeep : Bytes → QueryCache HashSpec → Prop} {record extra : Multiset Bytes}
@@ -284,14 +286,19 @@ theorem right_record_phase (leftKeep rightKeep : Bytes → QueryCache HashSpec �
             at houterMem
           exact Or.inl houterMem
         | some framed =>
+          have hsignedFinal : ∀ (probe : Bytes) (value : HashOutput),
+              signed.2.1 probe = some value → final probe = some value := by
+            intro probe value hprobe
+            exact houterFinal probe value (by rw [hsignedState]; exact hprobe)
           rcases sign_right_record leftKeep rightKeep sk request framed hframe state signed
-            hsigned entry houterMem with hprior | hrandomiser | ⟨mid, answer, hmid, hlater,
-              habsent, hkeep⟩
+            hsigned final hsignedFinal entry houterMem with hprior | hrandomiser |
+              ⟨mid, answer, hmid, hmidLater, habsent, hkeep, hqueries⟩
           · exact Or.inl hprior
           · exact Or.inr (Or.inr ⟨framed, Or.inl hrandomiser⟩)
-          · refine Or.inr (Or.inr ⟨framed, Or.inr ⟨mid, answer, hmid, ?_, habsent, hkeep⟩⟩)
+          · refine Or.inr (Or.inr ⟨framed, Or.inr ⟨mid, answer, hmid, ?_, habsent, hkeep,
+              hqueries⟩⟩)
             intro probe value hprobe
-            exact houterFinal probe value (by rw [hsignedState]; exact hlater probe value hprobe)
+            exact hsignedFinal probe value (hmidLater probe value hprobe)
     · exact Or.inr (by rw [hrecord]; exact hsource.mono_record_right)
 
 /-! ## Key generation's own step

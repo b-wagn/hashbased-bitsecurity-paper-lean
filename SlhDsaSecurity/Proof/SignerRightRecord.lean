@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.SignerDigestStep
+import SlhDsaSecurity.Proof.CacheProvenance
 
 /-!
 # What a signing sub-run can put in the target recording
@@ -52,6 +53,34 @@ theorem appended_right_mem (leftKeep rightKeep : Bytes → QueryCache HashSpec �
       · rw [appended_of_neither leftKeep rightKeep input state answer hleft hright] at hentry
         exact Or.inl hentry
 
+/-! ## The rest of the signer, lifted
+
+What the strengthened conclusion needs: the sub-run after the randomiser query read as a lift of
+the hash-only computation, so that `CacheProvenance.queriesUnder_of_fresh_liftM` can say which
+inputs it consulted. The naturality is `Correctness.Naturality.signInternal_simulate` without
+its first line. -/
+
+theorem signInternalAt_simulate {m : Type → Type} [Monad m] [LawfulMonad m] [HasQuery HashSpec m]
+    (impl : QueryImpl HashSpec m)
+    (himpl : ∀ input, impl input = (query (spec := HashSpec) input : m HashOutput))
+    (randomizer : Digest) (sk : SecretKey) (message : Bytes) :
+    simulateQ impl (signInternalAt randomizer sk message) =
+      (signInternalAt randomizer sk message : m Signature) := by
+  simp only [signInternalAt, Hashing.messageDigest, simulateQ_bind, simulateQ_pure,
+    VerifierNaturality.hash_simulate impl himpl,
+    Correctness.Naturality.fors_sign_simulate impl himpl,
+    VerifierNaturality.fors_simulate impl himpl,
+    Correctness.Naturality.hypertree_sign_simulate impl himpl]
+
+/-- **The rest of the signer, in the game's monad, is the hash-only one lifted.** -/
+theorem signInternalAt_liftM (randomizer : Digest) (sk : SecretKey) (message : Bytes) :
+    (signInternalAt (m := OracleComp OracleWorld) randomizer sk message) =
+      liftM (signInternalAt (m := OracleComp HashSpec) randomizer sk message) := by
+  rw [← OracleComp.liftComp_eq_liftM, OracleComp.liftComp_def]
+  exact (signInternalAt_simulate
+    (fun t => liftM (HashSpec.query t) : QueryImpl HashSpec (OracleComp OracleWorld))
+    (fun _ => rfl) randomizer sk message).symm
+
 /-- A hash query of the scheme's, simulated, is the implementation at that input. -/
 theorem simulateQ_hash {σ : Type} (impl : QueryImpl OracleWorld (StateT σ ProbComp))
     (input : Bytes) :
@@ -82,18 +111,35 @@ cached** — or is the `PRF_msg` input itself, which the narrowing removes.
 
 No ordering is established and no step is named. The first query installs the randomiser answer;
 `right_record_suffix` on the rest hands back, for each entry it files, a cache extending the one
-that query left. -/
+that query left.
+
+**The conclusion also names what the rest of the signer queried**, because a cache and an answer
+are not usable together without knowing which entry the cache belongs to: the consumer has to
+complete a disclosure witness at the *same* frame, and the entry's shape is what ties the two.
+`probes_signInternalAt` reads that shape off the queries, at the cache the consumer names.
+
+Two further things the proof has in hand and does not return, so that the next reader does not
+have to rediscover them: the entry's own value in the final cache (`= some entry.2`, free from
+`right_record_suffix`), and the containment of the sub-run's start in the mid. The first would
+be worth returning if a consumer wanted it; the second is about an object the consumer cannot
+name. -/
 theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
     (sk : SecretKey) (message : Bytes) (state : SplitState) (result : Signature × SplitState)
     (hresult : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
-      (Scheme.signInternal (m := OracleComp OracleWorld) sk message)).run state)) :
+      (Scheme.signInternal (m := OracleComp OracleWorld) sk message)).run state))
+    (later : QueryCache HashSpec)
+    (hlater : ∀ (probe : Bytes) (value : HashOutput),
+      result.2.1 probe = some value → later probe = some value) :
     ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨
       entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed message ∨
       ∃ (mid : QueryCache HashSpec) (answer : HashOutput),
         mid (Hashing.randomizerInput sk.prf sk.publicKey.seed message) = some answer ∧
           (∀ (probe : Bytes) (value : HashOutput),
             mid probe = some value → result.2.1 probe = some value) ∧
-            mid entry.1 = none ∧ rightKeep entry.1 mid := by
+            mid entry.1 = none ∧ rightKeep entry.1 mid ∧
+              CacheReplay.QueriesUnder later
+                (signInternalAt (m := OracleComp HashSpec) (Hashing.truncate answer) sk message)
+                entry.1 := by
   classical
   rw [run_signInternal, mem_support_bind_iff] at hresult
   obtain ⟨step, hstep, hrest⟩ := hresult
@@ -124,8 +170,21 @@ theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache Has
       hprior | hself
     · exact Or.inl hprior
     · exact Or.inr (Or.inl hself)
-  · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries entry hnew
-    exact Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hlater, habsent, hkeep⟩)
+  · obtain ⟨mid, hstart, hmidLater, habsent, hkeep, hfinal⟩ := hentries entry hnew
+    have hfreshStart : step.2.1 entry.1 = none := by
+      rcases hstate : step.2.1 entry.1 with _ | value
+      · rfl
+      · rw [hstart entry.1 value hstate] at habsent
+        exact absurd habsent (by simp)
+    have hmemRom : (result.1, result.2.1) ∈ support ((simulateQ KeygenUniform.rom
+        (liftM (signInternalAt (m := OracleComp HashSpec) (Hashing.truncate step.1) sk message) :
+          OracleComp OracleWorld Signature)).run step.2.1) := by
+      rw [← signInternalAt_liftM]
+      exact mem_support_rom leftKeep rightKeep _ step.2 result hrest
+    exact Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hmidLater, habsent, hkeep,
+      CacheProvenance.queriesUnder_of_fresh_liftM _ step.2.1 result.2.1 later result.1
+        hmemRom hlater entry.1 hfreshStart
+        (Option.ne_none_iff_exists'.mpr ⟨entry.2, hfinal⟩)⟩)
 
 /-! ## At the request, which is where provenance names it
 
@@ -159,20 +218,30 @@ theorem sign_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec �
     (hframe : request.frame = some framed)
     (state : SplitState) (result : Option Bytes × SplitState)
     (hresult : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
-      (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state)) :
+      (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state))
+    (later : QueryCache HashSpec)
+    (hlater : ∀ (probe : Bytes) (value : HashOutput),
+      result.2.1 probe = some value → later probe = some value) :
     ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨
       entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∨
       ∃ (mid : QueryCache HashSpec) (answer : HashOutput),
         mid (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some answer ∧
           (∀ (probe : Bytes) (value : HashOutput),
             mid probe = some value → result.2.1 probe = some value) ∧
-            mid entry.1 = none ∧ rightKeep entry.1 mid := by
+            mid entry.1 = none ∧ rightKeep entry.1 mid ∧
+              CacheReplay.QueriesUnder later
+                (signInternalAt (m := OracleComp HashSpec) (Hashing.truncate answer) sk framed)
+                entry.1 := by
   classical
   rw [Scheme.sign, hframe] at hresult
   simp only [simulateQ_bind, simulateQ_pure, StateT.run_bind, StateT.run_pure,
     mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hresult
   obtain ⟨inner, hinner, hvalue⟩ := hresult
   rw [show result.2 = inner.2 from by rw [hvalue]]
-  exact signInternal_right_record leftKeep rightKeep sk framed state inner hinner
+  have hinnerState : result.2 = inner.2 := by rw [hvalue]
+  refine signInternal_right_record leftKeep rightKeep sk framed state inner hinner later
+    (fun probe value hprobe => hlater probe value ?_)
+  rw [hinnerState]
+  exact hprobe
 
 end SlhDsaSecurity.SignerRightRecord
