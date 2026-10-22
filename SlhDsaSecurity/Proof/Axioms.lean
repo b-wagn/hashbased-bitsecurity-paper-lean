@@ -175,6 +175,7 @@ import SlhDsaSecurity.Proof.ServedDisclosure
 import SlhDsaSecurity.Proof.ServedLog
 import SlhDsaSecurity.Proof.SplitRecorder
 import SlhDsaSecurity.Proof.ServingCarrier
+import SlhDsaSecurity.Proof.PhaseFusion
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8629,3 +8630,15 @@ info: 'SlhDsaSecurity.ServingCarrier.servedAt_setFraming' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.ServingCarrier.framed_of_filesLeft' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingCarrier.framed_of_filesLeft
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.fuse_run' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.fuse_run
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.run_fuse' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.run_fuse
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.fuseServing_id' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.fuseServing_id
