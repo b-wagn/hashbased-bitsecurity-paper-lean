@@ -68,13 +68,22 @@ theorem right_record_adversaryImpl (rightKeep : Bytes → HandlerCarrier.State �
 
 /-- Where a target-recorded entry of the phase can have come from: the adversary's own record,
 or a signing sub-run — and in the second case, either the request's randomiser probe or an entry
-filed at a carrier that already held that request's randomiser answer. -/
+filed at a carrier that already held that request's randomiser answer.
+
+The randomiser disjunct carries **the view the probe was filed at**, not merely the shape of its
+input. Without it the branch cannot be closed: `AnswerCarrier.not_carrierRightKeep_randomizerInput`
+refutes the target test only at a state whose framing is the request's own frame, and the shape
+alone does not say the filing happened at such a state. The view is the serving notice taken at
+the carrier the request was served from, so its framing is `some framed` by
+`CarriedWitness.framing_servingNotice`. -/
 def CarrierRightSource (sk : SecretKey) (rightKeep : Bytes → HandlerCarrier.State → Prop)
     (record : Multiset Bytes) (final : QueryCache HashSpec) (entry : Bytes × HashOutput) :
     Prop :=
   entry.1 ∈ record ∨
     ∃ framed : Bytes,
-      entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∨
+      (entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∧
+          ∃ view : HandlerCarrier.State,
+            view.framing = some framed ∧ rightKeep entry.1 view) ∨
         ∃ (mid : HandlerCarrier.State) (answer : HashOutput),
           mid.cache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some answer ∧
             (∀ (probe : Bytes) (value : HashOutput),
@@ -202,7 +211,11 @@ theorem right_record_phase (rightKeep : Bytes → HandlerCarrier.State → Prop)
             hprior | hrandomiser | ⟨mid, answer, hmid, hlater, habsent, hkeep, hframing, hqueries⟩
           · rw [(CarrierTail.bracket_startServingOn request carrier).2] at hprior
             exact Or.inl hprior
-          · exact Or.inr (Or.inr ⟨framed, Or.inl hrandomiser⟩)
+          · refine Or.inr (Or.inr ⟨framed, Or.inl ⟨hrandomiser.1,
+              servingNotice pk (ServedAgreement.startServingOn request carrier).1 entry.1,
+              ?_, hrandomiser.2⟩⟩)
+            rw [framing_servingNotice, ServedAgreement.startServingOn, hframe]
+            rfl
           · refine Or.inr (Or.inr ⟨framed, Or.inr ⟨mid, answer, hmid,
               fun probe value hprobe => hcarrierFinal probe value (hlater probe value hprobe),
               habsent, hkeep, ?_, hqueries⟩⟩)
