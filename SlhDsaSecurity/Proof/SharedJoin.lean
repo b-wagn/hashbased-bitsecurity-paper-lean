@@ -253,7 +253,15 @@ theorem card_parts_le_record (pair : RecordedPair) :
   exact Multiset.card_le_card (Multiset.filter_le _ _)
 
 /-- **The two parts fit inside the budget**, with key generation's spend reserved for the
-forgery's claims. -/
+forgery's claims.
+
+Read by the shared side at a pair that carries the recorder's recordings, through
+`LateProbes.mem_support_forget`, because that pair's type and its projection to this one are
+defined above this file. **A cleanup for after the obligation closes**: `LateProbes.SplitPair`
+and `LateProbes.forgetRecordings` need only the two type abbreviations above and
+`SplitPrefix.SplitState`, all of which are below this file, so moving them down would let this
+be stated at the pair the shared side actually reads and the transport would go. Not worth
+changing the join's surface for while two owners are still landing. -/
 theorem card_parts_le_budget (adversary : Adversary) (q : Nat)
     (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
     (hpair : pair ∈ support (recordedPairedRun adversary)) :
@@ -317,6 +325,16 @@ theorem prob_le_expected_of_perWalk (adversary : Adversary) (event : RecordedPai
         ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   PairedAverage.prob_le_expected_of_perWalk (RecordedTail.recordedTail adversary) event count
     extra hwalkwise
+
+/-! ## The two per-walk adapters, neither of which has a consumer
+
+Both are sound and neither can serve the owner it was written for. `hinput_of_probesIn` takes
+its charge per walk, which the input half cannot give, for the reason its own docstring sets
+out. `hordering_of_probesIn` takes an `ordering` that is a predicate of the recorded pair, and
+the ordering defect is not one — a recorded pair carries no recordings, and which side an entry
+was filed on is the whole content of the defect. `SharedAssembly` closes the obligation without
+either. They are kept until it closes, and the hazard a reader meeting them first should be
+spared is reaching for one on the strength of its name. -/
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -537,7 +555,17 @@ theorem sharedCharged_of_two
         hshared)
     hinput hordering
 
-/-! ## The union bound
+/-! ## The four-term union-bound route, superseded
+
+Everything from here to the end of the file is the route built when the split still named a
+randomiser defect and the signer's seed coincidence: four events, four counts, one budget.
+The two-way split retired the first and the replay branch's closure retired the second, and
+`SharedAssembly.sharedCharged_of_parts` now closes `Obligations.SharedCharged` from the input
+half's bullet and the ordering term alone. Nothing outside this file reaches any of it.
+
+It is retained until the obligation closes, not because anything here is wrong — it is not —
+but because deleting a route while two owners are still landing is the trade that has cost
+twice. `SignerEvent` goes with it when it goes.
 
 The shared event is covered by the four, and this is the only step that knows which event is
 which. Everything after it is arithmetic on the counts.

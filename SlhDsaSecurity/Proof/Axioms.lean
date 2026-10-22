@@ -193,6 +193,7 @@ import SlhDsaSecurity.Proof.RecordedWalkTable
 import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.RecordedChain
+import SlhDsaSecurity.Proof.FinalAssembly
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11993,3 +11994,15 @@ info: 'SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.SharedAssembly.probesIn_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedAssembly.probesIn_forget
+
+/--
+info: 'SlhDsaSecurity.FinalAssembly.target_of_producers' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FinalAssembly.target_of_producers
