@@ -8909,6 +8909,14 @@ info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_not_late' de
 #print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_not_late
 
 /--
+info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_mono' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_of_mono
+
+/--
 info: 'SlhDsaSecurity.SplitWitness.disclosingKeep_mono' does not depend on any axioms
 -/
 #guard_msgs in
