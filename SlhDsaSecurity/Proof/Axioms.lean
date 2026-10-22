@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.CountedView
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RoutedSplit
@@ -14885,3 +14886,15 @@ info: 'SlhDsaSecurity.NoticingBlocks.prob_threeStageTargetCovered_le' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingBlocks.prob_threeStageTargetCovered_le
+
+/--
+info: 'SlhDsaSecurity.CountedView.step_counted' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedView.step_counted
+
+/--
+info: 'SlhDsaSecurity.CountedView.forgetsAlong_counted' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedView.forgetsAlong_counted
