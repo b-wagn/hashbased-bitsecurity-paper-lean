@@ -12230,7 +12230,7 @@ info: 'SlhDsaSecurity.ServedAgreement.sign_shape' depends on axioms: [propext, C
 #print axioms SlhDsaSecurity.ServedAgreement.sign_shape
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.served_of_signer' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.served_of_signer' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.served_of_signer
@@ -12334,7 +12334,7 @@ info: 'SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono' depends on axioms: [pr
 #print axioms SlhDsaSecurity.ServedAgreement.ShapeAdmitted.mono
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.servedShape_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.servedShape_run' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedShape_run
@@ -12372,7 +12372,7 @@ info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder_lift' depends on axiom
 #print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder_lift
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.servedFramed_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.servedFramed_run' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedFramed_run
@@ -12384,7 +12384,7 @@ info: 'SlhDsaSecurity.ServedAgreement.servedLog_signer' depends on axioms: [prop
 #print axioms SlhDsaSecurity.ServedAgreement.servedLog_signer
 
 /--
-info: 'SlhDsaSecurity.ServedAgreement.servedClear_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ServedAgreement.servedClear_run' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedClear_run
@@ -12684,3 +12684,15 @@ info: 'SlhDsaSecurity.Target.allowanceOf' depends on axioms: [propext, Classical
 /-- info: 'SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.files_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.files_servingProgram
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.framing_stopServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.framing_stopServingOn
