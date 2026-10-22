@@ -38,6 +38,10 @@ them:
 * `hshared` — the input half and the randomiser defect against **one** budget. They share it
   because their chances are disjoint classes of one record plus the signer's own calls, and the
   per-request terms cancel inside that pathwise inequality rather than after a uniform bound.
+  It is stated on the *disjunction* rather than on the sum of the two probabilities, which is
+  what a union over the run's own queries proves: a query is one kind of hit or the other, so
+  the two events are covered by a single count, and asking for the sum would ask for a bound
+  the shared budget does not support.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -136,9 +140,8 @@ theorem target_of_obligations
               (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))
     (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
       ∀ walk ∈ support graphWalk, GoodWalk walk →
-        Pr[fun result => inputBad ((walk.1, result.1), result.2) | tail adversary walk] +
-            Pr[fun result => randomiserBad ((walk.1, result.1), result.2) |
-              tail adversary walk] ≤
+        Pr[fun result => inputBad ((walk.1, result.1), result.2) ∨
+            randomiserBad ((walk.1, result.1), result.2) | tail adversary walk] ≤
           ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     HasTotalSecurityBits .strong 127 := by
   classical
@@ -162,11 +165,6 @@ theorem target_of_obligations
             Pr[fun result => inputBad ((walk.1, result.1), result.2) ∨
               randomiserBad ((walk.1, result.1), result.2) | tail adversary walk] :=
           probEvent_or_le _ _ _
-      _ ≤ Pr[fun result => answerBad ((walk.1, result.1), result.2) | tail adversary walk] +
-            (Pr[fun result => inputBad ((walk.1, result.1), result.2) | tail adversary walk] +
-              Pr[fun result => randomiserBad ((walk.1, result.1), result.2) |
-                tail adversary walk]) :=
-          add_le_add le_rfl (probEvent_or_le _ _ _)
       _ ≤ (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
               ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
                 (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
