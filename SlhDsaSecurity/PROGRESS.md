@@ -1586,3 +1586,25 @@ already in the allowance. `RandomizerGate.card_add_card_le` is that statement: t
 part and the `PRF_msg` part of a record add to at most the record's size. The two charges are
 then taken separately, each against its own part, and added — the sum of the two expected counts
 is one expected record length, which is the `(q - 512) + 259` the obligation allows.
+
+## What the theorem now rests on
+
+`Obligations.target_of_charges` instantiates the target at the three events the split actually
+produces — `RoutedSplit.AnswerBad`, `RoutedSplit.InputBad`, `ReplayGate.RandomiserBad` — so the
+whole of `HasTotalSecurityBits .strong 127` reduces to three statements about the warmed tail.
+The split itself is proved (`ReplayGate.cases_of_win_charged`); what is left is one fact about
+the game and two bounds.
+
+* **`LogFaithfulGame`** — every entry of the signing log carries the signer's own answer, read
+  at the run's final cache. Two steps: the oracle logs what it computed, and a value computed
+  mid-run equals its replay at the final cache because the cache only grows.
+* **`AnswerCharged`** — the two answer-side charges added against one budget. Needs the coverage
+  charge re-pointed at the disclosing class, so that its `5 * 2 ^ 62` cap is discharged by the
+  signing limit, and the two-class counter that lets the structural and coverage limits be
+  combined before the uniform bound rather than after.
+* **`SharedCharged`** — the input half at the record's canonical part, plus the randomiser
+  defect at its `PRF_msg` part, added under one record length by
+  `RandomizerGate.card_add_card_le`. The input half needs `cellSign`'s congruence; the randomiser
+  half needs the provenance of a `PRF_msg` entry and then the deferral.
+
+Nothing above is a design question any more. Each is a proof.
