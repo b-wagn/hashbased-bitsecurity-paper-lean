@@ -197,6 +197,7 @@ import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.ObligationShapes
+import SlhDsaSecurity.Proof.AnswerShape
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -12141,3 +12142,35 @@ info: 'SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves' depends on a
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.forgetFused_eq' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.forgetFused_eq
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.recordedRun_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.recordedRun_map
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.map_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.map_fusedTail
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.probEvent_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.probEvent_fusedTail
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound
