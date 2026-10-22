@@ -1166,11 +1166,11 @@ theorem probEvent_length_set_cont (leftKeep rightKeep : Bytes → σ → Prop)
     (hgrow : ∀ (z : α × SplitTapeState σ) (w : γ), w ∈ support (after z) ->
       (rightOf z.2).length ≤ (finalRight w).length)
     (hfail : ∀ z, Pr[⊥ | after z] = 0)
-    (hafter : ∀ (bound cell : Nat) (newValue : HashOutput)
+    (hafter : ∀ (index : Nat) (newValue : HashOutput)
         (z : α × SplitTapeState σ),
-      Pr[fun w => bound < (finalRight w).length | after z] =
-        Pr[fun w => bound < (finalRight w).length |
-          after (z.1, (z.2.1, (z.2.2.1.1, z.2.2.1.2.set cell newValue), z.2.2.2))]) :
+      Pr[fun w => (rightOf z.2).length + index < (finalRight w).length | after z] =
+        Pr[fun w => (rightOf z.2).length + index < (finalRight w).length |
+          after (z.1, (z.2.1, (z.2.2.1.1, z.2.2.1.2.set index newValue), z.2.2.2))]) :
     ∀ (index : Nat) (newValue : HashOutput) (cache : σ)
       (leftTape rightTape : List HashOutput) (leftRecord rightRecord : Record),
       Pr[fun w => rightRecord.length + index < (finalRight w).length |
@@ -1185,7 +1185,7 @@ theorem probEvent_length_set_cont (leftKeep rightKeep : Bytes → σ → Prop)
   | pure value =>
     intro index newValue cache leftTape rightTape leftRecord rightRecord
     simp only [simulateQ_pure, StateT.run_pure, pure_bind]
-    exact hafter (rightRecord.length + index) index newValue
+    exact hafter index newValue
       (value, (cache, (leftTape, rightTape), (leftRecord, rightRecord)))
   | query_bind queried next ih =>
     intro index newValue cache leftTape rightTape leftRecord rightRecord
