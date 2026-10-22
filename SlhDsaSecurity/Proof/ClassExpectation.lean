@@ -108,6 +108,37 @@ theorem expected_mono {β : Type} (run : ProbComp β) (count other : β → Nat)
   · exact mul_le_mul' le_rfl (Nat.cast_le.mpr (hle value hmem))
   · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
 
+/-! ## A count against the probability of where it lives
+
+`expected_le_of_le` bounds a count by a number. This bounds a count by a **probability**: when a
+count is zero off a set, its expectation is the set's probability times whatever bounds the
+count on it. It is not a rearrangement of the lemmas above — they relate counts to counts and
+counts to numerals, and this relates a count to the measure of where it is non-zero — which is
+why it is stated once here rather than inlined at either of the two places that want it.
+
+**Both uses are about a count that vanishes off the event it is paired with.** Read one way it
+refutes a charge: a hypothesis bounding `Pr[S]` by `expected (indicator S · f) / 2 ^ 128` says
+`Pr[S] ≤ B * Pr[S] / 2 ^ 128`, so `Pr[S] = 0` whenever `B < 2 ^ 128`. Read the other way it
+rescues a term: such a count is second-order whenever `S` is itself charged, because its
+expectation carries `Pr[S]` as a factor. -/
+
+/-- **A count that vanishes off a set is bounded by that set's probability.** -/
+theorem expected_indicator_le_probEvent {β : Type} (run : ProbComp β) (event : β → Prop)
+    [DecidablePred event] (count : β → Nat) (bound : Nat)
+    (hbound : ∀ value ∈ support run, event value → count value ≤ bound)
+    (hzero : ∀ value, ¬ event value → count value = 0) :
+    expected run count ≤ ((bound : Nat) : ℝ≥0∞) * Pr[event | run] := by
+  classical
+  rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_left]
+  refine ENNReal.tsum_le_tsum fun value => ?_
+  by_cases hmem : value ∈ support run
+  · by_cases hevent : event value
+    · rw [if_pos hevent, mul_comm ((bound : Nat) : ℝ≥0∞)]
+      exact mul_le_mul' le_rfl (Nat.cast_le.mpr (hbound value hmem hevent))
+    · rw [if_neg hevent, hzero value hevent, mul_zero, Nat.cast_zero, mul_zero]
+  · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+    exact zero_le
+
 /-! ## The run's mass -/
 
 /-- **A run of the shared oracle never fails**, which is what lets a step contribute a whole
