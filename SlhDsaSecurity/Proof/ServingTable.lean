@@ -296,6 +296,60 @@ theorem digestOf_unionCache (publicSeed : Digest) (table : Cells × Padding)
   rw [RedrawCell.unionCache_of_not_canonical publicSeed table cache _
     fun parent => (message_canonical_ne hpublic).symm]
 
+/-- **The FORS key is read alike at both caches**, once every input its recovery asks is one
+the carrier holds. The computation itself depends on the cache through the digest, so the
+digest's agreement comes first and the replay congruence then does the rest. -/
+theorem forsKeyOf_unionCache (publicSeed : Digest) (table : Cells × Padding)
+    (cache : QueryCache HashSpec) (hcompat : RedrawCell.Compatible publicSeed table cache)
+    (pk : PublicKey) (message : Bytes) (parsed : Signature)
+    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
+    (hcached : ∀ probe : Bytes, CacheReplay.QueriesUnder cache
+      (SlhDsaSecurity.Fors.publicKeyFromSignature (m := OracleComp HashSpec) parsed.fors
+        (MessageDigest.forsIndices (VerifierProbes.digestOf cache pk message parsed)) pk.seed
+        (Scheme.forsAddress (VerifierProbes.digestOf cache pk message parsed))) probe →
+      cache probe ≠ none) :
+    VerifierProbes.forsKeyOf (RedrawCell.unionCache publicSeed table cache) pk message parsed =
+      VerifierProbes.forsKeyOf cache pk message parsed := by
+  have hsim : ∀ inner : QueryCache HashSpec,
+      (simulateQ (CacheReplay.replay inner)
+        (SlhDsaSecurity.Fors.publicKeyFromSignature (m := OracleComp HashSpec) parsed.fors
+          (MessageDigest.forsIndices (VerifierProbes.digestOf inner pk message parsed)) pk.seed
+          (Scheme.forsAddress (VerifierProbes.digestOf inner pk message parsed))) : Id Digest) =
+        VerifierProbes.forsKeyOf inner pk message parsed := fun inner =>
+    @VerifierNaturality.fors_simulate Id Id.instMonad _ (CacheReplay.replay inner)
+      (CacheReplay.replayQuery inner) (FaultCharge.replay_agrees inner) _ _ _ _
+  rw [← hsim, ← hsim cache,
+    digestOf_unionCache publicSeed table cache pk message parsed hpublic]
+  exact (CacheReplay.simulateQ_replay_congr _ cache
+    (RedrawCell.unionCache publicSeed table cache)
+    fun probe hprobe =>
+      (unionCache_of_cached publicSeed table cache hcompat probe (hcached probe hprobe)).symm).symm
+
+/-- **The forgery's claimed candidates are the same list at both caches.** The obligation reads
+them at the game's cache and the charge reads them at the carrier's; this says those are one
+list, so the two charges bound the event the obligation is about.
+
+What it asks is exactly what `ServedAgreement.cached_queriesUnder` gives at a run of the serving
+handler: every input the recovery consults is one the run already drew. Everything else —
+`unionCache_of_cached`, `digestOf_unionCache`, `CacheReplay.simulateQ_replay_congr` — is about
+caches rather than about runs, so this is the only place the run enters. -/
+theorem claimedCandidatesOf_unionCache [HasQuery HashSpec Id] (publicSeed : Digest)
+    (table : Cells × Padding)
+    (cache : QueryCache HashSpec) (hcompat : RedrawCell.Compatible publicSeed table cache)
+    (pk : PublicKey) (message : Bytes) (parsed : Signature)
+    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
+    (hcached : ∀ probe : Bytes, CacheReplay.QueriesUnder cache
+      (SlhDsaSecurity.Fors.publicKeyFromSignature (m := OracleComp HashSpec) parsed.fors
+        (MessageDigest.forsIndices (VerifierProbes.digestOf cache pk message parsed)) pk.seed
+        (Scheme.forsAddress (VerifierProbes.digestOf cache pk message parsed))) probe →
+      cache probe ≠ none) :
+    ClaimedProbes.claimedCandidatesOf publicSeed
+        (RedrawCell.unionCache publicSeed table cache) pk message parsed =
+      ClaimedProbes.claimedCandidatesOf publicSeed cache pk message parsed := by
+  unfold ClaimedProbes.claimedCandidatesOf
+  rw [digestOf_unionCache publicSeed table cache pk message parsed hpublic,
+    forsKeyOf_unionCache publicSeed table cache hcompat pk message parsed hpublic hcached]
+
 /-! ## The facts, at the key the table itself determines
 
 The handler the chain ends at takes its public key from the table, so it is a **family** of
