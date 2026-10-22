@@ -1,3 +1,5 @@
+import SlhDsaSecurity.Proof.WriterState
+import SlhDsaSecurity.Proof.LinkedPhase
 import SlhDsaSecurity.Proof.ClassExpectation
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.ClassGrowth
@@ -5189,3 +5191,19 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.RecordedBudget.card_add_served_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedBudget.card_add_served_le_of_budget
+
+/-- info: 'SlhDsaSecurity.WriterState.run_toStateful' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_toStateful
+
+/-- info: 'SlhDsaSecurity.WriterState.run_statefulSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_statefulSigningOracle
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_phaseHandler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_phaseHandler
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_link_phaseHandler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_link_phaseHandler
