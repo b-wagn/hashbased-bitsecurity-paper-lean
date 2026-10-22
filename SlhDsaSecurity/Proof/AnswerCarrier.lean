@@ -270,16 +270,25 @@ the ones a run can be at. At the carrier the predicate to cut them down by is th
 framing**, and it is the right one twice over — it survives a cache update, which is the only
 move the recorder makes, and it makes the clause free by `not_filesRandomiser_of_clear`.
 
-So the leftover does not become a smaller charge. It becomes **no charge at all**, and in its
-place a statement about the run rather than about the forgery: that the views this recorder is
-run at have no request in flight. That is not a probability bound and nothing pays for it; it is
-discharged or it is not, per stage, by the bracketing. The adversary's stage has it by
-construction, since the flag is down at every boundary.
+What the leftover becomes in exchange is a statement about the run rather than about the
+forgery: that the views this recorder is run at have no request in flight. That is not a
+probability bound and nothing pays for it.
 
-**This is the seed charge retiring for real on this route**, conditional on the stage hypothesis
-and on nothing else. `Obligations.SharedChargedLate` at this tail may then be taken at
-`seedUnits := 0` — not by assertion, but because `AnswerCarrier.narrowTargetAt_clear` below has
-no hypotheses. -/
+**It does not follow that the leftover is retired, and an earlier version of this paragraph said
+it did.** `reaches` has to be an invariant of the whole run and not a fact about its start,
+because `SplitWitness.Served.mem_recordOf_of_cache_reaches` threads it to the view the input is
+*answered* at. `CarrierClearFraming.clear_stages` gives the three stage starts and the
+adversary's own steps; the opening bracket of a signing sub-run raises the framing on purpose,
+so the invariant does not hold inside one. The region where it fails is small and it is not
+empty, and `CarrierShared`'s header states what is left of it: a sub-run answers its own digest
+input — in which case `FilesLeft` holds and the cover's left disjunct closes it — its own
+randomiser input, which by `Hashing.randomizerInput_injective` forces the published randomiser
+to be `SK.prf` and the sub-run's frame to be `bytesBE n PK.root ++` the forgery's own, or a
+canonical input, which is not a message input off the walk's coincidence.
+
+So on this route the leftover is needed in **one** place rather than at every view, and
+`seedUnits := 0` is earned only once that place is closed. `narrowTargetAt_clear` below is free
+and is the right shape; what it does not do is discharge the demand inside a sub-run. -/
 
 /-- **The clear framing survives the recorder's one move**, so it is a legitimate `reaches`. -/
 theorem clearFraming_cacheAnswer (state : HandlerCarrier.State) (probe : Bytes)
