@@ -229,6 +229,8 @@ import SlhDsaSecurity.Proof.NoticingTape
 import SlhDsaSecurity.Proof.NoticingCoverage
 import SlhDsaSecurity.Proof.NoticingBlocks
 import SlhDsaSecurity.Proof.FusedTape
+import SlhDsaSecurity.Proof.BracketedOrdering
+import SlhDsaSecurity.Proof.CarrierClearFraming
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14733,3 +14735,43 @@ info: 'SlhDsaSecurity.FusedTape.probEvent_length_set_fused' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedTape.probEvent_length_set_fused
+
+/-- info: 'SlhDsaSecurity.CarrierRecord.hrecord' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecord.hrecord
+
+/--
+info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass
+
+/-- info: 'SlhDsaSecurity.BracketedOrdering.prob_ordering_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedOrdering.prob_ordering_le
+
+/--
+info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail
+
+/-- info: 'SlhDsaSecurity.RecordInvariant.phase_invariant_of_after' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.phase_invariant_of_after
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_run
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_phase' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_phase
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_stages' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_stages
