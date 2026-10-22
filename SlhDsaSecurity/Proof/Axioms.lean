@@ -16271,11 +16271,6 @@ info: 'SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin
 
-/--
-info: 'SlhDsaSecurity.PrfClassCount.expected_indicator_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PrfClassCount.expected_indicator_eq
 
 /--
 info: 'SlhDsaSecurity.PrfClassCount.prob_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound]
