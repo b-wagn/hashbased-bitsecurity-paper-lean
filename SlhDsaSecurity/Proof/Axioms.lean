@@ -15155,3 +15155,7 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 /-- info: 'SlhDsaSecurity.CountedHandler.run_toStateful_withFlag_withAddCost' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.run_toStateful_withFlag_withAddCost
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.verifier_subrun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.verifier_subrun

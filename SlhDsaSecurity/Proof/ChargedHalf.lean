@@ -186,6 +186,43 @@ theorem prob_charged_seededLinked [HasQuery HashSpec Id] (adversary : Adversary)
         (ServingCarrier.disclosedAt cache) node htouch hne)
     inner hinner keep hkeep
 
+/-! ## The verifier's sub-run, at the charge's own handler
+
+`TouchedKeys.honestLinked_eq` names the verifier's term; this carries that through the two
+wrappers the charge's run adds — the seed-and-root the value carries, and the flag the
+comparison carries — to a membership in the support of the verifier's own sub-run, at the state
+it was entered from. The verifier is the last effectful thing, so the state it leaves is the
+state the whole run leaves, and that is why the statement can say `= z.2` rather than carrying
+a growth. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The verifier ran, and it is what left the run's final state.** -/
+theorem verifier_subrun [HasQuery HashSpec Id] (adversary : Adversary)
+    (prfSeed publicSeed : Digest) (table : Cells × Padding) (inner : HandlerState)
+    (z : SeededValue × (HandlerState × Bool))
+    (hz : z ∈ support ((simulateQ (withFlag (strictImpl prfSeed publicSeed table))
+      (seededLinked adversary prfSeed publicSeed table)).run (inner, false))) :
+    ∃ (mid : HandlerState × Bool)
+      (verifierStep : (Bool × RecordedQueries.Tally) × (HandlerState × Bool)),
+      verifierStep ∈ support ((simulateQ (withFlag (strictImpl prfSeed publicSeed table))
+        (RecordedQueries.countRecorded RecordedQueries.verifierCost
+          (Scheme.verify (keysOf prfSeed publicSeed table).2
+            z.1.1.1.1.1.message z.1.1.1.1.1.signature))).run mid) ∧
+        verifierStep.2 = z.2 := by
+  classical
+  rw [seededLinked, simulateQ_map, StateT.run_map, support_map] at hz
+  obtain ⟨inner', hinner', hmapped⟩ := hz
+  rw [TouchedKeys.honestLinked_eq, simulateQ_bind, StateT.run_bind,
+    mem_support_bind_iff] at hinner'
+  obtain ⟨adversaryStep, -, hrest⟩ := hinner'
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hrest
+  obtain ⟨verifierStep, hverifier, htail⟩ := hrest
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at htail
+  subst hmapped
+  subst htail
+  exact ⟨adversaryStep.2, verifierStep, hverifier, rfl⟩
+
 /-! ## The claims, charged at the handler that will not serve them
 
 The flag above pays for what the adversary could learn by **asking**: the difference between the
