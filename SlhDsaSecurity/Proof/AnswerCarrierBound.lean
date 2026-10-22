@@ -55,8 +55,6 @@ theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outsi
     (adversary : Adversary) {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
     (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
     (hpublic : ¬ HashSeparation.Possible ((keyAt walk).seed, (keyAt walk).root))
-    (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
-      walk.2 input = none)
     (hleftClass : ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       ∀ entry ∈ result.2.2.1,
