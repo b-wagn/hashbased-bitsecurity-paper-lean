@@ -16116,3 +16116,7 @@ info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets
+
+/-- info: 'SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled
