@@ -341,9 +341,18 @@ theorem splitOf_servingNotice (pk : PublicKey) (prfSeed : Digest)
   · rw [if_neg hfile, if_neg (fun hbad => hfile (hfiles.mp hbad))]
 
 open scoped Classical in
-/-- **And with the install, exactly while a request is in flight.** Without the framing this is
-false, and its failure is the hop: with nothing in flight the real game keeps a `PRF_msg` entry
-where the adversary can read it and the modified game does not. -/
+/-- **And with the install, exactly while a request is in flight.**
+
+**The hypothesis must not be removed on tidiness grounds.** Without it the statement is not
+merely unproved but **false**, and its falsity is precisely the content the comparison exists to
+exploit: with nothing in flight the real game keeps a `PRF_msg` entry where the adversary can
+read it and the modified game does not. That is the opposite of a hypothesis carried for want of
+a better proof, and the two look alike from outside.
+
+The pairing with `splitOf_servingNotice` is worth reading together: the notice **cannot** see
+which cache an entry is in, so it commutes unconditionally; the install **can**, and must not
+while the framing is down, so it commutes conditionally. Two hypotheses differing for a stated
+structural reason rather than by accident. -/
 theorem splitUpdate_splitOf (pk : PublicKey) (prfSeed : Digest)
     (carrier : HandlerCarrier.State) (framed : Bytes) (hframing : carrier.framing = some framed)
     (input : Bytes) (answer : HashOutput) :
