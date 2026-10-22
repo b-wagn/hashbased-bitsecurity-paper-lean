@@ -116,4 +116,288 @@ theorem prob_bad_or_coverage_le_of_caps (prfSeed : Digest) (pk : PublicKey)
   exact targetCovered_of_forgeryDisclosedCovered prfSeed pk inClass hne computation initialCache
     hfresh result hmem (hlate result hmem) hcoverage.1 hcoverage.2
 
+/-! ## The disclosing cap
+
+`hleftBound` says the disclosing recording is short. It is not true that every signer-randomised
+entry comes from a served request — an adversary may query `messageInput (truncate (PRF …)) pk M`
+itself — but to do that it first needs the `PRF_msg` answer, and acquiring *that* is either the
+randomiser defect's own event or a guess at the same unit. So the honest statement is about the
+`PRF_msg` class at the real seed, and that class's growth is what the shared half charges.
+
+What is proved here is the game half, a counting argument and nothing else: each disclosing
+entry is a *distinct* message input, each distinct message input needs its own `PRF_msg` entry,
+so the recording is no longer than the growth in the `PRF_msg` class at the real seed. The
+remaining conjunct — that growth being inside the signing limit off the defect — is the shared
+half's, where the seed is still random.
+
+The injection runs the other way from how the definition reads. `SignerRandomised` pins the
+randomiser to the cached `PRF_msg` answer, so the message determines the whole input; two
+distinct disclosing entries therefore have distinct messages, and distinct messages have
+distinct `PRF_msg` inputs. -/
+
+open scoped Classical in
+/-- One step keeps every cached input cached. -/
+theorem step_cache_mono (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (queried : OracleWorld.Domain) (state : SplitPrefix.SplitState)
+    (step : OracleWorld.Range queried × SplitPrefix.SplitState)
+    (hstep : step ∈ support (((SplitPrefix.recorder leftKeep rightKeep) queried).run state))
+    (probe : Bytes) (hprobe : state.1 probe ≠ none) : step.2.1 probe ≠ none := by
+  classical
+  rcases queried with coin | input
+  · rw [SplitPrefix.recorder_run_inl, mem_support_bind_iff] at hstep
+    obtain ⟨value, -, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [hpure]
+    exact hprobe
+  · rw [SplitPrefix.recorder_run_inr, mem_support_bind_iff] at hstep
+    obtain ⟨answer, hanswer, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [hpure]
+    show answer.2 probe ≠ none
+    cases hcached : state.1 input with
+    | some value =>
+      rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+        Set.mem_singleton_iff] at hanswer
+      rw [hanswer]
+      exact hprobe
+    | none =>
+      rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hanswer
+      obtain ⟨sampled, -, hpair⟩ := hanswer
+      rw [show answer.2 = state.1.cacheQuery input sampled from (Prod.ext_iff.mp hpair).2.symm]
+      by_cases hsame : probe = input
+      · rw [hsame, QueryCache.cacheQuery_self]
+        simp
+      · rw [QueryCache.cacheQuery_of_ne state.1 sampled hsame]
+        exact hprobe
+
+open scoped Classical in
+/-- One step caches the input it answers. -/
+theorem step_cache_queried (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (input : Bytes) (state : SplitPrefix.SplitState)
+    (step : OracleWorld.Range (Sum.inr input) × SplitPrefix.SplitState)
+    (hstep : step ∈ support (((SplitPrefix.recorder leftKeep rightKeep)
+      (Sum.inr input)).run state)) : step.2.1 input ≠ none := by
+  classical
+  rw [SplitPrefix.recorder_run_inr, mem_support_bind_iff] at hstep
+  obtain ⟨answer, hanswer, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  rw [hpure]
+  show answer.2 input ≠ none
+  cases hcached : state.1 input with
+  | some value =>
+    rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+      Set.mem_singleton_iff] at hanswer
+    rw [hanswer]
+    show state.1 input ≠ none
+    rw [hcached]
+    simp
+  | none =>
+    rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hanswer
+    obtain ⟨sampled, -, hpair⟩ := hanswer
+    rw [show answer.2 = state.1.cacheQuery input sampled from (Prod.ext_iff.mp hpair).2.symm,
+      QueryCache.cacheQuery_self]
+    simp
+
+open scoped Classical in
+/-- One step keeps every disclosing entry's input cached. -/
+theorem step_leftRecord_cached (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (queried : OracleWorld.Domain) (state : SplitPrefix.SplitState)
+    (step : OracleWorld.Range queried × SplitPrefix.SplitState)
+    (hstep : step ∈ support (((SplitPrefix.recorder leftKeep rightKeep) queried).run state))
+    (hstart : ∀ entry ∈ state.2.1, state.1 entry.1 ≠ none) :
+    ∀ entry ∈ step.2.2.1, step.2.1 entry.1 ≠ none := by
+  classical
+  rcases queried with coin | input
+  · rw [SplitPrefix.recorder_run_inl, mem_support_bind_iff] at hstep
+    obtain ⟨value, -, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [hpure]
+    exact hstart
+  · have hgrow := step_cache_mono leftKeep rightKeep (Sum.inr input) state step hstep
+    have hinput := step_cache_queried leftKeep rightKeep input state step hstep
+    rw [SplitPrefix.recorder_run_inr, mem_support_bind_iff] at hstep
+    obtain ⟨answer, -, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    intro entry hentry
+    rw [hpure] at hentry
+    refine (?_ : entry ∈ state.2.1 ∨ entry.1 = input).elim (fun hold => hgrow entry.1
+      (hstart entry hold)) (fun hnew => by rw [hnew]; exact hinput)
+    revert hentry
+    show entry ∈ (SplitPrefix.appended leftKeep rightKeep input state answer.1).1 → _
+    rw [SplitPrefix.appended]
+    split_ifs with hleft hright
+    · intro hentry
+      rcases List.mem_append.mp hentry with hold | hnew
+      · exact Or.inl hold
+      · exact Or.inr (by simpa using congrArg Prod.fst (List.mem_singleton.mp hnew))
+    · exact fun hentry => Or.inl hentry
+    · exact fun hentry => Or.inl hentry
+
+open scoped Classical in
+/-- **Every disclosing entry's input is cached by the end.** -/
+theorem leftRecord_cached (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (state : SplitPrefix.SplitState) (result : α × SplitPrefix.SplitState),
+      result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+        computation).run state) →
+      (∀ entry ∈ state.2.1, state.1 entry.1 ≠ none) →
+      ∀ entry ∈ result.2.2.1, result.2.1 entry.1 ≠ none := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hmem hstart
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hstart
+  | query_bind queried next ih =>
+    intro state result hmem hstart
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    exact ih step.1 step.2 result hrest
+      (step_leftRecord_cached leftKeep rightKeep queried state step hstep hstart)
+
+open scoped Classical in
+/-- **The disclosing recording files each input once.** An entry is filed only on a cache miss
+and the answer is cached from then on, so no input is filed twice. -/
+theorem leftRecord_nodup (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (state : SplitPrefix.SplitState) (result : α × SplitPrefix.SplitState),
+      result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+        computation).run state) →
+      (∀ entry ∈ state.2.1, state.1 entry.1 ≠ none) →
+      (state.2.1.map Prod.fst).Nodup →
+      (result.2.2.1.map Prod.fst).Nodup := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hmem hcached hnodup
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hnodup
+  | query_bind queried next ih =>
+    intro state result hmem hcached hnodup
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest
+      (step_leftRecord_cached leftKeep rightKeep queried state step hstep hcached) ?_
+    rcases queried with coin | input
+    · rw [SplitPrefix.recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact hnodup
+    · rw [SplitPrefix.recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨answer, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      show ((SplitPrefix.appended leftKeep rightKeep input state answer.1).1.map
+        Prod.fst).Nodup
+      rw [SplitPrefix.appended]
+      split_ifs with hleft hright
+      · rw [List.map_append]
+        simp only [List.map_cons, List.map_nil]
+        refine List.nodup_append.mpr ⟨hnodup, List.nodup_singleton _, ?_⟩
+        intro probe hprobe other hother hsame
+        obtain ⟨entry, hentry, hequal⟩ := List.mem_map.mp hprobe
+        have hinput : entry.1 = input := by
+          rw [hequal, hsame, List.mem_singleton.mp hother]
+        exact absurd (hinput ▸ hcached entry hentry) (by rw [hleft.1]; simp)
+      · exact hnodup
+      · exact hnodup
+
+/-! ### The injection into the `PRF_msg` class -/
+
+open scoped Classical in
+/-- The `PRF_msg` input behind a signer-randomised digest input. -/
+noncomputable def witnessKey (prfSeed : Digest) (pk : PublicKey)
+    (cache : QueryCache HashSpec) (input : Bytes) : Bytes :=
+  if h : CacheAvailability.SignerRandomised prfSeed pk cache input then
+    Hashing.randomizerInput prfSeed pk.seed h.choose
+  else input
+
+open scoped Classical in
+/-- What the witness is, when there is one. -/
+theorem witnessKey_spec (prfSeed : Digest) (pk : PublicKey) (cache : QueryCache HashSpec)
+    (input : Bytes) (hsigner : CacheAvailability.SignerRandomised prfSeed pk cache input) :
+    ∃ (message : Bytes) (prfAnswer : HashOutput),
+      witnessKey prfSeed pk cache input = Hashing.randomizerInput prfSeed pk.seed message ∧
+        cache (Hashing.randomizerInput prfSeed pk.seed message) = some prfAnswer ∧
+          input = Hashing.messageInput (Hashing.truncate prfAnswer) pk message := by
+  classical
+  rw [witnessKey, dif_pos hsigner]
+  obtain ⟨prfAnswer, hcached, hinput⟩ := hsigner.choose_spec
+  exact ⟨hsigner.choose, prfAnswer, rfl, hcached, hinput⟩
+
+open scoped Classical in
+/-- The witness is a `PRF_msg` input at the real seed, and it is cached. -/
+theorem witnessKey_prfClass_cached (prfSeed : Digest) (pk : PublicKey)
+    (cache : QueryCache HashSpec) (input : Bytes)
+    (hsigner : CacheAvailability.SignerRandomised prfSeed pk cache input) :
+    RandomizerGate.PrfClass prfSeed (witnessKey prfSeed pk cache input) ∧
+      cache (witnessKey prfSeed pk cache input) ≠ none := by
+  obtain ⟨message, prfAnswer, hkey, hcached, -⟩ :=
+    witnessKey_spec prfSeed pk cache input hsigner
+  refine ⟨⟨pk.seed, message, hkey⟩, ?_⟩
+  rw [hkey, hcached]
+  simp
+
+open scoped Classical in
+/-- **The witness determines the input.** The randomiser is pinned to the cached `PRF_msg`
+answer, so the message determines the whole digest input — which is what makes the disclosing
+recording no longer than the `PRF_msg` growth. -/
+theorem witnessKey_injective (prfSeed : Digest) (pk : PublicKey)
+    (cache : QueryCache HashSpec) (left right : Bytes)
+    (hleft : CacheAvailability.SignerRandomised prfSeed pk cache left)
+    (hright : CacheAvailability.SignerRandomised prfSeed pk cache right)
+    (hkey : witnessKey prfSeed pk cache left = witnessKey prfSeed pk cache right) :
+    left = right := by
+  obtain ⟨leftMessage, leftAnswer, hleftKey, hleftCached, hleftInput⟩ :=
+    witnessKey_spec prfSeed pk cache left hleft
+  obtain ⟨rightMessage, rightAnswer, hrightKey, hrightCached, hrightInput⟩ :=
+    witnessKey_spec prfSeed pk cache right hright
+  rw [hleftKey, hrightKey] at hkey
+  obtain ⟨-, -, hmessage⟩ := Hashing.randomizerInput_injective hkey
+  rw [hmessage] at hleftCached hleftInput
+  rw [hleftCached] at hrightCached
+  rw [hleftInput, hrightInput, Option.some_inj.mp hrightCached]
+
+set_option maxHeartbeats 800000 in
+open scoped Classical in
+/-- **The disclosing recording is no longer than the `PRF_msg` growth at the real seed.** Each
+entry is a distinct message input, each needs its own `PRF_msg` entry, and those entries were
+not there before the run. -/
+theorem leftRecord_length_le_prfGrowth (prfSeed : Digest) (pk : PublicKey)
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (result : α × SplitPrefix.SplitState)
+    (hmem : result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+      computation).run (cache, [], [])))
+    (hsigner : ∀ entry ∈ result.2.2.1,
+      CacheAvailability.SignerRandomised prfSeed pk result.2.1 entry.1)
+    (hprfFresh : ∀ input : Bytes, RandomizerGate.PrfClass prfSeed input → cache input = none)
+    (limit : Nat)
+    (hgrowth : ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass prfSeed) cache
+      result.2.1 limit) :
+    result.2.2.1.length ≤ limit := by
+  classical
+  have hnodup : (result.2.2.1.map Prod.fst).Nodup :=
+    leftRecord_nodup leftKeep rightKeep computation (cache, [], []) result hmem
+      (by intro entry hentry; exact absurd hentry (by simp)) (by simp)
+  have hkeys := hgrowth
+    ((result.2.2.1.map Prod.fst).map (witnessKey prfSeed pk result.2.1))
+    (List.Nodup.map_on (fun left hleft right hright hkey => by
+      obtain ⟨leftEntry, hleftEntry, hleftValue⟩ := List.mem_map.mp hleft
+      obtain ⟨rightEntry, hrightEntry, hrightValue⟩ := List.mem_map.mp hright
+      exact witnessKey_injective prfSeed pk result.2.1 left right
+        (hleftValue ▸ hsigner leftEntry hleftEntry)
+        (hrightValue ▸ hsigner rightEntry hrightEntry) hkey) hnodup)
+    (fun key hkey => by
+      obtain ⟨input, hinput, hvalue⟩ := List.mem_map.mp hkey
+      obtain ⟨entry, hentry, hentryValue⟩ := List.mem_map.mp hinput
+      obtain ⟨hclass, hcached⟩ := witnessKey_prfClass_cached prfSeed pk result.2.1 input
+        (hentryValue ▸ hsigner entry hentry)
+      rw [← hvalue]
+      exact ⟨hclass, hprfFresh _ hclass, hcached⟩)
+  simpa using hkeys
+
 end SlhDsaSecurity.AnswerCoverage

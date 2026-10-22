@@ -8331,3 +8331,59 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.step_cache_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.step_cache_mono
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.step_cache_queried' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.step_cache_queried
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.step_leftRecord_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.step_leftRecord_cached
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.leftRecord_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.leftRecord_cached
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.leftRecord_nodup' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.leftRecord_nodup
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.witnessKey_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.witnessKey_spec
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.witnessKey_prfClass_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.witnessKey_prfClass_cached
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.witnessKey_injective' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.witnessKey_injective
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.leftRecord_length_le_prfGrowth' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.leftRecord_length_le_prfGrowth
