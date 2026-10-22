@@ -439,6 +439,53 @@ theorem prob_run_cell_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
         rw [ENNReal.tsum_mul_right]
 
 
+set_option maxHeartbeats 1000000 in
+/-- **The same, with the unavailability read off the run.**
+
+The charge's event is evaluated *outside* the table draw, on the pair
+`RedrawCell.evalDist_redraw_coordinate` hands back — the run's result and the single redrawn
+cell. So once the availability is a function of the drawn table, the only place the event can
+read it from is the result, and a statement taking it as a fixed parameter is claiming access
+to something it does not have. This is that statement; `prob_run_cell_le` is its constant case.
+
+Nothing in the proof notices: the bound is taken result by result, and at one result the
+unavailability is one predicate. -/
+theorem prob_run_cell_le_indexed {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : γ → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (run : ProbComp γ)
+    (record : γ → List (Bytes × HandlerCarrier.State)) :
+    Pr[fun pair : γ × Cell =>
+        ∃ entry ∈ record pair.1, ChargedBy stakes (unavailable pair.1) index pair.2 entry |
+      (do
+        let result ← run
+        let cell ← ($ᵗ Cell : ProbComp Cell)
+        pure (result, cell))] ≤
+      (∑' result, Pr[= result | run] *
+        ((aiming stakes (unavailable result) index (record result) : Nat) : ℝ≥0∞)) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [probEvent_bind_eq_tsum]
+  calc ∑' result, Pr[= result | run] *
+        Pr[fun pair : γ × Cell =>
+            ∃ entry ∈ record pair.1, ChargedBy stakes (unavailable pair.1) index pair.2 entry |
+          (do
+            let cell ← ($ᵗ Cell : ProbComp Cell)
+            pure (result, cell))]
+      ≤ ∑' result, Pr[= result | run] *
+          (((aiming stakes (unavailable result) index (record result) : Nat) : ℝ≥0∞) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+        refine ENNReal.tsum_le_tsum fun result => ?_
+        by_cases hmem : result ∈ support run
+        · refine mul_le_mul' le_rfl ?_
+          rw [bind_pure_comp, probEvent_map]
+          exact prob_cell_list_le stakes (unavailable result) index (record result)
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+          simp
+    _ = _ := by
+        simp only [div_eq_mul_inv, ← mul_assoc]
+        rw [ENNReal.tsum_mul_right]
+
+
 /-- **A finite sum and an expectation may be exchanged.** Over `ℝ≥0∞` both sides are defined and
 equal whatever the summands; it is stated for an arbitrary index set because this is the step at
 which a factor of the index count would hide, and a general statement is easier to check than
