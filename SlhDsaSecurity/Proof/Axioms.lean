@@ -12248,3 +12248,19 @@ info: 'SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.strippedSign_shape_of_good
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_sensitive_sets' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_sensitive_sets
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.disclosedAt_eq_disclosedByLog' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.disclosedAt_eq_disclosedByLog
