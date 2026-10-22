@@ -16523,3 +16523,11 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 /-- info: 'SlhDsaSecurity.ProbeContainment.length_eq_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.length_eq_count
+
+/-- info: 'SlhDsaSecurity.SeedFlag.writer_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedFlag.writer_step_inl
+
+/-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedFlag.recordFlag_step_inl
