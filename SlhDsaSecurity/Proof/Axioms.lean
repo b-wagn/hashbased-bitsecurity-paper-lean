@@ -7198,3 +7198,11 @@ info: 'SlhDsaSecurity.RandomiserProvenance.mem_forgeryDigestRecord' depends on a
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserProvenance.mem_forgeryDigestRecord
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le

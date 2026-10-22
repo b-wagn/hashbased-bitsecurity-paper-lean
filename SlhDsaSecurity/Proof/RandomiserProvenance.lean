@@ -32,7 +32,7 @@ bounded by `Outcome.counts.work`, whose `Multiset.toFinset` is the `Finset Bytes
 cardinality cap that `RandomizerGate.prob_run_randomizerInput_le` consumes.
 -/
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec ENNReal
 
 namespace SlhDsaSecurity.RandomiserProvenance
 
@@ -259,9 +259,7 @@ theorem randomiserBad_source (adversary : Adversary)
     ∃ record : Multiset Bytes, Multiset.card record ≤ result.1.1.counts.work + 1 ∧
       ((∃ input ∈ record, ∃ (seed : Digest) (payload : Bytes),
           input = Hashing.randomizerInput walk.1.1.2.1 seed payload) ∨
-        SignerHitsSeed walk.1.1.2.1
-          (RoutedSplit.keyOf ((walk.1, result.1), result.2)).seed result.2
-          result.1.1.signed) := by
+        SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed) := by
   classical
   obtain ⟨message, answer, hentry, hunsigned⟩ := hbad
   set pk := RoutedSplit.keyOf ((walk.1, result.1), result.2) with hpk
@@ -297,6 +295,7 @@ theorem randomiserBad_source (adversary : Adversary)
     · obtain ⟨-, -, hequal⟩ := Hashing.randomizerInput_injective hrandomizer
       exact absurd ⟨entry, hentryMem, hequal ▸ hframe⟩ hunsigned
     · refine Or.inr ⟨entry, hentryMem, framed, ?_⟩
+      rw [← hseed]
       have hcached : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) ≠ none :=
         hsign.2 framed hframe
       cases hvalue : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) with
@@ -321,5 +320,52 @@ theorem randomiserBad_source (adversary : Adversary)
       Multiset.mem_add.mpr (Or.inr (mem_forgeryDigestRecord pk result.1.1.forgery framed parsed
         hframe hparsed)),
       pk.seed, message, hdigest.symm⟩
+
+/-! ## Charging the signer's coincidence
+
+The signer's half of the overlap is an **answer** hitting the seed, not an input the adversary
+chose, so it is charged against the run's own randomness and needs no deferral: a fresh oracle
+answer truncates to a fixed digest with probability `2 ^ -128`, and only an input of the
+`PRF_msg` class at this seed can fire the event at all.
+
+**The budget it is charged against has to be the total hash count, and that is not a
+convenience.** Every served request makes one in-class query, so the number of coincidences on
+offer is the number of requests; if that were capped only by `Security.signingLimit` the charge
+would be `2 ^ 64 / 2 ^ 128 = 2 ^ -64`, a *constant*, which for small `q` is far larger than the
+`q / 2 ^ 127` the theorem allows and would sink it. What makes it proportional to `q` is that a
+served request costs at least two counted hashes
+(`AdversaryQueries.work_add_served_le_count_signingOracle`), so the requests are paid for out of
+`Security.HasTotalBudget`'s cap on the total count like everything else. Bounding the in-class
+growth by the total growth is the blunt form of that, and it is enough.
+
+The walk's cache is clean for the event by `RandomizerGate.cleanBad_of_canonical`: its entries
+are canonical, a canonical input opens with `PK.seed`, and the two seeds differ on a good walk.
+-/
+
+/-- **The signer's coincidence, at this run's own walk.** -/
+theorem prob_signerHitsSeed_tail_le (adversary : Adversary) (q : Nat)
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
+    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed |
+      WarmedGame.tail adversary walk] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [WarmedGame.tail]
+  refine le_trans (probEvent_mono ?_)
+    (RandomizerGate.prob_randomizerHitsSeed_run_le
+      (countAllHashes (WarmedGame.afterSeeds adversary walk.1.1)) walk.1.1.2.1 walk.2 q q
+      (RandomizerGate.cleanBad_of_canonical walk.1.1.2.2 walk.1.1.2.1 walk.1.2 walk.2 hgood.1
+        (WarmedCharges.walk_cache_canonical hwalk)))
+  intro result hresult hhit
+  have hres : result ∈ support (WarmedGame.tail adversary walk) := by
+    rw [WarmedGame.tail]; exact hresult
+  have hgrowth : GrowthCharge.GrowthAtMost walk.2 result.2 q :=
+    GrowthBudget.GrowthAtMost.mono
+      (GrowthBudget.growth_le_count (WarmedGame.afterSeeds adversary walk.1.1) walk.2 result
+        hresult)
+      (WarmedCharges.count_le_of_budget_tail hbudget hwalk hres)
+  exact ⟨bad_of_signerHitsSeed _ _ _ _ result.1 hhit,
+    ClassCharge.GrowthAtMostOn.of_growthAtMost hgrowth,
+    ClassCharge.GrowthAtMostOn.of_growthAtMost hgrowth⟩
 
 end SlhDsaSecurity.RandomiserProvenance
