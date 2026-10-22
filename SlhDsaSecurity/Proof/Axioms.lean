@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.ClassGrowth
+import SlhDsaSecurity.Proof.SensitiveExpectation
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.CoverageRouted
@@ -5078,4 +5079,20 @@ info: 'SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_run_le' depends on 
 /-- info: 'SlhDsaSecurity.ClassGrowth.growthOn_le_classCount' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassGrowth.growthOn_le_classCount
+
+/--
+info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_expected_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_expected_le
+
+/-- info: 'SlhDsaSecurity.SensitiveExpectation.expected_length_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveExpectation.expected_length_le
+
+/-- info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'
 
