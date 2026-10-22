@@ -768,6 +768,75 @@ theorem unionCache_empty (publicSeed : Digest) (table : Cells × Padding) :
   | some answer => rw [unionCache_of_open publicSeed table ∅ probe answer hopen]
   | none => rw [unionCache_of_none publicSeed table ∅ probe hopen, QueryCache.empty_apply]
 
+/-- **The cells the union cache computes are the table's own.** The programmed entries answer
+every canonical input, so replaying the graph through this cache returns the cells it was
+programmed from — whatever else the handler has drawn beside them. -/
+theorem replayCells_unionCache (publicSeed : Digest) (table : Cells × Padding)
+    (cache : QueryCache HashSpec) :
+    HonestProbes.replayCells (unionCache publicSeed table cache)
+        (table.1 CanonicalGraph.Node.secretSeed) publicSeed = table.1 := by
+  have hvalue := @CanonicalGraph.Programming.value_eq_of_cache_agreement
+    (CacheReplay.replayQuery (unionCache publicSeed table cache)) publicSeed
+    (table.1 CanonicalGraph.Node.secretSeed)
+    (CanonicalGraph.fullOutput table.1 table.2)
+    (fun input output hentry => by
+      refine CacheReplay.hash_replayQuery (unionCache publicSeed table cache) input output ?_
+      refine unionCache_of_open publicSeed table cache input output ?_
+      rw [openCache_total]
+      rw [show CanonicalGraph.Programming.cellsOfOutputs (table.1 CanonicalGraph.Node.secretSeed)
+          (CanonicalGraph.fullOutput table.1 table.2) = table.1 from
+        congrArg Prod.fst (splitTable_fullOutput table)] at hentry
+      exact hentry)
+  rw [HonestProbes.replayCells, hvalue,
+    show CanonicalGraph.Programming.cellsOfOutputs (table.1 CanonicalGraph.Node.secretSeed)
+        (CanonicalGraph.fullOutput table.1 table.2) = table.1 from
+      congrArg Prod.fst (splitTable_fullOutput table)]
+
+/-! ## What a signature reads, as a congruence
+
+The handler that answers signing requests does not need a cell-reading signer of its own; what
+`OpenCache.reading_step_congr` consumes is `hreads`, "the step is a function of the cells it
+reads", and that is a congruence. So the statements here are congruences: change the table only
+away from the cells a signature discloses and the signature does not move.
+
+Writing a separate cell-reading signer and proving it equal to the honest one would pay for the
+construction twice — once to carry the hypertree's two bounds through a dependent recursion, and
+once to prove the result is what the honest signer already computes. The congruence is the half
+that is actually used. -/
+
+/-- The nodes an honest FORS signature discloses: the secret at each selected leaf, and the
+sibling at each level of its authentication path. -/
+def ForsDiscloses (key : ForsKey) (indices : Fors.Indices) : CanonicalGraph.Node → Prop :=
+  fun node =>
+    (∃ tree, node = .structural (HonestProbes.forsSecretNode key indices tree)) ∨
+      ∃ tree level, node = .structural (HonestProbes.forsAuthNode key indices tree level)
+
+/-- Two FORS tree signatures agree when their fields do. -/
+theorem forsTreeSignature_eq {left right : ForsTreeSignature}
+    (hsecret : left.secret = right.secret)
+    (hauth : left.authentication = right.authentication) : left = right := by
+  cases left
+  cases right
+  simp_all
+
+/-- **An honest FORS signature reads only the cells it discloses.** -/
+theorem fors_sign_congr (publicSeed : Digest) (cache : QueryCache HashSpec)
+    (left right : Cells × Padding) (key : ForsKey) (indices : Fors.Indices)
+    (hseed : left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed)
+    (hagree : ∀ node, ForsDiscloses key indices node → left.1 node = right.1 node) :
+    @Fors.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache)) indices
+        (left.1 CanonicalGraph.Node.secretSeed) publicSeed key.address =
+      @Fors.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache)) indices
+        (right.1 CanonicalGraph.Node.secretSeed) publicSeed key.address := by
+  funext tree
+  refine forsTreeSignature_eq ?_ (funext fun level => ?_)
+  · rw [HonestProbes.fors_sign_secret_cell, HonestProbes.fors_sign_secret_cell,
+      replayCells_unionCache, replayCells_unionCache]
+    exact hagree _ (Or.inl ⟨tree, rfl⟩)
+  · rw [HonestProbes.fors_sign_authentication_cell, HonestProbes.fors_sign_authentication_cell,
+      replayCells_unionCache, replayCells_unionCache]
+    exact hagree _ (Or.inr ⟨tree, level, rfl⟩)
+
 /-- A handler cache saying nothing the programmed entries contradict. -/
 def Compatible (publicSeed : Digest) (table : Cells × Padding)
     (cache : QueryCache HashSpec) : Prop :=

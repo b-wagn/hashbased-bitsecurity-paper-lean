@@ -6505,3 +6505,15 @@ info: 'SlhDsaSecurity.ReplayGate.cases_of_win_charged' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ReplayGate.cases_of_win_charged
+
+/-- info: 'SlhDsaSecurity.RedrawCell.replayCells_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.replayCells_unionCache
+
+/-- info: 'SlhDsaSecurity.RedrawCell.forsTreeSignature_eq' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.forsTreeSignature_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.fors_sign_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.fors_sign_congr
