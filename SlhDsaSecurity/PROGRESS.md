@@ -1492,7 +1492,6 @@ computed by a walk that is not.** Key generation's root, the FORS public key, an
 signature. Each time the fix has been to replace the walk by the value — and this time the
 value has to be read at the right moment as well, which is what moving into the handler buys.
 
-<<<<<<< HEAD
 **A habit worth keeping.** Three times in this line of work the lemma that was needed already
 existed one file over, twice in a more general form than the one being written — the writer's
 run lemmas generic in the monoid, the Merkle node's cell identity, the sum handler's apply
@@ -1500,7 +1499,7 @@ lemmas. The rule that catches it is to look in the file that would *own* the sta
 writing it: the file about writers owns a lemma about writers, whatever the reason for wanting
 it. Five accidental duplicates have been found here after the fact, and each cost more to find
 than the look would have.
-=======
+
 ## A budget that admits an adversary at all pays for key generation
 
 The accounting hands the charges `q - 2 ^ subtreeHeight`, and on `Nat` that subtraction
@@ -1514,4 +1513,35 @@ the run to be nonempty, and nothing has to: an adversary whose run can fail ever
 `HasTotalBudget` false for every `q`, so the theorem says nothing about it. The empty case is
 closed by the same line that closes the small-budget case rather than excluded by a hypothesis
 no one had stated.
->>>>>>> worktree-agent-a67295ec5296995e4
+
+## Five definitional equalities that read as syntactic ones
+
+Each of these cost hours, and each presents differently. The common shape: two terms are equal
+by unfolding but not by matching, so the tool that needs them to look alike declines — and the
+way it declines points away from the cause.
+
+1. **An opaque game definition.** The symptom is a rewrite that cannot see into the term at all.
+   The cause is a definition that does not reduce where the lemma expects it to; the fix is a
+   `show`, or an equation lemma stated at the shape the goal has.
+2. **Rewriting under a binder.** The symptom is `rw` reporting its pattern missing on a goal
+   where the pattern is plainly visible — inside a `fun`. `simp only` goes under binders; `rw`
+   does not.
+3. **A choice-based lookup.** The symptom is a congruence that will not close: two invocations
+   of `Classical.choose` on propositionally equal inputs are not equal terms, so anything built
+   over them is incomparable. The fix is to avoid choice in the definition rather than to fight
+   it in the proof.
+4. **A semireducible index.** `(spec₁ + spec₂).Range (Sum.inr t)` and `spec₂.Range t` agree only
+   semireducibly. The symptom is `rw` reporting its pattern missing *and* `simp` declining
+   silently, with unfolding producing terms that are not type-correct at `instances`
+   transparency. The rule: phrase each lemma at the index its goal has, and convert once, inside
+   that lemma's own proof.
+5. **An instance path.** Two syntactically different `MonadLiftT` instances for the same pair of
+   types, not definitionally equal, so a lemma stated at one cannot be applied at the other. The
+   symptom is an instance search failing *downstream* of the mismatch — the search is for
+   something the mismatch made unsatisfiable, so its error names the wrong thing. The rule:
+   pin the instance in one definition and route everything through it, and let a law relating
+   the pinned construction to the original be the check, since the pin itself cannot be checked
+   by `rfl` when the terms genuinely differ.
+
+The habit that catches the first four early is to ask what the *goal's* shape is before writing
+the lemma, rather than writing the lemma one would like and making the goal fit.

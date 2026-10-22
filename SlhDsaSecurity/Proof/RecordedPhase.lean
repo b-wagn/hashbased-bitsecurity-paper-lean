@@ -55,6 +55,20 @@ def phaseCost : (OracleWorld + SigningSpec).Domain → Tally
   | .inl input => (Counts.single .hash (hashCost input), recordOf input)
   | .inr _ => (Counts.single .signing 1, 0)
 
+/-- **The record is exactly as big as the charge, query by query.** The cardinality invariant
+the budget rests on is a property of the cost function, so it survives the move inward
+unchanged: a hash call records its own input and charges one unit of work, a signing request
+records nothing and charges none. -/
+theorem faithful_phaseCost (queried : (OracleWorld + SigningSpec).Domain) :
+    Multiset.card (phaseCost queried).2 = ((phaseCost queried).1).work := by
+  rcases queried with input | request
+  · show Multiset.card (recordOf input) = (Counts.single .hash (hashCost input)).work
+    rw [AdversaryQueries.work_single_hash]
+    exact card_recordOf input
+  · show Multiset.card (0 : Multiset Bytes) = (Counts.single .signing 1).work
+    rw [AdversaryQueries.work_single_signing]
+    rfl
+
 /-- The signer with nothing charged and nothing recorded: it answers and records to the log. -/
 noncomputable def unchargedSigner (signer : Message → OracleComp OracleWorld (Option Bytes)) :
     QueryImpl SigningSpec (StateT SigningLog (OracleComp OracleWorld)) := fun request => do

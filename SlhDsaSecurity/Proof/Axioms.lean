@@ -124,8 +124,7 @@ import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 import SlhDsaSecurity.Proof.KeygenValue
 import SlhDsaSecurity.Proof.RecordedPhase
-
-/-! Kernel dependency checks for the preparatory results. -/
+import SlhDsaSecurity.Proof.LinkedGame
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -405,8 +404,6 @@ import SlhDsaSecurity.Proof.RecordedPhase
 #guard_msgs in
 #print axioms SlhDsaSecurity.Extraction.Wots.publicKey_eq_canonical_or_collision
 
-/-! Framing closure, feasibility arithmetic, and the eligible-encoding count. -/
-
 /-- info: 'SlhDsaSecurity.FramingClosure.chainFrame_family_injective' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FramingClosure.chainFrame_family_injective
@@ -534,8 +531,6 @@ import SlhDsaSecurity.Proof.RecordedPhase
 /-- info: 'SlhDsaSecurity.FreshDigest.fresh_randomizer_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshDigest.fresh_randomizer_uniform
-
-/-! All-queries-counted statements. -/
 
 /-- info: 'SlhDsaSecurity.Security.totalAdvantage_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -929,12 +924,6 @@ info: 'SlhDsaSecurity.HypertreeDispatch.queriesUnder_rootFromSignature_tail' dep
 #guard_msgs in
 #print axioms SlhDsaSecurity.HypertreeDispatch.queriesUnder_rootFromSignature_tail
 
-/-! Kernel dependency checks for the input-side coupling. -/
-
-/-! Framing closure, feasibility arithmetic, and the eligible-encoding count. -/
-
-/-! All-queries-counted statements. -/
-
 /-- info: 'SlhDsaSecurity.InputCoupling.probEvent_seedDerived_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.InputCoupling.probEvent_seedDerived_le
@@ -982,12 +971,6 @@ info: 'SlhDsaSecurity.InputCoupling.chargedStep_of_probEvent_bad_step_le' depend
 /-- info: 'SlhDsaSecurity.InputCoupling.advantage_le_two_mul' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.InputCoupling.advantage_le_two_mul
-
-/-! Kernel dependency checks for the FORS dispatch. -/
-
-/-! Framing closure, feasibility arithmetic, and the eligible-encoding count. -/
-
-/-! All-queries-counted statements. -/
 
 /-- info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pair' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
@@ -1045,8 +1028,6 @@ info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision
 
-/-! Kernel dependency checks for the blind comparison. -/
-
 /-- info: 'SlhDsaSecurity.BlindComparison.flag_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlindComparison.flag_one
@@ -1059,13 +1040,9 @@ info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_forsCollision' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedDeferral.prob_run_meets_honest_key_le
 
-/-! The target, reduced to its two halves. -/
-
 /-- info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_halves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_halves
-
-/-! Kernel dependency checks for the game bridge. -/
 
 /-- info: 'SlhDsaSecurity.GameBridge.verify_eq_replay' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -3662,3 +3639,23 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_win_three' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RoutedSplit.cases_of_win_three
+
+/-- info: 'SlhDsaSecurity.RecordedPhase.faithful_phaseCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedPhase.faithful_phaseCost
+
+/-- info: 'SlhDsaSecurity.LinkedGame.simulateQ_liftWorld' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.simulateQ_liftWorld
+
+/-- info: 'SlhDsaSecurity.LinkedGame.run_simulateQ_ofLift' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.run_simulateQ_ofLift
+
+/-- info: 'SlhDsaSecurity.LinkedGame.run_unchargedPhase_lift' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.run_unchargedPhase_lift
+
+/-- info: 'SlhDsaSecurity.LinkedGame.recordedAfterSeedsAt_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.recordedAfterSeedsAt_eq
