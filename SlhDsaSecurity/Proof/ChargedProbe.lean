@@ -542,6 +542,44 @@ theorem sum_weighted_le_of_sum {γ : Type} (stakes : Stakes Node CanonicalGraph.
           exact Nat.cast_le.mpr (hweight result hmem)
         · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
 
+set_option maxHeartbeats 1000000 in
+set_option maxRecDepth 1000000 in
+open scoped Classical in
+/-- **The same, with the unavailability read off the run.** `sum_weighted_le_of_sum` is its
+constant case; as with `prob_run_cell_le_indexed`, the proof does not notice, since every step
+is taken at one result. -/
+theorem sum_weighted_le_of_sum_indexed {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
+    (unavailable : γ → HandlerCarrier.State → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × HandlerCarrier.State)) (weight : γ → Nat)
+    (hweight : ∀ result ∈ support run,
+      ∑ index : CanonicalGraph.Node, aiming stakes (unavailable result) index (record result) ≤
+        weight result) :
+    ∑ index : CanonicalGraph.Node,
+        (∑' result, Pr[= result | run] *
+          ((aiming stakes (unavailable result) index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      (∑' result, Pr[= result | run] * ((weight result : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  calc ∑ index : CanonicalGraph.Node,
+        (∑' result, Pr[= result | run] *
+          ((aiming stakes (unavailable result) index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞)
+      = (∑' result, ∑ index : CanonicalGraph.Node, Pr[= result | run] *
+          ((aiming stakes (unavailable result) index (record result) : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        simp only [div_eq_mul_inv, ← Finset.sum_mul]
+        refine congrArg (fun total => total * (((2 ^ 128 : Nat) : ℝ≥0∞))⁻¹) ?_
+        exact sum_tsum_comm Finset.univ _
+    _ ≤ _ := by
+        refine ENNReal.div_le_div_right (ENNReal.tsum_le_tsum fun result => ?_) _
+        rw [← Finset.mul_sum]
+        by_cases hmem : result ∈ support run
+        · refine mul_le_mul' le_rfl ?_
+          rw [← Nat.cast_sum]
+          exact Nat.cast_le.mpr (hweight result hmem)
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+
 /-- **An expected count bounded on every supported run gives a bounded charge.** -/
 theorem tsum_weight_le {γ : Type} (run : ProbComp γ) (weight : γ → Nat) (limit : Nat)
     (hlimit : ∀ result ∈ support run, weight result ≤ limit) :
