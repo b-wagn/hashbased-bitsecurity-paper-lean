@@ -207,6 +207,7 @@ import SlhDsaSecurity.Proof.TouchedKeys
 import SlhDsaSecurity.Proof.HonestTail
 import SlhDsaSecurity.Proof.ServingForget
 import SlhDsaSecurity.Proof.BracketedRun
+import SlhDsaSecurity.Proof.CarrierTail
 import SlhDsaSecurity.Proof.HandlerStall
 import SlhDsaSecurity.Proof.HandlerCharge
 import SlhDsaSecurity.Proof.HandlerLenient
@@ -13239,18 +13240,6 @@ info: 'SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder' depends on axio
 #print axioms SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder
 
 /--
-info: 'SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket
-
-/--
-info: 'SlhDsaSecurity.BracketedRun.run_bracketed_map' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BracketedRun.run_bracketed_map
-
-/--
 info: 'SlhDsaSecurity.CacheProvenance.sign_randomizer_answer' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -13317,3 +13306,39 @@ info: 'SlhDsaSecurity.CountedHandler.forgetsAlong_withCount' depends on axioms: 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.forgetsAlong_withCount
+
+/--
+info: 'SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket
+
+/--
+info: 'SlhDsaSecurity.BracketedRun.run_bracketed_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedRun.run_bracketed_map
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.cache_startAt' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.cache_startAt
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.bracket_startServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.bracket_startServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.bracket_stopServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.bracket_stopServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.isBracketedRecorderRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.isBracketedRecorderRun
