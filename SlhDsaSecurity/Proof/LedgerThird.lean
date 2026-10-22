@@ -155,4 +155,42 @@ theorem allowance_hypothesis_at_saturation : (506 : Nat) + 6 ≤ 2 ^ subtreeHeig
   norm_num [subtreeHeight]
 
 
+
+/-! ## And at one unit, which is what the summed count actually costs
+
+`PrfClassCount.expected_card_filter_prfClass_le` bounds the expected class count by
+`card record / 2 ^ 128` rather than by `card record ^ 2 / 2 ^ 128` — the entries are summed
+instead of union-bounded. At `card record ≤ q - 2 ^ subtreeHeight` that is **below one entry's
+worth** for every budget up to `2 ^ 128`, so the column costs a single unit of the `claims`
+budget and the ledger closes with 246 spare.
+
+**That removes the threshold entirely.** `q₀` above was a property of the lossy route, not of
+the quantity: bounding the count by the record *before* taking the expectation is what squared
+it. The theorems above are kept because they say what a `q`-dependent column would have cost,
+which is the thing worth remembering.
+
+**What is not removed is the order.** The summed bound is proved with the seed drawn *after*
+the record, which is the blind order; in the real game the walk fixes the seed first and an
+adversary may aim every query at it. So this discharges the column exactly when the blind-order
+count transfers, and that transfer is the open hop — not an arithmetic question. -/
+
+/-- **One unit covers the column**, for every budget the statement is read at. -/
+theorem prf_column_within_one_unit (queries : Nat)
+    (hq : queries - 2 ^ subtreeHeight ≤ 2 ^ 128) :
+    ((queries - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) ≤ 1 := by
+  calc ((queries - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+      ≤ ((2 ^ 128 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        ENNReal.div_le_div_right (Nat.cast_le.mpr hq) _
+    _ = 1 := ENNReal.div_self (by positivity) (by simp)
+
+/-- **And the ledger closes with 246 units spare**, against the 0 the quadratic column left. -/
+theorem claims_spare_with_prf_unit : (259 : Nat) + 1 + 6 ≤ 2 ^ subtreeHeight := by
+  norm_num [subtreeHeight]
+
+/-- The spare, written out. -/
+theorem claims_spare_with_prf_unit_margin :
+    2 ^ subtreeHeight - ((259 : Nat) + 1 + 6) = 246 := by
+  norm_num [subtreeHeight]
+
+
 end SlhDsaSecurity.LedgerThird
