@@ -3465,3 +3465,23 @@ No two of these can be the same predicate, and the first bounds the third throug
 **served ⇒ signer-randomised at the end**, because a filed entry had the flag up, so by
 `not_filesLeft_adversary` the query was the signer's, so it used the real randomiser and that
 randomiser's `PRF_msg` entry is in the final cache.
+
+## The projection trap, three sightings and one fix
+
+`rw` cannot solve for a metavariable that sits under a projection, and it cannot see through a
+redex. Three forms of the same obstruction have now cost a build each:
+
+1. a lemma whose conclusion is a projection of a structure the rewrite has to infer;
+2. `ForgetsAlong`'s projection **applied as a lambda** — an instance of it is a redex, so the
+   rewrite does not fire and the error points at the goal rather than at the application;
+3. a lemma that has to be applied at a state the *previous* rewrite produces, so its implicit
+   type arguments are determined only after that rewrite lands — a `bind_congr` attempted
+   before then has nothing to resolve and reports a stuck `Bind ?m`.
+
+**The fix in all three is the same: name the instance at the state it is used at**, as a `have`,
+rather than asking `rw` to find it. Three lines. The diagnosis is the expensive part and the
+symptom is misleading in every case — the error names the goal, not the application.
+
+Related and already recorded: `simp only` fails silently in the files that set
+`backward.isDefEq.respectTransparency false`, and `lake env lean` reads oleans rather than
+sources. All three are cases of a tactic failing in a way that does not name its own cause.
