@@ -63,11 +63,17 @@ def keyOf (x : Trace) : PublicKey :=
 /-- The counted outcome and the final cache, as the charges read a tail's result. -/
 def resultOf (x : Trace) : (Outcome × Nat) × QueryCache HashSpec := (x.1.2, x.2)
 
-/-- **The answer side.** A structural collision that deviates from the walk's cells, or the
-forgery's own message digest covered by the digests of the other message-class inputs. -/
-def AnswerBad (x : Trace) : Prop :=
+/-- **The answer side, at a public key held fixed.** A structural collision that deviates from
+the walk's cells, or the forgery's own message digest covered by the digests of the other
+message-class inputs. The key is a parameter because the charge needs it fixed before the tail
+runs: both clauses are charged per query, and which class a query falls in is decided by the
+key its bytes name. -/
+def AnswerBadAt (pk : PublicKey) (x : Trace) : Prop :=
   StructuralTerm.DeviatingCollision x.1.1.1.2.2 x.1.1.2 (resultOf x) ∨
-    CoverageTail.ForgeryCovered (keyOf x) (resultOf x)
+    CoverageTail.ForgeryCovered pk (resultOf x)
+
+/-- **The answer side**, at the key this run's own cache generates. -/
+def AnswerBad (x : Trace) : Prop := AnswerBadAt (keyOf x) x
 
 /-- **The input side.** Some entry of the record of claims the forgery determines is the
 canonical input of a node whose staked cell no signature has made available. -/

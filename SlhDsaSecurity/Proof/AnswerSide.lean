@@ -94,4 +94,102 @@ theorem prob_deviatingCollision_outside_le (adversary : Adversary) (pk : PublicK
   exact ⟨CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates parent
     result output hdeviates hentry hcollision, hinside result hres, houtside result hres⟩
 
+/-! ## The two charges, added
+
+The coverage charge is already counted on the message class, so the two counts are the two
+sides of one split rather than two copies of the budget. What they add to is the growth of the
+tail, which is what the target's `q - 2 ^ subtreeHeight` is. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side, as one predicate with one bound.** -/
+theorem prob_answerBad_le (adversary : Adversary) (pk : PublicKey) (qs qm : Nat)
+    (hqm : qm ≤ 5 * 2 ^ 62) (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hinside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (CombinedCharge.IsMessageInput pk) walk.2 result.2 qm)
+    (houtside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (fun input => ¬ CombinedCharge.IsMessageInput pk input)
+        walk.2 result.2 qs) :
+    Pr[fun result => RoutedSplit.AnswerBadAt pk ((walk.1, result.1), result.2) |
+      tail adversary walk] ≤
+      ((qs + qm : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) := by
+  calc Pr[fun result => RoutedSplit.AnswerBadAt pk ((walk.1, result.1), result.2) |
+        tail adversary walk]
+      ≤ Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+            StructuralTerm.DeviatingCollision walk.1.1.2.2 walk.1.2 result |
+          tail adversary walk] +
+          Pr[CoverageTail.ForgeryCovered pk | tail adversary walk] := probEvent_or_le _ _ _
+    _ ≤ (qs : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((1 : ℝ≥0∞) / 2 ^ 141 + (qm : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        add_le_add
+          (prob_deviatingCollision_outside_le adversary pk qs qm hpublic hwalk hinside houtside)
+          (CoverageTail.prob_coverage_tail_le adversary pk qm hqm hpublic
+            withinBounds_structural hwalk hinside)
+    _ = ((qs + qm : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) := by
+        rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring,
+          Nat.cast_add, ← ENNReal.div_add_div_same]
+        ring
+
+/-! ## The key the charge is stated at
+
+The charge needs the key fixed before the tail runs, and the routing names the key this run's
+own final cache generates. They agree: after the graph is walked, key generation asks the cache
+nothing new, so the key is already determined by the walk and the tail cannot move it. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The key the run generates is the key the walk already fixed.** -/
+theorem generatedKey_eq_walk (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (tail adversary walk)) :
+    SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2 =
+      SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2 := by
+  obtain ⟨outputs, hwarm⟩ := HonestGrowth.walk_cache_eq_warmCache hwalk
+  have hrun : result ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes (afterSeeds adversary walk.1.1))).run walk.2) := hresult
+  obtain ⟨keys, keyCache, verifyCache, hkeys, hpersist, -⟩ :=
+    WarmedSplit.split_afterSeeds adversary walk.1.1 walk.2 result hrun
+  have hpure := hkeys
+  rw [hwarm, HonestProbes.run_keygenInternal_world_eq_pure, support_pure,
+    Set.mem_singleton_iff] at hpure
+  have hvalue : keys = @Scheme.keygenInternal Id Id.instMonad
+      (CacheReplay.replayQuery walk.2) walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 := by
+    rw [hwarm]; exact (Prod.ext_iff.mp hpure).1
+  rw [WarmedSplit.keygenInternal_liftM, WarmedSplit.run_rom_liftM] at hkeys
+  have hreplay := WarmedSplit.keygenInternal_eq_replay_of_subset walk.1.1.1 walk.1.1.2.1
+    walk.1.1.2.2 walk.2 keyCache result.2 keys hkeys hpersist
+  rw [SplitCharged.generatedKey, SplitCharged.generatedKey, ← hreplay, hvalue]
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side at the run's own key.** -/
+theorem prob_answerBad_generated_le (adversary : Adversary) (qs qm : Nat)
+    (hqm : qm ≤ 5 * 2 ^ 62)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hpublic : ¬ HashSeparation.Possible
+      ((SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed,
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).root))
+    (hinside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        walk.2 result.2 qm)
+    (houtside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (fun input => ¬ CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input)
+        walk.2 result.2 qs) :
+    Pr[fun result => RoutedSplit.AnswerBad ((walk.1, result.1), result.2) |
+      tail adversary walk] ≤
+      ((qs + qm : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) := by
+  refine le_trans (probEvent_mono ?_)
+    (prob_answerBad_le adversary _ qs qm hqm hpublic hwalk hinside houtside)
+  intro result hresult hbad
+  rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
+    generatedKey_eq_walk adversary hwalk hresult] at hbad
+  exact hbad
+
 end SlhDsaSecurity.AnswerSide

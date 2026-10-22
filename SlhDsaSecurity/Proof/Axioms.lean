@@ -5421,3 +5421,15 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerSide.prob_deviatingCollision_outside_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.generatedKey_eq_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.generatedKey_eq_walk
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_generated_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_generated_le
