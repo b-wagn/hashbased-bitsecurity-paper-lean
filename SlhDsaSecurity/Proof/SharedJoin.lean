@@ -287,6 +287,55 @@ theorem card_parts_le_budget (adversary : Adversary) (q : Nat)
       (RecordedTail.mem_support_tail_of_recorded adversary hresult)
   omega
 
+/-! ## The record itself against the budget
+
+`card_parts_le_budget` bounds the two parts, and a consumer that needs the **record** cannot get
+there from it: `card_parts_le_record` points the other way, so the two compose to nothing. What
+does give it is what is already inside that proof — the record's cardinality *is* the work
+count, and the work count plus the subtree leaves fit in the budget. Stated on its own because
+two live routes need it and neither needs the parts.
+
+**It is the same shape as `card_parts_le_budget` with the first step dropped.** That is worth
+saying rather than hiding: a lemma whose proof contains a more general statement than its own
+conclusion is a lemma that will be re-derived, and the fix is to state the general one beside
+it, not to rewrite the specific one. -/
+
+/-- **The record fits in the budget**, with the subtree's leaves subtracted. -/
+theorem card_record_le_budget (adversary : Adversary) (q : Nat)
+    (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
+    (hpair : pair ∈ support (recordedPairedRun adversary)) :
+    Multiset.card (recordOf pair) ≤ q - 2 ^ subtreeHeight := by
+  obtain ⟨hwalk, hresult⟩ := mem_support_recordedPairedRun hpair
+  have hwork : Multiset.card (recordOf pair) = pair.2.1.1.1.counts.work :=
+    card_record_eq_work adversary hresult
+  have hbound : pair.2.1.1.1.counts.work + 2 ^ subtreeHeight ≤ q :=
+    RecordedBudget.work_add_pow_le_of_budget_tail hbudget hwalk
+      (RecordedTail.mem_support_tail_of_recorded adversary hresult)
+  omega
+
+open scoped Classical in
+/-- **And so does any part of it.** The message class is a filter of the record, and a filter is
+no larger — which is the form a per-entry union bound over one part reads. -/
+theorem card_recordMessageClass_le_budget (adversary : Adversary) (q : Nat)
+    (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
+    (hpair : pair ∈ support (recordedPairedRun adversary)) :
+    Multiset.card (recordMessageClass pair) ≤ q - 2 ^ subtreeHeight := by
+  classical
+  refine le_trans (Multiset.card_le_card ?_) (card_record_le_budget adversary q hbudget hpair)
+  rw [recordMessageClass]
+  exact Multiset.filter_le _ _
+
+open scoped Classical in
+/-- **The aiming part too**, for the same reason and with the same two lines. -/
+theorem card_recordAiming_le_budget (adversary : Adversary) (q : Nat)
+    (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
+    (hpair : pair ∈ support (recordedPairedRun adversary)) :
+    Multiset.card (recordAiming pair) ≤ q - 2 ^ subtreeHeight := by
+  classical
+  refine le_trans (Multiset.card_le_card ?_) (card_record_le_budget adversary q hbudget hpair)
+  rw [recordAiming]
+  exact Multiset.filter_le _ _
+
 /-! ## The adapters, so the bridge is applied rather than merely present
 
 `ProbesIn` and `card_le_of_probesIn` say what an owner has to prove and what it buys, but
