@@ -303,4 +303,78 @@ theorem run_splitCarrierRecorder_counted (inClass : Bytes → Prop) {inside outs
           (state.1, (state.2.1, state.2.2 inside + state.2.2 outside)) :=
   run_withSplit_withCount inClass hne _ computation
 
+/-! ## The target recording is inside the inside slot
+
+`CoverageCount.rightRecord_length_le_count` bounds the target recording by the inside slot of a
+counter installed on the computation. This is the same bound at the counter installed on the
+handler, and it is the one `hshare` needs: the coverage charge is read at the recording's
+length, the structural charge at the outside slot, and the two sit inside one budget only
+because the recording is inside the inside slot.
+
+The argument is the cache side's. An entry is appended on a **fresh draw** only — `appendedOf`'s
+guard is `CacheView.cacheOf … = none`, and `cacheOf_onQuery` says the notice leaves the cache
+alone, so the notice costs the premise nothing — and the test that files to the target implies
+the class, so the query that appends is a query that bumps the slot. The counter accumulates
+where the computation's starts at zero, so the statement carries the counter the run started
+at, exactly as `run_withCount_count` does.
+
+**It is `≤` and not `=`, and the slack is real**: an in-class query whose answer is already
+cached bumps the slot and files nothing. That is the slack the subtractive substitute tried to
+recover and could not, and it is why the bound runs this way round. -/
+
+open scoped Classical in
+/-- **The target recording is no longer than the inside slot.** -/
+theorem rightRecord_length_le_inside (inClass : Bytes → Prop) (inside outside : QueryKind)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep input view → inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (state : HandlerCarrier.State ×
+        ((DigestTape.Record × DigestTape.Record) × Counts))
+      (result : α × (HandlerCarrier.State ×
+        ((DigestTape.Record × DigestTape.Record) × Counts))),
+      result ∈ support ((simulateQ (splitCarrierRecorder pk inClass inside outside rightKeep)
+        computation).run state) →
+      result.2.2.1.2.length + state.2.2 inside ≤
+        state.2.1.2.length + result.2.2.2 inside := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [show result.2.2.1.2 = state.2.1.2 from by rw [hmem],
+      show result.2.2.2 = state.2.2 from by rw [hmem]]
+  | query_bind queried next ih =>
+    intro state result hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    have hih := ih step.1 step.2 result hrest
+    obtain ⟨inner, hinner, -, -, hrecords, hcounts⟩ :=
+      withSplit_step inClass inside outside _ queried state step hstep
+    have hslot : step.2.2.2 inside =
+        state.2.2 inside + (splitCost inClass inside outside queried) inside := by
+      rw [hcounts]; rfl
+    have hstepRecord : step.2.2.1.2.length ≤
+        state.2.1.2.length + (splitCost inClass inside outside queried) inside := by
+      rcases queried with coin | input
+      · rw [hrecords, show inner.2 = (state.1, state.2.1) from
+          @RecorderView.recorderOf_step_inl HandlerCarrier.State (servingView pk)
+            (disclosingKeep pk) rightKeep coin (state.1, state.2.1) inner hinner]
+        simp
+      · rw [@RecorderView.noticingRecorderOf_run_inr HandlerCarrier.State (servingView pk)
+          (disclosingKeep pk) rightKeep input (state.1, state.2.1)] at hinner
+        rw [hrecords, @RecorderView.recorderOf_step_record HandlerCarrier.State
+            (servingView pk) (disclosingKeep pk) rightKeep input
+            (@RecorderView.CacheView.onQuery HandlerCarrier.State (servingView pk) state.1 input,
+              state.2.1) inner hinner]
+        simp only [RecorderView.appendedOf]
+        split_ifs with hfiledLeft hfiledRight
+        · simp
+        · rw [splitCost_inside inClass inside outside input
+            (hrightClass input (@RecorderView.CacheView.onQuery HandlerCarrier.State
+              (servingView pk) state.1 input) hfiledRight.2)]
+          simp
+        · simp
+    omega
+
 end SlhDsaSecurity.SplitCounted

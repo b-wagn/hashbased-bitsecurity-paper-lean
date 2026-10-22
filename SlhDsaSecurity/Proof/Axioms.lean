@@ -242,6 +242,7 @@ import SlhDsaSecurity.Proof.CarrierDemand
 import SlhDsaSecurity.Proof.NoticingCover
 import SlhDsaSecurity.Proof.FusedCover
 import SlhDsaSecurity.Proof.SplitCounted
+import SlhDsaSecurity.Proof.SplitTail
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15306,3 +15307,39 @@ info: 'SlhDsaSecurity.SplitCounted.run_splitCarrierRecorder_counted' depends on 
 /-- info: 'SlhDsaSecurity.ObligationShapes.randomiserBad_of_forgerySeed' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ObligationShapes.randomiserBad_of_forgerySeed
+
+/-- info: 'SlhDsaSecurity.SplitCounted.rightRecord_length_le_inside' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.rightRecord_length_le_inside
+
+/-- info: 'SlhDsaSecurity.SplitTail.forgetsAlong_splitHandlerAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.forgetsAlong_splitHandlerAt
+
+/-- info: 'SlhDsaSecurity.SplitTail.split_first_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.split_first_stage_bind
+
+/-- info: 'SlhDsaSecurity.SplitTail.split_middle_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.split_middle_stage_bind
+
+/-- info: 'SlhDsaSecurity.SplitTail.split_last_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.split_last_stage_bind
+
+/-- info: 'SlhDsaSecurity.SplitTail.map_splitCarrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.map_splitCarrierTail
+
+/-- info: 'SlhDsaSecurity.SplitTail.splitCarrierTail_work' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.splitCarrierTail_work
+
+/--
+info: 'SlhDsaSecurity.SplitTail.prob_splitCarrierTail_targetCovered_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.prob_splitCarrierTail_targetCovered_le

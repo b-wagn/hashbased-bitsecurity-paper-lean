@@ -4097,6 +4097,21 @@ and a copy would compile, nothing external stops the copy — only noticing what
   and the error named the *arguments whose types mentioned them* rather than the names. Qualify
   both.
 
+## Two claims that are not the same claim
+
+A thread disclaimed authorship of advice that was in its own output, twice, without opening the
+file it could have read. The rule it drew is worth more than the correction:
+
+> Before disclaiming anything attributed to you, read your own transcript. If you cannot read
+> it, say **"I cannot see my earlier output"** — not **"I did not say that."**
+
+Those are materially different claims, and only the second is a lie when it turns out to be
+wrong. The first routes around a limitation; the second makes every other report from the same
+source unreliable as evidence rather than merely incomplete.
+
+The same distinction applies to the record generally: *I did not find it* and *it is not there*
+are different findings, and only one of them licenses building on its absence.
+
 ## A parameter is not a guard: `Nat` units against a `q`-shaped event
 
 `seedUnits` was introduced as a parameter precisely so that no constant would be asserted
@@ -4257,6 +4272,7 @@ The generic transport lemmas `withExtra_step_map`, `run_withExtra_map` and
 `forgetsAlong_withExtra` now carry the `withCount` ones as one-line corollaries, which is the
 third instance the `withExtra` note asked for.
 
+<<<<<<< HEAD
 ## `hsplit` at the carrier, and the two sides of the `irreducible` judgement
 
 `AnswerCarrier.hsplit_of_join` is the split in the shape `answerBoundSeed_of_charges` consumes:
@@ -4287,3 +4303,38 @@ The other half of the same episode: a `whnf` timeout reported at a `theorem` lin
 proof, exactly as warned, and the cure was the same both times — replace a `rfl` or an anonymous
 constructor that compares terms built over the run with a lemma that compares only the functions
 (`Set.mem_image_of_mem`, `congrArg`).
+=======
+### The split tail, and the length bound into the inside slot
+
+`SlhDsaSecurity/Proof/SplitTail.lean` is the tail at the split handler: the same three stages,
+the same brackets, the same value, with the two slots carried out beside the value where the two
+charges can read them. `map_splitCarrierTail` says its first component **is**
+`CarrierTail.carrierTail`, and the proof is `CarrierTail.forget_carrierTail`'s skeleton with the
+three transports swapped — `ServingForget.bind_of_forgetsAlong` twice and
+`bind_of_fuseServing_conj` once, discharged by `SplitCounted.forgetsAlong_sumSlots` and the two
+bracket-commutation laws. **No induction was added.**
+
+`prob_splitCarrierTail_targetCovered_le` is the payoff and is worth naming as such: the coverage
+charge at the split tail is the image of the one at the tail under that map, and the proof is
+`probEvent_map` and `ClassExpectation.expected_map`, both identities. Had the split been put
+*into* `BracketedRun.CountedState`, this is the theorem where the tape factorisation would have
+had to be reproved. It is the cost the layering avoids, and it is now visible in one place.
+
+`splitCarrierTail_work` says the value's work count is the two slots added, by construction.
+
+`SplitCounted.rightRecord_length_le_inside` is the carrier analogue of
+`CoverageCount.rightRecord_length_le_count`: the target recording is no longer than the inside
+slot, at a run of the split carrier recorder, carrying the counter the run started at. The
+argument is the cache side's — an entry is appended on a **fresh draw** only, and `cacheOf_onQuery`
+says the notice leaves the cache alone, so the notice costs the premise nothing; the test that
+files to the target implies the class, so the query that appends is the query that bumps the slot.
+
+**It is `≤` and the slack is real.** An in-class query whose answer is already cached bumps the
+slot and files nothing. That slack is exactly what the subtractive substitute tried to recover
+and could not, which is why the bound runs this way round and not as an equality.
+
+**Where it stops.** The bound is at a *single run* of the handler, which is the scope its cache-side
+counterpart has too. Chaining it across the tail's three stages — in particular through the fused
+middle stage — is a further step and is not done; `prob_splitCarrierTail_targetCovered_le` takes
+its two record bounds as hypotheses for the same reason the tail-level charge does.
+>>>>>>> worktree-agent-a25e806846bb76079
