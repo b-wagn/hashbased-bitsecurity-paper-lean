@@ -11518,3 +11518,15 @@ info: 'SlhDsaSecurity.RecordedChain.run_recordedAfterSeeds_eq_linked' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedChain.run_recordedAfterSeeds_eq_linked
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeedsAt' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeedsAt
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at
