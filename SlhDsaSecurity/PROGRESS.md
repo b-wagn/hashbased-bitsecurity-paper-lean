@@ -4335,3 +4335,36 @@ and could not, which is why the bound runs this way round and not as an equality
 counterpart has too. Chaining it across the tail's three stages — in particular through the fused
 middle stage — is a further step and is not done; `prob_splitCarrierTail_targetCovered_le` takes
 its two record bounds as hypotheses for the same reason the tail-level charge does.
+
+### `hshare` discharged end to end, and what the chaining needed
+
+The step bound reaches the tail by `RecordInvariant`'s two laws and nothing else. Getting there
+needed one change and it was a generalisation, not an addition: **`RecordInvariant`'s five
+state-machine laws were stated at `BracketedRun.CountedState` and are now stated at an arbitrary
+`S`.** Nothing in their proofs ever read the state; only `bracket_invariant`, which reads
+`BracketedRun.Bracket`, stays at `CountedState`. The whole build went green with no call site
+changed, which is the test of whether a generalisation was a generalisation. An invariant
+interface that could not follow the recordings into the split-counted state would have had to be
+written twice, and that is exactly the failure `CountedHandler` warns about for `Files`.
+
+`SplitCounted.Tracks` is the relation the three stages compose along: *whatever the target
+recording gained, the inside slot gained at least as much.* It is a **relation and not a
+predicate** because a relation is what composes — `Tracks.trans` is `omega` — where a predicate
+would have had to be re-chosen at each stage's start state.
+
+* `step_tracksInside` — one step tracks. The content, as before: an entry reaches the target
+  only on a fresh draw whose test implies the class, and that query bumps the slot.
+* `run_tracksInside` — `RecordInvariant.run_invariant` at the relation with its start fixed.
+* `SplitTail.phase_tracksInside` — `RecordInvariant.phase_invariant`. Both bracket obligations
+  are `exact hinv` after a `cases` on the request's frame, because `startServingOn` and
+  `stopServingOn` rewrite the carrier's framing and return `state.2` untouched while the
+  relation reads only `state.2`. That is the sense in which "the brackets make it available".
+* `splitCarrierTail_rightRecord_le_inside` — the three stages composed, collapsing at the
+  tail's start where the recordings are empty and the counter is zero.
+* `splitCarrierTail_share` — **`hshare`, with nothing assumed.**
+
+**What is still a hypothesis, and why that is right.** `prob_splitCarrierTail_targetCovered_le`
+still takes its two record bounds (`leftLength`, `rightLength`). Those are caps on the
+recordings' *lengths* and belong to the factorisation's own accounting, not to the share; they
+are the same hypotheses the tail-level coverage charge takes. What is no longer assumed is the
+one `hshare` needs.

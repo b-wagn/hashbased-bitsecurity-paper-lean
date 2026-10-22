@@ -238,4 +238,104 @@ theorem prob_splitCarrierTail_targetCovered_le (inClass : Bytes → Prop)
     (htransport leftLength (fun result => result.2.2.1.length) hleftBound)
     (htransport rightLength (fun result => result.2.2.2.length) hrightBound)
 
+/-! ## `hshare`, discharged end to end
+
+The step bound reaches the tail by `RecordInvariant`'s two laws and nothing else. The phase
+law needs the brackets to preserve the relation, and they do for the reason they preserve
+everything else the recordings care about: `startServingOn` and `stopServingOn` rewrite the
+carrier's framing and return `state.2` untouched, and the relation reads only `state.2`. Both
+bracket obligations are therefore `exact hinv` after a `cases` on the request's frame.
+
+Then the three stages compose by `Tracks.trans`, which is `omega`, and at the tail's start the
+recordings are empty and the counter is zero — so the relation collapses to the bound.
+
+**This is what was assumed before.** `prob_splitCarrierTail_targetCovered_le` still takes its two
+record bounds as hypotheses, because those are caps on the *lengths* and belong to the
+factorisation; what is no longer assumed is the one `hshare` needs, that the target recording
+sits inside the inside slot. -/
+
+/-- **A bracketed phase tracks.** -/
+theorem phase_tracksInside (inClass : Bytes → Prop) (inside outside : QueryKind)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep walk input view → inClass input)
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT (Multiplicative Tally) (StateT SigningLog (OracleComp OracleWorld))))
+    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (accumulated : Multiplicative Tally) (log : SigningLog)
+    (carrier : HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts))
+    (result : α × (Multiplicative Tally × SigningLog × (HandlerCarrier.State ×
+      ((DigestTape.Record × DigestTape.Record) × Counts))))
+    (hresult : result ∈ support ((simulateQ
+      (fuseServing (splitHandlerAt inClass inside outside rightKeep walk) inner
+        ServedAgreement.startServingOn ServedAgreement.stopServingOn) computation).run
+      (accumulated, log, carrier))) :
+    Tracks inside carrier result.2.2.2 :=
+  RecordInvariant.phase_invariant (Inv := Tracks inside carrier) _ inner
+    ServedAgreement.startServingOn ServedAgreement.stopServingOn
+    (fun queried state step hstep hinv => hinv.trans
+      (step_tracksInside (keyAt walk) inClass inside outside (rightKeep walk) hrightClass
+        queried state step hstep))
+    (fun request state hinv => by
+      rw [ServedAgreement.startServingOn]
+      cases request.frame with
+      | none => exact hinv
+      | some framed => exact hinv)
+    (fun _ hinv => hinv)
+    computation accumulated log carrier result hresult (Tracks.refl inside carrier)
+
+set_option maxHeartbeats 1000000 in
+/-- **The target recording is inside the inside slot, at the tail.** Three stages composed, and
+the start is empty. -/
+theorem splitCarrierTail_rightRecord_le_inside (inClass : Bytes → Prop)
+    (inside outside : QueryKind)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
+    (walk : Walk)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep walk input view → inClass input) :
+    ∀ result ∈ support (splitCarrierTail inClass inside outside rightKeep adversary walk),
+      result.1.2.2.2.length ≤ result.2 inside := by
+  intro result hresult
+  rw [splitCarrierTail, mem_support_bind_iff] at hresult
+  obtain ⟨keys, hkeys, hresult⟩ := hresult
+  rw [mem_support_bind_iff] at hresult
+  obtain ⟨middle, hmiddle, hresult⟩ := hresult
+  rw [mem_support_bind_iff] at hresult
+  obtain ⟨final, hfinal, hresult⟩ := hresult
+  rw [support_pure, Set.mem_singleton_iff] at hresult
+  have hfirst := run_tracksInside (keyAt walk) inClass inside outside (rightKeep walk)
+    hrightClass _ (startAt walk.2, (([], []), 0)) keys hkeys
+  have hsecond := phase_tracksInside inClass inside outside rightKeep walk hrightClass
+    (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1)) _ 1 [] keys.2 middle
+    hmiddle
+  have hthird := run_tracksInside (keyAt walk) inClass inside outside (rightKeep walk)
+    hrightClass _ middle.2.2.2 final hfinal
+  have hchain := (hfirst.trans hsecond).trans hthird
+  rw [Tracks, show ((startAt walk.2, (([], []), (0 : Counts))) :
+      HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts)).2.1.2.length
+      = 0 from rfl,
+    show ((startAt walk.2, (([], []), (0 : Counts))) :
+      HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts)).2.2 inside
+      = 0 from rfl] at hchain
+  rw [hresult]
+  show List.length final.2.2.1.2 ≤ final.2.2.2 inside
+  omega
+
+set_option maxHeartbeats 1000000 in
+/-- **`hshare` at the tail.** The coverage charge's count and the structural charge's count sit
+inside the tail's own work count, with nothing assumed. -/
+theorem splitCarrierTail_share (inClass : Bytes → Prop) (inside outside : QueryKind)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
+    (walk : Walk)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep walk input view → inClass input) :
+    ∀ result ∈ support (splitCarrierTail inClass inside outside rightKeep adversary walk),
+      result.1.2.2.2.length + result.2 outside ≤ result.1.1.2 := by
+  intro result hresult
+  have hinside := splitCarrierTail_rightRecord_le_inside inClass inside outside rightKeep
+    adversary walk hrightClass result hresult
+  have hwork := splitCarrierTail_work inClass inside outside rightKeep adversary walk result
+    hresult
+  omega
+
 end SlhDsaSecurity.SplitTail

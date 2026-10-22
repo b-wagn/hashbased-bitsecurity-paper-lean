@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.ClassGrowth
+import SlhDsaSecurity.Proof.RecordInvariant
 
 /-!
 # What counts the counted handler admits
@@ -322,6 +323,91 @@ at, exactly as `run_withCount_count` does.
 cached bumps the slot and files nothing. That is the slack the subtractive substitute tried to
 recover and could not, and it is why the bound runs this way round. -/
 
+/-- **What a run keeps between its start and its end**: whatever the target recording gained,
+the inside slot gained at least as much.
+
+Stated as a *relation* and not as a predicate, because a relation is what composes across three
+stages — and it composes by `omega`, which is the whole of `Tracks.trans`. A predicate would
+have had to be re-chosen at each stage's start state. -/
+def Tracks (inside : QueryKind) (before after : HandlerCarrier.State ×
+    ((DigestTape.Record × DigestTape.Record) × Counts)) : Prop :=
+  after.2.1.2.length + before.2.2 inside ≤ before.2.1.2.length + after.2.2 inside
+
+theorem Tracks.refl (inside : QueryKind) (state : HandlerCarrier.State ×
+    ((DigestTape.Record × DigestTape.Record) × Counts)) : Tracks inside state state :=
+  Nat.le_refl _
+
+theorem Tracks.trans {inside : QueryKind} {first middle last : HandlerCarrier.State ×
+    ((DigestTape.Record × DigestTape.Record) × Counts)}
+    (hfirst : Tracks inside first middle) (hlast : Tracks inside middle last) :
+    Tracks inside first last := by
+  rw [Tracks] at hfirst hlast ⊢
+  omega
+
+open scoped Classical in
+/-- **One step tracks.** An entry reaches the target only on a fresh draw whose test implies the
+class, and that query bumps the slot — so the step that files is the step that pays. -/
+theorem step_tracksInside (inClass : Bytes → Prop) (inside outside : QueryKind)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep input view → inClass input)
+    (queried : OracleWorld.Domain)
+    (state : HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts))
+    (step : OracleWorld.Range queried ×
+      (HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts)))
+    (hstep : step ∈ support
+      (((splitCarrierRecorder pk inClass inside outside rightKeep) queried).run state)) :
+    Tracks inside state step.2 := by
+  classical
+  rw [Tracks]
+  obtain ⟨inner, hinner, -, -, hrecords, hcounts⟩ :=
+    withSplit_step inClass inside outside _ queried state step hstep
+  have hslot : step.2.2.2 inside =
+      state.2.2 inside + (splitCost inClass inside outside queried) inside := by
+    rw [hcounts]; rfl
+  have hstepRecord : step.2.2.1.2.length ≤
+      state.2.1.2.length + (splitCost inClass inside outside queried) inside := by
+    rcases queried with coin | input
+    · rw [hrecords, show inner.2 = (state.1, state.2.1) from
+        @RecorderView.recorderOf_step_inl HandlerCarrier.State (servingView pk)
+          (disclosingKeep pk) rightKeep coin (state.1, state.2.1) inner hinner]
+      simp
+    · rw [@RecorderView.noticingRecorderOf_run_inr HandlerCarrier.State (servingView pk)
+        (disclosingKeep pk) rightKeep input (state.1, state.2.1)] at hinner
+      rw [hrecords, @RecorderView.recorderOf_step_record HandlerCarrier.State
+          (servingView pk) (disclosingKeep pk) rightKeep input
+          (@RecorderView.CacheView.onQuery HandlerCarrier.State (servingView pk) state.1 input,
+            state.2.1) inner hinner]
+      simp only [RecorderView.appendedOf]
+      split_ifs with hfiledLeft hfiledRight
+      · simp
+      · rw [splitCost_inside inClass inside outside input
+          (hrightClass input (@RecorderView.CacheView.onQuery HandlerCarrier.State
+            (servingView pk) state.1 input) hfiledRight.2)]
+        simp
+      · simp
+  omega
+
+/-- **And therefore a run tracks**, by `RecordInvariant.run_invariant` at the relation with its
+start fixed. -/
+theorem run_tracksInside (inClass : Bytes → Prop) (inside outside : QueryKind)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep input view → inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α)
+    (state : HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts))
+    (result : α × (HandlerCarrier.State ×
+      ((DigestTape.Record × DigestTape.Record) × Counts)))
+    (hresult : result ∈ support
+      ((simulateQ (splitCarrierRecorder pk inClass inside outside rightKeep)
+        computation).run state)) :
+    Tracks inside state result.2 :=
+  RecordInvariant.run_invariant (Inv := Tracks inside state) _
+    (fun queried inner step hstep hinv => hinv.trans
+      (step_tracksInside pk inClass inside outside rightKeep hrightClass queried inner step
+        hstep))
+    computation state result hresult (Tracks.refl inside state)
+
 open scoped Classical in
 /-- **The target recording is no longer than the inside slot.** -/
 theorem rightRecord_length_le_inside (inClass : Bytes → Prop) (inside outside : QueryKind)
@@ -336,45 +422,9 @@ theorem rightRecord_length_le_inside (inClass : Bytes → Prop) (inside outside 
       result ∈ support ((simulateQ (splitCarrierRecorder pk inClass inside outside rightKeep)
         computation).run state) →
       result.2.2.1.2.length + state.2.2 inside ≤
-        state.2.1.2.length + result.2.2.2 inside := by
-  classical
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state result hmem
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-    rw [show result.2.2.1.2 = state.2.1.2 from by rw [hmem],
-      show result.2.2.2 = state.2.2 from by rw [hmem]]
-  | query_bind queried next ih =>
-    intro state result hmem
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    have hih := ih step.1 step.2 result hrest
-    obtain ⟨inner, hinner, -, -, hrecords, hcounts⟩ :=
-      withSplit_step inClass inside outside _ queried state step hstep
-    have hslot : step.2.2.2 inside =
-        state.2.2 inside + (splitCost inClass inside outside queried) inside := by
-      rw [hcounts]; rfl
-    have hstepRecord : step.2.2.1.2.length ≤
-        state.2.1.2.length + (splitCost inClass inside outside queried) inside := by
-      rcases queried with coin | input
-      · rw [hrecords, show inner.2 = (state.1, state.2.1) from
-          @RecorderView.recorderOf_step_inl HandlerCarrier.State (servingView pk)
-            (disclosingKeep pk) rightKeep coin (state.1, state.2.1) inner hinner]
-        simp
-      · rw [@RecorderView.noticingRecorderOf_run_inr HandlerCarrier.State (servingView pk)
-          (disclosingKeep pk) rightKeep input (state.1, state.2.1)] at hinner
-        rw [hrecords, @RecorderView.recorderOf_step_record HandlerCarrier.State
-            (servingView pk) (disclosingKeep pk) rightKeep input
-            (@RecorderView.CacheView.onQuery HandlerCarrier.State (servingView pk) state.1 input,
-              state.2.1) inner hinner]
-        simp only [RecorderView.appendedOf]
-        split_ifs with hfiledLeft hfiledRight
-        · simp
-        · rw [splitCost_inside inClass inside outside input
-            (hrightClass input (@RecorderView.CacheView.onQuery HandlerCarrier.State
-              (servingView pk) state.1 input) hfiledRight.2)]
-          simp
-        · simp
-    omega
+        state.2.1.2.length + result.2.2.2 inside :=
+  fun state result hresult =>
+    run_tracksInside pk inClass inside outside rightKeep hrightClass computation state result
+      hresult
 
 end SlhDsaSecurity.SplitCounted

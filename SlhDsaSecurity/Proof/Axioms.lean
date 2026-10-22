@@ -15343,3 +15343,35 @@ info: 'SlhDsaSecurity.SplitTail.prob_splitCarrierTail_targetCovered_le' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitTail.prob_splitCarrierTail_targetCovered_le
+
+/-- info: 'SlhDsaSecurity.SplitCounted.Tracks.refl' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.Tracks.refl
+
+/-- info: 'SlhDsaSecurity.SplitCounted.Tracks.trans' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.Tracks.trans
+
+/-- info: 'SlhDsaSecurity.SplitCounted.step_tracksInside' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.step_tracksInside
+
+/-- info: 'SlhDsaSecurity.SplitCounted.run_tracksInside' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCounted.run_tracksInside
+
+/-- info: 'SlhDsaSecurity.SplitTail.phase_tracksInside' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.phase_tracksInside
+
+/--
+info: 'SlhDsaSecurity.SplitTail.splitCarrierTail_rightRecord_le_inside' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.splitCarrierTail_rightRecord_le_inside
+
+/-- info: 'SlhDsaSecurity.SplitTail.splitCarrierTail_share' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitTail.splitCarrierTail_share

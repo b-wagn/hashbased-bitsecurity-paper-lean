@@ -17,6 +17,12 @@ condition is discharged rather than assumed.
 Nothing here knows what a recording is. `right_record_nodup` and `messageClass_of_record` become
 instances by supplying one step fact each, which is the only place the recorder's own shape
 enters.
+
+**Nor does anything here know what a state is.** The five laws below are state-machine
+arguments and are stated at an arbitrary `S`; only `bracket_invariant`, which reads
+`BracketedRun.Bracket`, stays at `CountedState`. That matters because the split-counted tail
+carries a `Counts` where the counted one carries a `Nat`, and an invariant interface that could
+not follow it there would have to be written twice.
 -/
 
 open OracleComp OracleSpec
@@ -25,16 +31,16 @@ namespace SlhDsaSecurity.RecordInvariant
 
 open Security BracketedRun PhaseFusion
 
-variable {ω : Type} [Monoid ω]
+variable {ω : Type} [Monoid ω] {S : Type}
 
 /-- **A property every step preserves is preserved by a run.** -/
-theorem run_invariant {Inv : CountedState → Prop}
-    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
-    (hstep : ∀ (queried : OracleWorld.Domain) (state : CountedState)
-      (step : OracleWorld.Range queried × CountedState),
+theorem run_invariant {Inv : S → Prop}
+    (handler : QueryImpl OracleWorld (StateT S ProbComp))
+    (hstep : ∀ (queried : OracleWorld.Domain) (state : S)
+      (step : OracleWorld.Range queried × S),
       step ∈ support ((handler queried).run state) → Inv state → Inv step.2)
     {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (state : CountedState) (result : α × CountedState),
+    ∀ (state : S) (result : α × S),
       result ∈ support ((simulateQ handler computation).run state) → Inv state →
         Inv result.2 := by
   induction computation using OracleComp.inductionOn with
@@ -50,19 +56,19 @@ theorem run_invariant {Inv : CountedState → Prop}
     exact ih step.1 step.2 result hrest (hstep queried state step hs hinv)
 
 /-- **And by a bracketed phase**, given that the brackets preserve it. -/
-theorem phase_invariant {Inv : CountedState → Prop}
-    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
+theorem phase_invariant {Inv : S → Prop}
+    (handler : QueryImpl OracleWorld (StateT S ProbComp))
     (inner : QueryImpl (OracleWorld + SigningSpec)
       (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
-    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
-    (hstep : ∀ (queried : OracleWorld.Domain) (state : CountedState)
-      (step : OracleWorld.Range queried × CountedState),
+    (before : Message → S → S) (after : S → S)
+    (hstep : ∀ (queried : OracleWorld.Domain) (state : S)
+      (step : OracleWorld.Range queried × S),
       step ∈ support ((handler queried).run state) → Inv state → Inv step.2)
-    (hbefore : ∀ (request : Message) (state : CountedState), Inv state → Inv (before request state))
-    (hafter : ∀ state : CountedState, Inv state → Inv (after state))
+    (hbefore : ∀ (request : Message) (state : S), Inv state → Inv (before request state))
+    (hafter : ∀ state : S, Inv state → Inv (after state))
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
-    ∀ (accumulated : ω) (log : SigningLog) (carrier : CountedState)
-      (result : α × (ω × SigningLog × CountedState)),
+    ∀ (accumulated : ω) (log : SigningLog) (carrier : S)
+      (result : α × (ω × SigningLog × S)),
       result ∈ support ((simulateQ (fuseServing handler inner before after) computation).run
         (accumulated, log, carrier)) → Inv carrier → Inv result.2.2.2 := by
   induction computation using OracleComp.inductionOn with
@@ -81,7 +87,7 @@ theorem phase_invariant {Inv : CountedState → Prop}
           ((simulateQ handler (((inner (Sum.inl world)).run).run log)).run carrier >>= fun z =>
             (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, z.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-                (ω × SigningLog × CountedState)))) := hs
+                (ω × SigningLog × S)))) := hs
       obtain ⟨z, hz, hpure⟩ := support_bind_exists hs'
       rw [show step.2.2.2 = z.2 from congrArg (fun p => p.2.2.2) hpure]
       exact run_invariant handler hstep _ carrier z hz hinv
@@ -90,7 +96,7 @@ theorem phase_invariant {Inv : CountedState → Prop}
               (before request carrier) >>= fun z =>
             (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, after z.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-                (ω × SigningLog × CountedState)))) := hs
+                (ω × SigningLog × S)))) := hs
       obtain ⟨z, hz, hpure⟩ := support_bind_exists hs'
       rw [show step.2.2.2 = after z.2 from congrArg (fun p => p.2.2.2) hpure]
       exact hafter z.2
@@ -111,18 +117,18 @@ itself is at, and the region where it fails is exactly one signing sub-run. -/
 
 /-- **An invariant restored by the closing bracket survives the phase**, with no condition on
 what the opening bracket or the sub-run did. -/
-theorem phase_invariant_of_after {Inv : CountedState → Prop}
-    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
+theorem phase_invariant_of_after {Inv : S → Prop}
+    (handler : QueryImpl OracleWorld (StateT S ProbComp))
     (inner : QueryImpl (OracleWorld + SigningSpec)
       (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
-    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
-    (hstep : ∀ (queried : OracleWorld.Domain) (state : CountedState)
-      (step : OracleWorld.Range queried × CountedState),
+    (before : Message → S → S) (after : S → S)
+    (hstep : ∀ (queried : OracleWorld.Domain) (state : S)
+      (step : OracleWorld.Range queried × S),
       step ∈ support ((handler queried).run state) → Inv state → Inv step.2)
-    (hafter : ∀ state : CountedState, Inv (after state))
+    (hafter : ∀ state : S, Inv (after state))
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
-    ∀ (accumulated : ω) (log : SigningLog) (carrier : CountedState)
-      (result : α × (ω × SigningLog × CountedState)),
+    ∀ (accumulated : ω) (log : SigningLog) (carrier : S)
+      (result : α × (ω × SigningLog × S)),
       result ∈ support ((simulateQ (fuseServing handler inner before after) computation).run
         (accumulated, log, carrier)) → Inv carrier → Inv result.2.2.2 := by
   induction computation using OracleComp.inductionOn with
@@ -141,7 +147,7 @@ theorem phase_invariant_of_after {Inv : CountedState → Prop}
           ((simulateQ handler (((inner (Sum.inl world)).run).run log)).run carrier >>= fun z =>
             (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, z.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-                (ω × SigningLog × CountedState)))) := hs
+                (ω × SigningLog × S)))) := hs
       obtain ⟨z, hz, hpure⟩ := support_bind_exists hs'
       rw [show step.2.2.2 = z.2 from congrArg (fun p => p.2.2.2) hpure]
       exact run_invariant handler hstep _ carrier z hz hinv
@@ -150,7 +156,7 @@ theorem phase_invariant_of_after {Inv : CountedState → Prop}
               (before request carrier) >>= fun z =>
             (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, after z.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-                (ω × SigningLog × CountedState)))) := hs
+                (ω × SigningLog × S)))) := hs
       obtain ⟨z, -, hpure⟩ := support_bind_exists hs'
       rw [show step.2.2.2 = after z.2 from congrArg (fun p => p.2.2.2) hpure]
       exact hafter z.2
@@ -163,12 +169,12 @@ say that the accumulator only ever gains factors, which is what lets a step's ow
 found in the phase's. -/
 
 theorem fuseServing_step_accumulates
-    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
+    (handler : QueryImpl OracleWorld (StateT S ProbComp))
     (inner : QueryImpl (OracleWorld + SigningSpec)
       (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
-    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
-    (queried : (OracleWorld + SigningSpec).Domain) (state : ω × SigningLog × CountedState)
-    (step : (OracleWorld + SigningSpec).Range queried × (ω × SigningLog × CountedState))
+    (before : Message → S → S) (after : S → S)
+    (queried : (OracleWorld + SigningSpec).Domain) (state : ω × SigningLog × S)
+    (step : (OracleWorld + SigningSpec).Range queried × (ω × SigningLog × S))
     (hstep : step ∈ support (((fuseServing handler inner before after) queried).run state)) :
     ∃ gained : ω, step.2.1 = state.1 * gained := by
   rcases queried with world | request
@@ -176,7 +182,7 @@ theorem fuseServing_step_accumulates
         ((simulateQ handler (((inner (Sum.inl world)).run).run state.2.1)).run state.2.2 >>=
           fun z => (pure (z.1.1.1, (state.1 * z.1.1.2, z.1.2, z.2)) :
             ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-              (ω × SigningLog × CountedState)))) := hstep
+              (ω × SigningLog × S)))) := hstep
     obtain ⟨z, -, hpure⟩ := support_bind_exists hstep'
     exact ⟨z.1.1.2, congrArg (fun p => p.2.1) hpure⟩
   · have hstep' : step ∈ support
@@ -184,19 +190,19 @@ theorem fuseServing_step_accumulates
             (before request state.2.2) >>= fun z =>
           (pure (z.1.1.1, (state.1 * z.1.1.2, z.1.2, after z.2)) :
             ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-              (ω × SigningLog × CountedState)))) := hstep
+              (ω × SigningLog × S)))) := hstep
     obtain ⟨z, -, hpure⟩ := support_bind_exists hstep'
     exact ⟨z.1.1.2, congrArg (fun p => p.2.1) hpure⟩
 
 /-- **A phase run only gains factors.** -/
 theorem fuseServing_accumulates
-    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
+    (handler : QueryImpl OracleWorld (StateT S ProbComp))
     (inner : QueryImpl (OracleWorld + SigningSpec)
       (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
-    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
+    (before : Message → S → S) (after : S → S)
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
-    ∀ (state : ω × SigningLog × CountedState)
-      (result : α × (ω × SigningLog × CountedState)),
+    ∀ (state : ω × SigningLog × S)
+      (result : α × (ω × SigningLog × S)),
       result ∈ support ((simulateQ (fuseServing handler inner before after) computation).run
         state) → ∃ gained : ω, result.2.1 = state.1 * gained := by
   induction computation using OracleComp.inductionOn with
