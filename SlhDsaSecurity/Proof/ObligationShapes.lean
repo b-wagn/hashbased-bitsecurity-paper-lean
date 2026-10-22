@@ -420,7 +420,14 @@ One hypothesis of the three below is an obligation and two are leaves. The oblig
 answer half's, restated with late disclosure ruled out; the leaves are the input half's bullet
 and the provenance branch the carrier's test retires. Nothing else is assumed. -/
 
-/-- **The target, from the answer obligation and the shared half's three leaves.** -/
+/-- **Superseded by `TargetColumn`, and do not assemble against it.** `hseed` spends a `q`-shaped
+event from the **constant** column: `259 + seedUnits ≤ claims` with
+`claims + defectUnits ≤ 2 ^ subtreeHeight` makes `seedUnits` at most the slack, and
+`RecordPrfCharge` has shown the event grows with `q` — one recorded input is one guess at
+`SK.prf`. So no numeral instantiates `seedUnits` and the hypothesis is false for large `q`
+rather than unproved. Kept, labelled, because `MainTheorem` and `WholeGameStructural` name it.
+
+**The target, from the answer obligation and the shared half's three leaves.** -/
 theorem target_of_answer_and_leaves (claims seedUnits : Nat)
     (hclaims : 259 + seedUnits ≤ claims) (hfits : claims + 6 ≤ 2 ^ subtreeHeight)
     (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
@@ -528,8 +535,15 @@ theorem messageInput_default_eq_replay (cache : QueryCache HashSpec) (sk : Secre
         message := by
   rw [HonestProbes.replayRandomizer, CacheReplay.replay, hmiss, Option.getD_none]
 
-/-- **The whole of it at what the answer half proves**, with the four freed units available to
-the seed charge. `claims` and `seedUnits` share the `251` the defect budget now leaves. -/
+/-- **Superseded by `TargetColumn`, and do not assemble against it.** `hseed` spends a `q`-shaped
+event from the **constant** column: `259 + seedUnits ≤ claims` with
+`claims + defectUnits ≤ 2 ^ subtreeHeight` makes `seedUnits` at most the slack, and
+`RecordPrfCharge` has shown the event grows with `q` — one recorded input is one guess at
+`SK.prf`. So no numeral instantiates `seedUnits` and the hypothesis is false for large `q`
+rather than unproved. Kept, labelled, because `MainTheorem` and `WholeGameStructural` name it.
+
+**The whole of it at what the answer half proves**, with the four freed units available to
+the seed charge. -/
 theorem target_of_answer_and_leaves_proved (claims seedUnits : Nat)
     (hclaims : 259 + seedUnits ≤ claims) (hfits : claims + 2 ≤ 2 ^ subtreeHeight)
     (hanswer : Obligations.AnswerChargedAt Target.answerDefectProved FusedCoverage.fusedTail
