@@ -10197,6 +10197,44 @@ info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts' depends on axioms:
 #print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts
 
 /--
+info: 'SlhDsaSecurity.AnswerCoverage.seedRandomised_of_forgerySeedRandomised' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.seedRandomised_of_forgerySeedRandomised
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_narrow_of_parts
+
+/--
 info: 'SlhDsaSecurity.CoverageCount.prob_coverage_le_expected_recorded' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]
