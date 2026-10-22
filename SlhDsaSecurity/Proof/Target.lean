@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.MainTheorem
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.Assembly
+import SlhDsaSecurity.Proof.KeygenBudget
 
 /-!
 # The target, and exactly what is still owed it
@@ -23,7 +24,11 @@ load cap at `2 ^ -126`, the coverage tape at `2 ^ -141`, the input-format coinci
 `2 ^ -165` and the seed coincidence at `2 ^ -128`. `259 + 6 ≤ 1024` is the whole of it, and the
 margin is `759` units.
 
-What is left is four hypotheses, and the file states them in the shape their provers will state
+The budget's own lower bound is discharged as well. `KeygenBudget.pow_le_of_budget` shows that a
+budget an adversary can be run under is at least the `2 ^ subtreeHeight` key generation spends,
+which is what makes `q - 2 ^ subtreeHeight` a count of calls rather than a truncation.
+
+What is left is three hypotheses, and the file states them in the shape their provers will state
 them:
 
 * `hsplit` — a win on a good walk is one of three events. The extraction reaches this as far as
@@ -33,8 +38,6 @@ them:
 * `hshared` — the input half and the randomiser defect against **one** budget. They share it
   because their chances are disjoint classes of one record plus the signer's own calls, and the
   per-request terms cancel inside that pathwise inequality rather than after a uniform bound.
-* `hkeygen` — the budget is at least what key generation spends, which is what makes the
-  subtraction `q - 2 ^ subtreeHeight` mean what the accounting reads it as.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -115,7 +118,7 @@ attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedG
 
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
-/-- **The target, from four obligations.** Each is stated at the warmed tail, on a walk whose
+/-- **The target, from three obligations.** Each is stated at the warmed tail, on a walk whose
 own coincidences have already been paid for. -/
 theorem target_of_obligations
     (answerBad inputBad randomiserBad :
@@ -136,9 +139,7 @@ theorem target_of_obligations
         Pr[fun result => inputBad ((walk.1, result.1), result.2) | tail adversary walk] +
             Pr[fun result => randomiserBad ((walk.1, result.1), result.2) |
               tail adversary walk] ≤
-          ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hkeygen : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      2 ^ subtreeHeight ≤ q) :
+          ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     HasTotalSecurityBits .strong 127 := by
   classical
   refine MainTheorem.totalSecurityBits_of_bound
@@ -181,6 +182,6 @@ theorem target_of_obligations
       ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) from by
       rw [defects]; ring]
-    exact allowance q (hkeygen q adversary hbudget)
+    exact allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
 
 end SlhDsaSecurity.Target
