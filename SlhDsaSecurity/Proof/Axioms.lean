@@ -256,6 +256,7 @@ import SlhDsaSecurity.Proof.CarrierLeftRecord
 import SlhDsaSecurity.Proof.AnswerCarrierBound
 import SlhDsaSecurity.Proof.SharedOracleScaling
 import SlhDsaSecurity.Proof.HandlerEvent
+import SlhDsaSecurity.Proof.SeedFlag
 import SlhDsaSecurity.Proof.CarrierServedLog
 import SlhDsaSecurity.Proof.LedgerThird
 
@@ -16214,3 +16215,11 @@ info: 'SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation
+
+/-- info: 'SlhDsaSecurity.SeedFlag.record_le_of_mul' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedFlag.record_le_of_mul
+
+/-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_sticky' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SeedFlag.recordFlag_sticky
