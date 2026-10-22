@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.CanonicalSplit
 import SlhDsaSecurity.Proof.WriterState
 import SlhDsaSecurity.Proof.LinkedPhase
 import SlhDsaSecurity.Proof.ClassExpectation
@@ -5247,3 +5248,23 @@ info: 'SlhDsaSecurity.HonestProbes.signLayers_head_authentication_cell' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestProbes.signLayers_head_authentication_cell
+
+/-- info: 'SlhDsaSecurity.HypertreeDispatch.cases_of_accepted_signed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HypertreeDispatch.cases_of_accepted_signed
+
+/-- info: 'SlhDsaSecurity.ForsBranch.deviatingCollision_or_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsBranch.deviatingCollision_or_canonical
+
+/-- info: 'SlhDsaSecurity.CanonicalSplit.cases_of_win_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSplit.cases_of_win_canonical
+
+/--
+info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_canonical_of_verified' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.deviatingCollision_or_canonical_of_verified

@@ -418,4 +418,46 @@ theorem deviatingCollision_or_secrets_of_verified {α : Type} (secretSeed : Dige
       exact cached_fors_leaf_probe cache initialCache pk request signature message parsed
         verified hframe hparsed hmem i)
 
+/-- **The verifier's FORS branch, pinning the whole signature.** Either a charged collision, or
+the forgery's FORS part is the one the signer writes at that key — paths as well as secrets. -/
+theorem deviatingCollision_or_canonical_of_verified {α : Type} (secretSeed : Digest)
+    (cache initialCache : QueryCache HashSpec) (pk : PublicKey) (request : Message)
+    (signature : Bytes) (message : Bytes) (parsed : Signature) (verified : Bool)
+    (key : ForsKey)
+    (hkeyAddress : key.address = Scheme.forsAddress (digestOf cache pk message parsed))
+    (hframe : request.frame = some message)
+    (hparsed : Signature.fromBytes? signature = some parsed)
+    (hmem : (verified, cache) ∈ support ((simulateQ randomOracle
+      (Scheme.verify (m := OracleComp HashSpec) pk request signature)).run initialCache))
+    (result : α × QueryCache HashSpec) (hcache : result.2 = cache)
+    (hkey : @SlhDsaSecurity.Fors.publicKeyFromSignature Id Id.instMonad
+        (CacheReplay.replayQuery cache) parsed.fors
+        (MessageDigest.forsIndices (digestOf cache pk message parsed)) pk.seed key.address =
+      @Hashing.tweakable Id Id.instMonad (CacheReplay.replayQuery cache) pk.seed
+        (Extraction.Fors.rootAddress key.address)
+        (digestArrayBytes (@Extraction.Fors.canonicalRoots (CacheReplay.replayQuery cache)
+          secretSeed pk.seed key.address))) :
+    StructuralTerm.DeviatingCollision pk.seed
+        (@value (CacheReplay.replayQuery cache) secretSeed pk.seed) result ∨
+      parsed.fors = @SlhDsaSecurity.Fors.sign Id Id.instMonad (CacheReplay.replayQuery cache)
+        (MessageDigest.forsIndices (digestOf cache pk message parsed)) secretSeed pk.seed
+        key.address :=
+  ForsBranch.deviatingCollision_or_canonical secretSeed pk.seed cache key
+    (MessageDigest.forsIndices (digestOf cache pk message parsed)) parsed.fors hkey result hcache
+    (by
+      have hroots : (StructuralNode.forsRoots key).address =
+          Extraction.Fors.rootAddress key.address := rfl
+      rw [hroots, hkeyAddress]
+      exact cached_fors_compression_probe cache initialCache pk request signature message parsed
+        verified hframe hparsed hmem)
+    (fun i step => by
+      rw [hkeyAddress]
+      exact cached_fors_path_probe cache initialCache pk request signature message parsed
+        verified hframe hparsed hmem i step)
+    (fun i => by
+      rw [hkeyAddress]
+      exact cached_fors_leaf_probe cache initialCache pk request signature message parsed
+        verified hframe hparsed hmem i)
+
+
 end SlhDsaSecurity.VerifierProbes
