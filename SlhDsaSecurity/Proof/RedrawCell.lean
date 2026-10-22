@@ -552,6 +552,21 @@ handler has drawn beside them, and the two answer every query alike. The relatio
 two caches is an equation, not a coupling: `unionCache` says what the game holds while the
 handler holds its own, and one induction carries it. -/
 
+open scoped Classical in
+/-- At total availability every node is open. -/
+theorem openNodes_total :
+    OpenCache.openNodes (fun _ => True) = CanonicalGraph.Programming.order := by
+  simp [OpenCache.openNodes]
+
+open scoped Classical in
+/-- **At total availability the readable entries are the whole programmed cache** — the one the
+walk leaves behind. -/
+theorem openCache_total (publicSeed : Digest) (table : Cells × Padding) :
+    openCache publicSeed (fun _ => True) table =
+      CanonicalGraph.Programming.cacheFrom publicSeed table.1
+        (CanonicalGraph.fullOutput table.1 table.2) CanonicalGraph.Programming.order ∅ := by
+  rw [openCache, openNodes_total]
+
 /-- The programmed entries, with whatever the handler has drawn beside them. -/
 noncomputable def unionCache (publicSeed : Digest) (table : Cells × Padding)
     (cache : QueryCache HashSpec) : QueryCache HashSpec :=
@@ -598,6 +613,14 @@ theorem unionCache_cacheQuery_fresh (publicSeed : Digest) (table : Cells × Padd
       QueryCache.cacheQuery_self]
   · rw [QueryCache.cacheQuery_of_ne _ _ hprobe]
     simp only [unionCache, QueryCache.cacheQuery_of_ne _ _ hprobe]
+
+/-- **From nothing, the game's cache is the programmed cache.** -/
+theorem unionCache_empty (publicSeed : Digest) (table : Cells × Padding) :
+    unionCache publicSeed table ∅ = openCache publicSeed (fun _ => True) table := by
+  funext probe
+  cases hopen : openCache publicSeed (fun _ => True) table probe with
+  | some answer => rw [unionCache_of_open publicSeed table ∅ probe answer hopen]
+  | none => rw [unionCache_of_none publicSeed table ∅ probe hopen, QueryCache.empty_apply]
 
 /-- A handler cache saying nothing the programmed entries contradict. -/
 def Compatible (publicSeed : Digest) (table : Cells × Padding)
