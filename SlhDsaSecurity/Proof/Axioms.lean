@@ -172,6 +172,7 @@ import SlhDsaSecurity.Proof.OffClassBlind
 import SlhDsaSecurity.Proof.RandomiserRecord
 import SlhDsaSecurity.Proof.AnswerCoverage
 import SlhDsaSecurity.Proof.ServedDisclosure
+import SlhDsaSecurity.Proof.ServedLog
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8500,3 +8501,35 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.availableServed_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.availableServed_mono
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.availableServed_closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.availableServed_closed
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.availableServed_revealed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.availableServed_revealed_le
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.unavailableServed_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.unavailableServed_eq
+
+/-- info: 'SlhDsaSecurity.ServedLog.isMessageInput_of_servedLog' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.isMessageInput_of_servedLog
+
+/-- info: 'SlhDsaSecurity.ServedLog.servedLog_mono' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.servedLog_mono
+
+/-- info: 'SlhDsaSecurity.ServedLog.entry_of_servedLog' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.entry_of_servedLog
+
+/-- info: 'SlhDsaSecurity.ServedLog.mem_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.mem_disclosedByLog
