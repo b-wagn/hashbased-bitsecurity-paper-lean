@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
 import SlhDsaSecurity.Proof.WriterState
@@ -5353,3 +5354,19 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.LinkedPhase.run_phase_counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LinkedPhase.run_phase_counted
+
+/-- info: 'SlhDsaSecurity.Target.prob_bad_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.prob_bad_walk
+
+/-- info: 'SlhDsaSecurity.Target.probEvent_le_of_good_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.probEvent_le_of_good_walk
+
+/-- info: 'SlhDsaSecurity.Target.allowance' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowance
+
+/-- info: 'SlhDsaSecurity.Target.target_of_obligations' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations
