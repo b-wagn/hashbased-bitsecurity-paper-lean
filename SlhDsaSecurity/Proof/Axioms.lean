@@ -8778,3 +8778,33 @@ info: 'SlhDsaSecurity.SharedJoin.keyOf_eq_walkKey' depends on axioms: [propext, 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.keyOf_eq_walkKey
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.probEvent_recordedPairedRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.probEvent_recordedPairedRun
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.expected_recordedPairedRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.expected_recordedPairedRun
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.prob_le_expected_of_perWalk' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.prob_le_expected_of_perWalk
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.hinput_of_probesIn' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.hinput_of_probesIn
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.hordering_of_probesIn' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.hordering_of_probesIn
