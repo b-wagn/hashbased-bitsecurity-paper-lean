@@ -1,6 +1,8 @@
 import SlhDsaSecurity.Proof.CarrierJoin
 import SlhDsaSecurity.Proof.CarrierCover
 import SlhDsaSecurity.Proof.SplitCarrierTail
+import SlhDsaSecurity.Proof.CoverageTail
+import SlhDsaSecurity.Proof.AddressBounds
 
 /-!
 # `hsplit`, end to end, and the one seam that does not meet
@@ -131,8 +133,7 @@ set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
 /-- **`hjoin`, at `answerCarrierRun`.** -/
 theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
-      walk.2 input = none)
+    (hwalk : walk ∈ support WarmedGame.graphWalk)
     (hleftClass : ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       ∀ entry ∈ result.2.2.1,
@@ -150,7 +151,12 @@ theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
             ForgeryDisclosedCovered (keyAt walk) (result.1, result.2.1) →
               BlockViews.TargetCovered result ∨
                 SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1 := by
-  intro result hresult _ _ _ hcovered
+  intro result hresult hgood _ _ hcovered
+  have hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
+      walk.2 input = none :=
+    fun input hclass => CoverageTail.walk_cache_fresh (keyAt walk)
+      (AnswerSide.not_possible_generatedKey hwalk hgood.2) withinBounds_structural hwalk input
+      hclass
   by_cases hseedAt : SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1
   · exact Or.inr hseedAt
   refine Or.inl ?_
@@ -173,8 +179,6 @@ set_option linter.constructorNameAsVariable false in
 facts discharged. -/
 theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
-      walk.2 input = none)
     (hleftClass : ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       ∀ entry ∈ result.2.2.1,
@@ -195,7 +199,7 @@ theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
             SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1 :=
   AnswerCarrier.hsplit_of_join_extra AnswerCarrier.carrierRightKeep adversary walk hwalk hgood
     (fun result => SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
-    (hjoin_answerCarrierRun adversary walk hfreshWalk hleftClass hrightClass)
+    (hjoin_answerCarrierRun adversary walk hwalk hleftClass hrightClass)
 
 set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
@@ -205,8 +209,6 @@ end. -/
 theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
     (hne : inside ≠ outside) (adversary : Adversary) (walk : Walk)
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
-      walk.2 input = none)
     (hleftClass : ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       ∀ entry ∈ result.2.2.1,
@@ -229,7 +231,7 @@ theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : Que
             SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk)
               (AnswerShape.forgetRecord z.1).2.1 := by
   intro z hz
-  refine hsplit_answerCarrierRun adversary walk hwalk hgood hfreshWalk hleftClass
+  refine hsplit_answerCarrierRun adversary walk hwalk hgood hleftClass
     hrightClass (AnswerShape.forgetRecord z.1) ?_
   rw [← SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun inClass hne
     AnswerCarrier.carrierRightKeep adversary walk, support_map]
