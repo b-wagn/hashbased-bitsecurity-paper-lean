@@ -4,6 +4,7 @@ import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.LateCharge
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
@@ -7293,3 +7294,19 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late
+
+/-- info: 'SlhDsaSecurity.LateCharge.prob_truncate_mem_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.prob_truncate_mem_le
+
+/-- info: 'SlhDsaSecurity.LateCharge.spent_of_signerRandomised' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.spent_of_signerRandomised
+
+/-- info: 'SlhDsaSecurity.LateCharge.spent_mono' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.spent_mono
+
+/-- info: 'SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent
