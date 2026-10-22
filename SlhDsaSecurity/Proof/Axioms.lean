@@ -208,6 +208,7 @@ import SlhDsaSecurity.Proof.CarrierPhaseRecord
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.CarrierRecord
 import SlhDsaSecurity.Proof.BracketedOrdering
+import SlhDsaSecurity.Proof.CarrierClearFraming
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.HonestLinked
@@ -14645,3 +14646,19 @@ info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail
+
+/-- info: 'SlhDsaSecurity.RecordInvariant.phase_invariant_of_after' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.phase_invariant_of_after
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_run
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_phase' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_phase
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_stages' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_stages

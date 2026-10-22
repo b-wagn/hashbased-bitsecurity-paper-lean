@@ -97,6 +97,64 @@ theorem phase_invariant {Inv : CountedState → Prop}
         (run_invariant handler hstep _ (before request carrier) z hz
           (hbefore request carrier hinv))
 
+/-! ## An invariant the opening bracket breaks and the closing one restores
+
+`phase_invariant` asks the brackets to preserve the invariant, which is right for anything
+reading the cache or the recordings and wrong for anything reading the **framing**: the opening
+bracket's whole job is to write it. Such an invariant is not preserved inside a signing sub-run
+and there is no weaker statement that is — the sub-run genuinely has a request in flight.
+
+What is true is that the closing bracket restores it regardless of what it is given, because it
+writes rather than tests. So the law to ask for is `hafter` unconditional, and then the signing
+branch needs nothing about the sub-run at all: the invariant holds at every state the phase
+itself is at, and the region where it fails is exactly one signing sub-run. -/
+
+/-- **An invariant restored by the closing bracket survives the phase**, with no condition on
+what the opening bracket or the sub-run did. -/
+theorem phase_invariant_of_after {Inv : CountedState → Prop}
+    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
+    (hstep : ∀ (queried : OracleWorld.Domain) (state : CountedState)
+      (step : OracleWorld.Range queried × CountedState),
+      step ∈ support ((handler queried).run state) → Inv state → Inv step.2)
+    (hafter : ∀ state : CountedState, Inv (after state))
+    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ (accumulated : ω) (log : SigningLog) (carrier : CountedState)
+      (result : α × (ω × SigningLog × CountedState)),
+      result ∈ support ((simulateQ (fuseServing handler inner before after) computation).run
+        (accumulated, log, carrier)) → Inv carrier → Inv result.2.2.2 := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro accumulated log carrier result hmem hinv
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [show result.2.2.2 = carrier from by rw [hmem]]
+    exact hinv
+  | query_bind queried next ih =>
+    intro accumulated log carrier result hmem hinv
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hs, hrest⟩ := hmem
+    refine ih step.1 step.2.1 step.2.2.1 step.2.2.2 result hrest ?_
+    rcases queried with world | request
+    · have hs' : step ∈ support
+          ((simulateQ handler (((inner (Sum.inl world)).run).run log)).run carrier >>= fun z =>
+            (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, z.2)) :
+              ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
+                (ω × SigningLog × CountedState)))) := hs
+      obtain ⟨z, hz, hpure⟩ := support_bind_exists hs'
+      rw [show step.2.2.2 = z.2 from congrArg (fun p => p.2.2.2) hpure]
+      exact run_invariant handler hstep _ carrier z hz hinv
+    · have hs' : step ∈ support
+          ((simulateQ handler (((inner (Sum.inr request)).run).run log)).run
+              (before request carrier) >>= fun z =>
+            (pure (z.1.1.1, (accumulated * z.1.1.2, z.1.2, after z.2)) :
+              ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
+                (ω × SigningLog × CountedState)))) := hs
+      obtain ⟨z, -, hpure⟩ := support_bind_exists hs'
+      rw [show step.2.2.2 = after z.2 from congrArg (fun p => p.2.2.2) hpure]
+      exact hafter z.2
+
 /-! ## What the writer accumulates
 
 A phase threads its writer through the state, so a fact about the record a step wrote is a fact
