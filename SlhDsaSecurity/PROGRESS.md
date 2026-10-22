@@ -2483,3 +2483,37 @@ object availability is read from, so it becomes `Bytes × Carrier`; the claims c
 every claim to carry the run's own final one, so `WarmProbes.claimedEntries` must pair with the
 final carrier. The event has to agree: `RoutedSplit.InputBad` reads disclosure at the trace's
 final cache, and whatever that becomes must be the same object the entries carry.
+
+## The containment, and what it actually rests on
+
+Reading the input half's count off the record — `(record.filter CanonicalClass).card` at
+`RandomiserRecord.recordedPairedRun` — asks that the probes the charge weighs be among the run's
+recorded queries. The recorded ones are the adversary's and the verifier's; the handler's own
+record holds more, because the stripped honest phase still asks for each signature's randomiser
+and message digest. So the containment needs those probes to weigh nothing.
+
+**It is not the warm filter that does it.** `ChargedProbe.Targets` is read off a probe's
+*address*, so a probe that names a sensitive node with the wrong payload aims at a cell without
+being answered by the walk's table. The weights are dominated by the canonical *class*, which is
+address-level, and not by the warm-answered part — the correction recorded above under "The
+count the input half spends is calls" applies here too.
+
+**What does it is `Target.GoodWalk`, both clauses, and they are already conjuncts of the event
+being charged.** A randomiser input opens with `SK.prf`, so it is a tweakable input at the
+public seed only if `SK.prf = PK.seed` — the walk's first coincidence.  A message-digest input
+is a tweakable input only if the public key's seed and root spell a structural address — the
+walk's second. Both are `HashSeparation.randomizer_tweakable_ne` and `message_tweakable_ne`,
+with `AddressBounds.withinBounds_structural` supplying the address bound;
+`RedrawCell.locate_randomizerInput`, `locate_messageInput` and `not_targets_of_locate_none` read
+them through the stakes' own `locate`, which is the form the weights are stated at.
+
+**What is left is the induction, and its invariant is a multiset inequality rather than a
+count.** For every result of the handler run,
+
+    ((handler record).filter Targeting).map Prod.fst ≤ recorded.filter CanonicalClass
+
+in the multiset order, whose cards then give the bound. It adds across binds, the honest phase
+contributes nothing to the left by the facts above, and an adversary or verifier query adds the
+same element to both sides. That is the shape of `WarmProbes.warmCount_strippedAfterSeeds`'s
+phase decomposition with the warm filter replaced and the work counter replaced by the recorded
+multiset — a mirror of that file's skeleton, not a new argument.
