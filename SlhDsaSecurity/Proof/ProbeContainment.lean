@@ -29,7 +29,7 @@ is read at, and `queriesUnder_strip` is the step that gets there: at a cache ext
 stripping answers from, a probe of the stripped computation is a probe of the original.
 -/
 
-open OracleComp OracleSpec
+open OracleComp OracleSpec ENNReal
 
 namespace SlhDsaSecurity.ProbeContainment
 
@@ -320,9 +320,16 @@ theorem strip_probes_queriesUnder {α : Type} (publicSeed : Digest)
 /-! ## The honest phase appends nothing that aims
 
 The two halves meet here: what the handler records while the honest phase runs is what that
-phase consults, and what it consults that the table does not answer aims nowhere. The cache both
-halves are read at is the game's own, and the hypothesis that it extends the handler's is the
-compatibility `RedrawCell.probEvent_rom_eq_lazy` maintains step by step. -/
+phase consults, and what it consults that the table does not answer aims nowhere.
+
+**No compatibility between the two caches is needed, and that is a fact about the argument's
+shape rather than an economy.** The side condition on the cache a probe statement is read at is
+used only where the table is *silent* — which is exactly where a probe is forwarded to the
+handler at all — and `RedrawCell.unionCache` defers to the handler's own cache precisely there.
+So the condition discharges itself, `RedrawCell.Compatible` never appears, and the containment
+holds at **any** availability: it never compares what the handler answered with what the table
+would have. Had the hypothesis merely been proved instead of removed, that would not be
+visible. -/
 
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
@@ -737,5 +744,27 @@ theorem recordAim_eq_card_recordAiming (pair : SharedJoin.RecordedPair) :
 theorem probesIn_recordAiming (adversary : Adversary) :
     SharedJoin.ProbesIn SharedJoin.recordAiming SharedJoin.recordAiming adversary :=
   fun _ _ => le_refl _
+
+
+/-! ## The shape this half owes the join
+
+Pinned by elaboration rather than by eye, because a mismatch between what an owner proves and
+what the join takes is the failure that has cost this development most.
+
+**The per-walk adapter is not available to this half**, and for the reason the obligation was
+moved to the paired run in the first place: conditioning on the walk fixes the cell table, and
+an adversary chosen knowing it makes the input event certain at that walk. So what this half
+owes is `prob_sharedBad_le_expected`'s `hinput` itself, at the recorded **paired** run, with the
+count the record's aiming part. `SharedJoin.hinput_of_probesIn` is for an owner whose charge is
+per-walk; the ordering defect is such an owner and this one is not. -/
+
+/-- The input half's bullet, as the join takes it. -/
+def InputBullet (adversary : Adversary) (ordering : SharedJoin.RecordedPair → Prop) : Prop :=
+  Pr[fun pair : SharedJoin.RecordedPair => Target.GoodWalk pair.1 ∧
+      RoutedSplit.InputBad (SharedJoin.recordedTraceOf pair) ∧ ¬ ordering pair |
+    RandomiserRecord.recordedPairedRun adversary] ≤
+    (ClassExpectation.expected (RandomiserRecord.recordedPairedRun adversary)
+        (fun pair => Multiset.card (SharedJoin.recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
+      ((2 ^ 128 : Nat) : ℝ≥0∞)
 
 end SlhDsaSecurity.ProbeContainment
