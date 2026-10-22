@@ -5101,3 +5101,37 @@ when its *unit count* is bounded by a constant, and `q ^ 2 / 2 ^ 128` units is n
 not an artefact of the `Nat` accounting, since the underlying real inequality is the same
 `q ^ 2 ≤ 247 · 2 ^ 128`. **"Second-order against the target" and "fits in the ledger" are
 different questions, and only the second one is the ledger's.**
+
+
+### The served-agreement hypothesis, proved
+
+`CarrierLeftRecord.servedLog_leftRecord_carrierTail` closes it: **every disclosing entry of the
+carrier tail is in the signed log**, with nothing assumed but a supported run and a good walk.
+
+The missing piece was one conjunct. `step_left_mem` reported only that a filed entry passed the
+left test at some view; what the containment needs is that the step's own carrier **serves** it.
+That is `CarriedWitness.served_servingNotice_self` plus the step's two shapes
+(`CarrierFiles.step_inr_cases`), and the lemma now reports it alongside the frame — exactly the
+way `CarrierRecordings.step_right_mem` reports its entry's caching alongside its test. *The
+right-hand lemma's shape was the specification for the left-hand one, and following it was all
+that was needed.*
+
+With the conjunct in place `LeftServed` is another `RecordInvariant` client — the fourth across
+three threads for that interface — and the brackets are free again. `leftServed_carrierTail`
+carries it to the tail's final **pre-projection** carrier, which is where it has to be: the
+containment reads the carrier that `BracketedRun.forgetCarrier` drops.
+
+The assembly is then the decomposition plus three facts about the walk — the key the run
+generates (`CarrierRecord.keys_publicKey`), the good walk's separation
+(`AnswerSide.not_possible_generatedKey`), and the quiet start (`CarrierCap.quiet_run`) — feeding
+`CarrierServedLog`'s two invariants into `carrierBelowLog_of_invariants`. It went through on the
+first elaboration, which is the payoff of having reached both invariants separately: nothing in
+the final step had to be discovered.
+
+**`leftFramed_carrierTail` stays.** It needs no carrier at all, and a consumer that wants only
+the shape should not have to carry a served set to get it.
+
+**What this leaves for `CarrierSplit`.** `hleftClass` is now a theorem rather than a hypothesis.
+The remaining two are the ordering fact (`hrightClass`, which `¬ LateDisclosure` supplies on the
+cache route) and freshness at the walk's own cache, which is the same hypothesis the cache route
+takes.

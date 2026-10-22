@@ -16214,3 +16214,31 @@ info: 'SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_start' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_start
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.step_leftServed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.step_leftServed
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_startServingOn' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_startServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_stopServingOn' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_stopServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail
