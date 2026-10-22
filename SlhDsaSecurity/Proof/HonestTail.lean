@@ -20,13 +20,20 @@ The chain is shorter by exactly one step, because stripping is what is not done 
 * **and the handler starts from nothing**, by `RedrawCell.probEvent_rom_eq_lazy` at the cache
   identity `walkOfTable_cache_eq_openCache`.
 
-**What is given up by not stripping, and why it is affordable here.** Stripping was what made
-the honest phase's queries unanswerable from the table, so that nothing it asked could be
-sensitive. The signer's queries are back in this run, and they are back in the record too. They
-are paid for differently: the served notion files what the signer discloses, and a disclosed
-cell is available, so its probes are not sensitive at the state they are made from. That is the
+**What changes by not stripping: the record and the handler become different observers.** The
+record sits at the writer, and `RecordedQueries.recordedSigningOracle` tells `0` into its
+multiset and calls the signer through `liftM` below it — so the signer's hash inputs never enter
+the record, here or in the stripped game. The handler sits at the oracle, and every query the
+signer makes reaches it. Stripping used to make the two observers agree, by leaving the honest
+phase nothing to ask; they no longer do.
+
+So a bound justified by "the honest phase is not recorded" is still true **at the record** and
+is now false **at the handler** — and that is the distinction the stall has to respect, since
+what it reads is a handler the signer's probes reach. The signer's probes are paid for where
+they are made: the served notion files what the signer discloses, a disclosed cell is available,
+and so those probes are not sensitive at the state they are made from. That is the
 `ServedAgreement` side of the join, which is stated at `Scheme.sign` precisely because this run
-is.
+is. Saying *where* each count is taken is worth more than the coincidence it replaces.
 -/
 
 open OracleComp OracleSpec
