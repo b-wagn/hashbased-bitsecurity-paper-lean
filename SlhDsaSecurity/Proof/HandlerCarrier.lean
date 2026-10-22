@@ -152,10 +152,40 @@ satisfy, because only the signing oracle sets the framing. -/
 
 /-- The test the carrier files its served set by. **No freshness clause**: a served request
 whose digest input was already cached is served all the same, and leaving it unfiled would make
-the signer's own reads unavailable. -/
+the signer's own reads unavailable.
+
+**The match is against the framing in flight, and must stay that way.** The natural
+simplification — asking only whether *some* request is in flight, since the blindness argument
+needs no more than that — is false and unrecoverable. By the FIPS 205 format identity a message
+input at `m` is a `PRF_msg` input at `PK.root ‖ m`, so the signer's own randomiser query on a
+request framed `f` is a message input at a message one block *shorter* than `f`; comparing
+against `f` itself rejects it (`not_filesLeft_randomizerInput`), and comparing against nothing
+accepts it. Accepting it would put two entries per request in the disclosing recording, which
+is past the Poisson coupling's **mean** and not merely past its proved tail: the mean load
+potential moves from about `2 ^ 101.75` to `2 ^ 105.17`, above the `2 ^ 103` the coverage bound
+is stated at, so the rare event becomes the typical one and no sharpening reaches it. It would
+also stop the served set being the image of the signing log. -/
 def FilesLeft (pk : PublicKey) (state : State) (input : Bytes) : Prop :=
   ∃ framed : Bytes, state.framing = some framed ∧
     ∃ randomizer : Digest, input = Hashing.messageInput randomizer pk framed
+
+/-- **The signer's own randomiser query is not filed**, and the framing match is the whole
+reason. `PRF_msg` at the in-flight frame is a message input at a message one block shorter, so
+it fails a test that compares against that frame. -/
+theorem not_filesLeft_randomizerInput (pk : PublicKey) (state : State) (prfSeed : Digest)
+    (framed : Bytes) (hframing : state.framing = some framed) :
+    ¬ FilesLeft pk state (Hashing.randomizerInput prfSeed pk.seed framed) := by
+  rintro ⟨inflight, hinflight, randomizer, hinput⟩
+  rw [hframing] at hinflight
+  rw [Option.some.inj hinflight] at hinput
+  rw [show Hashing.messageInput randomizer pk inflight =
+      Hashing.randomizerInput randomizer pk.seed (bytesBE n pk.root ++ inflight) from by
+    simp only [Hashing.randomizerInput, Hashing.messageInput, List.append_assoc]] at hinput
+  obtain ⟨-, -, hmessage⟩ := Hashing.randomizerInput_injective hinput
+  have hlength := congrArg List.length hmessage
+  simp only [List.length_append, length_bytesBE] at hlength
+  simp only [n] at hlength
+  omega
 
 /-- **Nothing is filed when nothing is being served.** The adversary's own queries run with the
 framing clear, so the test is false at every one of them whatever they ask. -/

@@ -443,19 +443,45 @@ theorem mem_recordOf_of_cache {α : Type} (leftKeep rightKeep : Bytes → σ →
             cacheOf_update_of_ne state.1 probe input step.1 hsame]
           exact hfresh
 
+/-- **Installing a fresh answer loses no entry.** -/
+theorem persists_update (state : σ) (probe : Bytes) (answer : HashOutput)
+    (hfresh : CacheView.cacheOf state probe = none) (input : Bytes) (value : HashOutput)
+    (hentry : CacheView.cacheOf state input = some value) :
+    CacheView.cacheOf (CacheView.update state probe answer) input = some value := by
+  have hne : input ≠ probe := by
+    intro hsame
+    rw [hsame, hfresh] at hentry
+    simp at hentry
+  rw [cacheOf_update_of_ne state probe input answer hne]
+  exact hentry
+
+/-! ## What the disclosing recording's entries satisfy at the end
+
+**The filing test and the disclosure it records are two predicates, not one.** A test that is
+read at the state a query is made from can be a flag the signing oracle holds up while it
+serves — which is the only kind of disclosing test an adversary cannot forge, since a
+cache-readable one it can make true by holding `SK.prf`. Such a flag is *false again* by the
+end of the run, so it cannot also be the predicate the entries satisfy at the end.
+
+So `endKeep` is separate, and the two are joined by what a step does: filing an answer puts the
+input into whatever the end predicate reads, and no later step takes it out. At a cache-readable
+test the two collapse — `left_recordOf_keep_final` below is this lemma with `endKeep := leftKeep`
+and both laws read off the old monotonicity — so nothing that used the collapsed form moves. -/
+
 open scoped Classical in
-/-- **Every entry of the disclosing recording still passes its test at the end of the run**,
-given that the test is monotone in the view's cache. -/
-theorem left_recordOf_keep_final {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
-    (hmono : ∀ (input : Bytes) (view later : σ),
-      (∀ (probe : Bytes) (value : HashOutput),
-        CacheView.cacheOf view probe = some value →
-          CacheView.cacheOf later probe = some value) →
-        leftKeep input view → leftKeep input later)
+/-- **Every entry of the disclosing recording satisfies the end predicate at the end of the
+run.** -/
+theorem left_recordOf_endKeep_final {α : Type} (leftKeep rightKeep endKeep : Bytes → σ → Prop)
+    (hfile : ∀ (input : Bytes) (view : σ) (answer : HashOutput),
+      CacheView.cacheOf view input = none → leftKeep input view →
+        endKeep input (CacheView.update view input answer))
+    (hkeeps : ∀ (input probe : Bytes) (view : σ) (answer : HashOutput),
+      CacheView.cacheOf view probe = none → endKeep input view →
+        endKeep input (CacheView.update view probe answer))
     (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
     (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
-    (hstart : ∀ entry ∈ state.2.1, leftKeep entry.1 state.1) :
-    ∀ entry ∈ result.2.2.1, leftKeep entry.1 result.2.1 := by
+    (hstart : ∀ entry ∈ state.2.1, endKeep entry.1 state.1) :
+    ∀ entry ∈ result.2.2.1, endKeep entry.1 result.2.1 := by
   classical
   induction computation using OracleComp.inductionOn generalizing state result with
   | pure value =>
@@ -469,30 +495,65 @@ theorem left_recordOf_keep_final {α : Type} (leftKeep rightKeep : Bytes → σ 
     rcases queried with coin | input
     · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
       exact hstart
-    · have hpersist := recorderOf_step_persists leftKeep rightKeep input state step hstep
-      have hrecStep := recorderOf_step_record leftKeep rightKeep input state step hstep
+    · have hrecStep := recorderOf_step_record leftKeep rightKeep input state step hstep
       cases hcached : CacheView.cacheOf state.1 input with
       | some cached =>
-        rw [hrecStep,
-          appendedOf_of_cached leftKeep rightKeep input state step.1 cached hcached]
-        exact fun entry hentry => hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
+        rcases recorderOf_step leftKeep rightKeep input state step hstep with
+          ⟨-, hshape⟩ | ⟨hbad, -⟩
+        · rw [show step.2.1 = state.1 from by rw [hshape],
+            show step.2.2 = state.2 from by
+              rw [hshape,
+                appendedOf_of_cached leftKeep rightKeep input state step.1 cached hcached]]
+          exact hstart
+        · rw [hcached] at hbad
+          simp at hbad
       | none =>
+        have hinstalled : step.2.1 = CacheView.update state.1 input step.1 := by
+          rcases recorderOf_step leftKeep rightKeep input state step hstep with
+            ⟨hbad, -⟩ | ⟨-, hshape⟩
+          · rw [hcached] at hbad
+            simp at hbad
+          · rw [hshape]
+        have hcarry : ∀ entry ∈ state.2.1, endKeep entry.1 step.2.1 := by
+          intro entry hentry
+          rw [hinstalled]
+          exact hkeeps entry.1 input state.1 step.1 hcached (hstart entry hentry)
         by_cases hleft : leftKeep input state.1
-        · rw [hrecStep,
-            appendedOf_of_left leftKeep rightKeep input state step.1 hcached hleft]
+        · rw [hrecStep, appendedOf_of_left leftKeep rightKeep input state step.1 hcached hleft]
           intro entry hentry
           rcases List.mem_append.mp hentry with hold | hnew
-          · exact hmono entry.1 state.1 step.2.1 hpersist (hstart entry hold)
-          · rw [List.mem_singleton.mp hnew]
-            exact hmono input state.1 step.2.1 hpersist hleft
+          · exact hcarry entry hold
+          · rw [List.mem_singleton.mp hnew, hinstalled]
+            exact hfile input state.1 step.1 hcached hleft
         · by_cases hright : rightKeep input state.1
           · rw [hrecStep,
               appendedOf_of_right leftKeep rightKeep input state step.1 hcached hleft hright]
-            exact fun entry hentry =>
-              hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
+            exact hcarry
           · rw [hrecStep,
               appendedOf_of_neither leftKeep rightKeep input state step.1 hleft hright]
-            exact fun entry hentry =>
-              hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
+            exact hcarry
+
+open scoped Classical in
+/-- **Every entry of the disclosing recording still passes its own test at the end of the run**,
+when that test is monotone in the view's cache. The collapsed case: one predicate in both roles,
+which is what a cache-readable disclosing test allows and a flag does not. -/
+theorem left_recordOf_keep_final {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (hmono : ∀ (input : Bytes) (view later : σ),
+      (∀ (probe : Bytes) (value : HashOutput),
+        CacheView.cacheOf view probe = some value →
+          CacheView.cacheOf later probe = some value) →
+        leftKeep input view → leftKeep input later)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
+    (hstart : ∀ entry ∈ state.2.1, leftKeep entry.1 state.1) :
+    ∀ entry ∈ result.2.2.1, leftKeep entry.1 result.2.1 :=
+  left_recordOf_endKeep_final leftKeep rightKeep leftKeep
+    (fun input view answer hfresh hkeep =>
+      hmono input view (CacheView.update view input answer)
+        (persists_update view input answer hfresh) hkeep)
+    (fun input probe view answer hfresh hkeep =>
+      hmono input view (CacheView.update view probe answer)
+        (persists_update view probe answer hfresh) hkeep)
+    computation state result hmem hstart
 
 end SlhDsaSecurity.RecorderView

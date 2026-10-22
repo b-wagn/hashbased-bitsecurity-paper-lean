@@ -194,6 +194,7 @@ import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.FinalAssembly
+import SlhDsaSecurity.Proof.CarriedWitness
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -12006,3 +12007,57 @@ info: 'SlhDsaSecurity.FinalAssembly.target_of_producers' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FinalAssembly.target_of_producers
+
+/--
+info: 'SlhDsaSecurity.HandlerCarrier.not_filesLeft_randomizerInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.not_filesLeft_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.RecorderView.persists_update' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.persists_update
+
+/--
+info: 'SlhDsaSecurity.RecorderView.left_recordOf_endKeep_final' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.left_recordOf_endKeep_final
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.cacheOf_servingUpdate' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.cacheOf_servingUpdate
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.served_servingUpdate_self' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.served_servingUpdate_self
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.served_servingUpdate' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.served_servingUpdate
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.mem_served_of_mem_leftRecord' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.mem_served_of_mem_leftRecord
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.not_disclosingKeep_of_clear' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.not_disclosingKeep_of_clear
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput
