@@ -72,6 +72,204 @@ theorem tsum_const_add {β : Type} (run : ProbComp β) (hmass : Pr[⊥ | run] = 
 
 /-! ## The charge -/
 
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **The potential charge, with a continuation.** The same bound for a run followed by anything,
+and what is asked of the continuation is **the conclusion's own shape at the continuation's own
+starting state**: its potential, its gauge, its own offsets.
+
+That is the decision that makes the charge compose, and it is not recoverable afterwards. A
+three-stage bracketed run cannot be one `simulateQ` of one computation, so the stages have to be
+composed; and a later stage's probability depends on the state an earlier one left. Stated this
+way each layer quotes only its own offsets, so nothing has to relate a later stage's state back
+to the first — the telescoping `gauge state ≤ after ≤ gaugeFinal w` happens inside one layer.
+
+`prob_fired_le` is the case `cont := pure`, where the continuation's bound is the old `pure`
+case: a run that has not fired cannot have fired. -/
+theorem prob_fired_le_cont (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
+    (cacheOf : σ → QueryCache HashSpec) (stepOf : σ → Bytes → HashOutput → σ)
+    (noticeOf : σ → Bytes → σ)
+    (hinl : ∀ (coin : unifSpec.Domain) (state : σ) (step : OracleWorld.Range (Sum.inl coin) × σ),
+      step ∈ support ((oracle (Sum.inl coin)).run state) → step.2 = state)
+    (hinlMass : ∀ (coin : unifSpec.Domain) (state : σ),
+      Pr[⊥ | (oracle (Sum.inl coin)).run state] = 0)
+    (hcached : ∀ (input : Bytes) (state : σ) (answer : HashOutput),
+      cacheOf state input = some answer →
+        (oracle (Sum.inr input)).run state =
+          (pure (answer, noticeOf state input) : ProbComp _))
+    (hfresh : ∀ (input : Bytes) (state : σ), cacheOf state input = none →
+      (oracle (Sum.inr input)).run state =
+        (fun answer => (answer, stepOf state input answer)) <$>
+          ($ᵗ HashOutput : ProbComp HashOutput))
+    (hmass : ∀ (β : Type) (inner : OracleComp OracleWorld β) (state : σ),
+      Pr[⊥ | (simulateQ oracle inner).run state] = 0)
+    (fired : σ → Prop) (potential gauge : σ → Nat) (rate : ℝ≥0∞)
+    (hnoticeFired : ∀ (state : σ) (input : Bytes), fired (noticeOf state input) → fired state)
+    (hnoticePotential : ∀ (state : σ) (input : Bytes),
+      potential (noticeOf state input) ≤ potential state)
+    (hnoticeGauge : ∀ (state : σ) (input : Bytes), gauge (noticeOf state input) = gauge state)
+    (hstepGauge : ∀ (state : σ) (input : Bytes) (answer : HashOutput),
+      gauge state ≤ gauge (stepOf state input answer))
+    (hgauge : ∀ (β : Type) (inner : OracleComp OracleWorld β) (state : σ)
+      (result : β × σ), result ∈ support ((simulateQ oracle inner).run state) →
+        gauge state ≤ gauge result.2)
+    (hstep : ∀ (state : σ) (input : Bytes), cacheOf state input = none → ¬ fired state →
+      ∃ bound after : Nat,
+        (∀ answer : HashOutput, ¬ fired (stepOf state input answer) →
+            potential (stepOf state input answer) ≤ bound) ∧
+          (∀ answer : HashOutput, gauge (stepOf state input answer) = after) ∧
+            Pr[fun answer : HashOutput => fired (stepOf state input answer) |
+                ($ᵗ HashOutput : ProbComp HashOutput)] + ((bound : Nat) : ℝ≥0∞) * rate ≤
+              ((potential state : Nat) : ℝ≥0∞) * rate +
+                ((after - gauge state : Nat) : ℝ≥0∞) * rate)
+    {α γ : Type} (computation : OracleComp OracleWorld α)
+    (cont : α × σ → ProbComp γ) (firedFinal : γ → Prop) (gaugeFinal : γ → Nat)
+    (hcontMass : ∀ z : α × σ, Pr[⊥ | cont z] = 0)
+    (hcontGauge : ∀ (z : α × σ) (w : γ), w ∈ support (cont z) → gauge z.2 ≤ gaugeFinal w)
+    (hcont : ∀ z : α × σ, ¬ fired z.2 →
+      Pr[firedFinal | cont z] ≤ ((potential z.2 : Nat) : ℝ≥0∞) * rate +
+        expected (cont z) (fun w => gaugeFinal w - gauge z.2) * rate) :
+    ∀ state : σ, ¬ fired state →
+      Pr[firedFinal | (simulateQ oracle computation).run state >>= cont] ≤
+        ((potential state : Nat) : ℝ≥0∞) * rate +
+          expected ((simulateQ oracle computation).run state >>= cont)
+            (fun w => gaugeFinal w - gauge state) * rate := by
+  classical
+  have hmassCont : ∀ (inner : OracleComp OracleWorld α) (state : σ),
+      Pr[⊥ | (simulateQ oracle inner).run state >>= cont] = 0 := fun inner state =>
+    (probFailure_bind_eq_zero_iff _ _).mpr ⟨hmass α inner state, fun z _ => hcontMass z⟩
+  have hgaugeCont : ∀ (inner : OracleComp OracleWorld α) (state : σ) (w : γ),
+      w ∈ support ((simulateQ oracle inner).run state >>= cont) → gauge state ≤ gaugeFinal w := by
+    intro inner state w hw
+    rw [mem_support_bind_iff] at hw
+    obtain ⟨z, hz, hwz⟩ := hw
+    exact le_trans (hgauge α inner state z hz) (hcontGauge z w hwz)
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state hstate
+    rw [simulateQ_pure, StateT.run_pure, pure_bind]
+    exact hcont (value, state) hstate
+  | query_bind queried next ih =>
+    intro state hstate
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
+    rcases queried with coin | input
+    · rw [probEvent_bind_eq_tsum, expected_bind]
+      calc ∑' step : OracleWorld.Range (Sum.inl coin) × σ,
+            Pr[= step | (oracle (Sum.inl coin)).run state] *
+              Pr[firedFinal | (simulateQ oracle (next step.1)).run step.2 >>= cont]
+          ≤ ∑' step : OracleWorld.Range (Sum.inl coin) × σ,
+              Pr[= step | (oracle (Sum.inl coin)).run state] *
+                (((potential state : Nat) : ℝ≥0∞) * rate +
+                  expected ((simulateQ oracle (next step.1)).run step.2 >>= cont)
+                    (fun w => gaugeFinal w - gauge state) * rate) := by
+            refine ENNReal.tsum_le_tsum fun step => ?_
+            by_cases hmem : step ∈ support ((oracle (Sum.inl coin)).run state)
+            · refine mul_le_mul' le_rfl ?_
+              have hsame : step.2 = state := hinl coin state step hmem
+              rw [hsame]
+              exact ih step.1 state hstate
+            · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+        _ = ((potential state : Nat) : ℝ≥0∞) * rate +
+              ∑' step : OracleWorld.Range (Sum.inl coin) × σ,
+                Pr[= step | (oracle (Sum.inl coin)).run state] *
+                  (expected ((simulateQ oracle (next step.1)).run step.2 >>= cont)
+                    (fun w => gaugeFinal w - gauge state) * rate) :=
+            tsum_const_add ((oracle (Sum.inl coin)).run state) (hinlMass coin state) _ _
+        _ = _ := by
+            rw [← ENNReal.tsum_mul_right]
+            exact congrArg _ (tsum_congr fun step => (mul_assoc _ _ _).symm)
+    · cases hcache : cacheOf state input with
+      | some answer =>
+        rw [hcached input state answer hcache]
+        show Pr[firedFinal |
+            (simulateQ oracle (next answer)).run (noticeOf state input) >>= cont] ≤
+          ((potential state : Nat) : ℝ≥0∞) * rate +
+            expected ((simulateQ oracle (next answer)).run (noticeOf state input) >>= cont)
+              (fun w => gaugeFinal w - gauge state) * rate
+        refine le_trans (ih answer (noticeOf state input)
+          (fun hfired => hstate (hnoticeFired state input hfired))) ?_
+        rw [hnoticeGauge state input]
+        exact add_le_add (mul_le_mul' (Nat.cast_le.mpr (hnoticePotential state input)) le_rfl)
+          le_rfl
+      | none =>
+        obtain ⟨bound, after, hbound, hafter, hpay⟩ := hstep state input hcache hstate
+        rw [hfresh input state hcache]
+        show Pr[firedFinal |
+            ($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
+              ((simulateQ oracle (next answer)).run (stepOf state input answer) >>= cont)] ≤
+          ((potential state : Nat) : ℝ≥0∞) * rate +
+            expected (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
+              ((simulateQ oracle (next answer)).run (stepOf state input answer) >>= cont))
+              (fun w => gaugeFinal w - gauge state) * rate
+        rw [probEvent_bind_eq_tsum, expected_bind]
+        have hsplit : ∀ answer : HashOutput,
+            expected ((simulateQ oracle (next answer)).run (stepOf state input answer) >>= cont)
+                (fun w => gaugeFinal w - gauge state) =
+              ((after - gauge state : Nat) : ℝ≥0∞) +
+                expected ((simulateQ oracle (next answer)).run (stepOf state input answer) >>= cont)
+                  (fun w => gaugeFinal w - after) := by
+          intro answer
+          rw [expected_congr_support
+            ((simulateQ oracle (next answer)).run (stepOf state input answer) >>= cont)
+            (fun w => gaugeFinal w - gauge state)
+            (fun w => (after - gauge state) + (gaugeFinal w - after)) ?_]
+          · exact expected_const_add _ (hmassCont _ _) _ _
+          · intro w hw
+            have hlower : gauge state ≤ after := by
+              rw [← hafter answer]
+              exact hstepGauge state input answer
+            have hupper : after ≤ gaugeFinal w := by
+              rw [← hafter answer]
+              exact hgaugeCont (next answer) (stepOf state input answer) w hw
+            omega
+        simp only [hsplit]
+        rw [tsum_const_add ($ᵗ HashOutput : ProbComp HashOutput) (by simp) _ _]
+        have hpointwise : ∀ answer : HashOutput,
+            Pr[firedFinal |
+                (simulateQ oracle (next answer)).run (stepOf state input answer) >>= cont] ≤
+              (if fired (stepOf state input answer) then 1 else 0) +
+                (((bound : Nat) : ℝ≥0∞) * rate +
+                  expected ((simulateQ oracle (next answer)).run (stepOf state input answer)
+                      >>= cont)
+                    (fun w => gaugeFinal w - after) * rate) := by
+          intro answer
+          by_cases hfired : fired (stepOf state input answer)
+          · rw [if_pos hfired]
+            exact le_add_right probEvent_le_one
+          · rw [if_neg hfired, zero_add]
+            refine le_trans (ih answer (stepOf state input answer) hfired) ?_
+            rw [hafter answer]
+            exact add_le_add (mul_le_mul' (by exact_mod_cast hbound answer hfired) le_rfl) le_rfl
+        refine le_trans (ENNReal.tsum_le_tsum fun answer =>
+          mul_le_mul' le_rfl (hpointwise answer)) ?_
+        rw [show (∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                ((if fired (stepOf state input answer) then 1 else 0) +
+                  (((bound : Nat) : ℝ≥0∞) * rate +
+                    expected ((simulateQ oracle (next answer)).run (stepOf state input answer)
+                        >>= cont)
+                      (fun w => gaugeFinal w - after) * rate))) =
+              (∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  (if fired (stepOf state input answer) then 1 else 0)) +
+                ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  (((bound : Nat) : ℝ≥0∞) * rate +
+                    expected ((simulateQ oracle (next answer)).run (stepOf state input answer)
+                        >>= cont)
+                      (fun w => gaugeFinal w - after) * rate) from by
+          rw [← ENNReal.tsum_add]
+          exact tsum_congr fun answer => mul_add _ _ _]
+        rw [tsum_const_add ($ᵗ HashOutput : ProbComp HashOutput) (by simp) _ _,
+          show (∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                (if fired (stepOf state input answer) then 1 else 0)) =
+              ∑' answer : HashOutput,
+                (if fired (stepOf state input answer) then
+                  Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] else 0) from
+            tsum_congr fun answer => by
+              by_cases hfired : fired (stepOf state input answer) <;> simp [hfired],
+          ← probEvent_eq_tsum_ite, ← add_assoc, add_mul, ← ENNReal.tsum_mul_right]
+        refine le_trans (add_le_add hpay
+          (le_of_eq (tsum_congr fun answer => (mul_assoc _ _ _).symm))) ?_
+        exact le_of_eq (add_assoc _ _ _)
+
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The potential charge.** A run ends in a fired state with probability at most the potential
@@ -137,132 +335,21 @@ theorem prob_fired_le (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
           expected ((simulateQ oracle computation).run state)
             (fun result => gauge result.2 - gauge state) * rate := by
   classical
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state hstate
-    refine le_of_eq_of_le (b := 0) ?_ (by simp)
-    rw [simulateQ_pure, StateT.run_pure]
-    refine probEvent_eq_zero fun result hresult hfired => ?_
-    rw [support_pure, Set.mem_singleton_iff] at hresult
-    subst hresult
-    exact hstate hfired
-  | query_bind queried next ih =>
-    intro state hstate
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-    rcases queried with coin | input
-    · rw [probEvent_bind_eq_tsum, expected_bind]
-      calc ∑' step : OracleWorld.Range (Sum.inl coin) × σ,
-            Pr[= step | (oracle (Sum.inl coin)).run state] *
-              Pr[fun result : α × σ => fired result.2 |
-                (simulateQ oracle (next step.1)).run step.2]
-          ≤ ∑' step : OracleWorld.Range (Sum.inl coin) × σ,
-              Pr[= step | (oracle (Sum.inl coin)).run state] *
-                (((potential state : Nat) : ℝ≥0∞) * rate +
-                  expected ((simulateQ oracle (next step.1)).run step.2)
-                    (fun result => gauge result.2 - gauge state) * rate) := by
-            refine ENNReal.tsum_le_tsum fun step => ?_
-            by_cases hmem : step ∈ support ((oracle (Sum.inl coin)).run state)
-            · refine mul_le_mul' le_rfl ?_
-              have hsame : step.2 = state := hinl coin state step hmem
-              rw [hsame]
-              exact ih step.1 state hstate
-            · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
-        _ = ((potential state : Nat) : ℝ≥0∞) * rate +
-              ∑' step : OracleWorld.Range (Sum.inl coin) × σ,
-                Pr[= step | (oracle (Sum.inl coin)).run state] *
-                  (expected ((simulateQ oracle (next step.1)).run step.2)
-                    (fun result => gauge result.2 - gauge state) * rate) :=
-            tsum_const_add ((oracle (Sum.inl coin)).run state) (hinlMass coin state) _ _
-        _ = _ := by
-            rw [← ENNReal.tsum_mul_right]
-            exact congrArg _ (tsum_congr fun step => (mul_assoc _ _ _).symm)
-    · cases hcache : cacheOf state input with
-      | some answer =>
-        rw [hcached input state answer hcache]
-        show Pr[fun result : α × σ => fired result.2 |
-            (simulateQ oracle (next answer)).run (noticeOf state input)] ≤
-          ((potential state : Nat) : ℝ≥0∞) * rate +
-            expected ((simulateQ oracle (next answer)).run (noticeOf state input))
-              (fun result => gauge result.2 - gauge state) * rate
-        refine le_trans (ih answer (noticeOf state input)
-          (fun hfired => hstate (hnoticeFired state input hfired))) ?_
-        rw [hnoticeGauge state input]
-        exact add_le_add (mul_le_mul' (Nat.cast_le.mpr (hnoticePotential state input)) le_rfl)
-          le_rfl
-      | none =>
-        obtain ⟨bound, after, hbound, hafter, hpay⟩ := hstep state input hcache hstate
-        rw [hfresh input state hcache]
-        show Pr[fun result : α × σ => fired result.2 |
-            ($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
-              (simulateQ oracle (next answer)).run (stepOf state input answer)] ≤
-          ((potential state : Nat) : ℝ≥0∞) * rate +
-            expected (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
-              (simulateQ oracle (next answer)).run (stepOf state input answer))
-              (fun result => gauge result.2 - gauge state) * rate
-        rw [probEvent_bind_eq_tsum, expected_bind]
-        have hsplit : ∀ answer : HashOutput,
-            expected ((simulateQ oracle (next answer)).run (stepOf state input answer))
-                (fun result => gauge result.2 - gauge state) =
-              ((after - gauge state : Nat) : ℝ≥0∞) +
-                expected ((simulateQ oracle (next answer)).run (stepOf state input answer))
-                  (fun result => gauge result.2 - after) := by
-          intro answer
-          rw [expected_congr_support
-            ((simulateQ oracle (next answer)).run (stepOf state input answer))
-            (fun result => gauge result.2 - gauge state)
-            (fun result => (after - gauge state) + (gauge result.2 - after)) ?_]
-          · exact expected_const_add _ (hmass _ _ _) _ _
-          · intro result hresult
-            have hlower : gauge state ≤ after := by
-              rw [← hafter answer]
-              exact hstepGauge state input answer
-            have hupper : after ≤ gauge result.2 := by
-              rw [← hafter answer]
-              exact hgauge _ (next answer) (stepOf state input answer) result hresult
-            omega
-        simp only [hsplit]
-        rw [tsum_const_add ($ᵗ HashOutput : ProbComp HashOutput) (by simp) _ _]
-        have hpointwise : ∀ answer : HashOutput,
-            Pr[fun result : α × σ => fired result.2 |
-                (simulateQ oracle (next answer)).run (stepOf state input answer)] ≤
-              (if fired (stepOf state input answer) then 1 else 0) +
-                (((bound : Nat) : ℝ≥0∞) * rate +
-                  expected ((simulateQ oracle (next answer)).run (stepOf state input answer))
-                    (fun result => gauge result.2 - after) * rate) := by
-          intro answer
-          by_cases hfired : fired (stepOf state input answer)
-          · rw [if_pos hfired]
-            exact le_add_right probEvent_le_one
-          · rw [if_neg hfired, zero_add]
-            refine le_trans (ih answer (stepOf state input answer) hfired) ?_
-            rw [hafter answer]
-            exact add_le_add (mul_le_mul' (by exact_mod_cast hbound answer hfired) le_rfl) le_rfl
-        refine le_trans (ENNReal.tsum_le_tsum fun answer =>
-          mul_le_mul' le_rfl (hpointwise answer)) ?_
-        rw [show (∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
-                ((if fired (stepOf state input answer) then 1 else 0) +
-                  (((bound : Nat) : ℝ≥0∞) * rate +
-                    expected ((simulateQ oracle (next answer)).run (stepOf state input answer))
-                      (fun result => gauge result.2 - after) * rate))) =
-              (∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
-                  (if fired (stepOf state input answer) then 1 else 0)) +
-                ∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
-                  (((bound : Nat) : ℝ≥0∞) * rate +
-                    expected ((simulateQ oracle (next answer)).run (stepOf state input answer))
-                      (fun result => gauge result.2 - after) * rate) from by
-          rw [← ENNReal.tsum_add]
-          exact tsum_congr fun answer => mul_add _ _ _]
-        rw [tsum_const_add ($ᵗ HashOutput : ProbComp HashOutput) (by simp) _ _,
-          show (∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
-                (if fired (stepOf state input answer) then 1 else 0)) =
-              ∑' answer : HashOutput,
-                (if fired (stepOf state input answer) then
-                  Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] else 0) from
-            tsum_congr fun answer => by
-              by_cases hfired : fired (stepOf state input answer) <;> simp [hfired],
-          ← probEvent_eq_tsum_ite, ← add_assoc, add_mul, ← ENNReal.tsum_mul_right]
-        refine le_trans (add_le_add hpay
-          (le_of_eq (tsum_congr fun answer => (mul_assoc _ _ _).symm))) ?_
-        exact le_of_eq (add_assoc _ _ _)
+  intro state hstate
+  have hmain := prob_fired_le_cont oracle cacheOf stepOf noticeOf hinl hinlMass hcached hfresh
+    hmass fired potential gauge rate hnoticeFired hnoticePotential hnoticeGauge hstepGauge
+    hgauge hstep computation (fun z => (pure z : ProbComp (α × σ)))
+    (fun result => fired result.2) (fun result => gauge result.2)
+    (fun _ => by simp) (fun _ _ hw => by
+      rw [support_pure, Set.mem_singleton_iff] at hw
+      rw [hw])
+    (fun z hz => by
+      refine le_of_eq_of_le (b := 0) ?_ (by simp)
+      exact probEvent_eq_zero fun result hresult hfired => by
+        rw [support_pure, Set.mem_singleton_iff] at hresult
+        exact hz (hresult ▸ hfired))
+    state hstate
+  rw [bind_pure] at hmain
+  exact hmain
 
 end SlhDsaSecurity.PotentialCharge

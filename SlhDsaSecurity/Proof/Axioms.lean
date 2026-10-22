@@ -232,6 +232,8 @@ import SlhDsaSecurity.Proof.NoticingBlocks
 import SlhDsaSecurity.Proof.FusedTape
 import SlhDsaSecurity.Proof.BracketedOrdering
 import SlhDsaSecurity.Proof.CarrierClearFraming
+import SlhDsaSecurity.Proof.OrderingCompose
+import SlhDsaSecurity.Proof.CarrierCharge
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14898,3 +14900,75 @@ info: 'SlhDsaSecurity.CountedView.forgetsAlong_counted' depends on axioms: [prop
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedView.forgetsAlong_counted
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.prob_fired_le_cont' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.prob_fired_le_cont
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.mass_fused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.mass_fused
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.gauge_fused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.gauge_fused
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.prob_fired_le_fused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.prob_fired_le_fused
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.prob_fired_le_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.prob_fired_le_threeStage
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.step_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.step_mass
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.mass_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.mass_run
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.gauge_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.gauge_run
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inl
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inl_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inl_mass
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inr_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inr_cached
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_inr_fresh
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.run_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.run_mass
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.neutral_of_bracket' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.neutral_of_bracket
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.gaugeAt_stepAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.gaugeAt_stepAt
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.chargedRightKeep_left' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.chargedRightKeep_left
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep
