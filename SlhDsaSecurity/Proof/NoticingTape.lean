@@ -564,4 +564,212 @@ theorem noticingLeftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
         rw [hpure] at hrest
         exact ih _ _ _ _ _ _ result hrest index hreached hcell
 
+/-! ## The leave-one-out charge, at the repaired recorder
+
+The three lemmas the coverage charge is assembled from. Each is the cache version with its
+recorder swapped: none of them inducts over the computation, and the only recorder-specific
+thing any of them uses is `noticingProbEvent_length_set` — the causality of the selection, proved
+above. The rate, what is summed, and the per-cell factor are untouched, which is what keeps the
+margin downstream the same number it was. -/
+
+/-- The whole repaired run, with the two blocks it read kept beside its result. -/
+noncomputable def noticingBlockRun (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : σ)
+    (leftLength rightLength : Nat) :
+    ProbComp ((List HashOutput × List HashOutput) × (α × SplitTapeState σ)) :=
+  padding leftLength >>= fun leftTape =>
+    padding rightLength >>= fun rightTape =>
+      (fun result => ((leftTape, rightTape), result)) <$>
+        (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+          (cache, (leftTape, rightTape), ([], []))
+
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **The charge on one target cell**, at the repaired recorder. -/
+theorem noticingProb_selected_hit_le (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : σ)
+    (leftLength rightLength index : Nat) (hindex : index < rightLength)
+    (goodBlock : List HashOutput → Prop) (hit : List HashOutput → HashOutput → Prop)
+    (rate : ℝ≥0∞)
+    (hrate : ∀ leftTape, goodBlock leftTape →
+      Pr[fun value => hit leftTape value | ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate) :
+    Pr[fun outcome => index < (rightOf outcome.2.2).length ∧ goodBlock outcome.1.1 ∧
+          ∃ value, outcome.1.2[index]? = some value ∧ hit outcome.1.1 value |
+        noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] ≤
+      Pr[fun outcome => index < (rightOf outcome.2.2).length |
+        noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] * rate := by
+  classical
+  set target : List HashOutput → List HashOutput → ℝ≥0∞ := fun leftTape rightTape =>
+    Pr[fun result : α × SplitTapeState σ => index < (rightOf result.2).length |
+      (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+        (cache, (leftTape, rightTape), ([], []))] with htarget
+  -- The selection alone, with the blocks forgotten.
+  have hright : Pr[fun outcome :
+        (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
+        index < (rightOf outcome.2.2).length |
+      noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] =
+      ∑' leftTape, Pr[= leftTape | padding leftLength] *
+        ∑' rightTape, Pr[= rightTape | padding rightLength] * target leftTape rightTape := by
+    rw [noticingBlockRun, probEvent_bind_eq_tsum]
+    refine tsum_congr fun leftTape => congrArg _ ?_
+    rw [probEvent_bind_eq_tsum]
+    refine tsum_congr fun rightTape => congrArg _ ?_
+    rw [probEvent_map]
+    rfl
+  -- The charged event, after one cell of the target block is redrawn.
+  have hleft : Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
+        index < (rightOf outcome.2.2).length ∧ goodBlock outcome.1.1 ∧
+          ∃ value, outcome.1.2[index]? = some value ∧ hit outcome.1.1 value |
+      noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] =
+      ∑' leftTape, Pr[= leftTape | padding leftLength] *
+        ∑' rightTape, Pr[= rightTape | padding rightLength] *
+          ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
+            Pr[fun result : α × SplitTapeState σ =>
+                index < (rightOf result.2).length ∧ goodBlock leftTape ∧
+                  ∃ other, (rightTape.set index value)[index]? = some other ∧
+                    hit leftTape other |
+              (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+                (cache, (leftTape, rightTape.set index value), ([], []))] := by
+    rw [noticingBlockRun]
+    rw [probEvent_congr' (fun _ _ => Iff.rfl)
+      (OracleComp.DeferredSampling.evalDist_bind_congr_left (padding leftLength) _ _
+        fun leftTape => evalDist_padding_set rightLength index hindex
+          fun rightTape => (fun result => ((leftTape, rightTape), result)) <$>
+            (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+              (cache, (leftTape, rightTape), ([], [])))]
+    rw [probEvent_bind_eq_tsum]
+    refine tsum_congr fun leftTape => congrArg _ ?_
+    rw [probEvent_bind_eq_tsum]
+    refine tsum_congr fun rightTape => congrArg _ ?_
+    rw [probEvent_bind_eq_tsum]
+    refine tsum_congr fun value => congrArg _ ?_
+    rw [probEvent_map]
+    rfl
+  rw [hleft, hright, ← ENNReal.tsum_mul_right]
+  refine ENNReal.tsum_le_tsum fun leftTape => ?_
+  rw [mul_assoc, ← ENNReal.tsum_mul_right]
+  refine mul_le_mul' le_rfl (ENNReal.tsum_le_tsum fun rightTape => ?_)
+  rw [mul_assoc]
+  refine mul_le_mul' le_rfl ?_
+  -- The cell's own draw is all that is left to charge.
+  calc ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
+        Pr[fun result : α × SplitTapeState σ =>
+            index < (rightOf result.2).length ∧ goodBlock leftTape ∧
+              ∃ other, (rightTape.set index value)[index]? = some other ∧ hit leftTape other |
+          (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+            (cache, (leftTape, rightTape.set index value), ([], []))]
+      ≤ ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
+          (if goodBlock leftTape ∧ hit leftTape value then target leftTape rightTape else 0) := by
+        refine ENNReal.tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
+        refine le_trans (probEvent_mono (q := fun result : α × SplitTapeState σ =>
+          (goodBlock leftTape ∧ hit leftTape value) ∧
+            index < (rightOf result.2).length) ?_) ?_
+        · rintro result - ⟨hselected, hgood, other, hread, hhit⟩
+          exact ⟨⟨hgood, (eq_of_getElem?_set rightTape index value other hread) ▸ hhit⟩,
+            hselected⟩
+        · rw [probEvent_const_and]
+          by_cases hcase : goodBlock leftTape ∧ hit leftTape value
+          · rw [if_pos hcase, if_pos hcase, htarget]
+            have hcausal := noticingProbEvent_length_set leftKeep rightKeep computation index value
+              cache leftTape rightTape [] []
+            simp only [List.length_nil, Nat.zero_add] at hcausal
+            exact le_of_eq hcausal.symm
+          · rw [if_neg hcase, if_neg hcase]
+    _ ≤ target leftTape rightTape * rate := by
+        by_cases hgood : goodBlock leftTape
+        · simp only [hgood, true_and]
+          calc ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                (if hit leftTape value then target leftTape rightTape else 0)
+              = (∑' value, if hit leftTape value then
+                  Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] else 0) *
+                  target leftTape rightTape := by
+                rw [← ENNReal.tsum_mul_right]
+                refine tsum_congr fun value => ?_
+                by_cases hhit : hit leftTape value <;> simp [hhit]
+            _ ≤ rate * target leftTape rightTape := by
+                rw [← probEvent_eq_tsum_ite]
+                exact mul_le_mul' (hrate leftTape hgood) le_rfl
+            _ = _ := mul_comm _ _
+        · simp [hgood]
+
+/-- The sum of the per-cell selection probabilities is an expected recording length. -/
+theorem noticingSum_prob_selected_le_expected
+    (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) (cache : σ)
+    (leftLength rightLength : Nat) :
+    (∑ index : Fin rightLength,
+        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
+            index.val < (rightOf outcome.2.2).length |
+          noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength]) ≤
+      ∑' outcome, Pr[= outcome |
+          noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] *
+        (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞) := by
+  classical
+  calc ∑ index : Fin rightLength,
+        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
+            index.val < (rightOf outcome.2.2).length |
+          noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength]
+      = ∑ index : Fin rightLength, ∑' outcome,
+          (if index.val < (rightOf outcome.2.2).length then
+            Pr[= outcome | noticingBlockRun leftKeep rightKeep computation cache leftLength
+              rightLength]
+          else 0) :=
+        Finset.sum_congr rfl fun index _ => probEvent_eq_tsum_ite _ _
+    _ = ∑' outcome, ∑ index : Fin rightLength,
+          (if index.val < (rightOf outcome.2.2).length then
+            Pr[= outcome | noticingBlockRun leftKeep rightKeep computation cache leftLength
+              rightLength]
+          else 0) := sum_tsum_comm Finset.univ _
+    _ ≤ ∑' outcome, Pr[= outcome |
+            noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] *
+          (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞) := by
+        refine ENNReal.tsum_le_tsum fun outcome => ?_
+        rw [Finset.sum_ite, Finset.sum_const, Finset.sum_const_zero, add_zero, nsmul_eq_mul,
+          mul_comm]
+        refine mul_le_mul' le_rfl (Nat.cast_le.mpr ?_)
+        have hinject := Finset.card_le_card_of_injOn (fun index : Fin rightLength => index.val)
+          (s := Finset.univ.filter
+            (fun index : Fin rightLength => index.val < (rightOf outcome.2.2).length))
+          (t := Finset.range (rightOf outcome.2.2).length)
+          (fun index hindex => Finset.mem_range.mpr (by simpa using hindex))
+          (fun left _ right _ hvalue => Fin.val_injective hvalue)
+        simpa using hinject
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The coverage charge, as an expectation**, at the repaired recorder. This is what the
+carrier's answer run composes with. -/
+theorem noticingProb_exists_hit_le_expected
+    (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) (cache : σ)
+    (leftLength rightLength : Nat)
+    (goodBlock : List HashOutput → Prop) (hit : List HashOutput → HashOutput → Prop)
+    (rate : ℝ≥0∞)
+    (hrate : ∀ leftTape, goodBlock leftTape →
+      Pr[fun value => hit leftTape value | ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate) :
+    Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
+          ∃ index : Fin rightLength, index.val < (rightOf outcome.2.2).length ∧
+            goodBlock outcome.1.1 ∧
+            ∃ value, outcome.1.2[index.val]? = some value ∧ hit outcome.1.1 value |
+        noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] ≤
+      (∑' outcome, Pr[= outcome |
+          noticingBlockRun leftKeep rightKeep computation cache leftLength rightLength] *
+        (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞)) * rate := by
+  classical
+  refine le_trans (probEvent_mono (q := fun outcome => ∃ index ∈ (Finset.univ :
+      Finset (Fin rightLength)), index.val < (rightOf outcome.2.2).length ∧
+      goodBlock outcome.1.1 ∧
+      ∃ value, outcome.1.2[index.val]? = some value ∧ hit outcome.1.1 value)
+    fun outcome _ hhit => by
+      obtain ⟨index, hindex⟩ := hhit
+      exact ⟨index, Finset.mem_univ index, hindex⟩) ?_
+  refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
+  refine le_trans (Finset.sum_le_sum fun index _ =>
+    noticingProb_selected_hit_le leftKeep rightKeep computation cache leftLength rightLength
+      index.val
+      index.isLt goodBlock hit rate hrate) ?_
+  rw [← Finset.sum_mul]
+  exact mul_le_mul' (noticingSum_prob_selected_le_expected leftKeep rightKeep computation cache
+    leftLength rightLength) le_rfl
+
 end SlhDsaSecurity.NoticingTape
