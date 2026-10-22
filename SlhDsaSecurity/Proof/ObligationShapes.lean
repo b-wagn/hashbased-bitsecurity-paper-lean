@@ -196,13 +196,22 @@ of a one-query refutation:
 
 * `targetKeep_default` — the input `messageInput (truncate default) pk m` is target-recorded at
   any cache holding no `PRF_msg` entry at the real seed. It is message-class by construction,
-  it is outside the `PRF_msg` class except under the byte-format coincidence, and it cannot be
+  it is outside the `PRF_msg` class unless `truncate default` is `SK.prf` itself, and it cannot be
   signer-randomised at a cache with no `PRF_msg` entry to randomise it.
 * `messageInput_default_eq_replay` — at such a cache that input **is**
   `messageInput (replayRandomizer cache sk m) pk m`.
 
 So an adversary that queries that one input, for a message it never has signed, produces a
 target-recorded entry that `SignerDigestFree` forbids. No carrier, no ordering, no budget.
+
+The escape clause is narrower than it looks: `¬ PrfClass` fails only when `truncate default` is
+`SK.prf` itself, by injectivity of the format through `FramingLeak.randomizerInput_eq_messageInput`
+— a `2 ^ -128` event, not the `1 / 256` legality coincidence, which gates whether `PK.root ‖ m` is
+a legal frame and so never arises for an adversary that makes no signing request. What is
+kernel-checked here is the pair of predicate facts; that such an entry lands in a real run's
+target recording needs freshness at the walk cache and `hcold` at that run's final cache, both
+routine for a one-query adversary that signs nothing and neither of them in Lean. The hypothesis
+is refuted, not proved false.
 
 **What this does not threaten is the consequence.** `LateProvenance.hrecord_of_signerDigestFree`
 only wants every target-recorded input to be in `SharedJoin.recordOf` — the adversary's and the
