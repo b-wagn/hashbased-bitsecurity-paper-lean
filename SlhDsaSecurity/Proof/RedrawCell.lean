@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.ChargedProbe
 import SlhDsaSecurity.Proof.LazyBridge
+import SlhDsaSecurity.Proof.AddressBounds
 
 /-!
 # A cell a run cannot read may be drawn after it
@@ -954,6 +955,68 @@ theorem signLayers_congr (publicSeed : Digest) (cache : QueryCache HashSpec)
         (left.1 CanonicalGraph.Node.secretSeed) publicSeed ⟨layer + 1, hnext⟩
         (Nat.succ_pos layer) tree hdiv]
       rfl
+
+/-! ## The signature's own two inputs
+
+A signature is its randomiser and its digest, which no table answers, and then a FORS part and
+a climb, which are cells. This settles the first two: neither input is canonical, so both
+tables answer them from the same cache and they cannot differ.
+
+Two of the hypotheses are carried rather than discharged, and are the walk's business: that the
+public key is no coincidence, and that the signer's PRF seed is not the public seed. Each is a
+walk defect `Target` pays for once, and paying it again here would be paying twice. The third
+that the separation lemmas want, that addresses are within bounds, is *not* carried —
+`withinBounds_structural` closes it. -/
+
+/-- A replayed randomiser is the cache's own entry, truncated. -/
+theorem randomizer_replay (cache : QueryCache HashSpec) (prf seed : Digest) (message : Bytes) :
+    @Hashing.randomizer Id Id.instMonad (CacheReplay.replayQuery cache) prf seed message =
+      Hashing.truncate ((cache (Hashing.randomizerInput prf seed message)).getD default) := rfl
+
+/-- A replayed message digest is the cache's own entry. -/
+theorem messageDigest_replay (cache : QueryCache HashSpec) (randomizer : Digest)
+    (pk : PublicKey) (message : Bytes) :
+    @Hashing.messageDigest Id (CacheReplay.replayQuery cache) randomizer pk message =
+      (cache (Hashing.messageInput randomizer pk message)).getD default := rfl
+
+/-- The digest a signer computes at a table. -/
+noncomputable def signedDigest (table : Cells × Padding) (cache : QueryCache HashSpec)
+    (sk : SecretKey) (message : Bytes) : HashOutput :=
+  @Hashing.messageDigest Id (CacheReplay.replayQuery (unionCache sk.publicKey.seed table cache))
+    (@Hashing.randomizer Id Id.instMonad
+      (CacheReplay.replayQuery (unionCache sk.publicKey.seed table cache))
+      sk.prf sk.publicKey.seed message)
+    sk.publicKey message
+
+set_option maxRecDepth 4000 in
+/-- **Neither of a signature's own two inputs is canonical**, so both tables answer them from
+the same cache and the digest is the same. -/
+theorem signedDigest_congr (cache : QueryCache HashSpec) (left right : Cells × Padding)
+    (sk : SecretKey) (message : Bytes)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    (hprf : sk.prf ≠ sk.publicKey.seed) :
+    signedDigest left cache sk message = signedDigest right cache sk message := by
+  have hrandom : ∀ table : Cells × Padding,
+      unionCache sk.publicKey.seed table cache
+          (Hashing.randomizerInput sk.prf sk.publicKey.seed message) =
+        cache (Hashing.randomizerInput sk.prf sk.publicKey.seed message) :=
+    fun table => unionCache_of_not_canonical sk.publicKey.seed table cache _
+      fun parent heq => HashSeparation.randomizer_tweakable_ne hprf heq.symm
+  have hsame : @Hashing.randomizer Id Id.instMonad
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache)) sk.prf
+        sk.publicKey.seed message =
+      @Hashing.randomizer Id Id.instMonad
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache)) sk.prf
+        sk.publicKey.seed message := by
+    rw [randomizer_replay, randomizer_replay, hrandom left, hrandom right]
+  unfold signedDigest
+  rw [hsame, messageDigest_replay, messageDigest_replay,
+    unionCache_of_not_canonical sk.publicKey.seed left cache _
+      (fun parent heq => HashSeparation.message_tweakable_ne hpublic
+        (withinBounds_structural parent) heq.symm),
+    unionCache_of_not_canonical sk.publicKey.seed right cache _
+      (fun parent heq => HashSeparation.message_tweakable_ne hpublic
+        (withinBounds_structural parent) heq.symm)]
 
 /-- A handler cache saying nothing the programmed entries contradict. -/
 def Compatible (publicSeed : Digest) (table : Cells × Padding)

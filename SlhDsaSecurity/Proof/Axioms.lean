@@ -7003,3 +7003,15 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget' depends on axioms:
 /-- info: 'SlhDsaSecurity.SplitPrefix.prob_prefix_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitPrefix.prob_prefix_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.randomizer_replay' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.randomizer_replay
+
+/-- info: 'SlhDsaSecurity.RedrawCell.messageDigest_replay' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.messageDigest_replay
+
+/-- info: 'SlhDsaSecurity.RedrawCell.signedDigest_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.signedDigest_congr
