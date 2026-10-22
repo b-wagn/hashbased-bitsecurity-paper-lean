@@ -4097,6 +4097,30 @@ and a copy would compile, nothing external stops the copy — only noticing what
   and the error named the *arguments whose types mentioned them* rather than the names. Qualify
   both.
 
+## Two split tails, and the coordination error that produced them
+
+Two threads independently defined `splitCarrierTail`: `SplitTail.lean` and
+`SplitCarrierTail.lean`. Same three stages, same handler, same brackets — **different result
+shapes.** One carries the summed counter in the value with the slots beside it; the other
+carries the slots in the value. The charges that landed on each read the slots from different
+places, so the obligations proved at one are not the obligations the other's consumers take.
+
+This is exactly the failure one of those threads had named a few rounds earlier when it refused
+to guess a count: *"guessing the count is exactly the move that produces two shapes that never
+meet."* It did not guess. The shapes were produced by the coordinator instead — one thread was
+told the slot "now exists" while the split tail was concurrently assigned to the other, and it
+merged from a tip that predated the other's work.
+
+> A thread that reports blocked on an interface decision is reporting a **shared** decision. It
+> is not discharged by telling that thread the answer; it is discharged by making sure every
+> thread that will build on the interface is looking at the same object. Routing an answer to
+> one holder, while the object itself is being built by another, is how two correct halves end
+> up unable to meet.
+
+Neither thread was wrong, neither produced bad work, and nothing is lost but the cost of
+restating one set of charges on the other's shape. The fix is the ordinary one: **one canonical
+object, with a map to the other presentation if anything still wants it.**
+
 ## A factored-out definition is a message
 
 The seed leftover was chased for four rounds as a new charge needing new units. It was already
