@@ -14296,3 +14296,7 @@ info: 'SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected' depends 
 /-- info: 'SlhDsaSecurity.ServingTable.unionCache_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingTable.unionCache_of_cached
+
+/-- info: 'SlhDsaSecurity.ServingTable.digestOf_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.digestOf_unionCache

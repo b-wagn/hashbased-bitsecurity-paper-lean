@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.HonestTail
+import SlhDsaSecurity.Proof.CanonicalGraph.Separation
 import SlhDsaSecurity.Proof.HandlerLenient
 
 /-!
@@ -276,6 +277,24 @@ theorem unionCache_of_cached (publicSeed : Digest) (table : Cells × Padding)
   cases hvalue : cache input with
   | none => exact absurd hvalue hcached
   | some value => exact hcompat input value hvalue
+
+/-- **The digest is read alike at both caches.** A message input is never a canonical input —
+at a public key the walk's own coincidence bound rules out, which `Target.GoodWalk`'s second
+conjunct is — so the union has nothing of its own to say there and falls through to the carrier.
+
+`hpublic` is carried rather than proved: it is one of the walk's two charged coincidences, paid
+for in the ledger, and `AnswerSide.not_possible_generatedKey` turns `GoodWalk`'s conjunct into
+it at the generated key. A lemma that proved it away would be charging for it twice. -/
+theorem digestOf_unionCache (publicSeed : Digest) (table : Cells × Padding)
+    (cache : QueryCache HashSpec) (pk : PublicKey) (message : Bytes) (parsed : Signature)
+    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root)) :
+    VerifierProbes.digestOf (RedrawCell.unionCache publicSeed table cache) pk message parsed =
+      VerifierProbes.digestOf cache pk message parsed := by
+  show ((RedrawCell.unionCache publicSeed table cache
+      (Hashing.messageInput parsed.randomizer pk message)).getD default : HashOutput) =
+    ((cache (Hashing.messageInput parsed.randomizer pk message)).getD default : HashOutput)
+  rw [RedrawCell.unionCache_of_not_canonical publicSeed table cache _
+    fun parent => (message_canonical_ne hpublic).symm]
 
 /-! ## The facts, at the key the table itself determines
 
