@@ -8494,3 +8494,19 @@ info: 'SlhDsaSecurity.CacheProvenance.sign_digest_cached' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.ServedDisclosure.closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedDisclosure.closed
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.availableServed_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.availableServed_mono
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.availableServed_closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.availableServed_closed
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.availableServed_revealed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.availableServed_revealed_le
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.unavailableServed_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.unavailableServed_eq
