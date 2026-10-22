@@ -5047,3 +5047,38 @@ whatever the real overlap is. It does **not** say the factor is two — `RecordC
 second and third parts meet, and the counterexample forbidding a sub-record bound on the
 message-class part says nothing about how big the overlap actually is. A smaller factor is still
 available to whoever bounds that overlap; this says only that two suffices.
+## What a third column costs, and the exact `q` the `PRF_msg` route reaches
+
+Three questions were asked about the route that would make the `PRF_msg` column second-order.
+All three are answered in `LedgerThird`, in Lean rather than in prose.
+
+**The indicator step is sound.** `expected_le_mul_probEvent`: a count that vanishes off an event
+and is bounded on it has expectation at most the bound times the event's probability. It is
+pathwise domination — the correlation between the indicator and the count is irrelevant, because
+nothing here is a product of two expectations. Worth separating from the arithmetic that refuses
+the route's conclusion: the step is not where it fails.
+
+**The ledger's spare is a constant, and it is 247 units.** `Target.allowanceOf` takes
+`claims + 6 ≤ 2 ^ subtreeHeight = 512`, so the `claims` column admits `506`, of which `259` is
+the forgery's claimed cells. `le_target_of_full_third` is the line with a third column written
+out, and what it has to meet is `extra + defectUnits + thirdUnits ≤ slack` — a constant budget,
+with no `q` coefficient to lean on, because the line is `2 * q` on the right and `q + q` on the
+left.
+
+**So the route closes up to an explicit `q` and not beyond.** The column's size is
+`(q - 2 ^ 9) ^ 2 / 2 ^ 128` units, so the line closes exactly when `(q - 2 ^ 9) ^ 2 ≤ 247 * 2 ^ 128`,
+and the largest such budget is
+
+    q₀ = 289 913 339 861 193 349 628 ≈ 2 ^ 67.974
+
+pinned from both sides by `q_squared_fits_at_threshold` and `q_squared_not_fits_above_threshold`.
+**At `q₀` the ledger is saturated**: the `claims` column is `259 + 247 = 506` and `506 + 6 = 512`
+exactly, with nothing spare for a later correction.
+
+**The thing to be careful about is what "second-order" means.** `q ^ 2 / 2 ^ 256` is small
+against the target `q / 2 ^ 127` whenever `q ≤ c · 2 ^ 128`, which sounds like plenty. But the
+ledger's slack is not `c · q`; it is `247` units, full stop. A term is admissible here exactly
+when its *unit count* is bounded by a constant, and `q ^ 2 / 2 ^ 128` units is not — and that is
+not an artefact of the `Nat` accounting, since the underlying real inequality is the same
+`q ^ 2 ≤ 247 · 2 ^ 128`. **"Second-order against the target" and "fits in the ledger" are
+different questions, and only the second one is the ledger's.**
