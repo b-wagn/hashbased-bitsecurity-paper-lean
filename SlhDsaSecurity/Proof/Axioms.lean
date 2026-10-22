@@ -15375,3 +15375,11 @@ info: 'SlhDsaSecurity.SplitTail.splitCarrierTail_rightRecord_le_inside' depends 
 /-- info: 'SlhDsaSecurity.SplitTail.splitCarrierTail_share' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitTail.splitCarrierTail_share
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised
