@@ -200,6 +200,7 @@ import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.SignerRightRecord
 import SlhDsaSecurity.Proof.PhaseRightRecord
 import SlhDsaSecurity.Proof.ServedRandomised
+import SlhDsaSecurity.Proof.RecordInvariant
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -10213,6 +10214,20 @@ info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts' depends on axioms:
 #print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts
 
 /--
+info: 'SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_recordedBound' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_recordedBound
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_parts
+
+/--
 info: 'SlhDsaSecurity.CoverageCount.prob_coverage_le_expected_recorded' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]
@@ -11681,6 +11696,22 @@ info: 'SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem
+
+/--
+info: 'SlhDsaSecurity.RecordInvariant.run_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.run_invariant
+
+/--
+info: 'SlhDsaSecurity.RecordInvariant.phase_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.phase_invariant
+
+/-- info: 'SlhDsaSecurity.RecordInvariant.bracket_invariant' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordInvariant.bracket_invariant
 
 /-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -13523,6 +13554,36 @@ info: 'SlhDsaSecurity.CarrierTail.last_stage_forget' depends on axioms: [propext
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.last_stage_forget
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.first_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.first_stage_bind
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.middle_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.middle_stage_bind
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.last_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.last_stage_bind
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.forget_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.forget_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.forgetsTo' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.forgetsTo
 
 /--
 info: 'SlhDsaSecurity.Target.defects_eq_defectsAt' depends on axioms: [propext, Classical.choice, Quot.sound]

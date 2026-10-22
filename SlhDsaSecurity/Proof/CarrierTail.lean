@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.BracketedRun
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.RecordedTail
+import SlhDsaSecurity.Proof.RandomiserRecord
 
 /-!
 # The tail the ordering term reads, at the carrier
@@ -323,22 +324,94 @@ theorem last_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State �
   forgetsAlong_counted rightKeep walk
     (countRecorded verifierCost (Scheme.verify pk forgery.message forgery.signature)) state
 
-/-! ## What is left, and it is no longer an argument
+/-! ## The three stages as binds
 
-`forget_carrierTail` — that the mapped tail is `RecordedTail.recordedTail` — is the three stages
-put together, and all three are now named at the states they are used at:
-`first_stage_forget`, `middle_stage_forget`, `last_stage_forget`. Each is the projection law at
-one stage with nothing left for a rewrite to find, which was the difficulty the previous pass
-diagnosed.
+The composition is a chain of binds on both sides, and the stage laws are maps. Writing each of
+them as a bind once is what lets the chain be normalised in one step instead of driven by hand:
+with everything a bind, `bind_assoc` flattens both sides to the same shape and `bind_congr`
+walks them together. The previous pass tried to drive `map_bind` and lost, because the same
+rewrite matches on either side and the first match wins. -/
 
-What remains is bookkeeping of a kind worth naming because it is where the next pass will go:
-the two sides normalise their `map`s over `bind`s in different orders, so the chain of
-`map_bind`, `bind_map_left` and `bind_congr` has to be driven rather than let run. A `conv` at
-each side, or a `simp only` with the three stage lemmas and the map laws, will do it; what will
-not is a flat `rw` list, because the same `map_bind` matches on either side and the first match
-wins.
+theorem first_stage_bind (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    (simulateQ CountedHandler.romWithCount computation).run (walk.2, 0) =
+      (simulateQ (handlerAt rightKeep walk) computation).run
+          (startAt walk.2, (([], []), 0)) >>= fun z =>
+        (pure (z.1, (z.2.1.cache, z.2.2.2)) : ProbComp (α × (QueryCache HashSpec × Nat))) := by
+  rw [← first_stage_forget rightKeep walk computation, map_eq_bind_pure_comp]
+  rfl
 
-Everything the composition needs is proved. Nothing in it is an argument. -/
+set_option maxHeartbeats 1000000 in
+theorem middle_stage_bind (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) (adversary : Adversary)
+    (keys : (SecretKey × PublicKey) × CountedState) :
+    (simulateQ CountedHandler.romWithCount
+        (((simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          (adversary.main keys.1.2)).run).run [])).run (keys.2.1.cache, keys.2.2.2) =
+      (simulateQ (fuseServing (handlerAt rightKeep walk)
+          (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          ServedAgreement.startServingOn ServedAgreement.stopServingOn)
+          (adversary.main keys.1.2)).run (1, [], keys.2) >>= fun step =>
+        (pure (((step.1, step.2.1), step.2.2.1), (step.2.2.2.1.cache, step.2.2.2.2.2)) :
+          ProbComp (((Forgery × Multiplicative Tally) × SigningLog) ×
+            (QueryCache HashSpec × Nat))) := by
+  rw [middle_stage_forget rightKeep walk adversary keys, map_eq_bind_pure_comp]
+  rfl
 
+set_option maxHeartbeats 1000000 in
+theorem last_stage_bind (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) (pk : PublicKey) (forgery : Forgery) (state : CountedState) :
+    (simulateQ CountedHandler.romWithCount (countRecorded verifierCost
+        (Scheme.verify pk forgery.message forgery.signature))).run
+        (state.1.cache, state.2.2) =
+      (simulateQ (handlerAt rightKeep walk) (countRecorded verifierCost
+          (Scheme.verify pk forgery.message forgery.signature))).run state >>= fun z =>
+        (pure (z.1, (z.2.1.cache, z.2.2.2)) :
+          ProbComp ((Bool × Tally) × (QueryCache HashSpec × Nat))) := by
+  rw [← last_stage_forget rightKeep walk pk forgery state, map_eq_bind_pure_comp]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+/-- **The carrier tail forgets to the recorded tail.** Both sides are three-stage runs of a
+counted handler over the same computation — `recordedTail_eq_counted` is what put them there —
+and the three stages are matched one for one by the three bind laws above. -/
+theorem forget_carrierTail (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (adversary : Adversary) (walk : Walk) :
+    (fun z : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState => (z.1, z.2.1)) <$>
+        carrierTail rightKeep adversary walk =
+      RecordedTail.recordedTail adversary walk := by
+  rw [recordedTail_eq_counted adversary walk,
+    run_recordedAfterSeeds_split CountedHandler.romWithCount adversary walk.1.1 (walk.2, 0),
+    first_stage_bind rightKeep walk
+      (Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2),
+    carrierTail]
+  simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
+  refine bind_congr fun keys => ?_
+  rw [middle_stage_bind rightKeep walk adversary keys]
+  simp only [bind_assoc, pure_bind]
+  refine bind_congr fun middle => ?_
+  rw [last_stage_bind rightKeep walk keys.1.2 middle.1 middle.2.2.2]
+  simp only [bind_assoc, pure_bind]
+  refine bind_congr fun final => ?_
+  rfl
+
+set_option maxHeartbeats 1000000 in
+/-- **And so at the paired run**, which is both conjuncts of what `LateProbes` asks. As at the
+plain recorder, forgetting is an equality of computations and not merely of distributions — the
+brackets and the filing change the recordings and nothing the projection keeps. -/
+theorem forgetsTo (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (adversary : Adversary) :
+    LateProbes.ForgetsTo (carrierTail rightKeep) adversary := by
+  have hmap : LateProbes.forgetRecordings <$>
+      LateProbes.pairedOf (carrierTail rightKeep) adversary =
+      RandomiserRecord.recordedPairedRun adversary := by
+    rw [LateProbes.pairedOf, RandomiserRecord.recordedPairedRun, map_eq_bind_pure_comp,
+      bind_assoc]
+    refine bind_congr fun walk => ?_
+    rw [← forget_carrierTail rightKeep adversary walk, map_eq_bind_pure_comp, bind_assoc,
+      bind_assoc]
+    refine bind_congr fun result => ?_
+    simp [Function.comp_def, LateProbes.forgetRecordings]
+  exact ⟨fun pair => by rw [hmap], by rw [hmap]⟩
 
 end SlhDsaSecurity.CarrierTail

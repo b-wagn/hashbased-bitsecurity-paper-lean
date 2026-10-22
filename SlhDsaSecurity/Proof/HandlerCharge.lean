@@ -105,7 +105,8 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun pad => congrArg _ ?_
     rw [bind_pure_comp, probEvent_map, bind_pure_comp, probEvent_map]
-    exact HandlerStall.prob_charged_stalled_eq publicSeed availableAt impl hfacts hmono stakes
+    exact HandlerStall.prob_charged_stalled_eq publicSeed (fun _ => availableAt) impl
+      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono) stakes
       index (cells, pad) stall (computation (cells, pad)) state
   have hredraw : 𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -124,7 +125,8 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     intro cells other pad hagree
     rw [htouched (other, pad) (cells, pad) fun node hnode =>
       (hagree node fun heq => hindex (heq ▸ hnode)).symm]
-    exact HandlerStall.evalDist_stalled_congr publicSeed availableAt impl hfacts index
+    exact HandlerStall.evalDist_stalled_congr publicSeed (fun _ => availableAt) impl
+      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) index
       (hcover index hindex) (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
       (computation (cells, pad)) state
   rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
@@ -166,7 +168,8 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
   refine tsum_congr fun cells => congrArg _ ?_
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
   exact tsum_congr fun pad => congrArg _
-    (HandlerStall.expected_aiming_stalled_eq publicSeed availableAt impl hfacts hmono stakes
+    (HandlerStall.expected_aiming_stalled_eq publicSeed (fun _ => availableAt) impl
+      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono) stakes
       index (cells, pad) stall (computation (cells, pad)) state).symm
 
 set_option maxHeartbeats 1000000 in
@@ -234,7 +237,8 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun pad => congrArg _ ?_
     rw [bind_pure_comp, probEvent_map, bind_pure_comp, probEvent_map]
-    exact HandlerStall.prob_claimed_stalled_eq publicSeed availableAt impl hfacts hmono stakes
+    exact HandlerStall.prob_claimed_stalled_eq publicSeed (fun _ => availableAt) impl
+      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono) stakes
       index (cells, pad) stall (computation (cells, pad)) state claims hcache
   have hredraw : 𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -253,7 +257,8 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
     intro cells other pad hagree
     rw [htouched (other, pad) (cells, pad) fun node hnode =>
       (hagree node fun heq => hindex (heq ▸ hnode)).symm]
-    exact HandlerStall.evalDist_stalled_congr publicSeed availableAt impl hfacts index
+    exact HandlerStall.evalDist_stalled_congr publicSeed (fun _ => availableAt) impl
+      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) index
       (hcover index hindex) (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
       (computation (cells, pad)) state
   rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
@@ -295,7 +300,8 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
   refine tsum_congr fun cells => congrArg _ ?_
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
   exact tsum_congr fun pad => congrArg _
-    (HandlerStall.expected_aiming_claimed_stalled_eq publicSeed availableAt impl hfacts hmono
+    (HandlerStall.expected_aiming_claimed_stalled_eq publicSeed (fun _ => availableAt) impl
+      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono)
       stakes index (cells, pad) stall (computation (cells, pad)) state claims hcache).symm
 
 /-! ## Summed over the cells -/

@@ -64,13 +64,31 @@ theorem prob_coverage_within_le {α : Type} (computation : OracleComp OracleWorl
       (prob_coveredAnswer_le revealed loads hload hmoment) hclean) ?_
   rw [mul_one_div]
 
-/-! ## The sharper cap
+/-! ## The sharper cap, and what it buys today
 
-The assembled bound needs the FORS term at `q / 2 ^ 129`, not `q / 2 ^ 128`: the structural
-term already costs `2q / 2 ^ 129` and the target is `4q / 2 ^ 129`, so a FORS term of
-`2q / 2 ^ 129` would consume the whole budget and leave nothing for the additive cost of
-relating the actual honest disclosures to a capped set. Routing FORS through the smaller load
-cap `2 ^ 102` of `ForsConcentrationSharper` halves it, leaving `q / 2 ^ 129` of slack.
+**The ledger below is `Assembly.le_target_of_terms`, which is unconsumed, and the halving it
+justifies is thrown away by this file's only live consumer.** Both facts are worth stating,
+because the `2 ^ 102` hypothesis is carried a long way on the strength of them.
+
+The ledger first. It reads: the structural term costs `2q / 2 ^ 129`, the target is
+`4q / 2 ^ 129`, so a FORS term of `2q / 2 ^ 129` would consume the whole budget and leave
+nothing for the additive cost of relating the actual honest disclosures to a capped set; routing
+FORS through the smaller load cap `2 ^ 102` of `ForsConcentrationSharper` halves it, leaving
+`q / 2 ^ 129` of slack. That omits the **input side**, which costs another `2q / 2 ^ 129`, and it
+is exactly the three-term accounting `Assembly.le_target_of_terms` records and `Assembly`'s own
+header marks unconsumed.
+
+Now the consumer. `CombinedCharge.prob_combinedBad_le` is the only Lean use of
+`prob_coveredAnswer_le_sharper`, and it weakens `2 ^ -129` to `2 ^ -128` on the next line, with a
+comment saying so. So in the live chain the `2 ^ 102` cap yields the identical `q / 2 ^ 128`
+bound the weaker `2 ^ 103` cap would. The three theorems that would actually spend the halving —
+`prob_coverage_within_le_sharper`, `prob_coverage_within_le_of_family`, and
+`ForsCoverage.fresh_coverage_le_sharper` — have no consumers.
+
+And `hmoment : ∑ i, loads i ^ 14 ≤ 2 ^ 102` is **never discharged**. It is carried verbatim
+through `CombinedCharge` → `WholeGameStructural` → `WarmedCharges` and stops there; the live
+answer path reaching `MainTheorem` carries no `hmoment` at all. It is a dead stronger hypothesis,
+not a lurking one.
 -/
 
 /-- Under the smaller load cap a single fresh answer is covered with probability at most
@@ -158,7 +176,10 @@ theorem prob_coverage_within_le_of_family {α : Type} (computation : OracleComp 
 `prob_coveredAnswer_le_sharper` assumes the fourteenth-moment cap
 `∑ i, loads i ^ 14 ≤ 2 ^ 102`. Establishing it in general is a concentration argument and
 costs a defect of `2 ^ -126`, which the per-class assembly pays out of the message-class
-slack — and that slack is `qm / 2 ^ 129`, so it covers the defect only once `qm ≥ 16`.
+slack — and that slack is `qm / 2 ^ 129`, so it covers the defect once `qm ≥ 8`.
+(`2 ^ -126` is `8 / 2 ^ 129`; `Assembly.defect_eq` records the identity and `Assembly`'s own
+section states the threshold correctly. The branch below is taken at `16`, which is twice what
+is needed — a conservative branch point, not the threshold.)
 
 Below `qm = 16` the cap needs no argument at all. Each message-class query discloses the
 fourteen leaves of one digest, so with fewer than sixteen of them at most fifteen instances
