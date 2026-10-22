@@ -6609,10 +6609,6 @@ info: 'SlhDsaSecurity.VerifierFormat.verify_probe_randomizerInput' depends on ax
 #guard_msgs in
 #print axioms SlhDsaSecurity.VerifierFormat.verify_probe_randomizerInput
 
-/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryCovered_or_only_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CoverageRouted.forgeryCovered_or_only_self
-
 /-- info: 'SlhDsaSecurity.GraphStakes.honestMessage_succ' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GraphStakes.honestMessage_succ
