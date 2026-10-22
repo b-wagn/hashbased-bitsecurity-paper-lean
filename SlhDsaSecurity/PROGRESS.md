@@ -3690,3 +3690,53 @@ block still has a cell**, which is why those two caps exist; a too-small `rightL
 Taking the disclosures off the **whole** block rather than the reached prefix is an over-count in
 the safe direction, and `GoodBlock` is stated at the whole block too, so the cap and the coverage
 read the same object.
+
+## The Lean was repaired and the justification was not
+
+A sweep of every block in the development that asserts what an adversary can or cannot do — two
+greps over the 199 files of `SlhDsaSecurity/Proof`, about forty sites, thirty blocks read in
+full — turned up one error worth the sweep, in two copies, both in `ProbeContainment`.
+
+Each said the input half owes a **constant**. Each was contradicted by the same file's own
+`InputBullet`, which pays `expected (card recordAiming) + 259`, and by `InputBullet.lean`, which
+spells out why: a claimed cell is checkable against the authentication path, so the adversary's
+chances are its queries. The two commits are in the record in the wrong order on purpose —
+`Say which lemmas the half no longer stands on` is an ancestor of `Put the aiming count back
+into the half's obligation`. The obligation moved and the prose explaining it did not.
+
+The dangerous one is not the stale claim but its standing. It opened by naming the objection
+("an adversary reads the cell off the answer, so no constant bound can be right"), answered it,
+and closed with *"the claims charge is sound on its own"* — written explicitly as the thing to
+point at if a constant is ever proposed here again. The objection it refutes is the one the
+development has since accepted. A stale justification that invites the reader to repeat the
+mistake is worse than no justification: it is a warrant aimed the wrong way at exactly the error
+we already paid to find. The second copy carried an extra edge, telling the reader the aiming
+machinery would only be wanted by some hypothetical other split, when the aiming part of the
+record *is* precisely those tests — true that nothing consumes it today, false about why.
+
+Both halves of the original argument had to be kept, because they have different answers.
+*Reading* a cell off an answer really is impossible and `hclosed` really is why: a canonical
+input contains its children's cells, and an unavailable node has an unavailable child.
+*Guessing* one is possible and the guess is **checkable**, and that is the whole of the half's
+cost. The repair says both, and says which one the charge turns on.
+
+Three smaller defects of the same family were repaired with them —
+`AnswerCoverage.ForgerySeedRandomised`'s docstring still read "One object, one guess, one
+constant" while its own module prose refuted it, `CacheAvailability` still said the seed guess
+"is charged as one" after that charge left for `Target.pairedRun`, and `RandomiserProvenance`
+justified its `+ 1` as "one guess at the seed and nothing more". That last one is the
+instructive case, because the number survives and the reason does not: the `+ 1` is right as a
+**count**, since it is literally one query and the deferral pays per recorded query — with the
+seed drawn after the run, testability buys nothing. Say that, or the next reader fixes the
+number too.
+
+Two distinctions earned on the way. First, **a load-bearing negative is not a leaf in
+disguise**: `RecorderView` and `ServedBridge`'s claim that a cache-readable "the signer served
+this" test is forgeable by anyone holding `SK.prf` is design-forcing — if it were wrong the
+whole carrier parameterisation would be unnecessary — but no stated obligation becomes false.
+`AnswerJoin`'s `hseed` block is the other class: an obligation's truth rests on the capability,
+negatively, and that is what a leaf in disguise looks like. Second, the governing rule in
+`Target` survives its own audit. All four surviving constants pass it — the walk's two
+coincidences, drawn before any adversary exists and never compared against anything, and the two
+tape bounds, which are concentration rather than guessing — and that is what makes the ledger
+trustworthy rather than merely arithmetically closed.

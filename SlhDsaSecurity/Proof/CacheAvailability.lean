@@ -79,8 +79,14 @@ nothing and makes the claim at them unavailable, so neither half of the budget s
 
 The gate this creates is that the adversary can make such an entry by querying at
 `randomizerInput SK.prf PK.seed M`, which carries `SK.prf` in the clear. That is a guess at the
-PRF seed and is charged as one; it is not a canonical input, so it is charged on a class of its
-own. -/
+PRF seed, and it is not a canonical input, so neither of the charges here meets it: it belongs
+to the `PRF_msg` class at the real seed and is charged on a class of its own.
+
+**That charge is not taken here, and the shape is the reason.** A guess at `SK.prf` cannot be
+charged at a fixed walk at all — the walk fixes the secret and an adversary may carry it as a
+constant — and it is not one unit either, since one signing request makes the seed checkable at
+one candidate per query. It is taken at `Target.pairedRun`, where the seed is still random, as
+`ObligationShapes.sharedChargedLate_of_parts`' `seedUnits`. -/
 
 /-- A message input whose randomiser is the one the signer derives for that message, with the
 derivation's own query in the cache. -/
