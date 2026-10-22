@@ -3043,3 +3043,66 @@ served set is the image of the signing log, so the recording is one entry per re
 construction, with no seed secrecy anywhere. The same move repairs `hdisclosing`, whose false
 direction is the same event read at the forgery's digest — at the carrier the disclosing test
 *is* the log, and `ServedAgreement.agreesWithLog_run` is the iff.
+
+## A cover is read where the query was answered, not where the event is read
+
+The plan for retiring `hnarrowCached` was that `cover_of_served_or_narrow` makes the witnesses'
+half free: an input the left test already keeps is filed for that reason, so the narrowed class
+is needed only at the target. The conclusion is right and the route is not, and the gap is worth
+remembering because it is invisible from the statement.
+
+`RecorderView.mem_recordOf_of_cache` reads its cover **at the view in force when the input was
+answered fresh**. The coverage event reads disclosure **at the end**. A witness disclosing at the
+end need not have been disclosing then; and if it was neither disclosing nor narrow when
+answered, it was filed on neither side. `¬ Late` does not exclude that case, because `Late`
+speaks only of what the *target* recording holds, and this entry is in no recording at all.
+
+So the witnesses' demand does not vanish. It becomes `Served.WitnessCover`: an input disclosing
+at the end was already keeping at every view where it was still fresh, or else is narrow. That is
+not a charge and must not be turned into one — it is a **presentation defect**, the gap between a
+test read at answer time and an event read at the end. Charging it would be paying for the wrong
+thing, and it is q-proportional anyway.
+
+A serving flag closes it outright: the flag is set when the request's own query is answered and
+never cleared, so end-served implies keeping-when-fresh by construction. That is the third of the
+three hypotheses the carrier settles, beside the disclosing cap and the log/test iff — and it is
+the same statement about the same object each time.
+
+The rule: **when a hypothesis quantifies over a run, check which state it is read at before
+concluding that something else implies it.** Two predicates that agree at the end can disagree at
+every earlier view, and a filing decision is made at the earlier view.
+
+## The forgery-seed leftover is the `PRF_msg` clause, and nothing else
+
+Asked whether the leftover is a probability gap or a bookkeeping one, the answer is: bookkeeping,
+and the bookkeeping is one conjunct. `SplitWitness.narrowClass` is `IsMessageInput ∧ ¬ PrfClass`,
+and the leftover is exactly what the second conjunct throws away — the forgery's own digest input,
+when its published randomiser is `SK.prf`, is message-class but not narrow, so the recorder files
+it on neither side and the coverage join has nothing to point at.
+`AnswerCoverage.narrowTarget_messageClass` is the check: at the message class the narrowed demand
+is no demand at all, so removing the conjunct removes the leftover outright rather than paying it.
+
+**The reason the conjunct is there is not the one its docstring gives.** That says the budget has
+no room for one target entry per served request. It has. `BlockViews.prob_targetCovered_le` caps
+only the *disclosing* recording, at `5 * 2 ^ 62`, and leaves the target recording's length free;
+`CoverageCount.rightRecord_length_le_count` charges target entries against the inside slot of the
+split counter, which the budget already covers, because the signer's randomiser probe is a hash
+query and is counted in `q`. The extra entries are free.
+
+What the conjunct really pays for is one case of `LateProvenance.hrecord_of_signerDigestFree`:
+every target-recorded input must be a query `SharedJoin.recordOf` holds, and the case where the
+entry is the signer's own **randomiser** probe is closed by `¬ PrfClass` itself. Widen the class
+and up to `signingLimit` signer probes become target-recorded while the record holds only the
+adversary's and the verifier's queries.
+
+**The repair is the framing, not the class.** `HandlerCarrier.not_filesLeft_randomizerInput`
+already excludes the signer's randomiser probe from the disclosing recording by comparing against
+the frame in flight, and `RecorderView.noticingRecorderOf` now lets a filing test read a state
+that has been told about the query. Excluding it from the target recording the same way retires
+`¬ PrfClass` entirely.
+
+The general shape, which is the third instance this week: **a clause added to a class to keep one
+query out of a recording is a provenance fact wearing a syntactic disguise.** It works only while
+the syntax happens to separate the two, it charges whoever meets the case where it does not, and
+the honest version asks the handler who made the query instead of asking what the bytes look
+like.
