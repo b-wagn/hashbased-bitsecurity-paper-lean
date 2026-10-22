@@ -140,7 +140,9 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
         simp only [Function.comp_apply]
         rw [hreads (cells, pad) z.1 (value_mem_support _ _ _ z hz)]) rfl))
     exact HandlerStall.prob_charged_stalled_eq publicSeed availableAt impl hfacts hmono stakes
-      index (cells, pad) stall (computation (cells, pad)) state
+      index (cells, pad)
+      (fun cache node => ¬ availableAt (cells, pad) cache node) (fun _ _ h => h) stall
+      (computation (cells, pad)) state
   have hredraw : 𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -221,7 +223,9 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
   rw [hconv _ fun z hz => value_mem_support _ _ _ z hz,
     hconv _ fun z hz => value_mem_support _ _ _ z hz]
   exact (HandlerStall.expected_aiming_stalled_eq publicSeed availableAt impl hfacts hmono
-    stakes index (cells, pad) stall (computation (cells, pad)) state).symm
+    stakes index (cells, pad)
+      (fun cache node => ¬ availableAt (cells, pad) cache node) (fun _ _ h => h) stall
+      (computation (cells, pad)) state).symm
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
@@ -307,7 +311,9 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
         simp only [Function.comp_apply]
         rw [hreads (cells, pad) z.1 (value_mem_support _ _ _ z hz)]) rfl))
     exact HandlerStall.prob_claimed_stalled_eq publicSeed availableAt impl hfacts hmono stakes
-      index (cells, pad) stall (computation (cells, pad)) state claims hcache
+      index (cells, pad)
+      (fun cache node => ¬ availableAt (cells, pad) cache node) (fun _ _ h => h) stall
+      (computation (cells, pad)) state claims hcache
   have hredraw : 𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -388,7 +394,9 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
   rw [hconv _ fun z hz => value_mem_support _ _ _ z hz,
     hconv _ fun z hz => value_mem_support _ _ _ z hz]
   exact (HandlerStall.expected_aiming_claimed_stalled_eq publicSeed availableAt impl hfacts
-    hmono stakes index (cells, pad) stall (computation (cells, pad)) state claims hcache).symm
+    hmono stakes index (cells, pad)
+      (fun cache node => ¬ availableAt (cells, pad) cache node) (fun _ _ h => h) stall
+      (computation (cells, pad)) state claims hcache).symm
 
 /-! ## Summed over the cells -/
 

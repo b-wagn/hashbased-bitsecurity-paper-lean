@@ -103,6 +103,24 @@ theorem withFlag_frozen
   exact hmono table state.1.1 inner.2.1 (hfacts.grows table queried state.1 inner hinner)
     index hstate
 
+/-! ## What is charged is a parameter, and why it is not the handler's availability
+
+The two quiet lemmas and the four stalled equalities read exactly **one** thing of the predicate
+a probe is charged by: a probe made at a state where the cell is already available is not charged
+by it. Nothing asks it to be `¬ availableAt`. So it is a parameter, `unavail`, with that one fact
+as `hsub`, and `fun cache node => ¬ availableAt table cache node` is the instance every caller
+passes today.
+
+**This is what lets the charge be narrowed without narrowing the handler's availability**, which
+is not open to us. The honest phase's probes are charged under `¬ availableAt`: the signer walks a
+chain through the positions it has not yet revealed, and
+`GraphStakes.not_available_wotsHashNode_child` says those are exactly the unavailable ones. The
+tempting repair is to widen `availableAt` so that nothing is unavailable while a signing frame is
+in flight — and it is closed, because `withFlag_frozen` needs availability to be **monotone**
+along the run, and a frame that is raised and lowered again is not. Narrowing what is *charged*
+costs nothing instead: `hsub` only gets easier as `unavail` shrinks.
+-/
+
 open scoped Classical in
 /-- **Once the cell is released nothing more aims at it**, counting distinct probes. -/
 theorem withFlag_aiming_dedup_quiet
@@ -111,26 +129,29 @@ theorem withFlag_aiming_dedup_quiet
     {allowed : CanonicalGraph.Node → Prop}
     (hfacts : TableFacts publicSeed availableAt allowed impl)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
-    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
+    (table : Cells × Padding)
+    (unavail : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hsub : ∀ cache node, unavail cache node → ¬ availableAt table cache node)
+    (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt table state.1.1 index)
     (step : OracleWorld.Range queried × (HandlerState × Bool))
     (hstep : step ∈ support (((withFlag (impl table)) queried).run state)) :
-    aiming stakes (fun cache node => ¬ availableAt table cache node) index step.2.1.2.1.dedup =
-      aiming stakes (fun cache node => ¬ availableAt table cache node) index
+    aiming stakes unavail index step.2.1.2.1.dedup =
+      aiming stakes unavail index
         state.1.2.1.dedup := by
   classical
   rw [withFlag_run, mem_support_bind_iff] at hstep
   obtain ⟨inner, hinner, hpure⟩ := hstep
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
-  show aiming stakes (fun cache node => ¬ availableAt table cache node) index inner.2.2.1.dedup = _
+  show aiming stakes unavail index inner.2.2.1.dedup = _
   rcases queried with coin | probe
   · rw [record_inl publicSeed availableAt impl hfacts table coin state.1 inner hinner]
   · rw [record_inr publicSeed availableAt impl hfacts table probe state.1 inner hinner]
-    have hnot : ¬ Targets stakes (fun cache node => ¬ availableAt table cache node) index
+    have hnot : ¬ Targets stakes unavail index
         (probe, state.1.1) := by
       rintro ⟨-, -, hunavailable, -⟩
-      exact hunavailable hstate
+      exact hsub _ _ hunavailable hstate
     rw [aiming_dedup_eq_card, aiming_dedup_eq_card,
       show (state.1.2.1 ++ [(probe, state.1.1)]).toFinset =
         insert (probe, state.1.1) state.1.2.1.toFinset from by simp,
@@ -144,14 +165,17 @@ theorem withFlag_charged_quiet
     {allowed : CanonicalGraph.Node → Prop}
     (hfacts : TableFacts publicSeed availableAt allowed impl)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
-    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
+    (table : Cells × Padding)
+    (unavail : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hsub : ∀ cache node, unavail cache node → ¬ availableAt table cache node)
+    (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt table state.1.1 index)
     (step : OracleWorld.Range queried × (HandlerState × Bool))
     (hstep : step ∈ support (((withFlag (impl table)) queried).run state)) :
     ((∃ entry ∈ step.2.1.2.1, ChargedBy stakes
-        (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry) ↔
+        unavail index (table.1 index) entry) ↔
       ∃ entry ∈ state.1.2.1, ChargedBy stakes
-        (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry) := by
+        unavail index (table.1 index) entry) := by
   classical
   rw [withFlag_run, mem_support_bind_iff] at hstep
   obtain ⟨inner, hinner, hpure⟩ := hstep
@@ -161,10 +185,10 @@ theorem withFlag_charged_quiet
   rcases queried with coin | probe
   · rw [record_inl publicSeed availableAt impl hfacts table coin state.1 inner hinner]
   · rw [record_inr publicSeed availableAt impl hfacts table probe state.1 inner hinner]
-    have hnot : ¬ ChargedBy stakes (fun cache node => ¬ availableAt table cache node) index
+    have hnot : ¬ ChargedBy stakes unavail index
         (table.1 index) (probe, state.1.1) := by
       rintro ⟨-, -, hunavailable, -⟩
-      exact hunavailable hstate
+      exact hsub _ _ hunavailable hstate
     constructor
     · rintro ⟨entry, hentry, hcharged⟩
       rcases List.mem_append.mp hentry with hleft | hright
@@ -189,20 +213,23 @@ theorem expected_aiming_stalled_eq {α : Type}
       HandlerCarrier.Grows left right →
         ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
-    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (table : Cells × Padding)
+    (unavail : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hsub : ∀ cache node, unavail cache node → ¬ availableAt table cache node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
     (∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (withFlag (impl table)) computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt table cache node) index
+          ((aiming stakes unavail index
             z.2.1.2.1.dedup : Nat) : ℝ≥0∞)) =
       ∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (StalledRun.stalled (withFlag (impl table))
             (fun inner => availableAt table inner.1 index) stall) computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt table cache node) index
+          ((aiming stakes unavail index
             z.2.1.2.1.dedup : Nat) : ℝ≥0∞) :=
   StalledRun.expectation_stalled_eq (withFlag (impl table))
     (fun inner => availableAt table inner.1 index) stall
-    (fun p => ((aiming stakes (fun cache node => ¬ availableAt table cache node) index
+    (fun p => ((aiming stakes unavail index
       p.1.2.1.dedup : Nat) : ℝ≥0∞))
     (fun queried p => withFlag_neverFails publicSeed availableAt impl hfacts table queried p)
     (fun queried p hp z hz =>
@@ -210,6 +237,7 @@ theorem expected_aiming_stalled_eq {α : Type}
     (fun queried p hp z hz => by
       exact_mod_cast congrArg (fun count : Nat => (count : ℝ≥0∞))
         (withFlag_aiming_dedup_quiet publicSeed availableAt impl hfacts stakes index table
+          unavail hsub
           queried p hp z hz))
     computation state
 
@@ -225,43 +253,47 @@ theorem prob_charged_stalled_eq {α : Type}
       HandlerCarrier.Grows left right →
         ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
-    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (table : Cells × Padding)
+    (unavail : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hsub : ∀ cache node, unavail cache node → ¬ availableAt table cache node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
     Pr[fun z : α × (HandlerState × Bool) =>
         ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
-          (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry |
+          unavail index (table.1 index) entry |
       (simulateQ (withFlag (impl table)) computation).run state] =
       Pr[fun z : α × (HandlerState × Bool) =>
           ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
-            (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry |
+            unavail index (table.1 index) entry |
         (simulateQ (StalledRun.stalled (withFlag (impl table))
           (fun inner => availableAt table inner.1 index) stall) computation).run state] := by
   classical
   have hform : ∀ run : ProbComp (α × (HandlerState × Bool)),
       Pr[fun z : α × (HandlerState × Bool) =>
           ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
-            (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry | run] =
+            unavail index (table.1 index) entry | run] =
         ∑' z : α × (HandlerState × Bool), Pr[= z | run] *
           (if ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
-            (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry
+            unavail index (table.1 index) entry
             then 1 else 0) := by
     intro run
     rw [probEvent_eq_tsum_ite]
     refine tsum_congr fun z => ?_
     by_cases hz : ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
-        (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry
+        unavail index (table.1 index) entry
     · simp [hz]
     · simp [hz]
   rw [hform, hform]
   exact StalledRun.expectation_stalled_eq (withFlag (impl table))
     (fun inner => availableAt table inner.1 index) stall
     (fun p => if ∃ entry ∈ p.1.2.1, ChargedBy stakes
-      (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry then 1 else 0)
+      unavail index (table.1 index) entry then 1 else 0)
     (fun queried p => withFlag_neverFails publicSeed availableAt impl hfacts table queried p)
     (fun queried p hp z hz =>
       withFlag_frozen publicSeed availableAt impl hfacts hmono index table queried p hp z hz)
     (fun queried p hp z hz => if_congr
-      (withFlag_charged_quiet publicSeed availableAt impl hfacts stakes index table queried p hp
+      (withFlag_charged_quiet publicSeed availableAt impl hfacts stakes index table unavail
+        hsub queried p hp
         z hz) rfl rfl) computation state
 
 set_option maxHeartbeats 1000000 in
@@ -277,46 +309,49 @@ theorem prob_claimed_stalled_eq {α : Type}
       HandlerCarrier.Grows left right →
         ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
-    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (table : Cells × Padding)
+    (unavail : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hsub : ∀ cache node, unavail cache node → ¬ availableAt table cache node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool)
     (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
     (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) :
     Pr[fun z : α × (HandlerState × Bool) =>
         ∃ entry ∈ claims z, ChargedBy stakes
-          (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry |
+          unavail index (table.1 index) entry |
       (simulateQ (withFlag (impl table)) computation).run state] =
       Pr[fun z : α × (HandlerState × Bool) =>
           ∃ entry ∈ claims z, ChargedBy stakes
-            (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry |
+            unavail index (table.1 index) entry |
         (simulateQ (StalledRun.stalled (withFlag (impl table))
           (fun inner => availableAt table inner.1 index) stall) computation).run state] := by
   classical
   have hform : ∀ run : ProbComp (α × (HandlerState × Bool)),
       Pr[fun z : α × (HandlerState × Bool) =>
           ∃ entry ∈ claims z, ChargedBy stakes
-            (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry | run] =
+            unavail index (table.1 index) entry | run] =
         ∑' z : α × (HandlerState × Bool), Pr[= z | run] *
           (if ∃ entry ∈ claims z, ChargedBy stakes
-            (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry
+            unavail index (table.1 index) entry
             then 1 else 0) := by
     intro run
     rw [probEvent_eq_tsum_ite]
     refine tsum_congr fun z => ?_
     by_cases hz : ∃ entry ∈ claims z, ChargedBy stakes
-        (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry
+        unavail index (table.1 index) entry
     · simp [hz]
     · simp [hz]
   rw [hform, hform]
   refine StalledRun.expectation_stalled_eq_of_zero (withFlag (impl table))
     (fun inner => availableAt table inner.1 index) stall
     (fun z => if ∃ entry ∈ claims z, ChargedBy stakes
-      (fun cache node => ¬ availableAt table cache node) index (table.1 index) entry then 1 else 0)
+      unavail index (table.1 index) entry then 1 else 0)
     (fun queried p hp z hz =>
       withFlag_frozen publicSeed availableAt impl hfacts hmono index table queried p hp z hz)
     (fun z hz => if_neg ?_) computation state
   rintro ⟨entry, hentry, -, -, hunavailable, -⟩
-  exact hunavailable (by rw [hcache z entry hentry]; exact hz)
+  exact hsub _ _ hunavailable (by rw [hcache z entry hentry]; exact hz)
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -331,34 +366,37 @@ theorem expected_aiming_claimed_stalled_eq {α : Type}
       HandlerCarrier.Grows left right →
         ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
-    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (table : Cells × Padding)
+    (unavail : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hsub : ∀ cache node, unavail cache node → ¬ availableAt table cache node)
+    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool)
     (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
     (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) :
     (∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (withFlag (impl table)) computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt table cache node) index
+          ((aiming stakes unavail index
             (claims z).dedup : Nat) : ℝ≥0∞)) =
       ∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (StalledRun.stalled (withFlag (impl table))
             (fun inner => availableAt table inner.1 index) stall) computation).run state] *
-          ((aiming stakes (fun cache node => ¬ availableAt table cache node) index
+          ((aiming stakes unavail index
             (claims z).dedup : Nat) : ℝ≥0∞) := by
   classical
   refine StalledRun.expectation_stalled_eq_of_zero (withFlag (impl table))
     (fun inner => availableAt table inner.1 index) stall
-    (fun z => ((aiming stakes (fun cache node => ¬ availableAt table cache node) index
+    (fun z => ((aiming stakes unavail index
       (claims z).dedup : Nat) : ℝ≥0∞))
     (fun queried p hp z hz =>
       withFlag_frozen publicSeed availableAt impl hfacts hmono index table queried p hp z hz)
     (fun z hz => ?_) computation state
   have hnil : (claims z).dedup.filter (fun entry => decide (Targets stakes
-      (fun cache node => ¬ availableAt table cache node) index entry)) = [] := by
+      unavail index entry)) = [] := by
     rw [List.filter_eq_nil_iff]
     intro entry hentry hdecide
     obtain ⟨-, -, hunavailable, -⟩ := of_decide_eq_true hdecide
-    exact hunavailable (by rw [hcache z entry (List.mem_dedup.mp hentry)]; exact hz)
+    exact hsub _ _ hunavailable (by rw [hcache z entry (List.mem_dedup.mp hentry)]; exact hz)
   rw [aiming, hnil]
   simp
 
