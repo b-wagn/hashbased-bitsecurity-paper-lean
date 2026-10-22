@@ -40,22 +40,31 @@ open WalkTable TableTail ServingTable
 /-- The honest linked run's value, with the drawn table's secret seed beside it. -/
 abbrev SeededValue : Type :=
   ((((Forgery × Multiplicative RecordedQueries.Tally) ×
-    (Bool × RecordedQueries.Tally)) × SigningLog)) × Digest
+    (Bool × RecordedQueries.Tally)) × SigningLog)) × Digest × Digest
 
-/-- **The honest linked run, carrying the seed cell of the table it was run at.** -/
+/-- **The honest linked run, carrying the two cells the charge reads off the table**: the
+secret seed its availability is at, and the honest root its public key carries. Both are in
+`RedrawCell.seedAndRoot`, so carrying them costs the run nothing it had not already spent. -/
 noncomputable def seededLinked (adversary : Adversary) (prfSeed publicSeed : Digest)
     (table : Cells × Padding) : OracleComp OracleWorld SeededValue :=
-  (fun value => (value, table.1 Node.secretSeed)) <$>
+  (fun value => (value, table.1 Node.secretSeed, table.1 (.structural topRoot))) <$>
     TouchedKeys.honestLinked adversary prfSeed publicSeed table
+
+/-- **The carried cells are the table's.** -/
+theorem cells_of_mem_support (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : Cells × Padding) (value : SeededValue)
+    (hvalue : value ∈ support (seededLinked adversary prfSeed publicSeed table)) :
+    value.2 = (table.1 Node.secretSeed, table.1 (.structural topRoot)) := by
+  rw [seededLinked, support_map] at hvalue
+  obtain ⟨inner, -, hpair⟩ := hvalue
+  rw [← hpair]
 
 /-- **The carried seed is the table's.** -/
 theorem seed_of_mem_support (adversary : Adversary) (prfSeed publicSeed : Digest)
     (table : Cells × Padding) (value : SeededValue)
     (hvalue : value ∈ support (seededLinked adversary prfSeed publicSeed table)) :
-    value.2 = table.1 Node.secretSeed := by
-  rw [seededLinked, support_map] at hvalue
-  obtain ⟨inner, -, hpair⟩ := hvalue
-  rw [← hpair]
+    value.2.1 = table.1 Node.secretSeed :=
+  congrArg Prod.fst (cells_of_mem_support adversary prfSeed publicSeed table value hvalue)
 
 /-- **The wrapper is blind off the seed and the root too.** The run was, by
 `TouchedKeys.touched_honestLinked`; what is carried beside it is the seed cell, and two tables
@@ -67,7 +76,7 @@ theorem touched_seededLinked (adversary : Adversary) (prfSeed publicSeed : Diges
       seededLinked adversary prfSeed publicSeed right := by
   rw [seededLinked, seededLinked,
     TouchedKeys.touched_honestLinked adversary prfSeed publicSeed left right hagree,
-    hagree Node.secretSeed (Or.inl rfl)]
+    hagree Node.secretSeed (Or.inl rfl), hagree (.structural topRoot) (Or.inr rfl)]
 
 /-! ## The two handlers the charge compares -/
 
@@ -154,7 +163,7 @@ theorem prob_charged_seededLinked [HasQuery HashSpec Id] (adversary : Adversary)
         Pr[fun pair : (SeededValue × (HandlerState × Bool)) × Cells =>
             ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveAtSeed (GraphStakes.stakes publicSeed)
               (fun cache node => ¬ Available
-                (GraphStakes.honestRevealed pair.1.1.2 publicSeed)
+                (GraphStakes.honestRevealed pair.1.1.2.1 publicSeed)
                 (ServingCarrier.disclosedAt cache) node) pair.2 entry.2 entry.1 | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -167,14 +176,111 @@ theorem prob_charged_seededLinked [HasQuery HashSpec Id] (adversary : Adversary)
     (lenient_pair prfSeed publicSeed) stall (seededLinked adversary prfSeed publicSeed)
     RedrawCell.seedAndRoot (fun _ hnode => hnode)
     (touched_seededLinked adversary prfSeed publicSeed)
-    (fun value => GraphStakes.honestRevealed value.2 publicSeed)
-    (fun value => GraphStakes.honestRevealed_le value.2 publicSeed)
+    (fun value => GraphStakes.honestRevealed value.2.1 publicSeed)
+    (fun value => GraphStakes.honestRevealed_le value.2.1 publicSeed)
     (fun table value hvalue => by
       rw [seed_of_mem_support adversary prfSeed publicSeed table value hvalue])
     (fun node htouch hne value cache =>
-      RedrawCell.open_seedAndRoot (GraphStakes.honestRevealed value.2 publicSeed)
-        (GraphStakes.honestRevealed_le value.2 publicSeed)
+      RedrawCell.open_seedAndRoot (GraphStakes.honestRevealed value.2.1 publicSeed)
+        (GraphStakes.honestRevealed_le value.2.1 publicSeed)
         (ServingCarrier.disclosedAt cache) node htouch hne)
     inner hinner keep hkeep
+
+/-! ## The claims, charged at the handler that will not serve them
+
+The flag above pays for what the adversary could learn by **asking**: the difference between the
+game's handler, which serves every canonical input, and the strict one, which serves only what
+the signatures have disclosed. What is left is what it could get without asking, and that is the
+claims' own charge — one chance per claim at a cell drawn after the run, `259` of them.
+
+**The claims are read at the carrier's own cache, and that is not a weakening.** The forgery's
+candidate list is computed by replaying the verifier, and the verifier *ran inside this
+computation*: `LinkedGame.linkedAfterSeeds` contains `Scheme.verify`, and the handler caches
+every answer it gives. So every input the replay asks was asked for real during the run, and its
+answer is in the carrier. Nothing has to be read off the table — which is what made this
+statement look impossible when the cache it was read at was the game's.
+
+The public key comes from the run too, through the root cell the wrapper carries. -/
+
+/-- The forgery's claimed candidates, read off the run: the carrier's cache, the carried root,
+and the forgery itself. Each is paired with the carrier it is read at, which is what the charge
+asks of a claim. -/
+noncomputable def claimsOf [HasQuery HashSpec Id] (publicSeed : Digest)
+    (z : SeededValue × (HandlerState × Bool)) : List (Bytes × HandlerCarrier.State) :=
+  match (LinkedGame.outcomeOf z.1.1).1.forgery.message.frame with
+  | none => []
+  | some message =>
+    match Signature.fromBytes? (LinkedGame.outcomeOf z.1.1).1.forgery.signature with
+    | none => []
+    | some parsed =>
+      (ClaimedProbes.claimedCandidatesOf publicSeed z.2.1.1.cache
+        ⟨publicSeed, z.1.2.2⟩ message parsed).map fun candidate => (candidate, z.2.1.1)
+
+/-- **A claim carries the carrier it was read at.** True by construction, which is the point of
+pairing them here rather than later. -/
+theorem carrier_of_mem_claimsOf [HasQuery HashSpec Id] (publicSeed : Digest)
+    (z : SeededValue × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State)
+    (hentry : entry ∈ claimsOf publicSeed z) : entry.2 = z.2.1.1 := by
+  rw [claimsOf] at hentry
+  split at hentry
+  · simp at hentry
+  · split at hentry
+    · simp at hentry
+    · obtain ⟨candidate, -, hpair⟩ := List.mem_map.mp hentry
+      exact congrArg Prod.snd hpair.symm
+
+/-- **There are at most `259` of them**, whatever the forgery is: the rejected shapes contribute
+none and the served one contributes the constant `ClaimedProbes.length_claimedCandidatesOf`
+names. -/
+theorem length_claimsOf [HasQuery HashSpec Id] (publicSeed : Digest)
+    (z : SeededValue × (HandlerState × Bool)) :
+    (claimsOf publicSeed z).length ≤ 259 := by
+  rw [claimsOf]
+  split
+  · simp
+  · split
+    · simp
+    · rw [List.length_map, ClaimedProbes.length_claimedCandidatesOf]
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The claims cost `259 / 2 ^ 128` at the handler that will not serve them.** The second of
+the half's two charges: the first pays for what asking could reveal, this one for what guessing
+can. Together they are the two terms of `SharedAssembly.InputBullet`'s bound. -/
+theorem prob_claimed_strict_le [HasQuery HashSpec Id] (adversary : Adversary)
+    (prfSeed publicSeed : Digest) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (inner : HandlerState) :
+    Pr[fun pair : (SeededValue × (HandlerState × Bool)) × Cells =>
+        ∃ entry ∈ claimsOf publicSeed pair.1,
+          RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed)
+            (fun cache node => ¬ Available
+              (GraphStakes.honestRevealed pair.1.1.2.1 publicSeed)
+              (ServingCarrier.disclosedAt cache) node) pair.2 entry.2 entry.1 | (do
+        let cells ← ($ᵗ Cells : ProbComp Cells)
+        let pad ← ($ᵗ Padding : ProbComp Padding)
+        let result ← (simulateQ (withFlag (strictImpl prfSeed publicSeed (cells, pad)))
+          (seededLinked adversary prfSeed publicSeed (cells, pad))).run (inner, false)
+        pure (result, cells))] ≤
+      ((259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  HandlerCharge.prob_claimed_run_le publicSeed
+    (fun table cache node => Available
+      (GraphStakes.honestRevealed (table.1 Node.secretSeed) publicSeed)
+      (ServingCarrier.disclosedAt cache) node)
+    (strictImpl prfSeed publicSeed) (facts_strictImpl prfSeed publicSeed)
+    (fun table => CarrierAvailability.availableAt_mono (table.1 Node.secretSeed) publicSeed)
+    (GraphStakes.stakes publicSeed) stall (seededLinked adversary prfSeed publicSeed)
+    RedrawCell.seedAndRoot (fun _ hnode => hnode)
+    (touched_seededLinked adversary prfSeed publicSeed)
+    (fun value cache node => ¬ Available
+      (GraphStakes.honestRevealed value.2.1 publicSeed)
+      (ServingCarrier.disclosedAt cache) node)
+    (fun value node htouch hne cache hun => hun
+      (RedrawCell.open_seedAndRoot (GraphStakes.honestRevealed value.2.1 publicSeed)
+        (GraphStakes.honestRevealed_le value.2.1 publicSeed)
+        (ServingCarrier.disclosedAt cache) node htouch hne))
+    (fun table value hvalue => by
+      rw [seed_of_mem_support adversary prfSeed publicSeed table value hvalue])
+    (inner, false) (claimsOf publicSeed) (carrier_of_mem_claimsOf publicSeed) 259
+    (length_claimsOf publicSeed)
 
 end SlhDsaSecurity.ChargedHalf

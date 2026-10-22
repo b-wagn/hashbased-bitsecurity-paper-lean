@@ -14207,3 +14207,19 @@ info: 'SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.cells_of_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.cells_of_mem_support
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.carrier_of_mem_claimsOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.carrier_of_mem_claimsOf
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.length_claimsOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.length_claimsOf
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.prob_claimed_strict_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.prob_claimed_strict_le
