@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.SharedAssembly
 import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.ServedBridge
+import SlhDsaSecurity.Proof.ServingTable
 
 /-!
 # The input half's bullet, reduced to one inequality
@@ -106,13 +107,35 @@ run's own value carries, and the cache the game's, which is the handler's read t
 `RedrawCell.unionCache`. If what arrives differs, this is where it fails to elaborate. -/
 
 open WalkTable TableTail in
-/-- **The agreement, at the run this half ends at.** -/
+/-- **The agreement, at the run the half's chain used to end at.**
+
+**Superseded, and kept only so the name does not point nowhere.** `TableTail.handlerRun` is the
+*stripped* game under `lazyProgram`, and it is the wrong run twice over: the stripped signer
+cannot meet the charge's `htouched`, and `lazyProgram` files nothing, so its carrier has no
+served set for `ServedAgree` to be about. `AgreesAtServingHandler` below is the shape to aim
+at — the same agreement at `ServingTable.servingHandlerRun`. -/
 def AgreesAtHandler (adversary : Adversary) (prfSeed publicSeed : Digest)
     (table : CanonicalGraph.Cells × CanonicalGraph.Padding) : Prop :=
   ∀ (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
     (z : ((((Forgery × Multiplicative RecordedQueries.Tally) ×
       (Bool × RecordedQueries.Tally)) × SigningLog)) × OpenCache.HandlerState),
     z ∈ support (handlerRun adversary prfSeed publicSeed table
+      (HandlerCarrier.empty, record, count)) →
+      ServedBridge.ServedAgree (keysOf prfSeed publicSeed table).2 z.2.1
+        (((LinkedGame.outcomeOf z.1).1, (LinkedGame.outcomeOf z.1).1.counts.work),
+          RedrawCell.unionCache publicSeed table z.2.1.cache)
+
+open WalkTable TableTail in
+/-- **The agreement, at the run this half ends at.** The honest game at a drawn table under the
+handler that files, started from the empty carrier: the key the walk's table determines, the log
+the run's own value carries, and the cache the game's, read through `RedrawCell.unionCache`.
+If what arrives differs, this is where it fails to elaborate. -/
+def AgreesAtServingHandler (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : CanonicalGraph.Cells × CanonicalGraph.Padding) : Prop :=
+  ∀ (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
+    (z : ((((Forgery × Multiplicative RecordedQueries.Tally) ×
+      (Bool × RecordedQueries.Tally)) × SigningLog)) × OpenCache.HandlerState),
+    z ∈ support (ServingTable.servingHandlerRun adversary prfSeed publicSeed table
       (HandlerCarrier.empty, record, count)) →
       ServedBridge.ServedAgree (keysOf prfSeed publicSeed table).2 z.2.1
         (((LinkedGame.outcomeOf z.1).1, (LinkedGame.outcomeOf z.1).1.counts.work),

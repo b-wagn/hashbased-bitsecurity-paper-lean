@@ -317,7 +317,10 @@ theorem withFlag_run (impl : QueryImpl OracleWorld (StateT HandlerState ProbComp
       (impl queried).run state.1 >>= fun step =>
         (pure (step.1, (step.2, state.2)) : ProbComp _) := rfl
 
-/-- **The stalled run does not mention the cell it stalled on.** -/
+/-- **The stalled run does not mention the cell it stalled on.**
+
+`HandlerStall.evalDist_stalled_congr` is the same statement at any handler, taking
+`HandlerFacts.Facts.blind` where this one takes `lazyProgram_step_congr` and `hclosed`. -/
 theorem evalDist_stalled_lazyProgram_congr {α : Type}
     (availableAt : HandlerCarrier.State → Node → Prop)
     (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),

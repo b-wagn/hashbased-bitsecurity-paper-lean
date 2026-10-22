@@ -190,7 +190,14 @@ theorem probEvent_linked_handler (adversary : Adversary) (prfSeed publicSeed : D
 
 /-- **The tail at a drawn table, as the handler's run.** The chain, end to end: the count the
 event does not read is dropped, the honest phase is stripped, the record is kept, the keys are
-handed in, the game becomes one computation, and the handler starts from nothing. -/
+handed in, the game becomes one computation, and the handler starts from nothing.
+
+**This is the stripped chain, and the charge cannot be met at its end.** `RedrawCell`'s
+`htouched` asks for a syntactic equality of computations, and the stripped signer carries the
+walk's whole cache, so it touches every cell. `HonestTail.probEvent_tail_honest_handler` is the
+same chain with the signer left honest — one step shorter, since stripping is the step not
+taken — and `ServingTable.probEvent_tail_serving` carries it on to the handler that files, which
+is where the charge reads it. -/
 theorem probEvent_tail_handler (adversary : Adversary) (prfSeed publicSeed : Digest)
     (table : Cells × Padding) (event : Outcome × QueryCache HashSpec → Prop)
     (record : List (Bytes × HandlerCarrier.State)) (count : Nat) :

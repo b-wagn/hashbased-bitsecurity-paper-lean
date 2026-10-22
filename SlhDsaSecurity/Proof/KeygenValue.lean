@@ -41,7 +41,12 @@ noncomputable def honestKeys (sds : Digest × Digest × Digest)
   @Scheme.keygenInternal Id _
     (replayQuery (HonestProbes.warmCache sds.2.2 sds.1 outputs)) sds.1 sds.2.1 sds.2.2
 
-/-- The recorded game with its keys handed in rather than generated. -/
+/-- The recorded game with its keys handed in rather than generated.
+
+The signer is fixed at the stripped one here. `HonestLinked.recordedAfterSeedsWith` is this
+definition with the signer a parameter, and this one is that at the stripped signer by `rfl`;
+`HonestLinked.run_recordedAfterSeeds` is the keys-by-value law at the honest signer, which is
+the one the charge's `htouched` can be met at. -/
 noncomputable def recordedAfterSeedsAt (adversary : Adversary)
     (keys : SecretKey × PublicKey) (warm : QueryCache HashSpec) :
     OracleComp OracleWorld (Outcome × Multiset Bytes) := do

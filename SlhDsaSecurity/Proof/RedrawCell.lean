@@ -217,7 +217,13 @@ theorem prob_joint_sensitive_le {γ Aux : Type} (stakes : Stakes Target Canonica
 
 The three pieces meet here. Stalling at the cell leaves the chance of a charge against it
 alone; the stalled run does not read that cell, so it may be drawn after; and the weight the
-drawn cell costs is the number of probes aiming at it, which stalling also leaves alone. -/
+drawn cell costs is the number of probes aiming at it, which stalling also leaves alone.
+
+**`HandlerCharge` is this section and the run-level one below it at an arbitrary handler**,
+against `HandlerFacts.Facts`. Note what the copies do *not* take: `hclosed` is absent there,
+because closure of availability under the structure was only ever used to prove that the
+stalled run does not read the cell, and `Facts.blind` is that congruence. These stay as the
+instance their existing readers name. -/
 
 open OpenCache ChargedProbe
 
@@ -1928,7 +1934,13 @@ theorem compatible_step (publicSeed : Digest) (table : Cells × Padding)
 
 open scoped Classical in
 /-- **The game's run is the handler's run at total availability.** The handler starts from
-nothing, so the charge applies to it; the game starts from the programmed cache. -/
+nothing, so the charge applies to it; the game starts from the programmed cache.
+
+**At `lazyProgram` only**, and the restriction is not cosmetic: `ServingTable` proves the same
+identification at `ServingProgram.servingProgram`, and it had to be proved rather than
+transported. The two runs agree on values and caches, but a record entry carries the whole
+carrier at the moment of the probe, served set included — which is exactly what the charge
+reads. They differ in precisely the data it needs. -/
 theorem probEvent_rom_eq_lazy {α : Type} (publicSeed : Digest) (table : Cells × Padding)
     (event : α × QueryCache HashSpec → Prop) (computation : OracleComp OracleWorld α) :
     ∀ (carrier : HandlerCarrier.State) (record : List (Bytes × HandlerCarrier.State))
@@ -1965,7 +1977,12 @@ function of the record; the record's entries name nodes the charge's stakes alre
 the wrapper the charge is proved about differs from the comparison's only in what it writes to
 that flag. What comes out is one bound on the game's own presentation — the handler at total
 availability, which `probEvent_rom_eq_lazy` identifies with the game's run — with the record and
-its limit left as parameters. -/
+its limit left as parameters.
+
+**`HandlerLenient` has `prob_game_sensitive_le` and its honest instance at an arbitrary pair of
+handlers**, from two `HandlerFacts.Facts` and one `HandlerFacts.Lenient`. That is the form the
+served notion needs, since only a handler that files keeps a served set for its availability to
+be read from. -/
 
 /-- **A per-table equality lifts through the draw of the table.** -/
 theorem probEvent_table_congr {α : Type} (left right : Cells × Padding → ProbComp α)
