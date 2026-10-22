@@ -226,6 +226,8 @@ import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.CountedHandler
 import SlhDsaSecurity.Proof.CarrierAvailability
 import SlhDsaSecurity.Proof.NoticingTape
+import SlhDsaSecurity.Proof.NoticingCoverage
+import SlhDsaSecurity.Proof.NoticingBlocks
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14404,3 +14406,137 @@ info: 'SlhDsaSecurity.CarrierRecord.keys_publicKey' depends on axioms: [propext,
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierRecord.keys_publicKey
+
+/--
+info: 'SlhDsaSecurity.NoticingBlocks.evalDist_noticingRecordedRun_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlocks.evalDist_noticingRecordedRun_eq
+
+/--
+info: 'SlhDsaSecurity.NoticingBlocks.mem_support_noticingBlockRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlocks.mem_support_noticingBlockRun
+
+/--
+info: 'SlhDsaSecurity.NoticingBlocks.noticingBlockRun_tail_neverFails' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlocks.noticingBlockRun_tail_neverFails
+
+/--
+info: 'SlhDsaSecurity.NoticingBlocks.noticingProb_leftBlock' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlocks.noticingProb_leftBlock
+
+/--
+info: 'SlhDsaSecurity.NoticingBlocks.prob_noticingTargetCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlocks.prob_noticingTargetCovered_le
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.mem_support_rom_of_noticingRecorderOf' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.mem_support_rom_of_noticingRecorderOf
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_count' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_count
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.mem_support_noticingRecorder_countAllHashes' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.mem_support_noticingRecorder_countAllHashes
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.noticingInside_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.noticingInside_le_of_budget
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_budget' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_budget
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.expectedCount_noticingRecorder_eq_rom' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.expectedCount_noticingRecorder_eq_rom
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticing' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticing
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.noticingRecordedRun_splitCost_eq_map' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.noticingRecordedRun_splitCost_eq_map
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.probEvent_splitCost_noticingRecorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.probEvent_splitCost_noticingRecorded
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected_recorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected_recorded
+
+/--
+info: 'SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticingRecorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticingRecorded
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun
