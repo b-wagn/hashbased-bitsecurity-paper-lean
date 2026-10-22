@@ -862,6 +862,72 @@ theorem fors_sign_entry (cache : QueryCache HashSpec) (indices : Fors.Indices)
               Nat.xor ((indices tree).val / 2 ^ level.val) 1) } := by
   simp only [Fors.sign, Correctness.sequenceFin_id, bind, pure]
 
+/-! ## The entries a FORS signature discloses are cells
+
+A signature is not a computation to be redone; it is a tuple of cells. Each entry of an honest
+FORS signature is named here: the secret at the selected leaf, and the sibling at each level of
+its authentication path. The bounds are the ones `probes_fors_sign` already establishes for the
+same coordinates, carried in the nodes themselves so the statements stay free of them.
+
+This is what a signer that reads rather than recomputes answers with, and all of it is
+available once the signature is issued: the secret because its index is signed, the path
+because `forsTree` nodes are unprotected. -/
+
+/-- The leaf an honest FORS signature opens, as a coordinate of the whole key. -/
+def forsSecretIndex (indices : Fors.Indices) (tree : Fin forsTrees) :
+    Fin (forsTrees * 2 ^ forsHeight) :=
+  ⟨tree.val * 2 ^ forsHeight + (indices tree).val, by
+    have hindex := (indices tree).isLt
+    have htree := tree.isLt
+    calc tree.val * 2 ^ forsHeight + (indices tree).val
+        < tree.val * 2 ^ forsHeight + 2 ^ forsHeight := by omega
+      _ = (tree.val + 1) * 2 ^ forsHeight := by ring
+      _ ≤ forsTrees * 2 ^ forsHeight := Nat.mul_le_mul_right _ (by omega)⟩
+
+/-- The node an honest FORS signature's secret discloses. -/
+def forsSecretNode (key : ForsKey) (indices : Fors.Indices) (tree : Fin forsTrees) :
+    StructuralNode :=
+  .forsPrf key (forsSecretIndex indices tree)
+
+/-- The node an honest FORS signature's authentication path discloses at one level. -/
+def forsAuthNode (key : ForsKey) (indices : Fors.Indices) (tree : Fin forsTrees)
+    (level : Fin forsHeight) : StructuralNode :=
+  .forsTree key ⟨level.val, by have := level.isLt; omega⟩
+    ⟨tree.val * 2 ^ (forsHeight - level.val) +
+      Nat.xor ((indices tree).val / 2 ^ level.val) 1, by
+        have hlevel := level.isLt
+        have htree := tree.isLt
+        have hsibling : Nat.xor ((indices tree).val / 2 ^ level.val) 1 <
+            2 ^ (forsHeight - level.val) := by
+          refine xor_one_lt _ _ (by omega) (Nat.div_lt_of_lt_mul ?_)
+          rw [← pow_add, Nat.add_sub_cancel' (le_of_lt level.isLt)]
+          exact (indices tree).isLt
+        calc tree.val * 2 ^ (forsHeight - level.val) +
+              Nat.xor ((indices tree).val / 2 ^ level.val) 1
+            < tree.val * 2 ^ (forsHeight - level.val) + 2 ^ (forsHeight - level.val) := by omega
+          _ = (tree.val + 1) * 2 ^ (forsHeight - level.val) := by ring
+          _ ≤ forsTrees * 2 ^ (forsHeight - level.val) := Nat.mul_le_mul_right _ (by omega)⟩
+
+/-- **An honest FORS signature's secret is the cell at its own node.** -/
+theorem fors_sign_secret_cell (cache : QueryCache HashSpec) (indices : Fors.Indices)
+    (secretSeed publicSeed : Digest) (key : ForsKey) (tree : Fin forsTrees) :
+    (@Fors.sign Id _ (replayQuery cache) indices secretSeed publicSeed key.address tree).secret =
+      replayCells cache secretSeed publicSeed (.structural (forsSecretNode key indices tree)) := by
+  rw [fors_sign_entry]
+  exact @fors_secret_cell (replayQuery cache) secretSeed publicSeed key
+    (forsSecretIndex indices tree)
+
+/-- **An honest FORS signature's authentication path is cells.** -/
+theorem fors_sign_authentication_cell (cache : QueryCache HashSpec) (indices : Fors.Indices)
+    (secretSeed publicSeed : Digest) (key : ForsKey) (tree : Fin forsTrees)
+    (level : Fin forsHeight) :
+    (@Fors.sign Id _ (replayQuery cache) indices secretSeed publicSeed
+        key.address tree).authentication level =
+      replayCells cache secretSeed publicSeed
+        (.structural (forsAuthNode key indices tree level)) := by
+  rw [fors_sign_entry]
+  rfl
+
 /-- The compression of the fourteen roots consults its own canonical input. -/
 theorem canonical_forsRoots (cache : QueryCache HashSpec)
     (secretSeed publicSeed : Digest) (key : ForsKey) :
@@ -1154,6 +1220,54 @@ theorem probes_merkle_sign (cache : QueryCache HashSpec) (secretSeed publicSeed 
   · exact probes_bind_replay cache _ _ _
       (probes_wots_sign cache secretSeed publicSeed ⟨tree, leaf⟩ message)
       (probes_pure cache _ _)
+
+/-! ## The entries an XMSS signature discloses are cells
+
+The same for a subtree. A signature's authentication path is the sibling at each level, which
+is that node's own cell — a WOTS public key at the bottom of the subtree and a subtree node
+above it, which `merkleNode` already distinguishes. Its WOTS half is the chain value at the
+digit the message encodes, which is `wotsPosition`'s cell.
+
+The WOTS entry is the one that forces the signer to read rather than ask: the value at the
+digit is available, because the signature discloses it, while the value one step below it is
+not, so no query answers for it. -/
+
+/-- The sibling an honest XMSS signature discloses at one level. -/
+def merkleAuthIndex (leaf : Fin (2 ^ subtreeHeight)) (level : Fin subtreeHeight) :
+    Fin (2 ^ (subtreeHeight - level.val)) :=
+  ⟨Nat.xor (leaf.val / 2 ^ level.val) 1,
+    sibling_lt subtreeHeight level.val leaf.val level.isLt leaf.isLt⟩
+
+/-- The node an honest XMSS signature's authentication path discloses at one level. -/
+def merkleAuthNode (tree : Tree) (leaf : Fin (2 ^ subtreeHeight)) (level : Fin subtreeHeight) :
+    StructuralNode :=
+  merkleNode tree level.val (le_of_lt level.isLt) (merkleAuthIndex leaf level)
+
+/-- **An honest XMSS signature's authentication path is cells.** -/
+theorem merkle_sign_authentication_cell (cache : QueryCache HashSpec)
+    (message secretSeed publicSeed : Digest) (tree : Tree) (leaf : Fin (2 ^ subtreeHeight))
+    (level : Fin subtreeHeight) :
+    (@Merkle.sign Id _ (replayQuery cache) message secretSeed publicSeed tree.address
+        leaf).authentication level =
+      replayCells cache secretSeed publicSeed
+        (.structural (merkleAuthNode tree leaf level)) := by
+  rw [merkle_sign_authentication]
+  exact (@value_merkleNode (replayQuery cache) secretSeed publicSeed tree level.val
+    (le_of_lt level.isLt) (merkleAuthIndex leaf level)).symm
+
+/-- **An honest XMSS signature's WOTS half is cells**, one chain value apiece, at the digit the
+message encodes. -/
+theorem merkle_sign_wots_cell (cache : QueryCache HashSpec)
+    (message secretSeed publicSeed : Digest) (tree : Tree) (leaf : Fin (2 ^ subtreeHeight))
+    (chain : Fin chains) :
+    (@Merkle.sign Id _ (replayQuery cache) message secretSeed publicSeed tree.address
+        leaf).wots chain =
+      replayCells cache secretSeed publicSeed
+        (.structural (wotsPosition ⟨tree, leaf⟩ chain (Checksum.encode message chain))) := by
+  rw [merkle_sign_wots,
+    show Merkle.wotsAddress tree.address leaf.val = (⟨tree, leaf⟩ : WotsKey).address from rfl,
+    @wots_sign_cells (replayQuery cache)]
+  rfl
 
 /-- An honest XMSS path step, as a path fold over the subtree's honest nodes. -/
 theorem merkle_combine_eq (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)

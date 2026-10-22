@@ -246,6 +246,44 @@ theorem lazyProgram_step_congr_graph (revealed : WotsKey → Fin chains → Nat)
     index left right hagree queried state hindex
 
 
+/-! ## A handler that reads cells rather than answering queries about them
+
+`lazyProgram` is blind to an unavailable cell because the entries it may serve are
+`openCache`'s, and those belong to nodes *all of whose children* are available. A signer needs
+something else. What a signature discloses is a cell at an available node, and that node's
+child may well be unavailable: the chain value a WOTS signature reveals sits at the revealed
+digit, so it is available, while the value one step below it is not. Its entry is therefore not
+in `openCache` and never will be.
+
+**And the signer cannot be made to ask for it instead.** Obtaining that cell by a query means
+querying its node's canonical input, whose child is the unavailable value below — a sensitive
+query, and the flag fires on it. Reading is the only way, which is exactly why the signer has
+to be a handler rather than part of the computation: only a handler's reads are frozen when the
+run is stalled.
+
+So the permission a signer needs is larger than `openCache`'s — any cell at a node available
+now — and it is still blind to every unavailable cell, which is all the charge asks. The two
+hypotheses below are the honest ones: the step is a function of the cells it reads, and it
+reads only cells the signatures have already made available. `StalledRun` and `TableBlind` take
+the step condition as a parameter, so nothing else has to change to accommodate it. -/
+
+/-- **A handler that reads only available cells is blind to an unavailable one.** -/
+theorem reading_step_congr {ι : Type} {spec : OracleSpec ι} {σ : Type}
+    (availableAt : σ → Node → Prop)
+    (impl : Cells × Padding → QueryImpl spec (StateT σ ProbComp))
+    (reads : spec.Domain → σ → Node → Prop)
+    (hreads : ∀ (queried : spec.Domain) (state : σ) (left right : Cells × Padding),
+      (∀ node, reads queried state node → left.1 node = right.1 node) →
+        (impl left queried).run state = (impl right queried).run state)
+    (hopen : ∀ (queried : spec.Domain) (state : σ) (node : Node),
+      reads queried state node → availableAt state node)
+    (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
+    (queried : spec.Domain) (state : σ) (hindex : ¬ availableAt state index) :
+    (impl left queried).run state = (impl right queried).run state := by
+  refine hreads queried state left right fun node hnode => hagree.1 node ?_
+  rintro rfl
+  exact hindex (hopen queried state node hnode)
+
 /-! ## The stalled handler is blind to the cell it stalled on
 
 `StalledRun` wants a flag alongside the state, which this handler has no use for, so it is

@@ -5096,3 +5096,74 @@ info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_expected_le' depen
 #guard_msgs in
 #print axioms SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'
 
+/-- info: 'SlhDsaSecurity.AdversaryQueries.one_le_count_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.one_le_count_sign
+
+/--
+info: 'SlhDsaSecurity.AdversaryQueries.work_add_served_le_count_adversary' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_add_served_le_count_adversary
+
+/--
+info: 'SlhDsaSecurity.AdversaryQueries.work_add_keygen_add_served_le_total' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AdversaryQueries.work_add_keygen_add_served_le_total
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_add_served_le_of_budget_tail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.work_add_pow_add_served_le_of_budget_tail
+
+/--
+info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served
+
+/-- info: 'SlhDsaSecurity.Assembly.defects_add_served_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.defects_add_served_le
+
+/-- info: 'SlhDsaSecurity.Assembly.le_target_of_two_slacks' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.le_target_of_two_slacks
+
+/-- info: 'SlhDsaSecurity.Assembly.le_target_of_served' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.le_target_of_served
+
+/-- info: 'SlhDsaSecurity.RedrawCell.open_seedAndRoot' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.open_seedAndRoot
+
+/-- info: 'SlhDsaSecurity.OpenCache.reading_step_congr' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.reading_step_congr
+
+/-- info: 'SlhDsaSecurity.HonestProbes.fors_sign_secret_cell' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.fors_sign_secret_cell
+
+/-- info: 'SlhDsaSecurity.HonestProbes.fors_sign_authentication_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.fors_sign_authentication_cell
+
+/-- info: 'SlhDsaSecurity.HonestProbes.merkle_sign_authentication_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.merkle_sign_authentication_cell
+
+/-- info: 'SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell
