@@ -8772,3 +8772,9 @@ info: 'SlhDsaSecurity.SigningFaithful.cases_of_win_charged_three' depends on axi
 /-- info: 'SlhDsaSecurity.ServedLog.disclosedByLog_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedLog.disclosedByLog_eq
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.keyOf_eq_walkKey' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.keyOf_eq_walkKey

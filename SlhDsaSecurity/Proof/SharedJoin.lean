@@ -115,17 +115,25 @@ noncomputable def recordCanonical (pair : RecordedPair) : Multiset Bytes :=
   (recordOf pair).filter (HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2)
 
 open scoped Classical in
-/-- **The ordering defect's count**: the record's entries that are message inputs at the run's
-own key and are not canonical.
+/-- **The ordering defect's count**: the record's entries that are message inputs at the key the
+**walk** generates and are not canonical.
 
-The exclusion is in the definition rather than in a hypothesis, which is what makes the two
-parts disjoint on *every* run and so keeps `GoodWalk` out of the arithmetic entirely. It costs
-the owner nothing: on a good walk no canonical input is a message input
+**The key is the walk's, and everything here names that one.** The walk's key is fixed before
+the run, so a statement about it composes; the run's key is a function of the result, and naming
+it would drag `AnswerSide.generatedKey_eq_walk` into every use and let the same defect be stated
+twice at two keys that are equal only on the support. That lemma is applied once, inside
+`canonical_not_messageInput`, where the support is in hand, and no producer ever writes the
+run's key.
+
+The canonical exclusion is in the definition rather than in a hypothesis, which is what makes
+the two parts disjoint on *every* run and so keeps `GoodWalk` out of the arithmetic entirely. It
+costs the owner nothing: on a good walk no canonical input is a message input
 (`canonical_not_messageInput`), so `mem_recordMessageClass` lets a containment be proved against
 the plain predicate. -/
 noncomputable def recordMessageClass (pair : RecordedPair) : Multiset Bytes :=
   (recordOf pair).filter fun input =>
-    CombinedCharge.IsMessageInput (RoutedSplit.keyOf (recordedTraceOf pair)) input ∧
+    CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2) input ∧
       ¬ HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2 input
 
 /-- **What a charge has to prove about its own probes**: that they sit inside one part of the
@@ -163,26 +171,28 @@ theorem card_record_eq_work (adversary : Adversary)
     (WarmedSplit.mem_support_of_countAllHashes _ walk.2 result hresult)
 
 set_option maxHeartbeats 1000000 in
-/-- **A canonical input of the walk's cells is not a message input at the run's key**, the key
-being no coincidence on a good walk. -/
-theorem canonical_not_messageInput (adversary : Adversary)
+/-- **A canonical input of the walk's cells is not a message input at the walk's key**, the key
+being no coincidence on a good walk. Stated at the walk's key, it needs no run at all. -/
+theorem canonical_not_messageInput
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support graphWalk) (hgood : GoodWalk walk)
-    {result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (RecordedTail.recordedTail adversary walk))
     (input : Bytes) (hcanonical : HonestProbes.Canonical walk.1.1.2.2 walk.1.2 input) :
     ¬ CombinedCharge.IsMessageInput
-      (RoutedSplit.keyOf ((walk.1, (result.1.1.1, result.1.2)), result.2)) input := by
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input := by
   obtain ⟨parent, rfl⟩ := hcanonical
-  have hkey : RoutedSplit.keyOf ((walk.1, (result.1.1.1, result.1.2)), result.2) =
-      SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2 := by
-    rw [RoutedSplit.keyOf]
-    exact AnswerSide.generatedKey_eq_walk adversary hwalk
-      (result := ((result.1.1.1, result.1.2), result.2))
-      (RecordedTail.mem_support_tail_of_recorded adversary hresult)
-  rw [hkey]
   exact WarmedCharges.not_messageInput_canonical walk.1.1.2.2 walk.1.2 _
     (AnswerSide.not_possible_generatedKey hwalk hgood.2) withinBounds_structural parent
+
+/-- **The run's key is the walk's**, on a supported pair. This is the one place
+`AnswerSide.generatedKey_eq_walk` is applied, so that no statement downstream has to carry it. -/
+theorem keyOf_eq_walkKey (adversary : Adversary) {pair : RecordedPair}
+    (hpair : pair ∈ support (recordedPairedRun adversary)) :
+    RoutedSplit.keyOf (recordedTraceOf pair) =
+      SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2 := by
+  obtain ⟨hwalk, hresult⟩ := mem_support_recordedPairedRun hpair
+  rw [RoutedSplit.keyOf]
+  exact AnswerSide.generatedKey_eq_walk adversary hwalk
+    (RecordedTail.mem_support_tail_of_recorded adversary hresult)
 
 open scoped Classical in
 /-- **A message input of the record is in the ordering defect's part**, on a good walk, where
@@ -190,13 +200,14 @@ nothing canonical is one. So the owner proves its containment against the plain 
 theorem mem_recordMessageClass (adversary : Adversary) {pair : RecordedPair}
     (hpair : pair ∈ support (recordedPairedRun adversary)) (hgood : GoodWalk pair.1)
     {input : Bytes} (hmem : input ∈ recordOf pair)
-    (hmessage : CombinedCharge.IsMessageInput (RoutedSplit.keyOf (recordedTraceOf pair)) input) :
+    (hmessage : CombinedCharge.IsMessageInput
+      (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2) input) :
     input ∈ recordMessageClass pair := by
   classical
-  obtain ⟨hwalk, hresult⟩ := mem_support_recordedPairedRun hpair
+  obtain ⟨hwalk, -⟩ := mem_support_recordedPairedRun hpair
   rw [recordMessageClass, Multiset.mem_filter]
   exact ⟨hmem, hmessage, fun hcanonical =>
-    canonical_not_messageInput adversary hwalk hgood hresult input hcanonical hmessage⟩
+    canonical_not_messageInput hwalk hgood input hcanonical hmessage⟩
 
 open scoped Classical in
 /-- **The two parts fit inside the record**, being disjoint by construction and so on every
@@ -207,7 +218,9 @@ theorem card_parts_le_record (pair : RecordedPair) :
   classical
   have hdisjoint : ∀ input ∈ recordOf pair,
       ¬ (HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2 input ∧
-        (CombinedCharge.IsMessageInput (RoutedSplit.keyOf (recordedTraceOf pair)) input ∧
+        (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
+            input ∧
           ¬ HonestProbes.Canonical pair.1.1.1.2.2 pair.1.1.2 input)) := by
     rintro input - ⟨hcanonical, -, hnot⟩
     exact hnot hcanonical
