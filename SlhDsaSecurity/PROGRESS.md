@@ -4080,6 +4080,9 @@ with the symptom reversed:
 So the diff habit has a dual, and it fires earlier:
 
 > Write the hypothesis, then ask what would have to prove it — **before the consumer exists.**
+> And before naming it as an input at all, **grep for it**: the clause was added after an input
+> was named, handed to another owner and recorded in a report, when it was already proved,
+> already generic and one application away.
 
 The consumer-side habit asks *what does my proof know that my conclusion drops*. This one asks
 *what would a caller need in order to hand me this*. Both are answered by writing one thing down
