@@ -13388,3 +13388,9 @@ info: 'SlhDsaSecurity.CountedHandler.run_withCount_count' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.run_withCount_count
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.stage_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.stage_forget
