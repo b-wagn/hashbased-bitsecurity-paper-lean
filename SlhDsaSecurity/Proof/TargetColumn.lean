@@ -254,6 +254,72 @@ theorem expected_three_parts_le_two_budgets (q : Nat) (adversary : Adversary)
   expected_three_parts_le_two_budgets_at FusedCoverage.fusedTail q adversary
     (FusedCoverage.forgetsTo adversary) hbudget
 
+/-! ## And `hparts` at the **single** line, if the overlap is sub-unit
+
+The three parts are nearly disjoint: `recordAiming` and `recordMessageClass` are disjoint by
+construction (`SharedJoin.card_parts_le_record`), and what `recordPrfClass` adds on top of them
+is the format identity's overlap. If that part's expectation is below one — which is what
+`PrfClassCount.expected_card_filter_prfClass_le` gives with the seed drawn *after* the record,
+and what the hop has to deliver in the real order — then the three fit in **one** record plus a
+single unit.
+
+That is `hparts` at the undoubled line, with `claims = 260`: the forgery's 259 cells and one
+unit for the overlap. The sub-unit bound is a **hypothesis** here, in the shape its producer
+will deliver, so a shape that does not meet fails at this statement rather than downstream. -/
+
+open scoped Classical in
+/-- **`hparts` at one record plus a unit**, given the overlap's expectation below one. -/
+theorem expected_three_parts_le_budget_unit_at (fused : LateProbes.FusedTail) (q : Nat)
+    (adversary : Adversary) (hforget : LateProbes.ForgetsTo fused adversary)
+    (hbudget : HasTotalBudget adversary q)
+    (hprf : ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+        (fun pair =>
+          Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) ≤ 1) :
+    ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+        (fun pair =>
+          Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) ≤
+      ((q - 2 ^ subtreeHeight + 1 : Nat) : ℝ≥0∞) := by
+  classical
+  have hfirst : ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+      (fun pair =>
+        Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair)) +
+          Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) ≤
+      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) :=
+    ClassExpectation.expected_le_of_le _ _ _ fun pair hpair =>
+      SharedJoin.card_parts_le_budget adversary q hbudget
+        (LateProbes.mem_support_forget hforget hpair)
+  rw [← ClassExpectation.expected_add]
+  refine le_trans (add_le_add hfirst hprf) (le_of_eq ?_)
+  rw [show ((q - 2 ^ subtreeHeight + 1 : Nat) : ℝ≥0∞) =
+    ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + 1 from by push_cast; ring]
+
+open scoped Classical in
+/-- **And at the fused tail**, which is where the column reads it. -/
+theorem expected_three_parts_le_budget_unit (q : Nat) (adversary : Adversary)
+    (hbudget : HasTotalBudget adversary q)
+    (hprf : ClassExpectation.expected
+        (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+        (fun pair =>
+          Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) ≤ 1) :
+    ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+        (fun pair =>
+          Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) ≤
+      ((q - 2 ^ subtreeHeight + 1 : Nat) : ℝ≥0∞) :=
+  expected_three_parts_le_budget_unit_at FusedCoverage.fusedTail q adversary
+    (FusedCoverage.forgetsTo adversary) hbudget hprf
+
 /-! ## Can one entry carry both charges at once?
 
 The doubling comes from a union bound: the record's message-class part stakes a unit on *"this

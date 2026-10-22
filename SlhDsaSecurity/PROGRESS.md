@@ -5339,3 +5339,32 @@ fixed, and is not a theorem.
 So the factor is in **our accounting**, not in the adversary: the reduction charges two readings
 at the full rate because its event accounting cannot tell them apart, and the adversary converts
 one.
+## The 127 line, with no seed column
+
+`Target.target_of_obligations_fused_unit` is `HasTotalSecurityBits .strong 127` at a refining
+tail, with the shared half inside **one** record plus a single unit and **no seed column at
+all**. Its `Nat` line is
+
+    (q - 512 + 260) + q + 2 ≤ 2 * q,   i.e.   262 ≤ 512,   with 250 spare
+
+named as `unitColumn_line` and `unitColumn_margin`. The `260` is the forgery's 259 claimed cells
+plus one unit for the format identity's overlap; the `2` is the answer half's proved defect.
+Nothing is doubled anywhere.
+
+`TargetColumn.expected_three_parts_le_budget_unit` is `hparts` at that line: `recordAiming` and
+`recordMessageClass` are disjoint by construction and fit the record
+(`SharedJoin.card_parts_le_budget`), and what `recordPrfClass` adds is the overlap, taken here
+as a **hypothesis** that its expectation is below one — in the shape its producer will deliver,
+so a shape that does not meet fails at the statement.
+
+**Why the socket is stated for the clause's absence rather than its price.** Disjointness cannot
+rescue a clause whose count is forced by its *probability*: `Pr[seed] ≤ card record / 2 ^ 128`
+is a union bound, so its numerator is record-sized however disjoint the parts are. That is
+`seedEvent_empty_of_prfClass_charge` read from the other side. So what has to change is whether
+the clause exists — and the reason it exists is a **filing rule**: the forgery's digest input is
+in the record, since the verifier queries it, and what keeps it out of the *target* recording is
+that the recorder files on a fresh draw while the signer had already cached it.
+
+**The crux, which belongs to the settlement thread:** whether an entry can be filed for the join
+while excluded from the rate, since the per-entry rate rests on the answer being a fresh draw.
+Filing on a cache hit is the repair the carrier already made for its served set.

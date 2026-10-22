@@ -263,7 +263,6 @@ import SlhDsaSecurity.Proof.PrfClassCount
 import SlhDsaSecurity.Proof.SplitSeedView
 import SlhDsaSecurity.Proof.ForgetsOn
 import SlhDsaSecurity.Proof.GuessingBar
-
 import SlhDsaSecurity.Proof.ServingCounted
 
 /--
@@ -16597,3 +16596,37 @@ info: 'SlhDsaSecurity.GuessingBar.one_stake_is_half' depends on axioms: [propext
 /-- info: 'SlhDsaSecurity.SplitSeedView.update_servingView' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitSeedView.update_servingView
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit_at' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit_at
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit
+
+/--
+info: 'SlhDsaSecurity.Target.unitColumn_line' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.unitColumn_line
+
+/--
+info: 'SlhDsaSecurity.Target.unitColumn_margin' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.unitColumn_margin
+
+/--
+info: 'SlhDsaSecurity.Target.target_of_obligations_fused_unit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations_fused_unit
