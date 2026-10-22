@@ -16034,3 +16034,7 @@ info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms:
 /-- info: 'SlhDsaSecurity.CarrierServedLog.carrierLogged_run_of_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierServedLog.carrierLogged_run_of_clear
+
+/-- info: 'SlhDsaSecurity.TargetColumn.card_prf_le_indicator_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_prf_le_indicator_record
