@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.AddressBounds
 import SlhDsaSecurity.Proof.WalkDefects
+import SlhDsaSecurity.Proof.ClassExpectation
 
 /-!
 # The answer side, as one predicate against one budget
@@ -94,6 +95,71 @@ theorem prob_deviatingCollision_outside_le (adversary : Adversary) (pk : PublicK
   have hres : result ∈ support (tail adversary walk) := by rw [tail]; exact hresult
   exact ⟨CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates parent
     result output hdeviates hentry hcollision, hinside result hres, houtside result hres⟩
+
+/-! ## The two charges against one budget
+
+`prob_answerBad_le` below takes the two class limits as two numbers and leaves their sum to be
+discharged against the budget. That sum cannot be discharged: the split between the classes is
+the adversary's to choose, run by run, and the only pair of fixed numbers that bounds both
+growths on *every* run is `budget, budget` — the target twice over.
+
+So the sum has to be taken before the uniform bound rather than after.
+`ClassExpectation.prob_bad_or_coverage_le` is that step: the two counts are read off one
+split-counted run, added pathwise, and bounded once. The structural charge it needs is proved
+there; the coverage charge has to arrive already in expectation form, and that is the one thing
+this route still owes — see the note below. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side against one budget.** No `qs + qm ≤ budget`: the structural clause is
+charged to the outside slot of the split counter and the coverage clause to the inside slot,
+and the run's own hash count bounds the two together.
+
+The class is a parameter and is never read. What it has to satisfy is `hseparated`: on an
+in-class input the canonical target does not exist, so a structural collision can only be
+witnessed outside the class. `CombinedCharge.separated_of_not_possible` is that fact for the
+`H_msg` format, and any narrowing of the class keeps it, since a narrower class leaves more
+inputs outside.
+
+What this still takes as a hypothesis is `hcoverage`, the coverage clause charged at the
+*expected* number of in-class queries rather than at a limit fixed in advance. That is not a
+weakening for convenience: it is the form the two charges have to be in to be added, and
+`CoverageTail.prob_coverage_tail_le` does not have it. A bound of the shape
+`Pr[cov] ≤ constant + limit / 2 ^ 128`, holding for every limit the run's growth stays inside,
+does not yield `constant + expected count / 2 ^ 128` by averaging — the per-run weight is
+already spent inside the fixed-limit bound, and a run that is covered only when its record is
+long pays the long record's full rate with none of its probability. -/
+theorem prob_answerBad_le_of_budget (adversary : Adversary) (pk : PublicKey)
+    (inClass : Bytes → Prop) {inside outside : QueryKind} (hne : inside ≠ outside)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hseparated : ∀ input, inClass input →
+      CanonicalTarget.canonicalTarget walk.1.1.2.2 walk.1.2 input = none)
+    (constant : ℝ≥0∞) (budget : Nat)
+    (hcoverage : Pr[CoverageTail.ForgeryCovered pk | tail adversary walk] ≤
+      constant + ClassExpectation.expected ((simulateQ KeygenUniform.rom
+          (countQueries (ClassGrowth.splitCost inClass inside outside)
+            (afterSeeds adversary walk.1.1))).run walk.2)
+        (fun result => (result.1.2) inside) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hbudget : ∀ result ∈ support (tail adversary walk), result.1.2 ≤ budget) :
+    Pr[fun result => RoutedSplit.AnswerBadAt pk ((walk.1, result.1), result.2) |
+      tail adversary walk] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + constant := by
+  have hcharge := ClassExpectation.prob_bad_or_coverage_le inClass hne
+    (CanonicalBad walk.1.1.2.2 walk.1.2)
+    (fun input => prob_canonicalBad_le walk.1.1.2.2 walk.1.2 input)
+    (fun input answer hbad hmember => by
+      rw [CanonicalBad, hseparated input hmember] at hbad
+      exact absurd hbad (by simp))
+    (afterSeeds adversary walk.1.1) walk.2
+    (CanonicalTarget.clean_of_canonical_cache walk.1.1.2.2 walk.1.2 walk.2
+      (WarmedCharges.walk_cache_canonical hwalk))
+    (CoverageTail.ForgeryCovered pk) constant hcoverage budget hbudget
+  rw [tail]
+  refine le_trans (probEvent_mono ?_) hcharge
+  rintro result hresult (⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered)
+  · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
+      parent result output hdeviates hentry hcollision)
+  · exact Or.inr (CoverageRouted.forgeryCovered_of_disclosed _ pk result hcovered)
 
 /-! ## The two charges, added
 

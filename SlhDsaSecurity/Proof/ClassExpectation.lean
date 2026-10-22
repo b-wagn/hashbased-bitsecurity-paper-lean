@@ -173,33 +173,51 @@ theorem event_map_eq {α : Type} (bad : Bytes → HashOutput → Prop) (shift : 
   rfl
 
 open scoped Classical in
+/-- The same shift, read at an arbitrary slot of the counter. -/
+theorem count_map_eq_slot {α : Type} (slot : QueryKind) (shift : Counts)
+    (run : ProbComp ((α × Counts) × QueryCache HashSpec)) (hmass : Pr[⊥ | run] = 0) :
+    expected ((fun result : (α × Counts) × QueryCache HashSpec =>
+          ((result.1.1, shift + result.1.2), result.2)) <$> run)
+        (fun result => (result.1.2) slot) =
+      ((shift slot : Nat) : ℝ≥0∞) +
+        expected run (fun result => (result.1.2) slot) := by
+  rw [expected_map]
+  exact expected_const_add run hmass (shift slot) (fun result => (result.1.2) slot)
+
+open scoped Classical in
 theorem count_map_eq {α : Type} (shift : Counts)
     (run : ProbComp ((α × Counts) × QueryCache HashSpec)) (hmass : Pr[⊥ | run] = 0) :
     expected ((fun result : (α × Counts) × QueryCache HashSpec =>
           ((result.1.1, shift + result.1.2), result.2)) <$> run)
         (fun result => (result.1.2) .hash) =
       ((shift .hash : Nat) : ℝ≥0∞) +
-        expected run (fun result => (result.1.2) .hash) := by
-  rw [expected_map]
-  exact expected_const_add run hmass (shift .hash) (fun result => (result.1.2) .hash)
+        expected run (fun result => (result.1.2) .hash) :=
+  count_map_eq_slot .hash shift run hmass
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **The per-class charge, as an expectation.** A run ends holding an answer bad for its own
-input with probability at most its expected number of in-class queries, times the rate. The
-count is read off each run; nothing here bounds it. -/
-theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOutput → Prop)
-    (rate : ℝ≥0∞)
+/-- **The per-class charge, as an expectation, at an arbitrary counter.** A run ends holding an
+answer bad for its own input with probability at most the expected value of `slot` on the run's
+own counter, times the rate — provided the counter charges at least one unit of `slot` to every
+in-class hash call. The count is read off each run; nothing here bounds it.
+
+Keeping the counter and the slot free is what lets the two sides of one class split be read off
+*one* run: `splitCost` charges the class to one slot and its complement to another, and both
+charges are then stated against the same instrumented run, so their counts add pathwise rather
+than each being bounded on its own. -/
+theorem prob_bad_le_expected_cost (inClass : Bytes → Prop) (bad : Bytes → HashOutput → Prop)
+    (rate : ℝ≥0∞) (cost : OracleWorld.Domain → Counts) (slot : QueryKind)
+    (hcost : ∀ input, inClass input → 1 ≤ cost (Sum.inr input) slot)
     (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
       ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
     (hclass : ∀ input answer, bad input answer → inClass input)
     {α : Type} (computation : OracleComp OracleWorld α) :
     ∀ (initialCache : QueryCache HashSpec), CleanBad bad initialCache →
       Pr[Bad bad | (simulateQ KeygenUniform.rom
-          (countQueries (classCost inClass) computation)).run initialCache] ≤
+          (countQueries cost computation)).run initialCache] ≤
         expected ((simulateQ KeygenUniform.rom
-            (countQueries (classCost inClass) computation)).run initialCache)
-          (fun result => (result.1.2) .hash) * rate := by
+            (countQueries cost computation)).run initialCache)
+          (fun result => (result.1.2) slot) * rate := by
   classical
   induction computation using OracleComp.inductionOn with
   | pure value =>
@@ -217,7 +235,7 @@ theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOut
       StateT.run_bind]
     simp only [simulateQ_map, StateT.run_map]
     rcases queried with coin | input
-    · -- A uniform coin costs nothing and leaves the cache alone.
+    · -- A uniform coin leaves the cache alone, and whatever it costs only helps.
       rw [probEvent_bind_eq_tsum, expected_bind, ← ENNReal.tsum_mul_right]
       have hstep : ∀ step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run initialCache),
           step.2 = initialCache := by
@@ -229,11 +247,10 @@ theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOut
         rw [← hvalue]
       refine ENNReal.tsum_le_tsum fun step => ?_
       by_cases hmem : step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run initialCache)
-      · rw [event_map_eq, count_map_eq _ _ (run_neverFails _ _), classCost_inl,
-          hstep step hmem, mul_assoc]
+      · rw [event_map_eq, count_map_eq_slot _ _ _ (run_neverFails _ _), hstep step hmem,
+          mul_assoc]
         refine mul_le_mul' le_rfl ?_
-        rw [show ((0 : Counts) .hash : Nat) = 0 from rfl, Nat.cast_zero, zero_add]
-        exact ih step.1 initialCache hclean
+        exact le_trans (ih step.1 initialCache hclean) (mul_le_mul' le_add_self le_rfl)
       · rw [probOutput_eq_zero_of_not_mem_support hmem]
         simp
     · cases hcached : initialCache input with
@@ -245,15 +262,15 @@ theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOut
           rw [QueryImpl.withCaching_run_some _ hcached]
         rw [hrun]
         show Pr[Bad bad | (fun result : (α × Counts) × QueryCache HashSpec =>
-              ((result.1.1, classCost inClass (Sum.inr input) + result.1.2), result.2)) <$>
+              ((result.1.1, cost (Sum.inr input) + result.1.2), result.2)) <$>
             (simulateQ KeygenUniform.rom
-              (countQueries (classCost inClass) (next cached))).run initialCache] ≤
+              (countQueries cost (next cached))).run initialCache] ≤
           expected ((fun result : (α × Counts) × QueryCache HashSpec =>
-              ((result.1.1, classCost inClass (Sum.inr input) + result.1.2), result.2)) <$>
+              ((result.1.1, cost (Sum.inr input) + result.1.2), result.2)) <$>
             (simulateQ KeygenUniform.rom
-              (countQueries (classCost inClass) (next cached))).run initialCache)
-            (fun result => (result.1.2) .hash) * rate
-        rw [event_map_eq, count_map_eq _ _ (run_neverFails _ _)]
+              (countQueries cost (next cached))).run initialCache)
+            (fun result => (result.1.2) slot) * rate
+        rw [event_map_eq, count_map_eq_slot _ _ _ (run_neverFails _ _)]
         refine le_trans (ih cached initialCache hclean) ?_
         exact mul_le_mul' le_add_self le_rfl
       | none =>
@@ -266,26 +283,27 @@ theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOut
         rw [hrun]
         show Pr[Bad bad | ($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
             (fun result : (α × Counts) × QueryCache HashSpec =>
-                ((result.1.1, classCost inClass (Sum.inr input) + result.1.2), result.2)) <$>
+                ((result.1.1, cost (Sum.inr input) + result.1.2), result.2)) <$>
               (simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
+                (countQueries cost (next answer))).run
                 (initialCache.cacheQuery input answer)] ≤
           expected (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
             (fun result : (α × Counts) × QueryCache HashSpec =>
-                ((result.1.1, classCost inClass (Sum.inr input) + result.1.2), result.2)) <$>
+                ((result.1.1, cost (Sum.inr input) + result.1.2), result.2)) <$>
               (simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
+                (countQueries cost (next answer))).run
                 (initialCache.cacheQuery input answer))
-            (fun result => (result.1.2) .hash) * rate
+            (fun result => (result.1.2) slot) * rate
         rw [probEvent_bind_eq_tsum, expected_bind]
-        simp only [event_map_eq, count_map_eq _ _ (run_neverFails _ _), classCost_inr_hash]
+        simp only [event_map_eq, count_map_eq_slot _ _ _ (run_neverFails _ _)]
         have hpointwise : ∀ answer : HashOutput,
             Pr[Bad bad | (simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
+                (countQueries cost (next answer))).run
                 (initialCache.cacheQuery input answer)] ≤
               (if bad input answer then 1 else 0) + expected ((simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
-                (initialCache.cacheQuery input answer)) (fun result => (result.1.2) .hash) * rate := by
+                (countQueries cost (next answer))).run
+                (initialCache.cacheQuery input answer))
+                (fun result => (result.1.2) slot) * rate := by
           intro answer
           by_cases hbadness : bad input answer
           · rw [if_pos hbadness]
@@ -295,40 +313,215 @@ theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOut
         have hsplit : ∑' answer : HashOutput,
               Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
                 ((if bad input answer then 1 else 0) + expected ((simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
-                (initialCache.cacheQuery input answer)) (fun result => (result.1.2) .hash) * rate) =
+                (countQueries cost (next answer))).run
+                (initialCache.cacheQuery input answer))
+                (fun result => (result.1.2) slot) * rate) =
             Pr[fun answer : HashOutput => bad input answer |
               ($ᵗ HashOutput : ProbComp HashOutput)] +
               (∑' answer : HashOutput,
-                Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] * expected ((simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
-                (initialCache.cacheQuery input answer)) (fun result => (result.1.2) .hash)) * rate := by
+                Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  expected ((simulateQ KeygenUniform.rom
+                (countQueries cost (next answer))).run
+                (initialCache.cacheQuery input answer))
+                (fun result => (result.1.2) slot)) * rate := by
           rw [probEvent_eq_tsum_ite, ← ENNReal.tsum_mul_right, ← ENNReal.tsum_add]
           refine tsum_congr fun answer => ?_
           rw [mul_add, mul_assoc]
           by_cases hbadness : bad input answer <;> simp [hbadness]
         refine le_trans (le_trans (ENNReal.tsum_le_tsum fun answer =>
           mul_le_mul' le_rfl (hpointwise answer)) (le_of_eq hsplit)) ?_
-        by_cases hmember : inClass input
-        · simp only [if_pos hmember]
-          have hdistrib : ∀ answer : HashOutput,
+        -- The step's own charge is a constant shift of the tail's expectation.
+        have hrhs : (∑' answer : HashOutput,
               Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
-                  (((1 : Nat) : ℝ≥0∞) + expected ((simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
-                (initialCache.cacheQuery input answer)) (fun result => (result.1.2) .hash)) =
-                Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] +
-                  Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] * expected ((simulateQ KeygenUniform.rom
-                (countQueries (classCost inClass) (next answer))).run
-                (initialCache.cacheQuery input answer)) (fun result => (result.1.2) .hash) := by
-            intro answer
-            rw [mul_add, Nat.cast_one, mul_one]
-          rw [tsum_congr hdistrib, ENNReal.tsum_add, tsum_probOutput_eq_one' (by simp),
-            add_mul, one_mul]
-          exact add_le_add (hrate input) le_rfl
-        · simp only [if_neg hmember, Nat.cast_zero, zero_add]
+                (((cost (Sum.inr input) slot : Nat) : ℝ≥0∞) +
+                  expected ((simulateQ KeygenUniform.rom
+                    (countQueries cost (next answer))).run
+                    (initialCache.cacheQuery input answer))
+                    (fun result => (result.1.2) slot))) =
+            ((cost (Sum.inr input) slot : Nat) : ℝ≥0∞) +
+              ∑' answer : HashOutput,
+                Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  expected ((simulateQ KeygenUniform.rom
+                    (countQueries cost (next answer))).run
+                    (initialCache.cacheQuery input answer))
+                    (fun result => (result.1.2) slot) := by
+          calc ∑' answer : HashOutput,
+                Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  (((cost (Sum.inr input) slot : Nat) : ℝ≥0∞) +
+                    expected ((simulateQ KeygenUniform.rom
+                      (countQueries cost (next answer))).run
+                      (initialCache.cacheQuery input answer))
+                      (fun result => (result.1.2) slot))
+              = ∑' answer : HashOutput,
+                  (Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                      ((cost (Sum.inr input) slot : Nat) : ℝ≥0∞) +
+                    Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                      expected ((simulateQ KeygenUniform.rom
+                        (countQueries cost (next answer))).run
+                        (initialCache.cacheQuery input answer))
+                        (fun result => (result.1.2) slot)) :=
+                tsum_congr fun answer => mul_add _ _ _
+            _ = (∑' answer : HashOutput,
+                  Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                    ((cost (Sum.inr input) slot : Nat) : ℝ≥0∞)) +
+                ∑' answer : HashOutput,
+                  Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                    expected ((simulateQ KeygenUniform.rom
+                      (countQueries cost (next answer))).run
+                      (initialCache.cacheQuery input answer))
+                      (fun result => (result.1.2) slot) := ENNReal.tsum_add
+            _ = _ := by
+                rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' (by simp), one_mul]
+        rw [hrhs, add_mul]
+        by_cases hmember : inClass input
+        · -- An in-class call is charged at least one unit of the slot, which pays the rate.
+          refine add_le_add (le_trans (hrate input) ?_) le_rfl
+          calc rate = 1 * rate := (one_mul rate).symm
+            _ ≤ ((cost (Sum.inr input) slot : Nat) : ℝ≥0∞) * rate :=
+                mul_le_mul' (by exact_mod_cast hcost input hmember) le_rfl
+        · -- Off the class the answer cannot be bad at all, so the step costs nothing.
           have hzero : Pr[fun answer : HashOutput => bad input answer |
               ($ᵗ HashOutput : ProbComp HashOutput)] = 0 :=
             probEvent_eq_zero fun answer _ hbadness => hmember (hclass input answer hbadness)
           rw [hzero, zero_add]
+          exact le_add_self
+
+open scoped Classical in
+/-- **The per-class charge, as an expectation.** A run ends holding an answer bad for its own
+input with probability at most its expected number of in-class queries, times the rate. The
+count is read off each run; nothing here bounds it. -/
+theorem prob_bad_le_expected (inClass : Bytes → Prop) (bad : Bytes → HashOutput → Prop)
+    (rate : ℝ≥0∞)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
+    (hclass : ∀ input answer, bad input answer → inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (initialCache : QueryCache HashSpec), CleanBad bad initialCache →
+      Pr[Bad bad | (simulateQ KeygenUniform.rom
+          (countQueries (classCost inClass) computation)).run initialCache] ≤
+        expected ((simulateQ KeygenUniform.rom
+            (countQueries (classCost inClass) computation)).run initialCache)
+          (fun result => (result.1.2) .hash) * rate :=
+  prob_bad_le_expected_cost inClass bad rate (classCost inClass) .hash
+    (fun input hmember => by rw [classCost_inr_hash, if_pos hmember]) hrate hclass computation
+
+
+/-! ## The two classes, added before the uniform bound is taken
+
+Two charges on the two sides of one split, combined against one budget. What makes this an
+addition rather than a doubling is that the two counts are counts of the *same* run — the
+split-counted run, which `ClassGrowth.run_splitCost_eq_map` identifies with the plain one — so
+the budget's pathwise inequality on the total is available before either charge has been
+bounded uniformly.
+
+Taking the uniform bound first is what costs the second budget. Each charge's limit is chosen
+by the adversary, run by run, and the only number that bounds either on *every* run is the
+whole budget; so a pair of fixed limits can only be `budget, budget`, which is the target twice
+over. Here the two expectations are added first and the one uniform bound is taken at the end,
+where the per-run split cancels inside the pathwise inequality rather than after it. -/
+
+/-- **Two charges and a constant share one budget.** Each charge is bounded by its own expected
+number of chances on one run, one of them with a constant beside it, and on every supported run
+the two counts together stay inside the budget — so the two charges together cost what one
+budget buys. -/
+theorem add_le_of_shared_budget_const {β : Type} (run : ProbComp β)
+    (firstCharge secondCharge constant : ℝ≥0∞)
+    (firstChances secondChances : β → Nat) (budget : Nat)
+    (hfirst : firstCharge ≤ expected run firstChances / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hsecond : secondCharge ≤
+      constant + expected run secondChances / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hshare : ∀ value ∈ support run, firstChances value + secondChances value ≤ budget) :
+    firstCharge + secondCharge ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + constant := by
+  calc firstCharge + secondCharge
+      ≤ expected run firstChances / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (constant + expected run secondChances / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
+        add_le_add hfirst hsecond
+    _ = constant + (expected run firstChances / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          expected run secondChances / ((2 ^ 128 : Nat) : ℝ≥0∞)) := add_left_comm _ _ _
+    _ = constant +
+          expected run (fun value => firstChances value + secondChances value) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        rw [ENNReal.div_add_div_same, expected_add]
+    _ ≤ constant + ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        add_le_add le_rfl (ENNReal.div_le_div_right
+          (expected_le_of_le run (fun value => firstChances value + secondChances value) budget
+            hshare) _)
+    _ = _ := add_comm _ _
+
+open scoped Classical in
+/-- **The charge on the outside class, stated at the plain run.** The structural half of a
+split: the bad answer is witnessed only outside the class, so only the outside slot pays for
+it, and the count is read off the split-counted run rather than bounded in advance. -/
+theorem prob_bad_le_expected_outside (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (bad : Bytes → HashOutput → Prop) (rate : ℝ≥0∞)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
+    (hclass : ∀ input answer, bad input answer → ¬ inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α)
+    (initialCache : QueryCache HashSpec) (hclean : CleanBad bad initialCache) :
+    Pr[Bad bad |
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
+      expected ((simulateQ KeygenUniform.rom
+          (countQueries (splitCost inClass inside outside) computation)).run initialCache)
+        (fun result => (result.1.2) outside) * rate := by
+  classical
+  rw [probEvent_splitCost inClass hne computation initialCache (Bad bad)]
+  exact prob_bad_le_expected_cost (fun input => ¬ inClass input) bad rate
+    (splitCost inClass inside outside) outside
+    (fun input hmember => by rw [splitCost_outside inClass inside outside input hmember])
+    hrate hclass computation initialCache hclean
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The two-class bound.** One budget, two charges, and no `qs + qm ≤ budget` left to
+discharge: the structural charge is paid by the outside slot and the coverage charge by the
+inside slot of one and the same counter, and the budget bounds their sum on every run.
+
+The coverage charge enters in expectation form — `constant + expected inside count / 2 ^ 128` —
+because that is the only form in which it can be added to the other without spending a second
+budget. A coverage charge stated at a *fixed* limit cannot be put in this form by averaging:
+`Pr[cov] ≤ constant + limit / 2 ^ 128` holding for every limit says nothing about
+`constant + expected count / 2 ^ 128`, because the per-run weight has already been spent inside
+the fixed-limit bound.
+
+`inClass` is left free. Nothing below reads the class, so the bound survives the class being
+narrowed; an instantiated counter would not. -/
+theorem prob_bad_or_coverage_le (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (bad : Bytes → HashOutput → Prop)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hclass : ∀ input answer, bad input answer → ¬ inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α)
+    (initialCache : QueryCache HashSpec) (hclean : CleanBad bad initialCache)
+    (coverage : (α × Nat) × QueryCache HashSpec → Prop) (constant : ℝ≥0∞)
+    (hcoverage : Pr[coverage |
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
+      constant + expected ((simulateQ KeygenUniform.rom
+          (countQueries (splitCost inClass inside outside) computation)).run initialCache)
+        (fun result => (result.1.2) inside) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (budget : Nat)
+    (hbudget : ∀ result ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes computation)).run initialCache), result.1.2 ≤ budget) :
+    Pr[fun result : (α × Nat) × QueryCache HashSpec => Bad bad result ∨ coverage result |
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + constant := by
+  classical
+  refine le_trans (probEvent_or_le _ _ _) ?_
+  refine add_le_of_shared_budget_const
+    ((simulateQ KeygenUniform.rom
+      (countQueries (splitCost inClass inside outside) computation)).run initialCache)
+    _ _ constant (fun result => (result.1.2) outside) (fun result => (result.1.2) inside)
+    budget ?_ hcoverage ?_
+  · rw [← mul_one_div]
+    exact prob_bad_le_expected_outside inClass hne bad _ hrate hclass computation initialCache
+      hclean
+  · intro result hmem
+    have hplain : result.1.2 inside + result.1.2 outside ≤ budget :=
+      hbudget _ (mem_support_countAllHashes_of_splitCost inClass hne computation
+        initialCache result hmem)
+    omega
 
 end SlhDsaSecurity.ClassExpectation

@@ -6848,3 +6848,129 @@ info: 'SlhDsaSecurity.BlockDisclosures.splitBlocks_fst' depends on axioms: [prop
 /-- info: 'SlhDsaSecurity.RedrawCell.unionCache_of_not_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.unionCache_of_not_canonical
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.splitCost_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.splitCost_inl
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.splitCost_inside' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.splitCost_inside
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.splitCost_outside' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.splitCost_outside
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.splitCost_add_eq_hashCost' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.splitCost_add_eq_hashCost
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.growthOn_step_of_charge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.growthOn_step_of_charge
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.growthOn_le_count' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.growthOn_le_count
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.growthOn_le_splitCount_inside' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.growthOn_le_splitCount_inside
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.growthOn_le_splitCount_outside' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.growthOn_le_splitCount_outside
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.countAllHashes_eq_readOff' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.countAllHashes_eq_readOff
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.run_countQueries_eq_map_readOff' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.run_countQueries_eq_map_readOff
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.splitSum_add' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.splitSum_add
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.run_splitCost_eq_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.run_splitCost_eq_map
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.probEvent_splitCost' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.probEvent_splitCost
+
+/--
+info: 'SlhDsaSecurity.ClassGrowth.mem_support_countAllHashes_of_splitCost' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.mem_support_countAllHashes_of_splitCost
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.count_map_eq_slot' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.count_map_eq_slot
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_cost' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_cost
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget_const' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget_const
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_outside' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.prob_bad_le_expected_outside
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.prob_bad_or_coverage_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.prob_bad_or_coverage_le
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget
