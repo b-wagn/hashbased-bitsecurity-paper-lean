@@ -1269,6 +1269,94 @@ theorem merkle_sign_wots_cell (cache : QueryCache HashSpec)
     @wots_sign_cells (replayQuery cache)]
   rfl
 
+/-! ## The hypertree's layers, one peel at a time
+
+The signer climbs the hypertree: it signs the incoming message with the subtree it is standing
+in, recovers that subtree's root, and signs *that* at the layer above. So the layers are not
+indexed by a closed-form coordinate; they are a recursion, and the statements below are the
+recursion rather than a solution of it — the head layer's entries, and the tail as the same
+climb one layer up with the recovered root as its message.
+
+The recovered root is the subtree's own cell, so the message each layer signs is a cell too,
+and an unprotected one: a `tree` node's children are subtree cells and WOTS public keys. The
+only protected cell in sight is the chain value the WOTS half discloses, which is available
+because the signature discloses it. -/
+
+/-- The node an honest subtree's root is the cell at. -/
+def subtreeRootNode (tree : Tree) : StructuralNode :=
+  merkleNode tree subtreeHeight (le_refl subtreeHeight) ⟨0, by simp⟩
+
+/-- **A subtree's root is the cell at its top node.** -/
+theorem subtree_root_cell (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
+    (tree : Tree) :
+    @Merkle.node Id _ (replayQuery cache) secretSeed publicSeed tree.address subtreeHeight 0 =
+      replayCells cache secretSeed publicSeed (.structural (subtreeRootNode tree)) :=
+  (@value_merkleNode (replayQuery cache) secretSeed publicSeed tree subtreeHeight
+    (le_refl subtreeHeight) ⟨0, by simp⟩).symm
+
+/-- **One layer peeled off the climb.** -/
+theorem signLayers_succ_eq (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
+    (remaining layer tree : Nat) (leaf : Hypertree.LeafIndex) (message : Digest) :
+    @Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed (remaining + 1) layer
+        tree leaf message =
+      Fin.cases (@Merkle.sign Id _ (replayQuery cache) message secretSeed publicSeed
+          (Hypertree.address layer tree) leaf)
+        (@Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed remaining
+          (layer + 1) (tree / 2 ^ subtreeHeight) (Hypertree.nextLeaf tree)
+          (@Merkle.publicKeyFromSignature Id _ (replayQuery cache) leaf
+            (@Merkle.sign Id _ (replayQuery cache) message secretSeed publicSeed
+              (Hypertree.address layer tree) leaf)
+            message publicSeed (Hypertree.address layer tree))) := by
+  cases remaining <;> rfl
+
+/-- **The layer the signer is standing in** is the subtree signature it writes there. -/
+theorem signLayers_head (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
+    (remaining layer tree : Nat) (leaf : Hypertree.LeafIndex) (message : Digest) :
+    @Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed (remaining + 1) layer
+        tree leaf message 0 =
+      @Merkle.sign Id _ (replayQuery cache) message secretSeed publicSeed
+        (Hypertree.address layer tree) leaf := by
+  rw [signLayers_succ_eq]
+  simp only [Fin.cases_zero]
+
+/-- **The layers above it** are the same climb, one layer up, with the subtree's own root as
+the message. -/
+theorem signLayers_tail (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
+    (remaining layer tree : Nat) (leaf : Hypertree.LeafIndex) (message : Digest)
+    (level : Fin remaining) :
+    @Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed (remaining + 1) layer
+        tree leaf message level.succ =
+      @Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed remaining (layer + 1)
+        (tree / 2 ^ subtreeHeight) (Hypertree.nextLeaf tree)
+        (@Merkle.node Id _ (replayQuery cache) secretSeed publicSeed
+          (Hypertree.address layer tree) subtreeHeight 0) level := by
+  rw [signLayers_succ_eq]
+  simp only [Fin.cases_succ]
+  rw [@Correctness.Merkle.publicKeyFromSignature_sign (replayQuery cache) message
+    secretSeed publicSeed (Hypertree.address layer tree) leaf]
+
+/-- **The WOTS half of the layer the signer is standing in**, cell by cell. -/
+theorem signLayers_head_wots_cell (cache : QueryCache HashSpec)
+    (secretSeed publicSeed : Digest) (remaining : Nat) (tree : Tree)
+    (leaf : Fin (2 ^ subtreeHeight)) (message : Digest) (chain : Fin chains) :
+    (@Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed (remaining + 1)
+        tree.layer.val tree.tree.val leaf message 0).wots chain =
+      replayCells cache secretSeed publicSeed
+        (.structural (wotsPosition ⟨tree, leaf⟩ chain (Checksum.encode message chain))) := by
+  rw [signLayers_head]
+  exact merkle_sign_wots_cell cache message secretSeed publicSeed tree leaf chain
+
+/-- **The authentication half of that layer**, cell by cell. -/
+theorem signLayers_head_authentication_cell (cache : QueryCache HashSpec)
+    (secretSeed publicSeed : Digest) (remaining : Nat) (tree : Tree)
+    (leaf : Fin (2 ^ subtreeHeight)) (message : Digest) (level : Fin subtreeHeight) :
+    (@Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed (remaining + 1)
+        tree.layer.val tree.tree.val leaf message 0).authentication level =
+      replayCells cache secretSeed publicSeed
+        (.structural (merkleAuthNode tree leaf level)) := by
+  rw [signLayers_head]
+  exact merkle_sign_authentication_cell cache message secretSeed publicSeed tree leaf level
+
 /-- An honest XMSS path step, as a path fold over the subtree's honest nodes. -/
 theorem merkle_combine_eq (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
     (tree : Tree) (leaf : Fin (2 ^ subtreeHeight)) (signature : XmssSignature)
