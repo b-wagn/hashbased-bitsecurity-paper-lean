@@ -251,6 +251,7 @@ import SlhDsaSecurity.Proof.RecordColumn
 import SlhDsaSecurity.Proof.TargetColumn
 import SlhDsaSecurity.Proof.CarrierSplit
 import SlhDsaSecurity.Proof.RecordSlot
+import SlhDsaSecurity.Proof.SharedOracleScaling
 import SlhDsaSecurity.Proof.CarrierCap
 import SlhDsaSecurity.Proof.CarrierLeftRecord
 
@@ -15967,3 +15968,15 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
+
+/-- info: 'SlhDsaSecurity.SharedOracleScaling.target_eq_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleScaling.target_eq_127
+
+/-- info: 'SlhDsaSecurity.SharedOracleScaling.holds_at_two_pow_81' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleScaling.holds_at_two_pow_81
+
+/-- info: 'SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100
