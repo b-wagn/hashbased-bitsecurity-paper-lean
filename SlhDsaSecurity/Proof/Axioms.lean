@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.WriterState
 import SlhDsaSecurity.Proof.LinkedPhase
 import SlhDsaSecurity.Proof.ClassExpectation
+import SlhDsaSecurity.Proof.CanonicalSplit
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.ClassGrowth
 import SlhDsaSecurity.Proof.SensitiveExpectation
@@ -5219,4 +5220,24 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget
+
+/-- info: 'SlhDsaSecurity.HypertreeDispatch.cases_of_accepted_signed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HypertreeDispatch.cases_of_accepted_signed
+
+/-- info: 'SlhDsaSecurity.ForsBranch.deviatingCollision_or_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ForsBranch.deviatingCollision_or_canonical
+
+/-- info: 'SlhDsaSecurity.CanonicalSplit.cases_of_win_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalSplit.cases_of_win_canonical
+
+/--
+info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_canonical_of_verified' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierProbes.deviatingCollision_or_canonical_of_verified
 

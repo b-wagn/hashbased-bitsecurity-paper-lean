@@ -47,6 +47,23 @@ verification to events a random oracle can be charged for, with no assumption of
 resistance or one-wayness anywhere: both are *conclusions* about the adversary's queries, not
 hypotheses about the hash. -/
 
+/-- **An accepted hypertree signature is the signer's own, or faulty.** The fault-free branch
+pins every layer, not just the bottom message, which is what lets a forgery with no fault in it
+be compared with the signature a request returned. -/
+theorem cases_of_accepted_signed (secretSeed publicSeed : Digest) (pk : PublicKey)
+    (tree : SlhDsaSecurity.Hypertree.TreeIndex) (leaf : SlhDsaSecurity.Hypertree.LeafIndex)
+    (forsKey honestForsKey : Digest) (signature : HypertreeSignature)
+    (hseed : pk.seed = publicSeed)
+    (hroot : pk.root = honestNode secretSeed publicSeed (layers - 1) 0)
+    (haccept : SlhDsaSecurity.Hypertree.verify (m := Id) forsKey signature pk tree leaf = true) :
+    (forsKey = honestForsKey ∧
+        signature = SlhDsaSecurity.Hypertree.signLayers (m := Id) secretSeed publicSeed layers 0
+          tree.toNat leaf honestForsKey) ∨
+      HypertreeFault secretSeed publicSeed layers signature 0 tree.toNat leaf forsKey
+        honestForsKey :=
+  verify_fault_or_fors_signed secretSeed publicSeed pk tree leaf forsKey honestForsKey
+    signature hseed hroot haccept
+
 /-- **An accepted hypertree signature is canonical or faulty.** -/
 theorem cases_of_accepted (secretSeed publicSeed : Digest) (pk : PublicKey)
     (tree : SlhDsaSecurity.Hypertree.TreeIndex) (leaf : SlhDsaSecurity.Hypertree.LeafIndex)
