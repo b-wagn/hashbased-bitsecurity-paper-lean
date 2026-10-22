@@ -267,4 +267,36 @@ theorem prob_answerBad_good_le (adversary : Adversary) (qs qm : Nat)
   prob_answerBad_generated_le adversary qs qm hqm hwalk
     (not_possible_generatedKey hwalk hgood) hinside houtside
 
+/-! ## What the target asks for
+
+The shape the target's `hanswer` is stated in, with the two class counts as hypotheses. This is
+the whole of what the answer side still owes: one pair of numbers whose sum is the growth the
+tail is allowed. The `2 ^ -126` the target allows for a load cap is not spent — on this route
+the coverage clause is charged against the recording rather than against a fixed disclosure
+set, so what it costs is the recording's own `2 ^ -141` and nothing more. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side at the target's own bound**, given the class counts. -/
+theorem prob_answerBad_le_of_classes (adversary : Adversary) (q qs qm : Nat)
+    (hsum : qs + qm ≤ q - 2 ^ subtreeHeight) (hqm : qm ≤ 5 * 2 ^ 62)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hgood : ¬ HashSeparation.Possible
+      (walk.1.1.2.2, walk.1.2 (.structural WalkDefects.topNode)))
+    (hinside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        walk.2 result.2 qm)
+    (houtside : ∀ result ∈ support (tail adversary walk),
+      ClassCharge.GrowthAtMostOn (fun input => ¬ CombinedCharge.IsMessageInput
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input)
+        walk.2 result.2 qs) :
+    Pr[fun result => RoutedSplit.AnswerBad ((walk.1, result.1), result.2) |
+      tail adversary walk] ≤
+      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+          (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+  refine le_trans (prob_answerBad_good_le adversary qs qm hqm hwalk hgood hinside houtside)
+    (add_le_add (ENNReal.div_le_div_right (Nat.cast_le.mpr hsum) _) le_add_self)
+
 end SlhDsaSecurity.AnswerSide
