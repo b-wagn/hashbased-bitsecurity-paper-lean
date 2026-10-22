@@ -354,7 +354,20 @@ theorem prob_le_expected_of_perWalk (adversary : Adversary) (event : RecordedPai
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **The input half's hypothesis, from a containment and a walk-by-walk charge.** -/
+/-- **The input half's hypothesis, from a containment and a walk-by-walk charge.**
+
+**Sound, but the input half cannot use it, and nobody should reach for it on the strength of
+its name.** The charge is taken *per walk*, and the input half's cannot be: conditioning on the
+walk fixes the cell table, an adversary may be chosen knowing it, and at the walk whose cells it
+hardcodes the input event has probability one against a bound near `2 ^ -100`. That is the
+counterexample that moved `Obligations.SharedCharged` to the paired run in the first place; this
+adapter inherits the per-walk shape and inherits the obstruction with it.
+
+**The rule, which this is the third occasion for: a charge may be read at a fixed walk exactly
+when the randomness it spends is drawn after the walk.** The ordering defect qualifies — what it
+spends is the oracle's own fresh answers — and `hordering_of_probesIn` below is the adapter that
+serves it. The input half spends a secret the walk already drew, and discharges
+`prob_sharedBad_le_expected`'s `hinput` directly at `recordedPairedRun` instead. -/
 theorem hinput_of_probesIn (adversary : Adversary) (inputBad ordering : RecordedPair → Prop)
     (probes : RecordedPair → Multiset Bytes)
     (hprobes : ProbesIn recordAiming probes adversary)
@@ -377,7 +390,10 @@ theorem hinput_of_probesIn (adversary : Adversary) (inputBad ordering : Recorded
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
-/-- **The ordering defect's hypothesis, from a containment and a walk-by-walk charge.** -/
+/-- **The ordering defect's hypothesis, from a containment and a walk-by-walk charge.** This is
+the adapter the per-walk shape is sound for: the randomness the defect spends is the oracle's
+own fresh answers, drawn after the walk, so fixing the walk gives an adversary nothing. See
+`hinput_of_probesIn` for the half this does *not* serve. -/
 theorem hordering_of_probesIn (adversary : Adversary) (ordering : RecordedPair → Prop)
     (probes : RecordedPair → Multiset Bytes)
     (hprobes : ProbesIn recordMessageClass probes adversary)
