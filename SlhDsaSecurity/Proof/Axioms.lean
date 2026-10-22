@@ -252,6 +252,7 @@ import SlhDsaSecurity.Proof.TargetColumn
 import SlhDsaSecurity.Proof.CarrierSplit
 import SlhDsaSecurity.Proof.RecordSlot
 import SlhDsaSecurity.Proof.CarrierCap
+import SlhDsaSecurity.Proof.CarrierLeftRecord
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15846,3 +15847,31 @@ info: 'SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves_proved' depends o
 /-- info: 'SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves
+
+/-- info: 'SlhDsaSecurity.RecorderView.appendedOf_left_mem' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_left_mem
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.step_left_mem' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.step_left_mem
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftFramed_start' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftFramed_start
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.step_leftFramed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.step_leftFramed
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftFramed_startServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftFramed_startServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftFramed_stopServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftFramed_stopServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftFramed_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftFramed_carrierTail
