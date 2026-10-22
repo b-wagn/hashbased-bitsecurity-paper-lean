@@ -69,8 +69,8 @@ theorem targetKeep_narrow (narrow : Bytes → Prop)
     narrow input := hkeep.1
 
 /-- **The ordering defect.** Some target-recorded input is disclosing at the end. -/
-def Late (served : Bytes → QueryCache HashSpec → Prop)
-    (result : (Outcome × Nat) × SplitState) : Prop :=
+def Late {α : Type} (served : Bytes → QueryCache HashSpec → Prop)
+    (result : α × SplitState) : Prop :=
   ∃ entry ∈ result.2.2.2, served entry.1 result.2.1
 
 set_option maxHeartbeats 800000 in
@@ -285,8 +285,8 @@ first and the `PRF_msg` answer that discloses it was drawn afterwards — the ad
 randomiser before the answer it truncates existed. -/
 
 /-- **The ordering defect.** Some target-recorded digest is disclosing at the end. -/
-def LateDisclosure (prfSeed : Digest) (pk : PublicKey)
-    (result : (Outcome × Nat) × SplitState) : Prop :=
+def LateDisclosure {α : Type} (prfSeed : Digest) (pk : PublicKey)
+    (result : α × SplitState) : Prop :=
   Served.Late (disclosingKeep prfSeed pk) result
 
 set_option maxHeartbeats 800000 in

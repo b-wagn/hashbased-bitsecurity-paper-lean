@@ -178,6 +178,7 @@ import SlhDsaSecurity.Proof.ServingCarrier
 import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.PhaseFusion
 import SlhDsaSecurity.Proof.ServedBridge
+import SlhDsaSecurity.Proof.LateProbes
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -9034,3 +9035,51 @@ info: 'SlhDsaSecurity.SharedJoin.not_aimsSomewhere_messageInput' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.not_aimsSomewhere_messageInput
+
+/--
+info: 'SlhDsaSecurity.SplitPrefix.right_record_fresh_nodup' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_fresh_nodup
+
+/--
+info: 'SlhDsaSecurity.SplitPrefix.right_record_nodup' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_nodup
+
+/--
+info: 'SlhDsaSecurity.LateProbes.card_probesOf' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.card_probesOf
+
+/--
+info: 'SlhDsaSecurity.LateProbes.mem_probesOf' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.mem_probesOf
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probesOf_le' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probesOf_le
+
+/--
+info: 'SlhDsaSecurity.LateProbes.messageClass_of_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.messageClass_of_record
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probesOf_le_recordMessageClass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probesOf_le_recordMessageClass
+
+/--
+info: 'SlhDsaSecurity.LateProbes.prob_lateDisclosure_le_probes' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.prob_lateDisclosure_le_probes

@@ -783,6 +783,136 @@ theorem right_record_class {α : Type}
           · rw [hrecStep, appended_of_neither leftKeep rightKeep input state answer hleft hright]
             exact hstart
 
+/-! ## The right recording holds each input once
+
+A right entry is filed only at a *fresh* query, and the step that files it caches it. So every
+entry the right recording holds is cached from then on, and no later query at the same input is
+fresh enough to be filed again. The two facts are proved together because the second needs the
+first at the step where it is used: the input being filed is absent from the cache, and every
+entry already recorded is present in it.
+
+This is what lets the recording be read as a multiset without losing its length. A containment
+stated against a record counts multiplicities, and `Multiset.le_iff_subset` turns it into a
+membership question exactly when the left side is duplicate-free. -/
+
+theorem right_record_fresh_nodup {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (hcached : ∀ entry ∈ state.2.2, state.1 entry.1 ≠ none)
+    (hnodup : (state.2.2.map Prod.fst).Nodup) :
+    (∀ entry ∈ result.2.2.2, result.2.1 entry.1 ≠ none) ∧
+      (result.2.2.2.map Prod.fst).Nodup := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact ⟨hcached, hnodup⟩
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_ ?_
+    · rcases queried with coin | input
+      · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+        obtain ⟨value, -, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        rw [show step.2 = state from congrArg Prod.snd hpure]
+        exact hcached
+      · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+        obtain ⟨inner, hinner, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        cases hfresh : state.1 input with
+        | some value =>
+          rw [QueryImpl.withCaching_run_some _ hfresh, support_pure,
+            Set.mem_singleton_iff] at hinner
+          rw [hpure, hinner]
+          show ∀ entry ∈ (appended leftKeep rightKeep input state value).2, state.1 entry.1 ≠ none
+          rw [appended_of_cached leftKeep rightKeep input state value value hfresh]
+          exact hcached
+        | none =>
+          rw [QueryImpl.withCaching_run_none _ hfresh, support_map] at hinner
+          obtain ⟨sampled, -, hpair⟩ := hinner
+          have hvalue : inner.1 = sampled := (Prod.ext_iff.mp hpair).1.symm
+          have hcache : inner.2 = state.1.cacheQuery input sampled :=
+            (Prod.ext_iff.mp hpair).2.symm
+          have hgrows : ∀ probe : Bytes, state.1 probe ≠ none →
+              (state.1.cacheQuery input sampled) probe ≠ none := by
+            intro probe hprobe
+            by_cases hsame : probe = input
+            · rw [hsame, QueryCache.cacheQuery_self]
+              simp
+            · rw [QueryCache.cacheQuery_of_ne state.1 sampled hsame]
+              exact hprobe
+          rw [hpure]
+          show ∀ entry ∈ (appended leftKeep rightKeep input state inner.1).2,
+            inner.2 entry.1 ≠ none
+          rw [hcache, hvalue]
+          by_cases hleft : leftKeep input state.1
+          · rw [appended_of_left leftKeep rightKeep input state sampled hfresh hleft]
+            exact fun entry hentry => hgrows entry.1 (hcached entry hentry)
+          · by_cases hright : rightKeep input state.1
+            · rw [appended_of_right leftKeep rightKeep input state sampled hfresh hleft hright]
+              intro entry hentry
+              rcases List.mem_append.mp hentry with hold | hnew
+              · exact hgrows entry.1 (hcached entry hold)
+              · rw [List.mem_singleton.mp hnew]
+                show (state.1.cacheQuery input sampled) input ≠ none
+                rw [QueryCache.cacheQuery_self]
+                simp
+            · rw [appended_of_neither leftKeep rightKeep input state sampled hleft hright]
+              exact fun entry hentry => hgrows entry.1 (hcached entry hentry)
+    · rcases queried with coin | input
+      · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+        obtain ⟨value, -, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        rw [show step.2 = state from congrArg Prod.snd hpure]
+        exact hnodup
+      · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+        obtain ⟨inner, hinner, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        cases hfresh : state.1 input with
+        | some value =>
+          rw [QueryImpl.withCaching_run_some _ hfresh, support_pure,
+            Set.mem_singleton_iff] at hinner
+          rw [hpure, hinner]
+          show ((appended leftKeep rightKeep input state value).2.map Prod.fst).Nodup
+          rw [appended_of_cached leftKeep rightKeep input state value value hfresh]
+          exact hnodup
+        | none =>
+          rw [QueryImpl.withCaching_run_none _ hfresh, support_map] at hinner
+          obtain ⟨sampled, -, hpair⟩ := hinner
+          have hvalue : inner.1 = sampled := (Prod.ext_iff.mp hpair).1.symm
+          rw [hpure]
+          show ((appended leftKeep rightKeep input state inner.1).2.map Prod.fst).Nodup
+          rw [hvalue]
+          by_cases hleft : leftKeep input state.1
+          · rw [appended_of_left leftKeep rightKeep input state sampled hfresh hleft]
+            exact hnodup
+          · by_cases hright : rightKeep input state.1
+            · have hnotmem : input ∉ List.map Prod.fst state.2.2 := by
+                intro hmem
+                obtain ⟨entry, hentry, hinput⟩ := List.mem_map.mp hmem
+                exact hcached entry hentry (by rw [hinput]; exact hfresh)
+              rw [appended_of_right leftKeep rightKeep input state sampled hfresh hleft hright,
+                List.map_append, List.map_singleton]
+              exact (List.perm_append_singleton input
+                  (List.map Prod.fst state.2.2)).nodup_iff.mpr
+                (List.nodup_cons.mpr ⟨hnotmem, hnodup⟩)
+            · rw [appended_of_neither leftKeep rightKeep input state sampled hleft hright]
+              exact hnodup
+
+/-- **The right recording holds no input twice**, read from an empty start. -/
+theorem right_record_nodup {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run
+      (cache, [], []))) :
+    (result.2.2.2.map Prod.fst).Nodup :=
+  (right_record_fresh_nodup leftKeep rightKeep computation (cache, [], []) result hmem
+    (by simp) (by simp)).2
+
 /-! ## When a right-recorded entry was recorded
 
 The right test is checked at the cache in force, and what it said there is the only thing the
