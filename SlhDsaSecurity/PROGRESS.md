@@ -1491,3 +1491,17 @@ The pattern across the last three obstructions is the same one: **a value that i
 computed by a walk that is not.** Key generation's root, the FORS public key, and now the
 signature. Each time the fix has been to replace the walk by the value — and this time the
 value has to be read at the right moment as well, which is what moving into the handler buys.
+
+## A budget that admits an adversary at all pays for key generation
+
+The accounting hands the charges `q - 2 ^ subtreeHeight`, and on `Nat` that subtraction
+truncates, so it counts hash calls only once `q` is known to reach `512`. It does, and for a
+reason internal to the budget: every run of the game builds the top subtree and is charged for
+it, so a smaller budget is exceeded on every run the game has, and an event asserted with
+probability one that holds nowhere has probability zero instead.
+
+That argument also settles what looked like a gap. Nothing in the chain requires the support of
+the run to be nonempty, and nothing has to: an adversary whose run can fail everywhere makes
+`HasTotalBudget` false for every `q`, so the theorem says nothing about it. The empty case is
+closed by the same line that closes the small-budget case rather than excluded by a hypothesis
+no one had stated.
