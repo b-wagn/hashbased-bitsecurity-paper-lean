@@ -231,6 +231,74 @@ theorem expectation_stalled_eq {γ : Type}
         tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
       exact tsum_congr fun y => congrArg _ (ih y.1 y.2)
 
+/-! ## A quantity that is not frozen but zero
+
+The weights above are functions of the state, and that is what lets the hypothesis be *quiet*:
+a step taken while frozen leaves the weight where it found it. A quantity read off the run's
+**value** cannot state that hypothesis at all — after the stall the value still moves, and there
+is nothing it is equal to.
+
+It does not have to. The charge the forgery's own claims carry is read at the cache the run ends
+with, and a claim is charged against a cell only while that cell is unavailable there. So once
+the stall has fired — once the cell is available, and availability only grows — the claims carry
+no charge at all. The weight is **zero** on a frozen run rather than frozen, and both runs then
+contribute zero, which is the whole of the argument. -/
+
+/-- **A frozen run contributes nothing when nothing it can reach weighs anything.** -/
+theorem expectation_frozen_zero {γ : Type} (impl : QueryImpl spec (StateT (σ × Bool) ProbComp))
+    (Frozen : σ → Prop) (weight : γ × (σ × Bool) → ℝ≥0∞)
+    (hfrozen : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
+      ∀ z ∈ support ((impl t).run p), Frozen z.2.1)
+    (hzero : ∀ z : γ × (σ × Bool), Frozen z.2.1 → weight z = 0)
+    (oa : OracleComp spec γ) (p : σ × Bool) (hp : Frozen p.1) :
+    (∑' z : γ × (σ × Bool), Pr[= z | (simulateQ impl oa).run p] * weight z) = 0 := by
+  induction oa using OracleComp.inductionOn generalizing p with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, tsum_probOutput_pure_mul, hzero (value, p) hp]
+  | query_bind t next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, tsum_probOutput_bind_mul]
+    refine (tsum_congr fun y => ?_).trans tsum_zero
+    by_cases hmem : y ∈ support ((impl t).run p)
+    · rw [ih y.1 y.2 (hfrozen t p hp y hmem), mul_zero]
+    · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
+
+open scoped Classical in
+/-- **Stalling preserves the expectation of a quantity that vanishes once frozen.** The weight
+may read the run's value, which `expectation_stalled_eq` cannot allow: what replaces its
+quietness hypothesis is that both runs contribute zero after the stall, so there is nothing for
+the value to disagree about. -/
+theorem expectation_stalled_eq_of_zero {γ : Type}
+    (impl : QueryImpl spec (StateT (σ × Bool) ProbComp)) (Frozen : σ → Prop)
+    (stall : (t : spec.Domain) → spec.Range t) (weight : γ × (σ × Bool) → ℝ≥0∞)
+    (hfrozen : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
+      ∀ z ∈ support ((impl t).run p), Frozen z.2.1)
+    (hzero : ∀ z : γ × (σ × Bool), Frozen z.2.1 → weight z = 0)
+    (oa : OracleComp spec γ) (p : σ × Bool) :
+    (∑' z : γ × (σ × Bool), Pr[= z | (simulateQ impl oa).run p] * weight z) =
+      ∑' z : γ × (σ × Bool),
+        Pr[= z | (simulateQ (stalled impl Frozen stall) oa).run p] * weight z := by
+  classical
+  have hstalledFrozen : ∀ (t : spec.Domain) (q : σ × Bool), Frozen q.1 →
+      ∀ z ∈ support (((stalled impl Frozen stall) t).run q), Frozen z.2.1 := by
+    intro t q hq z hz
+    rw [stalled_run_of_frozen impl Frozen stall t q hq, support_pure,
+      Set.mem_singleton_iff] at hz
+    rw [hz]
+    exact hq
+  induction oa using OracleComp.inductionOn generalizing p with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure]
+  | query_bind t next ih =>
+    by_cases hp : Frozen p.1
+    · rw [expectation_frozen_zero impl Frozen weight hfrozen hzero _ p hp,
+        expectation_frozen_zero (stalled impl Frozen stall) Frozen weight hstalledFrozen hzero
+          _ p hp]
+    · rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+        simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+        stalled_run_of_not_frozen impl Frozen stall t p hp,
+        tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
+      exact tsum_congr fun y => congrArg _ (ih y.1 y.2)
+
 /-! ## The stalled run is blind to the cell it stalled on
 
 The per-step hypothesis is demanded only at states that are not frozen — the states at which
