@@ -2534,3 +2534,35 @@ contributes nothing to the left by the facts above, and an adversary or verifier
 same element to both sides. That is the shape of `WarmProbes.warmCount_strippedAfterSeeds`'s
 phase decomposition with the warm filter replaced and the work counter replaced by the recorded
 multiset — a mirror of that file's skeleton, not a new argument.
+
+## The containment is a provenance argument, not a filter argument
+
+The plan to mirror `WarmProbes`' five-phase skeleton for the containment does not survive
+contact with the honest phase, and the reason is worth keeping because it is the same near-miss
+as before wearing a different hat.
+
+`WarmProbes`' honest-phase obligation is that the stripped phase's probes are **cold** — the
+walk's table cannot answer them. That is path-independent: `StripCached.queriesUnder_strip_none`
+reads it off the stripping impl alone, whatever the oracle answered. The containment's
+obligation is that those probes are **not targeting**, and coldness does not give it: a cold
+probe can target, since targeting is read off the address and a wrong payload is cold. What is
+needed is the probes' *shape* — randomiser or digest — and shape is path-dependent, because
+`QueriesUnder` follows the replay path while the run follows the oracle's answers.
+
+**The development has already paid for exactly this.** `SignerRandomiser.probes_signInternalAt`
+says every probe of the signer past its randomiser is a canonical input or its own digest input,
+and `signInternal_eq` adds the randomiser; `PhaseProvenance.signerMade_of_fresh_step` is the
+device that reads such a statement at a *later* cache, which is what makes it apply to the run's
+own probes rather than to a replay. `provenance_phase_subset` then says where an entry came
+from: the adversary's record, or a signing sub-run on a logged request.
+
+**But provenance speaks of cache entries, and the charge weighs record entries.** The two differ
+by repeats. They can be made to agree by de-duplicating the record the charge is handed —
+`ChargedProbe.prob_run_cell_le` already takes the record as a function of the result, and
+`∃ entry ∈ record, …` is unchanged by `List.dedup` — after which the weight counts *distinct*
+probes, which is what provenance talks about. A distinct targeting probe is then either one the
+adversary or the verifier made, hence recorded, or one the signer made first, hence
+non-targeting by the shape argument.
+
+So the containment is a provenance argument over a de-duplicated record, not a filter argument
+over a fresh skeleton, and the honest phase is where the difference lies.

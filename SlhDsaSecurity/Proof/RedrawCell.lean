@@ -511,7 +511,14 @@ def SensitiveAtSeed (stakes : Stakes Target CanonicalGraph.Node)
 /-- The inputs whose first block is the public seed. This is the class the half's probes fall
 in, and the class the budget charges it for: `ClassGrowth.splitCost` partitions the *inputs*, so
 a count that is a whole class converts to an expectation and a count that is a share of one does
-not. The canonical part of a record is a whole class. -/
+not. The canonical part of a record is a whole class.
+
+**It is not the warm-answered part, and that is the natural thing to assume and the wrong one.**
+`ChargedProbe.Targets` is read off a probe's *address* alone, before any cell is consulted, so a
+probe that names a sensitive node with the **wrong payload** aims at a cell without the walk's
+table answering it. `WarmProbes`' filter — the probes the table answers — therefore does not
+dominate these weights, and a bound stated against it would look right and be false. The
+address-level class does dominate them, which is `canonicalClass_of_targets` below. -/
 def CanonicalClass (publicSeed : Digest) (input : Bytes) : Prop :=
   ∃ (address : Address) (payload : Bytes),
     input = Hashing.tweakableInput publicSeed address payload
