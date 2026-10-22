@@ -88,4 +88,101 @@ theorem answerChargedLate_of_carrierBound
       FinalAssembly.forgetFused LateProbes.Ordering :=
   CarrierTail.answerChargedLate_carrier_of_bound rightKeep hbound
 
+/-! ## The target test at the carrier, and the clause that keeps the signer's probe out
+
+`CarrierTail` leaves `rightKeep` a parameter, so the test the target recording is filed under is
+chosen here. At the carrier it reads
+
+    narrow input state ∧ ¬ HandlerCarrier.FilesLeft pk state input
+
+and the second conjunct is where the sign has to be watched. `HandlerCarrier.not_filesLeft_randomizerInput`
+excludes the signer's own `PRF_msg` probe from the **disclosing** recording — but it is exactly
+`¬ FilesLeft` that sends an input to the **target** one, so that lemma says the probe *passes*
+the second conjunct. Nothing else keeps it out, and a target-recorded signer query is a query
+`SharedJoin.recordOf` does not hold, which is what `LateProvenance.hrecord` needs.
+
+`SplitWitness.narrowClass`'s `¬ PrfClass` clause used to keep it out, by syntax: a `PRF_msg` input
+at the real seed is not in the narrowed class whatever the state. That works, and it is the
+disguise — it excludes **every** input of that shape rather than the one the signer is making,
+and the cases where the two differ are exactly where the FIPS 205 format identity makes a message
+input a `PRF_msg` input, which is where the answer half's leftover came from.
+
+`FilesRandomiser` is the honest version: the probe for the frame **in flight**. It is false at
+every adversary query, because the flag is down at every boundary; true exactly while the signer
+is serving that frame, which is exactly when its probe would be filed; and unforgeable for the
+same reason `FilesLeft` is, since only the signing oracle sets the flag. `filesRandomiser_prfClass`
+shows it is implied by the syntactic clause, so this is a **weakening** of `narrowClass` and not a
+different test — which is the check that was missing the first time a clause was swapped here. -/
+
+/-- **The signer's own randomiser probe, as the flag sees it.** The `PRF_msg` input for the frame
+in flight — the exact counterpart of `HandlerCarrier.FilesLeft`, which is the digest input for
+that same frame. -/
+def FilesRandomiser (prfSeed : Digest) (pk : PublicKey) (state : HandlerCarrier.State)
+    (input : Bytes) : Prop :=
+  ∃ framed : Bytes, state.framing = some framed ∧
+    input = Hashing.randomizerInput prfSeed pk.seed framed
+
+/-- **It is false whenever no request is in flight**, which is every adversary query: the flag is
+down at every boundary, so nothing the adversary asks is excluded by this clause. -/
+theorem not_filesRandomiser_of_clear (prfSeed : Digest) (pk : PublicKey)
+    (state : HandlerCarrier.State) (hclear : state.framing = none) (input : Bytes) :
+    ¬ FilesRandomiser prfSeed pk state input := by
+  rintro ⟨framed, hframing, -⟩
+  rw [hclear] at hframing
+  exact absurd hframing (by simp)
+
+/-- **And it is true at the probe itself**, so the signer's own `PRF_msg` query fails the target
+test at the state it is made from. This is the clause's whole job. -/
+theorem filesRandomiser_probe (prfSeed : Digest) (pk : PublicKey)
+    (state : HandlerCarrier.State) (framed : Bytes) (hframing : state.framing = some framed) :
+    FilesRandomiser prfSeed pk state (Hashing.randomizerInput prfSeed pk.seed framed) :=
+  ⟨framed, hframing, rfl⟩
+
+/-- **The clause is a weakening of the syntactic one**, not a different test: an input the flag
+calls the randomiser probe is a `PRF_msg` input at the real seed, so `¬ PrfClass` implies
+`¬ FilesRandomiser` and the new target test keeps everything the old one kept, and more. -/
+theorem filesRandomiser_prfClass (prfSeed : Digest) (pk : PublicKey)
+    (state : HandlerCarrier.State) (input : Bytes)
+    (hfiles : FilesRandomiser prfSeed pk state input) :
+    RandomizerGate.PrfClass prfSeed input := by
+  obtain ⟨framed, -, hinput⟩ := hfiles
+  exact ⟨pk.seed, framed, hinput⟩
+
+/-- **The target test at the carrier.** The message class, less the probe for the frame in
+flight, less whatever the flag is already filing on the left. -/
+def carrierRightKeep
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (input : Bytes) (state : HandlerCarrier.State) : Prop :=
+  (CombinedCharge.IsMessageInput
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input ∧
+    ¬ FilesRandomiser walk.1.1.2.1
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) state input) ∧
+  ¬ CarriedWitness.disclosingKeep
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input state
+
+/-- **It keeps the message class**, which is all the budget side reads of it:
+`CoverageCount.rightRecord_length_le_count` wants the target test inside the counted class and
+nothing more. -/
+theorem carrierRightKeep_class
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (input : Bytes) (state : HandlerCarrier.State)
+    (hkeep : carrierRightKeep walk input state) :
+    CombinedCharge.IsMessageInput
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input :=
+  hkeep.1.1
+
+/-- **The signer's own randomiser probe is not target-kept**, at the state it is made from. With
+`HandlerCarrier.not_filesLeft_randomizerInput` saying it is not left-kept either, it is filed on
+neither side — which is what `LateProvenance.hrecord` needs and what `¬ PrfClass` used to buy by
+syntax. -/
+theorem not_carrierRightKeep_randomizerInput
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (state : HandlerCarrier.State) (framed : Bytes)
+    (hframing : state.framing = some framed) :
+    ¬ carrierRightKeep walk
+      (Hashing.randomizerInput walk.1.1.2.1
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed framed)
+      state :=
+  fun hkeep => hkeep.1.2 (filesRandomiser_probe walk.1.1.2.1 _ state framed hframing)
+
 end SlhDsaSecurity.AnswerCarrier
