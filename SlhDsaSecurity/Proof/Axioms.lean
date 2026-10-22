@@ -14847,3 +14847,15 @@ info: 'SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.CarrierCharge.run_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCharge.run_mass
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.neutral_of_bracket' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.neutral_of_bracket
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.gaugeAt_stepAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.gaugeAt_stepAt
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage
