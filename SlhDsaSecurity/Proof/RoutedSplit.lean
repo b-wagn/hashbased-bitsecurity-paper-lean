@@ -30,9 +30,11 @@ and `cases_of_canonical` takes the third as far as routing can take it.
 both rather than a residue of one. The forgery holds the honest FORS secret at each of the
 fourteen positions its digest selects, and each position is either undisclosed — so the secret
 it claims is a sensitive entry of the record, which is `InputBad` — or disclosed. If all
-fourteen are disclosed, `CoverageRouted.forgeryCovered_or_only_self` forks again: the forgery's
-digest is covered by the other message-class digests, which is `AnswerBad`, or the forgery's
-own input is the only one disclosing them.
+fourteen are disclosed, `CoverageRouted.forgeryDisclosedCovered_or_only_self` forks again: the
+forgery's digest is covered by the digests that actually disclose, which is `AnswerBad`, or the
+forgery's own input is the only one disclosing them. The witnesses are kept at the disclosing
+class rather than weakened to the message class, because only a digest the signer randomised
+reveals anything, and the signing limit caps those while nothing caps the others.
 
 That last case is `ReplayForgery`, and it is named rather than assumed away. It is the forgery
 that is the signer's own signature on a message whose digest only the forgery's own query
@@ -64,13 +66,13 @@ def keyOf (x : Trace) : PublicKey :=
 def resultOf (x : Trace) : (Outcome × Nat) × QueryCache HashSpec := (x.1.2, x.2)
 
 /-- **The answer side, at a public key held fixed.** A structural collision that deviates from
-the walk's cells, or the forgery's own message digest covered by the digests of the other
-message-class inputs. The key is a parameter because the charge needs it fixed before the tail
-runs: both clauses are charged per query, and which class a query falls in is decided by the
-key its bytes name. -/
+the walk's cells, or the forgery's own message digest covered by the digests that disclose —
+those the signer randomised, which are the only ones that reveal a FORS secret. The key is a
+parameter because the charge needs it fixed before the tail runs: both clauses are charged per
+query, and which class a query falls in is decided by the key its bytes name. -/
 def AnswerBadAt (pk : PublicKey) (x : Trace) : Prop :=
   StructuralTerm.DeviatingCollision x.1.1.1.2.2 x.1.1.2 (resultOf x) ∨
-    CoverageTail.ForgeryCovered pk (resultOf x)
+    CoverageRouted.ForgeryDisclosedCovered x.1.1.1.2.1 pk (resultOf x)
 
 /-- **The answer side**, at the key this run's own cache generates. -/
 def AnswerBad (x : Trace) : Prop := AnswerBadAt (keyOf x) x
@@ -265,7 +267,7 @@ theorem cases_of_canonical (adversary : Adversary)
           (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result.2
           (forsKeyOfDigest (digestOf result.2
             (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) message parsed))
-  · rcases CoverageRouted.forgeryCovered_or_only_self walk.1.1.2.1
+  · rcases CoverageRouted.forgeryDisclosedCovered_or_only_self walk.1.1.2.1
         (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result message parsed _
         hframe hparsed (cached_digest adversary hresult message parsed hframe hparsed)
         hsigned with hcovered | honly
