@@ -6535,3 +6535,7 @@ info: 'SlhDsaSecurity.RandomiserCharge.walk_cache_prf_fresh' depends on axioms: 
 /-- info: 'SlhDsaSecurity.GraphStakes.available_wotsPosition' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GraphStakes.available_wotsPosition
+
+/-- info: 'SlhDsaSecurity.GraphStakes.honestMessage_succ' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.honestMessage_succ
