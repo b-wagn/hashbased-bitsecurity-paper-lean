@@ -3430,3 +3430,38 @@ established by an exhaustive check.** `| head -5` on a grep whose hits were domi
 file, and `grep -v` filtering on line *content* when the intent was to exclude a *file*, both
 produced confident negatives that were wrong. Count first, read second; and when the conclusion
 is "nothing anywhere", say how the search was bounded.
+
+## A charge that costs nothing where the rate is spent is a warning, not a saving
+
+Splitting `LateRate`'s filing predicate from its firing predicate produced what looked like a
+bonus: at the carrier, `endKeep` would be `Served`, which does not read the cache, so a fresh
+answer cannot change it and `hrecord` and `hentry` both discharge by `probEvent_eq_zero`. The
+per-query charge did not move to the other side — it **vanished**. That was reported as an
+improvement, and recorded here as one.
+
+**It was a defect, and the widening of `PotentialCharge.prob_fired_le` is what exposed it.** If
+the firing predicate never changes where a fresh answer is drawn, it changes somewhere else —
+at the notice. The notice is **deterministic**: its firing probability is one or zero, and a
+deterministic step cannot be paid for out of `potential * rate`. The third invariance condition
+the notice parameter now carries is exactly what rules that out, and `endKeep := Served` fails
+it.
+
+> A charge whose per-step cost is zero everywhere the rate is spent is not cheap. It means the
+> event fires somewhere the charge is not looking. Ask where the firing went before banking the
+> saving.
+
+### The split is three-way, not two
+
+Two of the three had been collapsed, and each is needed by a different consumer:
+
+* **what files** — the flag (`HandlerCarrier.FilesLeft`). Unforgeable, because the adversary
+  cannot set the framing; down again at every step boundary.
+* **what fires** — the cache-readable `SignerRandomised`. It must change *only* at fresh draws,
+  or the rate cannot pay for it. This is what `LateRate` already uses, so nothing there moves.
+* **what is recorded** — the served set. It must be faithful to the log, because that is what
+  `ForgeryCoveredBy` reads at the end.
+
+No two of these can be the same predicate, and the first bounds the third through the second:
+**served ⇒ signer-randomised at the end**, because a filed entry had the flag up, so by
+`not_filesLeft_adversary` the query was the signer's, so it used the real randomiser and that
+randomiser's `PRF_msg` entry is in the final cache.
