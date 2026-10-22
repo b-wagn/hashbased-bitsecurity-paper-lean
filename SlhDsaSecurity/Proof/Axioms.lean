@@ -16536,3 +16536,11 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 /-- info: 'SlhDsaSecurity.ForgetsOn.forgetsLawOn_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForgetsOn.forgetsLawOn_of_step
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_appended_eq_hashCost' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_appended_eq_hashCost
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.counts_hashCost' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.counts_hashCost
