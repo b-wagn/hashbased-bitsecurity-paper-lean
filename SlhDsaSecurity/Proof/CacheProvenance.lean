@@ -197,6 +197,75 @@ theorem sign_randomizer_cached (sk : SecretKey) (request : Message) (framed : By
     rw [hlater _ output hentry]
     exact Option.some_ne_none output
 
+/-! ## The signer's own digest query
+
+The randomiser's query is the signer's first; the digest's is its second, and it is the one that
+decides **which FORS positions the signature opens**. A disclosure claim read off the signing log
+needs both entries present, not merely the returned bytes: `CacheReplay.replay` answers `default`
+at an absent input, so an equation between replayed signatures says nothing about what the cache
+holds, and `CacheAvailability.signedAt` is a statement about what the cache holds. -/
+
+/-- The randomiser a replayed signer derives is the one `HonestProbes.replayRandomizer` names. -/
+theorem simulateQ_replay_randomizer (cache : QueryCache HashSpec) (sk : SecretKey)
+    (framed : Bytes) :
+    simulateQ (replay cache)
+        (Hashing.randomizer (m := OracleComp HashSpec) sk.prf sk.publicKey.seed framed) =
+      HonestProbes.replayRandomizer cache sk framed := by
+  simp only [Hashing.randomizer, Hashing.shortHash, Hashing.hash, simulateQ_map,
+    simulateQ_spec_query, HonestProbes.replayRandomizer]
+  rfl
+
+/-- **A served request consults its own digest input**, at the randomiser the cache replays. -/
+theorem queriesUnder_sign_digest (cache : QueryCache HashSpec) (sk : SecretKey)
+    (request : Message) (framed : Bytes) (hframe : request.frame = some framed) :
+    QueriesUnder cache (Scheme.sign (m := OracleComp HashSpec) sk request)
+      (Hashing.messageInput (HonestProbes.replayRandomizer cache sk framed) sk.publicKey
+        framed) := by
+  rw [Scheme.sign, hframe]
+  refine queriesUnder_bind cache _ _ _ ?_
+  rw [Scheme.signInternal]
+  refine queriesUnder_bind_right cache
+    (Hashing.randomizer (m := OracleComp HashSpec) sk.prf sk.publicKey.seed framed) _ _ ?_
+  rw [simulateQ_replay_randomizer]
+  exact queriesUnder_hash cache _ _
+
+/-- **And leaves its answer in the cache**, read at any cache extending the one it left.
+
+Stated at `laterCache` on both sides, which matters: the randomiser the digest input is built
+from is itself read off the cache, so the input named here is the later cache's and not the
+sub-run's. The two agree because the randomiser's own entry persists, which is
+`sign_randomizer_cached`. -/
+theorem sign_digest_cached (sk : SecretKey) (request : Message) (framed : Bytes)
+    (hframe : request.frame = some framed)
+    (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
+    (hmem : (answer, finalCache) ∈ support ((simulateQ KeygenUniform.rom
+      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run initialCache))
+    (hlater : ∀ (input : Bytes) (output : HashOutput),
+      finalCache input = some output → laterCache input = some output) :
+    laterCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
+      sk.publicKey framed) ≠ none := by
+  rw [StrippedGame.sign_lift, StrippedGame.run_liftComp] at hmem
+  have hrandomiser : HonestProbes.replayRandomizer laterCache sk framed =
+      HonestProbes.replayRandomizer finalCache sk framed := by
+    have hcached := cached_of_queriesUnder (Scheme.sign (m := OracleComp HashSpec) sk request)
+      initialCache finalCache answer _
+      (queriesUnder_sign_randomizer finalCache sk request framed hframe) hmem
+    cases hentry : finalCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) with
+    | none => exact absurd hentry hcached
+    | some output =>
+      rw [HonestProbes.replayRandomizer, HonestProbes.replayRandomizer]
+      simp [replay, hentry, hlater _ output hentry]
+  rw [hrandomiser]
+  have hcached := cached_of_queriesUnder (Scheme.sign (m := OracleComp HashSpec) sk request)
+    initialCache finalCache answer _
+    (queriesUnder_sign_digest finalCache sk request framed hframe) hmem
+  cases hentry : finalCache (Hashing.messageInput
+      (HonestProbes.replayRandomizer finalCache sk framed) sk.publicKey framed) with
+  | none => exact absurd hentry hcached
+  | some output =>
+    rw [hlater _ output hentry]
+    exact Option.some_ne_none output
+
 /-! ## One query of the game's own world
 
 The adversary's handler forwards a world query and the cache is written by that query alone, so
