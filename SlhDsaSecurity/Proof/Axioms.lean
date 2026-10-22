@@ -4,6 +4,7 @@ import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
@@ -7464,3 +7465,15 @@ info: 'SlhDsaSecurity.Target.prob_bad_walk_paired' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateCharge.not_signerRandomised_of_spent
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.expected_congr_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.expected_congr_support
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.tsum_const_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.tsum_const_add
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.prob_fired_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.prob_fired_le
