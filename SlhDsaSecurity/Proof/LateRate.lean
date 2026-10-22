@@ -23,7 +23,10 @@ recorded on the disclosing side, and they are paying elsewhere.
 two recorder tests, a notion of an entry being *settled*, a notion of its being settled *by this
 query*, and the rate, and asks of them only what the potential argument uses. The rate enters in
 one place: a fresh answer makes a given recorded entry disclosing with probability at most the
-rate. Nothing in the core mentions a key, a seed or a `PRF_msg` input, so the carrier's served
+rate. Nothing asks the right test to be the left one's complement in some class, or to have any
+shape at all: `hexcludes` — a query the right test keeps is one the left test does not — is the
+only link between the two, so a presentation that changes what the tests read changes the
+hypotheses it discharges and not the argument. Nothing in the core mentions a key, a seed or a `PRF_msg` input, so the carrier's served
 test will be another application of these lemmas rather than a rewrite of them; the key is named
 once, by whoever instantiates, and the convention there is the walk's.
 
@@ -376,8 +379,8 @@ theorem prob_fired_le (left right : Bytes → QueryCache HashSpec → Prop)
       ¬ left entry cache →
         Pr[fun answer : HashOutput => left entry (cache.cacheQuery input answer) |
           ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
-    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec) :
-    Pr[fun result : (Outcome × Nat) × SplitState => Fired left result.2 |
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
+    Pr[fun result : α × SplitState => Fired left result.2 |
         (simulateQ (recorder left right) computation).run (cache, [], [])] ≤
       expected ((simulateQ (recorder left right) computation).run (cache, [], []))
         (fun result => result.2.2.2.length) * rate := by
@@ -429,8 +432,8 @@ disclosing with probability at most one unit of `2 ^ -128` per entry of the targ
 The count is the recording's own length, read off each run: the signer's digests are not in it,
 being recorded on the disclosing side, so this is not charged at the message class. -/
 theorem prob_lateDisclosure_le (prfSeed : Digest) (pk : PublicKey)
-    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec) :
-    Pr[fun result : (Outcome × Nat) × SplitState => LateDisclosure prfSeed pk result |
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
+    Pr[fun result : α × SplitState => LateDisclosure prfSeed pk result |
         (simulateQ (recorder (disclosingKeep prfSeed pk) (targetKeep prfSeed pk))
           computation).run (cache, [], [])] ≤
       expected ((simulateQ (recorder (disclosingKeep prfSeed pk) (targetKeep prfSeed pk))
