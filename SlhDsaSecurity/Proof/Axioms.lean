@@ -11963,3 +11963,33 @@ info: 'SlhDsaSecurity.PairedAverage.prob_le_expected_of_perWalk' depends on axio
 /-- info: 'SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_claim' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_claim
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.mem_map_servedOf' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.mem_map_servedOf
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.length_le_log_of_served' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.length_le_log_of_served
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.record_length_le_log' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.record_length_le_log
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.record_length_le_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.record_length_le_cap
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.not_filesLeft_randomizerInput
