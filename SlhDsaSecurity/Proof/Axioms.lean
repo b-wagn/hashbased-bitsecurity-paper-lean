@@ -185,6 +185,7 @@ import SlhDsaSecurity.Proof.ServingPhase
 import SlhDsaSecurity.Proof.FusedGame
 import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.FusedCoverage
+import SlhDsaSecurity.Proof.RecorderView
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11321,3 +11322,46 @@ info: 'SlhDsaSecurity.FusedCoverage.forgetsTo' depends on axioms: [propext, Clas
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedCoverage.forgetsTo
+
+/--
+info: 'SlhDsaSecurity.RecorderView.left_prefix_appendedOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.left_prefix_appendedOf
+
+/--
+info: 'SlhDsaSecurity.RecorderView.right_prefix_appendedOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.right_prefix_appendedOf
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_run_inl
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_run_inr_some' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_run_inr_some
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_run_inr_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_run_inr_none
+
+/--
+info: 'SlhDsaSecurity.RecorderView.appendedOf_cache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_cache
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_cache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_cache
+
