@@ -14612,3 +14612,11 @@ info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrow_at' depe
 /-- info: 'SlhDsaSecurity.AnswerCarrier.narrowTargetAt_clear' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrier.narrowTargetAt_clear
+
+/-- info: 'SlhDsaSecurity.WriterState.run_withAddCost_run' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_withAddCost_run
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_toStateful_withAddCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_toStateful_withAddCost

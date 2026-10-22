@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.ServingForget
 import SlhDsaSecurity.Proof.GrowthBudget
+import SlhDsaSecurity.Proof.WriterState
 
 /-!
 # A handler that counts, and why the tail needs one
@@ -112,6 +113,46 @@ theorem withExtra_step {ω : Type}
   obtain ⟨inner, hinner, hpure⟩ := hstep
   rw [support_pure, Set.mem_singleton_iff] at hpure
   exact ⟨inner, hinner, by rw [hpure], by rw [hpure], by rw [hpure]⟩
+
+/-! ## The cost writer, as an extra
+
+A computation that counts its own queries threads a writer **inside** itself, and
+`WriterState.run_simulateQ_withAddCost` fuses that into the handler as `withAddCost`.
+`WriterState.toStateful` then moves the accumulator from the writer into the state — but it puts
+it **first**, and `ServedAgreement.Files` reads the carrier first. Same data, wrong association,
+and the interface cannot see through it.
+
+This is that reassociation, and it is all that stands between a cost-counted run and the
+transport above. It is stated at this one pairing rather than as a general relabelling because
+there is one instance of it: generalise when the second exists.
+
+What made it fight was not the content. `run_withAddCost_apply` is stated at the handler and
+this proof has a state in hand, so nothing rewrote until the same fact was named one level
+down, as `WriterState.run_withAddCost_run`. -/
+
+theorem run_toStateful_withAddCost {ω : Type} [AddCommMonoid ω]
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (cost : OracleWorld.Domain → ω) {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (w : Multiplicative ω) (carrier : HandlerCarrier.State) (t : τ),
+      (fun p : α × (Multiplicative ω × (HandlerCarrier.State × τ)) =>
+          (p.1, (p.2.2.1, (p.2.2.2, p.2.1)))) <$>
+        (simulateQ (WriterState.toStateful (impl.withAddCost cost)) computation).run
+          (w, (carrier, t)) =
+      (simulateQ (withExtra impl
+        (fun queried x => x * Multiplicative.ofAdd (cost queried))) computation).run
+        (carrier, (t, w)) := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro w carrier t
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
+  | query_bind queried next ih =>
+    intro w carrier t
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      WriterState.toStateful_run, WriterState.run_withAddCost_run, withExtra_run]
+    simp only [bind_assoc, pure_bind, map_eq_bind_pure_comp, Function.comp_apply]
+    refine congrArg (Bind.bind ((impl queried).run (carrier, t))) (funext fun step => ?_)
+    exact ih step.1 (w * Multiplicative.ofAdd (cost queried)) step.2.1 step.2.2
 
 /-! ## The step facts the wrapped handler needs
 
