@@ -6630,3 +6630,11 @@ info: 'SlhDsaSecurity.RandomiserCharge.sign_probe_messageProbe' depends on axiom
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserCharge.sign_probe_messageProbe
+
+/--
+info: 'SlhDsaSecurity.RandomiserCharge.honest_probe_randomizerInput' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserCharge.honest_probe_randomizerInput

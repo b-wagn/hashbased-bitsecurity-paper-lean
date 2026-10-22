@@ -134,4 +134,33 @@ theorem sign_probe_messageProbe (warm current : QueryCache HashSpec)
         sk.publicKey.seed prfSeed seed _ parent message hne)
     · exact hmessage
 
+/-- **The honest phase makes this `PRF_msg` query only as a digest query.** Key generation
+cannot make it at all; the signer can only make it for a request that framed to this message,
+which is excluded, or as the digest query its framing names — and that one is a `PRF_msg` input
+only through the format overlap, with its own randomiser read as the seed. -/
+theorem honest_probe_randomizerInput (warm current : QueryCache HashSpec)
+    (hsub : StrippedGame.Extends warm current) (sk : SecretKey)
+    (hne : sk.prf ≠ sk.publicKey.seed) (message : Bytes)
+    (hprobe :
+      (∃ sds : Digest × Digest × Digest, sds.2.2 = sk.publicKey.seed ∧
+        CacheReplay.QueriesUnder current (StrippedGame.strippedKeygenHash warm sds)
+          (Hashing.randomizerInput sk.prf sk.publicKey.seed message)) ∨
+      (∃ request : Message, request.frame ≠ some message ∧
+        CacheReplay.QueriesUnder current (StrippedGame.strippedSignHash warm sk request)
+          (Hashing.randomizerInput sk.prf sk.publicKey.seed message))) :
+    ∃ (randomizer : Digest) (framed : Bytes),
+      Hashing.randomizerInput sk.prf sk.publicKey.seed message =
+        Hashing.messageInput randomizer sk.publicKey framed := by
+  rcases hprobe with ⟨sds, hseed, hkeygen⟩ | ⟨request, hrequest, hsign⟩
+  · exact absurd hkeygen fun hquery =>
+      keygen_probe_ne_randomizerInput warm current hsub sds sk.prf sk.publicKey.seed message
+        (hseed ▸ hne) hquery
+  · obtain ⟨framed, hframe, hmessage⟩ :=
+      sign_probe_messageProbe warm current hsub sk request sk.prf sk.publicKey.seed message hne
+        hsign
+    rcases hmessage with hrandomizer | hdigest
+    · obtain ⟨-, -, hequal⟩ := Hashing.randomizerInput_injective hrandomizer
+      exact absurd (hequal ▸ hframe) hrequest
+    · exact ⟨_, framed, hdigest⟩
+
 end SlhDsaSecurity.RandomiserCharge
