@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.LateCharge
+import SlhDsaSecurity.Proof.FramingLeak
 
 /-!
 # The ordering defect's rate
@@ -357,5 +358,40 @@ theorem prob_lateDisclosure_le (prfSeed : Digest) (pk : PublicKey)
     computation (cache, [], [])
     (by rintro ⟨entry, hentry, -⟩; simp at hentry)
   simpa [potential, gauge, Fired, LateDisclosure] using hmain
+
+/-! ## The target recording is not the adversary's alone
+
+The count above is the target recording's length, and the budget wants to read that as the
+adversary's own message-class queries — the signer's digests being on the disclosing side,
+because the signer asks `PRF_msg` before it asks `H_msg`. That reading is right for the
+*digest* a served request makes. It is not right for the request's own `PRF_msg` query.
+
+`FramingLeak.randomizerInput_eq_messageInput` is an unconditional identity of the FIPS 205
+byte formats: `PRF_msg(SK.prf, PK.seed, PK.root ‖ m)` *is* `H_msg(SK.prf, PK.seed, PK.root, m)`.
+So on a request framed as `PK.root ‖ m` — a legal request whenever `PK.root` begins with a zero
+byte, by `FramingLeak.exists_legal_request`, which `FramingOverlap.keygen_zero_probability`
+puts at exactly `1 / 256` — the signer's own `PRF_msg` query is a message-class input. It is
+not signer-randomised when it is made unless the cache already holds the digest its own answer
+would randomise, so the recorder files it on the target side.
+
+The lemma below is that fact, stated at the recorder: it is not an obstruction to the charge
+above, which counts whatever the target recording holds, but it is an obstruction to reading
+that count as the adversary's queries alone. -/
+
+/-- **A served request's own `PRF_msg` query can be a target-class input.** -/
+theorem targetKeep_signer_randomizerInput (prfSeed : Digest) (pk : PublicKey)
+    (cache : QueryCache HashSpec) (message : Bytes)
+    (hnot : ¬ SignerRandomised prfSeed pk cache
+      (Hashing.randomizerInput prfSeed pk.seed (bytesBE n pk.root ++ message))) :
+    targetKeep prfSeed pk
+      (Hashing.randomizerInput prfSeed pk.seed (bytesBE n pk.root ++ message)) cache :=
+  ⟨⟨prfSeed, message, FramingLeak.randomizerInput_eq_messageInput prfSeed pk message⟩, hnot⟩
+
+/-- The same input, read as the digest input it also is. -/
+theorem signer_randomizerInput_isMessageInput (prfSeed : Digest) (pk : PublicKey)
+    (message : Bytes) :
+    CombinedCharge.IsMessageInput pk
+      (Hashing.randomizerInput prfSeed pk.seed (bytesBE n pk.root ++ message)) :=
+  ⟨prfSeed, message, FramingLeak.randomizerInput_eq_messageInput prfSeed pk message⟩
 
 end SlhDsaSecurity.LateRate

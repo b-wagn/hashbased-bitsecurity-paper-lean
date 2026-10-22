@@ -7878,3 +7878,11 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le'
 /-- info: 'SlhDsaSecurity.LateRate.prob_lateDisclosure_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.prob_lateDisclosure_le
+
+/-- info: 'SlhDsaSecurity.LateRate.targetKeep_signer_randomizerInput' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.targetKeep_signer_randomizerInput
+
+/-- info: 'SlhDsaSecurity.LateRate.signer_randomizerInput_isMessageInput' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.signer_randomizerInput_isMessageInput
