@@ -238,6 +238,7 @@ import SlhDsaSecurity.Proof.ViewRate
 import SlhDsaSecurity.Proof.CarrierOrdering
 import SlhDsaSecurity.Proof.CarrierCoverage
 import SlhDsaSecurity.Proof.CarrierShared
+import SlhDsaSecurity.Proof.CarrierDemand
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15074,3 +15075,71 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.cache_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.cache_noticeAt
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.records_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.records_noticeAt
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.forgetCarrier_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.forgetCarrier_noticeAt
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.fired_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.fired_noticeAt
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.potentialAt_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.potentialAt_noticeAt
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.gaugeAt_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.gaugeAt_noticeAt
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_step
+
+/-- info: 'SlhDsaSecurity.ViewRate.cacheOf_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ViewRate.cacheOf_stepOf
+
+/-- info: 'SlhDsaSecurity.ViewRate.right_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ViewRate.right_stepOf
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_startAt' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_startAt
+
+/-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_stopServingOn' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierClearFraming.clear_stopServingOn
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.fuseServing_run_inl' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.fuseServing_run_inl
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.fuseServing_run_inr' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.fuseServing_run_inr
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.neutral_id' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.neutral_id
+
+/-- info: 'SlhDsaSecurity.CarrierDemand.prfClass_of_inFlight_coincidence' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierDemand.prfClass_of_inFlight_coincidence
+
+/-- info: 'SlhDsaSecurity.CarrierDemand.filesLeft_or_not_filesRandomiser' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierDemand.filesLeft_or_not_filesRandomiser
+
+/-- info: 'SlhDsaSecurity.CarrierDemand.cover_inFlight' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierDemand.cover_inFlight
