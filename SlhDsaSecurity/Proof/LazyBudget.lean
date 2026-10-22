@@ -79,19 +79,21 @@ everything else is drawn on both sides. -/
 open scoped Classical in
 /-- The handler's reply to a hash query: the cache, else the table, else a fresh draw. -/
 noncomputable def lazyAnswer (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding) (input : Bytes)
-    (cache : QueryCache HashSpec) : ProbComp (HashOutput × QueryCache HashSpec) :=
-  match cache input with
-  | some cached => pure (cached, cache)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding) (input : Bytes)
+    (carrier : HandlerCarrier.State) :
+    ProbComp (HashOutput × HandlerCarrier.State) :=
+  match carrier.cache input with
+  | some cached => pure (cached, carrier)
   | none =>
-    match openCache publicSeed (availableAt cache) table input with
-    | some answer => pure (answer, cache.cacheQuery input answer)
+    match openCache publicSeed (availableAt carrier) table input with
+    | some answer => pure (answer, HandlerCarrier.cacheAnswer carrier input answer)
     | none =>
-      (fun answer => (answer, cache.cacheQuery input answer)) <$> ($ᵗ HashOutput : ProbComp _)
+      (fun answer => (answer, HandlerCarrier.cacheAnswer carrier input answer)) <$>
+        ($ᵗ HashOutput : ProbComp _)
 
 open scoped Classical in
 theorem lazyProgram_run_hash (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding) (input : Bytes)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding) (input : Bytes)
     (state : HandlerState) :
     ((lazyProgram publicSeed availableAt table) (Sum.inr input)).run state =
       lazyAnswer publicSeed availableAt table input state.1 >>= fun step =>
@@ -101,36 +103,42 @@ theorem lazyProgram_run_hash (publicSeed : Digest)
 open scoped Classical in
 /-- **Every reply the handler gives is one the shared oracle gives.** -/
 theorem lazyAnswer_mem_randomOracle (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding) (input : Bytes)
-    (cache : QueryCache HashSpec) (step : HashOutput × QueryCache HashSpec)
-    (hstep : step ∈ support (lazyAnswer publicSeed availableAt table input cache)) :
-    step ∈ support ((randomOracle input).run cache) := by
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding) (input : Bytes)
+    (carrier : HandlerCarrier.State) (step : HashOutput × HandlerCarrier.State)
+    (hstep : step ∈ support (lazyAnswer publicSeed availableAt table input carrier)) :
+    (step.1, step.2.cache) ∈ support ((randomOracle input).run carrier.cache) := by
   classical
   rw [lazyAnswer] at hstep
-  cases hcached : cache input with
+  cases hcached : carrier.cache input with
   | some cached =>
     rw [hcached, support_pure, Set.mem_singleton_iff] at hstep
     rw [QueryImpl.withCaching_run_some _ hcached, support_pure, Set.mem_singleton_iff]
-    exact hstep
+    rw [show step.1 = cached from by rw [hstep], show step.2 = carrier from by rw [hstep]]
   | none =>
     rw [QueryImpl.withCaching_run_none _ hcached, support_map]
     rw [hcached] at hstep
-    cases hopen : openCache publicSeed (availableAt cache) table input with
+    cases hopen : openCache publicSeed (availableAt carrier) table input with
     | some answer =>
       rw [hopen, support_pure, Set.mem_singleton_iff] at hstep
-      exact ⟨answer, mem_support_uniformSample _, hstep.symm⟩
+      refine ⟨answer, mem_support_uniformSample _, ?_⟩
+      rw [show step.1 = answer from by rw [hstep],
+        show step.2 = HandlerCarrier.cacheAnswer carrier input answer from by rw [hstep]]
+      rfl
     | none =>
       rw [hopen, support_map] at hstep
       obtain ⟨answer, hanswer, heq⟩ := hstep
-      exact ⟨answer, hanswer, heq⟩
+      refine ⟨answer, hanswer, ?_⟩
+      rw [show step.1 = answer from by rw [← heq],
+        show step.2 = HandlerCarrier.cacheAnswer carrier input answer from by rw [← heq]]
+      rfl
 
 open scoped Classical in
 /-- The hash half of the step, at the clean type. -/
 theorem lazyProgram_hash_mem_randomOracle (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding) (input : Bytes)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding) (input : Bytes)
     (state : HandlerState) (z : HashOutput × HandlerState)
     (hz : z ∈ support (((lazyProgram publicSeed availableAt table) (Sum.inr input)).run state)) :
-    (z.1, z.2.1) ∈ support ((randomOracle input).run state.1) := by
+    (z.1, z.2.1.cache) ∈ support ((randomOracle input).run state.1.cache) := by
   have hbind : z ∈ support
       (lazyAnswer publicSeed availableAt table input state.1 >>= fun step =>
         (pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
@@ -143,11 +151,11 @@ theorem lazyProgram_hash_mem_randomOracle (publicSeed : Digest)
 
 /-- **One step of the lazy handler is one step of the shared oracle.** -/
 theorem lazyProgram_step_mem_rom (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : HandlerState)
     (z : OracleWorld.Range queried × HandlerState)
     (hz : z ∈ support (((lazyProgram publicSeed availableAt table) queried).run state)) :
-    (z.1, z.2.1) ∈ support ((KeygenUniform.rom queried).run state.1) := by
+    (z.1, z.2.1.cache) ∈ support ((KeygenUniform.rom queried).run state.1.cache) := by
   classical
   rcases queried with coin | input
   · rw [lazyProgram_run_inl, mem_support_bind_iff] at hz
@@ -157,25 +165,26 @@ theorem lazyProgram_step_mem_rom (publicSeed : Digest)
     simp only [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl,
       QueryImpl.liftTarget, QueryImpl.add_apply_inl, HasQuery.toQueryImpl]
     simp
-    exact Set.mem_range_self (f := fun a => (a, state.1)) value
+    exact Set.mem_range_self (f := fun a => (a, state.1.cache)) value
   · exact lazyProgram_hash_mem_randomOracle publicSeed availableAt table input state z hz
 
 /-- **A run of the lazy presentation is a run of the shared oracle.** -/
 theorem mem_support_rom_of_lazy (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     {α : Type} (computation : OracleComp OracleWorld α) (state : HandlerState)
     (z : α × HandlerState)
     (hz : z ∈ support
       ((simulateQ (lazyProgram publicSeed availableAt table) computation).run state)) :
-    (z.1, z.2.1) ∈ support ((simulateQ KeygenUniform.rom computation).run state.1) := by
+    (z.1, z.2.1.cache) ∈ support
+      ((simulateQ KeygenUniform.rom computation).run state.1.cache) := by
   obtain ⟨w, hw, hvalue, hstate⟩ :=
     mem_support_simulateQ_of_step (lazyProgram publicSeed availableAt table)
-      KeygenUniform.rom (fun s u => s.1 = u)
+      KeygenUniform.rom (fun s u => s.1.cache = u)
       (fun queried s u hagree y hy =>
-        ⟨(y.1, y.2.1), hagree ▸ lazyProgram_step_mem_rom publicSeed availableAt table queried s
-          y hy, rfl, rfl⟩)
-      computation state state.1 rfl z hz
-  rw [show (z.1, z.2.1) = w from Prod.ext hvalue.symm hstate]
+        ⟨(y.1, y.2.1.cache), hagree ▸ lazyProgram_step_mem_rom publicSeed availableAt table
+          queried s y hy, rfl, rfl⟩)
+      computation state state.1.cache rfl z hz
+  rw [show (z.1, z.2.1.cache) = w from Prod.ext hvalue.symm hstate]
   exact hw
 
 /-! ## The budget at the lazy presentation
@@ -195,8 +204,8 @@ theorem work_add_pow_le_of_budget_lazy {adversary : Adversary} {q : Nat}
     (hbudget : Security.HasTotalBudget adversary q)
     {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support WarmedGame.graphWalk) (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
-    (state : HandlerState) (hstate : state.1 = walk.2)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (state : HandlerState) (hstate : state.1.cache = walk.2)
     {result : Outcome × HandlerState}
     (hresult : result ∈ support
       ((simulateQ (lazyProgram publicSeed availableAt table)

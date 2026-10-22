@@ -176,15 +176,16 @@ theorem probEvent_linked_handler (adversary : Adversary) (prfSeed publicSeed : D
     (table : Cells × Padding)
     (event : ((((Forgery × Multiplicative RecordedQueries.Tally) ×
       (Bool × RecordedQueries.Tally)) × SigningLog)) × QueryCache HashSpec → Prop)
-    (record : List (Bytes × QueryCache HashSpec)) (count : Nat) :
+    (record : List (Bytes × HandlerCarrier.State)) (count : Nat) :
     Pr[event | linkedRun adversary prfSeed publicSeed table] =
-      Pr[fun z => event (z.1, RedrawCell.unionCache publicSeed table z.2.1) |
-        handlerRun adversary prfSeed publicSeed table (∅, record, count)] := by
+      Pr[fun z => event (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache) |
+        handlerRun adversary prfSeed publicSeed table (HandlerCarrier.empty, record, count)] := by
   rw [linkedRun, handlerRun,
     show (walkOfTable prfSeed publicSeed table).2 =
-      RedrawCell.unionCache publicSeed table ∅ from by
-      rw [RedrawCell.unionCache_empty, walkOfTable_cache_eq_openCache]]
-  exact RedrawCell.probEvent_rom_eq_lazy publicSeed table event _ ∅ record count
+      RedrawCell.unionCache publicSeed table HandlerCarrier.empty.cache from by
+      rw [HandlerCarrier.cache_empty, RedrawCell.unionCache_empty,
+        walkOfTable_cache_eq_openCache]]
+  exact RedrawCell.probEvent_rom_eq_lazy publicSeed table event _ HandlerCarrier.empty record count
     (RedrawCell.compatible_empty publicSeed table)
 
 /-- **The tail at a drawn table, as the handler's run.** The chain, end to end: the count the
@@ -192,12 +193,12 @@ event does not read is dropped, the honest phase is stripped, the record is kept
 handed in, the game becomes one computation, and the handler starts from nothing. -/
 theorem probEvent_tail_handler (adversary : Adversary) (prfSeed publicSeed : Digest)
     (table : Cells × Padding) (event : Outcome × QueryCache HashSpec → Prop)
-    (record : List (Bytes × QueryCache HashSpec)) (count : Nat) :
+    (record : List (Bytes × HandlerCarrier.State)) (count : Nat) :
     Pr[fun result => event (result.1.1, result.2) |
         tail adversary (walkOfTable prfSeed publicSeed table)] =
       Pr[fun z => event ((LinkedGame.outcomeOf z.1).1,
-          RedrawCell.unionCache publicSeed table z.2.1) |
-        handlerRun adversary prfSeed publicSeed table (∅, record, count)] := by
+          RedrawCell.unionCache publicSeed table z.2.1.cache) |
+        handlerRun adversary prfSeed publicSeed table (HandlerCarrier.empty, record, count)] := by
   rw [probEvent_tail_linked adversary prfSeed publicSeed table event,
     probEvent_linked_handler adversary prfSeed publicSeed table
       (fun result => event ((LinkedGame.outcomeOf result.1).1, result.2)) record count]

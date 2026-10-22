@@ -175,6 +175,7 @@ import SlhDsaSecurity.Proof.ServedDisclosure
 import SlhDsaSecurity.Proof.ServedLog
 import SlhDsaSecurity.Proof.SplitRecorder
 import SlhDsaSecurity.Proof.ServingCarrier
+import SlhDsaSecurity.Proof.HandlerCarrier
 import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.PhaseFusion
 import SlhDsaSecurity.Proof.ServedBridge
@@ -8623,21 +8624,21 @@ info: 'SlhDsaSecurity.ServingCarrier.servedAt_setFraming' depends on axioms: [pr
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingCarrier.mem_disclosedAt_file_cacheAnswer
 
-/-- info: 'SlhDsaSecurity.ServingCarrier.grows_file' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.HandlerCarrier.grows_file' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.grows_file
+#print axioms SlhDsaSecurity.HandlerCarrier.grows_file
 
-/-- info: 'SlhDsaSecurity.ServingCarrier.grows_cacheAnswer' depends on axioms: [propext] -/
+/-- info: 'SlhDsaSecurity.HandlerCarrier.grows_cacheAnswer' depends on axioms: [propext] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.grows_cacheAnswer
+#print axioms SlhDsaSecurity.HandlerCarrier.grows_cacheAnswer
 
-/-- info: 'SlhDsaSecurity.ServingCarrier.not_filesLeft_of_clear' depends on axioms: [propext] -/
+/-- info: 'SlhDsaSecurity.HandlerCarrier.not_filesLeft_of_clear' depends on axioms: [propext] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.not_filesLeft_of_clear
+#print axioms SlhDsaSecurity.HandlerCarrier.not_filesLeft_of_clear
 
-/-- info: 'SlhDsaSecurity.ServingCarrier.framed_of_filesLeft' does not depend on any axioms -/
+/-- info: 'SlhDsaSecurity.HandlerCarrier.framed_of_filesLeft' does not depend on any axioms -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.framed_of_filesLeft
+#print axioms SlhDsaSecurity.HandlerCarrier.framed_of_filesLeft
 
 /--
 info: 'SlhDsaSecurity.AnswerJoin.answerCharged_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -8711,9 +8712,9 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_three' depends on axioms: [pro
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseFusion.fuseServing_id
 
-/-- info: 'SlhDsaSecurity.ServingCarrier.grows_of_framing' depends on axioms: [propext] -/
+/-- info: 'SlhDsaSecurity.HandlerCarrier.grows_of_framing' depends on axioms: [propext] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.grows_of_framing
+#print axioms SlhDsaSecurity.HandlerCarrier.grows_of_framing
 
 /--
 info: 'SlhDsaSecurity.ServingCarrier.disclosedAt_eq_logDisclosed' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -8962,28 +8963,28 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le_of_grow
 #print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le_of_growth
 
 /--
-info: 'SlhDsaSecurity.ServingCarrier.Grows.refl' depends on axioms: [propext]
+info: 'SlhDsaSecurity.HandlerCarrier.Grows.refl' depends on axioms: [propext]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.Grows.refl
+#print axioms SlhDsaSecurity.HandlerCarrier.Grows.refl
 
 /--
-info: 'SlhDsaSecurity.ServingCarrier.Grows.trans' depends on axioms: [propext]
+info: 'SlhDsaSecurity.HandlerCarrier.Grows.trans' depends on axioms: [propext]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.Grows.trans
+#print axioms SlhDsaSecurity.HandlerCarrier.Grows.trans
 
 /--
-info: 'SlhDsaSecurity.ServingCarrier.grows_setFraming' depends on axioms: [propext]
+info: 'SlhDsaSecurity.HandlerCarrier.grows_setFraming' depends on axioms: [propext]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.grows_setFraming
+#print axioms SlhDsaSecurity.HandlerCarrier.grows_setFraming
 
 /--
-info: 'SlhDsaSecurity.ServingCarrier.grows_clearFraming' depends on axioms: [propext]
+info: 'SlhDsaSecurity.HandlerCarrier.grows_clearFraming' depends on axioms: [propext]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ServingCarrier.grows_clearFraming
+#print axioms SlhDsaSecurity.HandlerCarrier.grows_clearFraming
 
 /--
 info: 'SlhDsaSecurity.ServingCarrier.servedAt_clearFraming' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -9034,3 +9035,22 @@ info: 'SlhDsaSecurity.SplitRecorder.forget_narrow' depends on axioms: [Quot.soun
 /-- info: 'SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.withFlag_aiming_dedup_quiet
+/-- info: 'SlhDsaSecurity.HandlerCarrier.cache_empty' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.cache_empty
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.cache_cacheAnswer' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.cache_cacheAnswer
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.cache_file' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.cache_file
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.cache_setFraming' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.cache_setFraming
+
+/-- info: 'SlhDsaSecurity.HandlerCarrier.cache_clearFraming' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCarrier.cache_clearFraming

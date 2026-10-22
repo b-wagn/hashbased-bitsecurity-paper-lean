@@ -41,21 +41,21 @@ open Security OpenCache CanonicalGraph LazyBudget
 
 /-- The probes a run has recorded at inputs the walk's table answers. -/
 def warmCount (warm : QueryCache HashSpec)
-    (probes : List (Bytes × QueryCache HashSpec)) : Nat :=
+    (probes : List (Bytes × HandlerCarrier.State)) : Nat :=
   probes.countP (fun entry => (warm entry.1).isSome)
 
 theorem warmCount_append (warm : QueryCache HashSpec)
-    (left right : List (Bytes × QueryCache HashSpec)) :
+    (left right : List (Bytes × HandlerCarrier.State)) :
     warmCount warm (left ++ right) = warmCount warm left + warmCount warm right :=
   List.countP_append
 
 theorem warmCount_singleton_le (warm : QueryCache HashSpec)
-    (entry : Bytes × QueryCache HashSpec) : warmCount warm [entry] ≤ 1 := by
+    (entry : Bytes × HandlerCarrier.State) : warmCount warm [entry] ≤ 1 := by
   rw [warmCount, List.countP_singleton]
   split <;> simp
 
 theorem warmCount_singleton_cold (warm : QueryCache HashSpec)
-    (entry : Bytes × QueryCache HashSpec) (hcold : warm entry.1 = none) :
+    (entry : Bytes × HandlerCarrier.State) (hcold : warm entry.1 = none) :
     warmCount warm [entry] = 0 := by
   rw [warmCount, List.countP_singleton, if_neg (by simp [hcold])]
 
@@ -67,7 +67,7 @@ is the case the honest phase is in. -/
 
 /-- The probes a hash call appends. -/
 theorem lazyProgram_hash_probes (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (input : Bytes) (state : HandlerState) (z : HashOutput × HandlerState)
     (hz : z ∈ support
       (((lazyProgram publicSeed availableAt table) (Sum.inr input)).run state)) :
@@ -83,7 +83,7 @@ theorem lazyProgram_hash_probes (publicSeed : Digest)
 
 /-- **A hash call the table cannot answer records nothing that matters.** -/
 theorem warmCount_hash_cold (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (input : Bytes) (hcold : warm input = none)
     (state : HandlerState) (z : HashOutput × HandlerState)
     (hz : z ∈ support
@@ -94,7 +94,7 @@ theorem warmCount_hash_cold (publicSeed : Digest)
 
 /-- **A hash call records at most one probe that matters.** -/
 theorem warmCount_hash_le (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (input : Bytes) (state : HandlerState)
     (z : HashOutput × HandlerState)
     (hz : z ∈ support
@@ -105,7 +105,7 @@ theorem warmCount_hash_le (publicSeed : Digest)
 
 /-- **A step records at most what the hash counter charges it.** -/
 theorem warmCount_step_le (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (queried : OracleWorld.Domain) (state : HandlerState)
     (z : OracleWorld.Range queried × HandlerState)
     (hz : z ∈ support (((lazyProgram publicSeed availableAt table) queried).run state)) :
@@ -126,7 +126,7 @@ count ignores. -/
 
 /-- A query the table cannot answer, followed by a run that records nothing that matters. -/
 theorem warmCount_cold_query_bind {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (input : Bytes) (hcold : warm input = none)
     (next : HashOutput → OracleComp OracleWorld α)
     (hnext : ∀ (value : HashOutput) (inner : HandlerState) (y : α × HandlerState),
@@ -144,7 +144,7 @@ theorem warmCount_cold_query_bind {α : Type} (publicSeed : Digest)
 
 /-- **A stripped hash-only computation records nothing that matters.** -/
 theorem warmCount_strip {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (computation : OracleComp HashSpec α) :
     ∀ (state : HandlerState) (z : α × HandlerState),
       z ∈ support ((simulateQ (lazyProgram publicSeed availableAt table)
@@ -181,7 +181,7 @@ attribute [local irreducible] Scheme.keygenInternal Scheme.sign Scheme.verify
 
 /-- Stripped key generation records nothing that matters. -/
 theorem warmCount_strippedKeygen (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (sds : Digest × Digest × Digest) (state : HandlerState)
     (z : (SecretKey × PublicKey) × HandlerState)
     (hz : z ∈ support ((simulateQ (lazyProgram publicSeed availableAt table)
@@ -192,7 +192,7 @@ theorem warmCount_strippedKeygen (publicSeed : Digest)
 
 /-- The stripped signer records nothing that matters. -/
 theorem warmCount_strippedSign (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (sk : SecretKey) (request : Message) (state : HandlerState)
     (z : Option Bytes × HandlerState)
     (hz : z ∈ support ((simulateQ (lazyProgram publicSeed availableAt table)
@@ -209,7 +209,7 @@ records nothing that matters. So the phase records at most the work it charges. 
 
 /-- One of the adversary's own queries records at most what it charges. -/
 theorem warmCount_adversaryImpl (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (queried : OracleWorld.Domain) (log : SigningLog)
     (state : HandlerState)
     (outer : ((OracleWorld.Range queried × Multiplicative Counts) × SigningLog) × HandlerState)
@@ -228,7 +228,7 @@ theorem warmCount_adversaryImpl (publicSeed : Digest)
 
 /-- A signing request records nothing that matters, and charges nothing to the work budget. -/
 theorem warmCount_strippedSigningOracle (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (sk : SecretKey) (request : Message) (log : SigningLog)
     (state : HandlerState)
     (outer : ((Option Bytes × Multiplicative Counts) × SigningLog) × HandlerState)
@@ -247,7 +247,7 @@ theorem warmCount_strippedSigningOracle (publicSeed : Digest)
 set_option maxHeartbeats 1000000 in
 /-- **The adversary's phase records at most the work it charges.** -/
 theorem warmCount_adversary (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (sk : SecretKey) {α : Type}
     (computation : OracleComp (OracleWorld + SigningSpec) α) :
     ∀ (log : SigningLog) (state : HandlerState)
@@ -296,7 +296,7 @@ charges. -/
 set_option maxHeartbeats 1000000 in
 /-- **An instrumentation that charges one kind per hash call bounds what the run records.** -/
 theorem warmCount_countQueries (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (warm : QueryCache HashSpec) (kind : QueryKind) (hkind : kind ≠ .signing) {α : Type}
     (computation : OracleComp OracleWorld α) :
     ∀ (state : HandlerState) (result : (α × Counts) × HandlerState),
@@ -340,7 +340,7 @@ set_option maxHeartbeats 1000000 in
 phase records nothing the count sees, and the adversary's and the verifier's own calls are
 exactly what the outcome charges. -/
 theorem warmCount_strippedAfterSeeds (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (adversary : Adversary) (sds : Digest × Digest × Digest) (warm : QueryCache HashSpec)
     (state : HandlerState) (result : Outcome × HandlerState)
     (hmem : result ∈ support ((simulateQ (lazyProgram publicSeed availableAt table)
@@ -377,25 +377,25 @@ honest phase's, which the work budget does not pay for. -/
 
 /-- The probes at inputs the walk's table answers. -/
 def warmProbes (warm : QueryCache HashSpec)
-    (probes : List (Bytes × QueryCache HashSpec)) : List (Bytes × QueryCache HashSpec) :=
+    (probes : List (Bytes × HandlerCarrier.State)) : List (Bytes × HandlerCarrier.State) :=
   probes.filter (fun entry => (warm entry.1).isSome)
 
 theorem length_warmProbes (warm : QueryCache HashSpec)
-    (probes : List (Bytes × QueryCache HashSpec)) :
+    (probes : List (Bytes × HandlerCarrier.State)) :
     (warmProbes warm probes).length = warmCount warm probes :=
   List.countP_eq_length_filter.symm
 
 /-- **No entry the table answers is dropped.** -/
 theorem mem_warmProbes (warm : QueryCache HashSpec)
-    (probes : List (Bytes × QueryCache HashSpec)) (entry : Bytes × QueryCache HashSpec)
+    (probes : List (Bytes × HandlerCarrier.State)) (entry : Bytes × HandlerCarrier.State)
     (hmem : entry ∈ probes) (hwarm : warm entry.1 ≠ none) : entry ∈ warmProbes warm probes :=
   List.mem_filter.mpr ⟨hmem, Option.isSome_iff_ne_none.mpr hwarm⟩
 
 /-- **An event about the probes the table answers is the event about all of them**, for any
 property only an input the table answers can have. -/
 theorem exists_mem_warmProbes (warm : QueryCache HashSpec)
-    (probes : List (Bytes × QueryCache HashSpec))
-    (Holds : Bytes × QueryCache HashSpec → Prop)
+    (probes : List (Bytes × HandlerCarrier.State))
+    (Holds : Bytes × HandlerCarrier.State → Prop)
     (hwarm : ∀ entry, Holds entry → warm entry.1 ≠ none)
     (hexists : ∃ entry ∈ probes, Holds entry) :
     ∃ entry ∈ warmProbes warm probes, Holds entry := by
@@ -411,8 +411,8 @@ theorem warmCount_add_pow_le_of_budget {adversary : Adversary} {q : Nat}
     (hbudget : HasTotalBudget adversary q)
     {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support graphWalk) (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
-    (state : HandlerState) (hstate : state.1 = walk.2) (hstart : state.2.1 = [])
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (state : HandlerState) (hstate : state.1.cache = walk.2) (hstart : state.2.1 = [])
     {result : Outcome × HandlerState}
     (hresult : result ∈ support
       ((simulateQ (lazyProgram publicSeed availableAt table)
@@ -431,8 +431,8 @@ theorem length_warmProbes_le_of_budget {adversary : Adversary} {q : Nat}
     (hbudget : HasTotalBudget adversary q)
     {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support graphWalk) (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
-    (state : HandlerState) (hstate : state.1 = walk.2) (hstart : state.2.1 = [])
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (state : HandlerState) (hstate : state.1.cache = walk.2) (hstart : state.2.1 = [])
     {result : Outcome × HandlerState}
     (hresult : result ∈ support
       ((simulateQ (lazyProgram publicSeed availableAt table)
@@ -451,15 +451,16 @@ which every signature has been issued and so the state the extraction's unavaila
 stated against. Their number is a constant, and it is paid out of what key generation spent. -/
 
 /-- One entry per cell the forgery claims, read at the cache the run ends with. -/
-def claimedEntries [HasQuery HashSpec Id] (publicSeed : Digest) (cache : QueryCache HashSpec)
-    (pk : PublicKey)
-    (message : Bytes) (parsed : Signature) : List (Bytes × QueryCache HashSpec) :=
-  (ClaimedProbes.claimedCandidatesOf publicSeed cache pk message parsed).map
-    fun input => (input, cache)
+def claimedEntries [HasQuery HashSpec Id] (publicSeed : Digest)
+    (carrier : HandlerCarrier.State) (pk : PublicKey)
+    (message : Bytes) (parsed : Signature) : List (Bytes × HandlerCarrier.State) :=
+  (ClaimedProbes.claimedCandidatesOf publicSeed carrier.cache pk message parsed).map
+    fun input => (input, carrier)
 
 theorem length_claimedEntries [HasQuery HashSpec Id] (publicSeed : Digest)
-    (cache : QueryCache HashSpec) (pk : PublicKey) (message : Bytes) (parsed : Signature) :
-    (claimedEntries publicSeed cache pk message parsed).length = 259 := by
+    (carrier : HandlerCarrier.State) (pk : PublicKey) (message : Bytes)
+    (parsed : Signature) :
+    (claimedEntries publicSeed carrier pk message parsed).length = 259 := by
   rw [claimedEntries, List.length_map, ClaimedProbes.length_claimedCandidatesOf]
 
 /-- **The whole record the charge is handed fits the budget.** The probes the table answers cost
@@ -469,8 +470,8 @@ theorem length_record_le_of_budget [HasQuery HashSpec Id] {adversary : Adversary
     (hbudget : HasTotalBudget adversary q)
     {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support graphWalk) (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
-    (state : HandlerState) (hstate : state.1 = walk.2) (hstart : state.2.1 = [])
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (state : HandlerState) (hstate : state.1.cache = walk.2) (hstart : state.2.1 = [])
     {result : Outcome × HandlerState}
     (hresult : result ∈ support
       ((simulateQ (lazyProgram publicSeed availableAt table)

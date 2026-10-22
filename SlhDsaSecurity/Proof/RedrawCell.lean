@@ -128,9 +128,9 @@ each cell, the one stalled at that cell.
 Carrying the weighting across that difference needs the expected counts to be taken under the
 real run rather than under each stalled one, which is a further step and not this lemma. -/
 theorem prob_joint_sensitive_le {γ Aux : Type} (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (auxiliary : ProbComp Aux) (run : Cells → Aux → ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (record : γ → List (Bytes × HandlerCarrier.State)) (limit : Nat)
     (hcongr : ∀ (index : CanonicalGraph.Node) (cells other : Cells) (aux : Aux),
       (∀ node, node ≠ index → cells node = other node) →
         𝒟[run cells aux] = 𝒟[run other aux])
@@ -230,11 +230,11 @@ at the cell and because the containment that pays for this weight speaks of the 
 installed, which a repeat does not install twice. Read "the record" here as the handler's own
 list, which is one `List.dedup` away from the multiset the join counts. -/
 theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (touched : CanonicalGraph.Node → Prop) (hindex : ¬ touched index)
@@ -366,11 +366,11 @@ the probes — stall, redraw, weigh — with the stall carried by the claims' ow
 than by a quiet step, since a claim is read at the cache the run ends with and so aims nowhere
 once that cache has the cell. The weight counts **distinct** claims, as the probes' does. -/
 theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (touched : CanonicalGraph.Node → Prop) (hindex : ¬ touched index)
@@ -380,8 +380,8 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
     (state : HandlerState × Bool)
-    (claims : α × (HandlerState × Bool) → List (Bytes × QueryCache HashSpec))
-    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × QueryCache HashSpec),
+    (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
+    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
         ∃ entry ∈ claims pair.1, ChargedBy stakes
@@ -522,8 +522,8 @@ part way through is not, and may not be put in `touched`. -/
 /-- A sensitive query whose staked cell is the secret seed — the seed-guessing avenue, charged
 by `TrackedQueries.prob_meets_real_le` and not here. -/
 def SensitiveAtSeed (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : QueryCache HashSpec) (candidate : Bytes) : Prop :=
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : HandlerCarrier.State) (candidate : Bytes) : Prop :=
   ∃ node : Target, stakes.stake node = CanonicalGraph.Node.secretSeed ∧
     unavailable cache (stakes.stake node) ∧
     stakes.inputOf node (cells (stakes.stake node)) = candidate
@@ -547,8 +547,8 @@ def CanonicalClass (publicSeed : Digest) (input : Bytes) : Prop :=
 read off its own bytes before any cell is consulted, and a sensitive node's input opens with the
 public seed — so a probe the charge weighs is one the canonical count counts. -/
 theorem canonicalClass_of_targets (publicSeed : Digest)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State)
     (htargets : ChargedProbe.Targets (GraphStakes.stakes publicSeed) unavailable index entry) :
     CanonicalClass publicSeed entry.1 := by
   classical
@@ -566,11 +566,11 @@ theorem canonicalClass_of_targets (publicSeed : Digest)
 taken as whatever test the count reports it by, so that the charge and the cost that counts it
 speak of the same list and no decidability instance has to be matched across them. -/
 theorem sum_aiming_le_canonical (publicSeed : Digest)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (keep : Bytes × QueryCache HashSpec → Bool)
-    (hkeep : ∀ entry : Bytes × QueryCache HashSpec,
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (keep : Bytes × HandlerCarrier.State → Bool)
+    (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
       CanonicalClass publicSeed entry.1 → keep entry = true)
-    (record : List (Bytes × QueryCache HashSpec)) :
+    (record : List (Bytes × HandlerCarrier.State)) :
     ∑ index : CanonicalGraph.Node,
         ChargedProbe.aiming (GraphStakes.stakes publicSeed) unavailable index record ≤
       (record.filter keep).length :=
@@ -609,8 +609,8 @@ theorem locate_messageInput (publicSeed randomizer : Digest) (pk : PublicKey) (m
 
 /-- **A probe that aims nowhere is weighed nowhere.** -/
 theorem not_targets_of_locate_none (publicSeed : Digest)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State)
     (hlocate : GraphStakes.locate publicSeed entry.1 = none) :
     ¬ ChargedProbe.Targets (GraphStakes.stakes publicSeed) unavailable index entry := by
   rintro ⟨node, -, -, hnode⟩
@@ -620,8 +620,8 @@ theorem not_targets_of_locate_none (publicSeed : Digest)
 
 /-- A sensitive query whose staked cell is any other — the avenue charged here. -/
 def SensitiveOffSeed (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : QueryCache HashSpec) (candidate : Bytes) : Prop :=
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : HandlerCarrier.State) (candidate : Bytes) : Prop :=
   ∃ node : Target, stakes.stake node ≠ CanonicalGraph.Node.secretSeed ∧
     unavailable cache (stakes.stake node) ∧
     stakes.inputOf node (cells (stakes.stake node)) = candidate
@@ -646,8 +646,8 @@ theorem open_seedAndRoot (revealed : WotsKey → Fin chains → Nat)
 
 /-- **The two avenues cover the event between them.** -/
 theorem sensitive_iff_off_or_at_seed (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : QueryCache HashSpec) (candidate : Bytes) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : HandlerCarrier.State) (candidate : Bytes) :
     Sensitive stakes unavailable cells cache candidate ↔
       SensitiveOffSeed stakes unavailable cells cache candidate ∨
         SensitiveAtSeed stakes unavailable cells cache candidate := by
@@ -661,8 +661,8 @@ theorem sensitive_iff_off_or_at_seed (stakes : Stakes Target CanonicalGraph.Node
 
 /-- **Off the seed, the staked cell is one of the cells the sum below runs over.** -/
 theorem sensitiveOffSeed_iff_exists (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : QueryCache HashSpec) (candidate : Bytes) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : HandlerCarrier.State) (candidate : Bytes) :
     SensitiveOffSeed stakes unavailable cells cache candidate ↔
       ∃ index, index ≠ CanonicalGraph.Node.secretSeed ∧
         SensitiveAt stakes unavailable cells cache candidate index := by
@@ -695,11 +695,11 @@ a budget with: the split of the budget between a run's own queries and its reque
 adversary's choice, so four almost-sure caps are four budgets, while four expectations add
 pathwise. `prob_sensitive_run_le` below is this with the expectation taken at the end. -/
 theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
@@ -816,11 +816,11 @@ for the probes, with the record replaced by a list the run's value determines �
 own claimed cells, read at the cache the run ends with. Its length is a constant, so the
 expectation this leaves is the constant the budget grants the half beyond its class. -/
 theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
@@ -832,8 +832,8 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
       ∀ cache, availableAt cache node)
     (state : HandlerState × Bool)
-    (claims : α × (HandlerState × Bool) → List (Bytes × QueryCache HashSpec))
-    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × QueryCache HashSpec),
+    (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
+    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) (weight : α × (HandlerState × Bool) → Nat)
     (hweight : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -936,11 +936,11 @@ open scoped Classical in
 /-- **The claims cost their own number.** It is a constant per run — `259` for the forgery the
 split hands over — so it is its own expectation, and nothing is lost by capping it here. -/
 theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
@@ -952,8 +952,8 @@ theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
       ∀ cache, availableAt cache node)
     (state : HandlerState × Bool)
-    (claims : α × (HandlerState × Bool) → List (Bytes × QueryCache HashSpec))
-    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × QueryCache HashSpec),
+    (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
+    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) (limit : Nat)
     (hlength : ∀ z : α × (HandlerState × Bool), (claims z).length ≤ limit) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
@@ -980,11 +980,11 @@ open scoped Classical in
 /-- **The same charge, capped at the record's length.** The expectation above is taken at the
 end, which a half that does not share its budget may do and this one may not. -/
 theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
@@ -1033,11 +1033,11 @@ the probes being among the run's recorded queries — is a statement about the e
 installed, which a repeat does not install twice. The join's own count has multiplicity, so a
 distinct count is contained in it and the bound only improves. -/
 theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt cache child) →
         availableAt cache (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
@@ -1047,8 +1047,8 @@ theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
         computation left = computation right)
     (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
       ∀ cache, availableAt cache node)
-    (state : HandlerState × Bool) (keep : Bytes × QueryCache HashSpec → Bool)
-    (hkeep : ∀ entry : Bytes × QueryCache HashSpec,
+    (state : HandlerState × Bool) (keep : Bytes × HandlerCarrier.State → Bool)
+    (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
       CanonicalClass publicSeed entry.1 → keep entry = true) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed (GraphStakes.stakes publicSeed)
@@ -1087,11 +1087,11 @@ entries. There is no order condition and no deferred sampling: the equality is s
 
 /-- What one query leaves in the record and the count. -/
 def restamp (queried : OracleWorld.Domain)
-    (record : List (Bytes × QueryCache HashSpec)) (count : Nat)
-    (cache : QueryCache HashSpec) : List (Bytes × QueryCache HashSpec) × Nat :=
+    (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
+    (carrier : HandlerCarrier.State) : List (Bytes × HandlerCarrier.State) × Nat :=
   match queried with
   | Sum.inl _ => (record, count)
-  | Sum.inr input => (record ++ [(input, cache)], count + 1)
+  | Sum.inr input => (record ++ [(input, carrier)], count + 1)
 
 /-- **The shared oracle only ever adds to its cache.** -/
 theorem rom_persists (queried : OracleWorld.Domain) (cache : QueryCache HashSpec)
@@ -1122,19 +1122,20 @@ theorem rom_persists (queried : OracleWorld.Domain) (cache : QueryCache HashSpec
 open scoped Classical in
 /-- **At total availability the handler is the shared oracle with a record alongside.** -/
 theorem lazyProgram_total_run (publicSeed : Digest) (table : Cells × Padding)
-    (queried : OracleWorld.Domain) (cache : QueryCache HashSpec)
-    (record : List (Bytes × QueryCache HashSpec)) (count : Nat)
-    (hprog : CacheAvailability.Persists (openCache publicSeed (fun _ => True) table) cache) :
-    ((lazyProgram publicSeed (fun _ _ => True) table) queried).run (cache, record, count) =
+    (queried : OracleWorld.Domain) (carrier : HandlerCarrier.State)
+    (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
+    (hprog : CacheAvailability.Persists (openCache publicSeed (fun _ => True) table)
+      carrier.cache) :
+    ((lazyProgram publicSeed (fun _ _ => True) table) queried).run (carrier, record, count) =
       (fun z : OracleWorld.Range queried × QueryCache HashSpec =>
-          (z.1, (z.2, restamp queried record count cache))) <$>
-        (KeygenUniform.rom queried).run cache := by
+          (z.1, ({ carrier with cache := z.2 }, restamp queried record count carrier))) <$>
+        (KeygenUniform.rom queried).run carrier.cache := by
   classical
   rcases queried with coin | input
   · rw [lazyProgram_run_inl, DigestTape.rom_run_inl]
     simp [restamp, map_eq_bind_pure_comp, bind_assoc]
   · rw [lazyProgram_run_inr, DigestTape.rom_run_inr]
-    cases hcached : cache input with
+    cases hcached : carrier.cache input with
     | some cached =>
       rw [QueryImpl.withCaching_run_some _ hcached]
       simp only [hcached, restamp, pure_bind, map_pure]
@@ -1147,34 +1148,36 @@ theorem lazyProgram_total_run (publicSeed : Digest) (table : Cells × Padding)
           exact absurd hcached (by simp)
       rw [QueryImpl.withCaching_run_none _ hcached]
       simp only [hcached, hnone, restamp, uniformSampleImpl, map_eq_bind_pure_comp,
-        bind_assoc, Function.comp_apply, pure_bind]
+        bind_assoc, Function.comp_apply, pure_bind, HandlerCarrier.cacheAnswer]
 
 open scoped Classical in
 /-- **The game's run is the handler's run with the record forgotten.** -/
 theorem probEvent_rom_eq_lazyProgram {α : Type} (publicSeed : Digest) (table : Cells × Padding)
     (event : α × QueryCache HashSpec → Prop) (computation : OracleComp OracleWorld α) :
-    ∀ (cache : QueryCache HashSpec) (record : List (Bytes × QueryCache HashSpec)) (count : Nat),
-      CacheAvailability.Persists (openCache publicSeed (fun _ => True) table) cache →
-        Pr[event | (simulateQ KeygenUniform.rom computation).run cache] =
-          Pr[fun z : α × HandlerState => event (z.1, z.2.1) |
+    ∀ (carrier : HandlerCarrier.State) (record : List (Bytes × HandlerCarrier.State))
+      (count : Nat),
+      CacheAvailability.Persists (openCache publicSeed (fun _ => True) table) carrier.cache →
+        Pr[event | (simulateQ KeygenUniform.rom computation).run carrier.cache] =
+          Pr[fun z : α × HandlerState => event (z.1, z.2.1.cache) |
             (simulateQ (lazyProgram publicSeed (fun _ _ => True) table) computation).run
-              (cache, record, count)] := by
+              (carrier, record, count)] := by
   classical
   induction computation using OracleComp.inductionOn with
   | pure value =>
-    intro cache record count _
+    intro carrier record count _
     rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure,
       probEvent_pure, probEvent_pure]
   | query_bind queried next ih =>
-    intro cache record count hprog
+    intro carrier record count hprog
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
       simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-      lazyProgram_total_run publicSeed table queried cache record count hprog,
+      lazyProgram_total_run publicSeed table queried carrier record count hprog,
       bind_map_left, probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun step => ?_
-    by_cases hmem : step ∈ support ((KeygenUniform.rom queried).run cache)
-    · exact congrArg _ (ih step.1 step.2 _ _
-        (CacheAvailability.Persists.trans hprog (rom_persists queried cache step hmem)))
+    by_cases hmem : step ∈ support ((KeygenUniform.rom queried).run carrier.cache)
+    · exact congrArg _ (ih step.1 { carrier with cache := step.2 } _ _
+        (CacheAvailability.Persists.trans hprog
+          (rom_persists queried carrier.cache step hmem)))
     · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
 
 /-! ## The programmed cache read on demand
@@ -1798,20 +1801,20 @@ theorem compatible_empty (publicSeed : Digest) (table : Cells × Padding) :
 open scoped Classical in
 /-- **The game's step is the handler's step, read through the union.** -/
 theorem rom_union_step (publicSeed : Digest) (table : Cells × Padding)
-    (queried : OracleWorld.Domain) (cache : QueryCache HashSpec)
-    (record : List (Bytes × QueryCache HashSpec)) (count : Nat)
-    (hcompat : Compatible publicSeed table cache) :
-    (KeygenUniform.rom queried).run (unionCache publicSeed table cache) =
+    (queried : OracleWorld.Domain) (carrier : HandlerCarrier.State)
+    (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
+    (hcompat : Compatible publicSeed table carrier.cache) :
+    (KeygenUniform.rom queried).run (unionCache publicSeed table carrier.cache) =
       (fun z : OracleWorld.Range queried × HandlerState =>
-          (z.1, unionCache publicSeed table z.2.1)) <$>
+          (z.1, unionCache publicSeed table z.2.1.cache)) <$>
         ((lazyProgram publicSeed (fun _ _ => True) table) queried).run
-          (cache, record, count) := by
+          (carrier, record, count) := by
   classical
   rcases queried with coin | input
   · rw [lazyProgram_run_inl, DigestTape.rom_run_inl]
     simp [map_eq_bind_pure_comp, bind_assoc]
   · rw [lazyProgram_run_inr, DigestTape.rom_run_inr]
-    cases hcached : cache input with
+    cases hcached : carrier.cache input with
     | some cached =>
       rw [QueryImpl.withCaching_run_some _ (hcompat input cached hcached)]
       simp only [hcached, pure_bind, map_pure]
@@ -1819,68 +1822,70 @@ theorem rom_union_step (publicSeed : Digest) (table : Cells × Padding)
       cases hopen : openCache publicSeed (fun _ => True) table input with
       | some answer =>
         rw [QueryImpl.withCaching_run_some _
-          (unionCache_of_open publicSeed table cache input answer hopen)]
-        simp only [hcached, pure_bind, map_pure,
-          unionCache_cacheQuery_open publicSeed table cache input answer hopen]
+          (unionCache_of_open publicSeed table carrier.cache input answer hopen)]
+        simp only [hcached, pure_bind, map_pure, HandlerCarrier.cacheAnswer,
+          unionCache_cacheQuery_open publicSeed table carrier.cache input answer hopen]
       | none =>
         rw [QueryImpl.withCaching_run_none _
-          (by rw [unionCache_of_none publicSeed table cache input hopen, hcached])]
+          (by rw [unionCache_of_none publicSeed table carrier.cache input hopen, hcached])]
         simp only [hcached, uniformSampleImpl, map_eq_bind_pure_comp, bind_assoc,
-          Function.comp_apply, pure_bind,
-          unionCache_cacheQuery_fresh publicSeed table cache input hopen]
+          Function.comp_apply, pure_bind, HandlerCarrier.cacheAnswer,
+          unionCache_cacheQuery_fresh publicSeed table carrier.cache input hopen]
         rfl
 
 open scoped Classical in
 /-- **The handler's cache stays compatible with the table.** -/
 theorem compatible_step (publicSeed : Digest) (table : Cells × Padding)
-    (queried : OracleWorld.Domain) (cache : QueryCache HashSpec)
-    (record : List (Bytes × QueryCache HashSpec)) (count : Nat)
-    (hcompat : Compatible publicSeed table cache)
+    (queried : OracleWorld.Domain) (carrier : HandlerCarrier.State)
+    (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
+    (hcompat : Compatible publicSeed table carrier.cache)
     (step : OracleWorld.Range queried × HandlerState)
     (hstep : step ∈ support (((lazyProgram publicSeed (fun _ _ => True) table)
-      queried).run (cache, record, count))) :
-    Compatible publicSeed table step.2.1 := by
+      queried).run (carrier, record, count))) :
+    Compatible publicSeed table step.2.1.cache := by
   classical
   rcases queried with coin | input
   · rw [lazyProgram_run_inl, mem_support_bind_iff] at hstep
     obtain ⟨value, -, hpure⟩ := hstep
     rw [support_pure, Set.mem_singleton_iff] at hpure
-    rw [show step.2.1 = cache from by rw [hpure]]
+    rw [show step.2.1 = carrier from by rw [hpure]]
     exact hcompat
   · have hbind : step ∈ support
-        (LazyBudget.lazyAnswer publicSeed (fun _ _ => True) table input cache >>= fun inner =>
-          (pure (inner.1, (inner.2, record ++ [(input, cache)], count + 1)) :
+        (LazyBudget.lazyAnswer publicSeed (fun _ _ => True) table input carrier >>= fun inner =>
+          (pure (inner.1, (inner.2, record ++ [(input, carrier)], count + 1)) :
             ProbComp (HashOutput × HandlerState))) := hstep
     rw [mem_support_bind_iff] at hbind
     obtain ⟨inner, hinner, hpure⟩ := hbind
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [show step.2.1 = inner.2 from by rw [hpure]]
     rw [LazyBudget.lazyAnswer] at hinner
-    cases hcached : cache input with
+    cases hcached : carrier.cache input with
     | some cached =>
       rw [hcached, support_pure, Set.mem_singleton_iff] at hinner
-      rw [show inner.2 = cache from by rw [hinner]]
+      rw [show inner.2 = carrier from by rw [hinner]]
       exact hcompat
     | none =>
       rw [hcached] at hinner
       cases hopen : openCache publicSeed (fun _ => True) table input with
       | some answer =>
         rw [hopen, support_pure, Set.mem_singleton_iff] at hinner
-        rw [show inner.2 = cache.cacheQuery input answer from by rw [hinner]]
+        rw [show inner.2 = HandlerCarrier.cacheAnswer carrier input answer from by rw [hinner]]
+        show Compatible publicSeed table (carrier.cache.cacheQuery input answer)
         intro probe value hvalue
-        rw [unionCache_cacheQuery_open publicSeed table cache input answer hopen]
+        rw [unionCache_cacheQuery_open publicSeed table carrier.cache input answer hopen]
         by_cases hprobe : probe = input
         · subst hprobe
           rw [QueryCache.cacheQuery_self] at hvalue
-          rw [unionCache_of_open publicSeed table cache probe answer hopen, hvalue]
+          rw [unionCache_of_open publicSeed table carrier.cache probe answer hopen, hvalue]
         · rw [QueryCache.cacheQuery_of_ne _ _ hprobe] at hvalue
           exact hcompat probe value hvalue
       | none =>
         rw [hopen, support_map] at hinner
         obtain ⟨answer, -, heq⟩ := hinner
-        rw [show inner.2 = cache.cacheQuery input answer from by rw [← heq]]
+        rw [show inner.2 = HandlerCarrier.cacheAnswer carrier input answer from by rw [← heq]]
+        show Compatible publicSeed table (carrier.cache.cacheQuery input answer)
         intro probe value hvalue
-        rw [unionCache_cacheQuery_fresh publicSeed table cache input hopen]
+        rw [unionCache_cacheQuery_fresh publicSeed table carrier.cache input hopen]
         by_cases hprobe : probe = input
         · subst hprobe
           rw [QueryCache.cacheQuery_self] at hvalue
@@ -1894,30 +1899,31 @@ open scoped Classical in
 nothing, so the charge applies to it; the game starts from the programmed cache. -/
 theorem probEvent_rom_eq_lazy {α : Type} (publicSeed : Digest) (table : Cells × Padding)
     (event : α × QueryCache HashSpec → Prop) (computation : OracleComp OracleWorld α) :
-    ∀ (cache : QueryCache HashSpec) (record : List (Bytes × QueryCache HashSpec)) (count : Nat),
-      Compatible publicSeed table cache →
+    ∀ (carrier : HandlerCarrier.State) (record : List (Bytes × HandlerCarrier.State))
+      (count : Nat),
+      Compatible publicSeed table carrier.cache →
         Pr[event | (simulateQ KeygenUniform.rom computation).run
-            (unionCache publicSeed table cache)] =
-          Pr[fun z : α × HandlerState => event (z.1, unionCache publicSeed table z.2.1) |
+            (unionCache publicSeed table carrier.cache)] =
+          Pr[fun z : α × HandlerState => event (z.1, unionCache publicSeed table z.2.1.cache) |
             (simulateQ (lazyProgram publicSeed (fun _ _ => True) table) computation).run
-              (cache, record, count)] := by
+              (carrier, record, count)] := by
   classical
   induction computation using OracleComp.inductionOn with
   | pure value =>
-    intro cache record count _
+    intro carrier record count _
     rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure,
       probEvent_pure, probEvent_pure]
   | query_bind queried next ih =>
-    intro cache record count hcompat
+    intro carrier record count hcompat
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
       simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-      rom_union_step publicSeed table queried cache record count hcompat,
+      rom_union_step publicSeed table queried carrier record count hcompat,
       bind_map_left, probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun step => ?_
     by_cases hmem : step ∈ support (((lazyProgram publicSeed (fun _ _ => True) table)
-        queried).run (cache, record, count))
+        queried).run (carrier, record, count))
     · exact congrArg _ (ih step.1 step.2.1 step.2.2.1 step.2.2.2
-        (compatible_step publicSeed table queried cache record count hcompat step hmem))
+        (compatible_step publicSeed table queried carrier record count hcompat step hmem))
     · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
 
 /-! ## The charge, at the presentation the game gives
@@ -1962,7 +1968,7 @@ open scoped Classical in
 lenient presentation flags exactly as often as the charge's wrapper records a sensitive
 query. -/
 theorem probEvent_flag_eq_record {α : Type} (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop) (table : Cells × Padding)
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop) (table : Cells × Padding)
     (computation : OracleComp OracleWorld α) (inner : HandlerState) (hinner : inner.2.1 = []) :
     Pr[fun z : α × (HandlerState × Bool) => z.2.2 = true |
       (simulateQ (ChargedProbe.sensitiveFlagged publicSeed availableAt (fun _ _ => True) table)
@@ -1993,12 +1999,12 @@ cell is read, so a probe falls in one avenue or the other and the record pays fo
 theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
     (revealed : WotsKey → Fin chains → Nat)
     (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
-    (signedAt : QueryCache HashSpec → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children,
           CanonicalGraph.Available revealed (signedAt cache) child) →
         CanonicalGraph.Available revealed (signedAt cache) (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, CanonicalGraph.Available revealed (signedAt left) node →
         CanonicalGraph.Available revealed (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
@@ -2074,14 +2080,14 @@ open scoped Classical in
 monotonicity, the record's limit, and the empty starting record. -/
 theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
     (publicSeed secretSeed : Digest)
-    (signedAt : QueryCache HashSpec → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
+    (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (hclosed : ∀ (cache : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children,
           CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
             (signedAt cache) child) →
         CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
           (signedAt cache) (.structural parent))
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
           (signedAt left) node →
         CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)

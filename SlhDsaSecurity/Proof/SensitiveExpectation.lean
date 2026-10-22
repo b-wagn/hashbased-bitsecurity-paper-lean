@@ -35,8 +35,8 @@ open scoped Classical in
 /-- **The input half's charge, as an expectation.** One unit of `2 ^ -128` per probe, with the
 number of probes read off each run rather than bounded in advance. -/
 theorem prob_run_sensitive_expected_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × HandlerCarrier.State)) :
     ∑ index : CanonicalGraph.Node,
         Pr[fun pair : γ × Cell =>
             ∃ entry ∈ record pair.1, ChargedBy stakes unavailable index pair.2 entry |
@@ -71,7 +71,7 @@ theorem prob_run_sensitive_expected_le {γ : Type} (stakes : Stakes Node Canonic
 /-- **The expected number of probes is bounded by any uniform bound on them**, which is the step
 the charge used to take first. -/
 theorem expected_length_le {γ : Type} (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (record : γ → List (Bytes × HandlerCarrier.State)) (limit : Nat)
     (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
     (∑' result, Pr[= result | run] * (((record result).length : Nat) : ℝ≥0∞)) ≤
       (limit : ℝ≥0∞) := by
@@ -89,8 +89,8 @@ set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- The uniform charge, recovered from the expectation. -/
 theorem prob_run_sensitive_le' {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × HandlerCarrier.State)) (limit : Nat)
     (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
     ∑ index : CanonicalGraph.Node,
         Pr[fun pair : γ × Cell =>
