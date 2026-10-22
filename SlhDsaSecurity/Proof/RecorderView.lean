@@ -94,6 +94,43 @@ theorem right_prefix_appendedOf (leftKeep rightKeep : Bytes → σ → Prop) (in
     · exact List.prefix_append _ _
     · exact List.prefix_rfl
 
+/-! ### Reading the two tests -/
+
+open scoped Classical in
+theorem appendedOf_of_cached (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (answer cached : HashOutput)
+    (hcached : CacheView.cacheOf state.1 input = some cached) :
+    appendedOf leftKeep rightKeep input state answer = state.2 := by
+  classical
+  rw [appendedOf, if_neg (by rw [hcached]; simp), if_neg (by rw [hcached]; simp)]
+
+open scoped Classical in
+theorem appendedOf_of_left (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (answer : HashOutput)
+    (hfresh : CacheView.cacheOf state.1 input = none) (hleft : leftKeep input state.1) :
+    appendedOf leftKeep rightKeep input state answer =
+      (state.2.1 ++ [(input, answer)], state.2.2) := by
+  classical
+  rw [appendedOf, if_pos ⟨hfresh, hleft⟩]
+
+open scoped Classical in
+theorem appendedOf_of_right (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (answer : HashOutput)
+    (hfresh : CacheView.cacheOf state.1 input = none) (hleft : ¬ leftKeep input state.1)
+    (hright : rightKeep input state.1) :
+    appendedOf leftKeep rightKeep input state answer =
+      (state.2.1, state.2.2 ++ [(input, answer)]) := by
+  classical
+  rw [appendedOf, if_neg (fun hboth => hleft hboth.2), if_pos ⟨hfresh, hright⟩]
+
+open scoped Classical in
+theorem appendedOf_of_neither (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (answer : HashOutput) (hleft : ¬ leftKeep input state.1)
+    (hright : ¬ rightKeep input state.1) :
+    appendedOf leftKeep rightKeep input state answer = state.2 := by
+  classical
+  rw [appendedOf, if_neg (fun hboth => hleft hboth.2), if_neg (fun hboth => hright hboth.2)]
+
 open scoped Classical in
 /-- **The recorder at a general view.** The two branches are the shared oracle's own — a hit
 returns the cached answer and leaves the state, a miss draws and installs — so at the cache this
@@ -142,17 +179,17 @@ open scoped Classical in
 theorem recorderOf_run_inr_none (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
     (state : StateOf σ) (hfresh : CacheView.cacheOf state.1 input = none) :
     ((recorderOf leftKeep rightKeep) (Sum.inr input)).run state =
-      (fun answer => (answer,
+      (((fun answer => (answer,
         (CacheView.update state.1 input answer,
           appendedOf leftKeep rightKeep input state answer))) <$>
-        ($ᵗ HashOutput : ProbComp _) := by
+        ($ᵗ HashOutput : ProbComp _)) :
+          ProbComp (OracleWorld.Range (Sum.inr input) × StateOf σ)) := by
   classical
   show (match CacheView.cacheOf state.1 input with
     | some cached => (pure (cached, (state.1, appendedOf leftKeep rightKeep input state cached)) :
         ProbComp _)
     | none => _) = _
   rw [hfresh]
-  rfl
 
 /-! ## At the cache, it is the recorder `SplitPrefix` already has
 
@@ -187,5 +224,275 @@ theorem recorderOf_cache (leftKeep rightKeep : Bytes → QueryCache HashSpec →
       simp only [uniformSampleImpl, map_eq_bind_pure_comp, bind_assoc, pure_bind,
         Function.comp_def]
       rfl
+
+/-! ## What the law buys
+
+The law is read in exactly two ways, and every proof below goes through those two readings
+rather than through `CacheView.update` itself. That is the point of keeping the law single: a
+second one would have to be paid for here and again at every instantiation. -/
+
+theorem cacheOf_update_self (state : σ) (input : Bytes) (answer : HashOutput) :
+    CacheView.cacheOf (CacheView.update state input answer) input = some answer := by
+  rw [CacheView.cache_update, QueryCache.cacheQuery_self]
+
+theorem cacheOf_update_of_ne (state : σ) (input probe : Bytes) (answer : HashOutput)
+    (hne : probe ≠ input) :
+    CacheView.cacheOf (CacheView.update state input answer) probe =
+      CacheView.cacheOf state probe := by
+  rw [CacheView.cache_update, QueryCache.cacheQuery_of_ne _ _ hne]
+
+/-! ## One step, read four ways
+
+Below this point nothing mentions `CacheView.update` again. A hash query does one of two things
+to the state, and these four lemmas are everything the inductions need to know about which. -/
+
+open scoped Classical in
+/-- **A private sample leaves the state alone.** -/
+theorem recorderOf_step_inl (leftKeep rightKeep : Bytes → σ → Prop) (coin : unifSpec.Domain)
+    (state : StateOf σ) (step : OracleWorld.Range (Sum.inl coin) × StateOf σ)
+    (hstep : step ∈ support (((recorderOf leftKeep rightKeep) (Sum.inl coin)).run state)) :
+    step.2 = state := by
+  rw [recorderOf_run_inl, mem_support_bind_iff] at hstep
+  obtain ⟨value, -, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  exact congrArg Prod.snd hpure
+
+open scoped Classical in
+/-- **The two shapes a hash query's step can have.** Either the input was cached, and the state
+is untouched; or it was fresh, and the answer is installed. Either way the recordings take that
+answer's appending. Because `recorderOf` is written as the shared oracle's own two cases, this
+is the whole of a step, and the three readings that follow are its consequences. -/
+theorem recorderOf_step (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (step : OracleWorld.Range (Sum.inr input) × StateOf σ)
+    (hstep : step ∈ support (((recorderOf leftKeep rightKeep) (Sum.inr input)).run state)) :
+    (CacheView.cacheOf state.1 input = some step.1 ∧
+        step.2 = (state.1, appendedOf leftKeep rightKeep input state step.1)) ∨
+      (CacheView.cacheOf state.1 input = none ∧
+        step.2 = (CacheView.update state.1 input step.1,
+          appendedOf leftKeep rightKeep input state step.1)) := by
+  classical
+  cases hcached : CacheView.cacheOf state.1 input with
+  | some cached =>
+    rw [recorderOf_run_inr_some leftKeep rightKeep input state cached hcached, support_pure,
+      Set.mem_singleton_iff] at hstep
+    subst hstep
+    exact Or.inl ⟨rfl, rfl⟩
+  | none =>
+    rw [recorderOf_run_inr_none leftKeep rightKeep input state hcached, support_map] at hstep
+    obtain ⟨answer, -, hpair⟩ := hstep
+    subst hpair
+    exact Or.inr ⟨rfl, rfl⟩
+
+open scoped Classical in
+/-- **A step appends exactly what `appendedOf` says.** -/
+theorem recorderOf_step_record (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (step : OracleWorld.Range (Sum.inr input) × StateOf σ)
+    (hstep : step ∈ support (((recorderOf leftKeep rightKeep) (Sum.inr input)).run state)) :
+    step.2.2 = appendedOf leftKeep rightKeep input state step.1 := by
+  rcases recorderOf_step leftKeep rightKeep input state step hstep with ⟨-, hshape⟩ | ⟨-, hshape⟩ <;>
+    rw [hshape]
+
+open scoped Classical in
+/-- **After its own query the answer is in the cache**, whichever branch the step took: a hit
+reads the entry that was already there, a miss installs one. -/
+theorem recorderOf_step_cache_self (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (step : OracleWorld.Range (Sum.inr input) × StateOf σ)
+    (hstep : step ∈ support (((recorderOf leftKeep rightKeep) (Sum.inr input)).run state)) :
+    CacheView.cacheOf step.2.1 input = some step.1 := by
+  rcases recorderOf_step leftKeep rightKeep input state step hstep with
+    ⟨hcached, hshape⟩ | ⟨-, hshape⟩
+  · rw [show step.2.1 = state.1 from by rw [hshape]]
+    exact hcached
+  · rw [show step.2.1 = CacheView.update state.1 input step.1 from by rw [hshape]]
+    exact cacheOf_update_self state.1 input step.1
+
+open scoped Classical in
+/-- **A step never loses an entry.** -/
+theorem recorderOf_step_persists (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (step : OracleWorld.Range (Sum.inr input) × StateOf σ)
+    (hstep : step ∈ support (((recorderOf leftKeep rightKeep) (Sum.inr input)).run state))
+    (probe : Bytes) (value : HashOutput) (hentry : CacheView.cacheOf state.1 probe = some value) :
+    CacheView.cacheOf step.2.1 probe = some value := by
+  classical
+  rcases recorderOf_step leftKeep rightKeep input state step hstep with
+    ⟨-, hshape⟩ | ⟨hfresh, hshape⟩
+  · rw [show step.2.1 = state.1 from by rw [hshape]]
+    exact hentry
+  · rw [show step.2.1 = CacheView.update state.1 input step.1 from by rw [hshape]]
+    have hne : probe ≠ input := by
+      intro hsame
+      rw [hsame, hfresh] at hentry
+      simp at hentry
+    rw [cacheOf_update_of_ne state.1 input probe step.1 hne]
+    exact hentry
+
+/-! ## The three facts about a whole run
+
+These are `SplitPrefix.record_prefix`, `recorder_cache_value_persists`, `mem_record_of_cache`
+and `left_record_keep_final` with the cache replaced by the view. The parametric half of the
+join reaches only the last two of them; the rest of `SplitPrefix` stays where it is, about the
+same object by `recorderOf_cache`. -/
+
+open scoped Classical in
+/-- **Both recordings only grow.** -/
+theorem recordOf_prefix {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state)) :
+    state.2.1 <+: result.2.2.1 ∧ state.2.2 <+: result.2.2.2 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact ⟨List.prefix_rfl, List.prefix_rfl⟩
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    obtain ⟨hleft, hright⟩ := ih step.1 step.2 result hrest
+    have hstepPrefix : state.2.1 <+: step.2.2.1 ∧ state.2.2 <+: step.2.2.2 := by
+      rcases queried with coin | input
+      · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
+        exact ⟨List.prefix_rfl, List.prefix_rfl⟩
+      · rw [recorderOf_step_record leftKeep rightKeep input state step hstep]
+        exact ⟨left_prefix_appendedOf leftKeep rightKeep input state step.1,
+          right_prefix_appendedOf leftKeep rightKeep input state step.1⟩
+    exact ⟨hstepPrefix.1.trans hleft, hstepPrefix.2.trans hright⟩
+
+open scoped Classical in
+/-- **An entry of the view's cache survives the run.** -/
+theorem recorderOf_cache_value_persists {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
+    (input : Bytes) (answer : HashOutput)
+    (hentry : CacheView.cacheOf state.1 input = some answer) :
+    CacheView.cacheOf result.2.1 input = some answer := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hentry
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | probe
+    · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
+      exact hentry
+    · exact recorderOf_step_persists leftKeep rightKeep probe state step hstep input answer hentry
+
+open scoped Classical in
+/-- **Every class answer the run installed was recorded**, on one side or the other. The two
+tests cover the class between them, and which side takes the entry is decided by the view in
+force at the time. -/
+theorem mem_recordOf_of_cache {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (inClass : Bytes → Prop)
+    (hcover : ∀ (input : Bytes) (view : σ), inClass input →
+      leftKeep input view ∨ rightKeep input view)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
+    (input : Bytes) (answer : HashOutput) (hclass : inClass input)
+    (hfresh : CacheView.cacheOf state.1 input = none)
+    (hfinal : CacheView.cacheOf result.2.1 input = some answer) :
+    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at hfinal
+    rw [hfresh] at hfinal
+    simp at hfinal
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | probe
+    · refine ih step.1 step.2 result hrest ?_ hfinal
+      rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
+      exact hfresh
+    · by_cases hsame : input = probe
+      · subst hsame
+        have hpersist : CacheView.cacheOf result.2.1 input = some step.1 :=
+          recorderOf_cache_value_persists leftKeep rightKeep (next step.1) step.2 result hrest
+            input step.1 (recorderOf_step_cache_self leftKeep rightKeep input state step hstep)
+        have hvalue : step.1 = answer := by
+          rw [hpersist] at hfinal
+          exact Option.some.inj hfinal
+        obtain ⟨hgrowLeft, hgrowRight⟩ :=
+          recordOf_prefix leftKeep rightKeep (next step.1) step.2 result hrest
+        have hrecStep := recorderOf_step_record leftKeep rightKeep input state step hstep
+        by_cases hleft : leftKeep input state.1
+        · refine Or.inl (hgrowLeft.subset ?_)
+          rw [hrecStep, appendedOf_of_left leftKeep rightKeep input state step.1 hfresh hleft,
+            hvalue]
+          simp
+        · have hright : rightKeep input state.1 := by
+            rcases hcover input state.1 hclass with hcase | hcase
+            · exact absurd hcase hleft
+            · exact hcase
+          refine Or.inr (hgrowRight.subset ?_)
+          rw [hrecStep,
+            appendedOf_of_right leftKeep rightKeep input state step.1 hfresh hleft hright,
+            hvalue]
+          simp
+      · refine ih step.1 step.2 result hrest ?_ hfinal
+        rcases recorderOf_step leftKeep rightKeep probe state step hstep with
+          ⟨-, hshape⟩ | ⟨-, hshape⟩
+        · rw [show step.2.1 = state.1 from by rw [hshape]]
+          exact hfresh
+        · rw [show step.2.1 = CacheView.update state.1 probe step.1 from by rw [hshape],
+            cacheOf_update_of_ne state.1 probe input step.1 hsame]
+          exact hfresh
+
+open scoped Classical in
+/-- **Every entry of the disclosing recording still passes its test at the end of the run**,
+given that the test is monotone in the view's cache. -/
+theorem left_recordOf_keep_final {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
+    (hmono : ∀ (input : Bytes) (view later : σ),
+      (∀ (probe : Bytes) (value : HashOutput),
+        CacheView.cacheOf view probe = some value →
+          CacheView.cacheOf later probe = some value) →
+        leftKeep input view → leftKeep input later)
+    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
+    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
+    (hstart : ∀ entry ∈ state.2.1, leftKeep entry.1 state.1) :
+    ∀ entry ∈ result.2.2.1, leftKeep entry.1 result.2.1 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at *
+    exact hstart
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | input
+    · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
+      exact hstart
+    · have hpersist := recorderOf_step_persists leftKeep rightKeep input state step hstep
+      have hrecStep := recorderOf_step_record leftKeep rightKeep input state step hstep
+      cases hcached : CacheView.cacheOf state.1 input with
+      | some cached =>
+        rw [hrecStep,
+          appendedOf_of_cached leftKeep rightKeep input state step.1 cached hcached]
+        exact fun entry hentry => hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
+      | none =>
+        by_cases hleft : leftKeep input state.1
+        · rw [hrecStep,
+            appendedOf_of_left leftKeep rightKeep input state step.1 hcached hleft]
+          intro entry hentry
+          rcases List.mem_append.mp hentry with hold | hnew
+          · exact hmono entry.1 state.1 step.2.1 hpersist (hstart entry hold)
+          · rw [List.mem_singleton.mp hnew]
+            exact hmono input state.1 step.2.1 hpersist hleft
+        · by_cases hright : rightKeep input state.1
+          · rw [hrecStep,
+              appendedOf_of_right leftKeep rightKeep input state step.1 hcached hleft hright]
+            exact fun entry hentry =>
+              hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
+          · rw [hrecStep,
+              appendedOf_of_neither leftKeep rightKeep input state step.1 hleft hright]
+            exact fun entry hentry =>
+              hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
 
 end SlhDsaSecurity.RecorderView

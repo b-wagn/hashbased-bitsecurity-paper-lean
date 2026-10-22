@@ -11365,6 +11365,96 @@ info: 'SlhDsaSecurity.RecorderView.recorderOf_cache' depends on axioms: [propext
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecorderView.recorderOf_cache
 
+/--
+info: 'SlhDsaSecurity.RecorderView.appendedOf_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_of_cached
+
+/--
+info: 'SlhDsaSecurity.RecorderView.appendedOf_of_left' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_of_left
+
+/--
+info: 'SlhDsaSecurity.RecorderView.appendedOf_of_right' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_of_right
+
+/--
+info: 'SlhDsaSecurity.RecorderView.appendedOf_of_neither' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_of_neither
+
+/--
+info: 'SlhDsaSecurity.RecorderView.cacheOf_update_self' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.cacheOf_update_self
+
+/--
+info: 'SlhDsaSecurity.RecorderView.cacheOf_update_of_ne' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.cacheOf_update_of_ne
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_step_inl
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_step
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_step_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_step_record
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_step_cache_self' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_step_cache_self
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_step_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_step_persists
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recordOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recordOf_prefix
+
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_cache_value_persists
+
+/--
+info: 'SlhDsaSecurity.RecorderView.mem_recordOf_of_cache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.mem_recordOf_of_cache
+
+/--
+info: 'SlhDsaSecurity.RecorderView.left_recordOf_keep_final' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.left_recordOf_keep_final
+
 /-- info: 'SlhDsaSecurity.ProbeContainment.aimCount_adversary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.aimCount_adversary
