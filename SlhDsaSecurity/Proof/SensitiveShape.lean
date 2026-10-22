@@ -41,6 +41,13 @@ def AlwaysAvailable : Node → Prop
   | .structural (.forsTree _ _ _) => True
   | .structural (.forsRoots _) => True
 
+/-- A Merkle node is a subtree node or a WOTS public key, never a protected cell. -/
+theorem alwaysAvailable_merkleNode (tree : Tree) (height : Nat) (hheight : height ≤ subtreeHeight)
+    (index : Fin (2 ^ (subtreeHeight - height))) :
+    AlwaysAvailable (.structural (merkleNode tree height hheight index)) := by
+  rw [merkleNode]
+  split <;> exact True.intro
+
 /-- A Merkle child is a subtree node or a WOTS public key, never a protected cell. -/
 theorem alwaysAvailable_merkleChild (tree : Tree) (height : Fin subtreeHeight)
     (index : Fin (2 ^ (subtreeHeight - (height.val + 1)))) (side : Fin 2) :

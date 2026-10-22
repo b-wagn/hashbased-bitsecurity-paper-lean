@@ -6777,3 +6777,15 @@ info: 'SlhDsaSecurity.RandomiserCharge.randomizerInput_injective_prf' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserCharge.randomizerInput_injective_prf
+
+/-- info: 'SlhDsaSecurity.CanonicalGraph.alwaysAvailable_merkleNode' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CanonicalGraph.alwaysAvailable_merkleNode
+
+/-- info: 'SlhDsaSecurity.RedrawCell.xmssSignature_eq' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.xmssSignature_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.signLayers_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.signLayers_congr
