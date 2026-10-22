@@ -162,6 +162,7 @@ import SlhDsaSecurity.Proof.TapeFactor
 import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.WalkTable
 import SlhDsaSecurity.Proof.RecordedWalkTable
+import SlhDsaSecurity.Proof.RecordedStripping
 import SlhDsaSecurity.Proof.LateRate
 import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
@@ -11413,3 +11414,27 @@ info: 'SlhDsaSecurity.ProbeContainment.recordAim_eq_card_recordAiming' depends o
 /-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_seeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_seeds
+
+/-- info: 'SlhDsaSecurity.RecordedStripping.writerRun_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.writerRun_bind
+
+/-- info: 'SlhDsaSecurity.RecordedStripping.evalDist_writerRun_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.evalDist_writerRun_congr
+
+/--
+info: 'SlhDsaSecurity.RecordedStripping.evalDist_writerRun_signingOracle' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.evalDist_writerRun_signingOracle
+
+/--
+info: 'SlhDsaSecurity.RecordedStripping.evalDist_run_recordedAfterSeeds' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedStripping.evalDist_run_recordedAfterSeeds
