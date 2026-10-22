@@ -53,6 +53,15 @@ def targetKeep (prfSeed : Digest) (pk : PublicKey) : Bytes → QueryCache HashSp
     CombinedCharge.IsMessageInput pk input ∧ ¬ RandomizerGate.PrfClass prfSeed input ∧
       ¬ SignerRandomised prfSeed pk cache input
 
+/-- **The coverage event at the recorder's own disclosing test.** The extraction states the
+event at the served class; this join reads it at the test the recorder decided by, so that
+sending the forgery's digest to one recording and its witnesses to the other is a statement
+about the same predicate the two blocks were filed under. -/
+def CoveredAtKeep (prfSeed : Digest) (pk : PublicKey)
+    (result : (Outcome × Nat) × QueryCache HashSpec) : Prop :=
+  CoverageRouted.ForgeryCoveredBy (fun input => disclosingKeep prfSeed pk input result.2) pk
+    result
+
 /-- **The two tests cover the message class, less its `PRF_msg` part.** What the narrowing
 leaves out is handed on rather than lost: an input in both classes has `SK.prf` for its
 randomiser, which is the shared half's business. -/
@@ -199,7 +208,7 @@ theorem mem_records_of_covered (prfSeed : Digest) (pk : PublicKey)
     (hdisclosedRecorded : ∀ (input : Bytes) (answer : HashOutput),
       SignerRandomised prfSeed pk result.2.1 input → result.2.1 input = some answer →
         (input, answer) ∈ result.2.2.1)
-    (hcovered : CoverageRouted.ForgeryDisclosedCovered prfSeed pk (result.1, result.2.1)) :
+    (hcovered : CoveredAtKeep prfSeed pk (result.1, result.2.1)) :
     ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
       ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
         witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
@@ -247,7 +256,7 @@ theorem mem_records_of_covered_of_not_late (prfSeed : Digest) (pk : PublicKey)
     (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
     (hseed : ¬ SeedRandomised prfSeed pk result.2.1)
     (hlate : ¬ LateDisclosure prfSeed pk result)
-    (hcovered : CoverageRouted.ForgeryDisclosedCovered prfSeed pk (result.1, result.2.1)) :
+    (hcovered : CoveredAtKeep prfSeed pk (result.1, result.2.1)) :
     ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
       ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
         witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
@@ -274,7 +283,7 @@ theorem mem_records_or_seedRandomised (prfSeed : Digest) (pk : PublicKey)
       (targetKeep prfSeed pk)) computation).run (cache, [], [])))
     (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
     (hlate : ¬ LateDisclosure prfSeed pk result)
-    (hcovered : CoverageRouted.ForgeryDisclosedCovered prfSeed pk (result.1, result.2.1)) :
+    (hcovered : CoveredAtKeep prfSeed pk (result.1, result.2.1)) :
     SeedRandomised prfSeed pk result.2.1 ∨
       ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
         ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,

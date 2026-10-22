@@ -6441,13 +6441,13 @@ info: 'SlhDsaSecurity.ReplayGate.keyOf_seed' depends on axioms: [propext]
 #print axioms SlhDsaSecurity.ReplayGate.keyOf_seed
 
 /--
-info: 'SlhDsaSecurity.ReplayGate.signerRandomised_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ReplayGate.entry_of_replay' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ReplayGate.signerRandomised_of_replay
+#print axioms SlhDsaSecurity.ReplayGate.entry_of_replay
 
 /--
-info: 'SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay' depends on axioms: [propext, Quot.sound]
+info: 'SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay
@@ -6459,16 +6459,11 @@ info: 'SlhDsaSecurity.ReplayGate.eq_signInternal_of_replay' depends on axioms: [
 #print axioms SlhDsaSecurity.ReplayGate.eq_signInternal_of_replay
 
 /--
-info: 'SlhDsaSecurity.ReplayGate.signature_eq_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ReplayGate.not_wins_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.ReplayGate.signature_eq_of_replay
+#print axioms SlhDsaSecurity.ReplayGate.not_wins_of_replay
 
-/--
-info: 'SlhDsaSecurity.ReplayGate.randomiserBad_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ReplayGate.randomiserBad_of_replay
 
 /-- info: 'SlhDsaSecurity.SensitiveQuery.prob_record_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -6530,6 +6525,12 @@ info: 'SlhDsaSecurity.ReplayGate.cases_of_win_charged' depends on axioms: [prope
 #guard_msgs in
 #print axioms SlhDsaSecurity.ReplayGate.cases_of_win_charged
 
+/--
+info: 'SlhDsaSecurity.ReplayGate.cases_of_win_charged_three' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.cases_of_win_charged_three
+
 /-- info: 'SlhDsaSecurity.RedrawCell.replayCells_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.replayCells_unionCache
@@ -6567,6 +6568,10 @@ info: 'SlhDsaSecurity.RandomiserCharge.walk_cache_prf_fresh' depends on axioms: 
 /-- info: 'SlhDsaSecurity.CoverageRouted.forgeryCovered_of_disclosed' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageRouted.forgeryCovered_of_disclosed
+
+/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryCoveredBy_congr' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.forgeryCoveredBy_congr
 
 /-- info: 'SlhDsaSecurity.CoverageRouted.forgeryDisclosedCovered_of_witnesses' depends on axioms: [propext,
  Classical.choice,
@@ -6791,6 +6796,12 @@ info: 'SlhDsaSecurity.SigningFaithful.cases_of_win_charged' depends on axioms: [
 #print axioms SlhDsaSecurity.SigningFaithful.cases_of_win_charged
 
 /--
+info: 'SlhDsaSecurity.SigningFaithful.cases_of_win_charged_three' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SigningFaithful.cases_of_win_charged_three
+
+/--
 info: 'SlhDsaSecurity.RandomiserCharge.randomizerIndex_input' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -6850,9 +6861,9 @@ info: 'SlhDsaSecurity.RandomiserCharge.randomizerInput_injective_prf' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlockDisclosures.block_coverage_le_trials
 
-/-- info: 'SlhDsaSecurity.RoutedSplit.selfRandomised_of_only_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.RoutedSplit.selfServed_of_only_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.RoutedSplit.selfRandomised_of_only_self
+#print axioms SlhDsaSecurity.RoutedSplit.selfServed_of_only_self
 
 /--
 info: 'SlhDsaSecurity.BlockDisclosures.splitBlocks_fst' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -8533,3 +8544,7 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps' depends on axio
 /-- info: 'SlhDsaSecurity.ServedLog.mem_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedLog.mem_disclosedByLog
+
+/-- info: 'SlhDsaSecurity.ServedLog.disclosedByLog_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedLog.disclosedByLog_eq

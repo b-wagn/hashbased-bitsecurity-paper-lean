@@ -55,7 +55,7 @@ theorem target_of_charges (hanswer : AnswerCharged) (hshared : SharedCharged) :
     HasTotalSecurityBits .strong 127 :=
   Target.target_of_obligations AnswerBad InputBad RandomiserBad
     (fun adversary _ hwalk _ _ hresult hwin =>
-      SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin)
+      SigningFaithful.cases_of_win_charged_three adversary hwalk hresult hwin)
     hanswer hshared
 
 end SlhDsaSecurity.Obligations

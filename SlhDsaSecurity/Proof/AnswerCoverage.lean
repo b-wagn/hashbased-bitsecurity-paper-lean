@@ -47,7 +47,7 @@ theorem targetCovered_of_forgeryDisclosedCovered (prfSeed : Digest) (pk : Public
       (countQueries (splitCost inClass inside outside) computation) cache))
     (hlate : ¬ SplitWitness.LateDisclosure prfSeed pk
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
-    (hcovered : CoverageRouted.ForgeryDisclosedCovered prfSeed pk
+    (hcovered : SplitWitness.CoveredAtKeep prfSeed pk
       ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1))
     (hseed : ¬ SplitWitness.SeedRandomised prfSeed pk result.2.1) :
     BlockViews.TargetCovered result := by
@@ -99,7 +99,7 @@ theorem prob_bad_or_coverage_le_of_caps (prfSeed : Digest) (pk : PublicKey)
       (countAllHashes computation)).run initialCache), result.1.2 ≤ budget) :
     Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
         GrowthCharge.Bad bad result ∨
-          (CoverageRouted.ForgeryDisclosedCovered prfSeed pk result ∧
+          (SplitWitness.CoveredAtKeep prfSeed pk result ∧
             ¬ SplitWitness.SeedRandomised prfSeed pk result.2) |
         (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
       ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
@@ -107,7 +107,7 @@ theorem prob_bad_or_coverage_le_of_caps (prfSeed : Digest) (pk : PublicKey)
   refine prob_bad_or_coverage_le_of_join inClass hne
     (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
     hrightClass bad hrate hbadClass computation initialCache hclean
-    (fun result => CoverageRouted.ForgeryDisclosedCovered prfSeed pk result ∧
+    (fun result => SplitWitness.CoveredAtKeep prfSeed pk result ∧
       ¬ SplitWitness.SeedRandomised prfSeed pk result.2)
     leftLength budget hcap (fun result hmem hcoverage => ?_) hleftBound
     (fun result hmem => rightRecord_length_le_budget _ _ inClass hne hrightClass computation

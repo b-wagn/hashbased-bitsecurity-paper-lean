@@ -425,13 +425,25 @@ theorem signed_length_le_signing_tail (adversary : Adversary)
 
 /-! ## The split, with nothing left to assume
 
-`ReplayGate.cases_of_win_charged` composes the whole three-way split and takes the log's
-faithfulness as its only remaining hypothesis about the game. Discharging it here leaves a
-statement about a supported tail alone, which is the shape the target's `hsplit` reads. -/
+`ReplayGate.cases_of_win_charged` composes the whole split and takes the log's faithfulness as
+its only remaining hypothesis about the game. Discharging it here leaves a statement about a
+supported tail alone, which is the shape the target's `hsplit` reads. -/
 
-/-- **A win on a good walk is one of the three charged events**, with nothing assumed about the
-log. -/
+/-- **A win on a good walk is the answer side or the input side**, with nothing assumed about
+the log. -/
 theorem cases_of_win_charged (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support WarmedGame.graphWalk)
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (WarmedGame.tail adversary walk))
+    (hwin : Wins .strong result.1.1) :
+    RoutedSplit.AnswerBad ((walk.1, result.1), result.2) ∨
+      RoutedSplit.InputBad ((walk.1, result.1), result.2) :=
+  ReplayGate.cases_of_win_charged adversary hwalk hresult
+    (logFaithful_tail adversary hresult) hwin
+
+/-- **The same split, weakened with the randomiser defect as a third event.** -/
+theorem cases_of_win_charged_three (adversary : Adversary)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support WarmedGame.graphWalk)
     {result : (Outcome × Nat) × QueryCache HashSpec}
@@ -440,7 +452,7 @@ theorem cases_of_win_charged (adversary : Adversary)
     RoutedSplit.AnswerBad ((walk.1, result.1), result.2) ∨
       RoutedSplit.InputBad ((walk.1, result.1), result.2) ∨
         ReplayGate.RandomiserBad ((walk.1, result.1), result.2) :=
-  ReplayGate.cases_of_win_charged adversary hwalk hresult
+  ReplayGate.cases_of_win_charged_three adversary hwalk hresult
     (logFaithful_tail adversary hresult) hwin
 
 end SlhDsaSecurity.SigningFaithful
