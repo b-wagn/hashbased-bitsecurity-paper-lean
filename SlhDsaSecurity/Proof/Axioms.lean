@@ -11041,3 +11041,75 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_two' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_two
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probEvent_pairedOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probEvent_pairedOf
+
+/--
+info: 'SlhDsaSecurity.LateProbes.expected_pairedOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.expected_pairedOf
+
+/--
+info: 'SlhDsaSecurity.LateProbes.prob_le_expected_of_perWalk' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.prob_le_expected_of_perWalk
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probEvent_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probEvent_forget
+
+/--
+info: 'SlhDsaSecurity.LateProbes.expected_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.expected_forget
+
+/--
+info: 'SlhDsaSecurity.LateProbes.mem_support_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.mem_support_forget
+
+/--
+info: 'SlhDsaSecurity.LateProbes.card_probes_of_good' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.card_probes_of_good
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probes_le_of_not_good' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probes_le_of_not_good
+
+/--
+info: 'SlhDsaSecurity.LateProbes.mem_support_pairedOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.mem_support_pairedOf
+
+/--
+info: 'SlhDsaSecurity.LateProbes.probes_le_recordMessageClass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.probes_le_recordMessageClass
+
+/--
+info: 'SlhDsaSecurity.LateProbes.prob_ordering_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.prob_ordering_le
+
+/--
+info: 'SlhDsaSecurity.LateProbes.prob_ordering_le_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateProbes.prob_ordering_le_recorded
