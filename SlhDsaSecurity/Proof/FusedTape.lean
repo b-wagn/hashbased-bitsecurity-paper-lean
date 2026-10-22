@@ -136,4 +136,108 @@ theorem evalDist_fusedSplitTapeRun_cont (leftKeep rightKeep : Bytes → σ → P
         leftLength rightLength (before request cache) leftRecord rightRecord) ?_
       rfl
 
+/-! ## The three stages, factorised through one pair of blocks
+
+The shape `BracketedRun.IsBracketedRecorderRun` describes: key generation under the handler, the
+adversary's phase fused and bracketed, verification under the handler again. Three runs, and the
+blocks are drawn **once, before the first of them**.
+
+The proof is three applications and no induction. Each stage's continuation is the next stage,
+and each stage's factorisation supplies the hypothesis the previous one asked for; the last
+stage's continuation ignores what is left of the blocks, which is the dropped-block case the
+one-run statement was. That the three fit together with nothing between them is the whole return
+on stating both factorisations with a continuation.
+-/
+
+/-- The projection the bracketed shape reads its state through, at a general view. -/
+def forgetView (state : StateOf σ) : SplitPrefix.SplitState :=
+  (CacheView.cacheOf state.1, state.2)
+
+/-- The same projection from the tape recorder's state: the blocks go with the carrier. -/
+def forgetViewTape (state : SplitTapeState σ) : SplitPrefix.SplitState :=
+  (CacheView.cacheOf state.1, state.2.2)
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **A three-stage bracketed run factorises through one pair of blocks drawn at the top.** -/
+theorem evalDist_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (after : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (leftLength rightLength : Nat) (cache : σ) (leftRecord rightRecord : Record) :
+    𝒟[(simulateQ (noticingRecorderOf leftKeep rightKeep) first).run
+          (cache, leftRecord, rightRecord) >>= fun keys =>
+        (simulateQ (fuseServing (noticingRecorderOf leftKeep rightKeep) (inner keys.1)
+            (fun request => onCarrier (before request)) (onCarrier after))
+          (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+          (simulateQ (noticingRecorderOf leftKeep rightKeep)
+              (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+            (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+              ProbComp (δ × SplitPrefix.SplitState))] =
+      𝒟[padding leftLength >>= fun leftTape =>
+          padding rightLength >>= fun rightTape =>
+            (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) first).run
+                (cache, (leftTape, rightTape), (leftRecord, rightRecord)) >>= fun keys =>
+              (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep)
+                  (inner keys.1) (fun request => onCarrierTape (before request))
+                  (onCarrierTape after)) (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+                (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+                    (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+                  (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+                    forgetViewTape final.2) :
+                    ProbComp (δ × SplitPrefix.SplitState))] := by
+  classical
+  refine evalDist_noticingSplitTapeRun_cont leftKeep rightKeep first
+    (fun keys => (simulateQ (fuseServing (noticingRecorderOf leftKeep rightKeep) (inner keys.1)
+        (fun request => onCarrier (before request)) (onCarrier after))
+        (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+          (simulateQ (noticingRecorderOf leftKeep rightKeep) (last keys.1 middle.1)).run
+            middle.2.2.2 >>= fun final =>
+              (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+                ProbComp (δ × SplitPrefix.SplitState)))
+    (fun keys => (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep)
+        (inner keys.1) (fun request => onCarrierTape (before request)) (onCarrierTape after))
+        (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+          (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) (last keys.1 middle.1)).run
+            middle.2.2.2 >>= fun final =>
+              (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+                forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
+    ?_ leftLength rightLength cache leftRecord rightRecord
+  intro firstLeft firstRight keys
+  refine evalDist_fusedSplitTapeRun_cont leftKeep rightKeep (inner keys.1) before after
+    (phase keys.1)
+    (fun middle => (simulateQ (noticingRecorderOf leftKeep rightKeep)
+        (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+            ProbComp (δ × SplitPrefix.SplitState)))
+    (fun middle => (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+        (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+            ProbComp (δ × SplitPrefix.SplitState)))
+    ?_ firstLeft firstRight 1 [] keys.2.1 keys.2.2.1 keys.2.2.2
+  intro middleLeft middleRight middle
+  refine evalDist_noticingSplitTapeRun_cont leftKeep rightKeep (last keys.1 middle.1)
+    (fun final => (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+      forgetView final.2) : ProbComp (δ × SplitPrefix.SplitState)))
+    (fun final => (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+      forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
+    ?_ middleLeft middleRight middle.2.2.2.1 middle.2.2.2.2.1 middle.2.2.2.2.2
+  intro lastLeft lastRight final
+  have hconst : ∀ leftTape rightTape : List HashOutput,
+      (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+          forgetViewTape (final.2.1, (leftTape, rightTape), final.2.2)) :
+        ProbComp (δ × SplitPrefix.SplitState)) =
+      pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :=
+    fun _ _ => rfl
+  simp only [hconst]
+  rw [OracleComp.DeferredSampling.evalDist_bind_const_neverFails (padding lastLeft)
+      (padding_neverFails lastLeft),
+    OracleComp.DeferredSampling.evalDist_bind_const_neverFails (padding lastRight)
+      (padding_neverFails lastRight)]
+
 end SlhDsaSecurity.FusedTape

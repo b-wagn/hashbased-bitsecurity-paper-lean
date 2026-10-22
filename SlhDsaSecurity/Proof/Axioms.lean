@@ -14611,3 +14611,9 @@ info: 'SlhDsaSecurity.FusedTape.evalDist_fusedSplitTapeRun_cont' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedTape.evalDist_fusedSplitTapeRun_cont
+
+/--
+info: 'SlhDsaSecurity.FusedTape.evalDist_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.evalDist_threeStage
