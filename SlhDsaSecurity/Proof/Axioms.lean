@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.AnswerSide
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
@@ -5406,3 +5407,17 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_win_three' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RoutedSplit.cases_of_win_three
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_canonicalBad_message_eq_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_canonicalBad_message_eq_zero
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_canonicalBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_canonicalBad_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_deviatingCollision_outside_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_deviatingCollision_outside_le
