@@ -8746,3 +8746,33 @@ info: 'SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedBridge.disclosedByLog_subset_disclosedAt
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.servedLog_of_entry' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.servedLog_of_entry
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.signInternal_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.signInternal_randomizer
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.servedLog_of_logged' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.servedLog_of_logged
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.replayRandomizer_eq_of_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.replayRandomizer_eq_of_persists
+
+/--
+info: 'SlhDsaSecurity.ServedBridge.carrierBelowLog_of_filed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedBridge.carrierBelowLog_of_filed
