@@ -80,16 +80,30 @@ query pays for its own chance of firing out of the potential it leaves behind an
 own increase.
 
 The event may be any property of the run's final state, so it may be an ordering the cache
-cannot express; the payment may come from queries made long before the one that fires. -/
+cannot express; the payment may come from queries made long before the one that fires.
+
+**A step that notices.** `hcached` once said a cache hit leaves the state alone. A view that
+records something about every query — that the signer was serving it, say — does not: it files
+on a hit as much as on a miss. So a hit takes the state to `noticeOf state input`, and the
+charge asks three things of that map and nothing else, all of which hold when the notice writes
+a component the firing predicate, the potential and the gauge do not read.
+
+That last clause is a constraint on the instantiation and not a formality. A firing predicate
+that *does* read what the notice writes can be fired by a hit, which is a deterministic step,
+and a deterministic step cannot be paid for out of `potential * rate`: its probability is one or
+zero. So a carrier's firing predicate has to change only where a fresh answer is drawn, which is
+where `hstep` lives and where the rate is actually spent. -/
 theorem prob_fired_le (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
     (cacheOf : σ → QueryCache HashSpec) (stepOf : σ → Bytes → HashOutput → σ)
+    (noticeOf : σ → Bytes → σ)
     (hinl : ∀ (coin : unifSpec.Domain) (state : σ) (step : OracleWorld.Range (Sum.inl coin) × σ),
       step ∈ support ((oracle (Sum.inl coin)).run state) → step.2 = state)
     (hinlMass : ∀ (coin : unifSpec.Domain) (state : σ),
       Pr[⊥ | (oracle (Sum.inl coin)).run state] = 0)
     (hcached : ∀ (input : Bytes) (state : σ) (answer : HashOutput),
       cacheOf state input = some answer →
-        (oracle (Sum.inr input)).run state = (pure (answer, state) : ProbComp _))
+        (oracle (Sum.inr input)).run state =
+          (pure (answer, noticeOf state input) : ProbComp _))
     (hfresh : ∀ (input : Bytes) (state : σ), cacheOf state input = none →
       (oracle (Sum.inr input)).run state =
         (fun answer => (answer, stepOf state input answer)) <$>
@@ -97,6 +111,10 @@ theorem prob_fired_le (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
     (hmass : ∀ (β : Type) (inner : OracleComp OracleWorld β) (state : σ),
       Pr[⊥ | (simulateQ oracle inner).run state] = 0)
     (fired : σ → Prop) (potential gauge : σ → Nat) (rate : ℝ≥0∞)
+    (hnoticeFired : ∀ (state : σ) (input : Bytes), fired (noticeOf state input) → fired state)
+    (hnoticePotential : ∀ (state : σ) (input : Bytes),
+      potential (noticeOf state input) ≤ potential state)
+    (hnoticeGauge : ∀ (state : σ) (input : Bytes), gauge (noticeOf state input) = gauge state)
     (hstepGauge : ∀ (state : σ) (input : Bytes) (answer : HashOutput),
       gauge state ≤ gauge (stepOf state input answer))
     (hgauge : ∀ (β : Type) (inner : OracleComp OracleWorld β) (state : σ)
@@ -162,11 +180,15 @@ theorem prob_fired_le (oracle : QueryImpl OracleWorld (StateT σ ProbComp))
       | some answer =>
         rw [hcached input state answer hcache]
         show Pr[fun result : α × σ => fired result.2 |
-            (simulateQ oracle (next answer)).run state] ≤
+            (simulateQ oracle (next answer)).run (noticeOf state input)] ≤
           ((potential state : Nat) : ℝ≥0∞) * rate +
-            expected ((simulateQ oracle (next answer)).run state)
+            expected ((simulateQ oracle (next answer)).run (noticeOf state input))
               (fun result => gauge result.2 - gauge state) * rate
-        exact ih answer state hstate
+        refine le_trans (ih answer (noticeOf state input)
+          (fun hfired => hstate (hnoticeFired state input hfired))) ?_
+        rw [hnoticeGauge state input]
+        exact add_le_add (mul_le_mul' (Nat.cast_le.mpr (hnoticePotential state input)) le_rfl)
+          le_rfl
       | none =>
         obtain ⟨bound, after, hbound, hafter, hpay⟩ := hstep state input hcache hstate
         rw [hfresh input state hcache]
