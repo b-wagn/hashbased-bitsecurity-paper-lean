@@ -342,6 +342,48 @@ theorem agreesWithLog_carrierRun (rightKeep : Bytes → State → Prop) (sk : Se
     z.2.2.2.1.cache (fun _ _ hvalue => hvalue)
     (fun _ _ hvalue => absurd hvalue (by simp)) input
 
+/-- **The two-way containment at the carrier's run.** `ServedBridge.ServedAgree`, which is what
+the coverage join reads, at the repaired recorder.
+
+**It is not `AgreesWithLog` spelled differently, and the difference is a theorem.**
+`ServingCarrier.AgreesWithLog` names the randomiser the signer **replays** from a cache;
+`ServedLog.servedLog` names the one the signature **publishes**. Those are the same digest only
+because `servedLog_iff_logServed` says so, and that lemma earns it from `LogFiled` — the
+invariant that every logged request has its signature in the cache at the bytes the log carries.
+So the one-way agreement is genuinely not enough for the join, and this composes the two halves
+that make it two-way.
+
+Read at `result.2` rather than at the carrier's own cache, on both sides, so the two `iff`s meet:
+`hcache` is the only thing relating them and it is a hypothesis. -/
+theorem servedAgree_carrierRun (rightKeep : Bytes → State → Prop) (sk : SecretKey)
+    (hpk : sk.publicKey = pk)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (accumulated : Multiplicative RecordedQueries.Tally)
+    (rest : DigestTape.Record × DigestTape.Record)
+    (z : α × (Multiplicative RecordedQueries.Tally × SigningLog × StateOf State))
+    (hz : z ∈ support ((simulateQ (ServedAgreement.servingPhaseWith
+        (@noticingRecorderOf State (servingView pk) (disclosingKeep pk) rightKeep)
+        (Scheme.sign sk)) computation).run (accumulated, [], (HandlerCarrier.empty, rest))))
+    (result : (Outcome × Nat) × QueryCache HashSpec) (hsigned : result.1.1.signed = z.2.2.1)
+    (hcache : ∀ (input : Bytes) (value : HashOutput),
+      z.2.2.2.1.cache input = some value → result.2 input = some value) :
+    ServedBridge.ServedAgree pk z.2.2.2.1 result := by
+  have hfiled : LogFiled sk z.2.2.1 z.2.2.2.1 :=
+    logFiled_run_with pk _ (files_carrierRecorder pk rightKeep) (Scheme.sign sk) sk hpk
+      (signerShape_sign sk)
+      (signerFaithful_sign pk _ (files_carrierRecorder pk rightKeep) sk) computation
+      (accumulated, [], (HandlerCarrier.empty, rest)) (logFiled_nil sk _) z hz
+  have hiff := servedLog_iff_logServed sk pk hpk z.2.2.1 z.2.2.2.1 hfiled result.2 hcache result
+    hsigned
+  have hagree := agreesWithLogAt_run_with pk _ (files_carrierRecorder pk rightKeep)
+    (Scheme.sign sk) sk hpk (signerShape_sign sk)
+    (signerFaithful_sign pk _ (files_carrierRecorder pk rightKeep) sk)
+    (fun _ => none) (signerPins_sign sk hpublic) computation accumulated rest z hz
+    result.2 hcache (fun _ _ hvalue => absurd hvalue (by simp))
+  exact ⟨fun input hserved => (hiff input).mpr ((hagree input).mp hserved),
+    fun input hlog => (hagree input).mpr ((hiff input).mp hlog)⟩
+
 /-- **And the disclosing recording is inside the concentration's cap.** The two hypotheses are
 the recorder's own and are stated here rather than assumed silently: the recording holds each
 input once, and holds only inputs the carrier serves.
