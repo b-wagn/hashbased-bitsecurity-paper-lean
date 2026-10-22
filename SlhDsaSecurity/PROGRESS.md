@@ -1545,3 +1545,44 @@ way it declines points away from the cause.
 
 The habit that catches the first four early is to ask what the *goal's* shape is before writing
 the lemma, rather than writing the lemma one would like and making the goal fit.
+
+## The coverage cap is a fact about the scheme, not slack in the proof
+
+`CoverageTail`'s charge carries `qm ≤ 5 * 2 ^ 62`, inherited from the load-potential
+concentration behind `ForsLeaveOneOut`. It looked like an artefact to be removed. It is not.
+
+`qm` bounds the growth in `CombinedCharge.IsMessageInput` — *every* message-class input,
+including the ones an adversary makes under randomisers of its own choosing. At around `2 ^ 70`
+such digests spread over the `2 ^ 63` FORS instances the per-instance load is about `2 ^ 7`, a
+given digest's fourteen positions are covered by the others with probability about
+`(2 ^ 7 / 2 ^ 12) ^ 14 = 2 ^ -70`, and over `2 ^ 70` candidate targets the coverage event
+becomes likely. So no bound of the form `qm / 2 ^ 128` can hold for unbounded `qm`, and the cap
+is where the argument correctly stops. Nor is there a large-`q` escape: the target is still far
+from trivial at `q = 5 * 2 ^ 62`.
+
+What is wrong is the class, not the cap. **Coverage by an adversary-randomised digest discloses
+nothing.** Only the signer's own digests reveal FORS secrets, which is exactly why
+`CacheAvailability.signedAt` counts a digest as disclosing only when the `PRF_msg` entry is in
+the cache. Charged at the disclosing class, `qm` counts signer-randomised digests, those are
+bounded by the signing requests, and `signingLimit = 2 ^ 64` sits inside `5 * 2 ^ 62` with a
+quarter of `2 ^ 64` to spare.
+
+The gate is the same one `RandomizerGate` already charges: an adversary can manufacture a
+disclosing digest by querying `randomizerInput SK.prf PK.seed M`, which carries the secret seed
+in the clear. So the disclosing count is the signing requests plus the gate queries, and the
+gate queries are paid on the other half.
+
+## The two halves share the record by class, not by a shared rate
+
+The input half and the randomiser defect are charged against one budget, and there are two ways
+to read that. The one that does not work is a single hit predicate whose own rate is one unit:
+the two events are not even about the same randomness — the sensitive hit is over the cell
+table, while the gate's secret is drawn after the run and charged by deferral — so no single
+draw carries both.
+
+What they share is the **count**. A canonical input begins with `PK.seed` and a `PRF_msg` input
+with `SK.prf`, so no input is both unless the two seeds coincide, which is one unit of `2 ^ -128`
+already in the allowance. `RandomizerGate.card_add_card_le` is that statement: the canonical
+part and the `PRF_msg` part of a record add to at most the record's size. The two charges are
+then taken separately, each against its own part, and added — the sum of the two expected counts
+is one expected record length, which is the `(q - 512) + 259` the obligation allows.
