@@ -162,6 +162,7 @@ import SlhDsaSecurity.Proof.TapeFactor
 import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.WalkTable
 import SlhDsaSecurity.Proof.LateRate
+import SlhDsaSecurity.Proof.TableTail
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7878,3 +7879,55 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le'
 /-- info: 'SlhDsaSecurity.LateRate.prob_lateDisclosure_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.prob_lateDisclosure_le
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_tableRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_tableRun_eq
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun_le_of_charge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun_le_of_charge
+
+/-- info: 'SlhDsaSecurity.WalkTable.sharedReduced_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.sharedReduced_iff
+
+/-- info: 'SlhDsaSecurity.WalkTable.cacheBlind_shared' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.cacheBlind_shared
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_shared_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_shared_le
+
+/-- info: 'SlhDsaSecurity.TableTail.walkOfTable_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.walkOfTable_cache
+
+/-- info: 'SlhDsaSecurity.TableTail.walkOfTable_cache_eq_openCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.walkOfTable_cache_eq_openCache
+
+/-- info: 'SlhDsaSecurity.TableTail.probEvent_tail_uncounted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.probEvent_tail_uncounted
+
+/-- info: 'SlhDsaSecurity.TableTail.probEvent_tail_stripped' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.probEvent_tail_stripped
+
+/-- info: 'SlhDsaSecurity.TableTail.probEvent_tail_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.probEvent_tail_recorded
+
+/-- info: 'SlhDsaSecurity.TableTail.probEvent_tail_linked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.probEvent_tail_linked
+
+/-- info: 'SlhDsaSecurity.TableTail.probEvent_linked_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.probEvent_linked_handler
+
+/-- info: 'SlhDsaSecurity.TableTail.probEvent_tail_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TableTail.probEvent_tail_handler

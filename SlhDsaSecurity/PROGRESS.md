@@ -2136,3 +2136,45 @@ secret seed is what the obligation may not do.
 **Nothing stated per-walk has to be restated.** `WalkTable.mem_support_graphWalk_walkOfTable`
 says a drawn table names a walk in `support graphWalk`, so `WarmProbes.length_record_le_of_budget`,
 the walk's cache being clean, and every other per-walk fact apply at the new shape unchanged.
+
+## The input half cannot be charged at the flag
+
+`TableTail` now takes `WarmedGame.tail` at a drawn table all the way to the handler's own run,
+in six equalities and no bound. What it hands over is a run of the linked game under
+`OpenCache.lazyProgram` at total availability, started from nothing, with the record and its
+count as parameters — which is the presentation both of the charge's two endpoints are stated
+at. They are not the same endpoint, and the input half needs the second.
+
+`RedrawCell.prob_game_sensitive_le` bounds the probability of the **flag**, and a flag fires
+only on a query the run makes. The input half's event does not: `RoutedSplit.InputBad` is about
+the cells the *forgery claims*, and `ClaimedProbes.claimedCandidatesOf` builds one candidate per
+claimed cell from the signature, not from the run's probes. That is exactly why the budget gives
+the half `259` beyond the canonical part — a term that would be unnecessary if the claims were
+queries.
+
+So the input half's charge is the record form: `SensitiveQuery.prob_record_hit_le` over
+
+    WarmProbes.warmProbes warm (handler's record) ++ WarmProbes.claimedEntries …
+
+whose length `WarmProbes.length_record_le_of_budget` bounds by `(q - 2 ^ subtreeHeight) + 259`.
+The filter is not optional either — the honest phase's probes are not in the budget, and
+charged against the handler's whole record the half would come in at `2 ^ -64`.
+
+**What stands in the way is a hardcoded projection, and the two halves of the record are not
+equally easy to free.** `ChargedProbe.sum_weighted_le` already takes the record as a function of
+the run's result, but `RedrawCell.prob_charged_index_le` and `prob_sensitive_run_le` spell it
+`z.2.1.2.1` — the handler's own list — in both the event and the `aiming` count.
+
+The filtered probes should follow the existing argument unchanged. The stalling step underneath
+is `StalledRun.expectation_stalled_eq` applied at the weight `fun p => if ∃ entry ∈ p.1.2.1, …`,
+a function of the **handler's state alone**, and `ChargedProbe.withFlag_charged_quiet` is what
+discharges its quietness: a stalled step adds an entry that is not charged against the index. A
+filter of that list is still a function of the state, and an entry that is not charged does not
+become charged by being filtered, so the same quietness argument applies.
+
+The forgery's claims do not have that shape. `WarmProbes.claimedEntries` reads the run's
+**value** — the forgery and the final cache — and a weight that reads the value is not what
+`expectation_stalled_eq` takes. So the claims are either appended after the stalling step, where
+they are a constant `259` the sum does not have to carry, or the stalling lemma has to be
+restated at a weight over the whole result. Which of those is right is the first thing to settle
+before generalising, and it is not settled by reading the statements.
