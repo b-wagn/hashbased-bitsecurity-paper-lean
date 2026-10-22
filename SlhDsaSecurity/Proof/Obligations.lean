@@ -1,5 +1,5 @@
 import SlhDsaSecurity.Proof.Target
-import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.SigningFaithful
 
 /-!
 # The target at the three named events
@@ -10,9 +10,9 @@ nobody knew what they would be. They are known now: `RoutedSplit.AnswerBad`,
 and so reduces the whole theorem to three statements about the warmed tail, each of which is one
 piece of work rather than a design question.
 
-The split itself is proved — `ReplayGate.cases_of_win_charged` — so what the target asks for
-here is its hypothesis about the game, that the signing log holds the signer's own answers, and
-then the two bounds.
+The split itself is proved, and so is the one thing it asked of the game — that the signing log
+holds the signer's own answers — so what the target asks for here is two bounds and nothing
+else.
 
 Keeping this file separate from `Target` is deliberate. `Target` is about arithmetic: how the
 two halves and the defects fit inside `q / 2 ^ 127`, and it should stay provable without knowing
@@ -25,13 +25,6 @@ open OracleComp OracleSpec ENNReal
 namespace SlhDsaSecurity.Obligations
 
 open Security WarmedGame RoutedSplit ReplayGate Target
-
-/-- Every result of the warmed tail has a faithful signing log. -/
-def LogFaithfulGame : Prop :=
-  ∀ (adversary : Adversary),
-    ∀ walk ∈ support graphWalk,
-      ∀ result ∈ support (tail adversary walk),
-        LogFaithful ((walk.1, result.1), result.2)
 
 /-- The answer half at the warmed tail. -/
 def AnswerCharged : Prop :=
@@ -56,11 +49,11 @@ attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedG
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **The target, from the three statements that are left.** -/
-theorem target_of_charges (hlog : LogFaithfulGame) (hanswer : AnswerCharged)
-    (hshared : SharedCharged) : HasTotalSecurityBits .strong 127 :=
+theorem target_of_charges (hanswer : AnswerCharged) (hshared : SharedCharged) :
+    HasTotalSecurityBits .strong 127 :=
   Target.target_of_obligations AnswerBad InputBad RandomiserBad
-    (fun adversary walk hwalk _ result hresult hwin =>
-      cases_of_win_charged adversary hwalk hresult (hlog adversary walk hwalk result hresult) hwin)
+    (fun adversary _ hwalk _ _ hresult hwin =>
+      SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin)
     hanswer hshared
 
 end SlhDsaSecurity.Obligations
