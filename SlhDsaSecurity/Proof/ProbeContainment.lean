@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.SharedJoin
 import SlhDsaSecurity.Proof.KeygenValue
+import SlhDsaSecurity.Proof.ServedBridge
 
 /-!
 # The probes the charge weighs are the run's own recorded queries
@@ -861,6 +862,61 @@ theorem sensitiveOffSeed_of_claim (publicSeed : Digest)
 
 
 
+
+
+/-! ## From the half's event to the charge's
+
+`RoutedSplit.InputBad` says some claimed candidate is sensitive, with disclosure read from the
+**log**; the charge's event says some entry of the half's list is sensitive off the seed, with
+disclosure read from the **carrier**. Three facts close the gap, and only the first belongs to
+anyone else:
+
+* the two disclosure sets are one, which is what `ServedBridge.ServedAgree` buys;
+* a claim is in the half's list, which is `mem_claimsOf`;
+* a sensitive claim is sensitive off the seed, which is `sensitiveOffSeed_of_claim` and holds
+  because a signature carries no claim about the seed.
+
+The first is isolated as a hypothesis about the *sets* rather than about the runs, so that the
+implication can be read without knowing where either came from. -/
+
+/-- **Sensitivity transports along an equality of disclosed sets**, and a claim's sensitivity
+transports to the avenue off the seed. -/
+theorem sensitiveOffSeed_of_sensitive_sets {StateA : Type} (publicSeed : Digest)
+    (revealed : WotsKey → Fin chains → Nat)
+    (signedA : StateA → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (signedB : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (stateA : StateA) (stateB : HandlerCarrier.State)
+    (hsets : ∀ key, signedA stateA key = signedB stateB key)
+    (cells : Cells) (candidate : Bytes)
+    (hclaim : ∃ (node : GraphStakes.SensitiveNode) (cell : SensitiveQuery.Cell),
+      node.child ≠ Node.secretSeed ∧ GraphStakes.inputOf publicSeed node cell = candidate)
+    (hsensitive : SensitiveQuery.Sensitive (GraphStakes.stakes publicSeed)
+      (GraphStakes.unavailableAt revealed signedA) cells stateA candidate) :
+    RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed)
+      (GraphStakes.unavailableAt revealed signedB) cells stateB candidate := by
+  refine sensitiveOffSeed_of_claim publicSeed
+    (GraphStakes.unavailableAt revealed signedB) cells stateB candidate hclaim ?_
+  obtain ⟨node, hunavailable, hinput⟩ := hsensitive
+  refine ⟨node, ?_, hinput⟩
+  rw [GraphStakes.unavailableAt] at hunavailable ⊢
+  rw [show signedB stateB = signedA stateA from by funext key; rw [hsets key]]
+  exact hunavailable
+
+open scoped Classical in
+/-- **The two disclosure sets are one**, which is the whole of what the agreement buys. -/
+theorem disclosedAt_eq_disclosedByLog [HasQuery HashSpec Id] (pk : PublicKey)
+    (carrier : ServingCarrier.Carrier)
+    (result : (Outcome × Nat) × QueryCache HashSpec)
+    (hagree : ServedBridge.ServedAgree pk carrier result)
+    (hcacheLeft : ∀ (input : Bytes) (answer : HashOutput),
+      ServingCarrier.cacheOf carrier input = some answer → result.2 input = some answer)
+    (hcacheRight : ∀ (input : Bytes) (answer : HashOutput),
+      result.2 input = some answer → ServingCarrier.cacheOf carrier input = some answer)
+    (key : ForsKey) :
+    ServingCarrier.disclosedAt carrier key = ServedLog.disclosedByLog pk result key :=
+  Finset.Subset.antisymm
+    (ServedBridge.disclosedAt_subset_disclosedByLog pk carrier result hagree.1 hcacheLeft key)
+    (ServedBridge.disclosedByLog_subset_disclosedAt pk carrier result hagree.2 hcacheRight key)
 
 /-! ## The claims the charge is handed
 

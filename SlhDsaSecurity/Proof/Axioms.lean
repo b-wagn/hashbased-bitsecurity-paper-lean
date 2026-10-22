@@ -12260,3 +12260,19 @@ info: 'SlhDsaSecurity.ObligationShapes.messageInput_default_eq_replay' does not 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ObligationShapes.messageInput_default_eq_replay
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_sensitive_sets' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_sensitive_sets
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.disclosedAt_eq_disclosedByLog' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.disclosedAt_eq_disclosedByLog
