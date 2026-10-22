@@ -179,6 +179,7 @@ import SlhDsaSecurity.Proof.HandlerCarrier
 import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.PhaseFusion
 import SlhDsaSecurity.Proof.ServedBridge
+import SlhDsaSecurity.Proof.ServingProgram
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -9054,3 +9055,40 @@ info: 'SlhDsaSecurity.SplitRecorder.forget_narrow' depends on axioms: [Quot.soun
 /-- info: 'SlhDsaSecurity.HandlerCarrier.cache_clearFraming' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerCarrier.cache_clearFraming
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.lazyAnswer_grows' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.lazyAnswer_grows
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.lazyAnswer_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.lazyAnswer_cached
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_run_inl
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_run_inr
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_persists
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.disclosedAt_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.disclosedAt_step
+
