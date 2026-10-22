@@ -144,6 +144,7 @@ import SlhDsaSecurity.Proof.GraphFreshSampling
 import SlhDsaSecurity.Proof.KeygenFresh
 import SlhDsaSecurity.Proof.MessageDigest
 import SlhDsaSecurity.Proof.VerifierNaturality
+import SlhDsaSecurity.Proof.AnswerSide
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -6452,3 +6453,49 @@ info: 'SlhDsaSecurity.ReplayGate.randomiserBad_of_replay' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.SensitiveQuery.prob_probes_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SensitiveQuery.prob_probes_hit_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_canonicalBad_message_eq_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_canonicalBad_message_eq_zero
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_canonicalBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_canonicalBad_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_deviatingCollision_outside_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_deviatingCollision_outside_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.generatedKey_eq_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.generatedKey_eq_walk
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_generated_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_generated_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.value_replay_walk_eq_cells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.value_replay_walk_eq_cells
+
+/-- info: 'SlhDsaSecurity.AnswerSide.generatedKey_eq_walk_pair' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.generatedKey_eq_walk_pair
+
+/-- info: 'SlhDsaSecurity.AnswerSide.not_possible_generatedKey' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.not_possible_generatedKey
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le
+
+/-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_classes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_classes
