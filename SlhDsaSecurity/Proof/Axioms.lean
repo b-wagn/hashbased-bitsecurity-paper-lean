@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.RandomizerGate
+import SlhDsaSecurity.Proof.ClassGrowth
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.CoverageRouted
@@ -5065,3 +5066,16 @@ info: 'SlhDsaSecurity.RandomizerGate.prob_randomizerHitsSeed_run_le' depends on 
 /-- info: 'SlhDsaSecurity.AdversaryQueries.le_count_query_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AdversaryQueries.le_count_query_bind
+
+/-- info: 'SlhDsaSecurity.ClassGrowth.classCost_inr_hash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.classCost_inr_hash
+
+/-- info: 'SlhDsaSecurity.ClassGrowth.growthOn_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.growthOn_step
+
+/-- info: 'SlhDsaSecurity.ClassGrowth.growthOn_le_classCount' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassGrowth.growthOn_le_classCount
+
