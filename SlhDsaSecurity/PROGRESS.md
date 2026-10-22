@@ -1595,9 +1595,6 @@ whole of `HasTotalSecurityBits .strong 127` reduces to three statements about th
 The split itself is proved (`ReplayGate.cases_of_win_charged`); what is left is one fact about
 the game and two bounds.
 
-* **`LogFaithfulGame`** — every entry of the signing log carries the signer's own answer, read
-  at the run's final cache. Two steps: the oracle logs what it computed, and a value computed
-  mid-run equals its replay at the final cache because the cache only grows.
 * **`AnswerCharged`** — the two answer-side charges added against one budget. Needs the coverage
   charge re-pointed at the disclosing class, so that its `5 * 2 ^ 62` cap is discharged by the
   signing limit, and the two-class counter that lets the structural and coverage limits be
@@ -1607,4 +1604,23 @@ the game and two bounds.
   `RandomizerGate.card_add_card_le`. The input half needs `cellSign`'s congruence; the randomiser
   half needs the provenance of a `PRF_msg` entry and then the deferral.
 
+`LogFaithfulGame` was the third and is now proved, unconditionally — `SigningFaithful`. The
+invariant that made it go through is faithfulness *quantified over every later cache*, because
+faithfulness at the cache in hand is not preserved as the cache grows.
+
 Nothing above is a design question any more. Each is a proof.
+
+### The three classes the shared budget pays for
+
+The shared half ends up charging three things, and they have to be made exclusive before their
+counts are added. A record entry is canonical — `PK.seed` first — or a `PRF_msg` input at the
+real seed — `SK.prf` first — or a message-class input. The first two are disjoint
+(`RandomizerGate.card_add_card_le`), and the first and third are disjoint given the walk's own
+`hpublic`. The second and third are **not**: a message input is a `PRF_msg` input at its own
+randomiser read as the seed, and they coincide exactly when that randomiser is `SK.prf`. So the
+three are made exclusive by priority rather than assumed disjoint, after which
+
+    canonical + 259 claims + `PRF_msg` + message-class ≤ (q - 512) + 259
+
+which is the obligation's budget, since each class counts a subset of the adversary's charged
+queries.
