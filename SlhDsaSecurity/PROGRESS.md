@@ -4184,6 +4184,31 @@ source unreliable as evidence rather than merely incomplete.
 The same distinction applies to the record generally: *I did not find it* and *it is not there*
 are different findings, and only one of them licenses building on its absence.
 
+## A rate cannot be conjoined to an event
+
+A separation fact was stated as a **rate** — probability zero. The consumer needed it
+**pathwise**, because the hypothesis it feeds is per run and a rate cannot be conjoined to an
+event. Same two lines, same ingredient, wrong altitude.
+
+> **A fact stated in expectation cannot be used where the consumer is pathwise, even when the
+> proof is identical.** Restate it; do not reach for the probabilistic version.
+
+This is the third altitude error in the same family as the column question. The first was a
+constant against a `q`-shaped event; the second a `Nat` in the wrong column; this one a
+probability where a proposition was wanted. In all three the types permit the mistake and the
+proof text looks right.
+
+## Binder order decides what a call site can supply
+
+The mirror of the producer-side rule, found by its own author at its own call site:
+
+> A hypothesis quantified over **more than the lemma uses** is a hypothesis no call site can
+> supply — and **binder order is what decides it.**
+
+A class hypothesis was quantified over all walks because the walk's binder came after it. At the
+call site the class is taken at *this* walk's key, so the general form is not inconvenient, it is
+**unprovable**. Invisible in isolation; one error at the first call site.
+
 ## The column a `Nat` is added in
 
 The rule above — *does the thing being paid for grow with `q`?* — was asked and answered
