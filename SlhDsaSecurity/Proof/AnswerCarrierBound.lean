@@ -53,18 +53,8 @@ open scoped Classical in
 excluded and everything else proved. -/
 theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outside)
     (adversary : Adversary) {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
-    (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (hpublic : ¬ HashSeparation.Possible ((keyAt walk).seed, (keyAt walk).root))
-    (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
-      walk.2 input = none)
-    (hleftClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.1,
-        ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1)
-    (hrightClass : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ∀ entry ∈ result.2.2.2,
-        ¬ ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1) :
+    (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk)
+    (hgood : Target.GoodWalk walk) :
     Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
         (RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord z.1).1),
               (AnswerShape.forgetRecord z.1).2.1) ∧
@@ -78,6 +68,8 @@ theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outsi
           AnswerCarrier.carrierRightKeep adversary walk] ≤
       ((q : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) + (1 : ENNReal) / 2 ^ 141 := by
   classical
+  have hpublic : ¬ HashSeparation.Possible ((keyAt walk).seed, (keyAt walk).root) :=
+    AnswerSide.not_possible_generatedKey hwalk hgood.2
   refine answerBoundExtra_splitTail (CombinedCharge.IsMessageInput (keyAt walk)) hne
     (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
     (fun input => AnswerSide.prob_canonicalBad_le walk.1.1.2.2 walk.1.2 input)
@@ -104,6 +96,6 @@ theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outsi
       (CombinedCharge.IsMessageInput (keyAt walk)) hne AnswerCarrier.carrierRightKeep hbudget
       hwalk result hresult
   · exact CarrierSplit.hsplit_splitCarrierTail (CombinedCharge.IsMessageInput (keyAt walk)) hne
-      adversary walk hwalk hgood hleftClass hrightClass
+      adversary walk hwalk hgood
 
 end SlhDsaSecurity.AnswerCarrierBound
