@@ -11428,3 +11428,39 @@ info: 'SlhDsaSecurity.SplitRecorder.card_eq_work_split' depends on axioms: [prop
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitRecorder.card_eq_work_split
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.lazyAnswer_cases' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.lazyAnswer_cases
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.filesLeft_of_framing_eq' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.filesLeft_of_framing_eq
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_invariant_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_invariant_step
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_invariant
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.served_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.served_run
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.not_served_empty' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.not_served_empty
