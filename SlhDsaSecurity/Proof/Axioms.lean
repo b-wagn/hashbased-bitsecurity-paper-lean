@@ -115,6 +115,7 @@ import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
+import SlhDsaSecurity.Proof.WriterState
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -5164,3 +5165,11 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestProbes.merkle_sign_wots_cell
+
+/-- info: 'SlhDsaSecurity.WriterState.run_toStateful' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_toStateful
+
+/-- info: 'SlhDsaSecurity.WriterState.run_statefulSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_statefulSigningOracle
