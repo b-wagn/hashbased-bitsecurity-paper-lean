@@ -4151,6 +4151,22 @@ file it could have read. The rule it drew is worth more than the correction:
 > Before disclaiming anything attributed to you, read your own transcript. If you cannot read
 > it, say **"I cannot see my earlier output"** — not **"I did not say that."**
 
+The same rule for a search of the tree, and it is the more frequent case:
+
+> An empty search is a statement about **the search**, and it goes into a report as *"I did not
+> find X"*, never as *"X is not there"*.
+
+A thread reported that nothing in the tree discharged a hypothesis; the supplier existed, under a
+name matching neither of the two patterns it had grepped. It had not skipped the search — it ran
+one and then reported the result in stronger terms than the search supported, in the same
+message. **That is the pattern-that-cannot-match failure one level up: the pattern decided the
+answer, and the answer was read as a fact about the tree.** The cost here would have been a day
+spent proving a statement that is false by counterexample.
+
+The repair that worked, in the same hour, was to **search for what the consumer needs rather
+than for the name you expect** — which immediately turned up two more lemmas that were about to
+be rewritten.
+
 Those are materially different claims, and only the second is a lie when it turns out to be
 wrong. The first routes around a limitation; the second makes every other report from the same
 source unreliable as evidence rather than merely incomplete.
