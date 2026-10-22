@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
@@ -6547,3 +6548,63 @@ info: 'SlhDsaSecurity.RandomiserCharge.walk_cache_prf_fresh' depends on axioms: 
  Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageRouted.forgeryDisclosedCovered_of_witnesses
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.tweakableAt_input' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.tweakableAt_input
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_chain' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_chain
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_wots_fromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_wots_fromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_merkle_fromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_merkle_fromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_fors_fromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_fors_fromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_rootFromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_rootFromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_hypertree_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_hypertree_verify
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_verifyInternal' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_verifyInternal
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.probes_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.probes_verify
+
+/--
+info: 'SlhDsaSecurity.VerifierFormat.verify_probe_randomizerInput' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifierFormat.verify_probe_randomizerInput
