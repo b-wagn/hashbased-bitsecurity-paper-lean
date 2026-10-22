@@ -286,20 +286,59 @@ theorem first_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State 
       (simulateQ CountedHandler.romWithCount computation).run (walk.2, 0) :=
   forgetsAlong_counted rightKeep walk computation (startAt walk.2, (([], []), 0))
 
-/-! ## What is left
+set_option maxHeartbeats 1000000 in
+/-- The middle stage's projection, named at the state it is used at. Same reason as
+`first_stage_forget`, one step later: `PhaseFusion.run_phase_fused`'s writer and state are
+determined only once the previous stage's rewrite has landed, so a rewrite that has to find them
+has nothing to find. Naming the instance costs three lines. -/
+theorem middle_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) (adversary : Adversary)
+    (keys : (SecretKey × PublicKey) × CountedState) :
+    (simulateQ CountedHandler.romWithCount
+        (((simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          (adversary.main keys.1.2)).run).run [])).run (keys.2.1.cache, keys.2.2.2) =
+      (fun step : Forgery × (Multiplicative Tally × SigningLog × CountedState) =>
+          (((step.1, step.2.1), step.2.2.1), (step.2.2.2.1.cache, step.2.2.2.2.2))) <$>
+        (simulateQ (fuseServing (handlerAt rightKeep walk)
+          (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+          ServedAgreement.startServingOn ServedAgreement.stopServingOn)
+          (adversary.main keys.1.2)).run (1, [], keys.2) := by
+  rw [PhaseFusion.run_phase_fused CountedHandler.romWithCount
+      (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+      (adversary.main keys.1.2) [] (keys.2.1.cache, keys.2.2.2),
+    ← middle_forget rightKeep walk
+      (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1))
+      (adversary.main keys.1.2) 1 [] keys.2, Functor.map_map]
+
+set_option maxHeartbeats 1000000 in
+/-- The third stage's projection, named the same way. -/
+theorem last_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) (pk : PublicKey) (forgery : Forgery) (state : CountedState) :
+    (fun z : (Bool × Tally) × CountedState => (z.1, (z.2.1.cache, z.2.2.2))) <$>
+        (simulateQ (handlerAt rightKeep walk) (countRecorded verifierCost
+          (Scheme.verify pk forgery.message forgery.signature))).run state =
+      (simulateQ CountedHandler.romWithCount (countRecorded verifierCost
+        (Scheme.verify pk forgery.message forgery.signature))).run
+        (state.1.cache, state.2.2) :=
+  forgetsAlong_counted rightKeep walk
+    (countRecorded verifierCost (Scheme.verify pk forgery.message forgery.signature)) state
+
+/-! ## What is left, and it is no longer an argument
 
 `forget_carrierTail` — that the mapped tail is `RecordedTail.recordedTail` — is the three stages
-put together, and every ingredient above is proved: `recordedTail_eq_counted` puts the recorded
-side at the counted shared oracle, `run_recordedAfterSeeds_split` splits it, and
-`first_stage_forget`, `middle_forget` and `forgetsAlong_counted` match the three stages. What is
-not yet written is the `bind_congr` chain that threads them, and the one difficulty in it is the
-shape the middle rewrite leaves: `PhaseFusion.run_phase_fused` has to be applied at a state the
-previous stage produced, so its `ω` and `S` are only determined once that stage's rewrite has
-landed, and a `bind_congr` attempted before they are gets a stuck `Bind ?m`.
+put together, and all three are now named at the states they are used at:
+`first_stage_forget`, `middle_stage_forget`, `last_stage_forget`. Each is the projection law at
+one stage with nothing left for a rewrite to find, which was the difficulty the previous pass
+diagnosed.
 
-The fix is to pin them the way `first_stage_forget` pins the first stage's projection — give the
-instance a name at the state it is used at, rather than asking `rw` to find it. That is the same
-trap in its third form today, and it is cheaper to name than to fight. -/
+What remains is bookkeeping of a kind worth naming because it is where the next pass will go:
+the two sides normalise their `map`s over `bind`s in different orders, so the chain of
+`map_bind`, `bind_map_left` and `bind_congr` has to be driven rather than let run. A `conv` at
+each side, or a `simp only` with the three stage lemmas and the map laws, will do it; what will
+not is a flat `rw` list, because the same `map_bind` matches on either side and the first match
+wins.
+
+Everything the composition needs is proved. Nothing in it is an argument. -/
 
 
 end SlhDsaSecurity.CarrierTail
