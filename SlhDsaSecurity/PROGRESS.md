@@ -4910,3 +4910,28 @@ general form is not merely inconvenient — it is unprovable. Moving the walk's 
 the hypothesis fixed it. That is the same family as carrying a hypothesis that is not needed:
 **a hypothesis quantified over more than the lemma uses is a hypothesis no call site can
 supply**, and the binder order is what decides it.
+## The record against the budget, and a lemma hiding inside a proof
+
+`SharedJoin.card_record_le_budget` bounds `card (recordOf pair)` by `q - 2 ^ subtreeHeight`, and
+`card_recordMessageClass_le_budget` and `card_recordAiming_le_budget` are its two filters.
+
+**Why it was missing is the point.** `card_parts_le_record` points from the parts *into* the
+record, so composing it with `card_parts_le_budget` gives nothing about the record — correctly
+reported as a gap. But the bound was already *inside* `card_parts_le_budget`'s proof: that proof
+establishes `card (recordOf pair) = counts.work` and `work + 2 ^ subtreeHeight ≤ q`, uses both
+through `omega`, and states only the weaker conclusion it happened to need. Dropping its first
+step is the whole lemma.
+
+So: **a proof that establishes a more general fact than its own statement is a fact that will be
+reported missing.** The cure is to state the general one beside it, not to rewrite the specific
+one — the specific one has consumers and its shape is right for them. This is the second time in
+two rounds that the thing to build was a projection of something already proved; the first was
+`HasTotalBudget`'s unused conjunct. **Both were found by reading a proof rather than a
+statement**, which is the same move as reading a hypothesis's *use* rather than its text.
+
+**What it does not give, stated so that nobody builds on a misreading.** It does not give
+`2 · card recordMessageClass ≤ q - 2 ^ subtreeHeight`. The doubled line needs that, and
+`RecordSlot`'s counterexample stands against it: an adversary whose every query is a
+message input aiming nowhere has `card recordMessageClass = counts.work`, so doubling it exceeds
+the slack the slots share. This lemma bounds each part by the whole budget slack once; it says
+nothing about two of them, and the partition route is where that has to come from.

@@ -16001,3 +16001,21 @@ info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms:
 /-- info: 'SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.card_record_le_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.card_record_le_budget
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.card_recordMessageClass_le_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.card_recordMessageClass_le_budget
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.card_recordAiming_le_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.card_recordAiming_le_budget
