@@ -305,10 +305,12 @@ one unit and the ledger keeps **246** of its 247 spare.
 (`LedgerThird.prf_column_within_one_unit`). It is a count, so it enters the `claims` column,
 where the units are counts; it is not a probability and does not belong in `defects`.
 
-**What this does not settle.** That bound is proved with the seed drawn *after* the record. In
-the real order the walk fixes the seed first and an adversary may aim every query at it, where
-the count is the whole record. So this line is the ledger's side of the column and the hop is
-the rest of it. -/
+**This line is not the live one, and the reason is not the hop.** The assembly charges each
+clause at `expected count / 2 ^ 128` and sums the counts, so the seed clause's count must be
+record-sized; a clause charged at a sub-unit count forces its event to be empty
+(`TargetColumn.seedEvent_empty_of_prfClass_charge`). **The column's smallness is what
+disqualifies it**, so no hop can rescue this line. It is kept as the measurement of what a
+sharp count would have been worth, and `Target.allowanceDoubled` is the live line. -/
 theorem allowanceWithPrfUnit (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
     ((q - 2 ^ subtreeHeight + 260 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
@@ -321,14 +323,10 @@ The `Nat` line is `2 * (q - 512) + 259 + q + 6 ≤ 3 * q`, i.e. **`265 ≤ 1024`
 units spare. The price of the room is the target: this closes against `3 * q / 2 ^ 128`, which
 is `q / 2 ^ 126.415…` and rounds to `q / 2 ^ 126` — **not** `q / 2 ^ 127`.
 
-**Which of the two lines is live is decided by one question**, and not by anything in this file:
-whether the assembly needs `E[card recordPrfClass]` in the real order, or only
-`Pr[RecordMeetsPrfClass]`. Only the event, and `allowanceWithPrfUnit` stands at `q / 2 ^ 127`
-with 246 spare; the count, and the blind-order bound is false in the real order, so this is the
-line.
-
-**Nothing is instantiated at this one.** It is stated so that neither answer waits on
-arithmetic. -/
+**This is the live line.** The assembly needs the seed clause's count, not only its event, and
+the count must be record-sized for the charge to be the union bound's; so the shared half
+carries two records and the target is `3 * q / 2 ^ 128`. `allowanceWithPrfUnit` is kept beside
+it as the record of what a sharp count would have been worth, not as an alternative. -/
 theorem allowanceDoubled (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
     ((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤

@@ -754,4 +754,55 @@ theorem expected_card_prfClass_lt_one (inputs : Finset Bytes) (bound : Nat)
   calc ((inputs.card : Nat) : ℝ≥0∞) ≤ ((bound : Nat) : ℝ≥0∞) := Nat.cast_le.mpr hcard
     _ ≤ ((2 ^ 128 : Nat) : ℝ≥0∞) := Nat.cast_le.mpr (le_of_lt hsmall)
 
+/-! ## Which quantity the assembly needs, settled
+
+The question is whether `hparts` can be fed by `Pr[RecordMeetsPrfClass]` alone or needs the
+count. It needs a count, and **not** the `PRF_msg` part's count — that one cannot serve, and the
+composition below says so rather than arguing it.
+
+The assembly charges each clause as `Pr[clause] ≤ expected (count) / 2 ^ 128` and then sums the
+**counts** against the budget. So the seed clause's count must satisfy
+`expected count ≥ 2 ^ 128 * Pr[seed event]`. Since the union bound gives
+`Pr[seed event] ≤ card record / 2 ^ 128` and nothing better, the count has to be of the record's
+size — and `card (recordPrfClass …)` is not, because `expected_card_prfClass_le` puts it
+**below one**. A count below one cannot certify a probability of `card record / 2 ^ 128`.
+
+`seedEvent_empty_of_prfClass_charge` is that stated as a refutation: an assembly taking the seed
+clause at the `PRF_msg` part's expectation forces the seed event to be **impossible** for every
+adversary whose record is shorter than `2 ^ 128`. So a `claims` column of one unit bought with
+that count is bought with a hypothesis nothing satisfies.
+
+**What this does not say.** It does not say the one-unit column is unreachable by some other
+route; it says this count cannot buy it. And `expected_card_prfClass_le` is still true and still
+useful — the part really is sub-unit — but *being small* is what disqualifies it here, since the
+clause it would pay for is not. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **An assembly that charges the seed clause at the `PRF_msg` part's expectation forces the
+seed event empty.** The count is zero off the event and at most the record on it, so the charge
+is self-referential in the sense `probEvent_eq_zero_of_self_charge` rules out. -/
+theorem seedEvent_empty_of_prfClass_charge (adversary : Adversary) (bound : Nat)
+    (hsmall : bound < 2 ^ 128)
+    (hcap : ∀ pair ∈ support (RandomiserRecord.recordedPairedRun adversary),
+      Multiset.card (SharedJoin.recordOf pair) ≤ bound)
+    (hcharge : Pr[fun pair : SharedJoin.RecordedPair =>
+          RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 |
+        RandomiserRecord.recordedPairedRun adversary] ≤
+      ClassExpectation.expected (RandomiserRecord.recordedPairedRun adversary)
+          (fun pair => Multiset.card (RecordColumn.recordPrfClass pair)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    Pr[fun pair : SharedJoin.RecordedPair =>
+        RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 |
+      RandomiserRecord.recordedPairedRun adversary] = 0 := by
+  classical
+  refine probEvent_eq_zero_of_self_charge _ _ _ bound ?_ ?_ hsmall hcharge
+  · intro pair hpair hevent
+    refine le_trans (le_of_eq ?_) (le_trans (card_prf_le_indicator_record pair) ?_)
+    · rfl
+    · rw [if_pos hevent]
+      exact hcap pair hpair
+  · intro pair hevent
+    rw [recordPrfClass_eq_zero_of_not_recordMeets pair hevent]
+    simp
+
 end SlhDsaSecurity.TargetColumn

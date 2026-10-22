@@ -16271,26 +16271,6 @@ info: 'SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin
 
-/--
-info: 'SlhDsaSecurity.PrfClassCount.expected_indicator_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PrfClassCount.expected_indicator_eq
-
-/--
-info: 'SlhDsaSecurity.PrfClassCount.prob_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PrfClassCount.prob_prfClass_le
-
-/--
-info: 'SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le
-
 /-- info: 'SlhDsaSecurity.ClassExpectation.expected_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassExpectation.expected_zero
@@ -16388,3 +16368,11 @@ info: 'SlhDsaSecurity.Target.allowanceDoubled_margin' depends on axioms: [propex
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.allowanceDoubled_margin
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge
