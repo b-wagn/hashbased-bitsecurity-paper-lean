@@ -84,6 +84,16 @@ computation, where it counts the adversary's phase and nothing else. What is lef
 `unchargedPhase`, which tells nothing and keeps only the log, so it is already the stateful
 handler the composition wants, with no writer left to move.
 
+**A warning for anything else working over the sum spec.**
+`(OracleWorld + SigningSpec).Range (Sum.inr request)` and `SigningSpec.Range request` are equal
+only semireducibly, so a lemma phrased at the summand will not rewrite an occurrence sitting at
+the sum: `rw` reports the pattern missing and `simp` declines without saying why, and unfolding
+past it yields terms that are not type-correct at `instances` transparency. The rule is to
+phrase each lemma at the index its goal has — `run_unchargedPhase_inr` is about
+`unchargedPhase sk (Sum.inr request)`, not about the signer — and to convert the index once,
+inside that lemma's own proof, where it is local. No lifting law is involved; an instance search
+that fails here is failing downstream of the mismatch and cannot fix it.
+
 The one thing the equality needs is that the signer's body may be lifted into the writer as a
 whole rather than a step at a time. That is not definitional — the experiment writes it step by
 step — but at the level of runs both sides compute, so the proof is extensionality and then
