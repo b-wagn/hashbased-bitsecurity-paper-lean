@@ -32,6 +32,16 @@ where such a probe is visible. The two halves therefore read their counts off di
 objects, each for a reason particular to it. The next reader will notice the asymmetry; this is
 what it is.
 
+## One thing a producer can get wrong and this file cannot catch
+
+The two recorder hypotheses pin their key at `SplitCharged.generatedKey … walk.2` — the key the
+**walk's** cache generates. The recorder's tests cannot be pinned anywhere else, since they are
+fixed before the run; but the *charged event* can, and a charge stating `LateDisclosure` at
+`SplitCharged.generatedKey … result.2.1` — the key the **run's** cache generates — does not
+unify with what is asked here, and both statements look right read on their own. The two keys
+are equal only on the support, by `AnswerSide.generatedKey_eq_walk`. A producer that reaches for
+the run's key needs that lemma; a producer that uses the walk's key needs nothing.
+
 ## The one hypothesis that is not like the others
 
 `hseed` asks for the leftover to be small **at a fixed walk**, and that is where it has to be
@@ -56,20 +66,33 @@ namespace SlhDsaSecurity.AnswerJoin
 
 open Security CanonicalGraph WarmedGame RoutedSplit Target AnswerSide
 
-/-- The recorded run the two recorder hypotheses are read at. Pulled out so that the serving-flag
-presentation moves this definition and nothing else. -/
+attribute [local irreducible] WarmedGame.afterSeeds Scheme.verify Scheme.keygenInternal
+  Scheme.sign Security.signingOracle Security.countQueries
+
+set_option linter.constructorNameAsVariable false
+
+/-- The recorded run the two recorder hypotheses are read at: the game's own tail computation,
+recorded.
+
+**This is the shape the producers state at, and that is why it is this one.** Every lemma in
+`SplitWitness` takes `computation : OracleComp OracleWorld (Outcome × Nat)` and
+`SplitWitness.LateDisclosure`'s domain is `(Outcome × Nat) × SplitState`, so a charge proved
+there plugs in with no adapter. The charge *consuming* these hypotheses reads the split-counted
+run instead, and the two are bridged inside the proof by
+`CoverageCount.mem_support_recorder_countAllHashes` — on this side, once, rather than at each
+producer.
+
+It takes no counter slots, which is the point: nothing a producer writes has to mention them,
+so the presentation may renumber them freely. -/
 noncomputable def answerRecordedRun (adversary : Adversary)
-    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec)
-    (inside outside : QueryKind) :
-    ProbComp ((Outcome × Counts) × SplitPrefix.SplitState) :=
+    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
+    ProbComp ((Outcome × Nat) × SplitPrefix.SplitState) :=
   BlockViews.recordedRun
     (SplitWitness.disclosingKeep walk.1.1.2.1
       (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
     (SplitWitness.targetKeep walk.1.1.2.1
       (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-    (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
-        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-      inside outside) (afterSeeds adversary walk.1.1)) walk.2
+    (countAllHashes (afterSeeds adversary walk.1.1)) walk.2
 
 set_option maxHeartbeats 1000000 in
 /-- **The answer obligation, from the pieces that are left.** Each hypothesis is in the shape its
@@ -78,14 +101,13 @@ theorem answerCharged_of_parts {inside outside : QueryKind} (hne : inside ≠ ou
     (hlate : ∀ (adversary : Adversary)
       (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
       walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (answerRecordedRun adversary walk inside outside),
+      ∀ result ∈ support (answerRecordedRun adversary walk),
         ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-          ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result)
     (hleftBound : ∀ (adversary : Adversary)
       (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
       walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (answerRecordedRun adversary walk inside outside),
+      ∀ result ∈ support (answerRecordedRun adversary walk),
         result.2.2.1.length ≤ signingLimit)
     (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       ∀ walk ∈ support graphWalk, GoodWalk walk →
@@ -124,7 +146,12 @@ theorem answerCharged_of_parts {inside outside : QueryKind} (hne : inside ≠ ou
         add_le_add
           (prob_answerBad_good_le_of_caps adversary q hne hbudget hwalk hgood.2 signingLimit
             ForsLeaveOneOut.signingLimit_le_tapeBound
-            (hlate adversary walk hwalk hgood) (hleftBound adversary walk hwalk hgood))
+            (fun result hmem => hlate adversary walk hwalk hgood _
+              (CoverageCount.mem_support_recorder_countAllHashes _ _ _ hne
+                (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem))
+            (fun result hmem => hleftBound adversary walk hwalk hgood _
+              (CoverageCount.mem_support_recorder_countAllHashes _ _ _ hne
+                (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem)))
           (hseed q adversary hbudget walk hwalk hgood)
     _ = (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
