@@ -14540,3 +14540,19 @@ info: 'SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun' depends on axioms: [p
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun
+
+/-- info: 'SlhDsaSecurity.CountedHandler.withExtra_run' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withExtra_run
+
+/-- info: 'SlhDsaSecurity.CountedHandler.withExtra_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withExtra_step
+
+/-- info: 'SlhDsaSecurity.CountedHandler.files_withExtra' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.files_withExtra
+
+/-- info: 'SlhDsaSecurity.InputBullet.bullet_of_claimsCharged_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.bullet_of_claimsCharged_at

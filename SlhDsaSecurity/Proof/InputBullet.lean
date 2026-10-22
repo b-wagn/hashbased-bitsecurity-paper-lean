@@ -75,6 +75,24 @@ theorem bullet_of_claimsCharged (adversary : Adversary) (ordering : SplitPair �
       (fun pair : RecordedPair => Multiset.card (recordAiming pair))]
   exact hclaims
 
+/-- **The same bullet, at whatever tail the obligations end on.** The transport is a parameter,
+because the forgetting is what carries the event and the count across and it lands at the *same*
+recorded run for every tail: `probEvent_forget` maps `pairedOf fused adversary` to
+`recordedPairedRun adversary` whatever `fused` is. So the half owes one statement, not one per
+tail, and `CarrierTail.forgetsTo` is what fills `hforget` on the carrier route. -/
+theorem bullet_of_claimsCharged_at {fused : LateProbes.FusedTail} (adversary : Adversary)
+    (hforget : LateProbes.ForgetsTo fused adversary) (ordering : LateProbes.SplitPair → Prop)
+    (hclaims : ClaimsCharged adversary) :
+    SharedAssembly.InputBulletAt fused adversary ordering := by
+  classical
+  refine le_trans (probEvent_mono (q := fun pair : SplitPair =>
+    GoodWalk (forgetRecordings pair).1 ∧ InputBad (recordedTraceOf (forgetRecordings pair)))
+    (fun pair _ hpair => ⟨hpair.1, hpair.2.1⟩)) ?_
+  rw [probEvent_forget hforget
+      (fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBad (recordedTraceOf pair)),
+    expected_forget hforget (fun pair : RecordedPair => Multiset.card (recordAiming pair))]
+  exact hclaims
+
 /-- **The bullet from a constant, kept for what it rules out.** The implication is true and
 costs nothing; what is false is that anything proves its hypothesis. A claim counts for the
 event only when it carries the cell's *correct* value, and the signature's own authentication

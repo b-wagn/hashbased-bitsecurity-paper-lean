@@ -64,6 +64,55 @@ theorem withCount_step
   rw [support_pure, Set.mem_singleton_iff] at hpure
   exact ⟨inner, hinner, by rw [hpure], by rw [hpure], by rw [hpure]⟩
 
+/-! ## The same wrapper, at whatever the extra component is
+
+The counter is one instance of a wrapper that carries **some** extra component beside the
+handler's own state and updates it per query, without ever reading or writing the carrier. The
+cost writer a counted computation threads is another. Both ask the interface the same question
+and get the same answer, so the transport is stated once here and the counter is its instance.
+
+`withCount` is unchanged — same name, same type, same definition — so nothing downstream moves;
+what changes is that its transport is now a corollary rather than eighty lines of its own.
+
+**Two instances is what makes this a fact rather than a guess.** A transport generalised with
+one instance is a prediction about the next one; with two in hand it is a statement about what
+the wrapper actually needs, which is: the carrier's half untouched and the handler's own half
+returned. -/
+
+/-- A handler with some extra component beside its state, updated per query. -/
+noncomputable def withExtra {ω : Type}
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (update : OracleWorld.Domain → ω → ω) :
+    QueryImpl OracleWorld (StateT (HandlerCarrier.State × (τ × ω)) ProbComp) :=
+  fun queried state => do
+    let step ← (impl queried).run (state.1, state.2.1)
+    pure (step.1, (step.2.1, (step.2.2, update queried state.2.2)))
+
+theorem withExtra_run {ω : Type}
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (update : OracleWorld.Domain → ω → ω)
+    (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × ω)) :
+    ((withExtra impl update) queried).run state =
+      (impl queried).run (state.1, state.2.1) >>= fun step =>
+        (pure (step.1, (step.2.1, (step.2.2, update queried state.2.2))) :
+          ProbComp (OracleWorld.Range queried × (HandlerCarrier.State × (τ × ω)))) := rfl
+
+/-- **A step of the wrapped handler is a step of the handler, with the extra component
+updated.** -/
+theorem withExtra_step {ω : Type}
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (update : OracleWorld.Domain → ω → ω)
+    (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × ω))
+    (step : OracleWorld.Range queried × (HandlerCarrier.State × (τ × ω)))
+    (hstep : step ∈ support (((withExtra impl update) queried).run state)) :
+    ∃ inner : OracleWorld.Range queried × (HandlerCarrier.State × τ),
+      inner ∈ support ((impl queried).run (state.1, state.2.1)) ∧
+        step.1 = inner.1 ∧ step.2.1 = inner.2.1 ∧ step.2.2.1 = inner.2.2 := by
+  rw [withExtra_run, mem_support_bind_iff] at hstep
+  obtain ⟨inner, hinner, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  exact ⟨inner, hinner, by rw [hpure], by rw [hpure], by rw [hpure]⟩
+
 /-! ## The step facts the wrapped handler needs
 
 `Files` does not carry a step-level "served if the framing admitted it", because `queryStep`
@@ -94,19 +143,23 @@ theorem stepServedSelf
 /-! ## The interface transports -/
 
 open scoped Classical in
-/-- **A counted handler files if the handler underneath does.** -/
-theorem files_withCount
+/-- **A wrapped handler files if the handler underneath does**, whatever the extra component
+is and however it is updated. The wrapper never touches the carrier, and the carrier is the only
+thing `Files` looks at; every field below reads the step underneath and puts the carrier back. -/
+theorem files_withExtra {ω : Type}
     {impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp)}
-    (hfiles : Files pk impl) : Files pk (withCount impl) where
+    (hfiles : Files pk impl) (update : OracleWorld.Domain → ω → ω) :
+    Files pk (withExtra impl update) where
   queryStep := by
     intro α input next state result hresult
     rw [simulateQ_bind,
-      show simulateQ (withCount impl) (query (spec := OracleWorld) (Sum.inr input) :
+      show simulateQ (withExtra impl update) (query (spec := OracleWorld) (Sum.inr input) :
           OracleComp OracleWorld (OracleWorld.Range (Sum.inr input))) =
-        ((withCount impl) (Sum.inr input)) from by simp,
+        ((withExtra impl update) (Sum.inr input)) from by simp,
       StateT.run_bind, mem_support_bind_iff] at hresult
     obtain ⟨step, hstep, hrest⟩ := hresult
-    obtain ⟨inner, hinner, hvalue, hcarrier, -⟩ := withCount_step impl (Sum.inr input) state step
+    obtain ⟨inner, hinner, hvalue, hcarrier, -⟩ := withExtra_step impl update
+      (Sum.inr input) state step
       hstep
     refine ⟨step.1, step.2, ?_, ?_, ?_, ?_, hrest⟩
     · rw [hcarrier, hvalue]
@@ -130,7 +183,8 @@ theorem files_withCount
       intro state z hz
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
       obtain ⟨step, hstep, hrest⟩ := hz
-      obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
+      obtain ⟨inner, hinner, -, hcarrier, -⟩ :=
+        withExtra_step impl update queried state step hstep
       refine Grows.trans ?_ (ih step.1 step.2 z hrest)
       rw [hcarrier]
       exact hfiles.stepGrows queried (state.1, state.2.1) inner hinner
@@ -146,7 +200,8 @@ theorem files_withCount
       intro state result hresult hinv
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hresult
       obtain ⟨step, hstep, hrest⟩ := hresult
-      obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
+      obtain ⟨inner, hinner, -, hcarrier, -⟩ :=
+        withExtra_step impl update queried state step hstep
       refine ih step.1 step.2 result hrest ?_
       rw [hcarrier]
       exact hfiles.invariant Inv hcache hfile
@@ -166,30 +221,43 @@ theorem files_withCount
       intro state z hz
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
       obtain ⟨step, hstep, hrest⟩ := hz
-      obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
+      obtain ⟨inner, hinner, -, hcarrier, -⟩ :=
+        withExtra_step impl update queried state step hstep
       rw [ih step.1 step.2 z hrest, hcarrier]
       exact hfiles.stepFraming queried (state.1, state.2.1) inner hinner
   stepGrows := by
     intro queried state step hstep
-    obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
+    obtain ⟨inner, hinner, -, hcarrier, -⟩ :=
+      withExtra_step impl update queried state step hstep
     rw [hcarrier]
     exact hfiles.stepGrows queried (state.1, state.2.1) inner hinner
   stepFraming := by
     intro queried state step hstep
-    obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
+    obtain ⟨inner, hinner, -, hcarrier, -⟩ :=
+      withExtra_step impl update queried state step hstep
     rw [hcarrier]
     exact hfiles.stepFraming queried (state.1, state.2.1) inner hinner
   hashCached := by
     intro input state step hstep
-    obtain ⟨inner, hinner, hvalue, hcarrier, -⟩ := withCount_step impl (Sum.inr input) state step
+    obtain ⟨inner, hinner, hvalue, hcarrier, -⟩ := withExtra_step impl update
+      (Sum.inr input) state step
       hstep
     rw [hcarrier, hvalue]
     exact hfiles.hashCached input (state.1, state.2.1) inner hinner
   hashServed := by
     intro input state step hstep probe hserved
-    obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl (Sum.inr input) state step hstep
+    obtain ⟨inner, hinner, -, hcarrier, -⟩ := withExtra_step impl update
+      (Sum.inr input) state step hstep
     rw [hcarrier] at hserved
     exact hfiles.hashServed input (state.1, state.2.1) inner hinner probe hserved
+
+open scoped Classical in
+/-- **A counted handler files if the handler underneath does.** The counter is an extra
+component updated per query, so this is `files_withExtra` and nothing more. -/
+theorem files_withCount
+    {impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp)}
+    (hfiles : Files pk impl) : Files pk (withCount impl) :=
+  files_withExtra pk hfiles fun queried count => count + hashCost queried
 
 /-! ## And so does the projection law
 
