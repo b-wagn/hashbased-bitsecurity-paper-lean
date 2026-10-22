@@ -55,7 +55,8 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
       result.2.1.cache probe = some value → later probe = some value)
     (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.1.2) :
     entry ∈ state.2.1.2 ∨
-      entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed message ∨
+      (entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed message ∧
+        rightKeep entry.1 (servingNotice pk state.1 entry.1)) ∨
       ∃ (mid : HandlerCarrier.State) (answer : HashOutput),
         mid.cache (Hashing.randomizerInput sk.prf sk.publicKey.seed message) = some answer ∧
           (∀ (probe : Bytes) (value : HashOutput),
@@ -80,7 +81,7 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
   rcases List.mem_append.mp hentry with hold | hnew
   · -- Filed by the first step, if at all: its only input is the `PRF_msg` one.
     rcases step_right_shape pk rightKeep _ state step hstep with
-      hsame | ⟨appended, answer, hqueried, hshape, -, -⟩
+      hsame | ⟨appended, answer, hqueried, hshape, -, hright, -⟩
     · rw [hsame] at hold
       exact Or.inl hold
     · rw [hshape] at hold
@@ -88,7 +89,7 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
       · exact Or.inl hprior
       · refine Or.inr (Or.inl ?_)
         rw [List.mem_singleton.mp hself]
-        exact (Sum.inr.injEq _ _).mp hqueried.symm
+        exact ⟨(Sum.inr.injEq _ _).mp hqueried.symm, hright⟩
   · obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal, hframing⟩ := hentries entry hnew
     have hfreshStart : step.2.1.cache entry.1 = none := by
       rcases hstate : step.2.1.cache entry.1 with _ | value
@@ -133,7 +134,8 @@ theorem sign_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
       result.2.1.cache probe = some value → later probe = some value)
     (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.1.2) :
     entry ∈ state.2.1.2 ∨
-      entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∨
+      (entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∧
+        rightKeep entry.1 (servingNotice pk state.1 entry.1)) ∨
       ∃ (mid : HandlerCarrier.State) (answer : HashOutput),
         mid.cache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some answer ∧
           (∀ (probe : Bytes) (value : HashOutput),
