@@ -45,7 +45,14 @@ for an arbitrary `τ`, which costs nothing and buys both instantiations: the ser
 carries a probe list and a counter beside its carrier, the recorder carries two recordings, and
 neither the chain nor these laws look at either. -/
 
-/-- **A handler that files**: the six facts the agreement reads it through. -/
+/-- **A handler that files**: the six facts the agreement reads it through.
+
+**When a field pair supports both directions, state both.** `hashCached` and `runPersists`
+give *served implies queried* and *queried implies cached* alike; only the first was stated,
+because only the first had a consumer. The second was needed a year of work later by a
+different reader and was one theorem, not a new notion — but nothing marked it as available.
+The second consumer's direction is not predictable from the first's, so a consequence of the
+fields belongs here whether or not anything wants it yet. -/
 structure Files (pk : PublicKey) {τ : Type}
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp)) : Prop where
   /-- A hash query leaves its own input cached, the framing where it was, the carrier grown, and
