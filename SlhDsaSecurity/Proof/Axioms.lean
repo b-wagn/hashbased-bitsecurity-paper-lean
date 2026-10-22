@@ -14415,3 +14415,7 @@ info: 'SlhDsaSecurity.CarrierRecord.keys_publicKey' depends on axioms: [propext,
 /-- info: 'SlhDsaSecurity.CountedHandler.files_withExtra' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.files_withExtra
+
+/-- info: 'SlhDsaSecurity.InputBullet.bullet_of_claimsCharged_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.bullet_of_claimsCharged_at
