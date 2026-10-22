@@ -212,6 +212,7 @@ import SlhDsaSecurity.Proof.HandlerCharge
 import SlhDsaSecurity.Proof.HandlerLenient
 import SlhDsaSecurity.Proof.ServingTable
 import SlhDsaSecurity.Proof.CarrierFiles
+import SlhDsaSecurity.Proof.CountedHandler
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -13098,6 +13099,18 @@ info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_class_of_parts' depends on 
 #print axioms SlhDsaSecurity.ServingTable.probEvent_tail_serving
 
 /--
+info: 'SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket
+
+/--
+info: 'SlhDsaSecurity.BracketedRun.run_bracketed_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedRun.run_bracketed_map
+
+/--
 info: 'SlhDsaSecurity.CarrierFiles.grows_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -13224,13 +13237,57 @@ info: 'SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder' depends on axio
 #print axioms SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder
 
 /--
-info: 'SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket' does not depend on any axioms
+info: 'SlhDsaSecurity.CarrierFiles.files_countedCarrierRecorder' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.BracketedRun.forgetCarrier_of_bracket
+#print axioms SlhDsaSecurity.CarrierFiles.files_countedCarrierRecorder
 
 /--
-info: 'SlhDsaSecurity.BracketedRun.run_bracketed_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CarrierFiles.forgetsAlong_countedCarrierRecorder' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.BracketedRun.run_bracketed_map
+#print axioms SlhDsaSecurity.CarrierFiles.forgetsAlong_countedCarrierRecorder
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.withCount_run' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withCount_run
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.withCount_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withCount_step
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.stepServedSelf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.stepServedSelf
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.files_withCount' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.files_withCount
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.withCount_step_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.withCount_step_map
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.run_withCount_map' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_withCount_map
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.forgetsAlong_withCount' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.forgetsAlong_withCount

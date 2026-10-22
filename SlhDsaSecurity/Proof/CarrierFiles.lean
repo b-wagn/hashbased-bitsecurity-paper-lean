@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.ServingForget
+import SlhDsaSecurity.Proof.CountedHandler
 
 /-!
 # The recorder that notices, as a handler the agreement can read
@@ -304,6 +305,9 @@ theorem files_carrierRecorder (rightKeep : Bytes → State → Prop) :
   runPersists := fun computation state z hz => runGrows pk rightKeep computation state z hz
   invariant := fun Inv hcache hfile => runInvariant pk rightKeep Inv hcache hfile
   runFraming := fun computation state z hz => runFraming pk rightKeep computation state z hz
+  stepGrows := fun queried state step hstep => stepGrows pk rightKeep queried state step hstep
+  stepFraming := fun queried state step hstep =>
+    stepFraming pk rightKeep queried state step hstep
   hashCached := fun input state step hstep => step_cached pk rightKeep input state step hstep
   hashServed := fun input state step hstep probe hserved =>
     step_served pk rightKeep input state step hstep probe hserved
@@ -424,5 +428,35 @@ theorem forgetsAlong_carrierRecorder (rightKeep : Bytes → State → Prop) :
       (@noticingRecorderOf State (servingView pk) (disclosingKeep pk) rightKeep)
       KeygenUniform.rom :=
   fun computation state => run_noticingRecorderOf_forget pk rightKeep computation state
+
+/-! ## The tail's handler
+
+The recorder that notices, counting. The counter goes beside the carrier rather than around the
+computation because a bracketed game is not one computation — `CountedHandler` says why — and
+both laws the tail reads the handler through survive the wrapping, because neither looks at the
+counter. -/
+
+/-- The handler a carrier tail runs under. -/
+noncomputable def countedCarrierRecorder (rightKeep : Bytes → State → Prop) :
+    QueryImpl OracleWorld
+      (StateT (State × ((DigestTape.Record × DigestTape.Record) × Nat)) ProbComp) :=
+  CountedHandler.withCount
+    (@noticingRecorderOf State (servingView pk) (disclosingKeep pk) rightKeep)
+
+/-- **It files.** -/
+theorem files_countedCarrierRecorder (rightKeep : Bytes → State → Prop) :
+    Files pk (countedCarrierRecorder pk rightKeep) :=
+  CountedHandler.files_withCount pk (files_carrierRecorder pk rightKeep)
+
+/-- **And it forgets to the shared oracle**, which is the law a bracketed phase reads it
+through. -/
+theorem forgetsAlong_countedCarrierRecorder (rightKeep : Bytes → State → Prop) :
+    ServingForget.ForgetsAlong
+      (fun state : State × ((DigestTape.Record × DigestTape.Record) × Nat) =>
+        CacheView.cacheOf (state.1, state.2.1).1)
+      (countedCarrierRecorder pk rightKeep) KeygenUniform.rom :=
+  CountedHandler.forgetsAlong_withCount
+    (fun state : StateOf State => CacheView.cacheOf state.1) _ KeygenUniform.rom
+    (forgetsAlong_carrierRecorder pk rightKeep)
 
 end SlhDsaSecurity.CarrierFiles

@@ -84,6 +84,16 @@ structure Files (pk : PublicKey) {τ : Type}
   hashCached : ∀ (input : Bytes) (state : HandlerCarrier.State × τ)
     (step : OracleWorld.Range (Sum.inr input) × (HandlerCarrier.State × τ)),
     step ∈ support ((impl (Sum.inr input)).run state) → step.2.1.cache input = some step.1
+  /-- A step grows the carrier. Stated at the step and not only at the run, because an
+  interface that only speaks of runs cannot be transported through a wrapper: `queryStep` for a
+  wrapped handler is rebuilt from the step facts, and a run fact will not rebuild it. -/
+  stepGrows : ∀ (queried : OracleWorld.Domain) (state : HandlerCarrier.State × τ)
+    (step : OracleWorld.Range queried × (HandlerCarrier.State × τ)),
+    step ∈ support ((impl queried).run state) → HandlerCarrier.Grows state.1 step.2.1
+  /-- And leaves the framing alone. -/
+  stepFraming : ∀ (queried : OracleWorld.Domain) (state : HandlerCarrier.State × τ)
+    (step : OracleWorld.Range queried × (HandlerCarrier.State × τ)),
+    step ∈ support ((impl queried).run state) → step.2.1.framing = state.1.framing
   /-- A hash step serves nothing but its own input. -/
   hashServed : ∀ (input : Bytes) (state : HandlerCarrier.State × τ)
     (step : OracleWorld.Range (Sum.inr input) × (HandlerCarrier.State × τ)),
@@ -104,6 +114,12 @@ theorem files_servingProgram (pk : PublicKey)
   runFraming := fun computation state z hz =>
     ServingProgram.servingProgram_run_framing publicSeed pk availableAt table computation state
       z hz
+  stepGrows := fun queried state step hstep =>
+    ServingProgram.servingProgram_persists publicSeed pk availableAt table queried state step
+      hstep
+  stepFraming := fun queried state step hstep =>
+    ServingProgram.servingProgram_framing publicSeed pk availableAt table queried state step
+      hstep
   hashCached := ServingProgram.servingProgram_hash_cached publicSeed pk availableAt table
   hashServed := fun input state step hstep probe hserved =>
     ServingProgram.servingProgram_hash_served publicSeed pk availableAt table input state step
