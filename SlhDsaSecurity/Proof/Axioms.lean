@@ -5418,3 +5418,19 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_win_routed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RoutedSplit.cases_of_win_routed
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.queriesUnder_verify_message' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.queriesUnder_verify_message
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.cached_digest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.cached_digest
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.cases_of_canonical
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_win_three' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.cases_of_win_three
