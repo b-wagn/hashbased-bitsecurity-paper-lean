@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.CoverageRouted
 import SlhDsaSecurity.Proof.CanonicalSignature
+import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
 import SlhDsaSecurity.Proof.WarmProbes
@@ -4791,4 +4792,32 @@ info: 'SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature' depends
 /-- info: 'SlhDsaSecurity.CacheAvailability.randomizer_eq_of_signerRandomised' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CacheAvailability.randomizer_eq_of_signerRandomised
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.randomizerInput_prf_inj' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.randomizerInput_prf_inj
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.prfGuess_randomizerInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.prfGuess_randomizerInput
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.prob_run_randomizerInput_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.prob_run_randomizerInput_le
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.canonicalInput_ne_randomizerInput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.canonicalInput_ne_randomizerInput
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.card_add_card_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.card_add_card_le
+
+/-- info: 'SlhDsaSecurity.RandomizerGate.prob_prf_eq_publicSeed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomizerGate.prob_prf_eq_publicSeed
+
+/-- info: 'SlhDsaSecurity.Assembly.defects_le_six' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.defects_le_six
 
