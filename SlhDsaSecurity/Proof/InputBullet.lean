@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.SharedAssembly
 import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.RecordedChain
+import SlhDsaSecurity.Proof.ServedBridge
 
 /-!
 # The input half's bullet, reduced to one inequality
@@ -56,5 +57,36 @@ def ClaimsCharged (adversary : Adversary) : Prop :=
 theorem bullet_of_claimsCharged (adversary : Adversary) (ordering : SplitPair → Prop)
     (hclaims : ClaimsCharged adversary) : SharedAssembly.InputBullet adversary ordering :=
   bullet_of_bound adversary ordering hclaims
+
+
+/-! ## The agreement this half consumes, named so it can be aimed at
+
+The half's charge reads disclosure from the **carrier** — that is what the handler carries and
+what `RedrawCell`'s availability is a predicate of — while `RoutedSplit.InputBad` reads it from
+the **log**, through `ServedLog.disclosedByLog`. `ServedBridge` is where the two meet, and what
+it asks for is `ServedAgree`: the carrier's served set and the log's are each contained in the
+other, at which point `disclosedAt_subset_disclosedByLog` and its converse make the two
+disclosure sets one `Finset` and the entries and the event are instantiated at the same object.
+
+**This is stated as a hypothesis rather than proved here on purpose.** It is the only thing
+between this half and its bullet that belongs to another owner, and the shape it arrives in has
+to be the shape consumed: an unapplied bridge is indistinguishable from a missing one. So it is
+written at the run this half's chain ends at — the handler's run of the linked game at a drawn
+table, started from the empty carrier — with the key the walk's table determines, the log the
+run's own value carries, and the cache the game's, which is the handler's read through
+`RedrawCell.unionCache`. If what arrives differs, this is where it fails to elaborate. -/
+
+open WalkTable TableTail in
+/-- **The agreement, at the run this half ends at.** -/
+def AgreesAtHandler (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : CanonicalGraph.Cells × CanonicalGraph.Padding) : Prop :=
+  ∀ (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
+    (z : ((((Forgery × Multiplicative RecordedQueries.Tally) ×
+      (Bool × RecordedQueries.Tally)) × SigningLog)) × OpenCache.HandlerState),
+    z ∈ support (handlerRun adversary prfSeed publicSeed table
+      (HandlerCarrier.empty, record, count)) →
+      ServedBridge.ServedAgree (keysOf prfSeed publicSeed table).2 z.2.1
+        (((LinkedGame.outcomeOf z.1).1, (LinkedGame.outcomeOf z.1).1.counts.work),
+          RedrawCell.unionCache publicSeed table z.2.1.cache)
 
 end SlhDsaSecurity.InputBullet
