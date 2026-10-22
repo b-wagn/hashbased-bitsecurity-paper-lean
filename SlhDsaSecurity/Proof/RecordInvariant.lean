@@ -97,6 +97,64 @@ theorem phase_invariant {Inv : CountedState → Prop}
         (run_invariant handler hstep _ (before request carrier) z hz
           (hbefore request carrier hinv))
 
+/-! ## What the writer accumulates
+
+A phase threads its writer through the state, so a fact about the record a step wrote is a fact
+about a *factor* of the final accumulator rather than a summand of a returned value. These two
+say that the accumulator only ever gains factors, which is what lets a step's own record be
+found in the phase's. -/
+
+theorem fuseServing_step_accumulates
+    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
+    (queried : (OracleWorld + SigningSpec).Domain) (state : ω × SigningLog × CountedState)
+    (step : (OracleWorld + SigningSpec).Range queried × (ω × SigningLog × CountedState))
+    (hstep : step ∈ support (((fuseServing handler inner before after) queried).run state)) :
+    ∃ gained : ω, step.2.1 = state.1 * gained := by
+  rcases queried with world | request
+  · have hstep' : step ∈ support
+        ((simulateQ handler (((inner (Sum.inl world)).run).run state.2.1)).run state.2.2 >>=
+          fun z => (pure (z.1.1.1, (state.1 * z.1.1.2, z.1.2, z.2)) :
+            ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
+              (ω × SigningLog × CountedState)))) := hstep
+    obtain ⟨z, -, hpure⟩ := support_bind_exists hstep'
+    exact ⟨z.1.1.2, congrArg (fun p => p.2.1) hpure⟩
+  · have hstep' : step ∈ support
+        ((simulateQ handler (((inner (Sum.inr request)).run).run state.2.1)).run
+            (before request state.2.2) >>= fun z =>
+          (pure (z.1.1.1, (state.1 * z.1.1.2, z.1.2, after z.2)) :
+            ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
+              (ω × SigningLog × CountedState)))) := hstep
+    obtain ⟨z, -, hpure⟩ := support_bind_exists hstep'
+    exact ⟨z.1.1.2, congrArg (fun p => p.2.1) hpure⟩
+
+/-- **A phase run only gains factors.** -/
+theorem fuseServing_accumulates
+    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
+    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ (state : ω × SigningLog × CountedState)
+      (result : α × (ω × SigningLog × CountedState)),
+      result ∈ support ((simulateQ (fuseServing handler inner before after) computation).run
+        state) → ∃ gained : ω, result.2.1 = state.1 * gained := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    exact ⟨1, by rw [hmem, mul_one]⟩
+  | query_bind queried next ih =>
+    intro state result hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    obtain ⟨gained, hgained⟩ := fuseServing_step_accumulates handler inner before after queried
+      state step hstep
+    obtain ⟨later, hlater⟩ := ih step.1 step.2 result hrest
+    exact ⟨gained * later, by rw [hlater, hgained, mul_assoc]⟩
+
 /-! ## The bracket condition, discharged rather than assumed
 
 An invariant that reads only the cache and the two recordings is preserved by any `Bracket`,
