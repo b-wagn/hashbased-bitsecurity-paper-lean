@@ -605,4 +605,55 @@ theorem rightRecord_le_of_budget_splitTail (inClass : Bytes → Prop)
   omega
 
 
+
+/-! ## The disclosing cap, carried
+
+`answerBound_splitTail`'s `hleftBound` is the disclosing recording's length, and it is the one
+input to the answer half that no run in the chain discharges for itself — `AnswerCoverage`
+carries it as a hypothesis from end to end. What is settled is *where it comes from*:
+`CarrierFiles.leftRecord_length_le_cap`, which bounds it at `5 * 2 ^ 62` because **the carrier
+files on served requests rather than on a cache coincidence**, so the recording holds one entry
+per request by construction.
+
+**That is a structural bound and not a `q`-proportional one, and the difference is not
+cosmetic.** Read as a cache test the statement is false: `SplitWitness.disclosingKeep` fires on
+a coincidence, so an adversary that hardcodes a `prfSeed` the walk happens to use manufactures
+one disclosing entry per *pair* of queries and passes any `q`-proportional cap once
+`q > 2 ^ 65`. `Target.GoodWalk` excludes two seed coincidences and not that one, and the
+statement is universally quantified over the support, so a single such walk refutes it. The
+repair is the carrier, not a bigger constant.
+
+This file owes none of that. What it owes is the last map: the cap is stated at the tail, and
+`answerBound_splitTail` wants it at the split tail, which is `Prod.fst` away. -/
+
+theorem leftRecord_le_of_carrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
+    (hne : inside ≠ outside) (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (adversary : Adversary) (walk : Walk) (leftLength : Nat)
+    (hleft : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
+      result.2.2.1.length ≤ leftLength) :
+    ∀ result ∈ support
+      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
+      result.1.2.2.1.length ≤ leftLength := by
+  intro result hresult
+  refine hleft result.1 ?_
+  rw [← SplitTail.map_splitCarrierTail inClass hne rightKeep adversary walk, support_map]
+  exact Set.mem_image_of_mem Prod.fst hresult
+
+/-- **And the target recording the same way**, for a consumer that would rather bound it at the
+tail than through the budget. `rightRecord_le_of_budget_splitTail` is the other route and
+neither needs the other. -/
+theorem rightRecord_le_of_carrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
+    (hne : inside ≠ outside) (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (adversary : Adversary) (walk : Walk) (rightLength : Nat)
+    (hright : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
+      result.2.2.2.length ≤ rightLength) :
+    ∀ result ∈ support
+      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
+      result.1.2.2.2.length ≤ rightLength := by
+  intro result hresult
+  refine hright result.1 ?_
+  rw [← SplitTail.map_splitCarrierTail inClass hne rightKeep adversary walk, support_map]
+  exact Set.mem_image_of_mem Prod.fst hresult
+
+
 end SlhDsaSecurity.SplitCarrierTail

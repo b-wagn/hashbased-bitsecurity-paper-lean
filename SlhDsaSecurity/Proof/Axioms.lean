@@ -15598,3 +15598,19 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record' depend
 /-- info: 'SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.leftRecord_le_of_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.leftRecord_le_of_carrierTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail

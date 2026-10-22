@@ -4576,3 +4576,47 @@ this entry.
 written for a split tail and useful for nothing else. The right inference was *someone is
 building the tail*; the inference drawn was *the tail is unbuilt*. **Prepared scaffolding is
 evidence of a builder**, and it is cheap to check before building the thing it was prepared for.
+## The disclosing cap is structural, and "I did not find it" is not "it is not there"
+
+**I proposed to prove `hleftBound` as "what the signing oracle discloses per signature times how
+many signatures the budget allows". That reading is `q`-proportional and the statement is false
+under it.** `SplitWitness.disclosingKeep` fires on a cache coincidence, so at a walk whose
+`prfSeed` the adversary has hardcoded, two queries manufacture one disclosing entry —
+`randomizerInput r pk.seed mᵢ`, read `aᵢ`, then `messageInput (truncate aᵢ) pk mᵢ`, which is
+signer-randomised at that moment and is filed left. With `q` queries that is `q / 2` entries,
+past any cap of this shape once `q > 2 ^ 65`. `Target.GoodWalk` excludes two seed coincidences
+and not this one, and the statement is `∀ walk ∈ support`, so one walk refutes it. There is no
+`q`-proportional restatement either: the concentration term needs the cap absolutely, and the
+complement cannot be charged because it is one unit per query.
+
+**The repair is structural and it was already in the tree.** `CarrierFiles.leftRecord_length_le_cap`
+bounds the recording at `5 * 2 ^ 62` because the carrier files on **served requests** rather than
+on a cache coincidence — one entry per request by construction, with no seed secrecy anywhere.
+Its docstring carries the sentence that makes it work: *the notice widens the served set without
+widening the thing that is counted*, which is why one-entry-per-request and filed-even-when-cached
+hold at once. A repair that widened both would have bought the second at the price of the first.
+
+**How the false framing survived a search for a supplier.** I reported *"nothing in the tree
+discharges it at any run"* having grepped for `hleftBound` and `leftLength ≤`. The supplier is
+named `leftRecord_length_le_cap` and matches neither pattern — the same failure as counting a
+pattern that cannot match, one level up: **a search that comes back empty establishes "I did not
+find it", and only "it is not there" licenses building on the absence.** The two were stated as
+one in the same message that announced the plan, so the condition I had set for myself — look
+for prepared scaffolding first — fired and then was overridden by my own summary of it.
+
+The same thing nearly happened twice more in one hour: `CarrierCover.mem_support_dropCount_phase`
+is exactly the adapter I was about to write, and `CarriedWitness.mem_served_of_mem_leftRecord` is
+exactly the `hserved` hypothesis. Both were found only by searching for what the *consumer* needs
+rather than for the name I expected the supplier to have.
+
+**What this file now contributes** is the last map and nothing else: `leftRecord_le_of_carrierTail`
+and `rightRecord_le_of_carrierTail` carry a recording bound stated at `CarrierTail.carrierTail` —
+which is the form the rest of the tree speaks in — to the split tail, by `map_splitCarrierTail`
+and `Set.mem_image_of_mem`. Three lines each, and they are what `answerBound_splitTail`'s two
+record hypotheses want.
+
+**Still not found, stated as not found:** a nodup fact for the *left* recording at the carrier
+(the right-hand analogue, `CarrierTailRecordings.recordFreshNodup_carrierTail`, exists), and the
+assembly of `leftRecord_length_le_cap` into a cap at `carrierTail` itself. The ingredients for
+that assembly are all present; whether someone is already holding them together is not something
+a grep can answer.
