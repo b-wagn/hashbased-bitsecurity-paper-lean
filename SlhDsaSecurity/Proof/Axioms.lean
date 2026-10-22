@@ -255,6 +255,7 @@ import SlhDsaSecurity.Proof.CarrierCap
 import SlhDsaSecurity.Proof.CarrierLeftRecord
 import SlhDsaSecurity.Proof.AnswerCarrierBound
 import SlhDsaSecurity.Proof.SharedOracleScaling
+import SlhDsaSecurity.Proof.HandlerEvent
 import SlhDsaSecurity.Proof.CarrierServedLog
 
 /--
@@ -16120,3 +16121,15 @@ info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets' depends 
 /-- info: 'SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled
+
+/-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerEvent.prob_event_zero
+
+/-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_zero_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerEvent.prob_event_zero_of_step
+
+/-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerEvent.prob_event_eq
