@@ -663,7 +663,12 @@ theorem lazyProgram_step_inr (availableAt : HandlerCarrier.State → CanonicalGr
 
 Three facts, each for a concrete reason: the handler never fails, availability only grows along
 a run so a released cell stays released, and a charge requires the cell to be unavailable, so
-none can arise once it is released. -/
+none can arise once it is released.
+
+**These are stated at `lazyProgram`, and `HandlerStall` states them at any handler.** What they
+use of this one is collected as `HandlerFacts.Facts`, and `HandlerStall` is this section and the
+two below it with `Facts` in place of the handler — the form `ServingProgram.servingProgram`
+needs. Anything new belongs there; these stay as the instance their existing readers name. -/
 
 open scoped Classical in
 /-- The handler never fails. -/
@@ -866,7 +871,10 @@ The probes a record aims at a cell are all made while that cell is unavailable, 
 stalled at the moment it becomes available aims at it exactly as often as the unstalled one.
 That is frozen-insensitivity of the count, and `StalledRun.expectation_stalled_eq` turns it
 into equality of the expectations — which is what lets the per-cell weights be summed under one
-measure rather than under one measure per cell. -/
+measure rather than under one measure per cell.
+
+**`HandlerStall` has all of this at an arbitrary handler**, by `HandlerFacts.Facts`; the four
+`*_stalled_eq` results below are `HandlerStall`'s under the same names. -/
 
 open scoped Classical in
 /-- Carrying a flag it does not touch leaves the handler failure-free. -/
@@ -1224,7 +1232,12 @@ cache, read on demand. The handler at the real availability answers only what a 
 legitimately compute. They differ at exactly the canonical inputs of the sensitive nodes, so
 flagging those compares them with no slack.
 
-The flag lives only here. Neither handler reads it, and the charge itself stays flag-free. -/
+The flag lives only here. Neither handler reads it, and the charge itself stays flag-free.
+
+**`HandlerLenient` is this section at an arbitrary pair of handlers.** What it takes beyond
+`HandlerFacts.Facts` is `HandlerFacts.Lenient` — the one fact that is about *two* handlers
+rather than one, so it could not be a field of the interface: off these queries the lenient
+handler and the strict one take the same step. -/
 
 /-- The query is at the canonical input of a node the signatures leave a child of
 unavailable. -/

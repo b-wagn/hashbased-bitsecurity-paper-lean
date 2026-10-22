@@ -122,7 +122,14 @@ theorem probEvent_honest_handler (adversary : Adversary) (prfSeed publicSeed : D
 
 /-- **The tail at a drawn table, as the honest handler's run.** The chain, end to end: the count
 the event does not read is dropped, the record is kept, the keys are handed in, the game becomes
-one computation, and the handler starts from nothing — with the signer left honest throughout. -/
+one computation, and the handler starts from nothing — with the signer left honest throughout.
+
+**The handler here is `lazyProgram`, which files nothing.** It is one step short of where the
+charge reads: the served availability is a predicate of the carrier's served set, and only a
+handler that files keeps one. `ServingTable.probEvent_tail_serving` is this carried on to
+`ServingProgram.servingProgram`, and it had to be proved there rather than transported — the
+two runs agree on values and caches, but a record entry carries the whole carrier at the moment
+of the probe, served set included, which is exactly what the charge reads. -/
 theorem probEvent_tail_honest_handler (adversary : Adversary) (prfSeed publicSeed : Digest)
     (table : Cells × Padding) (event : Outcome × QueryCache HashSpec → Prop)
     (record : List (Bytes × HandlerCarrier.State)) (count : Nat) :

@@ -104,7 +104,11 @@ def outcomeOf (result : ((Forgery × Multiplicative Tally) × (Bool × Tally)) �
     (Multiplicative.toAdd result.1.1.2).2 + result.1.2.2.2)
 
 /-- **The game is that computation under that handler.** An equality of computations, so the
-outcome and the record come out as the same values they always did. -/
+outcome and the record come out as the same values they always did.
+
+`HonestLinked.recordedAfterSeedsWith_eq` is this proved once for **every** signer, which costs
+nothing because `RecordedPhase.run_phase_counted` and `run_unchargedPhase_lift` are already
+stated at an arbitrary one and the nesting never looked at which signer it was nesting. -/
 theorem recordedAfterSeedsAt_eq (adversary : Adversary) (keys : SecretKey × PublicKey)
     (warm : QueryCache HashSpec) :
     recordedAfterSeedsAt adversary keys warm =
