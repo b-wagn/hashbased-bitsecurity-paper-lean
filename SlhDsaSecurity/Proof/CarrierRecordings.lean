@@ -73,15 +73,18 @@ theorem step_right_mem (rightKeep : Bytes → HandlerCarrier.State → Prop)
         exact (files_countedCarrierRecorder pk rightKeep).hashCached input state step hstep
 
 open scoped Classical in
-/-- **The target recording after a step, as a list.** The shape reading of the step, which an
-invariant about multiplicity needs and membership cannot give. -/
+/-- **The target recording after a step, as a list**, with the appended entry's freshness and
+the test it passed. The shape reading of the step, which an invariant about multiplicity needs
+and membership cannot give — and the test besides, because the witness lemma built on this one
+has to say what the entry was filed for. -/
 theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
     (queried : OracleWorld.Domain) (state : CountedState)
     (step : OracleWorld.Range queried × CountedState)
     (hstep : step ∈ support (((countedCarrierRecorder pk rightKeep) queried).run state)) :
     step.2.2.1.2 = state.2.1.2 ∨
       ∃ pair : Bytes × HashOutput, step.2.2.1.2 = state.2.1.2 ++ [pair] ∧
-        state.1.cache pair.1 = none := by
+        state.1.cache pair.1 = none ∧
+          rightKeep pair.1 (servingNotice pk state.1 pair.1) := by
   classical
   obtain ⟨inner, hinner, hvalue, -, hcarried⟩ := withCount_step _ queried state step hstep
   rcases queried with coin | input
@@ -97,12 +100,70 @@ theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
     rw [hcarried, @recorderOf_step_record HandlerCarrier.State (servingView pk)
       (disclosingKeep pk) rightKeep input _ inner hinr]
     rcases @appendedOf_right_shape HandlerCarrier.State (servingView pk) (disclosingKeep pk)
-      rightKeep input _ inner.1 with hsame | ⟨hshape, hfresh, -⟩
+      rightKeep input _ inner.1 with hsame | ⟨hshape, hfresh, hright⟩
     · exact Or.inl hsame
-    · refine Or.inr ⟨(input, inner.1), hshape, ?_⟩
+    · refine Or.inr ⟨(input, inner.1), hshape, ?_, hright⟩
       show HandlerCarrier.cacheOf state.1 input = none
       rw [← cacheOf_servingNotice pk state.1 input]
       exact hfresh
+
+/-! ## And the state each filed entry was filed at
+
+`SplitPrefix.right_record_suffix` at the carrier. An invariant says what is true of the whole
+recording; this says, of each entry, the state it was filed at — which is what a provenance
+argument needs and an invariant cannot give. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **Every entry a run files as a target comes with the carrier it was filed at**: fresh there,
+passing the right test at the state the notice had reached, and contained in the run's own
+carrier afterwards. -/
+theorem run_right_suffix (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (state : CountedState) (result : α × CountedState),
+      result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep) computation).run
+        state) →
+        ∃ suffix : DigestTape.Record, result.2.2.1.2 = state.2.1.2 ++ suffix ∧
+          ∀ entry ∈ suffix, ∃ mid : HandlerCarrier.State,
+            (∀ (probe : Bytes) (value : HashOutput),
+              state.1.cache probe = some value → mid.cache probe = some value) ∧
+            (∀ (probe : Bytes) (value : HashOutput),
+              mid.cache probe = some value → result.2.1.cache probe = some value) ∧
+              mid.cache entry.1 = none ∧
+                rightKeep entry.1 (servingNotice pk mid entry.1) := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact ⟨[], (List.append_nil _).symm, fun entry hentry => absurd hentry (by simp)⟩
+  | query_bind queried next ih =>
+    intro state result hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    obtain ⟨suffix, hsuffix, hentries⟩ := ih step.1 step.2 result hrest
+    have hstepGrow := ((files_countedCarrierRecorder pk rightKeep).stepGrows queried state step
+      hstep).1
+    rcases step_right_shape pk rightKeep queried state step hstep with
+      hsame | ⟨pair, hshape, hfresh, hright⟩
+    · refine ⟨suffix, by rw [hsuffix, hsame], fun entry hentry => ?_⟩
+      obtain ⟨mid, hstart, hlater, habsent, hkeep⟩ := hentries entry hentry
+      exact ⟨mid, fun probe value hvalue => hstart probe value (hstepGrow probe value hvalue),
+        hlater, habsent, hkeep⟩
+    · refine ⟨pair :: suffix, by rw [hsuffix, hshape, List.append_assoc]; rfl,
+        fun entry hentry => ?_⟩
+      rcases List.mem_cons.mp hentry with hself | hlater
+      · refine ⟨state.1, fun _ _ hvalue => hvalue, fun probe value hvalue => ?_, ?_, ?_⟩
+        · exact ((files_countedCarrierRecorder pk rightKeep).runPersists (next step.1) step.2
+            result hrest).1 probe value (hstepGrow probe value hvalue)
+        · rw [hself]
+          exact hfresh
+        · rw [hself]
+          exact hright
+      · obtain ⟨mid, hstart, hmidLater, habsent, hkeep⟩ := hentries entry hlater
+        exact ⟨mid, fun probe value hvalue => hstart probe value (hstepGrow probe value hvalue),
+          hmidLater, habsent, hkeep⟩
 
 /-! ## The two invariants -/
 
@@ -193,7 +254,7 @@ theorem step_recordFreshNodup (rightKeep : Bytes → HandlerCarrier.State → Pr
   classical
   refine ⟨step_recordCached pk rightKeep queried state step hstep hinv.1, ?_⟩
   rcases step_right_shape pk rightKeep queried state step hstep with
-    hsame | ⟨pair, hshape, hfresh⟩
+    hsame | ⟨pair, hshape, hfresh, -⟩
   · rw [hsame]
     exact hinv.2
   · rw [hshape, List.map_append]

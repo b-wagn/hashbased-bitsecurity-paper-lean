@@ -11789,6 +11789,12 @@ info: 'SlhDsaSecurity.CarrierRecordings.step_right_shape' depends on axioms: [pr
 #print axioms SlhDsaSecurity.CarrierRecordings.step_right_shape
 
 /--
+info: 'SlhDsaSecurity.CarrierRecordings.run_right_suffix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.run_right_suffix
+
+/--
 info: 'SlhDsaSecurity.CarrierRecordings.step_recordFreshNodup' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -12295,6 +12301,12 @@ info: 'SlhDsaSecurity.SignerRightRecord.run_signInternal' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SignerRightRecord.run_signInternal
+
+/--
+info: 'SlhDsaSecurity.SignerRightRecord.run_signInternal_at' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRightRecord.run_signInternal_at
 
 /--
 info: 'SlhDsaSecurity.SignerRightRecord.signInternal_right_record' depends on axioms: [propext, Classical.choice, Quot.sound]
