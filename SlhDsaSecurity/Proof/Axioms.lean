@@ -248,6 +248,7 @@ import SlhDsaSecurity.Proof.CarrierCover
 import SlhDsaSecurity.Proof.CarrierJoin
 import SlhDsaSecurity.Proof.RecordPrfCharge
 import SlhDsaSecurity.Proof.RecordColumn
+import SlhDsaSecurity.Proof.TargetColumn
 import SlhDsaSecurity.Proof.CarrierSplit
 import SlhDsaSecurity.Proof.RecordSlot
 import SlhDsaSecurity.Proof.CarrierCap
@@ -15825,3 +15826,23 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail' depends on axiom
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail
+
+/-- info: 'SlhDsaSecurity.TargetColumn.hordering_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.hordering_fusedTail
+
+/-- info: 'SlhDsaSecurity.TargetColumn.sharedChargedLate_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.sharedChargedLate_fusedTail
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves_proved' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves_proved
+
+/-- info: 'SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves
