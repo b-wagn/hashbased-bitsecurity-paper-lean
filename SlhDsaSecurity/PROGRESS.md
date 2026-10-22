@@ -1902,15 +1902,47 @@ record at all:
 * the ordering defect — the message-class part, which is where the *right* recording lives:
   the signer queries its `PRF_msg` input before its digest, so a signer's digest is disclosing
   when made and is recorded on the left, and the right recording holds only the adversary's;
-* the signer's coincidence — one per **request**, not one per query.
+* the signer's coincidence — **two per served request**, not one, and not one per query.
 
-So the shared side costs at most `work + 259 + req + 1 ≤ (q - 2 ^ subtreeHeight) + 259`, which
-is its obligation on the nose.
+So the shared side costs at most `work + 259 + 2 · served`, and since a served request costs at
+least two counted hashes (`AdversaryQueries.work_add_keygen_add_served_le_total`), that is
+`≤ (q - 2 ^ subtreeHeight) + 259`, which is its obligation on the nose.
+
+**Two corrections to the line above, both found by trying to prove it.**
+
+*It is two per served request, not one.* A served request names **two** inputs of the `PRF_msg`
+class at the real seed, not one: its randomiser's input, and its digest's — because a message
+input *is* a `PRF_msg` input at its own randomiser read as the seed. The second is of the class
+exactly when the coincidence has already fired at that request, so it is only ever spent on a
+request that has already lost; but it cannot be dropped, because the growth bound would then be
+false, and a false growth bound is worse than a rate twice as large. The `2` is what makes the
+fit exact rather than slack: `work + 2 · served + 2 ^ subtreeHeight ≤ q` is the two-hashes-per-
+request fact, and the budget has no room for a third unit per request.
+
+*The forgery's `+ 1` is not a separate term.* The verifier's own queries are charged to
+`counts .verification`, hence to `work`, and the recorded presentation records them, so the
+forgery's digest input is already inside the record's `PRF_msg` part. Counting it again is what
+pushed the sum one unit over `q - 253`. Taking the record from the presentation that records the
+verifier removes the term and the four add to the obligation exactly.
+
+**And a third thing the line cannot say.** The signer's coincidence is attributable to a
+*query*, not to a request, at a fixed walk: an adversary with `SK.prf` hardcoded may query
+`randomizerInput SK.prf PK.seed m` for `N` framings of its own, keep the one whose answer
+truncates to the seed, and make a single signing request on that message — the event fires at
+about `N / 2 ^ 128` with one request logged. What rescues the per-request shape is not the
+counting but the **partition**: those `N` queries are themselves of the class and recorded, so
+they fire the randomiser defect's own event, which is charged on the record. On the complement,
+where no recorded input is of the class, the only in-class entries left are the signer's own,
+and `2 · served` is exact. So the two terms do not merely happen to add — the branch that makes
+one of them small is the branch the other one pays for.
 
 **What this forbids.** No charge on the shared side may be stated against `q` or against the
 whole record. Three of them currently are, or were: the randomiser defect against the record's
 whole cardinality, the signer's coincidence against `q`, and the ordering defect against every
-message-class query rather than the recorded ones. Each is true and each is a factor of two or
+message-class query rather than the recorded ones. A fourth form is forbidden too, and it is the
+one that looks sharpest: no charge on the shared side may be stated against a count that is not
+bounded by the budget — `signingLimit` alone would make the signer's coincidence a constant
+`2 ^ -64`, which is far larger than `q / 2 ^ 127` at small `q`. Each is true and each is a factor of two or
 three too loose to add. The sharp form is the one above, and it is the one the statements have
 to carry.
 ## The coverage charge in expectation: what it needs, and what it does not
