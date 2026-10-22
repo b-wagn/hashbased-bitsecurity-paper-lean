@@ -5210,3 +5210,28 @@ with margin to spare, and `Target.allowance` at 259 is untouched for its existin
 What the line does **not** supply is the column's bound in the real order: the count bound is
 proved with the seed drawn after the record, and in the real order it is false, with an explicit
 adversary. So the ledger side is done and the hop carries the column entire.
+## The 126 top, and why the restricted 127 does not survive its own refutation
+
+`Target.target_of_obligations_doubled` is `HasTotalSecurityBits .strong 126`, from **the same
+five obligations** as the 127 top with one numeral changed: `hshared` at
+`(2 * (q - 2 ^ subtreeHeight) + 259) / 2 ^ 128` instead of `(q - 2 ^ subtreeHeight + 259)`.
+`MainTheorem.totalSecurityBits_of_bound_at` is the bit count made a parameter, since nothing in
+that proof reads the number. Which line a top stands on is therefore a question about `hshared`
+alone, and both tops are stated so neither has to be rebuilt when the other's hypothesis lands.
+
+**The cap is absolute, and that is the rule to carry.** The question for any new column is never
+its size relative to `q`; it is whether `claims + defectUnits ≤ 2 ^ subtreeHeight = 512`. A
+column justified by beating `q / 2 ^ 127` "for small `q`" is a threshold in the wrong direction —
+it would make the column *admissible* at large `q`, which the line never allows.
+
+**And the restricted 127 does not survive.** `TargetColumn.seedEvent_empty_of_prfClass_charge`
+refutes charging the seed clause at `expected (card recordPrfClass)`; its hypothesis is that
+charge itself, with **no bound on the expectation's size**. The `q ≈ 2 ^ 68` route bounded the
+same expectation, by `q ^ 2 / 2 ^ 128` instead of by one — so the refutation applies to it
+verbatim, and `q₀` is not "127 up to `2 ^ 68`" but nothing at all. The threshold was a property
+of a column that cannot be charged at any size.
+
+That is worth stating as a shape: **a refutation of a charge applies to every bound on the
+charged quantity**, so a route that differs from a refuted one only in how tightly it bounds the
+same expectation is refuted too. Checking that takes reading the refutation's hypothesis rather
+than its headline.

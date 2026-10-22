@@ -16380,3 +16380,37 @@ info: 'SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge' depends o
 /-- info: 'SlhDsaSecurity.TargetColumn.filed_nowhere_at_inflight_randomizer' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.filed_nowhere_at_inflight_randomizer
+
+/--
+info: 'SlhDsaSecurity.PrfClassCount.expected_card_multiset_filter_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PrfClassCount.expected_card_multiset_filter_le
+
+/--
+info: 'SlhDsaSecurity.PrfClassCount.prob_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PrfClassCount.prob_prfClass_le
+
+/--
+info: 'SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le
+
+/--
+info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_bound_at' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_bound_at
+
+/--
+info: 'SlhDsaSecurity.Target.target_of_obligations_doubled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations_doubled
