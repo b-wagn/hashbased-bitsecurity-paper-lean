@@ -116,6 +116,34 @@ theorem card_add_card_le (publicSeed prfSeed : Digest) (cells : Cells)
   refine Finset.card_le_card ?_
   exact Finset.union_subset (Finset.filter_subset _ _) (Finset.filter_subset _ _)
 
+/-! ## Where the separation stops
+
+The gate's class is disjoint from the canonical one because the two formats open with different
+seeds. It is **not** disjoint from the message class, and the reason is the shared oracle: a
+message input *is* a `PRF_msg` input, at its own randomiser read as the seed and the public root
+absorbed into the message. FIPS 205 separates `PRF_msg` from `H_msg` as functions; this model
+idealises both as one oracle on byte strings, and only the first block distinguishes them.
+
+So the signer's own digest query is a `PRF_msg` input at the real seed exactly when the
+randomiser it derived for that message is the seed — an answer hitting a secret, which the
+signer's queries can do once per request. -/
+
+/-- **A message input is a `PRF_msg` input.** -/
+theorem messageInput_eq_randomizerInput (randomizer : Digest) (pk : PublicKey)
+    (message : Bytes) :
+    Hashing.messageInput randomizer pk message =
+      Hashing.randomizerInput randomizer pk.seed (bytesBE n pk.root ++ message) := by
+  simp only [Hashing.messageInput, Hashing.randomizerInput, List.append_assoc]
+
+/-- **And it is one at a given seed exactly when its randomiser is that seed.** -/
+theorem messageInput_eq_randomizerInput_iff (randomizer prfSeed seed : Digest) (pk : PublicKey)
+    (message payload : Bytes) :
+    Hashing.messageInput randomizer pk message =
+        Hashing.randomizerInput prfSeed seed payload →
+      randomizer = prfSeed := by
+  rw [messageInput_eq_randomizerInput]
+  exact randomizerInput_prf_inj
+
 /-- **The coincidence the disjointness excludes costs one unit.** -/
 theorem prob_prf_eq_publicSeed (publicSeed : Digest) :
     Pr[fun prfSeed : Digest => prfSeed = publicSeed | ($ᵗ Digest : ProbComp Digest)] =
