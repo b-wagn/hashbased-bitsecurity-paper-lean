@@ -4524,3 +4524,24 @@ is not done and needs three things, none of which is a three-stage argument:
    `¬ForgerySeedRandomised`) and each witness into the disclosing one, then `RecordCovers`;
 3. the transfer from `carrierTail` to `AnswerCarrier.answerCarrierRun`, for which
    `CarrierTailRecordings.recordClass_answerCarrierRun` is the pattern.
+## The budget at the split tail, and what is left of the answer half
+
+`count_le_of_budget_splitTail` bounds the split tail's own work count by `q`, and
+`rightRecord_le_of_budget_splitTail` follows: the right recording is inside the inside slot, the
+two slots are the work count, the work count is inside the budget. Both are transports, not
+arguments — `SplitTail.map_splitCarrierTail`, `CarrierTail.forgetFused_carrierTail` and
+`WarmedCharges.count_le_of_budget_tail`, three maps that already existed, and the count survives
+all three because none of them touches it.
+
+**What that leaves at `answerBound_splitTail`** is `hsplit`, `hleftBound` and `hcap`. `hsplit`
+is owed only its `hjoin`. `hleftBound` — the *disclosing* recording's length against
+`5 * 2 ^ 62` — is carried as a hypothesis the whole way up through `AnswerCoverage` and is owed
+at every run in the chain, not only here; it is the one remaining input to the answer half that
+nothing in the tree supplies, and naming it as chain-wide rather than tail-local is the point of
+this entry.
+
+**A reading rule, from the duplicated tail.** `SplitCounted` contained `sumSlots_startServingOn`,
+`sumSlots_stopServingOn` and the `_conj` variant of the fused-phase transport — scaffolding
+written for a split tail and useful for nothing else. The right inference was *someone is
+building the tail*; the inference drawn was *the tail is unbuilt*. **Prepared scaffolding is
+evidence of a builder**, and it is cheap to check before building the thing it was prepared for.
