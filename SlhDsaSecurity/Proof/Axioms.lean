@@ -4916,3 +4916,11 @@ info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depen
 /-- info: 'SlhDsaSecurity.RedrawCell.prob_game_sensitive_honest_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.prob_game_sensitive_honest_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.sensitive_iff_off_or_at_seed' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.sensitive_iff_off_or_at_seed
+
+/-- info: 'SlhDsaSecurity.RedrawCell.sensitiveOffSeed_iff_exists' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.sensitiveOffSeed_iff_exists

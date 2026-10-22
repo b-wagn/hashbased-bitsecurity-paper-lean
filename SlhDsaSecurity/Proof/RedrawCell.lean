@@ -232,8 +232,13 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (hindex : CanonicalGraph.Node.secretSeed ≠ index)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
-    (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) :
+    (computation : Cells × Padding → OracleComp OracleWorld α)
+    (hseed : ∀ left right : Cells × Padding,
+      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+        computation left = computation right)
+    (state : HandlerState × Bool) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
         ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
           (fun cache node => ¬ availableAt cache node) index pair.2 entry |
@@ -241,14 +246,14 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-          computation).run state
+          (computation (cells, pad))).run state
         pure (result, cells index))] ≤
       (∑' z : α × (HandlerState × Bool),
         Pr[= z | (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-            computation).run state)] *
+            (computation (cells, pad))).run state)] *
           ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
             Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
@@ -260,7 +265,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-        computation).run state
+        (computation (cells, pad))).run state
       pure (result, cells index))] =
       Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
           ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
@@ -270,7 +275,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (StalledRun.stalled
             (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-            (fun inner => availableAt inner.1 index) stall) computation).run state
+            (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
           pure (result, cells index))] := by
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun cells => congrArg _ ?_
@@ -278,27 +283,29 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     refine tsum_congr fun pad => congrArg _ ?_
     rw [bind_pure_comp, probEvent_map, bind_pure_comp, probEvent_map]
     exact prob_charged_stalled_eq publicSeed availableAt hmono stakes index (cells, pad) stall
-      computation state
+      (computation (cells, pad)) state
   -- The stalled run does not read that cell, so it may be drawn after.
   have hredraw : 𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled
           (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) computation).run state
+          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
         pure (result, cells index)] =
       𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled
           (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) computation).run state
+          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)] := by
     refine evalDist_redraw_coordinate index ($ᵗ Padding : ProbComp Padding) _ ?_
     intro cells other pad hagree
+    rw [hseed (other, pad) (cells, pad) (hagree CanonicalGraph.Node.secretSeed hindex).symm]
     exact evalDist_stalled_lazyProgram_congr publicSeed availableAt hclosed index
-      (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall computation state
+      (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
+      (computation (cells, pad)) state
   rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
   -- The drawn cell costs the probes aiming at it, and stalling leaves their number alone.
   have hassoc : (do
@@ -306,7 +313,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled
           (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) computation).run state
+          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)) =
       (do
@@ -315,7 +322,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (StalledRun.stalled
             (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-            (fun inner => availableAt inner.1 index) stall) computation).run state)
+            (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)) := by
     simp only [bind_assoc]
@@ -327,7 +334,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (StalledRun.stalled
         (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-        (fun inner => availableAt inner.1 index) stall) computation).run state)
+        (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
     (fun z => z.2.1.2.1)) ?_
   refine ENNReal.div_le_div_right (le_of_eq ?_) _
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
@@ -335,8 +342,66 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
   refine tsum_congr fun pad => congrArg _ ?_
   exact (expected_aiming_stalled_eq publicSeed availableAt hmono stakes index (cells, pad)
-    stall computation state).symm
+    stall (computation (cells, pad)) state).symm
 
+
+/-! ## The two avenues, kept apart
+
+A sensitive query stakes one cell, and which cell it is decides which charge pays for it. The
+secret seed is its own avenue: a node staked on it is a `wotsPrf` or a `forsPrf`, its canonical
+input is `TrackedQueries.prfInput`, and `TrackedQueries.prob_meets_real_le` charges that event
+on its own. It has to be its own avenue, because the computation carries the secret seed as
+*data* — it is the seed key generation is run from — and that seed is a cell of the table, so no
+run is blind to it and the redrawing below cannot reach it.
+
+Every other cell is reached, and `SensitiveOffSeed` is exactly that half of the event. The two
+are complementary, which is what lets the counts be added: a query's address names its node
+before any cell is read, so a probe falls in one avenue or the other and never both. -/
+
+/-- A sensitive query whose staked cell is the secret seed — the seed-guessing avenue, charged
+by `TrackedQueries.prob_meets_real_le` and not here. -/
+def SensitiveAtSeed (stakes : Stakes Target CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : QueryCache HashSpec) (candidate : Bytes) : Prop :=
+  ∃ node : Target, stakes.stake node = CanonicalGraph.Node.secretSeed ∧
+    unavailable cache (stakes.stake node) ∧
+    stakes.inputOf node (cells (stakes.stake node)) = candidate
+
+/-- A sensitive query whose staked cell is any other — the avenue charged here. -/
+def SensitiveOffSeed (stakes : Stakes Target CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : QueryCache HashSpec) (candidate : Bytes) : Prop :=
+  ∃ node : Target, stakes.stake node ≠ CanonicalGraph.Node.secretSeed ∧
+    unavailable cache (stakes.stake node) ∧
+    stakes.inputOf node (cells (stakes.stake node)) = candidate
+
+/-- **The two avenues cover the event between them.** -/
+theorem sensitive_iff_off_or_at_seed (stakes : Stakes Target CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : QueryCache HashSpec) (candidate : Bytes) :
+    Sensitive stakes unavailable cells cache candidate ↔
+      SensitiveOffSeed stakes unavailable cells cache candidate ∨
+        SensitiveAtSeed stakes unavailable cells cache candidate := by
+  constructor
+  · rintro ⟨node, hunavailable, hinput⟩
+    by_cases hseed : stakes.stake node = CanonicalGraph.Node.secretSeed
+    · exact Or.inr ⟨node, hseed, hunavailable, hinput⟩
+    · exact Or.inl ⟨node, hseed, hunavailable, hinput⟩
+  · rintro (⟨node, -, hunavailable, hinput⟩ | ⟨node, -, hunavailable, hinput⟩) <;>
+      exact ⟨node, hunavailable, hinput⟩
+
+/-- **Off the seed, the staked cell is one of the cells the sum below runs over.** -/
+theorem sensitiveOffSeed_iff_exists (stakes : Stakes Target CanonicalGraph.Node)
+    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : QueryCache HashSpec) (candidate : Bytes) :
+    SensitiveOffSeed stakes unavailable cells cache candidate ↔
+      ∃ index, index ≠ CanonicalGraph.Node.secretSeed ∧
+        SensitiveAt stakes unavailable cells cache candidate index := by
+  constructor
+  · rintro ⟨node, hne, hunavailable, hinput⟩
+    exact ⟨stakes.stake node, hne, node, rfl, hunavailable, hinput⟩
+  · rintro ⟨index, hne, node, hstake, hunavailable, hinput⟩
+    exact ⟨node, hstake ▸ hne, hstake ▸ hunavailable, hstake ▸ hinput⟩
 
 /-! ## The input half's charge
 
@@ -360,70 +425,85 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
-    (computation : OracleComp OracleWorld α) (state : HandlerState × Bool) (limit : Nat)
+    (computation : Cells × Padding → OracleComp OracleWorld α)
+    (hseed : ∀ left right : Cells × Padding,
+      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+        computation left = computation right)
+    (state : HandlerState × Bool) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-          computation).run state), z.2.1.2.1.length ≤ limit) :
+          (computation (cells, pad))).run state), z.2.1.2.1.length ≤ limit) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
-        ∃ entry ∈ pair.1.2.1.2.1, Sensitive stakes
+        ∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed stakes
           (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-          computation).run state
+          (computation (cells, pad))).run state
         pure (result, cells))] ≤
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   refine le_trans (probEvent_mono
     (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
-      ∃ index ∈ (Finset.univ : Finset CanonicalGraph.Node), ∃ entry ∈ pair.1.2.1.2.1,
-        ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
-          (pair.2 index) entry) ?_) ?_
+      ∃ index ∈ (Finset.univ : Finset CanonicalGraph.Node),
+        index ≠ CanonicalGraph.Node.secretSeed ∧ ∃ entry ∈ pair.1.2.1.2.1,
+          ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
+            (pair.2 index) entry) ?_) ?_
   · rintro pair - ⟨entry, hentry, hsensitive⟩
-    obtain ⟨index, hcharged⟩ :=
-      (sensitive_iff_exists stakes (fun cache node => ¬ availableAt cache node) pair.2
+    obtain ⟨index, hne, hcharged⟩ :=
+      (sensitiveOffSeed_iff_exists stakes (fun cache node => ¬ availableAt cache node) pair.2
         entry.2 entry.1).mp hsensitive
-    refine ⟨index, ?_, entry, hentry, hcharged⟩
+    refine ⟨index, ?_, hne, entry, hentry, hcharged⟩
     simp
   refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
   -- Each cell's charge reads the result and that cell alone.
   have hindex : ∀ index : CanonicalGraph.Node,
       Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
-          ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
-            (fun cache node => ¬ availableAt cache node) index (pair.2 index) entry |
+          index ≠ CanonicalGraph.Node.secretSeed ∧ ∃ entry ∈ pair.1.2.1.2.1,
+            ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
+              (pair.2 index) entry |
         (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-            computation).run state
+            (computation (cells, pad))).run state
           pure (result, cells))] ≤
         (∑' z : α × (HandlerState × Bool),
           Pr[= z | (do
             let cells ← ($ᵗ Cells : ProbComp Cells)
             let pad ← ($ᵗ Padding : ProbComp Padding)
             (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-              computation).run state)] *
+              (computation (cells, pad))).run state)] *
             ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
               Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
     intro index
+    by_cases hi : CanonicalGraph.Node.secretSeed = index
+    · refine le_trans (probEvent_mono (q := fun _ => False)
+        (fun pair _ hpair => hpair.1 hi.symm)) ?_
+      simp
+    refine le_trans (probEvent_mono
+      (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
+        ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
+          (fun cache node => ¬ availableAt cache node) index (pair.2 index) entry)
+      (fun pair _ hpair => hpair.2)) ?_
     refine le_trans (le_of_eq ?_)
-      (prob_charged_index_le publicSeed availableAt hclosed hmono stakes index stall
-        computation state)
+      (prob_charged_index_le publicSeed availableAt hclosed hmono stakes index hi stall
+        computation hseed state)
     have hmapped : (fun pair : (α × (HandlerState × Bool)) × Cells =>
           (pair.1, pair.2 index)) <$> (do
             let cells ← ($ᵗ Cells : ProbComp Cells)
             let pad ← ($ᵗ Padding : ProbComp Padding)
             let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-              computation).run state
+              (computation (cells, pad))).run state
             pure (result, cells)) =
         (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-            computation).run state
+            (computation (cells, pad))).run state
           pure (result, cells index)) := by
       simp only [map_bind, bind_pure_comp, Functor.map_map]
     rw [← hmapped, probEvent_map]
@@ -434,7 +514,7 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (withFlag (lazyProgram publicSeed availableAt (cells, pad)))
-        computation).run state)
+        (computation (cells, pad))).run state)
     (fun z => z.2.1.2.1) limit hlimit
 
 /-! ## The game's run is this one with the record forgotten
@@ -853,11 +933,17 @@ theorem probEvent_flag_eq_record {α : Type} (publicSeed : Digest)
   exact ChargedProbe.sensitiveFlagged_flag_iff_record publicSeed availableAt availableAt table
     computation (inner, false) (by simp [hinner]) z hz
 
+set_option maxHeartbeats 4000000 in
+set_option maxRecDepth 1000000 in
 open scoped Classical in
-/-- **The game's presentation makes a sensitive query at most `limit / 2 ^ 128` of the time.**
-The record and its limit are parameters; the availability is the signatures' own. -/
+/-- **The game's presentation makes a sensitive query off the seed at most `limit / 2 ^ 128` of
+the time.** What is left standing is the seed-guessing avenue alone, which
+`TrackedQueries.prob_meets_real_le` charges on its own at the same rate. The two are written
+side by side here so the counts can be seen to add: a query's address names its node before any
+cell is read, so a probe falls in one avenue or the other and the record pays for it once. -/
 theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
-    (revealed : WotsKey → Fin chains → Nat) (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
+    (revealed : WotsKey → Fin chains → Nat)
+    (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
     (signedAt : QueryCache HashSpec → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
       (∀ child ∈ parent.children,
@@ -867,45 +953,68 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
       ∀ node, CanonicalGraph.Available revealed (signedAt left) node →
         CanonicalGraph.Available revealed (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
-    (computation : OracleComp OracleWorld α) (inner : HandlerState) (hinner : inner.2.1 = [])
-    (limit : Nat)
+    (computation : Cells × Padding → OracleComp OracleWorld α)
+    (hseed : ∀ left right : Cells × Padding,
+      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+        computation left = computation right)
+    (inner : HandlerState) (hinner : inner.2.1 = []) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         (simulateQ (withFlag (lazyProgram publicSeed
           (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-          (cells, pad))) computation).run (inner, false)), z.2.1.2.1.length ≤ limit) :
+          (cells, pad))) (computation (cells, pad))).run (inner, false)),
+      z.2.1.2.1.length ≤ limit) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells => pair.1.2.2 = true | (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (ChargedProbe.sensitiveFlagged publicSeed
           (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-          (fun _ _ => True) (cells, pad)) computation).run (inner, false)
+          (fun _ _ => True) (cells, pad)) (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
+            ∃ entry ∈ pair.1.2.1.2.1, SensitiveAtSeed (GraphStakes.stakes publicSeed)
+              (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+              pair.2 entry.2 entry.1 | (do
+          let cells ← ($ᵗ Cells : ProbComp Cells)
+          let pad ← ($ᵗ Padding : ProbComp Padding)
+          let result ← (simulateQ (withFlag (lazyProgram publicSeed
+            (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+            (cells, pad))) (computation (cells, pad))).run (inner, false)
+          pure (result, cells))] := by
   classical
   rw [probEvent_table_congr
     (fun table => (simulateQ (ChargedProbe.sensitiveFlagged publicSeed
       (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-      (fun _ _ => True) table) computation).run (inner, false))
+      (fun _ _ => True) table) (computation table)).run (inner, false))
     (fun table => (simulateQ (withFlag (lazyProgram publicSeed
       (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node) table))
-      computation).run (inner, false))
+      (computation table)).run (inner, false))
     _ (fun pair => ∃ entry ∈ pair.1.2.1.2.1,
       ChargedProbe.SensitiveEntry publicSeed
         (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
         pair.2 entry)
-    (fun cells pad => probEvent_flag_eq_record publicSeed _ (cells, pad) computation inner
-      hinner)]
+    (fun cells pad => probEvent_flag_eq_record publicSeed _ (cells, pad)
+      (computation (cells, pad)) inner hinner)]
   refine le_trans (probEvent_mono (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
-    ∃ entry ∈ pair.1.2.1.2.1, Sensitive (GraphStakes.stakes publicSeed)
-      (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
-      pair.2 entry.2 entry.1) ?_) ?_
+    (∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed (GraphStakes.stakes publicSeed)
+        (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+        pair.2 entry.2 entry.1) ∨
+      ∃ entry ∈ pair.1.2.1.2.1, SensitiveAtSeed (GraphStakes.stakes publicSeed)
+        (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+        pair.2 entry.2 entry.1) ?_) ?_
   · rintro pair - ⟨entry, hentry, hsensitive⟩
-    exact ⟨entry, hentry, ChargedProbe.sensitive_of_sensitiveEntry publicSeed revealed hrevealed
-      signedAt pair.2 entry hsensitive⟩
-  · exact prob_sensitive_run_le publicSeed _ hclosed hmono (GraphStakes.stakes publicSeed) stall
-      computation (inner, false) limit hlimit
+    rcases (sensitive_iff_off_or_at_seed (GraphStakes.stakes publicSeed) _ pair.2 entry.2
+      entry.1).mp (ChargedProbe.sensitive_of_sensitiveEntry publicSeed revealed hrevealed
+        signedAt pair.2 entry hsensitive) with hoff | hatseed
+    · exact Or.inl ⟨entry, hentry, hoff⟩
+    · exact Or.inr ⟨entry, hentry, hatseed⟩
+  refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ le_rfl)
+  exact prob_sensitive_run_le publicSeed
+    (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+    hclosed hmono (GraphStakes.stakes publicSeed) stall computation hseed (inner, false)
+    limit hlimit
 
 open scoped Classical in
 /-- **The charge at the honest reveal count.** The digit a signature discloses never exceeds
@@ -926,26 +1035,42 @@ theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
         CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
           (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
-    (computation : OracleComp OracleWorld α) (inner : HandlerState) (hinner : inner.2.1 = [])
-    (limit : Nat)
+    (computation : Cells × Padding → OracleComp OracleWorld α)
+    (hseed : ∀ left right : Cells × Padding,
+      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+        computation left = computation right)
+    (inner : HandlerState) (hinner : inner.2.1 = []) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         (simulateQ (withFlag (lazyProgram publicSeed
           (fun cache node => CanonicalGraph.Available
             (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
-          (cells, pad))) computation).run (inner, false)), z.2.1.2.1.length ≤ limit) :
+          (cells, pad))) (computation (cells, pad))).run (inner, false)),
+      z.2.1.2.1.length ≤ limit) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells => pair.1.2.2 = true | (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (ChargedProbe.sensitiveFlagged publicSeed
           (fun cache node => CanonicalGraph.Available
             (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
-          (fun _ _ => True) (cells, pad)) computation).run (inner, false)
+          (fun _ _ => True) (cells, pad)) (computation (cells, pad))).run (inner, false)
         pure (result, cells))] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
+            ∃ entry ∈ pair.1.2.1.2.1, SensitiveAtSeed (GraphStakes.stakes publicSeed)
+              (fun cache node => ¬ CanonicalGraph.Available
+                (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+              pair.2 entry.2 entry.1 | (do
+          let cells ← ($ᵗ Cells : ProbComp Cells)
+          let pad ← ($ᵗ Padding : ProbComp Padding)
+          let result ← (simulateQ (withFlag (lazyProgram publicSeed
+            (fun cache node => CanonicalGraph.Available
+              (GraphStakes.honestRevealed secretSeed publicSeed) (signedAt cache) node)
+            (cells, pad))) (computation (cells, pad))).run (inner, false)
+          pure (result, cells))] :=
   prob_game_sensitive_le publicSeed (GraphStakes.honestRevealed secretSeed publicSeed)
     (GraphStakes.honestRevealed_le secretSeed publicSeed) signedAt hclosed hmono stall
-    computation inner hinner limit hlimit
+    computation hseed inner hinner limit hlimit
 
 end SlhDsaSecurity.RedrawCell
