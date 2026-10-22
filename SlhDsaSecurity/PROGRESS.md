@@ -3911,3 +3911,36 @@ nearly withdrew it on a `grep "ServedAgree"` that was matching the module name `
 as a prefix. **A substring search for a short name inside a namespace that starts with it will
 match the namespace**, and both the false positive and the false negative were resolved the same
 way — by reading the matched lines instead of counting them.
+
+## A probe that assumes the hypothesis containing the problem proves nothing
+
+`probe_carrier_everything` elaborated: the whole target from the carrier tail, with `seedUnits := 0`
+and six named hypotheses. That was read — by me — as evidence that the carrier route retires the
+seed charge. **It was not evidence at all.** The probe takes `hsplit` as a hypothesis, and
+`hsplit` is exactly where the seed charge lives: at the carrier's class,
+`Served.NarrowTarget ↔ ¬ ForgerySeedRandomised`, so discharging `hsplit` is what costs the units
+the probe had set to zero.
+
+> A probe that assumes the hypothesis containing the problem proves nothing about the problem.
+> Before reading an elaboration as evidence, ask which of its hypotheses the question is hiding in.
+
+This belongs beside the positive-control rule, and for the same reason: both are checks that
+cannot fail. An error filter that cannot match reports zero; a probe that assumes the open thing
+reports success. Neither distinguishes the world where the answer is good from the world where
+it is bad.
+
+### And the finding it concealed, which is a quantifier rather than a design fault
+
+`Served.NarrowTarget` quantifies over **every** view at which the input is still uncached.
+`HandlerCarrier.State` is an ordinary record, so a view carrying a framing and an empty cache is
+a value like any other — and the frame-reading clause `FilesRandomiser` is satisfiable there,
+with the frame forced by `FramingLeak.randomizerInput_eq_messageInput` and
+`Hashing.randomizerInput_injective`. So the clause cannot narrow the demand.
+
+> Read at **one** state the clause works; read at **all** states it collapses.
+
+Read at the single state the signer's probe is made from, it still does its real job — keeping
+that probe off the target recording, which is what `LateProvenance.hrecord` needs. The repair is
+therefore to read the demand at the view its input was **actually answered at**, which is the
+discipline the rest of the `Served` family already keeps (`SplitWitness.lean:57-65`) and which
+`NarrowTarget` alone did not inherit when `narrow` was generalised over the state.
