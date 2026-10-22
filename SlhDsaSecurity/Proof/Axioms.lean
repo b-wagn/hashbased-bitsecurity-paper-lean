@@ -13036,3 +13036,21 @@ info: 'SlhDsaSecurity.CarrierFiles.leftRecord_length_le_cap' depends on axioms: 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierFiles.leftRecord_length_le_cap
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.noticingRecorderOf_forget_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.noticingRecorderOf_forget_step
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.run_noticingRecorderOf_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.run_noticingRecorderOf_forget
+
+/--
+info: 'SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder

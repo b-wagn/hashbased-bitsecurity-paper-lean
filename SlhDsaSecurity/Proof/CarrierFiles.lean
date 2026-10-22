@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.CarriedWitness
+import SlhDsaSecurity.Proof.ServingForget
 
 /-!
 # The recorder that notices, as a handler the agreement can read
@@ -356,5 +357,65 @@ theorem leftRecord_length_le_cap (rightKeep : Bytes → State → Prop) (sk : Se
   ServedAgreement.record_length_le_cap sk z.2.2.1 z.2.2.2.1
     (agreesWithLog_carrierRun pk rightKeep sk hpk hpublic computation accumulated rest z hz)
     z.2.2.2.2.1 hnodup hserved hlimit
+
+/-! ## What the handler forgets to
+
+`ServingForget.run_fuseServing_map` asks one thing of the handler underneath a bracketed phase:
+that it commute with the projection the brackets leave alone. For the carrier that projection is
+"take the cache", and this is the law — the recorder that notices answers exactly as the shared
+oracle does, because the notice is bound to leave the cache alone and the recordings ride along
+where the projection does not look.
+
+With it, the three equations a carrier tail owes stop being inductions: they are
+`run_fuseServing_map` at this `ForgetsAlong`, which is `ServingForget`'s whole point. -/
+
+open scoped Classical in
+/-- **One step of the recorder that notices forgets to one step of the shared oracle.** -/
+theorem noticingRecorderOf_forget_step (rightKeep : Bytes → State → Prop)
+    (queried : OracleWorld.Domain) (state : StateOf State) :
+    (fun z : OracleWorld.Range queried × StateOf State => (z.1, CacheView.cacheOf z.2.1)) <$>
+        ((@noticingRecorderOf State (servingView pk) (disclosingKeep pk) rightKeep) queried).run
+          state =
+      (KeygenUniform.rom queried).run (CacheView.cacheOf state.1) := by
+  classical
+  rcases queried with coin | input
+  · rw [@noticingRecorderOf_run_inl State (servingView pk) (disclosingKeep pk) rightKeep coin
+      state]
+    exact @recorderOf_forget_step State (servingView pk) (disclosingKeep pk) rightKeep
+      (Sum.inl coin) state
+  · rw [@noticingRecorderOf_run_inr State (servingView pk) (disclosingKeep pk) rightKeep input
+      state]
+    refine Eq.trans (@recorderOf_forget_step State (servingView pk) (disclosingKeep pk) rightKeep
+      (Sum.inr input) (@CacheView.onQuery State (servingView pk) state.1 input, state.2)) ?_
+    exact congrArg _ (cacheOf_servingNotice pk state.1 input)
+
+open scoped Classical in
+/-- **And therefore a run.** -/
+theorem run_noticingRecorderOf_forget (rightKeep : Bytes → State → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) :
+    ∀ state : StateOf State,
+      (fun z : α × StateOf State => (z.1, CacheView.cacheOf z.2.1)) <$>
+          (simulateQ (@noticingRecorderOf State (servingView pk) (disclosingKeep pk) rightKeep)
+            computation).run state =
+        (simulateQ KeygenUniform.rom computation).run (CacheView.cacheOf state.1) := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
+  | query_bind queried next ih =>
+    intro state
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind, simulateQ_bind,
+      simulateQ_spec_query, StateT.run_bind,
+      ← noticingRecorderOf_forget_step pk rightKeep queried state]
+    simp only [map_eq_bind_pure_comp, bind_assoc]
+    exact bind_congr fun step => ih step.1 step.2
+
+/-- **The law `ServingForget` asks of the handler under a bracketed phase.** -/
+theorem forgetsAlong_carrierRecorder (rightKeep : Bytes → State → Prop) :
+    ServingForget.ForgetsAlong (fun state : StateOf State => CacheView.cacheOf state.1)
+      (@noticingRecorderOf State (servingView pk) (disclosingKeep pk) rightKeep)
+      KeygenUniform.rom :=
+  fun computation state => run_noticingRecorderOf_forget pk rightKeep computation state
 
 end SlhDsaSecurity.CarrierFiles
