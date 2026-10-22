@@ -157,7 +157,6 @@ second kind. -/
 theorem sharedChargedLate_of_parts (claims seedUnits : Nat) (hclaims : 259 + seedUnits ≤ claims)
     (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       SharedAssembly.InputBullet adversary LateProbes.Ordering)
-    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary)
     (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧
           AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
@@ -172,7 +171,7 @@ theorem sharedChargedLate_of_parts (claims seedUnits : Nat) (hclaims : 259 + see
   have hforget := FusedCoverage.forgetsTo adversary
   have hprobes := LateProbes.probes_le_recordMessageClass hforget
     (FusedCoverage.isRecorderRun adversary)
-    (LateProvenance.hrecord_of_signerDigestFree adversary (hsigner adversary))
+    (LateProvenance.hrecord adversary)
   have hordering := LateProbes.prob_ordering_le (FusedCoverage.isRecorderRun adversary) hprobes
   refine le_trans (probEvent_mono (q := fun pair : LateProbes.SplitPair =>
     (GoodWalk pair.1 ∧ InputBad (SharedAssembly.splitTraceOf pair) ∧
@@ -265,7 +264,6 @@ theorem target_of_answer_and_leaves (claims seedUnits : Nat)
       FinalAssembly.lateOrSeed)
     (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       SharedAssembly.InputBullet adversary LateProbes.Ordering)
-    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary)
     (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
       Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧
           AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
@@ -275,9 +273,17 @@ theorem target_of_answer_and_leaves (claims seedUnits : Nat)
         ((seedUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     HasTotalSecurityBits .strong 127 :=
   FinalAssembly.target_of_producers claims hfits hanswer
-    (sharedChargedLate_of_parts claims seedUnits hclaims hinput hsigner hseed)
+    (sharedChargedLate_of_parts claims seedUnits hclaims hinput hseed)
 
-/-! ## `hsigner` was false, is now guarded, and is open
+/-! ## `hsigner` is retired
+
+`LateProvenance.hrecord` proves what this file used to assume: every target-recorded input is a
+query the record holds. Nothing above it takes a provenance hypothesis any more, and
+`SignerDigestFree` is dead weight rather than load-bearing. The section below is kept because it
+is the record of why the hypothesis went, and because the two lemmas in it are the refutation of
+a statement that was briefly committed — but nothing reads it.
+
+## `hsigner` was false, is now guarded, and was open
 
 `LateProvenance.SignerDigestFree` says no target-recorded input is a request's own digest
 input. Its docstring's justification is right — such a query is signer-randomised **when it is
