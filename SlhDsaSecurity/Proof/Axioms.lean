@@ -150,6 +150,7 @@ import SlhDsaSecurity.Proof.VerifierNaturality
 import SlhDsaSecurity.Proof.AnswerSide
 import SlhDsaSecurity.Proof.SigningFaithful
 import SlhDsaSecurity.Proof.BlockDisclosures
+import SlhDsaSecurity.Proof.SplitPrefix
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -6974,3 +6975,31 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.left_prefix_appended' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.left_prefix_appended
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_prefix_appended' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_prefix_appended
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.record_prefix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.record_prefix
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.record_prefix_padded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.record_prefix_padded
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.prob_and_bind_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.prob_and_bind_le
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.eq_head_of_prefix' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.eq_head_of_prefix
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.prob_prefix_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.prob_prefix_le
