@@ -4,6 +4,7 @@ import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.ServedDisclosure
 import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
@@ -8325,3 +8326,23 @@ info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.mem_servedAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.mem_servedAt
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.servedAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.servedAt_mono
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.available_mono_signed' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.available_mono_signed
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.available_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.available_mono
+
+/-- info: 'SlhDsaSecurity.ServedDisclosure.closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedDisclosure.closed
