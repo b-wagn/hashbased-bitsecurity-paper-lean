@@ -2408,3 +2408,42 @@ with the plain hash cost, so its `Outcome.counts` has only `hash` and `verificat
 count, and the map that identifies them forgets the split, so no function of the plain pair
 recovers the slot. Either the join's counts are read at the split-counted presentation, or this
 half's count is `growth + 1`.
+
+## The reopening, settled: what disclosure is and what the budget then costs
+
+Three threads checked the repair independently and two of them arrived at the same correction,
+which is the strongest evidence the development has produced for any of its design choices.
+
+**The notion.** A request discloses the positions selected by the cached answer at its **digest
+input**, for a request that is logged or in flight — and only once that input is in the cache.
+
+Each clause earns its place:
+
+* *served, not cached* — the proxy's failure was that it accepted inputs **nobody served**, which
+  an adversary knowing `SK.prf` can manufacture. `served` is the state's own record of what the
+  signer served, so the fiction has nowhere to enter.
+* *in flight, not merely logged* — `Security.signingOracle` logs after `Scheme.sign` returns, so
+  under "logged" the signer reads its own FORS secrets while they are still undisclosed and the
+  stalled run reads a cell it must be blind to.
+* *once the digest input is cached* — before its digest is drawn an in-flight request has no
+  positions to contribute, and counting it anyway would make the disclosed set *move* when the
+  answer arrived. A disclosed set that moves is useless to a charge that stalls on it. The signer
+  reads no FORS secret before that point, so the conjunct is still early enough.
+* *indexed by the digest input, not the framed message* — otherwise an adversary picks its own
+  randomiser for a message the signer did sign and has its own digest's positions counted. This
+  is the same correction as in the replay branch, and it is now load-bearing in two places.
+
+Closure survives for free: the disclosed set enters availability only at the `forsPrf` leaves and
+a parent's availability is decided by its children, so **no** disclosure notion can lose it.
+
+**The recorder keeps filing on fresh draws only.** Filing a cache hit would break three things at
+once — the disclosing list's distinctness, the block factorisation, and the joint-uniformity
+induction whose exponent rests on "recorded implies freshly drawn, and one draw extends at most
+one word". The handler split therefore *relocates* the ordering defect rather than removing it.
+
+**And that is affordable, because the seed guess is gone.** The budget now reads: the answer
+side spends one unit per query, its two charges partitioning them; the shared side spends the
+record's canonical part for the input half, plus the forgery's `259` claims, plus the record's
+message-class part for the ordering defect. With `work + 2 ^ subtreeHeight ≤ q` that is
+`(q - 2 ^ subtreeHeight) + 259`, and the total is `2 q - 247`. The randomiser defect's term and
+the signer's coincidence both disappear with the proxy that created them.
