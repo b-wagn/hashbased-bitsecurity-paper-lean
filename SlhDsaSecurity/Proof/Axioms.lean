@@ -175,6 +175,7 @@ import SlhDsaSecurity.Proof.ServedDisclosure
 import SlhDsaSecurity.Proof.ServedLog
 import SlhDsaSecurity.Proof.SplitRecorder
 import SlhDsaSecurity.Proof.ServingCarrier
+import SlhDsaSecurity.Proof.AnswerJoin
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8629,3 +8630,9 @@ info: 'SlhDsaSecurity.ServingCarrier.servedAt_setFraming' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.ServingCarrier.framed_of_filesLeft' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingCarrier.framed_of_filesLeft
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerCharged_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerCharged_of_parts
