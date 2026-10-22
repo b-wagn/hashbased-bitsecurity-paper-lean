@@ -47,12 +47,30 @@ The `q` coefficient has no margin at all: the same `Nat` line is `2 * q` on the 
 cannot be added. Constants can, up to the margin, which is why `allowanceAt` takes the claims
 numeral and the defect units as parameters.
 
-**What is still open is five leaves, not two obligations.** The fused target takes an answer
-obligation and a shared one, and each decomposes further: the answer side's into `hjoinNarrow`,
-`hleftBound` and `hdisclosing`, the shared side's into the input half's bullet and the seed
-charge at `seedUnits`. Counting the signature's hypotheses understates what is unproved, which
-is the same kind of error as counting a statement's witnesses instead of an adversary's
-chances.
+**What is still open is five propositions, not two obligations, and they are not five
+independent pieces of work.** The fused target takes an answer obligation and a shared one, and
+each decomposes. The answer side's three are `Served.WitnessCover`, `hleftBound` and
+`hdisclosing` — `hjoinNarrow` is *not* among them, because
+`AnswerCoverage.targetCovered_of_forgeryDisclosedCovered_narrow` discharges it from
+`WitnessCover`, its freshness side condition coming free from `GoodWalk` through
+`AnswerSide.not_possible_generatedKey` and `CoverageTail.walk_cache_fresh`. The shared side's two
+are the input half's bullet (`InputBullet.ClaimsCharged`) and the seed charge at `seedUnits`.
+
+**Two of the answer side's three are false where they are currently stated, and that is the
+honest shape of the remaining work.** All three read disclosure at
+`SplitWitness.disclosingKeep`, which is `CacheAvailability.SignerRandomised` — a test on the
+cache. `hdisclosing` asks it to be equivalent to the signing log, and
+`ServedBridge`'s right-to-left direction is false: an adversary holding `SK.prf` makes the cache
+test true with no request behind it. `hleftBound` caps that same recording by `signingLimit`,
+and the same adversary overruns the cap. They retire not by being proved but by the recorder's
+test becoming the carrier's served one, which is also what gives `WitnessCover` outright. So the
+count is **two charges and one presentation move**, and only the two charges are probability
+bounds anybody owes.
+
+The arithmetic side conditions are not among the open set. At `claims := 510` and
+`seedUnits := 251` both `259 + seedUnits ≤ claims` and `claims + 2 ≤ 2 ^ subtreeHeight` close by
+`omega` and `decide`, and the `inside ≠ outside` the split counter takes closes by `decide`.
+Counting the signature's hypotheses misstates what is unproved in both directions at once.
 
 **What may be charged as a constant, and what may not.** An event whose witness is a single
 object of the run — the forgery, its randomiser, its claims — is not thereby a constant. What
