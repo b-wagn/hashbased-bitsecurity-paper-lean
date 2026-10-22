@@ -200,11 +200,39 @@ def honestMessage (secretSeed publicSeed : Digest) (key : WotsKey) : Digest :=
   | layer + 1 => Extraction.HypertreeChain.honestNode secretSeed publicSeed layer
       (key.tree.tree.val * 2 ^ subtreeHeight + key.leaf.val)
 
+/-- **The step that cannot be fudged.** Climbing one layer divides the subtree index and keeps
+its remainder as the leaf, and the message the climb carries up is the root of the subtree it
+has just left. The key it arrives at signs exactly that root: `honestMessage` at a key one layer
+up is `honestNode` at the subtree the division and the remainder put back together.
+
+This is the equation the induction's digit-count invariant rests on, and it is proved here
+rather than inside the induction because it is the one place where a message of the right type
+could quietly be the wrong message. -/
+theorem honestMessage_succ (secretSeed publicSeed : Digest) (layer : Fin layers)
+    (hlayer : 0 < layer.val) (tree : Nat)
+    (htree : tree / 2 ^ subtreeHeight < 2 ^ (totalHeight - subtreeHeight)) :
+    honestMessage secretSeed publicSeed
+        ⟨⟨layer, ⟨tree / 2 ^ subtreeHeight, htree⟩⟩, Hypertree.nextLeaf tree⟩ =
+      Extraction.HypertreeChain.honestNode secretSeed publicSeed (layer.val - 1) tree := by
+  obtain ⟨below, hbelow⟩ : ∃ below, layer.val = below + 1 :=
+    ⟨layer.val - 1, by omega⟩
+  show (match layer.val with
+    | 0 => _
+    | step + 1 => Extraction.HypertreeChain.honestNode secretSeed publicSeed step
+        ((tree / 2 ^ subtreeHeight) * 2 ^ subtreeHeight + (Hypertree.nextLeaf tree).val)) = _
+  rw [hbelow]
+  show Extraction.HypertreeChain.honestNode secretSeed publicSeed below
+      ((tree / 2 ^ subtreeHeight) * 2 ^ subtreeHeight + tree % 2 ^ subtreeHeight) = _
+  rw [show (tree / 2 ^ subtreeHeight) * 2 ^ subtreeHeight + tree % 2 ^ subtreeHeight = tree from by
+      rw [Nat.mul_comm]; exact Nat.div_add_mod tree (2 ^ subtreeHeight)]
+  congr 1
+
 /-- The digit that message encodes on a chain: the position the signature on this key
 discloses. -/
 def honestRevealed (secretSeed publicSeed : Digest) (key : WotsKey) (chain : Fin chains) : Nat :=
   (Checksum.encode (honestMessage secretSeed publicSeed key) chain).val
 
+omit [HasQuery HashSpec Id] in
 /-- **The chain value a signature discloses is available.** The position it opens is the digit
 the key's own message encodes, and that digit is what `revealed` records — so the cell at that
 position is one the signature has made available, whether it is the chain's start or a value
