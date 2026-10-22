@@ -90,6 +90,22 @@ theorem run_withAddCost_apply {ι : Type} {spec : OracleSpec ι} {ω : Type} [Ad
     WriterT.run_tell, bind_assoc, pure_bind, WriterT.run_monadLift, map_eq_bind_pure_comp,
     Function.comp_def, mul_one]
 
+/-- **The same fact, already applied to a state.**
+
+`run_withAddCost_apply` is stated at the handler, and a proof that has a *state* in hand cannot
+rewrite with it: `rw` matches syntax, and `(impl queried >>= pure ∘ f).run state` is not
+`(impl queried).run state >>= …` until someone says so. Naming the instance at the level it is
+used at is the repair this development has needed more often than any other. -/
+theorem run_withAddCost_run {ι : Type} {spec : OracleSpec ι} {ω σ : Type} [AddCommMonoid ω]
+    {M : Type → Type} [Monad M] [LawfulMonad M] (impl : QueryImpl spec (StateT σ M))
+    (costFn : spec.Domain → ω) (queried : spec.Domain) (state : σ) :
+    (((impl.withAddCost costFn) queried).run).run state =
+      (impl queried).run state >>= fun p =>
+        (pure ((p.1, Multiplicative.ofAdd (costFn queried)), p.2) :
+          M ((spec.Range queried × Multiplicative ω) × σ)) := by
+  rw [run_withAddCost_apply, StateT.run_map, map_eq_bind_pure_comp]
+  rfl
+
 /-- **Counting in the computation is counting in the handler.** -/
 theorem run_simulateQ_withAddCost {ι : Type} {spec : OracleSpec ι} {ω : Type} [AddCommMonoid ω]
     {m : Type → Type} [Monad m] [LawfulMonad m] (impl : QueryImpl spec m)

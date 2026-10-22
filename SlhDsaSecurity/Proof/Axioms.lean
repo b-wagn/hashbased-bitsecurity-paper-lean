@@ -14564,3 +14564,11 @@ info: 'SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun' depends on axioms: [p
 /-- info: 'SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised
+
+/-- info: 'SlhDsaSecurity.WriterState.run_withAddCost_run' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_withAddCost_run
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_toStateful_withAddCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_toStateful_withAddCost
