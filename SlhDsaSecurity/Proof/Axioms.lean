@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.FusedTape
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RoutedSplit
@@ -14580,3 +14581,33 @@ info: 'SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont' depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont
+
+/--
+info: 'SlhDsaSecurity.FusedTape.onCarrier_fst' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.onCarrier_fst
+
+/--
+info: 'SlhDsaSecurity.FusedTape.onCarrierTape_fst' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.onCarrierTape_fst
+
+/--
+info: 'SlhDsaSecurity.FusedTape.fuseServing_run_inl' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.fuseServing_run_inl
+
+/--
+info: 'SlhDsaSecurity.FusedTape.fuseServing_run_inr' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.fuseServing_run_inr
+
+/--
+info: 'SlhDsaSecurity.FusedTape.evalDist_fusedSplitTapeRun_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.evalDist_fusedSplitTapeRun_cont
