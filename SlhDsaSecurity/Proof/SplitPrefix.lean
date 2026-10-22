@@ -27,6 +27,12 @@ is a question about the cache rather than about bytes.
 Nothing here depends on what the two tests are. They are made exclusive by priority rather than
 assumed disjoint, so that one fresh answer never advances both recordings at once, which is
 what the counting needs.
+
+`leftTrials` and `rightTrials` are the lengths of the two padding blocks, and nothing here
+reads them as a budget. The padding exists so that a short recording still extends to a word of
+a fixed length; how long a recording the run actually produces is a property of the run, not a
+limit it is held to, and a charge stated against these lemmas must carry that length as the
+variable it is.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -120,6 +126,104 @@ theorem paddedFrom_bind {α β : Type} (leftKeep rightKeep : Bytes → QueryCach
         paddedFrom leftKeep rightKeep (next step.1) step.2 leftTrials rightTrials := by
   simp only [paddedFrom, simulateQ_bind, StateT.run_bind, bind_assoc]
 
+/-! ## Reading the two tests -/
+
+theorem appended_of_cached (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (input : Bytes) (state : SplitState) (answer cached : HashOutput)
+    (hcached : state.1 input = some cached) :
+    appended leftKeep rightKeep input state answer = state.2 := by
+  classical
+  rw [appended, if_neg (by rw [hcached]; simp), if_neg (by rw [hcached]; simp)]
+
+theorem appended_of_left (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (input : Bytes) (state : SplitState) (answer : HashOutput)
+    (hfresh : state.1 input = none) (hleft : leftKeep input state.1) :
+    appended leftKeep rightKeep input state answer =
+      (state.2.1 ++ [(input, answer)], state.2.2) := by
+  classical
+  rw [appended, if_pos ⟨hfresh, hleft⟩]
+
+theorem appended_of_right (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (input : Bytes) (state : SplitState) (answer : HashOutput)
+    (hfresh : state.1 input = none) (hleft : ¬ leftKeep input state.1)
+    (hright : rightKeep input state.1) :
+    appended leftKeep rightKeep input state answer =
+      (state.2.1, state.2.2 ++ [(input, answer)]) := by
+  classical
+  rw [appended, if_neg (fun hboth => hleft hboth.2), if_pos ⟨hfresh, hright⟩]
+
+theorem appended_of_neither (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (input : Bytes) (state : SplitState) (answer : HashOutput)
+    (hleft : ¬ leftKeep input state.1) (hright : ¬ rightKeep input state.1) :
+    appended leftKeep rightKeep input state answer = state.2 := by
+  classical
+  rw [appended, if_neg (fun hboth => hleft hboth.2), if_neg (fun hboth => hright hboth.2)]
+
+/-! ## The instrumentation is invisible
+
+Both recordings are write-only components of the state: neither ever influences an answer, so
+the instrumented run and the plain run of the shared oracle agree on every event that does not
+mention them. -/
+
+theorem recorder_eq_rom {α : Type} (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState)
+    (event : α × QueryCache HashSpec → Prop) :
+    Pr[fun result : α × SplitState => event (result.1, result.2.1) |
+      (simulateQ (recorder leftKeep rightKeep) computation).run state] =
+      Pr[event | (simulateQ KeygenUniform.rom computation).run state.1] := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state with
+  | pure value =>
+    simp only [simulateQ_pure, StateT.run_pure]
+    rw [probEvent_pure, probEvent_pure]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    rcases queried with coin | input
+    · rw [recorder_run_inl, DigestTape.rom_run_inl, bind_assoc, bind_assoc]
+      simp only [pure_bind]
+      rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+      exact tsum_congr fun value => by rw [ih value (state.1, state.2)]
+    · rw [recorder_run_inr, DigestTape.rom_run_inr, bind_assoc]
+      simp only [pure_bind]
+      rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+      refine tsum_congr fun step => ?_
+      rw [ih step.1 (step.2, appended leftKeep rightKeep input state step.1)]
+      rfl
+
+/-- Every recorded run is a run: dropping both recordings lands in the support of the plain run
+of the shared oracle. -/
+theorem mem_support_rom {α : Type} (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state)) :
+    (result.1, result.2.1) ∈ support ((simulateQ KeygenUniform.rom computation).run state.1) := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff, hmem]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
+    refine ⟨(step.1, step.2.1), ?_, ih step.1 step.2 result hrest⟩
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, hvalue, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [DigestTape.rom_run_inl, mem_support_bind_iff]
+      refine ⟨value, hvalue, ?_⟩
+      rw [support_pure, Set.mem_singleton_iff, hpure]
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [DigestTape.rom_run_inr]
+      have hshape : (step.1, step.2.1) = inner := by
+        rw [hpure]
+        rfl
+      rw [hshape]
+      exact hinner
+
 /-! ## Both recordings only grow -/
 
 theorem record_prefix {α : Type} (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
@@ -177,6 +281,507 @@ theorem record_prefix_padded {α : Type} (leftKeep rightKeep : Bytes → QueryCa
   rw [support_pure, Set.mem_singleton_iff] at hpure
   rw [hpure]
   exact record_prefix leftKeep rightKeep computation state inner hinner
+
+/-! ## The cache along a recorded run -/
+
+theorem recorder_cache_mono {α : Type} (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (input : Bytes) (hpresent : state.1 input ≠ none) : result.2.1 input ≠ none := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hpresent
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | queried
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact hpresent
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      cases hqueried : state.1 queried with
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hqueried, support_map] at hinner
+        obtain ⟨sampled, -, hpair⟩ := hinner
+        have hmid : inner.2 = state.1.cacheQuery queried sampled :=
+          (Prod.ext_iff.mp hpair).2.symm
+        show inner.2 input ≠ none
+        rw [hmid]
+        by_cases hsame : input = queried
+        · subst hsame
+          rw [QueryCache.cacheQuery_self]
+          simp
+        · rw [QueryCache.cacheQuery_of_ne state.1 sampled hsame]
+          exact hpresent
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hqueried, support_pure,
+          Set.mem_singleton_iff] at hinner
+        show inner.2 input ≠ none
+        rw [hinner]
+        exact hpresent
+
+theorem recorder_cache_value_persists {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (input : Bytes) (answer : HashOutput) (hentry : state.1 input = some answer) :
+    result.2.1 input = some answer := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact hentry
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | queried
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      exact hentry
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure]
+      cases hqueried : state.1 queried with
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hqueried, support_map] at hinner
+        obtain ⟨sampled, -, hpair⟩ := hinner
+        have hmid : inner.2 = state.1.cacheQuery queried sampled :=
+          (Prod.ext_iff.mp hpair).2.symm
+        show inner.2 input = some answer
+        rw [hmid]
+        have hne : input ≠ queried := by
+          intro hsame
+          rw [hsame, hqueried] at hentry
+          simp at hentry
+        rw [QueryCache.cacheQuery_of_ne state.1 sampled hne]
+        exact hentry
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hqueried, support_pure,
+          Set.mem_singleton_iff] at hinner
+        show inner.2 input = some answer
+        rw [hinner]
+        exact hentry
+
+/-! ## Every class answer the run installed was recorded, on one side or the other
+
+The two tests cover the class between them, so a fresh class answer goes into one of the two
+recordings. Which one is decided by the cache in force at the time, which is what the ordering
+between a `PRF_msg` entry and the digest query that reads it turns on. -/
+
+theorem mem_record_of_cache {α : Type} (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (inClass : Bytes → Prop)
+    (hcover : ∀ (input : Bytes) (cache : QueryCache HashSpec), inClass input →
+      leftKeep input cache ∨ rightKeep input cache)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (input : Bytes) (answer : HashOutput) (hclass : inClass input)
+    (hfresh : state.1 input = none) (hfinal : result.2.1 input = some answer) :
+    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at hfinal
+    rw [hfresh] at hfinal
+    simp at hfinal
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | queried
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      have hsame : step.2 = state := congrArg Prod.snd hpure
+      refine ih step.1 step.2 result hrest ?_ hfinal
+      rw [hsame]
+      exact hfresh
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      cases hqueried : state.1 queried with
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hqueried, support_pure,
+          Set.mem_singleton_iff] at hinner
+        have hstate : step.2 = state := by
+          rw [hpure, hinner]
+          exact Prod.ext rfl (appended_of_cached leftKeep rightKeep queried state cached cached
+            hqueried)
+        refine ih step.1 step.2 result hrest ?_ hfinal
+        rw [hstate]
+        exact hfresh
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hqueried, support_map] at hinner
+        obtain ⟨sampled, -, hpair⟩ := hinner
+        have hinnerCache : inner.2 = state.1.cacheQuery queried sampled :=
+          (Prod.ext_iff.mp hpair).2.symm
+        have hinnerAnswer : inner.1 = sampled := (Prod.ext_iff.mp hpair).1.symm
+        have hcacheStep : step.2.1 = state.1.cacheQuery queried sampled := by
+          rw [hpure, ← hinnerCache]
+        by_cases hsame : input = queried
+        · subst hsame
+          have hstepEntry : step.2.1 input = some sampled := by
+            rw [hcacheStep, QueryCache.cacheQuery_self]
+          have hpersist : result.2.1 input = some sampled :=
+            recorder_cache_value_persists leftKeep rightKeep (next step.1) step.2 result hrest
+              input sampled hstepEntry
+          have hvalue : sampled = answer := by
+            rw [hpersist] at hfinal
+            exact Option.some.inj hfinal
+          have hrecStep : step.2.2 = appended leftKeep rightKeep input state sampled := by
+            rw [hpure, ← hinnerAnswer]
+          obtain ⟨hgrowLeft, hgrowRight⟩ :=
+            record_prefix leftKeep rightKeep (next step.1) step.2 result hrest
+          by_cases hleft : leftKeep input state.1
+          · refine Or.inl (hgrowLeft.subset ?_)
+            rw [hrecStep, appended_of_left leftKeep rightKeep input state sampled hfresh hleft,
+              hvalue]
+            simp
+          · have hright : rightKeep input state.1 := by
+              rcases hcover input state.1 hclass with hcase | hcase
+              · exact absurd hcase hleft
+              · exact hcase
+            refine Or.inr (hgrowRight.subset ?_)
+            rw [hrecStep,
+              appended_of_right leftKeep rightKeep input state sampled hfresh hleft hright,
+              hvalue]
+            simp
+        · refine ih step.1 step.2 result hrest ?_ hfinal
+          rw [hcacheStep, QueryCache.cacheQuery_of_ne state.1 sampled hsame]
+          exact hfresh
+
+/-! ## Each recording is paid for by the growth of its own class
+
+The length of a recording is a property of the run, read off the run that produced it. These
+lemmas say what it is bounded by; they do not fix it. -/
+
+theorem growthOn_cacheQuery {inClass : Bytes → Prop} {initial final : QueryCache HashSpec}
+    {limit : Nat} (hgrowth : ClassCharge.GrowthAtMostOn inClass initial final limit)
+    (input : Bytes) (answer : HashOutput) :
+    ClassCharge.GrowthAtMostOn inClass (initial.cacheQuery input answer) final limit := by
+  classical
+  intro inputs hnodup hmembers
+  refine hgrowth inputs hnodup fun i hi => ?_
+  obtain ⟨hclass, hfresh, hpresent⟩ := hmembers i hi
+  refine ⟨hclass, ?_, hpresent⟩
+  by_cases hsame : i = input
+  · subst hsame
+    rw [QueryCache.cacheQuery_self] at hfresh
+    simp at hfresh
+  · rwa [QueryCache.cacheQuery_of_ne initial answer hsame] at hfresh
+
+set_option maxHeartbeats 800000 in
+/-- **The left recording is no longer than the growth of a class its test refines.** -/
+theorem left_record_length_le_growth {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (hleftClass : ∀ (input : Bytes) (cache : QueryCache HashSpec),
+      leftKeep input cache → inClass input)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (limit : Nat)
+    (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (hgrowth : ClassCharge.GrowthAtMostOn inClass state.1 result.2.1 limit) :
+    result.2.2.1.length ≤ state.2.1.length + limit := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state limit result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    simp
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      have hsame : step.2 = state := congrArg Prod.snd hpure
+      rw [← hsame] at hgrowth ⊢
+      exact ih step.1 step.2 limit result hrest hgrowth
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      cases hcached : state.1 input with
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+          Set.mem_singleton_iff] at hinner
+        have hstate : step.2 = state := by
+          rw [hpure, hinner]
+          exact Prod.ext rfl (appended_of_cached leftKeep rightKeep input state cached cached
+            hcached)
+        rw [← hstate] at hgrowth ⊢
+        exact ih step.1 step.2 limit result hrest hgrowth
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hinner
+        obtain ⟨answer, -, hpair⟩ := hinner
+        have hinnerCache : inner.2 = state.1.cacheQuery input answer :=
+          (Prod.ext_iff.mp hpair).2.symm
+        have hinnerAnswer : inner.1 = answer := (Prod.ext_iff.mp hpair).1.symm
+        have hcacheStep : step.2.1 = state.1.cacheQuery input answer := by
+          rw [hpure, ← hinnerCache]
+        have hrecStep : step.2.2 = appended leftKeep rightKeep input state answer := by
+          rw [hpure, ← hinnerAnswer]
+        by_cases hleft : leftKeep input state.1
+        · have hpresent : result.2.1 input ≠ none := by
+            refine recorder_cache_mono leftKeep rightKeep (next step.1) step.2 result hrest
+              input ?_
+            rw [hcacheStep, QueryCache.cacheQuery_self]
+            simp
+          have hpos : 1 ≤ limit :=
+            hgrowth.pos (hleftClass input state.1 hleft) hcached hpresent
+          have hnext : ClassCharge.GrowthAtMostOn inClass step.2.1 result.2.1 (limit - 1) := by
+            rw [hcacheStep]
+            exact hgrowth.cacheQuery (hleftClass input state.1 hleft) hcached hpresent
+          have hstep' := ih step.1 step.2 (limit - 1) result hrest hnext
+          rw [hrecStep, appended_of_left leftKeep rightKeep input state answer hcached hleft]
+            at hstep'
+          simp only [List.length_append, List.length_cons, List.length_nil] at hstep'
+          omega
+        · have hnext : ClassCharge.GrowthAtMostOn inClass step.2.1 result.2.1 limit := by
+            rw [hcacheStep]
+            exact growthOn_cacheQuery hgrowth input answer
+          have hstep' := ih step.1 step.2 limit result hrest hnext
+          by_cases hright : rightKeep input state.1
+          · rw [hrecStep,
+              appended_of_right leftKeep rightKeep input state answer hcached hleft hright]
+              at hstep'
+            exact hstep'
+          · rw [hrecStep, appended_of_neither leftKeep rightKeep input state answer hleft hright]
+              at hstep'
+            exact hstep'
+
+set_option maxHeartbeats 800000 in
+/-- **The right recording is no longer than the growth of a class its test refines.** -/
+theorem right_record_length_le_growth {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (hrightClass : ∀ (input : Bytes) (cache : QueryCache HashSpec),
+      rightKeep input cache → inClass input)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (limit : Nat)
+    (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (hgrowth : ClassCharge.GrowthAtMostOn inClass state.1 result.2.1 limit) :
+    result.2.2.2.length ≤ state.2.2.length + limit := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state limit result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    simp
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      have hsame : step.2 = state := congrArg Prod.snd hpure
+      rw [← hsame] at hgrowth ⊢
+      exact ih step.1 step.2 limit result hrest hgrowth
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      cases hcached : state.1 input with
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+          Set.mem_singleton_iff] at hinner
+        have hstate : step.2 = state := by
+          rw [hpure, hinner]
+          exact Prod.ext rfl (appended_of_cached leftKeep rightKeep input state cached cached
+            hcached)
+        rw [← hstate] at hgrowth ⊢
+        exact ih step.1 step.2 limit result hrest hgrowth
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hinner
+        obtain ⟨answer, -, hpair⟩ := hinner
+        have hinnerCache : inner.2 = state.1.cacheQuery input answer :=
+          (Prod.ext_iff.mp hpair).2.symm
+        have hinnerAnswer : inner.1 = answer := (Prod.ext_iff.mp hpair).1.symm
+        have hcacheStep : step.2.1 = state.1.cacheQuery input answer := by
+          rw [hpure, ← hinnerCache]
+        have hrecStep : step.2.2 = appended leftKeep rightKeep input state answer := by
+          rw [hpure, ← hinnerAnswer]
+        by_cases hleft : leftKeep input state.1
+        · have hnext : ClassCharge.GrowthAtMostOn inClass step.2.1 result.2.1 limit := by
+            rw [hcacheStep]
+            exact growthOn_cacheQuery hgrowth input answer
+          have hstep' := ih step.1 step.2 limit result hrest hnext
+          rw [hrecStep, appended_of_left leftKeep rightKeep input state answer hcached hleft]
+            at hstep'
+          exact hstep'
+        · by_cases hright : rightKeep input state.1
+          · have hpresent : result.2.1 input ≠ none := by
+              refine recorder_cache_mono leftKeep rightKeep (next step.1) step.2 result hrest
+                input ?_
+              rw [hcacheStep, QueryCache.cacheQuery_self]
+              simp
+            have hpos : 1 ≤ limit :=
+              hgrowth.pos (hrightClass input state.1 hright) hcached hpresent
+            have hnext : ClassCharge.GrowthAtMostOn inClass step.2.1 result.2.1 (limit - 1) := by
+              rw [hcacheStep]
+              exact hgrowth.cacheQuery (hrightClass input state.1 hright) hcached hpresent
+            have hstep' := ih step.1 step.2 (limit - 1) result hrest hnext
+            rw [hrecStep,
+              appended_of_right leftKeep rightKeep input state answer hcached hleft hright]
+              at hstep'
+            simp only [List.length_append, List.length_cons, List.length_nil] at hstep'
+            omega
+          · have hnext : ClassCharge.GrowthAtMostOn inClass step.2.1 result.2.1 limit := by
+              rw [hcacheStep]
+              exact growthOn_cacheQuery hgrowth input answer
+            have hstep' := ih step.1 step.2 limit result hrest hnext
+            rw [hrecStep, appended_of_neither leftKeep rightKeep input state answer hleft hright]
+              at hstep'
+            exact hstep'
+
+/-! ## What each recording holds
+
+A charge reads the two recordings as two sets of cache entries, so it needs to know what their
+entries satisfy at the end of the run. The left test is checked at the cache in force, so what
+survives to the final cache is what the test is monotone in; the right test's byte part survives
+unconditionally. -/
+
+theorem left_record_keep_final {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (hmono : ∀ (input : Bytes) (cache later : QueryCache HashSpec),
+      (∀ (i : Bytes) (a : HashOutput), cache i = some a → later i = some a) →
+        leftKeep input cache → leftKeep input later)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (hstart : ∀ entry ∈ state.2.1, leftKeep entry.1 state.1) :
+    ∀ entry ∈ result.2.2.1, leftKeep entry.1 result.2.1 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at *
+    exact hstart
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      have hsame : step.2 = state := congrArg Prod.snd hpure
+      rw [hsame]
+      exact hstart
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      cases hcached : state.1 input with
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+          Set.mem_singleton_iff] at hinner
+        have hstate : step.2 = state := by
+          rw [hpure, hinner]
+          exact Prod.ext rfl (appended_of_cached leftKeep rightKeep input state cached cached
+            hcached)
+        rw [hstate]
+        exact hstart
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hinner
+        obtain ⟨answer, -, hpair⟩ := hinner
+        have hinnerCache : inner.2 = state.1.cacheQuery input answer :=
+          (Prod.ext_iff.mp hpair).2.symm
+        have hinnerAnswer : inner.1 = answer := (Prod.ext_iff.mp hpair).1.symm
+        have hcacheStep : step.2.1 = state.1.cacheQuery input answer := by
+          rw [hpure, ← hinnerCache]
+        have hrecStep : step.2.2 = appended leftKeep rightKeep input state answer := by
+          rw [hpure, ← hinnerAnswer]
+        have hpersist : ∀ (i : Bytes) (a : HashOutput),
+            state.1 i = some a → step.2.1 i = some a := by
+          intro i a hentry
+          rw [hcacheStep]
+          have hne : i ≠ input := by
+            intro hsame
+            rw [hsame, hcached] at hentry
+            simp at hentry
+          rw [QueryCache.cacheQuery_of_ne state.1 answer hne]
+          exact hentry
+        by_cases hleft : leftKeep input state.1
+        · rw [hrecStep, appended_of_left leftKeep rightKeep input state answer hcached hleft]
+          intro entry hentry
+          rcases List.mem_append.mp hentry with hold | hnew
+          · exact hmono entry.1 state.1 step.2.1 hpersist (hstart entry hold)
+          · rw [List.mem_singleton.mp hnew]
+            exact hmono input state.1 step.2.1 hpersist hleft
+        · by_cases hright : rightKeep input state.1
+          · rw [hrecStep,
+              appended_of_right leftKeep rightKeep input state answer hcached hleft hright]
+            exact fun entry hentry => hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
+          · rw [hrecStep, appended_of_neither leftKeep rightKeep input state answer hleft hright]
+            exact fun entry hentry => hmono entry.1 state.1 step.2.1 hpersist (hstart entry hentry)
+
+theorem right_record_class {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (hrightClass : ∀ (input : Bytes) (cache : QueryCache HashSpec),
+      rightKeep input cache → inClass input)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state))
+    (hstart : ∀ entry ∈ state.2.2, inClass entry.1) :
+    ∀ entry ∈ result.2.2.2, inClass entry.1 := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem] at *
+    exact hstart
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    refine ih step.1 step.2 result hrest ?_
+    rcases queried with coin | input
+    · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      have hsame : step.2 = state := congrArg Prod.snd hpure
+      rw [hsame]
+      exact hstart
+    · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+      obtain ⟨inner, hinner, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      cases hcached : state.1 input with
+      | some cached =>
+        rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+          Set.mem_singleton_iff] at hinner
+        have hstate : step.2 = state := by
+          rw [hpure, hinner]
+          exact Prod.ext rfl (appended_of_cached leftKeep rightKeep input state cached cached
+            hcached)
+        rw [hstate]
+        exact hstart
+      | none =>
+        rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hinner
+        obtain ⟨answer, -, hpair⟩ := hinner
+        have hinnerAnswer : inner.1 = answer := (Prod.ext_iff.mp hpair).1.symm
+        have hrecStep : step.2.2 = appended leftKeep rightKeep input state answer := by
+          rw [hpure, ← hinnerAnswer]
+        by_cases hleft : leftKeep input state.1
+        · rw [hrecStep, appended_of_left leftKeep rightKeep input state answer hcached hleft]
+          exact hstart
+        · by_cases hright : rightKeep input state.1
+          · rw [hrecStep,
+              appended_of_right leftKeep rightKeep input state answer hcached hleft hright]
+            intro entry hentry
+            rcases List.mem_append.mp hentry with hold | hnew
+            · exact hstart entry hold
+            · rw [List.mem_singleton.mp hnew]
+              exact hrightClass input state.1 hright
+          · rw [hrecStep, appended_of_neither leftKeep rightKeep input state answer hleft hright]
+            exact hstart
 
 /-! ## Two independent draws, two events
 

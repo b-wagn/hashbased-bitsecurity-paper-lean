@@ -154,6 +154,7 @@ import SlhDsaSecurity.Proof.SplitPrefix
 import SlhDsaSecurity.Proof.RandomiserProvenance
 import SlhDsaSecurity.Proof.PhaseProvenance
 import SlhDsaSecurity.Proof.CacheProvenance
+import SlhDsaSecurity.Proof.SplitWitness
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7190,3 +7191,79 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
 /-- info: 'SlhDsaSecurity.RedrawCell.signLayers_congr_shared' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.signLayers_congr_shared
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_cached
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_left' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_left
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_right' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_right
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_neither' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_neither
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.recorder_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_eq_rom
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.mem_support_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.mem_support_rom
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.recorder_cache_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_cache_mono
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.recorder_cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_cache_value_persists
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.mem_record_of_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.mem_record_of_cache
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.growthOn_cacheQuery' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.growthOn_cacheQuery
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.left_record_length_le_growth' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.left_record_length_le_growth
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_record_length_le_growth' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_length_le_growth
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.left_record_keep_final' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.left_record_keep_final
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_record_class' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_class
+
+/-- info: 'SlhDsaSecurity.SplitWitness.cover_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.cover_messageInput
+
+/-- info: 'SlhDsaSecurity.SplitWitness.disclosingKeep_mono' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.disclosingKeep_mono
+
+/-- info: 'SlhDsaSecurity.SplitWitness.targetKeep_class' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.targetKeep_class
+
+/-- info: 'SlhDsaSecurity.SplitWitness.disclosingKeep_class' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.disclosingKeep_class
+
+/-- info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered
