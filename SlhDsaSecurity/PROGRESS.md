@@ -1419,3 +1419,39 @@ Worth recording as a pattern: the input half ended up needing **both** technique
 replacing the other. The static blind comparison handles the one cell that is fixed before the
 run and that the computation reads; the dynamic stalled comparison handles the cells whose
 availability follows the signing log. Each is wrong for the other's case.
+
+## `PRF_msg` and `H_msg` overlap, and the slack has to scale with signing
+
+The sharpest finding so far, and it is faithful to FIPS 205 rather than an artifact. For the
+SHAKE parameter sets,
+
+    PRF_msg(SK.prf, opt_rand, M) = SHAKE256(SK.prf ‖ opt_rand ‖ M, 8n)
+    H_msg(R, PK.seed, PK.root, M) = SHAKE256(R ‖ PK.seed ‖ PK.root ‖ M, 8m)
+
+are the same function at two output lengths, and a SHAKE output of length `8n` is a prefix of
+one of length `8m` — which is exactly how this model idealises them, `shortHash = truncate ∘
+hash`. With `opt_rand = PK.seed` the second input is an instance of the first:
+
+    messageInput R pk M = randomizerInput R pk.seed (bytesBE n pk.root ++ M)
+
+by associativity alone (`RandomizerGate.messageInput_eq_randomizerInput`). So the signer's own
+*digest* query is a `PRF_msg` input, and it can write the entry `SignerRandomised` looks for at
+a message it never served: it needs the randomiser it derived for some served `M''` to equal
+`SK.prf`, and the forgery's frame to be `PK.root ‖ M''`, which the adversary can arrange by
+choosing its context once `PK.root`'s first byte is zero. Domain separation is not available as
+a repair, because the standard does not separate them.
+
+**The defect is affordable; the slack accounting was wrong.** The event needs a *served*
+request whose derived randomiser hits a fixed secret — one fresh uniform value per request, so
+at most `s / 2 ^ 128` for `s` requests, with the root-byte factor not even needed. Against that,
+counting only key generation's `2 ^ subtreeHeight` hashes cannot work: a constant cannot cover a
+term proportional to `s`.
+
+But signing hashes too, and after the walk its canonical queries are cache hits — charged to `q`
+and buying nothing, exactly as key generation's are. So the slack is `H_keygen + s · H_sign`,
+and the condition becomes `1 ≤ 2 · H_sign`. **One** hash per served request suffices, and the
+signer makes thousands; the margin is `2 ^ 9` even counting one.
+
+The lesson generalises past this case: a defect proportional to the adversary's use of an oracle
+must be set against the honest work that use provokes, not against a constant. Charging every
+hash call in the game is what makes that available.
