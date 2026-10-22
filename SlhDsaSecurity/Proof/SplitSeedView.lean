@@ -305,4 +305,117 @@ theorem countedSplitRecorder_mass (pk : PublicKey) (prfSeed : Digest)
     ⟨@noticingRecorderOf_step_mass SplitCarrier (splitView pk prfSeed) _ _ queried _,
       fun _ _ => by simp⟩
 
+/-! ## The two commutations the signing branch needs
+
+With a request in flight the two handlers agree at every query, and `splitCacheOf_splitOf_of_framing`
+is the half of that about *reading*. These are the half about **writing**: the split commutes with
+the notice unconditionally, and with the install exactly while the framing is up.
+
+**The second is the hop in one line.** `splitUpdate` at a split state and `splitOf` of a real
+install are the same state when a request is in flight, and are *not* when the framing is down
+and the input is of the class — the real game keeps the entry where the adversary can read it and
+the modified game does not. So the condition on this lemma is not bookkeeping: it is the exact
+boundary the whole comparison is built around, and a version without it would be false.
+-/
+
+open scoped Classical in
+/-- **The split commutes with the notice**, unconditionally: the notice reads the framing and the
+input's shape, and moves only the served set. -/
+theorem splitOf_servingNotice (pk : PublicKey) (prfSeed : Digest)
+    (carrier : HandlerCarrier.State) (input : Bytes) :
+    splitOf prfSeed (CarriedWitness.servingNotice pk carrier input) =
+      (CarriedWitness.servingNotice pk (splitOf prfSeed carrier).1 input,
+        (splitOf prfSeed carrier).2) := by
+  classical
+  have hfiles : HandlerCarrier.FilesLeft pk (splitOf prfSeed carrier).1 input ↔
+      HandlerCarrier.FilesLeft pk carrier input := by
+    constructor
+    · rintro ⟨framed, hframing, randomizer, hinput⟩
+      exact ⟨framed, hframing, randomizer, hinput⟩
+    · rintro ⟨framed, hframing, randomizer, hinput⟩
+      exact ⟨framed, hframing, randomizer, hinput⟩
+  rw [CarriedWitness.servingNotice, CarriedWitness.servingNotice]
+  by_cases hfile : HandlerCarrier.FilesLeft pk carrier input
+  · rw [if_pos hfile, if_pos (hfiles.mpr hfile)]
+    rfl
+  · rw [if_neg hfile, if_neg (fun hbad => hfile (hfiles.mp hbad))]
+
+open scoped Classical in
+/-- **And with the install, exactly while a request is in flight.**
+
+**The hypothesis must not be removed on tidiness grounds.** Without it the statement is not
+merely unproved but **false**, and its falsity is precisely the content the comparison exists to
+exploit: with nothing in flight the real game keeps a `PRF_msg` entry where the adversary can
+read it and the modified game does not. That is the opposite of a hypothesis carried for want of
+a better proof, and the two look alike from outside.
+
+The pairing with `splitOf_servingNotice` is worth reading together: the notice **cannot** see
+which cache an entry is in, so it commutes unconditionally; the install **can**, and must not
+while the framing is down, so it commutes conditionally. Two hypotheses differing for a stated
+structural reason rather than by accident. -/
+theorem splitUpdate_splitOf (pk : PublicKey) (prfSeed : Digest)
+    (carrier : HandlerCarrier.State) (framed : Bytes) (hframing : carrier.framing = some framed)
+    (input : Bytes) (answer : HashOutput) :
+    splitUpdate prfSeed (splitOf prfSeed carrier) input answer =
+      splitOf prfSeed (HandlerCarrier.cacheAnswer carrier input answer) := by
+  classical
+  rw [splitUpdate, FromTable, framing_splitOf, hframing]
+  by_cases hclass : RandomizerGate.PrfClass prfSeed input
+  · rw [if_pos ⟨by simp, hclass⟩]
+    refine Prod.ext ?_ ?_
+    · refine congrArg (fun table : QueryCache HashSpec =>
+        ({ cache := table, served := carrier.served,
+           framing := carrier.framing } : HandlerCarrier.State)) ?_
+      funext probe
+      show (if RandomizerGate.PrfClass prfSeed probe then none else carrier.cache probe) =
+        if RandomizerGate.PrfClass prfSeed probe then none
+          else (carrier.cache.cacheQuery input answer) probe
+      by_cases hprobe : RandomizerGate.PrfClass prfSeed probe
+      · rw [if_pos hprobe, if_pos hprobe]
+      · rw [if_neg hprobe, if_neg hprobe]
+        refine (QueryCache.cacheQuery_of_ne _ _ ?_).symm
+        rintro rfl
+        exact hprobe hclass
+    · funext probe
+      show QueryCache.cacheQuery
+          (fun p => if RandomizerGate.PrfClass prfSeed p then carrier.cache p else none)
+          input answer probe =
+        if RandomizerGate.PrfClass prfSeed probe
+          then (carrier.cache.cacheQuery input answer) probe else none
+      by_cases hprobe : probe = input
+      · subst hprobe
+        rw [QueryCache.cacheQuery_self, if_pos hclass, QueryCache.cacheQuery_self]
+      · rw [QueryCache.cacheQuery_of_ne _ _ hprobe]
+        by_cases hpc : RandomizerGate.PrfClass prfSeed probe
+        · rw [if_pos hpc, if_pos hpc, QueryCache.cacheQuery_of_ne _ _ hprobe]
+        · rw [if_neg hpc, if_neg hpc]
+  · rw [if_neg (fun hboth => hclass hboth.2)]
+    refine Prod.ext ?_ ?_
+    · refine congrArg (fun table : QueryCache HashSpec =>
+        ({ cache := table, served := carrier.served,
+           framing := carrier.framing } : HandlerCarrier.State)) ?_
+      funext probe
+      show QueryCache.cacheQuery
+          (fun p => if RandomizerGate.PrfClass prfSeed p then none else carrier.cache p)
+          input answer probe =
+        if RandomizerGate.PrfClass prfSeed probe then none
+          else (carrier.cache.cacheQuery input answer) probe
+      by_cases hprobe : probe = input
+      · subst hprobe
+        rw [QueryCache.cacheQuery_self, if_neg hclass, QueryCache.cacheQuery_self]
+      · rw [QueryCache.cacheQuery_of_ne _ _ hprobe]
+        by_cases hpc : RandomizerGate.PrfClass prfSeed probe
+        · rw [if_pos hpc, if_pos hpc]
+        · rw [if_neg hpc, if_neg hpc, QueryCache.cacheQuery_of_ne _ _ hprobe]
+    · funext probe
+      show (if RandomizerGate.PrfClass prfSeed probe then carrier.cache probe else none) =
+        if RandomizerGate.PrfClass prfSeed probe
+          then (carrier.cache.cacheQuery input answer) probe else none
+      by_cases hpc : RandomizerGate.PrfClass prfSeed probe
+      · rw [if_pos hpc, if_pos hpc]
+        refine (QueryCache.cacheQuery_of_ne _ _ ?_).symm
+        rintro rfl
+        exact hclass hpc
+      · rw [if_neg hpc, if_neg hpc]
+
 end SlhDsaSecurity.SplitSeedView

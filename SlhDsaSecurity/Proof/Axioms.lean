@@ -264,6 +264,8 @@ import SlhDsaSecurity.Proof.SplitSeedView
 import SlhDsaSecurity.Proof.ForgetsOn
 import SlhDsaSecurity.Proof.GuessingBar
 
+import SlhDsaSecurity.Proof.ServingCounted
+
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
 -/
@@ -16563,3 +16565,15 @@ info: 'SlhDsaSecurity.GuessingBar.one_stake_is_half' depends on axioms: [propext
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.GuessingBar.one_stake_is_half
+
+/-- info: 'SlhDsaSecurity.ServingCounted.withCount_servingUncounted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCounted.withCount_servingUncounted
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.splitOf_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.splitOf_servingNotice
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf
