@@ -773,6 +773,216 @@ theorem aimCount_recordedAfterSeeds (publicSeed : Digest)
   omega
 
 
+/-! ## The record is no larger than the probe list
+
+The containment above compares the handler's **aiming** probes with the record's aiming part,
+and it needs the honest phase stripped to do it. The unfiltered comparison points the other way
+and needs nothing: every recorded query is a probe the handler saw, and a phase that records
+nothing can only add probes. So the record is a sub-count of the probe list on **every** run —
+no seed, no public-key separation, no stripping, and the signer may be the real one.
+
+This is what a half paying against the probe list rather than against the record needs: the
+three parts still fit in two of them, because each part is a part of the record and the record
+is a part of this. -/
+
+open scoped Classical in
+/-- **A step appends exactly as many probes as it records.** -/
+theorem length_appended (queried : OracleWorld.Domain) (carrier : HandlerCarrier.State) :
+    (HandlerFacts.appended queried carrier).length =
+      Multiset.card (RecordedQueries.recordOf queried) := by
+  rcases queried with coin | input <;> rfl
+
+/-- **The probe list only grows.** -/
+theorem probes_grow {α : Type} (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (computation : OracleComp OracleWorld α) :
+    ∀ (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
+      z ∈ support ((simulateQ program computation).run state) →
+        state.2.1.length ≤ z.2.2.1.length := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state z hz
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+    rw [show z.2 = state from by rw [hz]]
+  | query_bind queried next ih =>
+    intro state z hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+    obtain ⟨step, hstep, hrest⟩ := hz
+    refine le_trans ?_ (ih step.1 step.2 z hrest)
+    rw [hprobing.record queried state step hstep, List.length_append]
+    omega
+
+open scoped Classical in
+/-- **One of the adversary's own queries appends exactly as many probes as it records.** -/
+theorem length_recordedAdversaryImpl (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program)
+    (queried : OracleWorld.Domain) (log : SigningLog) (state : OpenCache.HandlerState)
+    (outer : ((OracleWorld.Range queried × Multiplicative RecordedQueries.Tally) × SigningLog) ×
+      OpenCache.HandlerState)
+    (houter : outer ∈ support ((simulateQ program
+      ((WriterT.run (RecordedQueries.recordedAdversaryImpl queried)).run log)).run state)) :
+    outer.2.2.1.length =
+      state.2.1.length + Multiset.card (Multiplicative.toAdd outer.1.1.2).2 := by
+  classical
+  rw [RecordedQueries.run_recordedAdversaryImpl, simulateQ_map, StateT.run_map,
+    support_map] at houter
+  obtain ⟨inner, hinner, heq⟩ := houter
+  rw [simulateQ_spec_query] at hinner
+  rw [show outer.1.1.2 = Multiplicative.ofAdd
+      ((Counts.single .hash (hashCost queried) : Counts), RecordedQueries.recordOf queried) from by
+      rw [← heq],
+    show outer.2 = inner.2 from by rw [← heq], toAdd_ofAdd,
+    hprobing.record queried state inner hinner, List.length_append, length_appended]
+
+open scoped Classical in
+/-- **A signing request records nothing, whoever the signer is.** -/
+theorem length_recordedSigningOracle (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program)
+    (signer : Message → OracleComp OracleWorld (Option Bytes))
+    (request : Message) (log : SigningLog) (state : OpenCache.HandlerState)
+    (outer : ((Option Bytes × Multiplicative RecordedQueries.Tally) × SigningLog) ×
+      OpenCache.HandlerState)
+    (houter : outer ∈ support ((simulateQ program
+      ((WriterT.run (RecordedQueries.recordedSigningOracle signer request)).run log)).run
+        state)) :
+    state.2.1.length + Multiset.card (Multiplicative.toAdd outer.1.1.2).2 ≤
+      outer.2.2.1.length := by
+  classical
+  rw [RecordedQueries.run_recordedSigningOracle, simulateQ_bind, StateT.run_bind,
+    mem_support_bind_iff] at houter
+  obtain ⟨step, hstep, hrest⟩ := houter
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hrest
+  rw [show outer.2 = step.2 from by rw [hrest],
+    show (Multiplicative.toAdd outer.1.1.2).2 = (0 : Multiset Bytes) from by rw [hrest]; rfl]
+  simpa using probes_grow publicSeed program hprobing _ state step hstep
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The adversary's phase records no more than it probes.** -/
+theorem length_adversary (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program)
+    (signer : Message → OracleComp OracleWorld (Option Bytes))
+    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ (log : SigningLog) (state : OpenCache.HandlerState)
+      (result : ((α × Multiplicative RecordedQueries.Tally) × SigningLog) ×
+        OpenCache.HandlerState),
+      result ∈ support ((simulateQ program
+        ((WriterT.run (simulateQ (RecordedQueries.recordedAdversaryImpl +
+          RecordedQueries.recordedSigningOracle signer) computation)).run log)).run state) →
+        state.2.1.length + Multiset.card (Multiplicative.toAdd result.1.1.2).2 ≤
+          result.2.2.1.length := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro log state result hmem
+    rw [simulateQ_pure, show ((WriterT.run (pure value :
+          RecordedQueries.RecordedRun α)).run log) =
+        (pure ((value, (1 : Multiplicative RecordedQueries.Tally)), log) :
+          OracleComp OracleWorld
+            ((α × Multiplicative RecordedQueries.Tally) × SigningLog)) from rfl,
+      simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [show result.2 = state from by rw [hmem],
+      show (Multiplicative.toAdd result.1.1.2).2 = (0 : Multiset Bytes) from by rw [hmem]; rfl]
+    simp
+  | query_bind queried next ih =>
+    intro log state result hmem
+    rw [simulateQ_bind, simulateQ_spec_query, RecordedQueries.run_writer_bind, simulateQ_bind,
+      StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨outer, houter, hrest⟩ := hmem
+    rw [simulateQ_map, StateT.run_map, support_map] at hrest
+    obtain ⟨inner, hinner, heq⟩ := hrest
+    have htail := ih outer.1.1.1 outer.1.2 outer.2 inner hinner
+    have hhead : state.2.1.length +
+        Multiset.card (Multiplicative.toAdd outer.1.1.2).2 ≤ outer.2.2.1.length := by
+      rcases queried with world | request
+      · exact le_of_eq (length_recordedAdversaryImpl publicSeed program hprobing world log
+          state outer houter).symm
+      · exact length_recordedSigningOracle publicSeed program hprobing signer request log state
+          outer houter
+    have hvalue : result.1.1.2 = outer.1.1.2 * inner.1.1.2 := by
+      rw [← congrArg (fun z => z.1.1.2) heq]
+    have hstate : result.2 = inner.2 := by rw [← congrArg Prod.snd heq]
+    rw [hstate, hvalue, toAdd_mul,
+      show (Multiplicative.toAdd outer.1.1.2 + Multiplicative.toAdd inner.1.1.2).2 =
+        (Multiplicative.toAdd outer.1.1.2).2 + (Multiplicative.toAdd inner.1.1.2).2 from rfl,
+      Multiset.card_add]
+    omega
+
+set_option maxHeartbeats 1000000 in
+set_option linter.constructorNameAsVariable false in
+open scoped Classical in
+/-- **The verifier's phase records exactly what it probes.** -/
+theorem length_countRecorded (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (state : OpenCache.HandlerState)
+      (result : (α × RecordedQueries.Tally) × OpenCache.HandlerState),
+      result ∈ support ((simulateQ program
+        (RecordedQueries.countRecorded RecordedQueries.verifierCost computation)).run state) →
+        result.2.2.1.length = state.2.1.length + Multiset.card result.1.2.2 := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state result hmem
+    rw [RecordedQueries.countRecorded_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hmem
+    rw [show result.2 = state from by rw [hmem],
+      show result.1.2 = (0 : RecordedQueries.Tally) from by rw [hmem]]
+    simp
+  | query_bind queried next ih =>
+    intro state result hmem
+    rw [RecordedQueries.countRecorded_query_bind, simulateQ_bind, simulateQ_spec_query,
+      StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rw [simulateQ_map, StateT.run_map, support_map] at hrest
+    obtain ⟨inner, hinner, heq⟩ := hrest
+    have htail := ih step.1 step.2 inner hinner
+    have hhead : step.2.2.1.length =
+        state.2.1.length + Multiset.card (RecordedQueries.recordOf queried) := by
+      rw [hprobing.record queried state step hstep, List.length_append, length_appended]
+    have hvalue : result.1.2 = RecordedQueries.verifierCost queried + inner.1.2 := by
+      rw [← congrArg (fun z => z.1.2) heq]
+    have hstate : result.2 = inner.2 := by rw [← congrArg Prod.snd heq]
+    rw [hstate, htail, hhead, hvalue,
+      show (RecordedQueries.verifierCost queried + inner.1.2).2 =
+        RecordedQueries.recordOf queried + inner.1.2.2 from rfl,
+      Multiset.card_add, Nat.add_assoc]
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The record is no larger than the probe list.** The adversary's queries and the verifier's
+are probes and are recorded; the signing requests are probes and are not. Nothing about the
+seeds, the public key or stripping is used, so this holds at the honest signer as well as the
+stripped one. -/
+theorem card_record_le_probes (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (warm : QueryCache HashSpec)
+    (adversary : Adversary) (keys : SecretKey × PublicKey)
+    (state : OpenCache.HandlerState)
+    (result : (Outcome × Multiset Bytes) × OpenCache.HandlerState)
+    (hmem : result ∈ support ((simulateQ program
+      (KeygenValue.recordedAfterSeedsAt adversary keys warm)).run state)) :
+    state.2.1.length + Multiset.card result.1.2 ≤ result.2.2.1.length := by
+  classical
+  unfold KeygenValue.recordedAfterSeedsAt at hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨phase, hphase, hmem⟩ := hmem
+  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hmem
+  obtain ⟨verify, hverify, hmem⟩ := hmem
+  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+  have hphase' := length_adversary publicSeed program hprobing _ (adversary.main keys.2) []
+    state phase hphase
+  have hverify' := length_countRecorded publicSeed program hprobing
+    (Scheme.verify keys.2 phase.1.1.1.message phase.1.1.1.signature) phase.2 verify hverify
+  rw [show result.2 = verify.2 from by rw [hmem],
+    show result.1.2 = (Multiplicative.toAdd phase.1.1.2).2 + verify.1.2.2 from by rw [hmem],
+    Multiset.card_add]
+  omega
+
 /-! ## What the charge may take
 
 The weight the charge carries is the **de-duplicated** aiming part of the handler's record, and

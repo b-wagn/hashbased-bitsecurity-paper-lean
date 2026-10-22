@@ -16368,3 +16368,47 @@ info: 'SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge' depends o
 /-- info: 'SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_appended' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_appended
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.probes_grow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.probes_grow
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.length_recordedAdversaryImpl' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_recordedAdversaryImpl
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.length_recordedSigningOracle' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_recordedSigningOracle
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_adversary' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_adversary
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_countRecorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_countRecorded
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.card_record_le_probes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.card_record_le_probes
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le
