@@ -567,8 +567,19 @@ The containment is free of side conditions, which is the test it passed and
 additionally asks that nothing was signed at the frame, and `PK.root ‖ m` is a legal frame. -/
 
 set_option maxHeartbeats 1000000 in
-/-- **The shared obligation with the leftover sent to the record charge**, which is the form the
-assembly should take. `qp` is the record slot's units, not a cost invented here. -/
+/-- **Superseded by `RecordColumn.sharedChargedLate_of_parts_record_at`, and kept as the named
+instance of the error it fixes.** Do not assemble against this.
+
+`qp` is added to `claims`, and `claims` is the **constant** column — `claims + defectUnits ≤
+2 ^ subtreeHeight` caps it at the slack. `RecordPrfCharge` has since shown the record charge
+grows with `q`: one recorded input is one guess at `SK.prf` by injectivity, and the record is
+the run's own work. So no numeral instantiates `qp`, and the containment below sends a
+`q`-shaped event into a constant slot.
+
+The containment itself is right and is what `RecordColumn` reuses; only the column was wrong.
+`qp : Nat` inside a `q`-sized sum and `qp : Nat` added to a constant are the same type and
+different claims, which is why asking *does the event grow with `q`?* did not catch it — the
+answer was recorded in a slot whose column nobody checked. -/
 theorem sharedChargedLate_of_parts_record (fused : LateProbes.FusedTail)
     (claims qp : Nat) (late : LateProbes.SplitPair → Prop)
     (hclaims : 259 + qp ≤ claims)
