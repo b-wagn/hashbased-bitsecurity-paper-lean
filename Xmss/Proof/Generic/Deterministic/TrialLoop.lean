@@ -1,0 +1,76 @@
+import Xmss.Proof.Generic.Deterministic.TableSigner
+import Xmss.Proof.Generic.Deterministic.FreshRequests
+import Xmss.Proof.Generic.Deterministic.World
+
+open OracleComp OracleSpec
+
+namespace Xmss.Generic.Seeded
+
+variable [Code]
+
+open DeterministicSigning
+
+set_option backward.isDefEq.respectTransparency false
+set_option maxRecDepth 4096
+
+abbrev Trial := BitVec 32
+abbrev TrialSpec := Trial →ₒ Digest
+abbrev TrialWorld := OracleWorld + TrialSpec
+abbrev TrialResult := Option Signature
+abbrev TrialTape := Trial → Digest
+
+noncomputable opaque trialTapeSampleableType : SampleableType TrialTape := SampleableType.ofFintype TrialTape
+noncomputable local instance : SampleableType TrialTape := trialTapeSampleableType
+
+noncomputable def sampleTrialTape : ProbComp TrialTape := $ᵗ TrialTape
+
+def trialLoop (secretKey : Xmss.Generic.SecretKey) (leafIndex : LeafIndex) (message : Message) : Nat → Nat → OracleComp TrialWorld TrialResult
+  | 0, _ => pure none
+  | attempts + 1, trial => do
+      let output ← liftM (TrialWorld.query (.inr (BitVec.ofNat 32 trial)))
+      let randomness := output
+      let attempt ← baseLift (liftM
+        (Signing.precomputedSignAttempt secretKey leafIndex message randomness : OracleComp HashSpec (Option Signature)) :
+          OracleComp OracleWorld (Option Signature))
+      match attempt with
+      | some signature => return some signature
+      | none => trialLoop secretKey leafIndex message attempts (trial + 1)
+
+def earlierTrials (trial : Nat) : Set Trial := {value | value.toNat < trial}
+
+omit [Code] in
+theorem earlierTrials_succ (trial : Nat) (htrial : trial < 2 ^ 32) :
+    earlierTrials (trial + 1) = insert (BitVec.ofNat 32 trial) (earlierTrials trial) := by
+  ext value
+  simp only [earlierTrials, Set.mem_setOf_eq, Set.mem_insert_iff]
+  have heq : value = BitVec.ofNat 32 trial ↔ value.toNat = trial := by
+    rw [← BitVec.toNat_inj, BitVec.toNat_ofNat, Nat.mod_eq_of_lt htrial]
+  rw [heq]
+  omega
+
+theorem freshRequests_trialLoop (secretKey : Xmss.Generic.SecretKey) (leafIndex : LeafIndex) (message : Message)
+    (attempts trial : Nat) (hbound : trial + attempts ≤ 2 ^ 32) :
+    FreshRequests (earlierTrials trial) (trialLoop secretKey leafIndex message attempts trial) := by
+  induction attempts generalizing trial with
+  | zero => exact .pure _
+  | succ attempts ih =>
+      rw [trialLoop]
+      have htrial : trial < 2 ^ 32 := by omega
+      apply FreshRequests.request (used := earlierTrials trial) (BitVec.ofNat 32 trial)
+        (by
+          change ¬ (BitVec.ofNat 32 trial).toNat < trial
+          rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt htrial]
+          exact Nat.lt_irrefl _)
+      intro output
+      dsimp only
+      apply freshRequests_base_bind (base := OracleWorld) (Request := Trial) (Answer := Digest) _
+        (liftM (Signing.precomputedSignAttempt secretKey leafIndex message (output) : OracleComp HashSpec _) :
+          OracleComp OracleWorld _)
+      intro attempt
+      cases attempt with
+      | none =>
+          rw [← earlierTrials_succ trial htrial]
+          exact ih (trial + 1) (by omega)
+      | some result => exact .pure _
+
+end Xmss.Generic.Seeded

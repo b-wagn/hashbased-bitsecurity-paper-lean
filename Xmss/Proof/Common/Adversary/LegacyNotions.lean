@@ -1,0 +1,52 @@
+import Xmss.Statement.UnforgeabilityGame
+import Xmss.Proof.Common.Legacy.PerModeNotionsEUFCMA
+
+/-!
+# The legacy direct counting notion
+
+Part of the proofs were written against `notionDirect`, which charges only the adversary's own
+hash calls inside the game (`gameCountedDirect`), rather than against the per-mode notions
+`SUFCMA.notion` of `Proof/Common/Legacy/PerModeNotions.lean`. `Proof/Common/Modes/Direct.lean`
+shows that `notion CountingMode.direct` is `notionDirect`, so those proofs carry over.
+-/
+
+open OracleComp OracleSpec ENNReal
+
+namespace Xmss
+
+namespace SUFCMA
+
+open Unforgeability
+
+variable {ι : Type} {spec : OracleSpec ι} {PK SK Msg Sig : Type} {L : ℕ}
+
+/-- The experiment as `game`, additionally charging the adversary's own queries to the ambient
+oracles by `cost`. Signing requests cost nothing, and neither do the hash calls of key generation,
+of the signer, or of the final verification. -/
+def gameCountedDirect [DecidableEq Msg] [DecidableEq Sig] (cost : spec.Domain → ℕ)
+    (scheme : EpochBasedSignature spec PK SK Msg Sig L)
+    (adversary : Adversary spec PK Msg Sig L) : OracleComp spec (Bool × ℕ) := do
+  let (pk, sk) ← scheme.keygen
+  let (((forgery, charged), log) :
+      (Forgery Msg Sig L × Multiplicative ℕ) × QueryLog (SigningSpec Msg Sig L)) ←
+    (simulateQ
+      ((QueryImpl.ofLift spec (WriterT (QueryLog (SigningSpec Msg Sig L)) (OracleComp spec)) +
+          signingOracle scheme sk).withAddCost (fun | .inl input => cost input | .inr _ => 0))
+      (adversary.main pk)).run.run
+  let verified ← scheme.verify pk forgery.epoch forgery.message forgery.signature
+  return (decide (SigningTranscript.Valid log ∧ ¬SigningTranscript.Contains log forgery) && verified,
+    Multiplicative.toAdd charged)
+
+variable {Input Output : Type} [DecidableEq Input] [SampleableType Output]
+
+/-- SUF-CMA in the random-oracle model, charging only the adversary's own hash calls. -/
+noncomputable def notionDirect [DecidableEq Msg] [DecidableEq Sig] :
+    SecurityNotion
+      (EpochBasedSignature (RandomOracleModel.World Input Output) PK SK Msg Sig L) where
+  Adversary := Adversary (RandomOracleModel.World Input Output) PK Msg Sig L
+  experiment := fun scheme adversary =>
+    RandomOracleModel.run (gameCountedDirect (fun | .inl _ => 0 | .inr _ => 1) scheme adversary)
+
+end SUFCMA
+
+end Xmss

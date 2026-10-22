@@ -1,0 +1,4 @@
+/.lake/
+
+# Build logs
+*.log
