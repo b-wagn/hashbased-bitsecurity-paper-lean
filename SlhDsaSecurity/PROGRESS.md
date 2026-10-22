@@ -3297,3 +3297,44 @@ naming one* is this rule applied to a single lemma; *ask each branch of the obje
 answer it* is the same rule applied to a decomposition. Both avoid a bridge rather than building
 one, and the tell in both cases is the same: when a proof starts needing two objects to be
 identified, ask whether one of them was the wrong object to have asked.
+
+## Put the statement's edge where the proof's knowledge already ends
+
+Two economies that look opposite are the same act, and both came up in one lemma this week.
+
+**Drop a hypothesis the lemma can discharge.** Both outer phase lemmas took freshness at the
+phase's start as a hypothesis, and both already had it: `right_record_suffix` hands back a cache
+containing the start in which the entry is absent, so the start cannot hold it. Carried three
+times, once per phase, for no reason. *A hypothesis a lemma can discharge from what it is
+already given is one the caller carries for no reason.*
+
+**Hand back a witness the consumer needs.** The same lemma's mid case returned a cache and the
+randomiser's answer and dropped which *entry* the cache belonged to, so the consumer could not
+build the witness that the two descriptions of the entry are the same. The repair is to return
+the sub-run's queries as well, after which the branch closes from one lemma about one sub-run
+and needs no shared-oracle provenance at all.
+
+> Make the statement's edge sit where the proof's knowledge already ends. Too far in and the
+> caller does your work; too far out and the consumer cannot use what you had.
+
+### The workaround that would have been worse than the wall
+
+The blocked branch could have been closed by matching the lemma's `framed` against provenance's,
+proving the two keygen outputs equal — both are the replay of the same final cache, so it goes
+through. It was refused, rightly: it would have made the signer's branch depend on the shared
+oracle for a fact the signer already knows, recreating the coupling the decomposition exists to
+remove.
+
+> Asking each branch of the object that can answer it means the signer's branch should not be
+> asking the shared oracle what the signer queried.
+
+A workaround that compiles and quietly restores the coupling is worse than a wall, because
+nobody gets a second chance to notice it.
+
+### A habit, since the grep is not enough
+
+Three instances of the dropped witness have now been found, each at the wiring and each one
+lemma earlier than the last. The `≠ none` grep catches the *signature*; the general form is any
+conclusion weaker than what the proof has in hand, and no grep sees that. The habit that does:
+**when writing a lemma, write down what the proof knows and what the conclusion says, and diff
+them.**
