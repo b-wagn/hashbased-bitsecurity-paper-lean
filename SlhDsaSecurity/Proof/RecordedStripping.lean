@@ -19,6 +19,13 @@ the congruence.
 
 **It is an equality, not a bound.** Every step of the input half's transport is, and a bound
 appearing in one of them would mean a step was not the equality it is taken for.
+
+**Nothing uses this file at present.** It was written for the input half's containment, which
+charged the half against the record's canonical part; that count turned out to be slack —
+`RoutedSplit.InputBad` is an existential over the forgery's claims and quantifies over no probe
+of the run — so the half no longer strips at all. What would use it again is a split that moved
+the run's own sensitive queries into the input bullet: that version needs the honest phase
+stripped, and this is the law that keeps the record while stripping it.
 -/
 
 open OracleComp OracleSpec
