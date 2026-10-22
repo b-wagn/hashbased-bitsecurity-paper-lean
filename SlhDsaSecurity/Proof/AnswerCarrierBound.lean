@@ -104,6 +104,6 @@ theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outsi
       (CombinedCharge.IsMessageInput (keyAt walk)) hne AnswerCarrier.carrierRightKeep hbudget
       hwalk result hresult
   · exact CarrierSplit.hsplit_splitCarrierTail (CombinedCharge.IsMessageInput (keyAt walk)) hne
-      adversary walk hwalk hgood hfreshWalk hleftClass hrightClass
+      adversary walk hwalk hgood hleftClass hrightClass
 
 end SlhDsaSecurity.AnswerCarrierBound

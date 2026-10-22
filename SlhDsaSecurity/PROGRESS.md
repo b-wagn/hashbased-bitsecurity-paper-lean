@@ -5210,3 +5210,30 @@ with margin to spare, and `Target.allowance` at 259 is untouched for its existin
 What the line does **not** supply is the column's bound in the real order: the count bound is
 proved with the seed drawn after the record, and in the real order it is false, with an explicit
 adversary. So the ledger side is done and the hop carries the column entire.
+
+### The freshness hypothesis was already a theorem
+
+`CarrierSplit` no longer takes `hfreshWalk`. It is discharged inside the join by
+`CoverageTail.walk_cache_fresh` — *the walk's cache holds no message-class entry* — with
+`hpublic` from `AnswerSide.not_possible_generatedKey` on the good walk and `hbounds` from
+`withinBounds_structural`, which is the call pattern `AnswerSide` already uses three times.
+
+**So the answer to "who owns the walk" was "nobody, because it is done".** The hypothesis was
+unowned work only in the sense that nobody had instantiated it; the fact itself had been proved
+at the walk's own construction, for the cache route, and is stated generically enough to serve
+both.
+
+**This change does not pass the no-call-site-moved test, and that is worth recording as the
+exception.** `AnswerCarrierBound` was supplying `hfreshWalk` to `hsplit_splitCarrierTail`, so
+removing the parameter required editing that call. Removing a hypothesis is strictly better for
+the consumer, but it is still a signature change and it still moved a call site — unlike the
+five widenings today, which did not. The edit is one token: the argument is no longer passed.
+`AnswerCarrierBound`'s own `hfreshWalk` parameter is now **unused and can be dropped by its
+owner**; I left the signature alone rather than change a theorem I do not own twice in one
+commit.
+
+**What `CarrierSplit` still takes is `hleftClass` and `hrightClass`** — both now theorems in
+`CarrierLeftRecord`, so the remaining step is instantiation rather than proof. It needs the two
+class facts to move *inside* the join, where `¬ LateDisclosure` is in scope, since
+`not_servedLog_rightRecord_carrierTail` consumes it. That restructuring is mechanical and is
+the next thing.
