@@ -7808,3 +7808,39 @@ info: 'SlhDsaSecurity.BlockViews.covered_of_recordCovers' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlockViews.covered_of_recordCovers
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_recordedRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_recordedRun_eq
+
+/--
+info: 'SlhDsaSecurity.BlockViews.mem_support_blockRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.mem_support_blockRun
+
+/--
+info: 'SlhDsaSecurity.BlockViews.blockRun_tail_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.blockRun_tail_neverFails
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_leftBlock' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_leftBlock
+
+/--
+info: 'SlhDsaSecurity.BlockViews.tsum_probOutput_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.tsum_probOutput_map
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_targetCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_targetCovered_le

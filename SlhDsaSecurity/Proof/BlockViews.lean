@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.TapeFactor
+import SlhDsaSecurity.Proof.Averaging
 
 /-!
 # A block of answers, read as a tape of parsed views
@@ -230,5 +231,228 @@ theorem covered_of_recordCovers (length : Nat) (block : List HashOutput)
     exact hinstance
   · rw [hview]
     exact hleaf
+
+/-! ## The coverage charge at the recorded run
+
+The charge is proved at `TapeFactor.blockRun`, which carries the two blocks beside the result.
+The game supplies a run that carries neither. `TapeFactor.evalDist_splitTapeRun` says the two are
+the same law, so the event and the expectation both move across, and what is left is to read the
+game's event — a target digest covered by the disclosing *recording* — as the charge's event, a
+block cell hit by the disclosing *block*. That is the two cell correspondences and
+`covered_of_recordCovers`.
+
+The two length hypotheses are caps on *counts*, not on charges. The disclosing one is the
+signing limit and is what the `2 ^ -141` is bought with; the target one is the query budget and
+buys nothing — it only says the run cannot read past its block, and the charge stays an
+expectation in the number of cells it did read. -/
+
+/-- The run itself, with both recordings and no blocks. -/
+noncomputable def recordedRun (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
+    ProbComp (α × SplitPrefix.SplitState) :=
+  (simulateQ (SplitPrefix.recorder leftKeep rightKeep) computation).run (cache, ([], []))
+
+/-- **The event the game supplies.** Some recorded target digest has its fourteen FORS leaves
+all supplied by the disclosing recording. -/
+def TargetCovered {α : Type} (result : α × SplitPrefix.SplitState) : Prop :=
+  ∃ entry ∈ result.2.2.2, RecordCovers result.2.2.1 (MessageDigest.parse entry.2)
+
+/-- The blocked run, read as the recorded run. -/
+theorem evalDist_recordedRun_eq (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (leftLength rightLength : Nat) :
+    𝒟[recordedRun leftKeep rightKeep computation cache] =
+      𝒟[(fun outcome : (List HashOutput × List HashOutput) × (α × TapeFactor.SplitTapeState) =>
+          TapeFactor.forgetSplit outcome.2) <$>
+        TapeFactor.blockRun leftKeep rightKeep computation cache leftLength rightLength] := by
+  rw [recordedRun, TapeFactor.evalDist_splitTapeRun leftKeep rightKeep computation leftLength
+    rightLength cache [] [], TapeFactor.blockRun]
+  simp only [map_bind, Functor.map_map]
+
+/-- A supported outcome of the blocked run is a supported run against its own two blocks. -/
+theorem mem_support_blockRun (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (leftLength rightLength : Nat)
+    (outcome : (List HashOutput × List HashOutput) × (α × TapeFactor.SplitTapeState))
+    (hmem : outcome ∈ support (TapeFactor.blockRun leftKeep rightKeep computation cache
+      leftLength rightLength)) :
+    outcome.1.1 ∈ support (padding leftLength) ∧
+      outcome.1.2 ∈ support (padding rightLength) ∧
+        outcome.2 ∈ support ((simulateQ (TapeFactor.splitTapeRecorder leftKeep rightKeep)
+          computation).run (cache, (outcome.1.1, outcome.1.2), ([], []))) := by
+  rw [TapeFactor.blockRun, mem_support_bind_iff] at hmem
+  obtain ⟨leftTape, hleftTape, hrest⟩ := hmem
+  rw [mem_support_bind_iff] at hrest
+  obtain ⟨rightTape, hrightTape, hinner⟩ := hrest
+  rw [support_map] at hinner
+  obtain ⟨result, hresult, hshape⟩ := hinner
+  rw [← hshape]
+  exact ⟨hleftTape, hrightTape, hresult⟩
+
+/-- The blocked run never fails once its blocks are drawn. -/
+theorem blockRun_tail_neverFails (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (leftTape : List HashOutput) (rightLength : Nat) :
+    Pr[⊥ | padding rightLength >>= fun rightTape =>
+        (fun result => ((leftTape, rightTape), result)) <$>
+          (simulateQ (TapeFactor.splitTapeRecorder leftKeep rightKeep) computation).run
+            (cache, (leftTape, rightTape), ([], []))] = 0 := by
+  refine probFailure_bind_eq_zero_iff _ _ |>.mpr ⟨padding_neverFails rightLength,
+    fun rightTape _ => ?_⟩
+  rw [map_eq_bind_pure_comp]
+  exact probFailure_bind_eq_zero_iff _ _ |>.mpr
+    ⟨TapeFactor.splitTapeRun_neverFails leftKeep rightKeep computation _, fun _ _ => by simp⟩
+
+open scoped Classical in
+/-- **The disclosing block's own law.** An event about it alone is an event about the block
+draw, which is what lets the concentration bound be read at the blocked run. -/
+theorem prob_leftBlock (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (leftLength rightLength : Nat) (event : List HashOutput → Prop) :
+    Pr[fun outcome : (List HashOutput × List HashOutput) × (α × TapeFactor.SplitTapeState) =>
+        event outcome.1.1 |
+      TapeFactor.blockRun leftKeep rightKeep computation cache leftLength rightLength] =
+      Pr[event | padding leftLength] := by
+  classical
+  rw [TapeFactor.blockRun, probEvent_bind_eq_tsum, probEvent_eq_tsum_ite]
+  refine tsum_congr fun leftTape => ?_
+  have hshape : ∀ outcome ∈ support (padding rightLength >>= fun rightTape =>
+        (fun result => ((leftTape, rightTape), result)) <$>
+          (simulateQ (TapeFactor.splitTapeRecorder leftKeep rightKeep) computation).run
+            (cache, (leftTape, rightTape), ([], []))),
+      outcome.1.1 = leftTape := by
+    intro outcome hmem
+    rw [mem_support_bind_iff] at hmem
+    obtain ⟨rightTape, -, hinner⟩ := hmem
+    rw [support_map] at hinner
+    obtain ⟨result, -, hbuilt⟩ := hinner
+    rw [← hbuilt]
+  rw [probEvent_congr' (fun outcome hmem => by rw [hshape outcome hmem]) rfl,
+    probEvent_const, blockRun_tail_neverFails leftKeep rightKeep computation cache leftTape
+      rightLength, tsub_zero]
+  split <;> simp
+
+open scoped Classical in
+/-- Expectations move through a reshaping of the outcome. -/
+theorem tsum_probOutput_map {β γ : Type} [DecidableEq γ] (run : ProbComp β) (reshape : β → γ)
+    (weight : γ → ℝ≥0∞) :
+    ∑' value, Pr[= value | reshape <$> run] * weight value =
+      ∑' value, Pr[= value | run] * weight (reshape value) := by
+  classical
+  calc ∑' value, Pr[= value | reshape <$> run] * weight value
+      = ∑' value, (∑' source, if value = reshape source then Pr[= source | run] else 0) *
+          weight value :=
+        tsum_congr fun value => by rw [probOutput_map_eq_tsum_ite]
+    _ = ∑' value, ∑' source,
+          (if value = reshape source then Pr[= source | run] else 0) * weight value :=
+        tsum_congr fun value => ENNReal.tsum_mul_right.symm
+    _ = ∑' source, ∑' value,
+          (if value = reshape source then Pr[= source | run] else 0) * weight value :=
+        ENNReal.tsum_comm
+    _ = ∑' source, Pr[= source | run] * weight (reshape source) :=
+        tsum_congr fun source => by
+          rw [tsum_eq_single (reshape source)
+            (fun other hother => by rw [if_neg hother, zero_mul]), if_pos rfl]
+
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **The coverage charge, at the recorded run.** One unit of `2 ^ -141` for the disclosing
+block's concentration, and one unit of `2 ^ -128` per *expected* target recorded — never per
+target the budget allows. -/
+theorem prob_targetCovered_le (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hleftBound : ∀ result ∈ support (recordedRun leftKeep rightKeep computation cache),
+      result.2.2.1.length ≤ leftLength)
+    (hrightBound : ∀ result ∈ support (recordedRun leftKeep rightKeep computation cache),
+      result.2.2.2.length ≤ rightLength) :
+    Pr[TargetCovered | recordedRun leftKeep rightKeep computation cache] ≤
+      (1 : ℝ≥0∞) / 2 ^ 141 +
+        (∑' result, Pr[= result | recordedRun leftKeep rightKeep computation cache] *
+          ((result.2.2.2.length : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  set reshape : (List HashOutput × List HashOutput) × (α × TapeFactor.SplitTapeState) →
+      α × SplitPrefix.SplitState := fun outcome => TapeFactor.forgetSplit outcome.2 with hreshape
+  have hlaw := evalDist_recordedRun_eq leftKeep rightKeep computation cache leftLength rightLength
+  have hsupport : support (recordedRun leftKeep rightKeep computation cache) =
+      support (reshape <$> TapeFactor.blockRun leftKeep rightKeep computation cache leftLength
+        rightLength) := Averaging.support_eq_of_evalDist_eq hlaw
+  -- The event, moved to the blocked run.
+  have hevent : Pr[TargetCovered | recordedRun leftKeep rightKeep computation cache] =
+      Pr[fun outcome => TargetCovered (reshape outcome) |
+        TapeFactor.blockRun leftKeep rightKeep computation cache leftLength rightLength] := by
+    rw [probEvent_congr' (fun _ _ => Iff.rfl) hlaw, probEvent_map]
+    rfl
+  -- The expectation, moved to the blocked run.
+  have hexpect : (∑' result, Pr[= result | recordedRun leftKeep rightKeep computation cache] *
+        ((result.2.2.2.length : Nat) : ℝ≥0∞)) =
+      ∑' outcome, Pr[= outcome |
+          TapeFactor.blockRun leftKeep rightKeep computation cache leftLength rightLength] *
+        (((TapeFactor.rightOf outcome.2.2).length : Nat) : ℝ≥0∞) := by
+    rw [show (∑' result, Pr[= result | recordedRun leftKeep rightKeep computation cache] *
+          ((result.2.2.2.length : Nat) : ℝ≥0∞)) =
+        ∑' result, Pr[= result | reshape <$> TapeFactor.blockRun leftKeep rightKeep computation
+          cache leftLength rightLength] * ((result.2.2.2.length : Nat) : ℝ≥0∞) from
+      tsum_congr fun result => by rw [probOutput_def, probOutput_def, hlaw]]
+    haveI : DecidableEq (α × SplitPrefix.SplitState) := Classical.decEq _
+    exact tsum_probOutput_map _ reshape _
+  rw [hevent, hexpect]
+  -- The game's event implies the charge's, once the block is good.
+  refine le_trans (probEvent_mono (q := fun outcome =>
+      (¬ GoodBlock leftLength outcome.1.1) ∨
+        ∃ index : Fin rightLength, index.val < (TapeFactor.rightOf outcome.2.2).length ∧
+          GoodBlock leftLength outcome.1.1 ∧
+          ∃ value, outcome.1.2[index.val]? = some value ∧
+            BlockHit leftLength outcome.1.1 value) ?_) ?_
+  · rintro outcome hmem ⟨entry, hentry, hcovers⟩
+    by_cases hgood : GoodBlock leftLength outcome.1.1
+    · refine Or.inr ?_
+      obtain ⟨hleftTape, hrightTape, hrun⟩ := mem_support_blockRun leftKeep rightKeep
+        computation cache leftLength rightLength outcome hmem
+      have hplain : reshape outcome ∈
+          support (recordedRun leftKeep rightKeep computation cache) := by
+        rw [hsupport, support_map]
+        exact ⟨outcome, hmem, rfl⟩
+      obtain ⟨index, hindex, hvalue⟩ := List.mem_iff_getElem.mp hentry
+      have hrightLen : (TapeFactor.rightOf outcome.2.2).length ≤ rightLength :=
+        hrightBound _ hplain
+      have hleftLen : (TapeFactor.leftOf outcome.2.2).length ≤ leftLength :=
+        hleftBound _ hplain
+      have hcellRight := TapeFactor.rightOf_getElem? leftKeep rightKeep computation cache
+        outcome.1.1 outcome.1.2 [] [] outcome.2 hrun index
+        (by simp only [List.length_nil, Nat.zero_add]; exact hindex)
+        (by rw [padding_length rightLength outcome.1.2 hrightTape]
+            exact lt_of_lt_of_le hindex hrightLen)
+      refine ⟨⟨index, lt_of_lt_of_le hindex hrightLen⟩,
+        show index < (TapeFactor.rightOf outcome.2.2).length from hindex, hgood, entry.2, ?_, ?_⟩
+      · have hcell : ((TapeFactor.rightOf outcome.2.2)[index]?).map Prod.snd =
+            outcome.1.2[index]? := by
+          simp only [List.length_nil, Nat.zero_add] at hcellRight
+          exact hcellRight
+        have hget : (TapeFactor.rightOf outcome.2.2)[index]? = some entry := by
+          rw [List.getElem?_eq_getElem (show index < (TapeFactor.rightOf outcome.2.2).length
+            from hindex)]
+          exact congrArg some (show (TapeFactor.rightOf outcome.2.2)[index] = entry from hvalue)
+        rw [← hcell, hget]
+        rfl
+      · refine covered_of_recordCovers leftLength outcome.1.1 (TapeFactor.leftOf outcome.2.2)
+          (MessageDigest.parse entry.2) (fun position hposition => ?_) hleftLen ?_
+        · have := TapeFactor.leftOf_getElem? leftKeep rightKeep computation cache outcome.1.1
+            outcome.1.2 [] [] outcome.2 hrun position
+            (by simp only [List.length_nil, Nat.zero_add]; exact hposition)
+            (by rw [padding_length leftLength outcome.1.1 hleftTape]
+                exact lt_of_lt_of_le hposition hleftLen)
+          simp only [List.length_nil, Nat.zero_add] at this
+          exact this
+        · exact hcovers
+    · exact Or.inl hgood
+  · refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ ?_)
+    · rw [prob_leftBlock leftKeep rightKeep computation cache leftLength rightLength
+        (fun block => ¬ GoodBlock leftLength block)]
+      exact prob_not_goodBlock_le leftLength hcap
+    · rw [← mul_one_div]
+      exact TapeFactor.prob_exists_hit_le_expected leftKeep rightKeep computation cache
+        leftLength rightLength (GoodBlock leftLength) (BlockHit leftLength) _
+        (fun block hgood => prob_blockHit_le leftLength block hgood)
 
 end SlhDsaSecurity.BlockViews
