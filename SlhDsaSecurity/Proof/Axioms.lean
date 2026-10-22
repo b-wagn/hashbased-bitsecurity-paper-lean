@@ -8636,3 +8636,15 @@ info: 'SlhDsaSecurity.AnswerJoin.answerCharged_of_parts' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerJoin.answerCharged_of_parts
+
+/-- info: 'SlhDsaSecurity.RedrawCell.locate_randomizerInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.locate_randomizerInput
+
+/-- info: 'SlhDsaSecurity.RedrawCell.locate_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.locate_messageInput
+
+/-- info: 'SlhDsaSecurity.RedrawCell.not_targets_of_locate_none' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.not_targets_of_locate_none
