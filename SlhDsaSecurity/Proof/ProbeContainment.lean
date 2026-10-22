@@ -267,6 +267,11 @@ structure Probing (publicSeed : Digest)
   cached : ∀ (input : Bytes) (state : OpenCache.HandlerState)
     (step : OracleWorld.Range (Sum.inr input) × OpenCache.HandlerState),
     step ∈ support ((program (Sum.inr input)).run state) → step.2.1.cache input = some step.1
+  /-- A step advances the counter by as much as it appends. -/
+  counts : ∀ (queried : OracleWorld.Domain) (state : OpenCache.HandlerState)
+    (step : OracleWorld.Range queried × OpenCache.HandlerState),
+    step ∈ support ((program queried).run state) →
+      step.2.2.2 = state.2.2 + (HandlerFacts.appended queried state.1).length
   /-- A run keeps every cache entry. -/
   persists : ∀ {α : Type} (computation : OracleComp OracleWorld α)
     (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
@@ -285,6 +290,16 @@ theorem probing_lazyProgram (publicSeed : Digest)
         show HandlerFacts.appended (Sum.inl coin) state.1 = [] from rfl, List.append_nil]
     · exact (ChargedProbe.lazyProgram_step_inr publicSeed availableAt table input state step
         hstep).trans rfl
+  counts queried state step hstep := by
+    rcases queried with coin | input
+    · rw [OpenCache.lazyProgram_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [show step.2 = state from by rw [hpure]]
+      rfl
+    · rw [ChargedProbe.lazyProgram_step_inr_count publicSeed availableAt table input state step
+        hstep]
+      rfl
   cached input state step hstep :=
     lazyProgram_hash_cached publicSeed availableAt table input state step hstep
   persists computation state z hz :=
@@ -313,6 +328,26 @@ theorem probing_servingProgram (publicSeed : Digest) (pk : PublicKey)
       obtain ⟨inner, -, hpure⟩ := hbind
       rw [support_pure, Set.mem_singleton_iff] at hpure
       rw [show step.2.2.1 = state.2.1 ++ [(input, state.1)] from by rw [hpure]]
+      rfl
+  counts queried state step hstep := by
+    classical
+    rcases queried with coin | input
+    · rw [ServingProgram.servingProgram_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [show step.2 = state from by rw [hpure]]
+      rfl
+    · have hbind : step ∈ support
+        (LazyBudget.lazyAnswer publicSeed availableAt table input state.1 >>= fun inner =>
+          (pure (inner.1,
+            ((if HandlerCarrier.FilesLeft pk state.1 input then
+                HandlerCarrier.file inner.2 input else inner.2),
+              state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
+            ProbComp (OracleWorld.Range (Sum.inr input) × OpenCache.HandlerState))) := hstep
+      rw [mem_support_bind_iff] at hbind
+      obtain ⟨inner, -, hpure⟩ := hbind
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [show step.2.2.2 = state.2.2 + 1 from by rw [hpure]]
       rfl
   cached input state step hstep :=
     ServingProgram.servingProgram_hash_cached publicSeed pk availableAt table input state step
@@ -811,6 +846,44 @@ theorem probes_grow {α : Type} (publicSeed : Digest)
     refine le_trans ?_ (ih step.1 step.2 z hrest)
     rw [hprobing.record queried state step hstep, List.length_append]
     omega
+
+open scoped Classical in
+/-- **The probe list and the counter move together.** Every step advances both by the length of
+what it appends, so the counter the budget bounds is the length of the list the charge weighs. -/
+theorem length_add_count {α : Type} (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (computation : OracleComp OracleWorld α) :
+    ∀ (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
+      z ∈ support ((simulateQ program computation).run state) →
+        z.2.2.1.length + state.2.2 = state.2.1.length + z.2.2.2 := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state z hz
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+    rw [show z.2 = state from by rw [hz]]
+  | query_bind queried next ih =>
+    intro state z hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+    obtain ⟨step, hstep, hrest⟩ := hz
+    have htail := ih step.1 step.2 z hrest
+    have hlist : step.2.2.1.length =
+        state.2.1.length + (HandlerFacts.appended queried state.1).length := by
+      rw [hprobing.record queried state step hstep, List.length_append]
+    have hcount := hprobing.counts queried state step hstep
+    omega
+
+open scoped Classical in
+/-- **At a start that has probed nothing, the counter is the list's length.** -/
+theorem length_eq_count {α : Type} (publicSeed : Digest)
+    (program : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
+    (hprobing : Probing publicSeed program) (computation : OracleComp OracleWorld α)
+    (state : OpenCache.HandlerState) (hlist : state.2.1 = []) (hcount : state.2.2 = 0)
+    (z : α × OpenCache.HandlerState)
+    (hz : z ∈ support ((simulateQ program computation).run state)) :
+    z.2.2.1.length = z.2.2.2 := by
+  have h := length_add_count publicSeed program hprobing computation state z hz
+  rw [hlist, hcount] at h
+  simpa using h
 
 open scoped Classical in
 /-- **One of the adversary's own queries appends exactly as many probes as it records.** -/

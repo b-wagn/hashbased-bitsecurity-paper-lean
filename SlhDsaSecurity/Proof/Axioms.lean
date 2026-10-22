@@ -16412,3 +16412,15 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.lazyProgram_step_inr_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.lazyProgram_step_inr_count
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_add_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_add_count
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.length_eq_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.length_eq_count
