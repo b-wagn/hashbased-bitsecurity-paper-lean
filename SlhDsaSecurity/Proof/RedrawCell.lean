@@ -1087,6 +1087,56 @@ theorem signature_eq {left right : Signature} (hrandom : left.randomizer = right
   cases right
   simp_all
 
+/-- The cells the union cache computes, one node at a time. -/
+theorem value_unionCache (publicSeed : Digest) (table : Cells × Padding)
+    (cache : QueryCache HashSpec) (node : CanonicalGraph.Node) :
+    @CanonicalGraph.value (CacheReplay.replayQuery (unionCache publicSeed table cache))
+        (table.1 CanonicalGraph.Node.secretSeed) publicSeed node = table.1 node :=
+  congrFun (replayCells_unionCache publicSeed table cache) node
+
+set_option maxHeartbeats 1000000 in
+/-- **The FORS public key a signature recomputes is a cell**, and an unprotected one, so both
+tables agree on it. It is this value that the climb starts from, which is why the key it is
+indexed by matters: a message of the right type read at the wrong `ForsKey` would typecheck and
+would be the wrong message. -/
+theorem forsKey_congr (cache : QueryCache HashSpec) (left right : Cells × Padding)
+    (sk : SecretKey) (key : ForsKey) (indices : Fors.Indices)
+    (hleft : sk.seed = left.1 CanonicalGraph.Node.secretSeed)
+    (hright : sk.seed = right.1 CanonicalGraph.Node.secretSeed)
+    (hroots : left.1 (.structural (.forsRoots key)) = right.1 (.structural (.forsRoots key))) :
+    @Fors.publicKeyFromSignature Id _
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache))
+        (@Fors.sign Id _ (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache))
+          indices sk.seed sk.publicKey.seed key.address)
+        indices sk.publicKey.seed key.address =
+      @Fors.publicKeyFromSignature Id _
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache))
+        (@Fors.sign Id _ (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache))
+          indices sk.seed sk.publicKey.seed key.address)
+        indices sk.publicKey.seed key.address := by
+  conv_lhs => rw [hleft]
+  conv_rhs => rw [hright]
+  rw [@CanonicalGraph.fors_publicKey_cell
+      (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache)) indices
+      (left.1 CanonicalGraph.Node.secretSeed) sk.publicKey.seed key,
+    @CanonicalGraph.fors_publicKey_cell
+      (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache)) indices
+      (right.1 CanonicalGraph.Node.secretSeed) sk.publicKey.seed key,
+    value_unionCache, value_unionCache]
+  exact hroots
+
+/-- Two signatures built part by part agree when the parts do. Stated over six variables on
+purpose: applying it is first-order, so nothing ever asks the unifier to walk into two large
+terms that differ only inside a handler instance. -/
+theorem signature_mk_eq {randomizerLeft randomizerRight : Digest}
+    {forsLeft forsRight : ForsSignature}
+    {hypertreeLeft hypertreeRight : HypertreeSignature}
+    (hrandom : randomizerLeft = randomizerRight) (hfors : forsLeft = forsRight)
+    (hhypertree : hypertreeLeft = hypertreeRight) :
+    Signature.mk randomizerLeft forsLeft hypertreeLeft =
+      Signature.mk randomizerRight forsRight hypertreeRight := by
+  rw [hrandom, hfors, hhypertree]
+
 /-- **The randomiser is the cache's, not the table's.** -/
 theorem randomizer_congr (cache : QueryCache HashSpec) (left right : Cells × Padding)
     (sk : SecretKey) (message : Bytes) (hprf : sk.prf ≠ sk.publicKey.seed) :

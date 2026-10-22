@@ -7429,3 +7429,15 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.value_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.value_unionCache
+
+/-- info: 'SlhDsaSecurity.RedrawCell.forsKey_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.forsKey_congr
+
+/-- info: 'SlhDsaSecurity.RedrawCell.signature_mk_eq' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.signature_mk_eq
