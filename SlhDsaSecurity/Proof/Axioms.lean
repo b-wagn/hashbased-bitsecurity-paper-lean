@@ -16133,3 +16133,27 @@ info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets' depends 
 /-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerEvent.prob_event_eq
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_le_probEvent' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_indicator_le_probEvent
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.probEvent_eq_zero_of_self_charge' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.probEvent_eq_zero_of_self_charge
+
+/-- info: 'SlhDsaSecurity.TargetColumn.expected_le_of_self_charge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_le_of_self_charge
+
+/-- info: 'SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow

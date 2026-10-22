@@ -618,4 +618,87 @@ theorem prob_sharedBad_le_doubled (fused : LateProbes.FusedTail)
         add_le_add (hparts q adversary hbudget) (Nat.cast_le.mpr hclaims)
     _ = ((2 * (q - 2 ^ subtreeHeight) + claims : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
 
+/-! ## The refutation, in Lean
+
+`ClassExpectation.expected_indicator_le_probEvent` is what the prose above was missing. With it,
+a charge whose count vanishes off the event it pays for is not merely unprovable: it forces the
+event to be impossible, for every adversary whose record is shorter than `2 ^ 128`. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **A charge against a count that lives only on its own event forces the event empty.** -/
+theorem probEvent_eq_zero_of_self_charge {β : Type} (run : ProbComp β) (event : β → Prop)
+    [DecidablePred event] (count : β → Nat) (bound : Nat)
+    (hbound : ∀ value ∈ support run, event value → count value ≤ bound)
+    (hzero : ∀ value, ¬ event value → count value = 0)
+    (hsmall : bound < 2 ^ 128)
+    (hcharge : Pr[event | run] ≤
+      ClassExpectation.expected run count / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    Pr[event | run] = 0 := by
+  classical
+  by_contra hne
+  have hptop : Pr[event | run] ≠ ⊤ := ne_top_of_le_ne_top one_ne_top probEvent_le_one
+  have hstep : Pr[event | run] ≤
+      (((bound : Nat) : ℝ≥0∞) * Pr[event | run]) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+    hcharge.trans (ENNReal.div_le_div_right
+      (ClassExpectation.expected_indicator_le_probEvent run event count bound hbound hzero) _)
+  rw [ENNReal.le_div_iff_mul_le (Or.inl (by positivity)) (Or.inl (by simp)),
+    mul_comm (Pr[event | run])] at hstep
+  have hdiv := ENNReal.div_le_div_right hstep (Pr[event | run])
+  rw [ENNReal.mul_div_cancel_right hne hptop, ENNReal.mul_div_cancel_right hne hptop] at hdiv
+  have hnat : (2 ^ 128 : Nat) ≤ bound := by exact_mod_cast hdiv
+  omega
+
+/-! ## The third part against the constant column, and the query bound it needs
+
+The budget line, written out: the target is `2 * q / 2 ^ 128`; the answer half spends
+`q / 2 ^ 128`; so the shared half has `(q - 2 ^ subtreeHeight + claims) / 2 ^ 128`, of which
+`recordAiming` and `recordMessageClass` are disjoint parts of the record and fit in
+`q - 2 ^ subtreeHeight` by themselves (`SharedJoin.card_parts_le_record`). **Everything turns on
+whether the third part's expectation fits in `claims`** — a constant of at most `510`, not a
+`q`-term.
+
+`expected_le_of_self_charge` below is that question answered. The count is zero off the seed
+event and at most the record on it, so the bridge gives `expected ≤ B * Pr[seed]`; the seed
+charge gives `Pr[seed] ≤ B / 2 ^ 128`; and the two compose to `B ^ 2 / 2 ^ 128`. That is at most
+`claims` exactly when `B * B ≤ claims * 2 ^ 128`.
+
+**So the question is not whether `127` closes but up to which `q`**, and the bound belongs in the
+statement rather than in a docstring: at `claims = 510` the condition is `B ≤ 22 * 2 ^ 64` and
+fails by `2 ^ 69`. `record_fits_claims_at_pow` records the largest power of two that passes.
+
+Two things this does **not** say. It is the blind order throughout — the seed charge it composes
+with is `RecordPrfCharge.prob_recordMeetsPrfClass_blind`, and moving it to the real game is the
+hop. And `B` here is a cap on the record, which the budget supplies; the answer half's own
+tightness, which decides that the shared half really has only `q - 2 ^ subtreeHeight + claims`,
+is read off `Obligations` and not re-derived here. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **A count that lives on its own charged event is second-order, and fits a constant column
+up to an explicit query bound.** -/
+theorem expected_le_of_self_charge {β : Type} (run : ProbComp β) (event : β → Prop)
+    [DecidablePred event] (count : β → Nat) (bound claims : Nat)
+    (hbound : ∀ value ∈ support run, event value → count value ≤ bound)
+    (hzero : ∀ value, ¬ event value → count value = 0)
+    (hcharge : Pr[event | run] ≤ ((bound : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hthreshold : bound * bound ≤ claims * 2 ^ 128) :
+    ClassExpectation.expected run count ≤ ((claims : Nat) : ℝ≥0∞) := by
+  classical
+  refine le_trans (ClassExpectation.expected_indicator_le_probEvent run event count bound
+    hbound hzero) ?_
+  refine le_trans (mul_le_mul_left' hcharge _) ?_
+  rw [← mul_div_assoc, ← Nat.cast_mul]
+  refine ENNReal.div_le_of_le_mul ?_
+  rw [← Nat.cast_mul]
+  refine Nat.cast_le.mpr ?_
+  simpa using hthreshold
+
+/-- **The largest power of two the threshold admits at the live constant.** At `claims = 510`
+the condition holds at `2 ^ 68` and fails at `2 ^ 69`, so a record of up to `2 ^ 68` entries
+keeps the third part inside the constant column. -/
+theorem record_fits_claims_at_pow :
+    (2 ^ 68 : Nat) * 2 ^ 68 ≤ 510 * 2 ^ 128 ∧ ¬ ((2 ^ 69 : Nat) * 2 ^ 69 ≤ 510 * 2 ^ 128) := by
+  constructor
+  · norm_num
+  · norm_num
+
 end SlhDsaSecurity.TargetColumn
