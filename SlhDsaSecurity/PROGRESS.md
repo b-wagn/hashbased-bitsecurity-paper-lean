@@ -3605,3 +3605,88 @@ recording is a provenance fact wearing a syntactic disguise**, and the way to un
 ask the handler *which query this is*, not what the bytes look like. But check the sign: the
 disclosing side and the target side read the same flag with opposite polarity, and a lemma that
 excludes an input from one of them admits it to the other.
+## The Poisson block: sound, and the margins are a quarter of a bit
+
+The concentration machinery under `prob_not_goodBlock_le` — `ForsMoments`,
+`ForsConcentrationPoisson`, `ForsConcentration`, `ForsConcentrationOccupancy`,
+`ForsConcentrationExtended`, `ForsConcentrationSharper` — was read line by line. **No leaf, no
+hypothesis discharged by something weaker, nothing vacuous.** The chain, so the next reader does
+not have to reconstruct it:
+
+```
+prob_not_goodBlock_le
+  ← ForsDisclosureTape.bad_load_probability
+  ← uniform_load_tail_extended_of_le
+  ← uniformLoads_monotone, uniform_load_tail_extended
+  ← uniformLoads_mul_poisson_tail_le, poisson_count_tail_extended_half, poisson_load_tail
+  ← poisson_sixth_sum_bound, poisson_centered_sum_moments
+  ← independent_sum_moments, centeredMoment_bounds
+  ← iIndepFun_pi, poisson_integral_centered_power, touchard_bounds
+```
+
+**Four places an error would have hidden, each closed by reading.** The sixth-moment partition
+formula is a *definition* whose value is pinned by `sumMoment_zero` and `sumMoment_succ`, both
+proved, so it never has to be trusted. `iIndepFun_pi` is Mathlib's, read from its statement and
+applied at the coordinate-composition shape it actually has. Integrability is unconditional —
+`poisson_integrable_power` and `poisson_integrable_centered_power` hold at every rate, degree,
+order and centre, so there is nothing to discharge. And the two rates match on both sides of the
+Poissonisation: `poissonLoads` is rate 3 per bin, the mixture and both Chebyshev steps are at
+`3 * 2 ^ 63`, and the singleton densities agree exactly, so `poissonLoads_eq_mixture` is an
+identity rather than an inequality in disguise.
+
+**The margins, which decide whether a parameter is re-tunable.** Both final divisions are
+verified exactly over rationals by `norm_num`, not estimated:
+
+| chain | bound | threshold | ratio | needed | slack |
+| --- | --- | --- | --- | --- | --- |
+| main | `≈ 2 ^ 468.91` | `2 ^ 612` | `2 ^ -143.09` | `< 2 ^ -142` | **1.09 bits** |
+| sharper | `≈ 2 ^ 468.91` | `≈ 2 ^ 596.14` | `2 ^ -127.24` | `< 2 ^ -127` | **0.24 bits** |
+
+A quarter of a bit is not room. **Anyone who changes `forsHeight`, the Poisson rate 3, or the
+`5 * 2 ^ 62` cap should expect `ForsConcentrationSharper` to break first**, and should check it
+before the main chain rather than after. The cap itself is already known not to be re-tunable
+upward: `2 * signingLimit = 2 ^ 65` is past the mean of the rate-3 Poisson.
+
+**Where the reading stopped**, named separately from the conclusion so the rest stays usable:
+the kernel numerics were not re-executed (confirmed `decide +kernel` over a Stirling table proved
+equal to Mathlib's, and magnitudes checked by hand); Mathlib was not audited beyond `iIndepFun_pi`,
+the one place a misapplication would have been invisible; and the presampling coupling
+(`DigestTape.padding`, `TapeFactor`, `BlockViews.evalDist_blockTape`) was read only far enough to
+confirm both joints are **equalities of laws** rather than bounds, so the block attaches to the
+game without slack.
+
+## The presampling coupling is an identity, and three never-fails carry it
+
+`TapeFactor` and `BlockViews` were read end to end. **The coupling from the adaptive run to the
+drawn blocks is an equality of laws, not a bound, and it is unconditional in the block lengths.**
+`evalDist_splitTapeRun` is proved by induction on the computation with no hypothesis on
+`leftLength`, `rightLength`, `leftKeep` or `rightKeep`: a block that is too short is fallen back
+from (`splitTapeRecorder_run_*_nil` draws), and a block that is too long has its remainder
+dropped. That is why no length hypothesis appears anywhere in the factorisation and why the whole
+route is affordable — only the two *class* blocks are front-loaded; coins and out-of-class
+answers keep drawing inline.
+
+**The selection has to be causal, not deterministic, and that is the one subtle step.**
+`probEvent_length_set` says overwriting cell `index` of the target block does not change the
+probability that the recording reaches past `index`. Its only hard case is the step that reads
+the cell: the two runs genuinely diverge past it, and the induction does not go through — but at
+that step the event is already true and a recording that only grows keeps it true, so both sides
+are `1`. **A circular argument would hide exactly here, and it is discharged by a proved lemma
+rather than by an assumption.** What it buys is `prob_exists_hit_le_expected`: the charge is the
+*expected* recording length times the rate, never a block length.
+
+**Three never-fails are load-bearing**, and all three are proved: `padding_neverFails` (dropping
+an unused block), `splitTapeRun_neverFails` and `blockRun_tail_neverFails` (`prob_leftBlock`
+moving a block-only event off the run). A failing oracle anywhere would make
+`evalDist_bind_const_neverFails` and `prob_leftBlock` silently wrong rather than unprovable.
+
+**What crosses into the block is three hypotheses, all elaborated**: `hcap : leftLength ≤ 5*2^62`,
+and `hleftBound`/`hrightBound`, the on-support caps saying neither recording outruns its block.
+The cell correspondences (`rightOf_getElem?`, `leftOf_getElem?`) are claimed **only where the
+block still has a cell**, which is why those two caps exist; a too-small `rightLength` makes
+`hrightBound` unprovable rather than fudgeable. `rightLength` is otherwise free: it caps a
+*count*, and the charge stays an expectation in the cells actually read.
+
+Taking the disclosures off the **whole** block rather than the reached prefix is an over-count in
+the safe direction, and `GoodBlock` is stated at the whole block too, so the cap and the coverage
+read the same object.
