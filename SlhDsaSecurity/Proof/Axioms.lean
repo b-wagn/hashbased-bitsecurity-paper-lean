@@ -15935,3 +15935,7 @@ info: 'SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all' depends on
 /-- info: 'SlhDsaSecurity.RecordSlot.isMessageInput_messageInput' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordSlot.isMessageInput_messageInput
+
+/-- info: 'SlhDsaSecurity.RecordSlot.two_targets_disjoint' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.two_targets_disjoint

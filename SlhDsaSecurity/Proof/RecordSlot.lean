@@ -182,4 +182,36 @@ theorem isMessageInput_messageInput (pk : PublicKey) (randomizer : Digest) (mess
     CombinedCharge.IsMessageInput pk (Hashing.messageInput randomizer pk message) :=
   ⟨randomizer, message, rfl⟩
 
+/-! ## Is the factor slack, or is it the attack's own?
+
+A union bound is an upper bound on our ignorance, so a proof that loses a factor does not by
+itself say an adversary gains one. Two things say this one is not slack.
+
+**The two targets are disjoint**, so nothing is double-counted and the union bound loses
+nothing to overlap: `two_targets_disjoint` below. Disjoint events' probabilities add exactly, so
+the per-entry cost really is two units whenever the two targets differ, and they differ except
+on `RandomizerGate.RandomizerHitsSeed`, which has its own slot.
+
+**And one oracle call stakes both guesses.** `FramingLeak.randomizerInput_eq_messageInput` makes
+a single query at `prf ‖ PK.seed ‖ PK.root ‖ m` simultaneously a `PRF_msg` query — staking a
+guess at `SK.prf` — and an `H_msg` query — staking a guess at the message digest. The adversary
+can check either hit against a published randomiser. So the two staked guesses per query are the
+shared oracle's doing, not the proof's.
+
+**That is also exactly what the proposed attack's arithmetic says.**
+`SharedOracleArithmetic.proposedLowerBound`'s leading term is `2 * (work - setup) / wordSpace` —
+two guesses per query — and `proposed_bound_exceeds_target` certifies the total exceeds
+`2 * work / wordSpace`, which is `work / 2 ^ 127`. What that file does **not** claim, in its own
+words, is that any concrete adversary achieves it: *"the connection to the actual experiment is
+a separate obligation."* So the arithmetic for the loss being real is in the tree and the link
+to the experiment is not.
+-/
+
+/-- **The two per-entry targets are disjoint**, so the union bound over them loses nothing to
+overlap and the per-entry cost is exactly two units when the targets differ. -/
+theorem two_targets_disjoint (first second drawn : Digest) (hne : first ≠ second) :
+    ¬ (first = drawn ∧ second = drawn) := by
+  rintro ⟨hfirst, hsecond⟩
+  exact hne (hfirst.trans hsecond.symm)
+
 end SlhDsaSecurity.RecordSlot
