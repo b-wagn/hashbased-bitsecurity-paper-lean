@@ -165,6 +165,7 @@ import SlhDsaSecurity.Proof.LateRate
 import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
 import SlhDsaSecurity.Proof.SharedJoin
+import SlhDsaSecurity.Proof.CoverageCount
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8085,3 +8086,35 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_parts' depends on axioms: [pro
 /-- info: 'SlhDsaSecurity.SplitWitness.mem_records_or_seedRandomised' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.mem_records_or_seedRandomised
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.rightRecord_length_le_count' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.rightRecord_length_le_count
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.tsum_probOutput_mul_count' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.tsum_probOutput_mul_count
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.expectedCount_recorder_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.expectedCount_recorder_eq_rom
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.prob_coverage_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.prob_coverage_le_expected
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join
