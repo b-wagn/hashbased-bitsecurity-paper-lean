@@ -5325,3 +5325,31 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_liftM_state' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_liftM_state
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_liftM_world' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_liftM_world
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_tell_liftM' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_tell_liftM
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_unchargedPhase_inr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_unchargedPhase_inr
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_charged_signer' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_charged_signer
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.phase_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.phase_eq
+
+/-- info: 'SlhDsaSecurity.LinkedPhase.run_phase_counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedPhase.run_phase_counted
