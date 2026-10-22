@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.SignerRightRecord
 import SlhDsaSecurity.Proof.PhaseProvenance
+import SlhDsaSecurity.Proof.RecordedTail
 
 /-!
 # Where a target-recorded entry of the adversary's phase came from
@@ -112,6 +113,40 @@ The first brick of the outer decomposition. `WarmedSplit.mem_support_counted_bin
 the shared oracle, and its proof uses nothing about the oracle — `countAllHashes_bind` is an
 equality of computations and the rest is the monad's own algebra — so it carries with the
 recorder substituted. The count rides on the value and the recorder never reads it. -/
+
+set_option maxHeartbeats 800000 in
+/-- **The count comes off**, leaving the run that produced it. The count rides on the value and
+never reaches the state, so this is `WarmedSplit.mem_support_of_countAllHashes` with the oracle
+substituted and nothing else changed.
+
+Kept as a separate step rather than folded into the split, because at a *bracketed* tail the
+count cannot live in the computation at all — the phase there is at `OracleWorld + SigningSpec`
+and `countAllHashes` wraps a single `OracleComp OracleWorld`. Anything stated with the count as
+a parameter survives that move; anything stated with `countAllHashes` baked in does not. -/
+theorem mem_support_of_countAllHashes (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : SplitState)
+    (result : (α × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
+      (countAllHashes computation)).run state)) :
+    (result.1.1, result.2) ∈
+      support ((simulateQ (recorder leftKeep rightKeep) computation).run state) := by
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [GrowthBudget.countAllHashes_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hmem
+    subst hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure]
+    rfl
+  | query_bind queried next ih =>
+    rw [GrowthBudget.countAllHashes_query_bind, simulateQ_bind, simulateQ_spec_query,
+      StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rw [simulateQ_map, StateT.run_map, support_map] at hrest
+    obtain ⟨inner, hinner, heq⟩ := hrest
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
+    refine ⟨step, hstep, ?_⟩
+    rw [show result.1.1 = inner.1.1 from by rw [← heq], show result.2 = inner.2 from by rw [← heq]]
+    exact ih step.1 step.2 inner hinner
 
 set_option maxHeartbeats 800000 in
 /-- **A counted bind splits at the recorder**, with the recorder's state threaded through. -/
@@ -258,5 +293,23 @@ theorem right_record_phase (leftKeep rightKeep : Bytes → QueryCache HashSpec �
             intro probe value hprobe
             exact houterFinal probe value (by rw [hsignedState]; exact hlater probe value hprobe)
     · exact Or.inr (by rw [hrecord]; exact hsource.mono_record_right)
+
+/-! ## The whole game
+
+The outer decomposition is three applications of `mem_support_counted_bind`, one
+`mem_support_of_countAllHashes` on each part, and `right_record_suffix` to say which part filed
+an entry — and then **each branch asks its question of the object that can answer it**. Key
+generation's and the verifier's are questions about an input's *shape*, which the shared oracle
+can answer, so a consumer projects those sub-runs with `SplitPrefix.mem_support_rom` and uses
+the lemmas already proved there; the recorder is needed only for the adversary's phase, where
+the *recording* is the question, and that is `right_record_phase`.
+
+**Stated as one theorem it does not elaborate.** Carrying the three sub-runs and their value
+types in a single existential block makes a term the `constructorNameAsVariable` linter cannot
+whnf inside its own budget, which is the signal that the statement is doing three jobs. It wants
+splitting one phase per lemma, each handing back its own sub-run, exactly as
+`right_record_phase` does for the middle one. The pieces it needs — the counted-bind split, the
+count's removal, and the phase's own attribution — are all above.
+-/
 
 end SlhDsaSecurity.PhaseRightRecord

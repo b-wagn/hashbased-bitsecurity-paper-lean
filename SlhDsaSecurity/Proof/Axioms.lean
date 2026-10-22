@@ -12165,6 +12165,14 @@ info: 'SlhDsaSecurity.PhaseRightRecord.mem_support_counted_bind' depends on axio
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseRightRecord.mem_support_counted_bind
 
+/--
+info: 'SlhDsaSecurity.PhaseRightRecord.mem_support_of_countAllHashes' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseRightRecord.mem_support_of_countAllHashes
+
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog
