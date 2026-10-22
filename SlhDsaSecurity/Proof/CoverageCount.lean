@@ -18,6 +18,11 @@ would not partition the queries and the whole accounting would have to be reopen
 Everything here is generic in the two recorder tests. The game's pair is being narrowed — the
 signer's own `PRF_msg` query is a message-class input and must not be filed as a target — and
 nothing below reads the tests beyond `hrightClass`, which any narrowing keeps.
+
+It is also generic in the recorder's *state*: everything runs against a `RecorderView.CacheView`,
+so the carrier the handler actually threads — which carries a served set and a flag beside the
+cache — is as good a state here as the bare cache, and the budget is still read at the view's
+own cache.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -25,6 +30,125 @@ open OracleComp OracleSpec ENNReal
 namespace SlhDsaSecurity.CoverageCount
 
 open Security DigestTape ClassGrowth
+
+variable {σ : Type} [RecorderView.CacheView σ]
+
+/-! ## The recorder is the shared oracle, at a general view
+
+`SplitPrefix.mem_support_rom` and `recorder_eq_rom` say the recordings are write-only, and both
+are stated at the cache. At a general view the same two facts hold for the same reason, and
+neither needs anything of `CacheView` beyond its one law: a hit returns the cached answer and
+leaves the carrier, a miss draws and installs, and `cache_update` says the cache that results is
+the cache the shared oracle would have. So the carrier may carry whatever else it likes — a
+flag, a served set — and stay invisible to every event about the result and the cache.
+
+They are here rather than in `RecorderView` only because this is the file that needs them; they
+would sit as well beside the other two. -/
+
+/-- The shared oracle's hit branch, at the type the world's query carries. `SplitPrefix` never
+needed this because both sides of its induction were already spelled at that type; here the two
+sides are spelled at different states, so the ascription has to be written down. -/
+theorem rom_run_inr_some (input : Bytes) (cache : QueryCache HashSpec) (cached : HashOutput)
+    (hcached : cache input = some cached) :
+    (KeygenUniform.rom (Sum.inr input)).run cache =
+      (pure (cached, cache) :
+        ProbComp (OracleWorld.Range (Sum.inr input) × QueryCache HashSpec)) := by
+  rw [DigestTape.rom_run_inr, QueryImpl.withCaching_run_some _ hcached]
+  rfl
+
+/-- The shared oracle's miss branch, likewise. -/
+theorem rom_run_inr_none (input : Bytes) (cache : QueryCache HashSpec)
+    (hfresh : cache input = none) :
+    (KeygenUniform.rom (Sum.inr input)).run cache =
+      (((fun answer => (answer, cache.cacheQuery input answer)) <$>
+        ($ᵗ HashOutput : ProbComp _)) :
+          ProbComp (OracleWorld.Range (Sum.inr input) × QueryCache HashSpec)) := by
+  rw [DigestTape.rom_run_inr, QueryImpl.withCaching_run_none _ hfresh]
+  rfl
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **A recorded run at a view is a run of the shared oracle**, at the view's own cache. -/
+theorem mem_support_rom_of_recorderOf {α : Type}
+    (leftKeep rightKeep : Bytes → σ → Prop) (computation : OracleComp OracleWorld α)
+    (state : RecorderView.StateOf σ) (result : α × RecorderView.StateOf σ)
+    (hmem : result ∈ support ((simulateQ (RecorderView.recorderOf leftKeep rightKeep)
+      computation).run state)) :
+    (result.1, RecorderView.CacheView.cacheOf result.2.1) ∈
+      support ((simulateQ KeygenUniform.rom computation).run
+        (RecorderView.CacheView.cacheOf state.1)) := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff, hmem]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
+    refine ⟨(step.1, RecorderView.CacheView.cacheOf step.2.1), ?_,
+      ih step.1 step.2 result hrest⟩
+    rcases queried with coin | input
+    · rw [RecorderView.recorderOf_run_inl, mem_support_bind_iff] at hstep
+      obtain ⟨value, hvalue, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [DigestTape.rom_run_inl, mem_support_bind_iff]
+      refine ⟨value, hvalue, ?_⟩
+      rw [support_pure, Set.mem_singleton_iff, hpure]
+    · cases hcached : RecorderView.CacheView.cacheOf state.1 input with
+      | some cached =>
+        rw [RecorderView.recorderOf_run_inr_some _ _ input state cached hcached, support_pure,
+          Set.mem_singleton_iff] at hstep
+        rw [rom_run_inr_some input _ cached hcached, support_pure, Set.mem_singleton_iff,
+          hstep]
+      | none =>
+        rw [RecorderView.recorderOf_run_inr_none _ _ input state hcached, support_map] at hstep
+        obtain ⟨answer, hanswer, hpair⟩ := hstep
+        rw [rom_run_inr_none input _ hcached, support_map]
+        refine ⟨answer, hanswer, ?_⟩
+        rw [← hpair]
+        exact congrArg _ (RecorderView.CacheView.cache_update state.1 input answer).symm
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The recordings are invisible**, at a general view: an event about the result and the view's
+cache has the same probability under the recorded run as under the shared oracle's. -/
+theorem recorderOf_eq_rom {α : Type}
+    (leftKeep rightKeep : Bytes → σ → Prop) (computation : OracleComp OracleWorld α)
+    (state : RecorderView.StateOf σ) (event : α × QueryCache HashSpec → Prop) :
+    Pr[fun result : α × RecorderView.StateOf σ =>
+        event (result.1, RecorderView.CacheView.cacheOf result.2.1) |
+      (simulateQ (RecorderView.recorderOf leftKeep rightKeep) computation).run state] =
+      Pr[event | (simulateQ KeygenUniform.rom computation).run
+        (RecorderView.CacheView.cacheOf state.1)] := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state with
+  | pure value =>
+    simp only [simulateQ_pure, StateT.run_pure]
+    rw [probEvent_pure, probEvent_pure]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, simulateQ_bind,
+      simulateQ_spec_query, StateT.run_bind]
+    rcases queried with coin | input
+    · rw [RecorderView.recorderOf_run_inl, DigestTape.rom_run_inl, bind_assoc, bind_assoc]
+      simp only [pure_bind]
+      rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+      exact tsum_congr fun value => by rw [ih value state]
+    · cases hcached : RecorderView.CacheView.cacheOf state.1 input with
+      | some cached =>
+        rw [RecorderView.recorderOf_run_inr_some _ _ input state cached hcached,
+          rom_run_inr_some input _ cached hcached]
+        simp only [pure_bind]
+        exact ih cached (state.1, RecorderView.appendedOf leftKeep rightKeep input state cached)
+      | none =>
+        rw [RecorderView.recorderOf_run_inr_none _ _ input state hcached,
+          rom_run_inr_none input _ hcached]
+        simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
+        rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+        refine tsum_congr fun answer => ?_
+        rw [← RecorderView.CacheView.cache_update state.1 input answer]
+        exact congrArg _ (ih answer (RecorderView.CacheView.update state.1 input answer,
+          RecorderView.appendedOf leftKeep rightKeep input state answer))
 
 /-! ## The recording never outruns the count -/
 
@@ -34,13 +158,13 @@ open scoped Classical in
 *fresh* query whose input the counter charges, so each entry has its own unit of the inside
 slot. -/
 theorem rightRecord_length_le_count
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (leftKeep rightKeep : Bytes → σ → Prop) (inClass : Bytes → Prop)
     (inside outside : QueryKind)
     (hrightClass : ∀ input cache, rightKeep input cache → inClass input)
     {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (state : SplitPrefix.SplitState)
-      (result : (α × Counts) × SplitPrefix.SplitState),
-      result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+    ∀ (state : RecorderView.StateOf σ)
+      (result : (α × Counts) × RecorderView.StateOf σ),
+      result ∈ support ((simulateQ (RecorderView.recorderOf leftKeep rightKeep)
         (countQueries (splitCost inClass inside outside) computation)).run state) →
       result.2.2.2.length ≤ state.2.2.length + result.1.2 inside := by
   classical
@@ -66,17 +190,10 @@ theorem rightRecord_length_le_count
     have hstepRecord : step.2.2.2.length ≤
         state.2.2.length + (splitCost inClass inside outside queried) inside := by
       rcases queried with coin | input
-      · rw [SplitPrefix.recorder_run_inl, mem_support_bind_iff] at hstep
-        obtain ⟨value, -, hpure⟩ := hstep
-        rw [support_pure, Set.mem_singleton_iff] at hpure
-        rw [hpure]
+      · rw [RecorderView.recorderOf_step_inl leftKeep rightKeep coin state step hstep]
         simp
-      · rw [SplitPrefix.recorder_run_inr, mem_support_bind_iff] at hstep
-        obtain ⟨answer, -, hpure⟩ := hstep
-        rw [support_pure, Set.mem_singleton_iff] at hpure
-        rw [hpure]
-        show (SplitPrefix.appended leftKeep rightKeep input state answer.1).2.length ≤ _
-        rw [SplitPrefix.appended]
+      · rw [RecorderView.recorderOf_step_record leftKeep rightKeep input state step hstep,
+          RecorderView.appendedOf]
         split_ifs with hfiledLeft hfiledRight
         · simp
         · rw [splitCost_inside inClass inside outside input
@@ -98,14 +215,14 @@ they are not. -/
 open scoped Classical in
 /-- **A split-counted recorded run is a total-counted one.** -/
 theorem mem_support_recorder_countAllHashes
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (leftKeep rightKeep : Bytes → σ → Prop) (inClass : Bytes → Prop)
     {inside outside : QueryKind} (hne : inside ≠ outside) {α : Type}
-    (computation : OracleComp OracleWorld α) (state : SplitPrefix.SplitState)
-    (result : (α × Counts) × SplitPrefix.SplitState)
-    (hmem : result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+    (computation : OracleComp OracleWorld α) (state : RecorderView.StateOf σ)
+    (result : (α × Counts) × RecorderView.StateOf σ)
+    (hmem : result ∈ support ((simulateQ (RecorderView.recorderOf leftKeep rightKeep)
       (countQueries (splitCost inClass inside outside) computation)).run state)) :
     ((result.1.1, result.1.2 inside + result.1.2 outside), result.2) ∈
-      support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+      support ((simulateQ (RecorderView.recorderOf leftKeep rightKeep)
         (countAllHashes computation)).run state) := by
   classical
   rw [← countAllHashes_eq_readOff (splitCost inClass inside outside)
@@ -119,17 +236,18 @@ open scoped Classical in
 the recordings are invisible to it, and the budget bounds it — so the inside slot alone is
 bounded, which is the cap the target recording needs. -/
 theorem inside_le_of_budget
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (leftKeep rightKeep : Bytes → σ → Prop) (inClass : Bytes → Prop)
     {inside outside : QueryKind} (hne : inside ≠ outside) {α : Type}
-    (computation : OracleComp OracleWorld α) (state : SplitPrefix.SplitState)
-    (result : (α × Counts) × SplitPrefix.SplitState)
-    (hmem : result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+    (computation : OracleComp OracleWorld α) (state : RecorderView.StateOf σ)
+    (result : (α × Counts) × RecorderView.StateOf σ)
+    (hmem : result ∈ support ((simulateQ (RecorderView.recorderOf leftKeep rightKeep)
       (countQueries (splitCost inClass inside outside) computation)).run state))
     (budget : Nat)
     (hbudget : ∀ plain ∈ support ((simulateQ KeygenUniform.rom
-      (countAllHashes computation)).run state.1), plain.1.2 ≤ budget) :
+      (countAllHashes computation)).run (RecorderView.CacheView.cacheOf state.1)),
+      plain.1.2 ≤ budget) :
     result.1.2 inside ≤ budget := by
-  have htotal := SplitPrefix.mem_support_rom leftKeep rightKeep (countAllHashes computation)
+  have htotal := mem_support_rom_of_recorderOf leftKeep rightKeep (countAllHashes computation)
     state _ (mem_support_recorder_countAllHashes leftKeep rightKeep inClass hne computation
       state result hmem)
   have hle : result.1.2 inside + result.1.2 outside ≤ budget := hbudget _ htotal
@@ -140,16 +258,17 @@ open scoped Classical in
 on the *count*, not on the charge: the charge stays an expectation in the entries actually
 filed. -/
 theorem rightRecord_length_le_budget
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (leftKeep rightKeep : Bytes → σ → Prop) (inClass : Bytes → Prop)
     {inside outside : QueryKind} (hne : inside ≠ outside)
     (hrightClass : ∀ input cache, rightKeep input cache → inClass input)
-    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
-    (result : (α × Counts) × SplitPrefix.SplitState)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : σ)
+    (result : (α × Counts) × RecorderView.StateOf σ)
     (hmem : result ∈ support (BlockViews.recordedRun leftKeep rightKeep
       (countQueries (splitCost inClass inside outside) computation) cache))
     (budget : Nat)
     (hbudget : ∀ plain ∈ support ((simulateQ KeygenUniform.rom
-      (countAllHashes computation)).run cache), plain.1.2 ≤ budget) :
+      (countAllHashes computation)).run (RecorderView.CacheView.cacheOf cache)),
+      plain.1.2 ≤ budget) :
     result.2.2.2.length ≤ budget := by
   have hcount := rightRecord_length_le_count leftKeep rightKeep inClass inside outside
     hrightClass computation (cache, [], []) result hmem
@@ -191,17 +310,18 @@ open scoped Classical in
 /-- **An expected count moves across the recording.** The recordings are write-only, so a count
 read off the result alone has the same expectation on the recorded run as on the plain one. -/
 theorem expectedCount_recorder_eq_rom
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) {α : Type}
-    (computation : OracleComp OracleWorld α) (state : SplitPrefix.SplitState)
+    (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) (state : RecorderView.StateOf σ)
     (count : α → Nat) :
-    (∑' result, Pr[= result | (simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+    (∑' result, Pr[= result | (simulateQ (RecorderView.recorderOf leftKeep rightKeep)
         computation).run state] * ((count result.1 : Nat) : ℝ≥0∞)) =
-      ∑' result, Pr[= result | (simulateQ KeygenUniform.rom computation).run state.1] *
+      ∑' result, Pr[= result | (simulateQ KeygenUniform.rom computation).run
+          (RecorderView.CacheView.cacheOf state.1)] *
         ((count result.1 : Nat) : ℝ≥0∞) := by
   classical
   rw [tsum_probOutput_mul_count, tsum_probOutput_mul_count]
   refine tsum_congr fun index => ?_
-  exact SplitPrefix.recorder_eq_rom leftKeep rightKeep computation state
+  exact recorderOf_eq_rom leftKeep rightKeep computation state
     (fun plain => index < count plain.1)
 
 /-! ## The coverage charge in the shape the two-class bound takes it
@@ -222,15 +342,16 @@ open scoped Classical in
 and one unit of `2 ^ -128` per *expected* in-class query — which is the inside slot of the same
 counter whose outside slot pays for the structural charge, so the two add against one budget. -/
 theorem prob_coverage_le_expected
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    (leftKeep rightKeep : Bytes → σ → Prop) (inClass : Bytes → Prop)
     (inside outside : QueryKind)
     (hrightClass : ∀ input cache, rightKeep input cache → inClass input)
-    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : σ)
     (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
     (coverage : (α × Counts) × QueryCache HashSpec → Prop)
     (hjoin : ∀ result ∈ support (BlockViews.recordedRun leftKeep rightKeep
         (countQueries (splitCost inClass inside outside) computation) cache),
-      coverage (result.1, result.2.1) → BlockViews.TargetCovered result)
+      coverage (result.1, RecorderView.CacheView.cacheOf result.2.1) →
+        BlockViews.TargetCovered result)
     (hleftBound : ∀ result ∈ support (BlockViews.recordedRun leftKeep rightKeep
         (countQueries (splitCost inClass inside outside) computation) cache),
       result.2.2.1.length ≤ leftLength)
@@ -238,13 +359,15 @@ theorem prob_coverage_le_expected
         (countQueries (splitCost inClass inside outside) computation) cache),
       result.2.2.2.length ≤ rightLength) :
     Pr[coverage | (simulateQ KeygenUniform.rom
-        (countQueries (splitCost inClass inside outside) computation)).run cache] ≤
+        (countQueries (splitCost inClass inside outside) computation)).run
+          (RecorderView.CacheView.cacheOf cache)] ≤
       (1 : ℝ≥0∞) / 2 ^ 141 +
         ClassExpectation.expected ((simulateQ KeygenUniform.rom
-            (countQueries (splitCost inClass inside outside) computation)).run cache)
+            (countQueries (splitCost inClass inside outside) computation)).run
+              (RecorderView.CacheView.cacheOf cache))
           (fun result => (result.1.2) inside) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
-  rw [← SplitPrefix.recorder_eq_rom leftKeep rightKeep
+  rw [← recorderOf_eq_rom leftKeep rightKeep
     (countQueries (splitCost inClass inside outside) computation) (cache, [], []) coverage]
   refine le_trans (le_trans (probEvent_mono hjoin)
     (BlockViews.prob_targetCovered_le leftKeep rightKeep
@@ -261,7 +384,8 @@ theorem prob_coverage_le_expected
           hrightClass computation (cache, [], []) result hmem
         simpa using hcount
     _ = ClassExpectation.expected ((simulateQ KeygenUniform.rom
-          (countQueries (splitCost inClass inside outside) computation)).run cache)
+          (countQueries (splitCost inClass inside outside) computation)).run
+            (RecorderView.CacheView.cacheOf cache))
           (fun result => (result.1.2) inside) :=
         expectedCount_recorder_eq_rom leftKeep rightKeep
           (countQueries (splitCost inClass inside outside) computation) (cache, [], [])
@@ -283,19 +407,20 @@ open scoped Classical in
 /-- **The answer half, with one budget and no coverage hypothesis.** -/
 theorem prob_bad_or_coverage_le_of_join
     (inClass : Bytes → Prop) {inside outside : QueryKind} (hne : inside ≠ outside)
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (leftKeep rightKeep : Bytes → σ → Prop)
     (hrightClass : ∀ input cache, rightKeep input cache → inClass input)
     (bad : Bytes → HashOutput → Prop)
     (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
       ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
     (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
-    {α : Type} (computation : OracleComp OracleWorld α) (initialCache : QueryCache HashSpec)
-    (hclean : GrowthCharge.CleanBad bad initialCache)
+    {α : Type} (computation : OracleComp OracleWorld α) (initialCache : σ)
+    (hclean : GrowthCharge.CleanBad bad (RecorderView.CacheView.cacheOf initialCache))
     (coverage : (α × Nat) × QueryCache HashSpec → Prop)
     (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
     (hjoin : ∀ result ∈ support (BlockViews.recordedRun leftKeep rightKeep
         (countQueries (splitCost inClass inside outside) computation) initialCache),
-      coverage ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1) →
+      coverage ((result.1.1, result.1.2 inside + result.1.2 outside),
+          RecorderView.CacheView.cacheOf result.2.1) →
         BlockViews.TargetCovered result)
     (hleftBound : ∀ result ∈ support (BlockViews.recordedRun leftKeep rightKeep
         (countQueries (splitCost inClass inside outside) computation) initialCache),
@@ -305,15 +430,19 @@ theorem prob_bad_or_coverage_le_of_join
       result.2.2.2.length ≤ rightLength)
     (budget : Nat)
     (hbudget : ∀ result ∈ support ((simulateQ KeygenUniform.rom
-      (countAllHashes computation)).run initialCache), result.1.2 ≤ budget) :
+      (countAllHashes computation)).run (RecorderView.CacheView.cacheOf initialCache)),
+      result.1.2 ≤ budget) :
     Pr[fun result : (α × Nat) × QueryCache HashSpec =>
         GrowthCharge.Bad bad result ∨ coverage result |
-        (simulateQ KeygenUniform.rom (countAllHashes computation)).run initialCache] ≤
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run
+          (RecorderView.CacheView.cacheOf initialCache)] ≤
       ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
   classical
   refine ClassExpectation.prob_bad_or_coverage_le inClass hne bad hrate hbadClass computation
-    initialCache hclean coverage ((1 : ℝ≥0∞) / 2 ^ 141) ?_ budget hbudget
-  rw [ClassGrowth.probEvent_splitCost inClass hne computation initialCache coverage]
+    (RecorderView.CacheView.cacheOf initialCache) hclean coverage ((1 : ℝ≥0∞) / 2 ^ 141) ?_
+    budget hbudget
+  rw [ClassGrowth.probEvent_splitCost inClass hne computation
+    (RecorderView.CacheView.cacheOf initialCache) coverage]
   exact prob_coverage_le_expected leftKeep rightKeep inClass inside outside hrightClass
     computation initialCache leftLength rightLength hcap _ hjoin hleftBound hrightBound
 

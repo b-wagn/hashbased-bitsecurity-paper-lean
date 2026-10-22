@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.DigestTape
 import SlhDsaSecurity.Proof.SplitPrefix
+import SlhDsaSecurity.Proof.RecorderView
 
 /-!
 # The recording, read off a tape drawn in advance
@@ -262,69 +263,110 @@ The induction is the one above with its drawing case split in two. Each block sp
 head, and whichever block is not being read commutes past the step like any other
 answer-irrelevant draw. -/
 
-/-- The cache, the unread remainders of the two blocks, and the two recordings. -/
-abbrev SplitTapeState :=
-  QueryCache HashSpec × (List HashOutput × List HashOutput) × (Record × Record)
+variable {σ : Type} [RecorderView.CacheView σ]
+
+/-- The view's carrier, the unread remainders of the two blocks, and the two recordings. -/
+abbrev SplitTapeState (σ : Type) :=
+  σ × (List HashOutput × List HashOutput) × (Record × Record)
 
 /-- The two-headed tape-reading run, read as an ordinary two-recording run. -/
-def forgetSplit {α : Type} (result : α × SplitTapeState) : α × SplitPrefix.SplitState :=
+def forgetSplit {α : Type} (result : α × SplitTapeState σ) :
+    α × RecorderView.StateOf σ :=
   (result.1, (result.2.1, result.2.2.2))
+
+open scoped Classical in
+/-- **A query neither block answers**, as the shared oracle does it: a hit returns the cached
+answer and leaves the carrier, a miss draws and installs. Naming it keeps the "neither" branch
+a single equation at a general view, which is what lets every proof below treat that branch as
+one opaque step exactly as it did at the cache. -/
+noncomputable def plainStep (input : Bytes) (state : σ) : ProbComp (HashOutput × σ) :=
+  match RecorderView.CacheView.cacheOf state input with
+  | some cached => (pure (cached, state) : ProbComp _)
+  | none =>
+      (fun answer => (answer, RecorderView.CacheView.update state input answer)) <$>
+        ($ᵗ HashOutput : ProbComp _)
+
+open scoped Classical in
+/-- **The drawing recorder's own "neither" branch**, in the same single-equation shape. -/
+theorem recorderOf_run_inr_plain (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (records : Record × Record)
+    (hskip : ¬ (RecorderView.CacheView.cacheOf cache input = none ∧ leftKeep input cache))
+    (hskip' : ¬ (RecorderView.CacheView.cacheOf cache input = none ∧ rightKeep input cache)) :
+    ((RecorderView.recorderOf leftKeep rightKeep) (Sum.inr input)).run (cache, records) =
+      plainStep input cache >>= fun step =>
+        (pure (step.1, (step.2, records)) : ProbComp _) := by
+  classical
+  cases hcached : RecorderView.CacheView.cacheOf cache input with
+  | some cached =>
+    rw [RecorderView.recorderOf_run_inr_some _ _ input (cache, records) cached hcached,
+      RecorderView.appendedOf_of_cached _ _ input (cache, records) cached cached hcached,
+      plainStep]
+    rw [hcached]
+    simp
+  | none =>
+    rw [RecorderView.recorderOf_run_inr_none _ _ input (cache, records) hcached, plainStep]
+    rw [hcached]
+    simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind, Function.comp_def]
+    refine congrArg (fun step => ($ᵗ HashOutput : ProbComp HashOutput) >>= step) ?_
+    funext value
+    rw [RecorderView.appendedOf_of_neither _ _ input (cache, records) value
+      (fun hleft => hskip ⟨hcached, hleft⟩) (fun hright => hskip' ⟨hcached, hright⟩)]
 
 open scoped Classical in
 /-- **The two-recording oracle with each role's answers read off its own block.** The left test
 is tried first, so one answer is never read off both blocks. -/
 noncomputable def splitTapeRecorder
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) :
-    QueryImpl OracleWorld (StateT SplitTapeState ProbComp) :=
+    (leftKeep rightKeep : Bytes → σ → Prop) :
+    QueryImpl OracleWorld (StateT (SplitTapeState σ) ProbComp) :=
   fun queried state =>
     match queried with
     | Sum.inl coin => do
         let value ← ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _)
         pure (value, state)
     | Sum.inr input =>
-        if state.1 input = none ∧ leftKeep input state.1 then
+        if RecorderView.CacheView.cacheOf state.1 input = none ∧ leftKeep input state.1 then
           match state.2.1.1 with
           | head :: rest =>
-              (pure (head, (state.1.cacheQuery input head, (rest, state.2.1.2),
+              (pure (head, (RecorderView.CacheView.update state.1 input head, (rest, state.2.1.2),
                 (state.2.2.1 ++ [(input, head)], state.2.2.2))) : ProbComp _)
           | [] => do
               let value ← ($ᵗ HashOutput : ProbComp HashOutput)
-              pure (value, (state.1.cacheQuery input value,
+              pure (value, (RecorderView.CacheView.update state.1 input value,
                 (([] : List HashOutput), state.2.1.2),
                 (state.2.2.1 ++ [(input, value)], state.2.2.2)))
-        else if state.1 input = none ∧ rightKeep input state.1 then
+        else if RecorderView.CacheView.cacheOf state.1 input = none ∧ rightKeep input state.1 then
           match state.2.1.2 with
           | head :: rest =>
-              (pure (head, (state.1.cacheQuery input head, (state.2.1.1, rest),
+              (pure (head, (RecorderView.CacheView.update state.1 input head, (state.2.1.1, rest),
                 (state.2.2.1, state.2.2.2 ++ [(input, head)]))) : ProbComp _)
           | [] => do
               let value ← ($ᵗ HashOutput : ProbComp HashOutput)
-              pure (value, (state.1.cacheQuery input value,
+              pure (value, (RecorderView.CacheView.update state.1 input value,
                 (state.2.1.1, ([] : List HashOutput)),
                 (state.2.2.1, state.2.2.2 ++ [(input, value)])))
         else do
-          let step ← (randomOracle input).run state.1
+          let step ← plainStep input state.1
           pure (step.1, (step.2, state.2.1, state.2.2))
 
 /-! ### The step shapes -/
 
 open scoped Classical in
 theorem splitTapeRecorder_run_inl
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (coin : unifSpec.Domain)
-    (state : SplitTapeState) :
+    (leftKeep rightKeep : Bytes → σ → Prop) (coin : unifSpec.Domain)
+    (state : SplitTapeState σ) :
     ((splitTapeRecorder leftKeep rightKeep) (Sum.inl coin)).run state =
       ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _) >>= fun value =>
         (pure (value, state) : ProbComp _) := rfl
 
 open scoped Classical in
 theorem splitTapeRecorder_run_left_cons
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (head : HashOutput) (rest rightTape : List HashOutput)
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (head : HashOutput) (rest rightTape : List HashOutput)
     (leftRecord rightRecord : Record)
-    (hfresh : cache input = none) (hleft : leftKeep input cache) :
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none) (hleft : leftKeep input cache) :
     ((splitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run
         (cache, (head :: rest, rightTape), (leftRecord, rightRecord)) =
-      (pure (head, (cache.cacheQuery input head, (rest, rightTape),
+      (pure (head, (RecorderView.CacheView.update cache input head, (rest, rightTape),
         (leftRecord ++ [(input, head)], rightRecord))) : ProbComp _) := by
   classical
   simp only [splitTapeRecorder, StateT.run]
@@ -332,14 +374,14 @@ theorem splitTapeRecorder_run_left_cons
 
 open scoped Classical in
 theorem splitTapeRecorder_run_left_nil
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (rightTape : List HashOutput)
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (rightTape : List HashOutput)
     (leftRecord rightRecord : Record)
-    (hfresh : cache input = none) (hleft : leftKeep input cache) :
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none) (hleft : leftKeep input cache) :
     ((splitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run
         (cache, ([], rightTape), (leftRecord, rightRecord)) =
       ($ᵗ HashOutput : ProbComp HashOutput) >>= fun value =>
-        (pure (value, (cache.cacheQuery input value, (([] : List HashOutput), rightTape),
+        (pure (value, (RecorderView.CacheView.update cache input value, (([] : List HashOutput), rightTape),
           (leftRecord ++ [(input, value)], rightRecord))) : ProbComp _) := by
   classical
   simp only [splitTapeRecorder, StateT.run]
@@ -347,14 +389,14 @@ theorem splitTapeRecorder_run_left_nil
 
 open scoped Classical in
 theorem splitTapeRecorder_run_right_cons
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (leftTape : List HashOutput) (head : HashOutput)
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (leftTape : List HashOutput) (head : HashOutput)
     (rest : List HashOutput) (leftRecord rightRecord : Record)
-    (hfresh : cache input = none) (hleft : ¬ leftKeep input cache)
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none) (hleft : ¬ leftKeep input cache)
     (hright : rightKeep input cache) :
     ((splitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run
         (cache, (leftTape, head :: rest), (leftRecord, rightRecord)) =
-      (pure (head, (cache.cacheQuery input head, (leftTape, rest),
+      (pure (head, (RecorderView.CacheView.update cache input head, (leftTape, rest),
         (leftRecord, rightRecord ++ [(input, head)]))) : ProbComp _) := by
   classical
   simp only [splitTapeRecorder, StateT.run]
@@ -362,15 +404,15 @@ theorem splitTapeRecorder_run_right_cons
 
 open scoped Classical in
 theorem splitTapeRecorder_run_right_nil
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (leftTape : List HashOutput)
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (leftTape : List HashOutput)
     (leftRecord rightRecord : Record)
-    (hfresh : cache input = none) (hleft : ¬ leftKeep input cache)
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none) (hleft : ¬ leftKeep input cache)
     (hright : rightKeep input cache) :
     ((splitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run
         (cache, (leftTape, []), (leftRecord, rightRecord)) =
       ($ᵗ HashOutput : ProbComp HashOutput) >>= fun value =>
-        (pure (value, (cache.cacheQuery input value, (leftTape, ([] : List HashOutput)),
+        (pure (value, (RecorderView.CacheView.update cache input value, (leftTape, ([] : List HashOutput)),
           (leftRecord, rightRecord ++ [(input, value)]))) : ProbComp _) := by
   classical
   simp only [splitTapeRecorder, StateT.run]
@@ -378,13 +420,13 @@ theorem splitTapeRecorder_run_right_nil
 
 open scoped Classical in
 theorem splitTapeRecorder_run_other
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (tapes : List HashOutput × List HashOutput)
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (tapes : List HashOutput × List HashOutput)
     (records : Record × Record)
-    (hskip : ¬ (cache input = none ∧ leftKeep input cache))
-    (hskip' : ¬ (cache input = none ∧ rightKeep input cache)) :
+    (hskip : ¬ (RecorderView.CacheView.cacheOf cache input = none ∧ leftKeep input cache))
+    (hskip' : ¬ (RecorderView.CacheView.cacheOf cache input = none ∧ rightKeep input cache)) :
     ((splitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run (cache, tapes, records) =
-      (randomOracle input).run cache >>= fun step =>
+      plainStep input cache >>= fun step =>
         (pure (step.1, (step.2, tapes, records)) : ProbComp _) := by
   classical
   simp only [splitTapeRecorder, StateT.run]
@@ -394,55 +436,51 @@ theorem splitTapeRecorder_run_other
 
 open scoped Classical in
 theorem splitRecorder_run_left
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (leftRecord rightRecord : Record)
-    (hfresh : cache input = none) (hleft : leftKeep input cache) :
-    ((SplitPrefix.recorder leftKeep rightKeep) (Sum.inr input)).run
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (leftRecord rightRecord : Record)
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none) (hleft : leftKeep input cache) :
+    ((RecorderView.recorderOf leftKeep rightKeep) (Sum.inr input)).run
         (cache, leftRecord, rightRecord) =
       ($ᵗ HashOutput : ProbComp HashOutput) >>= fun value =>
-        (pure (value, (cache.cacheQuery input value,
+        (pure (value, (RecorderView.CacheView.update cache input value,
           (leftRecord ++ [(input, value)], rightRecord))) : ProbComp _) := by
   classical
-  rw [SplitPrefix.recorder_run_inr, QueryImpl.withCaching_run_none _ hfresh]
-  simp only [uniformSampleImpl, map_eq_bind_pure_comp, bind_assoc, pure_bind,
-    Function.comp_def]
+  rw [RecorderView.recorderOf_run_inr_none _ _ input (cache, leftRecord, rightRecord) hfresh]
+  simp only [map_eq_bind_pure_comp, Function.comp_def]
   refine congrArg (fun step => ($ᵗ HashOutput : ProbComp HashOutput) >>= step) ?_
   funext value
-  rw [SplitPrefix.appended, if_pos ⟨hfresh, hleft⟩]
+  rw [RecorderView.appendedOf_of_left _ _ input (cache, leftRecord, rightRecord) value
+    hfresh hleft]
 
 open scoped Classical in
 theorem splitRecorder_run_right
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (leftRecord rightRecord : Record)
-    (hfresh : cache input = none) (hleft : ¬ leftKeep input cache)
-    (hright : rightKeep input cache) :
-    ((SplitPrefix.recorder leftKeep rightKeep) (Sum.inr input)).run
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (leftRecord rightRecord : Record)
+    (hfresh : RecorderView.CacheView.cacheOf cache input = none)
+    (hleft : ¬ leftKeep input cache) (hright : rightKeep input cache) :
+    ((RecorderView.recorderOf leftKeep rightKeep) (Sum.inr input)).run
         (cache, leftRecord, rightRecord) =
       ($ᵗ HashOutput : ProbComp HashOutput) >>= fun value =>
-        (pure (value, (cache.cacheQuery input value,
+        (pure (value, (RecorderView.CacheView.update cache input value,
           (leftRecord, rightRecord ++ [(input, value)]))) : ProbComp _) := by
   classical
-  rw [SplitPrefix.recorder_run_inr, QueryImpl.withCaching_run_none _ hfresh]
-  simp only [uniformSampleImpl, map_eq_bind_pure_comp, bind_assoc, pure_bind,
-    Function.comp_def]
+  rw [RecorderView.recorderOf_run_inr_none _ _ input (cache, leftRecord, rightRecord) hfresh]
+  simp only [map_eq_bind_pure_comp, Function.comp_def]
   refine congrArg (fun step => ($ᵗ HashOutput : ProbComp HashOutput) >>= step) ?_
   funext value
-  rw [SplitPrefix.appended, if_neg (fun h => hleft h.2), if_pos ⟨hfresh, hright⟩]
+  rw [RecorderView.appendedOf_of_right _ _ input (cache, leftRecord, rightRecord) value
+    hfresh hleft hright]
 
 open scoped Classical in
 theorem splitRecorder_run_other
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (input : Bytes)
-    (cache : QueryCache HashSpec) (records : Record × Record)
-    (hskip : ¬ (cache input = none ∧ leftKeep input cache))
-    (hskip' : ¬ (cache input = none ∧ rightKeep input cache)) :
-    ((SplitPrefix.recorder leftKeep rightKeep) (Sum.inr input)).run (cache, records) =
-      (randomOracle input).run cache >>= fun step =>
-        (pure (step.1, (step.2, records)) : ProbComp _) := by
-  classical
-  rw [SplitPrefix.recorder_run_inr]
-  refine congrArg (fun step => (randomOracle input).run cache >>= step) ?_
-  funext step
-  rw [SplitPrefix.appended, if_neg hskip, if_neg hskip']
+    (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (cache : σ) (records : Record × Record)
+    (hskip : ¬ (RecorderView.CacheView.cacheOf cache input = none ∧ leftKeep input cache))
+    (hskip' : ¬ (RecorderView.CacheView.cacheOf cache input = none ∧ rightKeep input cache)) :
+    ((RecorderView.recorderOf leftKeep rightKeep) (Sum.inr input)).run (cache, records) =
+      plainStep input cache >>= fun step =>
+        (pure (step.1, (step.2, records)) : ProbComp _) :=
+  recorderOf_run_inr_plain leftKeep rightKeep input cache records hskip hskip'
 
 /-! ### The two blocks commute past an irrelevant draw -/
 
@@ -465,11 +503,11 @@ theorem evalDist_comm_blocks {β γ : Type} (draw : ProbComp β)
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The two-recording run factorises through two blocks drawn in advance.** -/
-theorem evalDist_splitTapeRun (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+theorem evalDist_splitTapeRun (leftKeep rightKeep : Bytes → σ → Prop)
     {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (leftLength rightLength : Nat) (cache : QueryCache HashSpec)
+    ∀ (leftLength rightLength : Nat) (cache : σ)
       (leftRecord rightRecord : Record),
-      𝒟[(simulateQ (SplitPrefix.recorder leftKeep rightKeep) computation).run
+      𝒟[(simulateQ (RecorderView.recorderOf leftKeep rightKeep) computation).run
           (cache, leftRecord, rightRecord)] =
         𝒟[padding leftLength >>= fun leftTape =>
             padding rightLength >>= fun rightTape =>
@@ -489,12 +527,12 @@ theorem evalDist_splitTapeRun (leftKeep rightKeep : Bytes → QueryCache HashSpe
     intro leftLength rightLength cache leftRecord rightRecord
     simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
     rcases queried with coin | input
-    · simp only [SplitPrefix.recorder_run_inl, splitTapeRecorder_run_inl, bind_assoc,
+    · simp only [RecorderView.recorderOf_run_inl, splitTapeRecorder_run_inl, bind_assoc,
         pure_bind, map_bind]
       refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
         (fun value => ih value leftLength rightLength cache leftRecord rightRecord)) ?_
       exact evalDist_comm_blocks _ leftLength rightLength _
-    · by_cases hfresh : cache input = none
+    · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
       · by_cases hleft : leftKeep input cache
         · -- A fresh left-class query splices the head of the left block.
           simp only [splitRecorder_run_left leftKeep rightKeep input cache leftRecord
@@ -505,7 +543,7 @@ theorem evalDist_splitTapeRun (leftKeep rightKeep : Bytes → QueryCache HashSpe
               splitTapeRecorder_run_left_nil leftKeep rightKeep input cache _ leftRecord
                 rightRecord hfresh hleft, bind_assoc, pure_bind, map_bind]
             refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
-              (fun value => ih value 0 rightLength (cache.cacheQuery input value)
+              (fun value => ih value 0 rightLength (RecorderView.CacheView.update cache input value)
                 (leftRecord ++ [(input, value)]) rightRecord)) ?_
             simp only [padding_zero_bind]
             exact OracleComp.DeferredSampling.evalDist_bind_comm _ (padding rightLength) _
@@ -514,7 +552,7 @@ theorem evalDist_splitTapeRun (leftKeep rightKeep : Bytes → QueryCache HashSpe
               splitTapeRecorder_run_left_cons leftKeep rightKeep input cache _ _ _ leftRecord
                 rightRecord hfresh hleft, pure_bind]
             exact OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
-              fun value => ih value remaining rightLength (cache.cacheQuery input value)
+              fun value => ih value remaining rightLength (RecorderView.CacheView.update cache input value)
                 (leftRecord ++ [(input, value)]) rightRecord
         · by_cases hright : rightKeep input cache
           · -- A fresh right-class query splices the head of the right block.
@@ -526,7 +564,7 @@ theorem evalDist_splitTapeRun (leftKeep rightKeep : Bytes → QueryCache HashSpe
                 splitTapeRecorder_run_right_nil leftKeep rightKeep input cache _ leftRecord
                   rightRecord hfresh hleft hright, bind_assoc, pure_bind, map_bind]
               refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
-                (fun value => ih value leftLength 0 (cache.cacheQuery input value) leftRecord
+                (fun value => ih value leftLength 0 (RecorderView.CacheView.update cache input value) leftRecord
                   (rightRecord ++ [(input, value)]))) ?_
               simp only [padding_zero_bind]
               exact OracleComp.DeferredSampling.evalDist_bind_comm _ (padding leftLength) _
@@ -535,7 +573,7 @@ theorem evalDist_splitTapeRun (leftKeep rightKeep : Bytes → QueryCache HashSpe
                 splitTapeRecorder_run_right_cons leftKeep rightKeep input cache _ _ _
                   leftRecord rightRecord hfresh hleft hright, pure_bind]
               refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
-                (fun value => ih value leftLength remaining (cache.cacheQuery input value)
+                (fun value => ih value leftLength remaining (RecorderView.CacheView.update cache input value)
                   leftRecord (rightRecord ++ [(input, value)]))) ?_
               exact OracleComp.DeferredSampling.evalDist_bind_comm _ (padding leftLength) _
           · -- Neither class: the step is answer-irrelevant to both blocks.
@@ -576,13 +614,13 @@ induction cannot be carried through it. It does not have to be: at the step that
 the event has already come true, and a recording that only grows keeps it true. -/
 
 /-- The target recording of a state. -/
-def rightOf (state : SplitTapeState) : Record := state.2.2.2
+def rightOf (state : SplitTapeState σ) : Record := state.2.2.2
 
 open scoped Classical in
 /-- **One step never fails and appends at most one target entry.** Both halves of this are what
 the selection argument needs, and both are read off the same case split. -/
-theorem splitTapeRecorder_step (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
-    (queried : OracleWorld.Domain) (state : SplitTapeState) :
+theorem splitTapeRecorder_step (leftKeep rightKeep : Bytes → σ → Prop)
+    (queried : OracleWorld.Domain) (state : SplitTapeState σ) :
     Pr[⊥ | ((splitTapeRecorder leftKeep rightKeep) queried).run state] = 0 ∧
       ∀ step ∈ support (((splitTapeRecorder leftKeep rightKeep) queried).run state),
         rightOf state <+: rightOf step.2 := by
@@ -595,7 +633,7 @@ theorem splitTapeRecorder_step (leftKeep rightKeep : Bytes → QueryCache HashSp
     obtain ⟨value, -, hpure⟩ := hstep
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [hpure]
-  · by_cases hfresh : cache input = none
+  · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
     · by_cases hleft : leftKeep input cache
       · cases leftTape with
         | nil =>
@@ -651,8 +689,8 @@ theorem splitTapeRecorder_step (leftKeep rightKeep : Bytes → QueryCache HashSp
 
 open scoped Classical in
 /-- The tape-reading run never fails. -/
-theorem splitTapeRun_neverFails (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) (state : SplitTapeState) :
+theorem splitTapeRun_neverFails (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : SplitTapeState σ) :
     Pr[⊥ | (simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run state] = 0 := by
   classical
   induction computation using OracleComp.inductionOn generalizing state with
@@ -665,9 +703,9 @@ theorem splitTapeRun_neverFails (leftKeep rightKeep : Bytes → QueryCache HashS
 
 open scoped Classical in
 /-- **The target recording only grows.** -/
-theorem rightOf_prefix (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) (state : SplitTapeState)
-    (result : α × SplitTapeState)
+theorem rightOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : SplitTapeState σ)
+    (result : α × SplitTapeState σ)
     (hmem : result ∈ support ((simulateQ (splitTapeRecorder leftKeep rightKeep)
       computation).run state)) :
     rightOf state <+: rightOf result.2 := by
@@ -686,12 +724,12 @@ theorem rightOf_prefix (leftKeep rightKeep : Bytes → QueryCache HashSpec → P
 open scoped Classical in
 /-- Once a target answer has been recorded the recording has already outgrown the length the
 selection asks about, and it never shrinks again. -/
-theorem probEvent_length_eq_one (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+theorem probEvent_length_eq_one (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : σ)
     (tapes : List HashOutput × List HashOutput) (leftRecord rightRecord : Record)
     (entry : Bytes × HashOutput) (bound : Nat)
     (hbound : bound < (rightRecord ++ [entry]).length) :
-    Pr[fun result : α × SplitTapeState => bound < (rightOf result.2).length |
+    Pr[fun result : α × SplitTapeState σ => bound < (rightOf result.2).length |
         (simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
           (cache, tapes, (leftRecord, rightRecord ++ [entry]))] = 1 := by
   classical
@@ -703,15 +741,15 @@ theorem probEvent_length_eq_one (leftKeep rightKeep : Bytes → QueryCache HashS
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **Overwriting an unread cell of the target block does not move the selection.** -/
-theorem probEvent_length_set (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+theorem probEvent_length_set (leftKeep rightKeep : Bytes → σ → Prop)
     {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (index : Nat) (newValue : HashOutput) (cache : QueryCache HashSpec)
+    ∀ (index : Nat) (newValue : HashOutput) (cache : σ)
       (leftTape rightTape : List HashOutput) (leftRecord rightRecord : Record),
-      Pr[fun result : α × SplitTapeState =>
+      Pr[fun result : α × SplitTapeState σ =>
           rightRecord.length + index < (rightOf result.2).length |
         (simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
           (cache, (leftTape, rightTape), (leftRecord, rightRecord))] =
-        Pr[fun result : α × SplitTapeState =>
+        Pr[fun result : α × SplitTapeState σ =>
             rightRecord.length + index < (rightOf result.2).length |
           (simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
             (cache, (leftTape, rightTape.set index newValue), (leftRecord, rightRecord))] := by
@@ -728,7 +766,7 @@ theorem probEvent_length_set (leftKeep rightKeep : Bytes → QueryCache HashSpec
     · simp only [splitTapeRecorder_run_inl, bind_assoc, pure_bind, probEvent_bind_eq_tsum]
       exact tsum_congr fun answer => congrArg _
         (ih answer index newValue cache leftTape rightTape leftRecord rightRecord)
-    · by_cases hfresh : cache input = none
+    · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
       · by_cases hleft : leftKeep input cache
         · -- The left block is read; the target block passes through untouched.
           cases leftTape with
@@ -737,12 +775,12 @@ theorem probEvent_length_set (leftKeep rightKeep : Bytes → QueryCache HashSpec
               leftRecord rightRecord hfresh hleft, bind_assoc, pure_bind,
               probEvent_bind_eq_tsum]
             exact tsum_congr fun answer => congrArg _
-              (ih answer index newValue (cache.cacheQuery input answer) [] rightTape
+              (ih answer index newValue (RecorderView.CacheView.update cache input answer) [] rightTape
                 (leftRecord ++ [(input, answer)]) rightRecord)
           | cons head rest =>
             simp only [splitTapeRecorder_run_left_cons leftKeep rightKeep input cache head rest
               _ leftRecord rightRecord hfresh hleft, pure_bind]
-            exact ih head index newValue (cache.cacheQuery input head) rest rightTape
+            exact ih head index newValue (RecorderView.CacheView.update cache input head) rest rightTape
               (leftRecord ++ [(input, head)]) rightRecord
         · by_cases hright : rightKeep input cache
           · -- The target block is read.
@@ -756,10 +794,10 @@ theorem probEvent_length_set (leftKeep rightKeep : Bytes → QueryCache HashSpec
                   splitTapeRecorder_run_right_cons leftKeep rightKeep input cache leftTape _ _
                     leftRecord rightRecord hfresh hleft hright, pure_bind, Nat.add_zero]
                 rw [probEvent_length_eq_one leftKeep rightKeep (next head)
-                    (cache.cacheQuery input head) (leftTape, rest) leftRecord rightRecord
+                    (RecorderView.CacheView.update cache input head) (leftTape, rest) leftRecord rightRecord
                     (input, head) rightRecord.length (by simp),
                   probEvent_length_eq_one leftKeep rightKeep (next newValue)
-                    (cache.cacheQuery input newValue) (leftTape, rest) leftRecord rightRecord
+                    (RecorderView.CacheView.update cache input newValue) (leftTape, rest) leftRecord rightRecord
                     (input, newValue) rightRecord.length (by simp)]
               | succ remaining =>
                 -- The cell is further on, so this step is the same on both sides.
@@ -771,7 +809,7 @@ theorem probEvent_length_set (leftKeep rightKeep : Bytes → QueryCache HashSpec
                   simp only [List.length_append, List.length_cons, List.length_nil]
                   omega
                 rw [hlength]
-                exact ih head remaining newValue (cache.cacheQuery input head) leftTape rest
+                exact ih head remaining newValue (RecorderView.CacheView.update cache input head) leftTape rest
                   leftRecord (rightRecord ++ [(input, head)])
           · -- Neither block is read.
             simp only [splitTapeRecorder_run_other leftKeep rightKeep input cache _
@@ -846,10 +884,10 @@ theorem probEvent_const_and {γ : Type} (run : ProbComp γ) (constant : Prop)
     exact probEvent_eq_zero fun _ _ h => hconstant h.1
 
 /-- The whole run, with the two blocks it read kept beside its result. -/
-noncomputable def blockRun (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+noncomputable def blockRun (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : σ)
     (leftLength rightLength : Nat) :
-    ProbComp ((List HashOutput × List HashOutput) × (α × SplitTapeState)) :=
+    ProbComp ((List HashOutput × List HashOutput) × (α × SplitTapeState σ)) :=
   padding leftLength >>= fun leftTape =>
     padding rightLength >>= fun rightTape =>
       (fun result => ((leftTape, rightTape), result)) <$>
@@ -862,8 +900,8 @@ open scoped Classical in
 disclosing block is good, and whose cell `index` is hit by that block, costs the probability of
 reaching the cell times the rate — not the rate outright. The weight is what averaging destroys
 and what this keeps. -/
-theorem prob_selected_hit_le (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+theorem prob_selected_hit_le (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : σ)
     (leftLength rightLength index : Nat) (hindex : index < rightLength)
     (goodBlock : List HashOutput → Prop) (hit : List HashOutput → HashOutput → Prop)
     (rate : ℝ≥0∞)
@@ -876,11 +914,11 @@ theorem prob_selected_hit_le (leftKeep rightKeep : Bytes → QueryCache HashSpec
         blockRun leftKeep rightKeep computation cache leftLength rightLength] * rate := by
   classical
   set target : List HashOutput → List HashOutput → ℝ≥0∞ := fun leftTape rightTape =>
-    Pr[fun result : α × SplitTapeState => index < (rightOf result.2).length |
+    Pr[fun result : α × SplitTapeState σ => index < (rightOf result.2).length |
       (simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
         (cache, (leftTape, rightTape), ([], []))] with htarget
   -- The selection alone, with the blocks forgotten.
-  have hright : Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState) =>
+  have hright : Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
         index < (rightOf outcome.2.2).length |
       blockRun leftKeep rightKeep computation cache leftLength rightLength] =
       ∑' leftTape, Pr[= leftTape | padding leftLength] *
@@ -892,14 +930,14 @@ theorem prob_selected_hit_le (leftKeep rightKeep : Bytes → QueryCache HashSpec
     rw [probEvent_map]
     rfl
   -- The charged event, after one cell of the target block is redrawn.
-  have hleft : Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState) =>
+  have hleft : Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
         index < (rightOf outcome.2.2).length ∧ goodBlock outcome.1.1 ∧
           ∃ value, outcome.1.2[index]? = some value ∧ hit outcome.1.1 value |
       blockRun leftKeep rightKeep computation cache leftLength rightLength] =
       ∑' leftTape, Pr[= leftTape | padding leftLength] *
         ∑' rightTape, Pr[= rightTape | padding rightLength] *
           ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
-            Pr[fun result : α × SplitTapeState =>
+            Pr[fun result : α × SplitTapeState σ =>
                 index < (rightOf result.2).length ∧ goodBlock leftTape ∧
                   ∃ other, (rightTape.set index value)[index]? = some other ∧
                     hit leftTape other |
@@ -928,7 +966,7 @@ theorem prob_selected_hit_le (leftKeep rightKeep : Bytes → QueryCache HashSpec
   refine mul_le_mul' le_rfl ?_
   -- The cell's own draw is all that is left to charge.
   calc ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
-        Pr[fun result : α × SplitTapeState =>
+        Pr[fun result : α × SplitTapeState σ =>
             index < (rightOf result.2).length ∧ goodBlock leftTape ∧
               ∃ other, (rightTape.set index value)[index]? = some other ∧ hit leftTape other |
           (simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
@@ -936,7 +974,7 @@ theorem prob_selected_hit_le (leftKeep rightKeep : Bytes → QueryCache HashSpec
       ≤ ∑' value, Pr[= value | ($ᵗ HashOutput : ProbComp HashOutput)] *
           (if goodBlock leftTape ∧ hit leftTape value then target leftTape rightTape else 0) := by
         refine ENNReal.tsum_le_tsum fun value => mul_le_mul' le_rfl ?_
-        refine le_trans (probEvent_mono (q := fun result : α × SplitTapeState =>
+        refine le_trans (probEvent_mono (q := fun result : α × SplitTapeState σ =>
           (goodBlock leftTape ∧ hit leftTape value) ∧
             index < (rightOf result.2).length) ?_) ?_
         · rintro result - ⟨hselected, hgood, other, hread, hhit⟩
@@ -990,11 +1028,11 @@ theorem sum_tsum_comm {Index Result : Type} [DecidableEq Index] (indices : Finse
 
 /-- The sum of the per-cell selection probabilities is an expected recording length. -/
 theorem sum_prob_selected_le_expected
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) {α : Type}
-    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) (cache : σ)
     (leftLength rightLength : Nat) :
     (∑ index : Fin rightLength,
-        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState) =>
+        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
             index.val < (rightOf outcome.2.2).length |
           blockRun leftKeep rightKeep computation cache leftLength rightLength]) ≤
       ∑' outcome, Pr[= outcome |
@@ -1002,7 +1040,7 @@ theorem sum_prob_selected_le_expected
         (((rightOf outcome.2.2).length : Nat) : ℝ≥0∞) := by
   classical
   calc ∑ index : Fin rightLength,
-        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState) =>
+        Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
             index.val < (rightOf outcome.2.2).length |
           blockRun leftKeep rightKeep computation cache leftLength rightLength]
       = ∑ index : Fin rightLength, ∑' outcome,
@@ -1039,14 +1077,14 @@ This is the statement the two-class bound needs and the one a fixed-limit charge
 averaged into. The weight the averaging destroys is kept by `prob_selected_hit_le`, one factor
 per cell, and summed here. -/
 theorem prob_exists_hit_le_expected
-    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) {α : Type}
-    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) (cache : σ)
     (leftLength rightLength : Nat)
     (goodBlock : List HashOutput → Prop) (hit : List HashOutput → HashOutput → Prop)
     (rate : ℝ≥0∞)
     (hrate : ∀ leftTape, goodBlock leftTape →
       Pr[fun value => hit leftTape value | ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate) :
-    Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState) =>
+    Pr[fun outcome : (List HashOutput × List HashOutput) × (α × SplitTapeState σ) =>
           ∃ index : Fin rightLength, index.val < (rightOf outcome.2.2).length ∧
             goodBlock outcome.1.1 ∧
             ∃ value, outcome.1.2[index.val]? = some value ∧ hit outcome.1.1 value |
@@ -1086,10 +1124,10 @@ theorem getElem?_of_prefix {β : Type} {short long : List β} (hprefix : short <
 
 open scoped Classical in
 /-- **Each recorded target answer is the block cell it was read from.** -/
-theorem rightOf_getElem? (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+theorem rightOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
     {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (cache : QueryCache HashSpec) (leftTape rightTape : List HashOutput)
-      (leftRecord rightRecord : Record) (result : α × SplitTapeState),
+    ∀ (cache : σ) (leftTape rightTape : List HashOutput)
+      (leftRecord rightRecord : Record) (result : α × SplitTapeState σ),
       result ∈ support ((simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
         (cache, (leftTape, rightTape), (leftRecord, rightRecord))) →
       ∀ index : Nat, rightRecord.length + index < (rightOf result.2).length →
@@ -1112,7 +1150,7 @@ theorem rightOf_getElem? (leftKeep rightKeep : Bytes → QueryCache HashSpec →
       rw [support_pure, Set.mem_singleton_iff] at hpure
       rw [hpure] at hrest
       exact ih _ _ _ _ _ _ result hrest index hreached hcell
-    · by_cases hfresh : cache input = none
+    · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
       · by_cases hleft : leftKeep input cache
         · -- The left block is read; the target block and recording are untouched.
           cases leftTape with
@@ -1141,13 +1179,13 @@ theorem rightOf_getElem? (leftKeep rightKeep : Bytes → QueryCache HashSpec →
               | zero =>
                 -- This cell is the one just read, and the recording keeps it.
                 have hprefix := rightOf_prefix leftKeep rightKeep (next head)
-                  (cache.cacheQuery input head, (leftTape, rest),
+                  (RecorderView.CacheView.update cache input head, (leftTape, rest),
                     (leftRecord, rightRecord ++ [(input, head)])) result hrest
                 rw [Nat.add_zero]
                 rw [getElem?_of_prefix hprefix rightRecord.length (by simp [rightOf])]
                 simp [rightOf]
               | succ smaller =>
-                have hstep' := ih head (cache.cacheQuery input head) leftTape rest leftRecord
+                have hstep' := ih head (RecorderView.CacheView.update cache input head) leftTape rest leftRecord
                   (rightRecord ++ [(input, head)]) result hrest smaller
                   (by simpa using (by omega : rightRecord.length + 1 + smaller <
                     (rightOf result.2).length))
@@ -1179,13 +1217,13 @@ left *recording*. They agree where the block still has a cell, which — the blo
 long as the signing limit allows — is everywhere the recording reaches. -/
 
 /-- The disclosing recording of a state. -/
-def leftOf (state : SplitTapeState) : Record := state.2.2.1
+def leftOf (state : SplitTapeState σ) : Record := state.2.2.1
 
 open scoped Classical in
 /-- The disclosing recording only grows. -/
-theorem leftOf_prefix (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+theorem leftOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
     {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (state : SplitTapeState) (result : α × SplitTapeState),
+    ∀ (state : SplitTapeState σ) (result : α × SplitTapeState σ),
       result ∈ support ((simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
         state) → leftOf state <+: leftOf result.2 := by
   classical
@@ -1205,7 +1243,7 @@ theorem leftOf_prefix (leftKeep rightKeep : Bytes → QueryCache HashSpec → Pr
       obtain ⟨value, -, hpure⟩ := hstep
       rw [support_pure, Set.mem_singleton_iff] at hpure
       rw [hpure]
-    · by_cases hfresh : cache input = none
+    · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
       · by_cases hleft : leftKeep input cache
         · cases leftTape with
           | nil =>
@@ -1254,10 +1292,10 @@ theorem leftOf_prefix (leftKeep rightKeep : Bytes → QueryCache HashSpec → Pr
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **Each recorded disclosing answer is the block cell it was read from.** -/
-theorem leftOf_getElem? (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+theorem leftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
     {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (cache : QueryCache HashSpec) (leftTape rightTape : List HashOutput)
-      (leftRecord rightRecord : Record) (result : α × SplitTapeState),
+    ∀ (cache : σ) (leftTape rightTape : List HashOutput)
+      (leftRecord rightRecord : Record) (result : α × SplitTapeState σ),
       result ∈ support ((simulateQ (splitTapeRecorder leftKeep rightKeep) computation).run
         (cache, (leftTape, rightTape), (leftRecord, rightRecord))) →
       ∀ index : Nat, leftRecord.length + index < (leftOf result.2).length →
@@ -1280,7 +1318,7 @@ theorem leftOf_getElem? (leftKeep rightKeep : Bytes → QueryCache HashSpec → 
       rw [support_pure, Set.mem_singleton_iff] at hpure
       rw [hpure] at hrest
       exact ih _ _ _ _ _ _ result hrest index hreached hcell
-    · by_cases hfresh : cache input = none
+    · by_cases hfresh : RecorderView.CacheView.cacheOf cache input = none
       · by_cases hleft : leftKeep input cache
         · cases leftTape with
           | nil => exact absurd hcell (by simp)
@@ -1292,12 +1330,12 @@ theorem leftOf_getElem? (leftKeep rightKeep : Bytes → QueryCache HashSpec → 
             cases index with
             | zero =>
               have hprefix := leftOf_prefix leftKeep rightKeep (next head)
-                (cache.cacheQuery input head, (rest, rightTape),
+                (RecorderView.CacheView.update cache input head, (rest, rightTape),
                   (leftRecord ++ [(input, head)], rightRecord)) result hrest
               rw [Nat.add_zero, getElem?_of_prefix hprefix leftRecord.length (by simp [leftOf])]
               simp [leftOf]
             | succ smaller =>
-              have hstep' := ih head (cache.cacheQuery input head) rest rightTape
+              have hstep' := ih head (RecorderView.CacheView.update cache input head) rest rightTape
                 (leftRecord ++ [(input, head)]) rightRecord result hrest smaller
                 (by simpa using (by omega : leftRecord.length + 1 + smaller <
                   (leftOf result.2).length))
