@@ -1,0 +1,127 @@
+import SlhDsaSecurity.Proof.RecorderView
+
+/-!
+# The recorder at the carrier, with the flag deciding and the served set remembering
+
+This is the instantiation the parameterisation was for. The disclosing test is
+`HandlerCarrier.FilesLeft` — a query made while the signing oracle holds its framing up, at an
+input of that request's own digest shape — and the predicate the recording's entries satisfy at
+the end is `HandlerCarrier.Served`, membership of the carrier's served multiset.
+
+**The two are different predicates and that is the whole repair.** `AnswerJoin.hdisclosing` asks
+for an iff between the signing log and a *cache-readable* disclosing test, and its right-to-left
+direction is false: an adversary holding `SK.prf` can put the `PRF_msg` entry a cache test looks
+for into the cache with no request behind it. A flag cannot be forged, because only the signing
+oracle sets it — but a flag is down again by the end of the run, so it cannot also be the thing
+an entry satisfies at the end. Splitting the roles is what lets the test be unforgeable and the
+record be readable at once, and `RecorderView.left_recordOf_endKeep_final` is where the split
+is paid for: filing puts the input into the served set, and no later step takes it out.
+
+What remains on the log side is `ServingCarrier.AgreesWithLog` — the served set is the image of
+the signing log — which is a fact about the signing oracle rather than an assumption about the
+adversary, and is the log thread's. The false direction is gone, not relocated.
+
+**The update files and caches in one step**, which is what `servingUpdate` is. It is a legal
+`CacheView` because the law constrains only the cache, and filing does not touch it; that the
+law is this weak is what makes the instantiation possible at all.
+-/
+
+open OracleComp OracleSpec
+
+namespace SlhDsaSecurity.CarriedWitness
+
+open RecorderView HandlerCarrier
+
+variable (pk : PublicKey)
+
+/-! ## The view
+
+Filing and caching in the same step: disclosure begins exactly where the answer does. A design
+that filed later would disclose after the signer's own reads, which is the failure this repairs.
+-/
+
+open scoped Classical in
+/-- Install an answer, and file the input when the flag says the signer is serving it. -/
+noncomputable def servingUpdate (state : State) (input : Bytes) (answer : HashOutput) : State :=
+  if FilesLeft pk state input then file (cacheAnswer state input answer) input
+  else cacheAnswer state input answer
+
+open scoped Classical in
+/-- **Filing does not touch the cache**, so the view's one law holds. -/
+theorem cacheOf_servingUpdate (state : State) (input : Bytes) (answer : HashOutput) :
+    cacheOf (servingUpdate pk state input answer) =
+      (cacheOf state).cacheQuery input answer := by
+  classical
+  rw [servingUpdate]
+  split <;> rfl
+
+open scoped Classical in
+/-- The carrier as a recorder state, with the signing oracle's own update. -/
+noncomputable def servingView : CacheView State where
+  cacheOf := cacheOf
+  update := servingUpdate pk
+  cache_update := cacheOf_servingUpdate pk
+
+open scoped Classical in
+/-- **A filed input is served from that step on.** -/
+theorem served_servingUpdate_self (state : State) (input : Bytes) (answer : HashOutput)
+    (hfiles : FilesLeft pk state input) : Served (servingUpdate pk state input answer) input := by
+  classical
+  rw [servingUpdate, if_pos hfiles]
+  exact Multiset.mem_cons_self _ _
+
+open scoped Classical in
+/-- **No step unserves anything.** -/
+theorem served_servingUpdate (state : State) (input probe : Bytes) (answer : HashOutput)
+    (hserved : Served state input) : Served (servingUpdate pk state probe answer) input := by
+  classical
+  rw [servingUpdate]
+  split
+  · exact Multiset.mem_cons_of_mem hserved
+  · exact hserved
+
+/-! ## The two tests at the carrier -/
+
+/-- The left test: the flag is up for a request, and the input is that request's own digest
+shape. Only the signing oracle sets the flag, so there is no clause an adversary can satisfy. -/
+def disclosingKeep : Bytes → State → Prop := fun input state => FilesLeft pk state input
+
+/-- What an entry of the disclosing recording satisfies at the end: the carrier served it. -/
+def disclosedAtEnd : Bytes → State → Prop := fun input state => Served state input
+
+open scoped Classical in
+/-- **Every entry of the disclosing recording was served**, read at the end of the run. The flag
+decided each entry when it was filed; the served set is what remembers. -/
+theorem mem_served_of_mem_leftRecord {α : Type} (rightKeep : Bytes → State → Prop)
+    (computation : OracleComp OracleWorld α) (state : StateOf State)
+    (result : α × StateOf State)
+    (hmem : result ∈ support ((simulateQ
+      (@recorderOf State (servingView pk) (disclosingKeep pk) rightKeep) computation).run state))
+    (hstart : ∀ entry ∈ state.2.1, Served state.1 entry.1) :
+    ∀ entry ∈ result.2.2.1, Served result.2.1 entry.1 :=
+  @left_recordOf_endKeep_final State (servingView pk) α (disclosingKeep pk) rightKeep
+    (disclosedAtEnd)
+    (fun input view answer _ hkeep => served_servingUpdate_self pk view input answer hkeep)
+    (fun input probe view answer _ hkeep => served_servingUpdate pk view input probe answer hkeep)
+    computation state result hmem hstart
+
+/-! ## What the flag rejects
+
+Both halves of the blindness, at the carrier's own test rather than at the cache. -/
+
+/-- **Nothing the adversary asks is filed**, because its queries run with the flag down. -/
+theorem not_disclosingKeep_of_clear (state : State) (hclear : state.framing = none)
+    (input : Bytes) : ¬ disclosingKeep pk input state :=
+  not_filesLeft_of_clear pk state hclear input
+
+/-- **The signer's own randomiser query is not filed either**, because the flag is matched
+against the request in flight and `PRF_msg` at that frame is a message input at a shorter
+message. See the warning at `HandlerCarrier.FilesLeft`: a test that only asked whether some
+request was in flight would take this query, and the disclosing cap would be lost past the
+coupling's mean rather than past its tail. -/
+theorem not_disclosingKeep_randomizerInput (state : State) (prfSeed : Digest) (framed : Bytes)
+    (hframing : state.framing = some framed) :
+    ¬ disclosingKeep pk (Hashing.randomizerInput prfSeed pk.seed framed) state :=
+  not_filesLeft_randomizerInput pk state prfSeed framed hframing
+
+end SlhDsaSecurity.CarriedWitness
