@@ -1491,3 +1491,11 @@ The pattern across the last three obstructions is the same one: **a value that i
 computed by a walk that is not.** Key generation's root, the FORS public key, and now the
 signature. Each time the fix has been to replace the walk by the value — and this time the
 value has to be read at the right moment as well, which is what moving into the handler buys.
+
+**A habit worth keeping.** Three times in this line of work the lemma that was needed already
+existed one file over, twice in a more general form than the one being written — the writer's
+run lemmas generic in the monoid, the Merkle node's cell identity, the sum handler's apply
+lemmas. The rule that catches it is to look in the file that would *own* the statement before
+writing it: the file about writers owns a lemma about writers, whatever the reason for wanting
+it. Five accidental duplicates have been found here after the fact, and each cost more to find
+than the look would have.

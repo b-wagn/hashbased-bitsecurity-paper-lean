@@ -20,6 +20,10 @@ same thing the stripping surgery removes and is handled the same way — the law
 the uncounted run, with `Security.countAllHashes` left outside it. Being an equality of runs, it
 carries every field of the outcome and the record as literally the same values.
 
+**So apply it at the uncounted level, never inside the counter.** The substitution is sound
+exactly because the law says nothing about the outer total, which it does change; used under
+`Security.countAllHashes` it would be claiming something false.
+
 What it buys beyond unblocking the move: the key is now `⟨sds.1, sds.2.1, ⟨sds.2.2, root⟩⟩`,
 whose only table coordinates are the secret seed and the honest root — the two
 `RedrawCell.seedAndRoot` names, which is the hypothesis the charge takes.
