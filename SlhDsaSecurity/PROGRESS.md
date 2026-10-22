@@ -3393,3 +3393,40 @@ The rule, which is this week's defect in a new disguise: **a grep that establish
 must not be truncated, and `| head` on a search whose hits are dominated by a log file
 establishes nothing.** Count first, read second. A positive finding survives truncation; a
 negative one does not.
+
+## The rate audit: no wrong rate, and the reason is that the three parts are hypotheses
+
+Twenty-four FORS claims, thirteen in `LateCharge`/`CoverageTail`/`DigestTape`, thirteen in the
+input-half family: **not one wrong rate, and not one mismatched consumer on a live path.** Worth
+recording why, because it is a design property and not luck.
+
+The answer side's rate machinery makes all three parts of a rate claim *hypotheses* rather than
+prose. `ClassExpectation.prob_bad_le_expected_cost` asks for the rate (`hrate`, at a **fresh
+uniform** answer), the item-to-count link (`hcost : inClass input → 1 ≤ cost input slot`), the
+item-to-event link (`hclass : bad input answer → inClass input`), and `GrowthCharge.CleanBad` for
+the freshness the rate assumes. A reader cannot apply it with the wrong item count, because the
+wrong item count will not elaborate. Where a rate's validity depends on a *law* rather than a
+hypothesis — adaptivity, where the adversary sees a digest before choosing which signatures
+disclose — the law is proved: `BlockViews.evalDist_recordedRun_eq` identifies the recorded run's
+law with a blocked run of independent uniform tapes, so the per-entry rate meets a block the
+adversary did not choose.
+
+**Every live count is `q` or a named constant.** `HasTotalBudget` pins the only two counts there
+are — total hash calls by `q`, served requests by `signingLimit` — and no live charge is
+proportional to the second. `Target.defects` decomposes exactly into the answer obligation's
+tail plus `prob_bad_walk`, with no term uncounted and none counted twice. The two halves are each
+charged a whole `q` against a target of `2q`, so a query charged on both sides is budgeted, not
+double-spent.
+
+What the audit did find is everywhere else: **items attached to the wrong index set, ledgers
+quoted from superseded designs, and figures with no lemma.** The pattern that produces them is
+always the same — a sentence written when one design was live, left standing when the next one
+landed. The liveness convention is the cheap defence, and the census is the expensive one: of
+thirty-three FORS lemmas, sixteen have no consumer at all, and three parallel coverage designs
+exist of which one reaches the top.
+
+The methodological residue, which cost me two retractions in one round: **an absence is only
+established by an exhaustive check.** `| head -5` on a grep whose hits were dominated by a log
+file, and `grep -v` filtering on line *content* when the intent was to exclude a *file*, both
+produced confident negatives that were wrong. Count first, read second; and when the conclusion
+is "nothing anywhere", say how the search was bounded.
