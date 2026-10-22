@@ -244,34 +244,54 @@ theorem prob_le_expected_of_perWalk (fused : FusedTail) (adversary : Adversary)
 One equation — forgetting the recordings returns the recorded paired run — carries every event
 and every count the join already has from the one object to the other, with nothing lost. -/
 
-/-- The equation a fused presentation owes, at the paired run. -/
-def ForgetsTo (fused : FusedTail) (adversary : Adversary) : Prop :=
-  forgetRecordings <$> pairedOf fused adversary = RandomiserRecord.recordedPairedRun adversary
+/-- The equation a fused presentation owes: forgetting the recordings leaves the recorded paired
+run.
 
+It is an equality of **distributions**, not of computations. The two are different computations
+and will stay different ones, while everything the join reads — a probability, a count, a
+support — is a function of the distribution alone. Asking for the stronger equation would be
+asking for something nobody can give and nothing here uses. -/
+def ForgetsTo (fused : FusedTail) (adversary : Adversary) : Prop :=
+  (∀ pair : SharedJoin.RecordedPair,
+      Pr[= pair | forgetRecordings <$> pairedOf fused adversary] =
+        Pr[= pair | RandomiserRecord.recordedPairedRun adversary]) ∧
+    support (forgetRecordings <$> pairedOf fused adversary) ⊆
+      support (RandomiserRecord.recordedPairedRun adversary)
+
+open scoped Classical in
+/-- **Every event the join already has keeps its probability.** -/
 theorem probEvent_forget {fused : FusedTail} {adversary : Adversary}
     (hforget : ForgetsTo fused adversary) (event : SharedJoin.RecordedPair → Prop) :
     Pr[fun pair => event (forgetRecordings pair) | pairedOf fused adversary] =
       Pr[event | RandomiserRecord.recordedPairedRun adversary] := by
-  rw [ForgetsTo] at hforget
-  rw [← hforget, probEvent_map]
-  rfl
+  classical
+  have hmap : Pr[fun pair => event (forgetRecordings pair) | pairedOf fused adversary] =
+      Pr[event | forgetRecordings <$> pairedOf fused adversary] :=
+    (probEvent_map (pairedOf fused adversary) forgetRecordings event).symm
+  rw [hmap, probEvent_eq_tsum_ite, probEvent_eq_tsum_ite]
+  exact tsum_congr fun pair => by rw [hforget.1 pair]
 
 open scoped Classical in
+/-- **And every count.** -/
 theorem expected_forget {fused : FusedTail} {adversary : Adversary}
     (hforget : ForgetsTo fused adversary) (count : SharedJoin.RecordedPair → Nat) :
     expected (pairedOf fused adversary) (fun pair => count (forgetRecordings pair)) =
       expected (RandomiserRecord.recordedPairedRun adversary) count := by
   classical
   haveI : DecidableEq SharedJoin.RecordedPair := Classical.decEq _
-  rw [ForgetsTo] at hforget
-  rw [← hforget, expected_map]
+  have hmap : expected (pairedOf fused adversary) (fun pair => count (forgetRecordings pair)) =
+      expected (forgetRecordings <$> pairedOf fused adversary) count :=
+    (expected_map (pairedOf fused adversary) forgetRecordings count).symm
+  rw [hmap, expected, expected]
+  exact tsum_congr fun pair => by rw [hforget.1 pair]
 
+/-- **And every supported pair forgets to a supported one.** -/
 theorem mem_support_forget {fused : FusedTail} {adversary : Adversary}
     (hforget : ForgetsTo fused adversary) {pair : SplitPair}
     (hpair : pair ∈ support (pairedOf fused adversary)) :
     forgetRecordings pair ∈ support (RandomiserRecord.recordedPairedRun adversary) := by
-  rw [ForgetsTo] at hforget
-  rw [← hforget, support_map]
+  refine hforget.2 ?_
+  rw [support_map]
   exact ⟨pair, hpair, rfl⟩
 
 /-! ## The ordering term, restated
