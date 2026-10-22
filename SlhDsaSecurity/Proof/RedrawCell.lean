@@ -733,6 +733,17 @@ theorem unionCache_of_none (publicSeed : Digest) (table : Cells × Padding)
     unionCache publicSeed table cache input = cache input := by
   rw [unionCache, hopen]
 
+/-- **A non-canonical input is answered by the handler's own cache.** The two inputs a
+signature cannot read off the table — its randomiser and its message digest — are of this kind,
+so both sides of a congruence answer them alike. -/
+theorem unionCache_of_not_canonical (publicSeed : Digest) (table : Cells × Padding)
+    (cache : QueryCache HashSpec) (input : Bytes)
+    (hnot : ∀ parent : StructuralNode,
+      CanonicalGraph.canonicalInput publicSeed table.1 parent ≠ input) :
+    unionCache publicSeed table cache input = cache input :=
+  unionCache_of_none publicSeed table cache input
+    (OpenCache.openCache_eq_none_of_not_canonical publicSeed (fun _ => True) table input hnot)
+
 /-- **Caching what the table already said changes nothing the game can see.** -/
 theorem unionCache_cacheQuery_open (publicSeed : Digest) (table : Cells × Padding)
     (cache : QueryCache HashSpec) (input : Bytes) (answer : HashOutput)
