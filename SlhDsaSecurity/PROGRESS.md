@@ -1586,3 +1586,73 @@ already in the allowance. `RandomizerGate.card_add_card_le` is that statement: t
 part and the `PRF_msg` part of a record add to at most the record's size. The two charges are
 then taken separately, each against its own part, and added — the sum of the two expected counts
 is one expected record length, which is the `(q - 512) + 259` the obligation allows.
+
+## The answer side's two classes add on one counter, and what is left to pay
+
+`prob_answerBad_le_of_classes` asked for `qs + qm ≤ q - 2 ^ subtreeHeight` with `qs` and `qm`
+fixed numbers. That hypothesis is not dischargeable and never was. Each is a *uniform* bound on
+one class's growth, the split between the classes is chosen by the adversary run by run, and
+the only pair that works on every run is `budget, budget` — the target twice over. The fault is
+not the numbers; it is that the uniform bound is taken before the sum.
+
+`ClassExpectation.prob_bad_or_coverage_le` takes it after. The machinery is three steps and
+none of them is probabilistic:
+
+* `ClassGrowth.splitCost` charges the class to one slot of the `Counts` counter and its
+  complement to another, so one run carries both counts. `classCost` kept one class and
+  discarded the other, which forced the two sides onto two differently instrumented runs, and
+  counts on two runs do not add.
+* `ClassGrowth.countAllHashes_eq_readOff` says the split-counted run *is* the
+  all-hashes-counted run: any linear readout of a counter that recovers each query's hash cost
+  recovers `countAllHashes`, and summing the two slots is such a readout. So the split is a
+  resolution of the existing count, not a second experiment, and the existing budget bounds the
+  two parts together.
+* `ClassExpectation.add_le_of_shared_budget_const` adds the two expectations and applies the
+  budget once, at the end.
+
+`prob_bad_le_expected_cost` and `growthOn_le_count` are the single-class charge and growth bound
+restated at an arbitrary counter and slot. Both need only that an in-class hash call is charged
+at least one unit of the slot, so one proof serves the class and its complement, and the old
+`classCost` statements come back as instances.
+
+### What the coverage clause still owes, and why averaging will not supply it
+
+`prob_bad_or_coverage_le` takes the coverage charge as
+
+```
+Pr[cov] ≤ constant + expected (in-class count) / 2 ^ 128
+```
+
+and `CoverageTail.prob_coverage_tail_le` does not have that shape: it charges at a limit fixed
+in advance, with the run's growth required to stay inside it. The two are not related by
+averaging, and it is worth being precise about why, because the gap looks like a formality and
+is not.
+
+Write `L` for the recorded length and `β(n)` for the uniform-tape coverage probability at
+length `n`, so `β(n) ≤ 2 ^ -141 + n / 2 ^ 128`. The fixed-limit bound gives
+`Pr[cov ∧ L ≤ n] ≤ β(n)` for each `n`, and nothing more. Summing over a partition by `L` pays
+`β` once per cell and diverges; bounding `Pr[L > n]` by Markov costs `E[L] / (n + 1)`, which is
+only small when `n ≈ 2 ^ 128`, by which point `n / 2 ^ 128` is one. Neither is a near miss.
+
+The reason is visible in what the lazy-sampling route through `DigestTape.prob_prefix_le`
+retains about the recording. It retains `Pr[w ⊑ record] ≤ 2 ^ -128 |w|` for each fixed word `w`,
+and that alone is consistent with a process that puts *all* of its mass on bad words of one
+length: such a process has `Pr[cov] = β(n)` with `E[L]` as small as `n · β(n)`, and
+`2 ^ -141 + E[L] / 2 ^ 128` is then far below `β(n)`. No real run behaves that way, because
+reaching length `n` leaves the word uniform — but uniformity *conditional on the length* is
+exactly the fact the union bound over a `Finset` of bad words discards, and it is what the
+expectation form needs.
+
+The lemma that wants it already exists. `ForsLeaveOneOut.independent_tape_mixture_coverage_le`
+charges `2 ^ -141 + E[uses] / 2 ^ 128` for a causal policy that may depend on auxiliary
+randomness independent of the tape, and the policy this needs is "coordinate `j` is a real
+recorded answer" — causal in the tape prefix once the run's coins and its non-class answers are
+the auxiliary randomness. So the statement is true and the charge for it is already paid; what
+is missing is a factorisation of `DigestTape.recordedRun` into that auxiliary randomness and a
+uniform tape. `DigestTape` deliberately avoids such a factorisation, bounding prefix
+probabilities by induction instead, so supplying it is new work on the coverage induction
+rather than a restatement of it.
+
+Until then `AnswerSide.prob_answerBad_le_of_budget` carries that one hypothesis and no `hsum`,
+and concludes `budget / 2 ^ 128 + constant` — at `budget = q - 2 ^ subtreeHeight` and
+`constant = 1 / 2 ^ 141`, the bound the target reads.
