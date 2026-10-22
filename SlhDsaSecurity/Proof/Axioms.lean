@@ -4780,3 +4780,82 @@ info: 'SlhDsaSecurity.ForsDispatch.forsCollision_or_canonical_signature' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.CanonicalSignature.not_fresh_of_canonical
 
+/--
+info: 'SlhDsaSecurity.ChargedProbe.sensitiveFlagged_flag_iff_record' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sensitiveFlagged_flag_iff_record
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sensitive_of_sensitiveEntry' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sensitive_of_sensitiveEntry
+
+/--
+info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag
+
+/-- info: 'SlhDsaSecurity.RedrawCell.rom_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.rom_persists
+
+/-- info: 'SlhDsaSecurity.RedrawCell.lazyProgram_total_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.lazyProgram_total_run
+
+/-- info: 'SlhDsaSecurity.RedrawCell.probEvent_rom_eq_lazyProgram' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.probEvent_rom_eq_lazyProgram
+
+/-- info: 'SlhDsaSecurity.RedrawCell.unionCache_cacheQuery_open' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.unionCache_cacheQuery_open
+
+/-- info: 'SlhDsaSecurity.RedrawCell.unionCache_cacheQuery_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.unionCache_cacheQuery_fresh
+
+/-- info: 'SlhDsaSecurity.RedrawCell.compatible_empty' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.compatible_empty
+
+/-- info: 'SlhDsaSecurity.RedrawCell.rom_union_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.rom_union_step
+
+/-- info: 'SlhDsaSecurity.RedrawCell.compatible_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.compatible_step
+
+/-- info: 'SlhDsaSecurity.RedrawCell.probEvent_rom_eq_lazy' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.probEvent_rom_eq_lazy
+
+/-- info: 'SlhDsaSecurity.RedrawCell.probEvent_table_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.probEvent_table_congr
+
+/-- info: 'SlhDsaSecurity.RedrawCell.probEvent_flag_eq_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.probEvent_flag_eq_record
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_game_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_game_sensitive_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.openNodes_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.openNodes_total
+
+/-- info: 'SlhDsaSecurity.RedrawCell.openCache_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.openCache_total
+
+/-- info: 'SlhDsaSecurity.RedrawCell.unionCache_empty' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.unionCache_empty

@@ -1086,4 +1086,155 @@ theorem probEvent_sensitiveFlagged_eq {α : Type}
     (fun queried p hnot => ?_) computation state
   rw [sensitiveFlagged_agree publicSeed availableAt table queried p hnot]
 
+
+/-! ## The comparison's flag is the record's own event
+
+The flag the two presentations are compared on is a function of the record, exactly as the
+charge's event is. Carrying that as an invariant — the flag summarises the record so far — gives
+it without any bookkeeping about suffixes. -/
+
+/-- A recorded query at the canonical input of a node sensitive at the cache it was issued
+against. -/
+def SensitiveEntry (publicSeed : Digest)
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (entry : Bytes × QueryCache HashSpec) : Prop :=
+  ∃ parent : StructuralNode, (∃ child ∈ parent.children, ¬ availableAt entry.2 child) ∧
+    canonicalInput publicSeed cells parent = entry.1
+
+open scoped Classical in
+/-- **The comparison's flag says a recorded query was sensitive.** -/
+theorem sensitiveFlagged_flag_iff_record {α : Type}
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (computation : OracleComp OracleWorld α)
+    (state : HandlerState × Bool)
+    (hstate : state.2 = true ↔ ∃ entry ∈ state.1.2.1,
+      SensitiveEntry publicSeed availableAt table.1 entry)
+    (result : α × (HandlerState × Bool))
+    (hresult : result ∈ support ((simulateQ
+      (sensitiveFlagged publicSeed availableAt lenient table) computation).run state)) :
+    result.2.2 = true ↔ ∃ entry ∈ result.2.1.2.1,
+      SensitiveEntry publicSeed availableAt table.1 entry := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
+    rw [hresult]
+    exact hstate
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hresult
+    obtain ⟨step, hstep, hrest⟩ := hresult
+    refine ih step.1 step.2 ?_ result hrest
+    rw [sensitiveFlagged_run, mem_support_bind_iff] at hstep
+    obtain ⟨inner, hinner, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rcases queried with coin | probe
+    · have hsame : inner.2 = state.1 :=
+        lazyProgram_step_inl publicSeed lenient table coin state.1 inner hinner
+      have hnone : ¬ SensitiveQueryAt publicSeed availableAt table.1 state.1 (Sum.inl coin) := by
+        rintro ⟨candidate, hcandidate, -⟩
+        simp [probeOf] at hcandidate
+      rw [hpure]
+      show (state.2 || decide (SensitiveQueryAt publicSeed availableAt table.1 state.1
+          (Sum.inl coin))) = true ↔
+        ∃ entry ∈ inner.2.2.1, SensitiveEntry publicSeed availableAt table.1 entry
+      rw [decide_eq_false hnone, Bool.or_false, hsame]
+      exact hstate
+    · have hrec : inner.2.2.1 = state.1.2.1 ++ [(probe, state.1.1)] :=
+        lazyProgram_step_inr publicSeed lenient table probe state.1 inner hinner
+      have hhere : SensitiveQueryAt publicSeed availableAt table.1 state.1 (Sum.inr probe) ↔
+          SensitiveEntry publicSeed availableAt table.1 (probe, state.1.1) := by
+        constructor
+        · rintro ⟨candidate, hcandidate, hsensitive⟩
+          have hsame : candidate = probe := by
+            have hcopy := hcandidate
+            simp [probeOf] at hcopy
+            exact hcopy.symm
+          rw [hsame] at hsensitive
+          exact hsensitive
+        · intro hsensitive
+          exact ⟨probe, rfl, hsensitive⟩
+      rw [hpure]
+      show (state.2 || decide (SensitiveQueryAt publicSeed availableAt table.1 state.1
+          (Sum.inr probe))) = true ↔
+        ∃ entry ∈ inner.2.2.1, SensitiveEntry publicSeed availableAt table.1 entry
+      rw [hrec, Bool.or_eq_true, decide_eq_true_eq, hhere, hstate]
+      simp [or_comm]
+
+
+/-! ## A sensitive query is a charged candidate
+
+The comparison speaks of any structural node the signatures leave a child of unavailable; the
+charge speaks of a node bundled with the proof that it has exactly one child. The bridge runs
+one way only, and that is the way it is needed: a node with an unavailable child *has* exactly
+one child, because availability is closed and every digit is below the chain length, so it is
+one of the charge's nodes. The converse — that a node of the charge has an unavailable child —
+is not used and is not proved. -/
+
+open scoped Classical in
+/-- **A query at a sensitive node is one of the charge's candidates.** -/
+theorem sensitive_of_sensitiveEntry (revealed : WotsKey → Fin chains → Nat)
+    (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
+    (signedAt : QueryCache HashSpec → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (cells : Cells) (entry : Bytes × QueryCache HashSpec)
+    (hentry : SensitiveEntry publicSeed
+      (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node) cells entry) :
+    Sensitive (GraphStakes.stakes publicSeed)
+      (fun cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+      cells entry.2 entry.1 := by
+  classical
+  obtain ⟨parent, ⟨child, hchild, hunavailable⟩, hinput⟩ := hentry
+  have hsensitive : CanonicalGraph.Sensitive revealed (signedAt entry.2) parent :=
+    ⟨child, hchild, hunavailable⟩
+  refine ⟨GraphStakes.sensitiveNode revealed hrevealed (signedAt entry.2) hsensitive, ?_, ?_⟩
+  · have hsingle : parent.children =
+        [(GraphStakes.sensitiveNode revealed hrevealed (signedAt entry.2) hsensitive).child] :=
+      (GraphStakes.sensitiveNode revealed hrevealed (signedAt entry.2) hsensitive).children_eq
+    rw [hsingle, List.mem_singleton] at hchild
+    show ¬ CanonicalGraph.Available revealed (signedAt entry.2)
+      (GraphStakes.sensitiveNode revealed hrevealed (signedAt entry.2) hsensitive).child
+    rw [← hchild]
+    exact hunavailable
+  · show GraphStakes.inputOf publicSeed
+      (GraphStakes.sensitiveNode revealed hrevealed (signedAt entry.2) hsensitive)
+      (cells (GraphStakes.sensitiveNode revealed hrevealed (signedAt entry.2)
+        hsensitive).child) = entry.1
+    rw [GraphStakes.inputOf_eq_canonicalInput]
+    exact hinput
+
+/-! ## The comparison's flag changes nothing the charge sees
+
+The flag the comparison is stated on reads the cells — it asks whether a query sits at the
+canonical input of a node the signatures leave a child of unavailable — so the handler carrying
+it is not blind to the table, and the charge is not proved about it. The charge is proved about
+the flag-free wrapper. The two differ only in what they write to the flag, so on an event that
+does not read the flag they agree, which is all the charge needs. -/
+
+open scoped Classical in
+/-- **The two wrappers agree off the flag.** -/
+theorem probEvent_sensitiveFlagged_eq_withFlag {α : Type}
+    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (table : Cells × Padding) (computation : OracleComp OracleWorld α)
+    (event : α × HandlerState → Prop) :
+    ∀ (inner : HandlerState) (left right : Bool),
+      Pr[fun z : α × (HandlerState × Bool) => event (z.1, z.2.1) |
+        (simulateQ (sensitiveFlagged publicSeed availableAt lenient table)
+          computation).run (inner, left)] =
+        Pr[fun z : α × (HandlerState × Bool) => event (z.1, z.2.1) |
+          (simulateQ (withFlag (lazyProgram publicSeed lenient table))
+            computation).run (inner, right)] := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro inner left right
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure,
+      probEvent_pure, probEvent_pure]
+  | query_bind queried next ih =>
+    intro inner left right
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+      sensitiveFlagged_run, withFlag_run, bind_assoc, bind_assoc]
+    simp only [pure_bind]
+    rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+    exact tsum_congr fun step => congrArg _ (ih step.1 step.2 _ _)
+
 end SlhDsaSecurity.ChargedProbe
