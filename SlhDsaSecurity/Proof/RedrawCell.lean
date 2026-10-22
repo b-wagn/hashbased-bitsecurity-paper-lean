@@ -1018,6 +1018,52 @@ theorem signedDigest_congr (cache : QueryCache HashSpec) (left right : Cells × 
       (fun parent heq => HashSeparation.message_tweakable_ne hpublic
         (withinBounds_structural parent) heq.symm)]
 
+/-! ## The congruences at one shared seed
+
+A signer carries one secret key, so both sides of a congruence use the same secret seed rather
+than each table's own. The two are the same value whenever the table's seed cell is the key's,
+which is what the use site has, and these are the congruences in that form. -/
+
+/-- **The FORS half at a shared seed.** -/
+theorem fors_sign_congr_shared (publicSeed : Digest) (cache : QueryCache HashSpec)
+    (left right : Cells × Padding) (key : ForsKey) (indices : Fors.Indices)
+    (secretSeed : Digest) (hleft : secretSeed = left.1 CanonicalGraph.Node.secretSeed)
+    (hright : secretSeed = right.1 CanonicalGraph.Node.secretSeed)
+    (hagree : ∀ node, ForsDiscloses key indices node → left.1 node = right.1 node) :
+    @Fors.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache)) indices
+        secretSeed publicSeed key.address =
+      @Fors.sign Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache)) indices
+        secretSeed publicSeed key.address := by
+  conv_lhs => rw [hleft]
+  conv_rhs => rw [hright]
+  exact fors_sign_congr publicSeed cache left right key indices hagree
+
+/-- **The climb at a shared seed.** -/
+theorem signLayers_congr_shared (publicSeed : Digest) (cache : QueryCache HashSpec)
+    (left right : Cells × Padding)
+    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (secretSeed : Digest) (hleft : secretSeed = left.1 CanonicalGraph.Node.secretSeed)
+    (hright : secretSeed = right.1 CanonicalGraph.Node.secretSeed)
+    (hagree : ∀ node, CanonicalGraph.Available
+        (@GraphStakes.honestRevealed (CacheReplay.replayQuery (unionCache publicSeed left cache))
+          (left.1 CanonicalGraph.Node.secretSeed) publicSeed) signed node →
+        left.1 node = right.1 node)
+    (remaining layer tree : Nat) (leaf : Hypertree.LeafIndex)
+    (htree : tree < 2 ^ (totalHeight - subtreeHeight)) (message : Digest)
+    (hbound : layer + remaining ≤ layers)
+    (hmessage : ∀ hl : layer < layers, message = @GraphStakes.honestMessage
+      (CacheReplay.replayQuery (unionCache publicSeed left cache))
+      (left.1 CanonicalGraph.Node.secretSeed) publicSeed
+      ⟨⟨⟨layer, hl⟩, ⟨tree, htree⟩⟩, leaf⟩) :
+    @Hypertree.signLayers Id _ (CacheReplay.replayQuery (unionCache publicSeed left cache))
+        secretSeed publicSeed remaining layer tree leaf message =
+      @Hypertree.signLayers Id _ (CacheReplay.replayQuery (unionCache publicSeed right cache))
+        secretSeed publicSeed remaining layer tree leaf message := by
+  conv_lhs => rw [hleft]
+  conv_rhs => rw [hright]
+  exact signLayers_congr publicSeed cache left right signed hagree remaining layer tree leaf
+    htree message hbound hmessage
+
 /-- A handler cache saying nothing the programmed entries contradict. -/
 def Compatible (publicSeed : Digest) (table : Cells × Padding)
     (cache : QueryCache HashSpec) : Prop :=
