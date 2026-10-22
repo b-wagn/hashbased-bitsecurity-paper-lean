@@ -136,7 +136,7 @@ theorem stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Pr
         (simulateQ (handlerAt rightKeep walk) computation).run state =
       (fun r : (α × Nat) × QueryCache HashSpec => ((r.1.1, state.2.2 + r.1.2), r.2)) <$>
         (simulateQ KeygenUniform.rom (countAllHashes computation)).run state.1.cache :=
-  CountedHandler.run_withCount_count
+  CountedHandler.run_withCount_count (fun state => state.1.cache)
     (@noticingRecorderOf HandlerCarrier.State (servingView (keyAt walk))
       (disclosingKeep (keyAt walk)) (rightKeep walk))
     KeygenUniform.rom (CarrierFiles.forgetsAlong_carrierRecorder (keyAt walk) (rightKeep walk))
