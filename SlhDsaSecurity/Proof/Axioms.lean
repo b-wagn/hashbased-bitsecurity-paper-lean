@@ -15151,3 +15151,7 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 /-- info: 'SlhDsaSecurity.CarrierDemand.cover_inFlight' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierDemand.cover_inFlight
+
+/-- info: 'SlhDsaSecurity.CountedHandler.run_toStateful_withFlag_withAddCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_toStateful_withFlag_withAddCost
