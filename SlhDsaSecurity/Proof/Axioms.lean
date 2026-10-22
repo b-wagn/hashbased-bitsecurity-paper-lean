@@ -7476,3 +7476,11 @@ info: 'SlhDsaSecurity.Target.prob_bad_walk_paired' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.RedrawCell.signInternal_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.signInternal_congr
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le
