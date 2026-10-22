@@ -117,6 +117,50 @@ theorem run_neverFails {α : Type} (computation : OracleComp OracleWorld α)
     Pr[⊥ | (simulateQ KeygenUniform.rom computation).run cache] = 0 := by
   simp
 
+/-! ## Two charges on one budget
+
+The record's entries and the signer's in-class answers are the two kinds of chance the budget
+pays for, and they add: on each run the two counts together stay inside the budget, so the two
+expectations together do. Neither charge has a budget of its own, and the per-request terms
+cancel inside the pathwise inequality rather than after a uniform bound has been taken. -/
+
+/-- Counts add under the expectation. -/
+theorem expected_add {β : Type} (run : ProbComp β) (count other : β → Nat) :
+    expected run (fun value => count value + other value) =
+      expected run count + expected run other := by
+  rw [expected, expected, expected, ← ENNReal.tsum_add]
+  refine tsum_congr fun value => ?_
+  push_cast
+  ring
+
+/-- A count bounded on every supported run has a bounded expectation. -/
+theorem expected_le_of_le {β : Type} (run : ProbComp β) (count : β → Nat) (bound : Nat)
+    (hle : ∀ value ∈ support run, count value ≤ bound) :
+    expected run count ≤ ((bound : Nat) : ℝ≥0∞) := by
+  calc expected run count
+      ≤ ∑' value, Pr[= value | run] * ((bound : Nat) : ℝ≥0∞) := by
+        refine ENNReal.tsum_le_tsum fun value => ?_
+        by_cases hmem : value ∈ support run
+        · exact mul_le_mul' le_rfl (Nat.cast_le.mpr (hle value hmem))
+        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+    _ = (∑' value, Pr[= value | run]) * ((bound : Nat) : ℝ≥0∞) := ENNReal.tsum_mul_right
+    _ ≤ 1 * ((bound : Nat) : ℝ≥0∞) := mul_le_mul' tsum_probOutput_le_one le_rfl
+    _ = _ := one_mul _
+
+/-- **Two charges share one budget.** Each is bounded by its own expected number of chances, and
+on every supported run the two counts together stay inside the budget — so the two charges
+together cost what one budget buys, not two. -/
+theorem add_le_of_shared_budget {β : Type} (run : ProbComp β)
+    (firstCharge secondCharge : ℝ≥0∞) (firstChances secondChances : β → Nat) (budget : Nat)
+    (hfirst : firstCharge ≤ expected run firstChances / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hsecond : secondCharge ≤ expected run secondChances / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hshare : ∀ value ∈ support run, firstChances value + secondChances value ≤ budget) :
+    firstCharge + secondCharge ≤ ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  refine le_trans (add_le_add hfirst hsecond) ?_
+  rw [ENNReal.div_add_div_same, ← expected_add]
+  exact ENNReal.div_le_div_right
+    (expected_le_of_le run (fun value => firstChances value + secondChances value) budget hshare) _
+
 /-! ## The charge -/
 
 open scoped Classical in

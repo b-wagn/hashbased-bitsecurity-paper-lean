@@ -5207,3 +5207,16 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.LinkedPhase.run_link_phaseHandler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LinkedPhase.run_link_phaseHandler
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_add' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_add
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_le_of_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_le_of_le
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.add_le_of_shared_budget
+
