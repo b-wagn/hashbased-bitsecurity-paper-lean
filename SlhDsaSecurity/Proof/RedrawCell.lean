@@ -527,9 +527,9 @@ part way through is not, and may not be put in `touched`. -/
 
 /-- A sensitive query whose staked cell is the secret seed — the seed-guessing avenue, charged
 by `TrackedQueries.prob_meets_real_le` and not here. -/
-def SensitiveAtSeed (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : HandlerCarrier.State) (candidate : Bytes) : Prop :=
+def SensitiveAtSeed {State : Type} (stakes : Stakes Target CanonicalGraph.Node)
+    (unavailable : State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : State) (candidate : Bytes) : Prop :=
   ∃ node : Target, stakes.stake node = CanonicalGraph.Node.secretSeed ∧
     unavailable cache (stakes.stake node) ∧
     stakes.inputOf node (cells (stakes.stake node)) = candidate
@@ -657,9 +657,9 @@ theorem not_targets_of_locate_none (publicSeed : Digest)
   exact absurd hnode (by simp)
 
 /-- A sensitive query whose staked cell is any other — the avenue charged here. -/
-def SensitiveOffSeed (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : HandlerCarrier.State) (candidate : Bytes) : Prop :=
+def SensitiveOffSeed {State : Type} (stakes : Stakes Target CanonicalGraph.Node)
+    (unavailable : State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : State) (candidate : Bytes) : Prop :=
   ∃ node : Target, stakes.stake node ≠ CanonicalGraph.Node.secretSeed ∧
     unavailable cache (stakes.stake node) ∧
     stakes.inputOf node (cells (stakes.stake node)) = candidate
@@ -699,9 +699,9 @@ theorem open_seedAndRoot (revealed : WotsKey → Fin chains → Nat)
   · exact CanonicalGraph.available_of_alwaysAvailable revealed signed hrevealed trivial
 
 /-- **The two avenues cover the event between them.** -/
-theorem sensitive_iff_off_or_at_seed (stakes : Stakes Target CanonicalGraph.Node)
-    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : HandlerCarrier.State) (candidate : Bytes) :
+theorem sensitive_iff_off_or_at_seed {State : Type} (stakes : Stakes Target CanonicalGraph.Node)
+    (unavailable : State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : State) (candidate : Bytes) :
     Sensitive stakes unavailable cells cache candidate ↔
       SensitiveOffSeed stakes unavailable cells cache candidate ∨
         SensitiveAtSeed stakes unavailable cells cache candidate := by

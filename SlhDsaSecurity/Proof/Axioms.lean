@@ -15825,3 +15825,11 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail' depends on axiom
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail
+
+/-- info: 'SlhDsaSecurity.InputBullet.inputBad_or' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.inputBad_or
+
+/-- info: 'SlhDsaSecurity.InputBullet.probEvent_inputBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.InputBullet.probEvent_inputBad_le

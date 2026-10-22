@@ -50,6 +50,89 @@ namespace SlhDsaSecurity.InputBullet
 open Security WarmedGame RoutedSplit Target ClassExpectation SharedJoin RandomiserRecord
   LateProbes SharedAssembly
 
+/-! ## The two avenues of the half's own event
+
+`RoutedSplit.InputBad` asks a claimed candidate to be `SensitiveQuery.Sensitive`, and
+`RedrawCell.sensitive_iff_off_or_at_seed` splits that: the staked cell is the secret seed or it
+is not. The two are charged by different things and at different places.
+
+**Off the seed is what this half pays for.** Its two charges — the flag's expected aiming count
+and the claims' `259` — are both `SensitiveOffSeed`, and those are exactly the two terms
+`SharedAssembly.InputBulletAt`'s bound has.
+
+**At the seed is charged elsewhere**, by `TrackedQueries.prob_meets_real_le`, which
+`RedrawCell`'s own section on the two avenues names for the job: "by
+`TrackedQueries.prob_meets_real_le` and not here". The bullet's bound has no third term and no
+slot for one, so the at-seed avenue has to be routed to that charge **before** it reaches the
+bullet rather than paid inside it.
+
+The split below is what such a routing cites. Stating it separates a question about the ledger
+from the work this half can do without it: the first term is mine and the second is not. -/
+
+open RoutedSplit ReplayGate in
+/-- The half's event at the avenue off the secret seed — the one its two charges pay for. -/
+def InputBadOffSeed (x : RoutedSplit.Trace) : Prop :=
+  ∃ (message : Bytes) (parsed : Signature),
+    x.1.2.1.forgery.message.frame = some message ∧
+      Signature.fromBytes? x.1.2.1.forgery.signature = some parsed ∧
+        ∃ candidate ∈ @ClaimedProbes.claimedCandidatesOf (CacheReplay.replayQuery x.2)
+            x.1.1.1.2.2 x.2 (RoutedSplit.keyOf x) message parsed,
+          RedrawCell.SensitiveOffSeed (GraphStakes.stakes x.1.1.1.2.2)
+            (GraphStakes.unavailableAt
+              (@GraphStakes.honestRevealed (CacheReplay.replayQuery x.2) x.1.1.1.1 x.1.1.1.2.2)
+              (ServedLog.disclosedByLog (RoutedSplit.keyOf x)))
+            x.1.1.2 (RoutedSplit.resultOf x) candidate
+
+open RoutedSplit ReplayGate in
+/-- The half's event at the seed-guessing avenue — the one charged elsewhere. -/
+def InputBadAtSeed (x : RoutedSplit.Trace) : Prop :=
+  ∃ (message : Bytes) (parsed : Signature),
+    x.1.2.1.forgery.message.frame = some message ∧
+      Signature.fromBytes? x.1.2.1.forgery.signature = some parsed ∧
+        ∃ candidate ∈ @ClaimedProbes.claimedCandidatesOf (CacheReplay.replayQuery x.2)
+            x.1.1.1.2.2 x.2 (RoutedSplit.keyOf x) message parsed,
+          RedrawCell.SensitiveAtSeed (GraphStakes.stakes x.1.1.1.2.2)
+            (GraphStakes.unavailableAt
+              (@GraphStakes.honestRevealed (CacheReplay.replayQuery x.2) x.1.1.1.1 x.1.1.1.2.2)
+              (ServedLog.disclosedByLog (RoutedSplit.keyOf x)))
+            x.1.1.2 (RoutedSplit.resultOf x) candidate
+
+/-- **The two avenues cover the half's event.** -/
+theorem inputBad_or (x : RoutedSplit.Trace) (hbad : RoutedSplit.InputBad x) :
+    InputBadOffSeed x ∨ InputBadAtSeed x := by
+  obtain ⟨message, parsed, hframe, hparsed, candidate, hcandidate, hsensitive⟩ := hbad
+  rcases (RedrawCell.sensitive_iff_off_or_at_seed _ _ _ _ _).mp hsensitive with hoff | hatseed
+  · exact Or.inl ⟨message, parsed, hframe, hparsed, candidate, hcandidate, hoff⟩
+  · exact Or.inr ⟨message, parsed, hframe, hparsed, candidate, hcandidate, hatseed⟩
+
+open scoped Classical in
+/-- **So the half's probability splits, and the two terms have different owners.** Whoever
+routes the seed-guessing avenue to `TrackedQueries.prob_meets_real_le` cites this; what is left
+on the first term is what this half's two charges bound. -/
+theorem probEvent_inputBad_le (adversary : Adversary) :
+    Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBad (recordedTraceOf pair) |
+        recordedPairedRun adversary] ≤
+      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBadOffSeed (recordedTraceOf pair) |
+          recordedPairedRun adversary] +
+        Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBadAtSeed (recordedTraceOf pair) |
+          recordedPairedRun adversary] := by
+  classical
+  refine le_trans (probEvent_mono (q := fun pair : RecordedPair =>
+    (GoodWalk pair.1 ∧ InputBadOffSeed (recordedTraceOf pair)) ∨
+      (GoodWalk pair.1 ∧ InputBadAtSeed (recordedTraceOf pair)))
+    (fun pair _ hpair => (inputBad_or _ hpair.2).imp (fun h => ⟨hpair.1, h⟩)
+      fun h => ⟨hpair.1, h⟩)) ?_
+  exact probEvent_or_le _ _ _
+
+/-- The half's obligation at the avenue it pays for: `ClaimsCharged` with the seed-guessing
+avenue routed away. This is what the two charges produce. -/
+def ClaimsChargedOffSeed (adversary : Adversary) : Prop :=
+  Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBadOffSeed (recordedTraceOf pair) |
+      recordedPairedRun adversary] ≤
+    (expected (recordedPairedRun adversary)
+        (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
+      ((2 ^ 128 : Nat) : ℝ≥0∞)
+
 /-- **The shape the half owes**: the claims charged at the recorded paired run, with no walk
 fixed and no ordering term, and with the aiming part of the record paying for the tests the
 adversary makes. This is the hypothesis the half's chain converges on. -/
