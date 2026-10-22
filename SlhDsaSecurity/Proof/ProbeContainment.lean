@@ -824,7 +824,19 @@ owes is `prob_sharedBad_le_expected`'s `hinput` itself, at the recorded **paired
 count the record's aiming part. `SharedJoin.hinput_of_probesIn` is for an owner whose charge is
 per-walk; the ordering defect is such an owner and this one is not. -/
 
-/-- The input half's bullet, as the join takes it. -/
+/-- The input half's bullet at the recorded pair.
+
+**The target has moved one pair along and this statement is kept only as its hinge.** The
+ordering defect is not a predicate of the recorded pair, so the bullet that quantifies over it
+is read at the split pair: `SharedAssembly.InputBullet` is that statement, and it is what this
+half now has to produce. `SharedAssembly.inputBullet_of_recorded` proves that the move costs
+nothing for an ordering event that *is* a recorded-pair predicate — this statement gives that
+one by transport alone — so the two are one obligation and the larger pair is the one to prove
+it at.
+
+What makes the transport free on this half's side is that `¬ ordering` is never read: the bound
+below is proved for the event **without** that conjunct, which is strictly larger, so the bullet
+follows by `probEvent_mono` and the ordering term is used pointwise or not at all. -/
 def InputBullet (adversary : Adversary) (ordering : SharedJoin.RecordedPair → Prop) : Prop :=
   Pr[fun pair : SharedJoin.RecordedPair => Target.GoodWalk pair.1 ∧
       RoutedSplit.InputBad (SharedJoin.recordedTraceOf pair) ∧ ¬ ordering pair |

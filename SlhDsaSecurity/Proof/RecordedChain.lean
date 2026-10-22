@@ -159,4 +159,54 @@ theorem expected_recordedTail_linked (adversary : Adversary) (prfSeed publicSeed
   rw [expected_recordedTail_stripped adversary (walkOfTable prfSeed publicSeed table) count,
     run_recordedAfterSeeds_eq_linked adversary prfSeed publicSeed table, expected_map]
 
+
+/-! ## The handler started from nothing, for the count as well
+
+`TableTail.probEvent_linked_handler` is the probability's half. The count's half is the same
+fact read through the law: a probability equality that holds at **every** event is an equality
+of laws once the game's run is written as the handler's mapped by what the two states share, and
+an expectation crosses a map. -/
+
+open WalkTable TableTail in
+/-- **The game's run is the handler's run, as laws.** -/
+theorem evalDist_linked_handler (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : CanonicalGraph.Cells × CanonicalGraph.Padding)
+    (record : List (Bytes × HandlerCarrier.State)) (count : Nat) :
+    𝒟[linkedRun adversary prfSeed publicSeed table] =
+      𝒟[(fun z => (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) <$>
+        handlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, count)] := by
+  classical
+  refine SPMF.ext fun value => ?_
+  rw [show 𝒟[linkedRun adversary prfSeed publicSeed table] value =
+      Pr[= value | linkedRun adversary prfSeed publicSeed table] from (probOutput_def _ _).symm,
+    show 𝒟[(fun z => (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) <$>
+        handlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, count)] value =
+      Pr[= value | (fun z => (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) <$>
+        handlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, count)] from (probOutput_def _ _).symm,
+    (probEvent_eq_eq_probOutput (linkedRun adversary prfSeed publicSeed table) value).symm,
+    probEvent_linked_handler adversary prfSeed publicSeed table (fun result => result = value)
+      record count,
+    ← probEvent_eq_eq_probOutput, probEvent_map]
+  rfl
+
+open WalkTable TableTail in
+/-- **And the count crosses with it.** -/
+theorem expected_linked_handler (adversary : Adversary) (prfSeed publicSeed : Digest)
+    (table : CanonicalGraph.Cells × CanonicalGraph.Padding)
+    (count : ((((Forgery × Multiplicative RecordedQueries.Tally) ×
+      (Bool × RecordedQueries.Tally)) × SigningLog)) × QueryCache HashSpec → Nat)
+    (record : List (Bytes × HandlerCarrier.State)) (start : Nat) :
+    expected (linkedRun adversary prfSeed publicSeed table) count =
+      expected (handlerRun adversary prfSeed publicSeed table
+          (HandlerCarrier.empty, record, start))
+        (fun z => count (z.1, RedrawCell.unionCache publicSeed table z.2.1.cache)) := by
+  classical
+  haveI : DecidableEq (((((Forgery × Multiplicative RecordedQueries.Tally) ×
+    (Bool × RecordedQueries.Tally)) × SigningLog)) × QueryCache HashSpec) := Classical.decEq _
+  rw [RecordedWalkTable.expected_congr
+    (evalDist_linked_handler adversary prfSeed publicSeed table record start) count, expected_map]
+
 end SlhDsaSecurity.RecordedChain

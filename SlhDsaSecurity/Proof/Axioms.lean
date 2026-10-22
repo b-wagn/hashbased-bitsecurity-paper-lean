@@ -11928,3 +11928,11 @@ info: 'SlhDsaSecurity.ProbeContainment.aimCount_recordedAfterSeedsAt' depends on
 /-- info: 'SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim_at
+
+/-- info: 'SlhDsaSecurity.RecordedChain.evalDist_linked_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.evalDist_linked_handler
+
+/-- info: 'SlhDsaSecurity.RecordedChain.expected_linked_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedChain.expected_linked_handler
