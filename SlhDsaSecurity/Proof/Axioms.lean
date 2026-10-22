@@ -199,6 +199,7 @@ import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.SignerRightRecord
 import SlhDsaSecurity.Proof.PhaseRightRecord
+import SlhDsaSecurity.Proof.ServedRandomised
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -11668,6 +11669,18 @@ info: 'SlhDsaSecurity.LateProvenance.hrecord' depends on axioms: [propext, Class
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateProvenance.hrecord
+
+/--
+info: 'SlhDsaSecurity.ServedRandomised.signerRandomised_of_served' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedRandomised.signerRandomised_of_served
+
+/--
+info: 'SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem
 
 /-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
