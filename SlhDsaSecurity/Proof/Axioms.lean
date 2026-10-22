@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.CacheProvenance
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RoutedSplit
@@ -6765,3 +6766,43 @@ info: 'SlhDsaSecurity.SigningFaithful.cases_of_win_charged' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SigningFaithful.cases_of_win_charged
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftM' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftM
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftComp' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_of_fresh_liftComp
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_keygenInternal_of_fresh' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_keygenInternal_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_sign_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_sign_of_fresh
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_verify_of_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_verify_of_fresh
