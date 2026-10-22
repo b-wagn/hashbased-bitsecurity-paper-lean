@@ -13464,3 +13464,21 @@ info: 'SlhDsaSecurity.CarrierTail.middle_forget' depends on axioms: [propext, Cl
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.middle_forget
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.run_recordedAfterSeeds_split' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.run_recordedAfterSeeds_split
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.recordedTail_eq_counted' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.recordedTail_eq_counted
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.first_stage_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.first_stage_forget
