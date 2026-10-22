@@ -32,10 +32,20 @@ while it keeps missing form a *determined* list, `missRun`. The event "it ever h
 of length `limit` is met with probability at most `limit / 2 ^ 128` — the fully deferred
 counting of `prob_list_sensitive_le`, with no conditioning anywhere.
 
-So the rate is `limit / 2 ^ 128` exactly, with no additive term, whether the cells are drawn
-before the run, during it, or after. `prob_table_first_sensitive_le` records the first of
-those, which is the order a presentation with the table in its state starts from, and which is
-the same bound because the two draws are independent.
+So the rate is `limit / 2 ^ 128` exactly, with no additive term.
+
+**Two caveats the Lean does not carry.** The "drawn during the run" reading is prose only:
+nothing instantiates `strategy` from a lazily-sampling handler, and the containment asserted
+above — that "it ever hits within `limit` probes" sits inside "the table meets that determined
+list" — is stated nowhere in Lean. `prob_mixture_missRun_sensitive_le` is the intended patch, by
+folding the answers into table-independent coins, but the folding is `TableBlind`'s lifting and
+is never composed with it.
+
+And `prob_table_first_sensitive_le` records the draw **order** only. Its run is typed
+`ProbComp γ`, which cannot read the table at all, so it says nothing about "a presentation with
+the table in its state" — the case where the run *does* read it. `TableBlind`'s header states
+the obstruction bluntly: two caches built from tables that differ are told apart by a single
+query at a canonical input where they differ, so no run-level congruence holds.
 -/
 
 open OracleComp OracleSpec ENNReal

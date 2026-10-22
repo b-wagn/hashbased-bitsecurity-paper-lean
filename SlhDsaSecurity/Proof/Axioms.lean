@@ -10213,6 +10213,20 @@ info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts' depends on axioms:
 #print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts
 
 /--
+info: 'SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_recordedBound' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_recordedBound
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.answerChargedLateSeed_of_parts
+
+/--
 info: 'SlhDsaSecurity.CoverageCount.prob_coverage_le_expected_recorded' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]

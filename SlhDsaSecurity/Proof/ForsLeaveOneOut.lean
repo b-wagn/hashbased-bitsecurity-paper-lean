@@ -218,10 +218,24 @@ theorem independent_tape_mixture_coverage_le {Aux : Type}
 
 /-! ## The statement's signing limit fits the tape bound
 
-`independent_tape_coverage_le_sharper` needs at most `5 * 2 ^ 62` trials. The experiment caps
-signing requests at `signingLimit = 2 ^ 64`, and every trial of the tape is one signing
-request, so the two are compatible — with room to spare, since `2 ^ 64` is four fifths of
-`5 * 2 ^ 62`.
+`independent_tape_coverage_le_sharper` needs at most `5 * 2 ^ 62` trials, and `signingLimit`
+is `2 ^ 64 = 4 * 2 ^ 62`, four fifths of it. That arithmetic is right and is what
+`signingLimit_le_tapeBound` proves.
+
+**The item is not a signing request, and an earlier version of this paragraph said it was.**
+In `independent_tape_coverage_le_sharper` every tape coordinate plays both roles — coordinate
+`j` is a candidate target and every other coordinate discloses (`disclosuresExcept j`) — so
+`trials` ranges over targets together with disclosers, which is what this file's own header and
+`BlockDisclosures` both say, and the latter builds its index split precisely to escape the
+resulting `5 * 2 ^ 62` ceiling.
+
+The live use of `signingLimit_le_tapeBound` is a different one and is sound: it discharges
+`BlockViews.prob_targetCovered_le`'s `hcap`, which bounds only the **disclosing** recording,
+where the item really is one served request (`ServedAgreement.record_length_le_cap`); the target
+count is free there and charged in expectation. The lemma this paragraph names has no consumers.
+
+*The arithmetic was checked and the item was not, which is how the mis-siting survived a
+review.*
 
 Worth checking rather than assuming: the tape bound comes from where the sixth-moment
 concentration argument stops working, and nothing forced it to sit above the parameter the

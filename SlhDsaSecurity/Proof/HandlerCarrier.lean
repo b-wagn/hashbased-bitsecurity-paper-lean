@@ -161,10 +161,18 @@ input at `m` is a `PRF_msg` input at `PK.root ‖ m`, so the signer's own random
 request framed `f` is a message input at a message one block *shorter* than `f`; comparing
 against `f` itself rejects it (`not_filesLeft_randomizerInput`), and comparing against nothing
 accepts it. Accepting it would put two entries per request in the disclosing recording, which
-is past the Poisson coupling's **mean** and not merely past its proved tail: the mean load
-potential moves from about `2 ^ 101.75` to `2 ^ 105.17`, above the `2 ^ 103` the coverage bound
-is stated at, so the rare event becomes the typical one and no sharpening reaches it. It would
-also stop the served set being the image of the signing log. -/
+is past the Poisson coupling's **mean** and not merely past its proved tail, so the rare event
+becomes the typical one and no sharpening reaches it. It would also stop the served set being
+the image of the signing log.
+
+Of the two figures this used to quote, one is traceable and one is not. The mean load potential
+at the coupling's own rate is `2 ^ 63 · T₁₄(3)` with `T₁₄(3) = 461101962108` proved in
+`ForsConcentrationSharper.touchard_fourteen_three` and used as the centering in
+`ForsConcentration.centeredLoadSum_eq`, which is about `2 ^ 101.75`. The figure for the doubled
+recording was quoted as `2 ^ 105.17`; **no lemma records it**, and it is not what doubling gives
+— doubling the entries doubles the per-bin rate, and `2 ^ 63 · T₁₄(6)` is about `2 ^ 110.4`.
+The conclusion holds under either reading, since the mean crosses `2 ^ 103` already at rate about
+`3.34`; only the second number was invented, and it is left out rather than re-derived. -/
 def FilesLeft (pk : PublicKey) (state : State) (input : Bytes) : Prop :=
   ∃ framed : Bytes, state.framing = some framed ∧
     ∃ randomizer : Digest, input = Hashing.messageInput randomizer pk framed

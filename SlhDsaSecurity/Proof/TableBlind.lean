@@ -21,9 +21,16 @@ separately: a run that reads an independently drawn table of available cells, an
 probes, meets the *sensitive* cells at one unit per probe.
 
 **What this settles and what it does not.** It settles the clauses whose unavailable cells are
-fixed before the run: every `PRF` cell, which no signature ever discloses, and every WOTS chain
-value below the revealed digit, the digit being a function of the key and the seeds because
-each hypertree key signs exactly one message. There the available part is determined by the
+fixed before the run: the WOTS `PRF` cells and the WOTS chain values below the revealed digit,
+the digit being a function of the key and the seeds because each hypertree key signs exactly one
+message.
+
+*Not* because a `PRF` cell is never disclosed — `SensitiveShape.Available` says a WOTS `PRF`
+cell is available exactly when `revealed key chain = 0`, and a FORS `PRF` cell exactly when its
+index is signed, so both are disclosed on the nose in those cases. The property the clause needs
+is the weaker and true one: **whether such a cell is disclosed is decided before the run**, which
+holds for WOTS because `revealed` is a function of the key and the seeds. It does not hold for
+FORS, whose signed set the adversary chooses, and the FORS case is separately excluded below. There the available part is determined by the
 walk, the run reads only it, and the charge applies to the rest for the whole run.
 
 It applies to a presentation in which the handler reads the table, which is the lazy one. In a
