@@ -3329,11 +3329,20 @@ What makes a dropped witness a defect is not that something was omitted, but tha
 **could have named it and needed it**; what makes an extra conjunct noise is that the consumer
 cannot name its subject at all. One test, two directions.
 
-A third outcome is available and is the one to reach for when neither applies. The same proof
-had the entry's own value in the final cache — nameable, not currently wanted, and recoverable
-by one `right_record_suffix` call. Leaving it out **and saying so in the docstring** beats both
-returning it and silently omitting it, because the next consumer who wants it is told where it
-comes from instead of re-deriving the lemma.
+A third outcome looked available and **it was wrong**. The same proof had the entry's own value
+in the final cache — nameable, not currently wanted, recoverable by one call — and the judgement
+recorded here was to leave it out *and say so in the docstring*. One round later two new lemmas
+wanted it, and the docstring did not help: a note tells the next person where to look only
+**after** they have noticed something is missing, which is the expensive half.
+
+> **"Not wanted" is a claim about the consumer in front of you, and it does not survive the next
+> one.** "Return it" and "the consumer cannot name it" are stable properties of the lemma;
+> "nobody wants it yet" is a property of a moment.
+
+So the rule has two cases, not three. When the only reason to omit something the proof already
+has is that the present consumer does not want it, **return it.** That is less elegant than the
+three-way version and it appears to be true — the eighth instance of this class was a fact
+someone had explicitly judged, documented, and deliberately left out.
 
 ### The workaround that would have been worse than the wall
 
