@@ -116,4 +116,25 @@ theorem fuseServing_id (outer : QueryImpl OracleWorld (StateT S ProbComp))
   funext queried state
   rcases queried with world | request <;> rfl
 
+
+/-! ## The phase, as the game writes it
+
+`run_fuse` read from the other side. The game's phase starts its writer at `1`, so the
+accumulation that `run_fuse` multiplies on is trivial and the two presentations differ by a
+reassociation of the pair and nothing else. This is the form a caller instantiates: give it the
+handler the charge simulates and the game's own adversary-and-signing handler, and the phase
+becomes a single `simulateQ` whose handler has somewhere to put a flag. -/
+
+/-- **The game's phase is one simulation of the fused handler.** -/
+theorem run_phase_fused {α : Type} (outer : QueryImpl OracleWorld (StateT S ProbComp))
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (computation : OracleComp (OracleWorld + SigningSpec) α) (log : SigningLog) (state : S) :
+    (simulateQ outer (((simulateQ inner computation).run).run log)).run state =
+      (fun step : α × (ω × SigningLog × S) =>
+        (((step.1, step.2.1), step.2.2.1), step.2.2.2)) <$>
+        (simulateQ (fuse outer inner) computation).run (1, log, state) := by
+  rw [run_fuse outer inner computation 1 log state, Functor.map_map]
+  simp [Function.comp_def, one_mul]
+
 end SlhDsaSecurity.PhaseFusion

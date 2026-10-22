@@ -8642,3 +8642,17 @@ info: 'SlhDsaSecurity.ServingCarrier.servedAt_setFraming' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.PhaseFusion.fuseServing_id' depends on axioms: [Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseFusion.fuseServing_id
+
+/-- info: 'SlhDsaSecurity.ServingCarrier.grows_of_framing' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.grows_of_framing
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.disclosedAt_eq_logDisclosed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.disclosedAt_eq_logDisclosed
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.run_phase_fused' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.run_phase_fused
