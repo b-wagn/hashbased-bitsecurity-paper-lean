@@ -498,6 +498,60 @@ theorem sharedCharged_of_three
     (inputBad q adversary) (ordering q adversary) (hcover q adversary hbudget)
     (hinput q adversary hbudget) (hordering q adversary hbudget)
 
+/-! ## The cover costs nothing
+
+`hcover` reads like the step where the split is justified, and at the instantiation the shared
+side actually uses it is **excluded middle** and nothing else. Taking `inputBad` to be the
+shared event itself, the two parts are "the event with the defect ruled out" and "the defect",
+and those cover the event for *any* `ordering` whatever.
+
+Two things follow, and both are worth saying where the hypothesis used to sit.
+
+* It is free, so `sharedCharged_of_two` below carries it internally instead of owing it. The
+  shared side's two obligations are the two charges; there is no third.
+* It does not look at `ordering`, so **the ordering thread may restate its event however it
+  likes** — on the record alone, on the recordings, on the final cache — and this step does not
+  move. The thread that found `hordering_of_probesIn` cannot accept an event defined by which
+  side an entry was filed on, because a `RecordedPair` carries no recordings; whatever it
+  settles on, the cover is the same two lines. The content of the split lives entirely in
+  `hinput`, which is where `¬ ordering` is *assumed* and has to be converted into a charge
+  against the aiming part. -/
+
+/-- **The two-part cover of an event is excluded middle.** No property of `ordering` is used;
+in particular it need not be an event of the run at all. -/
+theorem cover_of_em (shared ordering : RecordedPair → Prop) (pair : RecordedPair)
+    (hshared : shared pair) :
+    (shared pair ∧ ¬ ordering pair) ∨ ordering pair := by
+  classical
+  by_cases hord : ordering pair
+  · exact Or.inr hord
+  · exact Or.inl ⟨hshared, hord⟩
+
+/-- **The shared obligation, from the two charges and nothing else.** This is
+`sharedCharged_of_three` at the instantiation the shared side uses — the input half's event is
+the shared event — with `hcover` discharged by `cover_of_em`. The ordering defect's event stays
+abstract. -/
+theorem sharedCharged_of_two
+    (ordering : (q : Nat) → Adversary → RecordedPair → Prop)
+    (hinput : ∀ q adversary, HasTotalBudget adversary q →
+      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBad (recordedTraceOf pair) ∧
+          ¬ ordering q adversary pair | recordedPairedRun adversary] ≤
+        (expected (recordedPairedRun adversary)
+            (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hordering : ∀ q adversary, HasTotalBudget adversary q →
+      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering q adversary pair |
+          recordedPairedRun adversary] ≤
+        expected (recordedPairedRun adversary)
+            (fun pair => Multiset.card (recordMessageClass pair)) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    Obligations.SharedCharged :=
+  sharedCharged_of_three (fun _ _ pair => InputBad (recordedTraceOf pair)) ordering
+    (fun q adversary _ pair _ _ hshared =>
+      cover_of_em (fun pair => InputBad (recordedTraceOf pair)) (ordering q adversary) pair
+        hshared)
+    hinput hordering
+
 /-! ## The union bound
 
 The shared event is covered by the four, and this is the only step that knows which event is

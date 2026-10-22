@@ -11029,3 +11029,15 @@ info: 'SlhDsaSecurity.ServingProgram.disclosedAt_step' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingProgram.disclosedAt_step
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.cover_of_em' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.cover_of_em
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_two' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_two
