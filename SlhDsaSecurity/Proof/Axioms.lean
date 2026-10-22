@@ -14361,3 +14361,9 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_recorder' depe
 /-- info: 'SlhDsaSecurity.ServedAgreement.cached_queriesUnder' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.cached_queriesUnder
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.noticingRecorderOf_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.noticingRecorderOf_eq_rom
