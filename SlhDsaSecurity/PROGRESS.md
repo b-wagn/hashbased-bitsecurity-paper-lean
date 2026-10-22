@@ -4017,5 +4017,17 @@ a line, **naming neither the tactic nor the substitution**.
 > Never make a substitution whose source is a substring of a Lean identifier or tactic name.
 
 `omega`, `beta`, `delta`, `gamma`, `sigma` and `alpha` are all live tactic or lemma fragments, so
-the Greek-letter mapping is the dangerous one. This joins the family of tactics that fail without
+the Greek-letter mapping is the dangerous one.
+
+**The general form, from a second instance.** Generating a mirrored lemma by transforming the
+original's text went wrong twice, both times silently plausible: a rename keyed on a token caught
+the `intro` lines as well as the conclusion, producing duplicated binders and an error reported
+at the one *use* site that was still correct; and a section docstring inside a grabbed range got
+attached to the wrong lemma.
+
+> A mechanical transformation must be scoped to the **statement**, never the proof.
+
+Splitting each theorem at its `:= by` and transforming only the head fixes both. **The statement
+is where names mean things; the body is where they are merely used.** Same cause as the Greek
+mapping — a substitution whose scope is wider than its meaning. This joins the family of tactics that fail without
 naming their own cause — and it is the only member whose cause is outside Lean entirely.
