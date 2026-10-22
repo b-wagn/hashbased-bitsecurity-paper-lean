@@ -158,6 +158,33 @@ theorem appendedOf_of_neither (leftKeep rightKeep : Bytes → σ → Prop) (inpu
   rw [appendedOf, if_neg (fun hboth => hleft hboth.2), if_neg (fun hboth => hright hboth.2)]
 
 open scoped Classical in
+/-- **A step appends at most this query's own entry to the target recording**, and when it does,
+the query was fresh and the right test held. The two facts a recording-side invariant reads a
+step through, in one place rather than four. -/
+theorem appendedOf_right_mem (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (answer : HashOutput) (entry : Bytes × HashOutput)
+    (hentry : entry ∈ (appendedOf leftKeep rightKeep input state answer).2) :
+    entry ∈ state.2.2 ∨ (entry = (input, answer) ∧
+      CacheView.cacheOf state.1 input = none ∧ rightKeep input state.1) := by
+  classical
+  cases hcached : CacheView.cacheOf state.1 input with
+  | some cached =>
+    rw [appendedOf_of_cached leftKeep rightKeep input state answer cached hcached] at hentry
+    exact Or.inl hentry
+  | none =>
+    by_cases hleft : leftKeep input state.1
+    · rw [appendedOf_of_left leftKeep rightKeep input state answer hcached hleft] at hentry
+      exact Or.inl hentry
+    · by_cases hright : rightKeep input state.1
+      · rw [appendedOf_of_right leftKeep rightKeep input state answer hcached hleft
+          hright] at hentry
+        rcases List.mem_append.mp hentry with hprior | hself
+        · exact Or.inl hprior
+        · exact Or.inr ⟨List.mem_singleton.mp hself, rfl, hright⟩
+      · rw [appendedOf_of_neither leftKeep rightKeep input state answer hleft hright] at hentry
+        exact Or.inl hentry
+
+open scoped Classical in
 /-- **The recorder at a general view.** See `noticingRecorderOf` for the widening that tells the
 view about *every* query rather than only the ones it drew; a view with something to record
 about a cache hit needs that one, and at a view that notices nothing the two are the same query
