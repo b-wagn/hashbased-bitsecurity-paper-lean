@@ -119,15 +119,20 @@ def DisclosedCoveredAt (prfSeed : Digest) (pk : PublicKey) (cache : QueryCache H
       (MessageDigest.parse otherAnswer).1 = (MessageDigest.parse answer).1 ∧
       (MessageDigest.parse otherAnswer).2 tree = (MessageDigest.parse answer).2 tree
 
-/-- **The coverage event at the forgery's own digest, counted on the disclosing class.** -/
+/-- **The coverage event at the forgery's own digest, counted on the disclosing class.** The
+target is a digest the signer did *not* randomise: one that is itself disclosing is the replay
+case, which the split sends elsewhere, and the charge counts targets outside the disclosing
+class. -/
 def ForgeryDisclosedCovered (prfSeed : Digest) (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec) : Prop :=
   ∃ (message : Bytes) (parsed : Signature) (answer : HashOutput),
     result.1.1.forgery.message.frame = some message ∧
       Signature.fromBytes? result.1.1.forgery.signature = some parsed ∧
         result.2 (Hashing.messageInput parsed.randomizer pk message) = some answer ∧
-          DisclosedCoveredAt prfSeed pk result.2
-            (Hashing.messageInput parsed.randomizer pk message) answer
+          ¬ CacheAvailability.SignerRandomised prfSeed pk result.2
+              (Hashing.messageInput parsed.randomizer pk message) ∧
+            DisclosedCoveredAt prfSeed pk result.2
+              (Hashing.messageInput parsed.randomizer pk message) answer
 
 /-- **A disclosing witness is a message-class witness**, so the narrow coverage event is a case
 of the wide one. -/
@@ -135,7 +140,7 @@ theorem forgeryCovered_of_disclosed (prfSeed : Digest) (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec)
     (hcovered : ForgeryDisclosedCovered prfSeed pk result) :
     CoverageTail.ForgeryCovered pk result := by
-  obtain ⟨message, parsed, answer, hframe, hparsed, hentry, hcovered⟩ := hcovered
+  obtain ⟨message, parsed, answer, hframe, hparsed, hentry, -, hcovered⟩ := hcovered
   refine ⟨message, parsed, answer, hframe, hparsed, hentry, fun tree => ?_⟩
   obtain ⟨other, otherAnswer, hne, hsigner, hother, hinstance, hleaf⟩ := hcovered tree
   exact ⟨other, otherAnswer, hne,
@@ -150,6 +155,8 @@ theorem forgeryDisclosedCovered_of_witnesses (prfSeed : Digest) (pk : PublicKey)
     (hframe : result.1.1.forgery.message.frame = some message)
     (hparsed : Signature.fromBytes? result.1.1.forgery.signature = some parsed)
     (hentry : result.2 (Hashing.messageInput parsed.randomizer pk message) = some answer)
+    (hfresh : ¬ CacheAvailability.SignerRandomised prfSeed pk result.2
+      (Hashing.messageInput parsed.randomizer pk message))
     (hwitness : ∀ tree : MessageDigest.ForsTree,
       ∃ (other : Bytes) (otherAnswer : HashOutput),
         other ≠ Hashing.messageInput parsed.randomizer pk message ∧
@@ -158,7 +165,7 @@ theorem forgeryDisclosedCovered_of_witnesses (prfSeed : Digest) (pk : PublicKey)
           SplitCharged.forsKeyOfDigest otherAnswer = SplitCharged.forsKeyOfDigest answer ∧
           MessageDigest.forsIndices otherAnswer tree = MessageDigest.forsIndices answer tree) :
     ForgeryDisclosedCovered prfSeed pk result := by
-  refine ⟨message, parsed, answer, hframe, hparsed, hentry, fun tree => ?_⟩
+  refine ⟨message, parsed, answer, hframe, hparsed, hentry, hfresh, fun tree => ?_⟩
   obtain ⟨other, otherAnswer, hne, hsigner, hother, hkey, hleaf⟩ := hwitness tree
   exact ⟨other, otherAnswer, hne, hsigner, hother,
     parse_instance_eq_of_forsKeyOfDigest_eq hkey, hleaf⟩
@@ -173,6 +180,8 @@ theorem forgeryDisclosedCovered_or_only_self (prfSeed : Digest) (pk : PublicKey)
     (hframe : result.1.1.forgery.message.frame = some message)
     (hparsed : Signature.fromBytes? result.1.1.forgery.signature = some parsed)
     (hentry : result.2 (Hashing.messageInput parsed.randomizer pk message) = some answer)
+    (hfresh : ¬ CacheAvailability.SignerRandomised prfSeed pk result.2
+      (Hashing.messageInput parsed.randomizer pk message))
     (hsigned : ∀ tree : MessageDigest.ForsTree,
       GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree ∈
         CacheAvailability.signedAt prfSeed pk result.2 (SplitCharged.forsKeyOfDigest answer)) :
@@ -194,7 +203,7 @@ theorem forgeryDisclosedCovered_or_only_self (prfSeed : Digest) (pk : PublicKey)
             input = Hashing.messageInput parsed.randomizer pk message
   · exact Or.inr hself
   refine Or.inl (forgeryDisclosedCovered_of_witnesses prfSeed pk result message parsed answer
-    hframe hparsed hentry fun tree => ?_)
+    hframe hparsed hentry hfresh fun tree => ?_)
   push Not at hself
   obtain ⟨input, a, hsigner, hcached, hkey, ⟨other, hother⟩, hne⟩ := hself tree
   obtain ⟨htree, hleaf⟩ := forsIndex_inj hother

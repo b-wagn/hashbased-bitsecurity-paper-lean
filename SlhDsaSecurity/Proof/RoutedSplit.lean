@@ -32,7 +32,9 @@ fourteen positions its digest selects, and each position is either undisclosed �
 it claims is a sensitive entry of the record, which is `InputBad` — or disclosed. If all
 fourteen are disclosed, `CoverageRouted.forgeryDisclosedCovered_or_only_self` forks again: the
 forgery's digest is covered by the digests that actually disclose, which is `AnswerBad`, or the
-forgery's own input is the only one disclosing them. The witnesses are kept at the disclosing
+forgery's own input is the only one disclosing them. The fork is taken only once the forgery's
+own input is known not to be disclosing: one that is sends the win to the replay case, where it
+belongs, and keeps it out of the coverage charge, which counts targets outside that class. The witnesses are kept at the disclosing
 class rather than weakened to the message class, because only a digest the signer randomised
 reveals anything, and the signing limit caps those while nothing caps the others.
 
@@ -284,13 +286,15 @@ theorem cases_of_canonical (adversary : Adversary)
           (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result.2
           (forsKeyOfDigest (digestOf result.2
             (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) message parsed))
-  · rcases CoverageRouted.forgeryDisclosedCovered_or_only_self walk.1.1.2.1
-        (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result message parsed _
-        hframe hparsed (cached_digest adversary hresult message parsed hframe hparsed)
-        hsigned with hcovered | honly
-    · exact Or.inl (Or.inr hcovered)
-    · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical,
-        selfRandomised_of_only_self hsigned honly⟩)
+  · by_cases hself : SelfRandomised ((walk.1, result.1), result.2) message parsed
+    · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical, hself⟩)
+    · rcases CoverageRouted.forgeryDisclosedCovered_or_only_self walk.1.1.2.1
+          (generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2) result message parsed _
+          hframe hparsed (cached_digest adversary hresult message parsed hframe hparsed)
+          hself hsigned with hcovered | honly
+      · exact Or.inl (Or.inr hcovered)
+      · exact absurd (selfRandomised_of_only_self (x := ((walk.1, result.1), result.2))
+          hsigned honly) hself
   · push Not at hsigned
     obtain ⟨tree, hunsigned⟩ := hsigned
     have hsecrets : ∀ tree : Fin forsTrees, (parsed.fors tree).secret =
