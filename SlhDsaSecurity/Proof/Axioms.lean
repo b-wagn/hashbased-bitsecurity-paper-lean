@@ -10143,6 +10143,100 @@ info: 'SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget' depends on axi
 #print axioms SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget
 
 /--
+info: 'SlhDsaSecurity.TapeFactor.recorderOf_run_inr_plain' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.recorderOf_run_inr_plain
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.rom_run_inr_some' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.rom_run_inr_some
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.rom_run_inr_none' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.rom_run_inr_none
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.mem_support_rom_of_recorderOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.mem_support_rom_of_recorderOf
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.recorderOf_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.recorderOf_eq_rom
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.recordedRun_splitCost_eq_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.recordedRun_splitCost_eq_map
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.probEvent_splitCost_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.probEvent_splitCost_recorded
+
+/--
+info: 'SlhDsaSecurity.AnswerJoin.answerRecordedBound_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerJoin.answerRecordedBound_of_parts
+
+/--
+info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_parts
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.prob_coverage_le_expected_recorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.prob_coverage_le_expected_recorded
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join_recorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.prob_bad_or_coverage_le_of_join_recorded
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_caps_recorded
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps_recorded
+
+/--
 info: 'SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered' depends on axioms: [propext,
  Classical.choice,
  Quot.sound]

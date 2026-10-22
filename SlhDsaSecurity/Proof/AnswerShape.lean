@@ -69,7 +69,8 @@ theorem map_fusedTail (adversary : Adversary)
     forgetRecord <$> FusedCoverage.fusedTail adversary walk =
       AnswerJoin.answerRecordedRun adversary walk := by
   rw [AnswerJoin.answerRecordedRun, ← RecordedTail.map_recordedAfterSeeds,
-    RecordedTail.countAllHashes_map, recordedRun_map]
+    RecordedTail.countAllHashes_map, recordedRun_map, BlockViews.recordedRun,
+    RecorderView.recorderOf_cache]
   rfl
 
 /-- **An event that reads no record is the same event at either run.** -/
@@ -109,5 +110,47 @@ theorem answerChargedLate_of_recordedBound
         rw [← map_fusedTail, probEvent_map]
         rfl
     _ ≤ _ := hbound q adversary hq hbudget walk hwalk hgood
+
+/-! ## The obligation, discharged down to three named hypotheses
+
+`AnswerJoin.answerRecordedBound_of_parts` proves the bound above from the three things the
+answer side does not own, so composing the two leaves exactly those three in the open. Two are
+facts about the game — the disclosing recording is short, and the recorder's disclosing test
+agrees with the signing log — and the third is the narrowing's leftover, which the module
+docstring of `AnswerJoin` explains cannot be answered where it is asked and will be retired by
+the weakened cover rather than paid.
+
+Composing them here rather than leaving it to the assembly is the point of this file: if the
+answer side's statement ever drifts from what `answerChargedLate_of_recordedBound` consumes,
+this definition stops elaborating, and it stops elaborating here. -/
+
+/-- **The answer obligation, from the three parts the answer side does not own.** -/
+theorem answerChargedLate_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hleftBound : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk),
+        result.2.2.1.length ≤ signingLimit)
+    (hdisclosing : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk), ∀ input : Bytes,
+        ServedLog.servedLog
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) input ↔
+          SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            input result.2.1)
+    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            SplitWitness.SeedRandomised walk.1.1.2.1
+              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+              result.2.1 |
+          AnswerJoin.answerRecordedRun adversary walk] ≤ (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)) :
+    Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
+      LateProbes.Ordering :=
+  answerChargedLate_of_recordedBound
+    (AnswerJoin.answerRecordedBound_of_parts hne hleftBound hdisclosing hseed)
 
 end SlhDsaSecurity.AnswerShape

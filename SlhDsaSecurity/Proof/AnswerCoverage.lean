@@ -54,8 +54,10 @@ theorem targetCovered_of_forgeryDisclosedCovered (prfSeed : Digest) (pk : Public
   classical
   rcases SplitWitness.mem_records_or_seedRandomised prfSeed pk (countAllHashes computation)
       cache ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)
-      (mem_support_recorder_countAllHashes (SplitWitness.disclosingKeep prfSeed pk)
-        (SplitWitness.targetKeep prfSeed pk) inClass hne computation (cache, [], []) result hmem)
+      (by
+        rw [← RecorderView.recorderOf_cache]
+        exact mem_support_recorder_countAllHashes (SplitWitness.disclosingKeep prfSeed pk)
+          (SplitWitness.targetKeep prfSeed pk) inClass hne computation (cache, [], []) result hmem)
       hfresh hlate hcovered with hleftover | ⟨target, htarget, hwitness⟩
   · exact absurd hleftover hseed
   · refine ⟨target, htarget, fun tree => ?_⟩
@@ -115,6 +117,65 @@ theorem prob_bad_or_coverage_le_of_caps (prfSeed : Digest) (pk : PublicKey)
     budget hbudget
   exact targetCovered_of_forgeryDisclosedCovered prfSeed pk inClass hne computation initialCache
     hfresh result hmem (hlate result hmem) hcoverage.1 hcoverage.2
+
+/-! ## The same two charges, before the recordings are forgotten
+
+The shape above concludes at the shared oracle's run, so its coverage clause can only mention
+the result and the cache. The ordering defect mentions the target recording, and the repair the
+assembly now wants is to stop assuming it never fires and make its absence a *conjunct* of the
+charged event instead. That cannot be written at the shared oracle's run at all.
+
+So the same charge is taken one step earlier, at the recorded run, where all three conjuncts are
+expressible: the coverage event, the narrowing's leftover, and the ordering defect's absence.
+Nothing about the argument changes — `targetCovered_of_forgeryDisclosedCovered` already reads
+all three pointwise, which is why the move costs nothing. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The answer half's two charges at the recorded run**, with the ordering defect's absence
+carried inside the coverage clause rather than assumed of the support. -/
+theorem prob_bad_or_coverage_le_of_caps_recorded (prfSeed : Digest) (pk : PublicKey)
+    (inClass : Bytes → Prop) {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hrightClass : ∀ (input : Bytes) (cache : QueryCache HashSpec),
+      SplitWitness.targetKeep prfSeed pk input cache → inClass input)
+    (bad : Bytes → HashOutput → Prop)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
+    (computation : OracleComp OracleWorld Outcome) (initialCache : QueryCache HashSpec)
+    (hclean : GrowthCharge.CleanBad bad initialCache)
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input →
+      initialCache input = none)
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
+        (countQueries (splitCost inClass inside outside) computation) initialCache),
+      result.2.2.1.length ≤ leftLength)
+    (budget : Nat)
+    (hbudget : ∀ result ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes computation)).run initialCache), result.1.2 ≤ budget) :
+    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+        GrowthCharge.Bad bad (result.1, result.2.1) ∨
+          (SplitWitness.CoveredAtKeep prfSeed pk (result.1, result.2.1) ∧
+            ¬ SplitWitness.SeedRandomised prfSeed pk result.2.1 ∧
+            ¬ SplitWitness.LateDisclosure prfSeed pk result) |
+        BlockViews.recordedRun
+          (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
+          (countAllHashes computation) initialCache] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
+  classical
+  refine prob_bad_or_coverage_le_of_join_recorded inClass hne
+    (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
+    hrightClass bad hrate hbadClass computation initialCache hclean
+    (fun result => SplitWitness.CoveredAtKeep prfSeed pk (result.1, result.2.1) ∧
+      ¬ SplitWitness.SeedRandomised prfSeed pk result.2.1 ∧
+      ¬ SplitWitness.LateDisclosure prfSeed pk result)
+    leftLength budget hcap (fun result hmem hcoverage => ?_) hleftBound
+    (fun result hmem => rightRecord_length_le_budget _ _ inClass hne hrightClass computation
+      initialCache result hmem budget hbudget)
+    budget hbudget
+  exact targetCovered_of_forgeryDisclosedCovered prfSeed pk inClass hne computation initialCache
+    hfresh result hmem hcoverage.2.2 hcoverage.1 hcoverage.2.1
 
 /-! ## The disclosing cap
 
