@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.RandomiserProvenance
 import SlhDsaSecurity.Proof.PhaseProvenance
 import SlhDsaSecurity.Proof.CacheProvenance
 import SlhDsaSecurity.Proof.KeygenBudget
@@ -6877,3 +6878,33 @@ info: 'SlhDsaSecurity.PhaseProvenance.exists_recorded_of_mem_countedRun' depends
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PhaseProvenance.exists_recorded_of_mem_countedRun
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.provenance_phase_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.provenance_phase_subset
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.keygen_not_randomizerInput' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.keygen_not_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.sign_messageProbe' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.sign_messageProbe
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.provenance_afterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.provenance_afterSeeds
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.randomiserBad_source

@@ -172,24 +172,31 @@ def PhaseSource (sk : SecretKey) (record : Multiset Bytes) (log : SigningLog)
     ∃ entry ∈ log, QueriesUnder cache (Scheme.sign (m := OracleComp HashSpec) sk entry.1) probe
 
 /-- **An entry the adversary's phase installed is the adversary's own query, or the signer's on
-a request the log names.** -/
-theorem provenance_phase (sk : SecretKey) {α : Type}
+a request the log names.**
+
+The cache the consultation is read at is free, and has to be: the phase sits inside the game,
+and the provenance that consumes this is about the game's *final* cache, which the phase's own
+is only a prefix of. -/
+theorem provenance_phase_subset (sk : SecretKey) {α : Type}
     (computation : OracleComp (OracleWorld + SigningSpec) α) :
     ∀ (log : SigningLog) (cache : QueryCache HashSpec)
       (result : ((α × Multiplicative Tally) × SigningLog) × QueryCache HashSpec),
       result ∈ support (recordedRun
         (simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk)) computation)
         log cache) →
+      ∀ laterCache : QueryCache HashSpec,
+        (∀ (input : Bytes) (output : HashOutput),
+          result.2 input = some output → laterCache input = some output) →
       ∀ probe : Bytes, cache probe = none → result.2 probe ≠ none →
-        PhaseSource sk (Multiplicative.toAdd result.1.1.2).2 result.1.2 result.2 probe := by
+        PhaseSource sk (Multiplicative.toAdd result.1.1.2).2 result.1.2 laterCache probe := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
-    intro log cache result hresult probe hfresh hpresent
+    intro log cache result hresult laterCache hlater probe hfresh hpresent
     rw [simulateQ_pure, recordedRun, WriterT.run_pure, StateT.run_pure, simulateQ_pure,
       StateT.run_pure, support_pure, Set.mem_singleton_iff] at hresult
     exact absurd (show result.2 probe = none from by rw [hresult]; exact hfresh) hpresent
   | query_bind t next ih =>
-    intro log cache result hresult probe hfresh hpresent
+    intro log cache result hresult laterCache hlater probe hfresh hpresent
     rw [simulateQ_bind, simulateQ_spec_query, recordedRun_bind, mem_support_bind_iff] at hresult
     obtain ⟨outer, houter, hrest⟩ := hresult
     rw [support_map] at hrest
@@ -200,19 +207,23 @@ theorem provenance_phase (sk : SecretKey) {α : Type}
         (Multiplicative.toAdd outer.1.1.2).2 + (Multiplicative.toAdd inner.1.1.2).2 := by
       rw [show result.1.1.2 = outer.1.1.2 * inner.1.1.2 from by rw [← hvalue], toAdd_mul]
       rfl
+    have hinnerLater : ∀ (input : Bytes) (output : HashOutput),
+        inner.2 input = some output → laterCache input = some output := by
+      intro input output hentry
+      exact hlater input output (by rw [hcache]; exact hentry)
     by_cases houterfresh : outer.2 probe = none
     · -- The entry is not there yet after the head, so the continuation installed it.
-      rcases ih outer.1.1.1 outer.1.2 outer.2 inner hinner probe houterfresh
-        (by rw [← hcache]; exact hpresent) with hmem | ⟨entry, hentry, hquery⟩
+      rcases ih outer.1.1.1 outer.1.2 outer.2 inner hinner laterCache hinnerLater probe
+        houterfresh (by rw [← hcache]; exact hpresent) with hmem | ⟨entry, hentry, hquery⟩
       · exact Or.inl (by rw [hrecord]; exact Multiset.mem_add.mpr (Or.inr hmem))
-      · exact Or.inr ⟨entry, by rw [hlog]; exact hentry, by rw [hcache]; exact hquery⟩
+      · exact Or.inr ⟨entry, by rw [hlog]; exact hentry, hquery⟩
     · -- The head installed it, and which handler ran decides which party made it.
       have hpresentOuter : outer.2 probe ≠ none := houterfresh
       have hgrow : ∀ (input : Bytes) (output : HashOutput),
-          outer.2 input = some output → result.2 input = some output := by
+          outer.2 input = some output → laterCache input = some output := by
         intro input output hentry
-        rw [hcache]
-        exact persists_of_mem_recordedRun _ outer.1.2 outer.2 inner hinner input output hentry
+        exact hinnerLater input output (persists_of_mem_recordedRun _ outer.1.2 outer.2 inner
+          hinner input output hentry)
       rcases t with world | request
       · refine Or.inl ?_
         rw [hrecord]
@@ -225,8 +236,21 @@ theorem provenance_phase (sk : SecretKey) {α : Type}
         refine Or.inr ⟨⟨request, answer⟩, ?_, ?_⟩
         · rw [hlog, hrest, hanswer, List.append_assoc]
           exact List.mem_append_right log (List.mem_append_left rest (List.mem_singleton_self _))
-        · exact queriesUnder_sign_of_fresh_step sk request log cache result.2 outer houter hgrow
+        · exact queriesUnder_sign_of_fresh_step sk request log cache laterCache outer houter hgrow
             probe hfresh hpresentOuter
+
+/-- The same read at the phase's own final cache. -/
+theorem provenance_phase (sk : SecretKey) {α : Type}
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (log : SigningLog) (cache : QueryCache HashSpec)
+    (result : ((α × Multiplicative Tally) × SigningLog) × QueryCache HashSpec)
+    (hresult : result ∈ support (recordedRun
+      (simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk)) computation)
+      log cache))
+    (probe : Bytes) (hfresh : cache probe = none) (hpresent : result.2 probe ≠ none) :
+    PhaseSource sk (Multiplicative.toAdd result.1.1.2).2 result.1.2 result.2 probe :=
+  provenance_phase_subset sk computation log cache result hresult result.2 (fun _ _ h => h)
+    probe hfresh hpresent
 
 /-! ## Recording costs nothing
 
