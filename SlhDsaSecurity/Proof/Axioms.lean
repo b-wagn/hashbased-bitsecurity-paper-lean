@@ -236,6 +236,7 @@ import SlhDsaSecurity.Proof.OrderingCompose
 import SlhDsaSecurity.Proof.CarrierCharge
 import SlhDsaSecurity.Proof.ViewRate
 import SlhDsaSecurity.Proof.CarrierOrdering
+import SlhDsaSecurity.Proof.CarrierCoverage
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15010,3 +15011,45 @@ info: 'SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail'' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail'
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_step_conj' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_step_conj
+
+/--
+info: 'SlhDsaSecurity.ServingForget.run_fuseServing_conj' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.run_fuseServing_conj
+
+/--
+info: 'SlhDsaSecurity.ServingForget.bind_of_forgetsAlong' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.bind_of_forgetsAlong
+
+/--
+info: 'SlhDsaSecurity.ServingForget.bind_of_fuseServing_conj' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingForget.bind_of_fuseServing_conj
+
+/--
+info: 'SlhDsaSecurity.CarrierCoverage.reassociate_startServingOn' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCoverage.reassociate_startServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierCoverage.reassociate_stopServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCoverage.reassociate_stopServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage
