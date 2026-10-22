@@ -82,9 +82,10 @@ theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
     (step : OracleWorld.Range queried × CountedState)
     (hstep : step ∈ support (((countedCarrierRecorder pk rightKeep) queried).run state)) :
     step.2.2.1.2 = state.2.1.2 ∨
-      ∃ pair : Bytes × HashOutput, step.2.2.1.2 = state.2.1.2 ++ [pair] ∧
-        state.1.cache pair.1 = none ∧
-          rightKeep pair.1 (servingNotice pk state.1 pair.1) := by
+      ∃ (input : Bytes) (answer : HashOutput), queried = Sum.inr input ∧
+        step.2.2.1.2 = state.2.1.2 ++ [(input, answer)] ∧
+          state.1.cache input = none ∧
+            rightKeep input (servingNotice pk state.1 input) := by
   classical
   obtain ⟨inner, hinner, hvalue, -, hcarried⟩ := withCount_step _ queried state step hstep
   rcases queried with coin | input
@@ -102,7 +103,7 @@ theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
     rcases @appendedOf_right_shape HandlerCarrier.State (servingView pk) (disclosingKeep pk)
       rightKeep input _ inner.1 with hsame | ⟨hshape, hfresh, hright⟩
     · exact Or.inl hsame
-    · refine Or.inr ⟨(input, inner.1), hshape, ?_, hright⟩
+    · refine Or.inr ⟨input, inner.1, rfl, hshape, ?_, hright⟩
       show HandlerCarrier.cacheOf state.1 input = none
       rw [← cacheOf_servingNotice pk state.1 input]
       exact hfresh
@@ -146,12 +147,12 @@ theorem run_right_suffix (rightKeep : Bytes → HandlerCarrier.State → Prop)
     have hstepGrow := ((files_countedCarrierRecorder pk rightKeep).stepGrows queried state step
       hstep).1
     rcases step_right_shape pk rightKeep queried state step hstep with
-      hsame | ⟨pair, hshape, hfresh, hright⟩
+      hsame | ⟨appended, answer, -, hshape, hfresh, hright⟩
     · refine ⟨suffix, by rw [hsuffix, hsame], fun entry hentry => ?_⟩
       obtain ⟨mid, hstart, hlater, habsent, hkeep⟩ := hentries entry hentry
       exact ⟨mid, fun probe value hvalue => hstart probe value (hstepGrow probe value hvalue),
         hlater, habsent, hkeep⟩
-    · refine ⟨pair :: suffix, by rw [hsuffix, hshape, List.append_assoc]; rfl,
+    · refine ⟨(appended, answer) :: suffix, by rw [hsuffix, hshape, List.append_assoc]; rfl,
         fun entry hentry => ?_⟩
       rcases List.mem_cons.mp hentry with hself | hlater
       · refine ⟨state.1, fun _ _ hvalue => hvalue, fun probe value hvalue => ?_, ?_, ?_⟩
@@ -254,13 +255,13 @@ theorem step_recordFreshNodup (rightKeep : Bytes → HandlerCarrier.State → Pr
   classical
   refine ⟨step_recordCached pk rightKeep queried state step hstep hinv.1, ?_⟩
   rcases step_right_shape pk rightKeep queried state step hstep with
-    hsame | ⟨pair, hshape, hfresh, -⟩
+    hsame | ⟨appended, answer, -, hshape, hfresh, -⟩
   · rw [hsame]
     exact hinv.2
   · rw [hshape, List.map_append]
     refine List.Nodup.append hinv.2 (by simp) ?_
     intro probe hprior hnew
-    rw [List.map_cons, List.map_nil, List.mem_singleton] at hnew
+    simp only [List.map_cons, List.map_nil, List.mem_singleton] at hnew
     obtain ⟨prior, hpriorMem, hpriorInput⟩ := List.mem_map.mp hprior
     refine absurd hfresh ?_
     rw [← hnew, ← hpriorInput]
