@@ -281,6 +281,156 @@ theorem prob_bad_or_coverage_le_of_caps_recorded_narrow (prfSeed : Digest) (pk :
       initialCache result hmem budget hbudget)
     budget hbudget
 
+/-! ## The narrowed join, discharged
+
+`hjoinNarrow` above was stated in the shape the weakening of
+`SplitWitness.Served.mem_records_of_covered` would have. The weakening is proved, so the shape is
+now a theorem and the hypothesis is closed by `exact` — against one remaining demand,
+`Served.WitnessCover`, which is what a serving flag gives and a cache test does not.
+
+Two things are worth separating here, because they were tangled in `hseed` and are not the same.
+`NarrowTarget` is the **leftover**: the forgery's randomiser is `SK.prf`, one object, one unit,
+the shared half's to charge. `WitnessCover` is a **presentation defect**: the disclosing test is
+read at the view in force when a query was answered, while the coverage event reads it at the
+end, and nothing reconciles them unless the test is set at the query. Charging the second is not
+merely expensive, it is the wrong repair. -/
+
+open scoped Classical in
+/-- **The narrowed leftover gives the narrowed class at the forgery.** The message-class half is
+free, so what is left is exactly the `PRF_msg` half, which is `ForgerySeedRandomised`. -/
+theorem narrowTarget_of_not_forgerySeedRandomised (prfSeed : Digest) (pk : PublicKey)
+    (result : (Outcome × Nat) × SplitPrefix.SplitState)
+    (hforgery : ¬ ForgerySeedRandomised prfSeed pk (result.1, result.2.1)) :
+    SplitWitness.Served.NarrowTarget pk (SplitWitness.narrowClass prfSeed pk) result :=
+  fun message parsed hframe hparsed =>
+    ⟨⟨parsed.randomizer, message, rfl⟩,
+      fun hprf => hforgery ⟨message, parsed, hframe, hparsed, hprf⟩⟩
+
+open scoped Classical in
+/-- **The join at the game's tests, with the narrowing at one input.** This is `hjoinNarrow`'s
+body; `prob_bad_or_coverage_le_of_caps_recorded_narrow` consumes it verbatim. -/
+theorem targetCovered_of_forgeryDisclosedCovered_narrow (prfSeed : Digest) (pk : PublicKey)
+    (inClass : Bytes → Prop) {inside outside : QueryKind} (hne : inside ≠ outside)
+    (computation : OracleComp OracleWorld Outcome) (cache : QueryCache HashSpec)
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (result : (Outcome × Counts) × SplitPrefix.SplitState)
+    (hmem : result ∈ support (BlockViews.recordedRun
+      (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
+      (countQueries (splitCost inClass inside outside) computation) cache))
+    (hcover : SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
+      (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.narrowClass prfSeed pk)
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hcovered : SplitWitness.CoveredAtKeep prfSeed pk
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1))
+    (hforgery : ¬ ForgerySeedRandomised prfSeed pk
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1))
+    (hlate : ¬ SplitWitness.LateDisclosure prfSeed pk
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)) :
+    BlockViews.TargetCovered result := by
+  classical
+  obtain ⟨target, htarget, hwitness⟩ :=
+    SplitWitness.mem_records_of_covered_of_not_late_narrow prfSeed pk
+      (countAllHashes computation) cache
+      ((result.1.1, result.1.2 inside + result.1.2 outside), result.2)
+      (mem_support_recorder_countAllHashes (SplitWitness.disclosingKeep prfSeed pk)
+        (SplitWitness.targetKeep prfSeed pk) inClass hne computation (cache, [], []) result hmem)
+      hfresh hcover
+      (narrowTarget_of_not_forgerySeedRandomised prfSeed pk _ hforgery) hlate hcovered
+  refine ⟨target, htarget, fun tree => ?_⟩
+  obtain ⟨witness, hmember, -, hinstance, hleaf⟩ := hwitness tree
+  exact ⟨witness, hmember, hinstance, hleaf⟩
+
+/-! ## And the charge with `hjoinNarrow` discharged
+
+Nothing is left of the narrowing's cost but `WitnessCover`, which is not a charge at all: it says
+the disclosing test holds when the query is answered and not merely at the end. A serving flag
+gives it outright. So the answer half's remaining debts are now three hypotheses of one kind —
+the recorder's test being the signing log (`hdisclosing`), the recording being one entry per
+served request (`hleftBound`), and this — and all three are the same statement about the same
+object, which is why the carrier settles them together. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The answer half's two charges with the narrowed join proved rather than assumed.** -/
+theorem prob_bad_or_coverage_le_of_caps_recorded_witnessCover (prfSeed : Digest) (pk : PublicKey)
+    (inClass : Bytes → Prop) {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hrightClass : ∀ (input : Bytes) (cache : QueryCache HashSpec),
+      SplitWitness.targetKeep prfSeed pk input cache → inClass input)
+    (bad : Bytes → HashOutput → Prop)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
+    (computation : OracleComp OracleWorld Outcome) (initialCache : QueryCache HashSpec)
+    (hclean : GrowthCharge.CleanBad bad initialCache)
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input →
+      initialCache input = none)
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hwitnessCover : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
+        (countQueries (splitCost inClass inside outside) computation) initialCache),
+      SplitWitness.Served.WitnessCover (SplitWitness.disclosingKeep prfSeed pk)
+        (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.narrowClass prfSeed pk)
+        ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
+        (countQueries (splitCost inClass inside outside) computation) initialCache),
+      result.2.2.1.length ≤ leftLength)
+    (budget : Nat)
+    (hbudget : ∀ result ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes computation)).run initialCache), result.1.2 ≤ budget) :
+    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+        GrowthCharge.Bad bad (result.1, result.2.1) ∨
+          (SplitWitness.CoveredAtKeep prfSeed pk (result.1, result.2.1) ∧
+            ¬ ForgerySeedRandomised prfSeed pk (result.1, result.2.1) ∧
+            ¬ SplitWitness.LateDisclosure prfSeed pk result) |
+        BlockViews.recordedRun
+          (SplitWitness.disclosingKeep prfSeed pk) (SplitWitness.targetKeep prfSeed pk)
+          (countAllHashes computation) initialCache] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 :=
+  prob_bad_or_coverage_le_of_caps_recorded_narrow prfSeed pk inClass hne hrightClass bad hrate
+    hbadClass computation initialCache hclean leftLength hcap
+    (fun result hmem hcovered hforgery hlate =>
+      targetCovered_of_forgeryDisclosedCovered_narrow prfSeed pk inClass hne computation
+        initialCache hfresh result hmem (hwitnessCover result hmem) hcovered hforgery hlate)
+    hleftBound budget hbudget
+
+/-! ## The leftover is a bookkeeping gap, and what it would cost to close it
+
+The leftover exists only because `SplitWitness.narrowClass` carries `¬ PrfClass`. Widen the class
+to the message class and it vanishes — `narrowTarget_messageClass` below is that, proved, so the
+claim is checkable rather than asserted. Everything else on the answer side is already generic in
+the two tests, so nothing of this file would move.
+
+**What the widening costs is not what its docstring says.** That docstring says the budget has no
+room for one target entry per served request. It has: `BlockViews.prob_targetCovered_le` caps
+only the *disclosing* recording (`leftLength ≤ 5 * 2 ^ 62`) and leaves the target recording's
+length free, and `rightRecord_length_le_count` charges target entries against the inside slot of
+the split counter, which the budget already covers — the signer's randomiser probe is a hash
+query and is counted. The extra entries are free.
+
+**What it really costs is a case in the provenance argument.**
+`LateProvenance.hrecord_of_signerDigestFree` has to show every target-recorded input is a query
+`SharedJoin.recordOf` holds, and it closes the signer's-randomiser-probe case by `¬ PrfClass`
+itself. Widen the class and up to `signingLimit` signer probes become target-recorded while the
+record holds only the adversary's and the verifier's queries, so that argument fails and the
+ordering charge's containment goes with it.
+
+**The repair is the framing, not the class.** `HandlerCarrier.not_filesLeft_randomizerInput`
+already excludes the signer's randomiser probe from the *disclosing* recording by comparing
+against the frame in flight, and `RecorderView.noticingRecorderOf` now lets a filing test read a
+state that has been told about the query. Excluding it from the *target* recording the same way
+removes the need for `¬ PrfClass` entirely, and then `NarrowTarget` is `narrowTarget_messageClass`
+and the leftover is gone rather than paid. That is the carrier again, and it is the fourth thing
+it settles. -/
+
+/-- **At the message class the narrowed demand is no demand at all.** So the leftover is exactly
+the `PRF_msg` clause of `SplitWitness.narrowClass` and nothing else; remove the clause and
+`NarrowTarget` is discharged by this, with no hypothesis and no charge. -/
+theorem narrowTarget_messageClass (pk : PublicKey)
+    (result : (Outcome × Nat) × SplitPrefix.SplitState) :
+    SplitWitness.Served.NarrowTarget pk (CombinedCharge.IsMessageInput pk) result :=
+  fun message parsed _ _ => ⟨parsed.randomizer, message, rfl⟩
+
 /-! ## The disclosing cap
 
 `hleftBound` says the disclosing recording is short. It is not true that every signer-randomised

@@ -32,6 +32,21 @@ The `q` coefficient has no margin at all: the same `Nat` line is `2 * q` on the 
 cannot be added. Constants can, up to the `247`, which is why `allowanceOf` takes the claims
 numeral as a parameter.
 
+**What may be charged as a constant, and what may not.** An event whose witness is a single
+object of the run — the forgery, its randomiser, its claims — is not thereby a constant. What
+decides it is whether a candidate witness can be *checked* against something the game publishes:
+a guess at a secret costs one unit only when a wrong guess cannot be told from a right one. A
+signature publishes `Hashing.truncate` of the oracle's answer at a seed-derived input, so `SK.prf`
+is checkable at one query per candidate; an authentication path publishes the hash of a secret the
+signature did not reveal, so that secret is checkable too. In both cases the adversary's chances
+are its queries and not its outputs, and a charge that counts the outputs is wrong by a factor of
+`q`.
+
+So the constants here are exactly the events nobody can check: the walk's own two coincidences,
+drawn before any adversary exists and never compared against anything, and the two tape bounds,
+which are concentration and not guessing. Every other charge in the development counts the
+queries — and that is what makes it safe, because a test *is* a query and pays for itself.
+
 The budget's own lower bound is discharged as well. `KeygenBudget.pow_le_of_budget` shows that a
 budget an adversary can be run under is at least the `2 ^ subtreeHeight` key generation spends,
 which is what makes `q - 2 ^ subtreeHeight` a count of calls rather than a truncation.

@@ -31,6 +31,98 @@ open Security OpenCache CanonicalGraph RecordedQueries ServingProgram ServingPha
 
 variable (publicSeed : Digest)
 
+/-! ## What the agreement asks of a handler
+
+The chain below was written against one handler and then generalised twice: over the signer, and
+now over the handler itself. Both times the generalisation was a change of binders rather than a
+reproof, and both times for the same reason — every fact about the thing being generalised had
+already been pulled out as a named lemma while the chain was being written. **That is the
+argument for factoring the next one out too**: a chain that reaches into its parameter in six
+named places can be reparameterised; one that reaches in anywhere has to be reproved.
+
+Six facts, and they are exactly the six the chain uses. The state is `HandlerCarrier.State × τ`
+for an arbitrary `τ`, which costs nothing and buys both instantiations: the serving program
+carries a probe list and a counter beside its carrier, the recorder carries two recordings, and
+neither the chain nor these laws look at either. -/
+
+/-- **A handler that files**: the six facts the agreement reads it through. -/
+structure Files (pk : PublicKey) {τ : Type}
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp)) : Prop where
+  /-- A hash query leaves its own input cached, the framing where it was, the carrier grown, and
+  the input served if the framing admitted it — stated with the continuation, so a chain of
+  queries is a chain of applications. -/
+  queryStep : ∀ {α : Type} (input : Bytes)
+    (next : OracleWorld.Range (Sum.inr input) → OracleComp OracleWorld α)
+    (state : HandlerCarrier.State × τ) (result : α × (HandlerCarrier.State × τ)),
+    result ∈ support ((simulateQ impl
+      ((query (spec := OracleWorld) (Sum.inr input) :
+        OracleComp OracleWorld (OracleWorld.Range (Sum.inr input))) >>= next)).run state) →
+    ∃ (answer : HashOutput) (mid : HandlerCarrier.State × τ),
+      mid.1.cache input = some answer ∧ mid.1.framing = state.1.framing ∧
+        HandlerCarrier.Grows state.1 mid.1 ∧
+        (HandlerCarrier.FilesLeft pk state.1 input → HandlerCarrier.Served mid.1 input) ∧
+        result ∈ support ((simulateQ impl (next answer)).run mid)
+  /-- A run keeps every cache entry and everything served. -/
+  runPersists : ∀ {α : Type} (computation : OracleComp OracleWorld α)
+    (state : HandlerCarrier.State × τ) (z : α × (HandlerCarrier.State × τ)),
+    z ∈ support ((simulateQ impl computation).run state) → HandlerCarrier.Grows state.1 z.2.1
+  /-- A property closed under caching and under filing-where-admitted survives a run. -/
+  invariant : ∀ (Inv : HandlerCarrier.State → Prop),
+    (∀ (carrier : HandlerCarrier.State) (input : Bytes) (answer : HashOutput),
+      Inv carrier → Inv (HandlerCarrier.cacheAnswer carrier input answer)) →
+    (∀ (carrier : HandlerCarrier.State) (input : Bytes),
+      Inv carrier → HandlerCarrier.FilesLeft pk carrier input →
+        Inv (HandlerCarrier.file carrier input)) →
+    ∀ {α : Type} (computation : OracleComp OracleWorld α),
+      ∀ (state : HandlerCarrier.State × τ) (result : α × (HandlerCarrier.State × τ)),
+        result ∈ support ((simulateQ impl computation).run state) → Inv state.1 → Inv result.2.1
+  /-- A run leaves the framing alone: only the signing side writes it. -/
+  runFraming : ∀ {α : Type} (computation : OracleComp OracleWorld α)
+    (state : HandlerCarrier.State × τ) (z : α × (HandlerCarrier.State × τ)),
+    z ∈ support ((simulateQ impl computation).run state) → z.2.1.framing = state.1.framing
+  /-- A hash step leaves its own input cached, holding what it answered. -/
+  hashCached : ∀ (input : Bytes) (state : HandlerCarrier.State × τ)
+    (step : OracleWorld.Range (Sum.inr input) × (HandlerCarrier.State × τ)),
+    step ∈ support ((impl (Sum.inr input)).run state) → step.2.1.cache input = some step.1
+  /-- A hash step serves nothing but its own input. -/
+  hashServed : ∀ (input : Bytes) (state : HandlerCarrier.State × τ)
+    (step : OracleWorld.Range (Sum.inr input) × (HandlerCarrier.State × τ)),
+    step ∈ support ((impl (Sum.inr input)).run state) → ∀ probe : Bytes,
+      HandlerCarrier.Served step.2.1 probe →
+        HandlerCarrier.Served state.1 probe ∨ probe = input
+
+/-- **The serving program files.** Each field is the lemma it was factored out as. -/
+theorem files_servingProgram (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding) :
+    Files pk (servingProgram publicSeed pk availableAt table) where
+  queryStep := ServingProgram.servingProgram_query_step publicSeed pk availableAt table
+  runPersists := fun computation state z hz =>
+    ServingProgram.servingProgram_run_persists publicSeed pk availableAt table computation state
+      z hz
+  invariant := fun Inv hcache hfile =>
+    ServingProgram.servingProgram_invariant publicSeed pk availableAt table Inv hcache hfile
+  runFraming := fun computation state z hz =>
+    ServingProgram.servingProgram_run_framing publicSeed pk availableAt table computation state
+      z hz
+  hashCached := ServingProgram.servingProgram_hash_cached publicSeed pk availableAt table
+  hashServed := fun input state step hstep probe hserved =>
+    ServingProgram.servingProgram_hash_served publicSeed pk availableAt table input state step
+      hstep probe hserved
+
+/-- Raising the framing, at any state that carries a carrier. -/
+def startServingOn {τ : Type} (request : Message) (state : HandlerCarrier.State × τ) :
+    HandlerCarrier.State × τ :=
+  match request.frame with
+  | none => state
+  | some framed => (HandlerCarrier.setFraming state.1 framed, state.2)
+
+/-- And lowering it. -/
+def stopServingOn {τ : Type} (state : HandlerCarrier.State × τ) : HandlerCarrier.State × τ :=
+  (HandlerCarrier.clearFraming state.1, state.2)
+
+@[simp] theorem framing_stopServingOn {τ : Type} (state : HandlerCarrier.State × τ) :
+    (stopServingOn state).1.framing = none := rfl
+
 /-! ## The phase, over any signer
 
 `ServingPhase.servingPhase` fixes its signer at `Scheme.sign sk`. Everything the agreement
@@ -54,19 +146,19 @@ Both hold of `Scheme.sign sk` and both hold of `StrippedGame.strippedSign` at th
 which is the whole content of the transport. -/
 
 /-- The serving phase at an arbitrary signer. -/
-noncomputable def servingPhaseWith (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+noncomputable def servingPhaseWith {τ : Type}
+    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
     (signer : Message → OracleComp OracleWorld (Option Bytes)) :
     QueryImpl (OracleWorld + SigningSpec)
-      (StateT (Multiplicative Tally × SigningLog × HandlerState) ProbComp) :=
-  PhaseFusion.fuseServing (servingProgram publicSeed pk availableAt table)
-    (recordedAdversaryImpl + recordedSigningOracle signer) startServing stopServing
+      (StateT (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)) ProbComp) :=
+  PhaseFusion.fuseServing impl
+    (recordedAdversaryImpl + recordedSigningOracle signer) startServingOn stopServingOn
 
-/-- **And at `Scheme.sign` it is the phase that already exists.** -/
+/-- **And at the serving program it is the phase that already exists.** -/
 theorem servingPhaseWith_sign (pk : PublicKey)
     (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (sk : SecretKey) :
-    servingPhaseWith publicSeed pk availableAt table (Scheme.sign sk) =
+    servingPhaseWith (servingProgram publicSeed pk availableAt table) (Scheme.sign sk) =
       ServingPhase.servingPhase publicSeed pk availableAt table sk := rfl
 
 /-- **What the filing argument asks of a signer**: it asks its randomiser and then its digest. -/
@@ -146,13 +238,14 @@ randomiser's own cache entry persist to the end of the run. -/
 /-- **A served request leaves its own digest input filed**, with the randomiser its first answer
 truncates to, and leaves that first answer cached. Both are what the end of the run reads. -/
 theorem served_of_signer (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey)
     (hpk : sk.publicKey = pk) (hshape : SignerShape sk signer)
     (request : Message) (framed : Bytes)
-    (hframe : request.frame = some framed) (state : HandlerState)
-    (hframing : state.1.framing = some framed) (result : Option Bytes × HandlerState)
-    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    (hframe : request.frame = some framed) (state : (HandlerCarrier.State × τ))
+    (hframing : state.1.framing = some framed) (result : Option Bytes × (HandlerCarrier.State × τ))
+    (hresult : result ∈ support ((simulateQ impl
       (signer request)).run state)) :
     ∃ seed : HashOutput,
       result.2.1.cache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some seed ∧
@@ -161,12 +254,12 @@ theorem served_of_signer (pk : PublicKey)
   obtain ⟨rest, hrest⟩ := hshape request framed hframe
   rw [hrest] at hresult
   obtain ⟨seed, mid, hseedCached, hmidFraming, hmidGrows, -, hrest⟩ :=
-    servingProgram_query_step publicSeed pk availableAt table
+    hfiles.queryStep
       (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) _ state result hresult
   obtain ⟨digest, final, -, -, hfinalGrows, hfinalServed, htail⟩ :=
-    servingProgram_query_step publicSeed pk availableAt table
+    hfiles.queryStep
       (Hashing.messageInput (Hashing.truncate seed) sk.publicKey framed) _ mid result hrest
-  have hlast := servingProgram_run_persists publicSeed pk availableAt table _ final result htail
+  have hlast := hfiles.runPersists _ final result htail
   refine ⟨seed, hlast.1 _ _ (hfinalGrows.1 _ _ hseedCached), hlast.2 _ (hfinalServed ?_)⟩
   exact ⟨framed, hmidFraming.trans hframing, Hashing.truncate seed, by rw [hpk]⟩
 
@@ -180,14 +273,15 @@ induction. -/
 /-- **Dropping a pure tail does not change the state a run leaves.** The signing oracle's own
 sub-run is the signer followed by a log append, and the append is pure. -/
 theorem state_of_bind_pure {α β : Type} (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
-    (computation : OracleComp OracleWorld α) (tail : α → β) (state : HandlerState)
-    (result : β × HandlerState)
-    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
+    (computation : OracleComp OracleWorld α) (tail : α → β) (state : (HandlerCarrier.State × τ))
+    (result : β × (HandlerCarrier.State × τ))
+    (hresult : result ∈ support ((simulateQ impl
       (computation >>= fun value => (pure (tail value) : OracleComp OracleWorld β))).run
       state)) :
-    ∃ inner : α × HandlerState, inner ∈ support
-      ((simulateQ (servingProgram publicSeed pk availableAt table) computation).run state) ∧
+    ∃ inner : α × (HandlerCarrier.State × τ), inner ∈ support
+      ((simulateQ impl computation).run state) ∧
         result = (tail inner.1, inner.2) := by
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hresult
   obtain ⟨inner, hinner, hrest⟩ := hresult
@@ -197,50 +291,51 @@ theorem state_of_bind_pure {α β : Type} (pk : PublicKey)
 open scoped Classical in
 /-- **A step of the phase grows the carrier.** -/
 theorem servingPhaseWith_persists (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (queried : (OracleWorld + SigningSpec).Domain)
-    (state : Multiplicative Tally × SigningLog × HandlerState)
+    (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))
     (step : (OracleWorld + SigningSpec).Range queried ×
-      (Multiplicative Tally × SigningLog × HandlerState))
-    (hstep : step ∈ support (((servingPhaseWith publicSeed pk availableAt table signer) queried).run
+      (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hstep : step ∈ support (((servingPhaseWith impl signer) queried).run
       state)) : HandlerCarrier.Grows state.2.2.1 step.2.2.2.1 := by
   classical
   rcases queried with world | request
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedAdversaryImpl world).run).run state.2.1)).run state.2.2 >>=
           fun inner =>
             (pure (inner.1.1.1, (state.1 * inner.1.1.2, inner.1.2, inner.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-                (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+                (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [show step.2.2.2 = inner.2 from by rw [hpure]]
-    exact servingProgram_run_persists publicSeed pk availableAt table _ state.2.2 inner hinner
+    exact hfiles.runPersists _ state.2.2 inner hinner
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedSigningOracle signer request).run).run state.2.1)).run
-            (startServing request state.2.2) >>= fun inner =>
+            (startServingOn request state.2.2) >>= fun inner =>
           (pure (inner.1.1.1,
-            (state.1 * inner.1.1.2, inner.1.2, stopServing inner.2)) :
+            (state.1 * inner.1.1.2, inner.1.2, stopServingOn inner.2)) :
             ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-              (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+              (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
-    rw [show step.2.2.2 = stopServing inner.2 from by rw [hpure]]
+    rw [show step.2.2.2 = stopServingOn inner.2 from by rw [hpure]]
     refine HandlerCarrier.Grows.trans ?_
-      (servingProgram_run_persists publicSeed pk availableAt table _
-        (startServing request state.2.2) inner hinner)
+      (hfiles.runPersists _
+        (startServingOn request state.2.2) inner hinner)
     cases hframe : request.frame with
     | none =>
-      rw [show startServing request state.2.2 = state.2.2 from by rw [startServing, hframe]]
+      rw [show startServingOn request state.2.2 = state.2.2 from by rw [startServingOn, hframe]]
       exact HandlerCarrier.Grows.refl _
     | some framed =>
-      rw [show startServing request state.2.2 =
+      rw [show startServingOn request state.2.2 =
         (HandlerCarrier.setFraming state.2.2.1 framed, state.2.2.2) from by
-          rw [startServing, hframe]]
+          rw [startServingOn, hframe]]
       exact HandlerCarrier.grows_setFraming state.2.2.1 framed
 
 open scoped Classical in
@@ -249,43 +344,44 @@ invariant, with the signer taken as a parameter — neither half of it looks at 
 does: the bracket clears the framing whatever the sub-run did, and outside a request the handler
 never writes it. -/
 theorem framing_clear_step_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes))
     (queried : (OracleWorld + SigningSpec).Domain)
-    (state : Multiplicative Tally × SigningLog × HandlerState)
+    (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))
     (hclear : state.2.2.1.framing = none)
     (step : (OracleWorld + SigningSpec).Range queried ×
-      (Multiplicative Tally × SigningLog × HandlerState))
-    (hstep : step ∈ support (((servingPhaseWith publicSeed pk availableAt table signer)
+      (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hstep : step ∈ support (((servingPhaseWith impl signer)
       queried).run state)) : step.2.2.2.1.framing = none := by
   classical
   rcases queried with world | request
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedAdversaryImpl world).run).run state.2.1)).run state.2.2 >>=
           fun inner =>
             (pure (inner.1.1.1, (state.1 * inner.1.1.2, inner.1.2, inner.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-                (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+                (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [show step.2.2.2 = inner.2 from by rw [hpure],
-      servingProgram_run_framing publicSeed pk availableAt table _ state.2.2 inner hinner]
+      hfiles.runFraming _ state.2.2 inner hinner]
     exact hclear
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedSigningOracle signer request).run).run state.2.1)).run
-            (startServing request state.2.2) >>= fun inner =>
+            (startServingOn request state.2.2) >>= fun inner =>
           (pure (inner.1.1.1,
-            (state.1 * inner.1.1.2, inner.1.2, stopServing inner.2)) :
+            (state.1 * inner.1.1.2, inner.1.2, stopServingOn inner.2)) :
             ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-              (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+              (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, -, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
-    rw [show step.2.2.2 = stopServing inner.2 from by rw [hpure]]
-    exact ServingPhase.framing_stopServing inner.2
+    rw [show step.2.2.2 = stopServingOn inner.2 from by rw [hpure]]
+    exact framing_stopServingOn inner.2
 
 /-! ## What the invariant says about the log's own reading
 
@@ -335,11 +431,12 @@ theorem randomizer_of_signInternalAt {σ : Type} (impl : QueryImpl OracleWorld (
 /-- **What the log's own reading asks of a signer**: it answers with a signature whose
 randomiser the final cache replays. -/
 def SignerFaithful (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (sk : SecretKey) (signer : Message → OracleComp OracleWorld (Option Bytes)) : Prop :=
   ∀ (request : Message) (framed : Bytes), request.frame = some framed →
-    ∀ (state : HandlerState) (result : Option Bytes × HandlerState),
-      result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    ∀ (state : (HandlerCarrier.State × τ)) (result : Option Bytes × (HandlerCarrier.State × τ)),
+      result ∈ support ((simulateQ impl
         (signer request)).run state) →
       ∃ signature : Signature, result.1 = some signature.toBytes ∧
         signature.randomizer = HonestProbes.replayRandomizer result.2.1.cache sk framed
@@ -348,8 +445,9 @@ open scoped Classical in
 /-- **And `Scheme.sign` is faithful.** The randomiser it publishes is the one it derived, and
 the derivation's answer is in the cache and stays there. -/
 theorem signerFaithful_sign (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
-    (sk : SecretKey) : SignerFaithful publicSeed pk availableAt table sk (Scheme.sign sk) := by
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
+    (sk : SecretKey) : SignerFaithful pk impl hfiles sk (Scheme.sign sk) := by
   classical
   intro request framed hframe state result hresult
   have hshape : Scheme.sign (m := OracleComp OracleWorld) sk request =
@@ -364,19 +462,19 @@ theorem signerFaithful_sign (pk : PublicKey)
     rfl
   rw [hshape] at hresult
   obtain ⟨seed, mid, hseedCached, -, -, -, htail⟩ :=
-    servingProgram_query_step publicSeed pk availableAt table
+    hfiles.queryStep
       (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) _ state result hresult
   rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at htail
   obtain ⟨inner, hinner, hpure⟩ := htail
   rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hpure
-  have hgrow := servingProgram_run_persists publicSeed pk availableAt table _ mid inner hinner
+  have hgrow := hfiles.runPersists _ mid inner hinner
   have hcached : result.2.1.cache
       (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) = some seed := by
     rw [show result.2 = inner.2 from by rw [hpure]]
     exact hgrow.1 _ _ hseedCached
   refine ⟨inner.1, by rw [hpure], ?_⟩
   rw [replayRandomizer_of_cached result.2.1.cache sk framed seed hcached]
-  exact randomizer_of_signInternalAt (servingProgram publicSeed pk availableAt table)
+  exact randomizer_of_signInternalAt impl
     (Hashing.truncate seed) sk framed mid inner hinner
 
 /-! ## The log is below the carrier, at a run
@@ -427,27 +525,28 @@ open scoped Classical in
 /-- **A step of the phase preserves it.** The adversary's step changes no log and only grows the
 carrier; a signing step appends one entry and files exactly that entry's digest input. -/
 theorem logFiled_step_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey) (hpk : sk.publicKey = pk)
     (hshape : SignerShape sk signer)
-    (hfaithful : SignerFaithful publicSeed pk availableAt table sk signer)
+    (hfaithful : SignerFaithful pk impl hfiles sk signer)
     (queried : (OracleWorld + SigningSpec).Domain)
-    (state : Multiplicative Tally × SigningLog × HandlerState)
+    (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))
     (step : (OracleWorld + SigningSpec).Range queried ×
-      (Multiplicative Tally × SigningLog × HandlerState))
-    (hstep : step ∈ support (((servingPhaseWith publicSeed pk availableAt table signer) queried).run
+      (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hstep : step ∈ support (((servingPhaseWith impl signer) queried).run
       state)) (hinv : LogFiled sk state.2.1 state.2.2.1) :
     LogFiled sk step.2.2.1 step.2.2.2.1 := by
   classical
-  have hgrow := servingPhaseWith_persists publicSeed pk availableAt table signer queried state step hstep
+  have hgrow := servingPhaseWith_persists pk impl hfiles signer queried state step hstep
   rcases queried with world | request
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedAdversaryImpl world).run).run state.2.1)).run state.2.2 >>=
           fun inner =>
             (pure (inner.1.1.1, (state.1 * inner.1.1.2, inner.1.2, inner.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-                (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+                (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
@@ -457,19 +556,19 @@ theorem logFiled_step_with (pk : PublicKey)
     rw [hlog]
     exact hinv.mono hgrow
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedSigningOracle signer request).run).run state.2.1)).run
-            (startServing request state.2.2) >>= fun inner =>
+            (startServingOn request state.2.2) >>= fun inner =>
           (pure (inner.1.1.1,
-            (state.1 * inner.1.1.2, inner.1.2, stopServing inner.2)) :
+            (state.1 * inner.1.1.2, inner.1.2, stopServingOn inner.2)) :
             ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-              (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+              (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [run_recordedSigningOracle] at hinner
-    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure publicSeed pk availableAt table
-      (signer request) _ (startServing request state.2.2) inner hinner
+    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure pk impl hfiles
+      (signer request) _ (startServingOn request state.2.2) inner hinner
     have hlog : step.2.2.1 = state.2.1 ++ [⟨request, signStep.1⟩] := by
       rw [hpure]
       exact congrArg (fun z => z.1.2) hvalue
@@ -479,11 +578,11 @@ theorem logFiled_step_with (pk : PublicKey)
     rw [hlog]
     refine LogFiled.append (hinv.mono hgrow) _ ?_
     intro framed hframe
-    obtain ⟨seed, hcached, hserved⟩ := served_of_signer publicSeed pk availableAt table signer sk
-      hpk hshape request framed hframe (startServing request state.2.2)
-      (by simp only [startServing, hframe]; rfl) signStep hsign
+    obtain ⟨seed, hcached, hserved⟩ := served_of_signer pk impl hfiles signer sk
+      hpk hshape request framed hframe (startServingOn request state.2.2)
+      (by simp only [startServingOn, hframe]; rfl) signStep hsign
     obtain ⟨signature, hanswer, hrandomizer⟩ := hfaithful request framed hframe
-      (startServing request state.2.2) signStep hsign
+      (startServingOn request state.2.2) signStep hsign
     rw [hcarrier]
     refine ⟨seed, signature, hcached, hanswer, ?_, hserved⟩
     rw [hrandomizer, replayRandomizer_of_cached signStep.2.1.cache sk framed seed hcached]
@@ -491,14 +590,15 @@ theorem logFiled_step_with (pk : PublicKey)
 open scoped Classical in
 /-- **And therefore a whole run of the phase.** -/
 theorem logFiled_run_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey) (hpk : sk.publicKey = pk)
     (hshape : SignerShape sk signer)
-    (hfaithful : SignerFaithful publicSeed pk availableAt table sk signer) {α : Type}
+    (hfaithful : SignerFaithful pk impl hfiles sk signer) {α : Type}
     (computation : OracleComp (OracleWorld + SigningSpec) α) :
-    ∀ (state : Multiplicative Tally × SigningLog × HandlerState),
+    ∀ (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)),
       LogFiled sk state.2.1 state.2.2.1 →
-      ∀ z ∈ support ((simulateQ (servingPhaseWith publicSeed pk availableAt table signer)
+      ∀ z ∈ support ((simulateQ (servingPhaseWith impl signer)
         computation).run state), LogFiled sk z.2.2.1 z.2.2.2.1 := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
@@ -511,7 +611,7 @@ theorem logFiled_run_with (pk : PublicKey)
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
     obtain ⟨step, hstep, hrest⟩ := hz
     exact ih step.1 step.2
-      (logFiled_step_with publicSeed pk availableAt table signer sk hpk hshape hfaithful queried state step hstep hinv) z hrest
+      (logFiled_step_with pk impl hfiles signer sk hpk hshape hfaithful queried state step hstep hinv) z hrest
 
 /-- **Nothing is logged at the start**, so the invariant holds there for free. -/
 theorem logFiled_nil (sk : SecretKey) (carrier : HandlerCarrier.State) :
@@ -536,19 +636,20 @@ theorem logServed_subset_served (sk : SecretKey) (log : SigningLog)
 
 /-- **At a run**: from a start with nothing logged, the log of the run is below its carrier. -/
 theorem logServed_subset_served_run_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey)
     (hpk : sk.publicKey = pk) (hshape : SignerShape sk signer)
-    (hfaithful : SignerFaithful publicSeed pk availableAt table sk signer) {α : Type}
+    (hfaithful : SignerFaithful pk impl hfiles sk signer) {α : Type}
     (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (accumulated : Multiplicative Tally) (carrier : HandlerState)
-    (z : α × (Multiplicative Tally × SigningLog × HandlerState))
-    (hz : z ∈ support ((simulateQ (servingPhaseWith publicSeed pk availableAt table signer)
+    (accumulated : Multiplicative Tally) (carrier : (HandlerCarrier.State × τ))
+    (z : α × (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hz : z ∈ support ((simulateQ (servingPhaseWith impl signer)
       computation).run (accumulated, [], carrier))) (input : Bytes)
     (hlog : ServingCarrier.logServed sk z.2.2.2.1.cache z.2.2.1 input) :
     HandlerCarrier.Served z.2.2.2.1 input :=
   logServed_subset_served sk z.2.2.1 z.2.2.2.1
-    (logFiled_run_with publicSeed pk availableAt table signer sk hpk hshape hfaithful computation (accumulated, [], carrier)
+    (logFiled_run_with pk impl hfiles signer sk hpk hshape hfaithful computation (accumulated, [], carrier)
       (logFiled_nil sk carrier.1) z hz) z.2.2.2.1.cache (fun _ _ hvalue => hvalue) input hlog
 
 /-! ## The carrier is below the log, as far as the handler decides it
@@ -599,16 +700,17 @@ theorem ShapeAdmitted.mono {pk : PublicKey} {log : SigningLog} {input : Bytes}
 
 /-- **A run of the handler serves only inputs of an admitted framing's shape.** -/
 theorem servedShape_run {α : Type} (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
-    (log : SigningLog) (computation : OracleComp OracleWorld α) (state : HandlerState)
-    (result : α × HandlerState)
-    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
+    (log : SigningLog) (computation : OracleComp OracleWorld α) (state : (HandlerCarrier.State × τ))
+    (result : α × (HandlerCarrier.State × τ))
+    (hresult : result ∈ support ((simulateQ impl
       computation).run state))
     (hframing : FramingAdmitted log state.1.framing)
     (hstart : ∀ input : Bytes, HandlerCarrier.Served state.1 input → ShapeAdmitted pk log input)
     (input : Bytes) (hserved : HandlerCarrier.Served result.2.1 input) :
     ShapeAdmitted pk log input := by
-  refine (servingProgram_invariant publicSeed pk availableAt table
+  refine (hfiles.invariant
     (fun carrier => FramingAdmitted log carrier.framing ∧
       ∀ probe : Bytes, HandlerCarrier.Served carrier probe → ShapeAdmitted pk log probe)
     (fun carrier probe answer hinv => ⟨hinv.1, hinv.2⟩)
@@ -624,12 +726,13 @@ open scoped Classical in
 /-- **A step of the phase preserves it**, with the framing's own invariant carried alongside:
 outside a signing step the framing is clear and nothing is filed at all. -/
 theorem servedShape_step_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (queried : (OracleWorld + SigningSpec).Domain)
-    (state : Multiplicative Tally × SigningLog × HandlerState)
+    (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))
     (step : (OracleWorld + SigningSpec).Range queried ×
-      (Multiplicative Tally × SigningLog × HandlerState))
-    (hstep : step ∈ support (((servingPhaseWith publicSeed pk availableAt table signer) queried).run
+      (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hstep : step ∈ support (((servingPhaseWith impl signer) queried).run
       state)) (hclear : state.2.2.1.framing = none)
     (hinv : ∀ input : Bytes, HandlerCarrier.Served state.2.2.1 input →
       ShapeAdmitted pk state.2.1 input) :
@@ -638,12 +741,12 @@ theorem servedShape_step_with (pk : PublicKey)
   classical
   rcases queried with world | request
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedAdversaryImpl world).run).run state.2.1)).run state.2.2 >>=
           fun inner =>
             (pure (inner.1.1.1, (state.1 * inner.1.1.2, inner.1.2, inner.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-                (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+                (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
@@ -654,23 +757,23 @@ theorem servedShape_step_with (pk : PublicKey)
       rw [hpure, ← hinnerEq]
     have hcarrier : step.2.2.2 = inner.2 := by rw [hpure]
     rw [hlog, hcarrier]
-    exact servedShape_run publicSeed pk availableAt table state.2.1
+    exact servedShape_run pk impl hfiles state.2.1
       (((recordedAdversaryImpl world).run).run state.2.1) state.2.2 inner hinner
       (by rw [hclear]; exact FramingAdmitted.none _) hinv
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedSigningOracle signer request).run).run state.2.1)).run
-            (startServing request state.2.2) >>= fun inner =>
+            (startServingOn request state.2.2) >>= fun inner =>
           (pure (inner.1.1.1,
-            (state.1 * inner.1.1.2, inner.1.2, stopServing inner.2)) :
+            (state.1 * inner.1.1.2, inner.1.2, stopServingOn inner.2)) :
             ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-              (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+              (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [run_recordedSigningOracle] at hinner
-    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure publicSeed pk availableAt table
-      (signer request) _ (startServing request state.2.2) inner hinner
+    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure pk impl hfiles
+      (signer request) _ (startServingOn request state.2.2) inner hinner
     have hlog : step.2.2.1 = state.2.1 ++ [⟨request, signStep.1⟩] := by
       rw [hpure]
       exact congrArg (fun z => z.1.2) hvalue
@@ -679,32 +782,32 @@ theorem servedShape_step_with (pk : PublicKey)
       exact congrArg (fun z => HandlerCarrier.clearFraming z.2.1) hvalue
     rw [hlog, hcarrier]
     intro input hserved
-    refine servedShape_run publicSeed pk availableAt table
+    refine servedShape_run pk impl hfiles
       (state.2.1 ++ [⟨request, signStep.1⟩]) (signer request)
-      (startServing request state.2.2) signStep hsign ?_
+      (startServingOn request state.2.2) signStep hsign ?_
       (fun probe hprobe => ?_) input hserved
     · cases hframe : request.frame with
       | none =>
-        rw [show (startServing request state.2.2).1 = state.2.2.1 from by
-          simp only [startServing, hframe], hclear]
+        rw [show (startServingOn request state.2.2).1 = state.2.2.1 from by
+          simp only [startServingOn, hframe], hclear]
         exact FramingAdmitted.none _
       | some framed =>
-        rw [show (startServing request state.2.2).1 =
+        rw [show (startServingOn request state.2.2).1 =
           HandlerCarrier.setFraming state.2.2.1 framed from by
-            simp only [startServing, hframe]]
+            simp only [startServingOn, hframe]]
         intro probe hprobe
         exact ⟨⟨request, signStep.1⟩, List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl)),
           by rw [← Option.some.inj hprobe]; exact hframe⟩
     · refine ShapeAdmitted.mono (hinv probe ?_) _
       cases hframe : request.frame with
       | none =>
-        rw [show (startServing request state.2.2) = state.2.2 from by
-          simp only [startServing, hframe]] at hprobe
+        rw [show (startServingOn request state.2.2) = state.2.2 from by
+          simp only [startServingOn, hframe]] at hprobe
         exact hprobe
       | some framed =>
-        rw [show (startServing request state.2.2) =
+        rw [show (startServingOn request state.2.2) =
           (HandlerCarrier.setFraming state.2.2.1 framed, state.2.2.2) from by
-            simp only [startServing, hframe]] at hprobe
+            simp only [startServingOn, hframe]] at hprobe
         exact hprobe
 
 open scoped Classical in
@@ -712,13 +815,14 @@ open scoped Classical in
 the shape step needs it: at an adversary's query the framing is clear and nothing is filed, and
 that is what keeps the adversary out of the served set however long it runs. -/
 theorem servedShape_phase_run_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
-    ∀ (state : Multiplicative Tally × SigningLog × HandlerState),
+    ∀ (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)),
       state.2.2.1.framing = none →
       (∀ input : Bytes, HandlerCarrier.Served state.2.2.1 input →
         ShapeAdmitted pk state.2.1 input) →
-      ∀ z ∈ support ((simulateQ (servingPhaseWith publicSeed pk availableAt table signer)
+      ∀ z ∈ support ((simulateQ (servingPhaseWith impl signer)
         computation).run state),
         ∀ input : Bytes, HandlerCarrier.Served z.2.2.2.1 input →
           ShapeAdmitted pk z.2.2.1 input := by
@@ -733,23 +837,23 @@ theorem servedShape_phase_run_with (pk : PublicKey)
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
     obtain ⟨step, hstep, hrest⟩ := hz
     exact ih step.1 step.2
-      (framing_clear_step_with publicSeed pk availableAt table signer queried state hclear step hstep)
-      (servedShape_step_with publicSeed pk availableAt table signer queried state step hstep hclear hinv)
+      (framing_clear_step_with pk impl hfiles signer queried state hclear step hstep)
+      (servedShape_step_with pk impl hfiles signer queried state step hstep hclear hinv)
       z hrest
 
 /-- **From a fresh carrier**: a run of the phase serves only inputs of its own log's requests'
 digest shape. The adversary contributes nothing to the served set, whatever it asks. -/
 theorem servedShape_phase_run_empty_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (accumulated : Multiplicative Tally) (probes : List (Bytes × HandlerCarrier.State))
-    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × HandlerState))
-    (hz : z ∈ support ((simulateQ (servingPhaseWith publicSeed pk availableAt table signer)
-      computation).run (accumulated, [], (HandlerCarrier.empty, probes, count))))
+    (accumulated : Multiplicative Tally) (rest : τ) (z : α × (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hz : z ∈ support ((simulateQ (servingPhaseWith impl signer)
+      computation).run (accumulated, [], (HandlerCarrier.empty, rest))))
     (input : Bytes) (hserved : HandlerCarrier.Served z.2.2.2.1 input) :
     ShapeAdmitted pk z.2.2.1 input :=
-  servedShape_phase_run_with publicSeed pk availableAt table signer computation
-    (accumulated, [], (HandlerCarrier.empty, probes, count)) rfl
+  servedShape_phase_run_with pk impl hfiles signer computation
+    (accumulated, [], (HandlerCarrier.empty, rest)) rfl
     (fun probe hprobe => absurd hprobe (ServingProgram.not_served_empty probe)) z hz input hserved
 
 /-! ## What the handler files is what the computation consults
@@ -776,10 +880,11 @@ something else. -/
 /-- **An input a run files is one the computation consults**, read at any cache the run's own
 extends. -/
 theorem served_queriesUnder {α : Type} (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (computation : OracleComp HashSpec α) :
-    ∀ (state : HandlerState) (z : α × HandlerState),
-      z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    ∀ (state : (HandlerCarrier.State × τ)) (z : α × (HandlerCarrier.State × τ)),
+      z ∈ support ((simulateQ impl
         (OracleComp.liftComp computation OracleWorld)).run state) →
       ∀ later : QueryCache HashSpec,
         (∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
@@ -796,20 +901,20 @@ theorem served_queriesUnder {α : Type} (pk : PublicKey)
     exact Or.inl hserved
   | query_bind input next ih =>
     intro state z hz later hlater probe hserved
-    have hz' : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    have hz' : z ∈ support ((simulateQ impl
         (liftM (OracleWorld.query (Sum.inr input)) >>=
           fun answer : HashOutput =>
             OracleComp.liftComp (next answer) OracleWorld)).run state) := hz
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz'
     obtain ⟨step, hstepRun, hrest⟩ := hz'
     have hcached : step.2.1.cache input = some step.1 :=
-      servingProgram_hash_cached publicSeed pk availableAt table input state step hstepRun
+      hfiles.hashCached input state step hstepRun
     have hpersists : HandlerCarrier.Grows step.2.1 z.2.1 :=
-      servingProgram_run_persists publicSeed pk availableAt table _ step.2 z hrest
+      hfiles.runPersists _ step.2 z hrest
     have hreplay : CacheReplay.replay later input = step.1 := by
       simp [CacheReplay.replay, hlater input step.1 (hpersists.1 input step.1 hcached)]
     rcases ih step.1 step.2 z hrest later hlater probe hserved with hstep | htail
-    · rcases servingProgram_hash_served publicSeed pk availableAt table input state step hstepRun
+    · rcases hfiles.hashServed input state step hstepRun
         probe hstep with hbefore | rfl
       · exact Or.inl hbefore
       · exact Or.inr (CacheReplay.QueriesUnder.head _ _)
@@ -818,13 +923,14 @@ theorem served_queriesUnder {α : Type} (pk : PublicKey)
 /-- **An input a run of the signer files is one the signer consults.** The signer is taken as a
 lift of a hash-only computation, which is the only thing the crossing needs. -/
 theorem served_queriesUnder_lift (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes))
     (hashSigner : Message → OracleComp HashSpec (Option Bytes))
     (hlift : ∀ request : Message,
       signer request = OracleComp.liftComp (hashSigner request) OracleWorld)
-    (request : Message) (state : HandlerState) (z : Option Bytes × HandlerState)
-    (hz : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    (request : Message) (state : (HandlerCarrier.State × τ)) (z : Option Bytes × (HandlerCarrier.State × τ))
+    (hz : z ∈ support ((simulateQ impl
       (signer request)).run state))
     (later : QueryCache HashSpec)
     (hlater : ∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
@@ -833,7 +939,7 @@ theorem served_queriesUnder_lift (pk : PublicKey)
     HandlerCarrier.Served state.1 probe ∨
       CacheReplay.QueriesUnder later (hashSigner request) probe := by
   rw [hlift] at hz
-  exact served_queriesUnder publicSeed pk availableAt table _ state z hz later hlater probe
+  exact served_queriesUnder pk impl hfiles _ state z hz later hlater probe
     hserved
 
 /-! ## The exact containment, at one request
@@ -850,15 +956,16 @@ So the shape alone was never going to be enough, and neither was the run alone: 
 
 /-- **A run under a set framing serves nothing but that framing's shape.** -/
 theorem servedFramed_run {α : Type} (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
-    (framed : Bytes) (computation : OracleComp OracleWorld α) (state : HandlerState)
-    (hframing : state.1.framing = some framed) (result : α × HandlerState)
-    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
+    (framed : Bytes) (computation : OracleComp OracleWorld α) (state : (HandlerCarrier.State × τ))
+    (hframing : state.1.framing = some framed) (result : α × (HandlerCarrier.State × τ))
+    (hresult : result ∈ support ((simulateQ impl
       computation).run state))
     (probe : Bytes) (hserved : HandlerCarrier.Served result.2.1 probe) :
     HandlerCarrier.Served state.1 probe ∨
       ∃ randomizer : Digest, probe = Hashing.messageInput randomizer pk framed := by
-  refine (servingProgram_invariant publicSeed pk availableAt table
+  refine (hfiles.invariant
     (fun carrier => carrier.framing = some framed ∧
       ∀ p : Bytes, HandlerCarrier.Served carrier p →
         HandlerCarrier.Served state.1 p ∨
@@ -878,14 +985,15 @@ theorem servedFramed_run {α : Type} (pk : PublicKey)
 cache replays, which is what `ServingCarrier.logServed` names it by. The shape says which
 framing and the crossing says which randomiser; neither alone would do. -/
 theorem servedLog_signer (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey)
     (hpk : sk.publicKey = pk) (hshape : SignerShape sk signer)
     (warm : QueryCache HashSpec) (hpins : SignerPins sk warm signer)
     (request : Message) (framed : Bytes) (hframe : request.frame = some framed)
-    (state : HandlerState) (hframing : state.1.framing = some framed)
-    (z : Option Bytes × HandlerState)
-    (hz : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    (state : (HandlerCarrier.State × τ)) (hframing : state.1.framing = some framed)
+    (z : Option Bytes × (HandlerCarrier.State × τ))
+    (hz : z ∈ support ((simulateQ impl
       (signer request)).run state))
     (later : QueryCache HashSpec)
     (hwarm : ∀ (input : Bytes) (value : HashOutput), warm input = some value →
@@ -898,10 +1006,10 @@ theorem servedLog_signer (pk : PublicKey)
         sk.publicKey framed := by
   subst hpk
   obtain ⟨hashSigner, hlift, hpin⟩ := hpins
-  rcases served_queriesUnder_lift publicSeed sk.publicKey availableAt table signer hashSigner
+  rcases served_queriesUnder_lift sk.publicKey impl hfiles signer hashSigner
     hlift request state z hz later hlater probe hserved with hbefore | hquery
   · exact Or.inl hbefore
-  rcases servedFramed_run publicSeed sk.publicKey availableAt table framed (signer request) state
+  rcases servedFramed_run sk.publicKey impl hfiles framed (signer request) state
     hframing z hz probe hserved with hbefore | ⟨randomizer, rfl⟩
   · exact Or.inl hbefore
   exact Or.inr (congrArg (fun value => Hashing.messageInput value sk.publicKey framed)
@@ -920,14 +1028,15 @@ proxy could not have had. -/
 
 /-- **A run under a clear framing serves nothing new.** -/
 theorem servedClear_run {α : Type} (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
-    (computation : OracleComp OracleWorld α) (state : HandlerState)
-    (hclear : state.1.framing = none) (result : α × HandlerState)
-    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
+    (computation : OracleComp OracleWorld α) (state : (HandlerCarrier.State × τ))
+    (hclear : state.1.framing = none) (result : α × (HandlerCarrier.State × τ))
+    (hresult : result ∈ support ((simulateQ impl
       computation).run state))
     (probe : Bytes) (hserved : HandlerCarrier.Served result.2.1 probe) :
     HandlerCarrier.Served state.1 probe :=
-  (servingProgram_invariant publicSeed pk availableAt table
+  (hfiles.invariant
     (fun carrier => carrier.framing = none ∧
       ∀ p : Bytes, HandlerCarrier.Served carrier p → HandlerCarrier.Served state.1 p)
     (fun carrier input answer hinv => ⟨hinv.1, hinv.2⟩)
@@ -957,28 +1066,29 @@ theorem logServed_append (sk : SecretKey) (cache : QueryCache HashSpec) (log : S
 open scoped Classical in
 /-- **A step of the phase preserves it.** -/
 theorem carrierLogged_step_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey)
     (hpk : sk.publicKey = pk) (hshape : SignerShape sk signer)
     (warm : QueryCache HashSpec) (hpins : SignerPins sk warm signer)
     (queried : (OracleWorld + SigningSpec).Domain)
-    (state : Multiplicative Tally × SigningLog × HandlerState)
+    (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))
     (step : (OracleWorld + SigningSpec).Range queried ×
-      (Multiplicative Tally × SigningLog × HandlerState))
-    (hstep : step ∈ support (((servingPhaseWith publicSeed pk availableAt table signer) queried).run
+      (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hstep : step ∈ support (((servingPhaseWith impl signer) queried).run
       state)) (hclear : state.2.2.1.framing = none)
     (hinv : CarrierLogged sk warm state.2.1 state.2.2.1) :
     CarrierLogged sk warm step.2.2.1 step.2.2.2.1 := by
   classical
-  have hgrow := servingPhaseWith_persists publicSeed pk availableAt table signer queried state step hstep
+  have hgrow := servingPhaseWith_persists pk impl hfiles signer queried state step hstep
   rcases queried with world | request
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedAdversaryImpl world).run).run state.2.1)).run state.2.2 >>=
           fun inner =>
             (pure (inner.1.1.1, (state.1 * inner.1.1.2, inner.1.2, inner.2)) :
               ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
-                (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+                (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
@@ -993,22 +1103,22 @@ theorem carrierLogged_step_with (pk : PublicKey)
     refine hinv later (fun probe value hvalue => hlater probe value (hgrow.1 probe value hvalue))
       hwarm input ?_
     rw [hcarrier] at hserved
-    exact servedClear_run publicSeed pk availableAt table _ state.2.2 hclear inner hinner input
+    exact servedClear_run pk impl hfiles _ state.2.2 hclear inner hinner input
       hserved
   · have hrun : step ∈ support
-        ((simulateQ (servingProgram publicSeed pk availableAt table)
+        ((simulateQ impl
           (((recordedSigningOracle signer request).run).run state.2.1)).run
-            (startServing request state.2.2) >>= fun inner =>
+            (startServingOn request state.2.2) >>= fun inner =>
           (pure (inner.1.1.1,
-            (state.1 * inner.1.1.2, inner.1.2, stopServing inner.2)) :
+            (state.1 * inner.1.1.2, inner.1.2, stopServingOn inner.2)) :
             ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
-              (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+              (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ))))) := hstep
     rw [mem_support_bind_iff] at hrun
     obtain ⟨inner, hinner, hpure⟩ := hrun
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [run_recordedSigningOracle] at hinner
-    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure publicSeed pk availableAt table
-      (signer request) _ (startServing request state.2.2) inner hinner
+    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure pk impl hfiles
+      (signer request) _ (startServingOn request state.2.2) inner hinner
     have hlog : step.2.2.1 = state.2.1 ++ [⟨request, signStep.1⟩] := by
       rw [hpure]
       exact congrArg (fun y => y.1.2) hvalue
@@ -1023,7 +1133,7 @@ theorem carrierLogged_step_with (pk : PublicKey)
     have hservedSign : HandlerCarrier.Served signStep.2.1 input := by
       rw [hcarrier] at hserved
       exact hserved
-    have hold : HandlerCarrier.Served (startServing request state.2.2).1 input →
+    have hold : HandlerCarrier.Served (startServingOn request state.2.2).1 input →
         ServingCarrier.logServed sk later (state.2.1 ++ [⟨request, signStep.1⟩]) input := by
       intro hbefore
       refine logServed_append sk later state.2.1 _ input
@@ -1031,24 +1141,24 @@ theorem carrierLogged_step_with (pk : PublicKey)
           hwarm input ?_)
       cases hframe : request.frame with
       | none =>
-        rw [show startServing request state.2.2 = state.2.2 from by
-          simp only [startServing, hframe]] at hbefore
+        rw [show startServingOn request state.2.2 = state.2.2 from by
+          simp only [startServingOn, hframe]] at hbefore
         exact hbefore
       | some framed =>
-        rw [show (startServing request state.2.2).1 =
+        rw [show (startServingOn request state.2.2).1 =
           HandlerCarrier.setFraming state.2.2.1 framed from by
-            simp only [startServing, hframe]] at hbefore
+            simp only [startServingOn, hframe]] at hbefore
         exact hbefore
     cases hframe : request.frame with
     | none =>
       refine hold ?_
-      exact servedClear_run publicSeed pk availableAt table
-        (signer request) (startServing request state.2.2)
-        (by simp only [startServing, hframe]; exact hclear) signStep hsign input hservedSign
+      exact servedClear_run pk impl hfiles
+        (signer request) (startServingOn request state.2.2)
+        (by simp only [startServingOn, hframe]; exact hclear) signStep hsign input hservedSign
     | some framed =>
-      rcases servedLog_signer publicSeed pk availableAt table signer sk hpk hshape warm hpins
+      rcases servedLog_signer pk impl hfiles signer sk hpk hshape warm hpins
         request framed hframe
-        (startServing request state.2.2) (by simp only [startServing, hframe]; rfl) signStep hsign
+        (startServingOn request state.2.2) (by simp only [startServingOn, hframe]; rfl) signStep hsign
         later hwarm hlaterSign input hservedSign with hbefore | hinput
       · exact hold hbefore
       · exact ⟨⟨request, signStep.1⟩,
@@ -1057,14 +1167,15 @@ theorem carrierLogged_step_with (pk : PublicKey)
 open scoped Classical in
 /-- **And therefore a whole run of the phase.** -/
 theorem carrierLogged_run_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey)
     (hpk : sk.publicKey = pk) (hshape : SignerShape sk signer)
     (warm : QueryCache HashSpec) (hpins : SignerPins sk warm signer)
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
-    ∀ (state : Multiplicative Tally × SigningLog × HandlerState),
+    ∀ (state : Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)),
       state.2.2.1.framing = none → CarrierLogged sk warm state.2.1 state.2.2.1 →
-      ∀ z ∈ support ((simulateQ (servingPhaseWith publicSeed pk availableAt table signer)
+      ∀ z ∈ support ((simulateQ (servingPhaseWith impl signer)
         computation).run state), CarrierLogged sk warm z.2.2.1 z.2.2.2.1 := by
   induction computation using OracleComp.inductionOn with
   | pure value =>
@@ -1077,8 +1188,8 @@ theorem carrierLogged_run_with (pk : PublicKey)
     rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
     obtain ⟨step, hstep, hrest⟩ := hz
     exact ih step.1 step.2
-      (framing_clear_step_with publicSeed pk availableAt table signer queried state hclear step hstep)
-      (carrierLogged_step_with publicSeed pk availableAt table signer sk hpk hshape warm hpins queried state step hstep
+      (framing_clear_step_with pk impl hfiles signer queried state hclear step hstep)
+      (carrierLogged_step_with pk impl hfiles signer sk hpk hshape warm hpins queried state step hstep
         hclear hinv) z hrest
 
 /-- **Nothing is served at the start**, so the invariant holds there for free. -/
@@ -1096,16 +1207,16 @@ different shapes for that reason. Putting them together is the last line. -/
 `ServingCarrier.AgreesWithLog`, which is what lets the entries a probe is paired with and the
 event `RoutedSplit.InputBad` be instantiated at one object. -/
 theorem agreesWithLogAt_run_with (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey)
     (hpk : sk.publicKey = pk) (hshape : SignerShape sk signer)
-    (hfaithful : SignerFaithful publicSeed pk availableAt table sk signer)
+    (hfaithful : SignerFaithful pk impl hfiles sk signer)
     (warm : QueryCache HashSpec) (hpins : SignerPins sk warm signer)
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (accumulated : Multiplicative Tally) (probes : List (Bytes × HandlerCarrier.State))
-    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × HandlerState))
-    (hz : z ∈ support ((simulateQ (servingPhaseWith publicSeed pk availableAt table signer)
-      computation).run (accumulated, [], (HandlerCarrier.empty, probes, count))))
+    (accumulated : Multiplicative Tally) (rest : τ) (z : α × (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hz : z ∈ support ((simulateQ (servingPhaseWith impl signer)
+      computation).run (accumulated, [], (HandlerCarrier.empty, rest))))
     (later : QueryCache HashSpec)
     (hlater : ∀ (input : Bytes) (value : HashOutput), z.2.2.2.1.cache input = some value →
       later input = some value)
@@ -1114,12 +1225,12 @@ theorem agreesWithLogAt_run_with (pk : PublicKey)
     HandlerCarrier.Served z.2.2.2.1 input ↔
       ServingCarrier.logServed sk later z.2.2.1 input := by
   constructor
-  · exact carrierLogged_run_with publicSeed pk availableAt table signer sk hpk hshape warm hpins
-      computation (accumulated, [], (HandlerCarrier.empty, probes, count)) rfl
+  · exact carrierLogged_run_with pk impl hfiles signer sk hpk hshape warm hpins
+      computation (accumulated, [], (HandlerCarrier.empty, rest)) rfl
       (carrierLogged_empty sk warm []) z hz later hlater hwarm input
   · exact logServed_subset_served sk z.2.2.1 z.2.2.2.1
-      (logFiled_run_with publicSeed pk availableAt table signer sk hpk hshape hfaithful computation
-        (accumulated, [], (HandlerCarrier.empty, probes, count)) (logFiled_nil sk _) z hz)
+      (logFiled_run_with pk impl hfiles signer sk hpk hshape hfaithful computation
+        (accumulated, [], (HandlerCarrier.empty, rest)) (logFiled_nil sk _) z hz)
       later hlater input
 
 /-! ## How long the disclosing recording is
@@ -1452,14 +1563,17 @@ theorem agreesWithLog_run (pk : PublicKey)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
     (accumulated : Multiplicative Tally) (probes : List (Bytes × HandlerCarrier.State))
-    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × HandlerState))
+    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × OpenCache.HandlerState))
     (hz : z ∈ support ((simulateQ (ServingPhase.servingPhase publicSeed pk availableAt table sk)
       computation).run (accumulated, [], (HandlerCarrier.empty, probes, count)))) :
     ServingCarrier.AgreesWithLog sk z.2.2.1 z.2.2.2.1 :=
-  fun input => agreesWithLogAt_run_with publicSeed pk availableAt table (Scheme.sign sk) sk hpk
-    (signerShape_sign sk) (signerFaithful_sign publicSeed pk availableAt table sk)
+  fun input => agreesWithLogAt_run_with pk (servingProgram publicSeed pk availableAt table)
+    (files_servingProgram publicSeed pk availableAt table) (Scheme.sign sk) sk hpk
+    (signerShape_sign sk)
+    (signerFaithful_sign pk (servingProgram publicSeed pk availableAt table)
+      (files_servingProgram publicSeed pk availableAt table) sk)
     (fun _ => none) (signerPins_sign sk hpublic) computation accumulated
-    probes count z hz z.2.2.2.1.cache (fun _ _ hvalue => hvalue)
+    (probes, count) z hz z.2.2.2.1.cache (fun _ _ hvalue => hvalue)
     (fun _ _ hvalue => absurd hvalue (by simp)) input
 
 /-- **The same, at the stripped signer**, read at any cache extending the carrier's and the
@@ -1469,18 +1583,18 @@ walk's table — which is what the game's own `RedrawCell.unionCache` is.
 Its faithfulness hypothesis is left as a hypothesis for the same reason: proving it would be
 work spent on a statement nothing reads.* -/
 theorem agreesWithLogAt_run_stripped (publicSeed' : Digest) (pk : PublicKey)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
+    (hfiles : Files pk impl)
     (available : CanonicalGraph.Node → Prop) (sk : SecretKey) (hpk : sk.publicKey = pk)
     (hprf : sk.prf ≠ publicSeed')
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
-    (hfaithful : SignerFaithful publicSeed pk availableAt table sk
+    (hfaithful : SignerFaithful pk impl hfiles sk
       (StrippedGame.strippedSign (OpenCache.openCache publicSeed' available table) sk))
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (accumulated : Multiplicative Tally) (probes : List (Bytes × HandlerCarrier.State))
-    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × HandlerState))
-    (hz : z ∈ support ((simulateQ (servingPhaseWith publicSeed pk availableAt table
+    (accumulated : Multiplicative Tally) (rest : τ) (z : α × (Multiplicative Tally × SigningLog × (HandlerCarrier.State × τ)))
+    (hz : z ∈ support ((simulateQ (servingPhaseWith impl
         (StrippedGame.strippedSign (OpenCache.openCache publicSeed' available table) sk))
-      computation).run (accumulated, [], (HandlerCarrier.empty, probes, count))))
+      computation).run (accumulated, [], (HandlerCarrier.empty, rest))))
     (later : QueryCache HashSpec)
     (hlater : ∀ (input : Bytes) (value : HashOutput), z.2.2.2.1.cache input = some value →
       later input = some value)
@@ -1489,11 +1603,11 @@ theorem agreesWithLogAt_run_stripped (publicSeed' : Digest) (pk : PublicKey)
         later input = some value) (input : Bytes) :
     HandlerCarrier.Served z.2.2.2.1 input ↔
       ServingCarrier.logServed sk later z.2.2.1 input :=
-  agreesWithLogAt_run_with publicSeed pk availableAt table _ sk hpk
+  agreesWithLogAt_run_with pk impl hfiles _ sk hpk
     (signerShape_strippedSign publicSeed' available table sk hprf hpublic) hfaithful
     (OpenCache.openCache publicSeed' available table)
     (signerPins_strippedSign publicSeed' available table sk hpublic) computation accumulated
-    probes count z hz later hlater hwarm input
+    rest z hz later hlater hwarm input
 
 /-! ## Where the agreement cannot be read, and why
 
@@ -1520,8 +1634,8 @@ open scoped Classical in
 /-- **The plain handler never serves anything.** It caches; only filing adds to the served set,
 and this handler does not file. -/
 theorem lazyProgram_served (available : HandlerCarrier.State → Node → Prop)
-    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState)
-    (step : OracleWorld.Range queried × HandlerState)
+    (table : Cells × Padding) (queried : OracleWorld.Domain) (state : OpenCache.HandlerState)
+    (step : OracleWorld.Range queried × OpenCache.HandlerState)
     (hstep : step ∈ support (((OpenCache.lazyProgram publicSeed available table) queried).run
       state)) : step.2.1.served = state.1.served := by
   classical
@@ -1533,7 +1647,7 @@ theorem lazyProgram_served (available : HandlerCarrier.State → Node → Prop)
   · have hbind : step ∈ support
         (LazyBudget.lazyAnswer publicSeed available table input state.1 >>= fun inner =>
           (pure (inner.1, (inner.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
-            ProbComp (OracleWorld.Range (Sum.inr input) × HandlerState))) := hstep
+            ProbComp (OracleWorld.Range (Sum.inr input) × OpenCache.HandlerState))) := hstep
     rw [mem_support_bind_iff] at hbind
     obtain ⟨inner, hinner, hpure⟩ := hbind
     rw [support_pure, Set.mem_singleton_iff] at hpure
@@ -1543,7 +1657,7 @@ theorem lazyProgram_served (available : HandlerCarrier.State → Node → Prop)
 /-- **And therefore a whole run of it.** -/
 theorem lazyProgram_run_served {α : Type} (available : HandlerCarrier.State → Node → Prop)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α) :
-    ∀ (state : HandlerState) (z : α × HandlerState),
+    ∀ (state : OpenCache.HandlerState) (z : α × OpenCache.HandlerState),
       z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed available table)
         computation).run state) → z.2.1.served = state.1.served := by
   induction computation using OracleComp.inductionOn with
@@ -1563,7 +1677,7 @@ agreement cannot hold at such a run once a framed request is signed. -/
 theorem not_served_lazyProgram_run {α : Type} (available : HandlerCarrier.State → Node → Prop)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (record : List (Bytes × HandlerCarrier.State)) (count : Nat)
-    (z : α × HandlerState)
+    (z : α × OpenCache.HandlerState)
     (hz : z ∈ support ((simulateQ (OpenCache.lazyProgram publicSeed available table)
       computation).run (HandlerCarrier.empty, record, count))) (input : Bytes) :
     ¬ HandlerCarrier.Served z.2.1 input := by
@@ -1627,7 +1741,7 @@ theorem servedAgree_run (pk : PublicKey)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
     {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
     (accumulated : Multiplicative Tally) (probes : List (Bytes × HandlerCarrier.State))
-    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × HandlerState))
+    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × OpenCache.HandlerState))
     (hz : z ∈ support ((simulateQ (ServingPhase.servingPhase publicSeed pk availableAt table sk)
       computation).run (accumulated, [], (HandlerCarrier.empty, probes, count))))
     (result : (Outcome × Nat) × QueryCache HashSpec) (hsigned : result.1.1.signed = z.2.2.1)
@@ -1635,14 +1749,20 @@ theorem servedAgree_run (pk : PublicKey)
       z.2.2.2.1.cache input = some value → result.2 input = some value) :
     ServedBridge.ServedAgree pk z.2.2.2.1 result := by
   have hfiled : LogFiled sk z.2.2.1 z.2.2.2.1 :=
-    logFiled_run_with publicSeed pk availableAt table (Scheme.sign sk) sk hpk
-      (signerShape_sign sk) (signerFaithful_sign publicSeed pk availableAt table sk) computation
+    logFiled_run_with pk (servingProgram publicSeed pk availableAt table)
+      (files_servingProgram publicSeed pk availableAt table) (Scheme.sign sk) sk hpk
+      (signerShape_sign sk)
+      (signerFaithful_sign pk (servingProgram publicSeed pk availableAt table)
+        (files_servingProgram publicSeed pk availableAt table) sk) computation
       (accumulated, [], (HandlerCarrier.empty, probes, count)) (logFiled_nil sk _) z hz
   have hiff := servedLog_iff_logServed sk pk hpk z.2.2.1 z.2.2.2.1 hfiled result.2 hcache result
     hsigned
-  have hagree := agreesWithLogAt_run_with publicSeed pk availableAt table (Scheme.sign sk) sk hpk
-    (signerShape_sign sk) (signerFaithful_sign publicSeed pk availableAt table sk)
-    (fun _ => none) (signerPins_sign sk hpublic) computation accumulated probes count z hz
+  have hagree := agreesWithLogAt_run_with pk (servingProgram publicSeed pk availableAt table)
+    (files_servingProgram publicSeed pk availableAt table) (Scheme.sign sk) sk hpk
+    (signerShape_sign sk)
+    (signerFaithful_sign pk (servingProgram publicSeed pk availableAt table)
+      (files_servingProgram publicSeed pk availableAt table) sk)
+    (fun _ => none) (signerPins_sign sk hpublic) computation accumulated (probes, count) z hz
     result.2 hcache (fun _ _ hvalue => absurd hvalue (by simp))
   exact ⟨fun input hserved => (hiff input).mpr ((hagree input).mp hserved),
     fun input hlog => (hagree input).mpr ((hiff input).mp hlog)⟩
