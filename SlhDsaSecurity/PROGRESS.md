@@ -3230,3 +3230,34 @@ whole files.
 The same applies wherever a poorer statement survives beside a richer sibling — a `≠ none` next
 to a `= some a`, a cache-monotonicity next to a value-persistence. Whoever finds the poorer name
 first has no way to know the richer one exists.
+
+## A bolted-on guard is a dropped witness, seen from downstream
+
+The signature of a dropped witness is a `≠ none` in a conclusion where a consumer has to relate
+the value to something. That is a shape, and shapes are easy to argue about. There is a
+**symptom** that is easier to notice and harder to dismiss:
+
+> A bolted-on guard is always the workaround a dropped witness forces, when the underlying
+> lemma cannot say *which* answer. The guard disappears with the strengthening — not because the
+> guard was wrong, but because its job was to stand in for a witness that had been thrown away.
+
+`LateProvenance.SignerDigestFree` grew a `≠ none` guard after a one-query adversary refuted the
+unguarded version. The guard narrowed the failure set from almost everything to exactly the
+ordering defect; it was an improvement and it did not make the statement true. The cause was
+upstream: `CacheProvenance.sign_randomizer_cached` concludes `… ≠ none`, carried forward by
+`PhaseProvenance.SignerMade`, so a consumer relating the signer's *published* randomiser to the
+cache has to go through `CacheReplay.replay` — which answers a miss with `default`. The
+statement could not say which answer, so it accidentally said something about `truncate default`
+for messages never signed.
+
+So when a hypothesis grows a guard, look upstream for the lemma that could not name a value.
+
+**One correction to the sweep's classification.** `SplitPrefix.right_record_fresh_nodup` was
+filed as a free win beside its richer sibling `right_record_suffix`. It is not free:
+strengthening its conclusion from `≠ none` to `= some entry.2` also strengthens its `hcached`
+hypothesis the same way, so it is a **two-sided** change to a file several threads build on.
+Nothing is blocked meanwhile, since `right_record_suffix` already hands back the rich form.
+
+**And a smaller rule from the same round: duplication is a symptom of a missing pointer.** The
+four-case analysis over `appended` was written inline twice before anyone noticed, by the same
+person, for the same reason a wrapper is invisible to someone reading the name they were given.
