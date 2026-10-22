@@ -12071,6 +12071,32 @@ info: 'SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarriedWitness.not_disclosingKeep_randomizerInput
 
+/--
+info: 'SlhDsaSecurity.RecorderView.recorderOf_forget_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.recorderOf_forget_step
+
+/--
+info: 'SlhDsaSecurity.RecorderView.run_recorderOf_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.run_recorderOf_forget
+
+/--
+info: 'SlhDsaSecurity.RecorderView.right_recordOf_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.right_recordOf_witness
+
+/--
+info: 'SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarriedWitness.not_inflight_digest_of_mem_rightRecord
+
 /-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog

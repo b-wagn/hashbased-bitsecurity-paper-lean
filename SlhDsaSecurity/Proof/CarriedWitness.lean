@@ -8,7 +8,8 @@ This is the instantiation the parameterisation was for. The disclosing test is
 input of that request's own digest shape — and the predicate the recording's entries satisfy at
 the end is `HandlerCarrier.Served`, membership of the carrier's served multiset.
 
-**The two are different predicates and that is the whole repair.** `AnswerJoin.hdisclosing` asks
+**The two are different predicates, and the reason is one sentence: a cache-readable test is
+monotone because it is forgeable.** `AnswerJoin.hdisclosing` asks
 for an iff between the signing log and a *cache-readable* disclosing test, and its right-to-left
 direction is false: an adversary holding `SK.prf` can put the `PRF_msg` entry a cache test looks
 for into the cache with no request behind it. A flag cannot be forged, because only the signing
@@ -123,5 +124,46 @@ theorem not_disclosingKeep_randomizerInput (state : State) (prfSeed : Digest) (f
     (hframing : state.framing = some framed) :
     ¬ disclosingKeep pk (Hashing.randomizerInput prfSeed pk.seed framed) state :=
   not_filesLeft_randomizerInput pk state prfSeed framed hframing
+
+/-! ## What the target recording cannot hold
+
+`LateProvenance.SignerDigestFree` says that no target-recorded input is a served request's own
+digest input. At a cache-readable left test that is an ordering statement — the signer asks for
+its randomiser before its digest, so the entry is already there when the digest query is made —
+and nothing reports what the cache held partway through a sub-run, which is why it stands as a
+hypothesis.
+
+At the flag there is no ordering. A target-recorded entry comes with the state it was filed
+from, and at that state the right test held, hence the left test did not; and the left test is
+read off that state's own flag. So the entry cannot be a digest query made under a matching
+flag, for the state's reason rather than for the run's. -/
+
+open scoped Classical in
+/-- **A target-recorded input is not the digest input of whatever request was in flight when it
+was queried.** The whole content is the flag at that state: no ordering to establish, and no
+entry of the cache consulted. This is `SignerDigestFree` with the step it is really about named,
+and it is the form a bracketed run discharges. -/
+theorem not_inflight_digest_of_mem_rightRecord {α : Type} (rightKeep : Bytes → State → Prop)
+    (hexclusive : ∀ (input : Bytes) (view : State),
+      rightKeep input view → ¬ disclosingKeep pk input view)
+    (computation : OracleComp OracleWorld α) (state : StateOf State)
+    (result : α × StateOf State)
+    (hmem : result ∈ support ((simulateQ
+      (@recorderOf State (servingView pk) (disclosingKeep pk) rightKeep) computation).run state))
+    (hstart : state.2.2 = []) :
+    ∀ entry ∈ result.2.2.2, ∃ mid : State,
+      (∀ (probe : Bytes) (value : HashOutput),
+        cacheOf mid probe = some value → cacheOf result.2.1 probe = some value) ∧
+        cacheOf mid entry.1 = none ∧
+          ∀ framed : Bytes, mid.framing = some framed →
+            ∀ randomizer : Digest, entry.1 ≠ Hashing.messageInput randomizer pk framed := by
+  classical
+  intro entry hentry
+  rcases @right_recordOf_witness State (servingView pk) α (disclosingKeep pk) rightKeep
+    computation state result hmem entry hentry with hold | ⟨mid, hpersist, hfresh, hright⟩
+  · rw [hstart] at hold
+    simp at hold
+  · refine ⟨mid, hpersist, hfresh, fun framed hframing randomizer hshape => ?_⟩
+    exact hexclusive entry.1 mid hright ⟨framed, hframing, randomizer, hshape⟩
 
 end SlhDsaSecurity.CarriedWitness
