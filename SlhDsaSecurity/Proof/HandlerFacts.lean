@@ -38,8 +38,29 @@ def appended (queried : OracleWorld.Domain) (carrier : HandlerCarrier.State) :
   | Sum.inl _ => []
   | Sum.inr input => [(input, carrier)]
 
-/-- **The four facts the stalled stack reads about a handler.** -/
+/-- **The four facts the stalled stack reads about a handler.**
+
+**Why `blind` is guarded by `allowed`.** The first three are facts about the handler at one
+table. `blind` is not: it compares the handler at *two* tables, so it is a relation between the
+handler and the **table family** it ranges over, and a handler may read the table in ways that
+make it false at particular cells. The one in this development does. A handler that files what
+the signer discloses tests a query against the public key, and `HandlerCarrier.FilesLeft`
+unfolds to `Hashing.messageInput randomizer pk framed`, which is
+`… ++ bytesBE n pk.seed ++ bytesBE n pk.root ++ message`: the test reads `pk.root`, and at a
+drawn table the root **is** a cell, `table.1 (.structural topRoot)`. Two tables differing only
+there give that handler two different filing tests, so it is not blind at that index and never
+will be.
+
+This is `Lenient`'s reason arriving one level down. `Lenient` could not be a field because it is
+about two handlers; `blind` can be a field only because `allowed` says which indices the
+comparison is claimed at. **So `allowed` is not a formality and must not be widened back to
+`fun _ => True` to make an instance typecheck** — doing so is claiming blindness the handler
+does not have. What makes the guard free is that the charge never uses `blind` anywhere else:
+every use is at an index it has already shown untouched, and the untouched set already excludes
+the root, which `RedrawCell.open_seedAndRoot` pays for. The demand lives at the consumer, as
+`∀ index, ¬ touched index → allowed index`. -/
 structure Facts (publicSeed : Digest) (availableAt : HandlerCarrier.State → Node → Prop)
+    (allowed : Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp)) : Prop where
   /-- The handler never fails. -/
   neverFails : ∀ (table : Cells × Padding) (queried : OracleWorld.Domain)
@@ -54,8 +75,10 @@ structure Facts (publicSeed : Digest) (availableAt : HandlerCarrier.State → No
     (step : OracleWorld.Range queried × HandlerState),
     step ∈ support (((impl table) queried).run state) →
       step.2.2.1 = state.2.1 ++ appended queried state.1
-  /-- A step at a state where a cell is unavailable does not read that cell. -/
-  blind : ∀ (index : Node) (left right : Cells × Padding), AgreeOff index left right →
+  /-- A step at a state where a cell is unavailable does not read that cell — at the indices
+  `allowed` admits, and no others. -/
+  blind : ∀ (index : Node), allowed index → ∀ (left right : Cells × Padding),
+    AgreeOff index left right →
     ∀ (queried : OracleWorld.Domain) (state : HandlerState), ¬ availableAt state.1 index →
       ((impl left) queried).run state = ((impl right) queried).run state
 
@@ -68,7 +91,8 @@ theorem facts_lazyProgram (publicSeed : Digest)
     (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt carrier child) →
         availableAt carrier (.structural parent)) :
-    Facts publicSeed availableAt (fun table => lazyProgram publicSeed availableAt table) where
+    Facts publicSeed availableAt (fun _ => True)
+      (fun table => lazyProgram publicSeed availableAt table) where
   neverFails table queried state :=
     lazyProgram_neverFails publicSeed availableAt table queried state
   grows table queried state step hstep :=
@@ -80,7 +104,7 @@ theorem facts_lazyProgram (publicSeed : Digest)
       rw [support_pure, Set.mem_singleton_iff] at hpure
       rw [show step.2 = state from by rw [hpure], appended, List.append_nil]
     · exact (lazyProgram_step_inr publicSeed availableAt table input state step hstep).trans rfl
-  blind index left right hagree queried state hindex :=
+  blind index _ left right hagree queried state hindex :=
     lazyProgram_step_congr publicSeed availableAt hclosed index left right hagree queried state
       hindex
 
@@ -128,7 +152,7 @@ theorem facts_servingProgram (publicSeed : Digest) (pk : PublicKey)
     (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),
       (∀ child ∈ parent.children, availableAt carrier child) →
         availableAt carrier (.structural parent)) :
-    Facts publicSeed availableAt
+    Facts publicSeed availableAt (fun _ => True)
       (fun table => ServingProgram.servingProgram publicSeed pk availableAt table) where
   neverFails table queried state := by
     classical
@@ -167,7 +191,7 @@ theorem facts_servingProgram (publicSeed : Digest) (pk : PublicKey)
       obtain ⟨inner, -, hpure⟩ := hbind
       rw [support_pure, Set.mem_singleton_iff] at hpure
       rw [show step.2.2.1 = state.2.1 ++ [(input, state.1)] from by rw [hpure], appended]
-  blind index left right hagree queried state hindex := by
+  blind index _ left right hagree queried state hindex := by
     classical
     rcases queried with coin | input
     · rw [ServingProgram.servingProgram_run_inl, ServingProgram.servingProgram_run_inl]

@@ -17,6 +17,13 @@ ever used to prove that one congruence, and a handler that satisfies `Facts` has
 for it. That is the clearest measure of what the interface is worth — a hypothesis that four
 theorems carried is now carried by the handler's own construction, once.
 
+**What appears in its place is `hcover : ∀ node, ¬ touched node → allowed node`**, and it is
+where the real demand lives. `Facts.blind` is guarded, because a handler may read the table in
+ways that make it false at particular cells — the one the chain ends at reads the public key,
+whose root *is* a cell. Every use of `blind` here is at an index already shown untouched, so
+`hcover` is exactly the promise that the handler is blind wherever this charge looks, and
+nothing more is asked of it.
+
 What is not here is the top of `RedrawCell`'s stack, `prob_game_sensitive_le`, because its
 remaining step is of a different kind: it compares the handler at the real availability with the
 handler at total availability, through `ChargedProbe.sensitiveFlagged`, and that comparison is
@@ -45,11 +52,13 @@ speaks of the entry a probe installed, which a repeat does not install twice. -/
 theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (touched : CanonicalGraph.Node → Prop) (hindex : ¬ touched index)
+    (hcover : ∀ node, ¬ touched node → allowed node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (htouched : ∀ left right : Cells × Padding,
@@ -116,7 +125,7 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     rw [htouched (other, pad) (cells, pad) fun node hnode =>
       (hagree node fun heq => hindex (heq ▸ hnode)).symm]
     exact HandlerStall.evalDist_stalled_congr publicSeed availableAt impl hfacts index
-      (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
+      (hcover index hindex) (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
       (computation (cells, pad)) state
   rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
   have hassoc : (do
@@ -169,11 +178,13 @@ with, so it aims nowhere once that carrier has the cell. -/
 theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (touched : CanonicalGraph.Node → Prop) (hindex : ¬ touched index)
+    (hcover : ∀ node, ¬ touched node → allowed node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (htouched : ∀ left right : Cells × Padding,
@@ -243,7 +254,7 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
     rw [htouched (other, pad) (cells, pad) fun node hnode =>
       (hagree node fun heq => hindex (heq ▸ hnode)).symm]
     exact HandlerStall.evalDist_stalled_congr publicSeed availableAt impl hfacts index
-      (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
+      (hcover index hindex) (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
       (computation (cells, pad)) state
   rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
   have hassoc : (do
@@ -300,13 +311,15 @@ expectation rather than at a cap, so that the halves sharing a budget add pathwi
 theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
+    (hcover : ∀ node, ¬ touched node → allowed node)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
@@ -379,7 +392,7 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
       (fun pair _ hpair => hpair.2)) ?_
     refine le_trans (le_of_eq ?_)
       (prob_charged_index_le publicSeed availableAt impl hfacts hmono stakes index touched hi
-        stall computation htouched state)
+        hcover stall computation htouched state)
     have hmapped : (fun pair : (α × (HandlerState × Bool)) × Cells =>
           (pair.1, pair.2 index)) <$> (do
             let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -413,13 +426,15 @@ replaced by a list the run's value determines. -/
 theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
+    (hcover : ∀ node, ¬ touched node → allowed node)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
@@ -495,7 +510,7 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
       (fun pair _ hpair => hpair.2)) ?_
     refine le_trans (le_of_eq ?_)
       (prob_claimed_index_le publicSeed availableAt impl hfacts hmono stakes index touched hi
-        stall computation htouched state claims hcache)
+        hcover stall computation htouched state claims hcache)
     have hmapped : (fun pair : (α × (HandlerState × Bool)) × Cells =>
           (pair.1, pair.2 index)) <$> (do
             let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -529,13 +544,15 @@ expectation. -/
 theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
+    (hcover : ∀ node, ¬ touched node → allowed node)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
@@ -558,7 +575,7 @@ theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   le_trans
     (prob_claimed_run_le_expected publicSeed availableAt impl hfacts hmono stakes stall
-      computation touched htouched hopen state claims hcache (fun z => (claims z).length)
+      computation touched hcover htouched hopen state claims hcache (fun z => (claims z).length)
       fun z _ => le_trans (ChargedProbe.sum_targets_length_le stakes
         (fun cache node => ¬ availableAt cache node) (claims z).dedup)
         (List.Sublist.length_le (List.dedup_sublist _)))
@@ -570,13 +587,15 @@ open scoped Classical in
 theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
+    (hcover : ∀ node, ¬ touched node → allowed node)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
@@ -600,7 +619,7 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   le_trans
     (prob_sensitive_run_le_expected publicSeed availableAt impl hfacts hmono stakes stall
-      computation touched htouched hopen state (fun z => z.2.1.2.1.length)
+      computation touched hcover htouched hopen state (fun z => z.2.1.2.1.length)
       fun z _ => le_trans (ChargedProbe.sum_targets_length_le stakes
         (fun cache node => ¬ availableAt cache node) z.2.1.2.1.dedup)
         (List.Sublist.length_le (List.dedup_sublist _)))
@@ -615,12 +634,14 @@ the charges sharing the budget can be added. The probes are counted distinctly. 
 theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
+    (hcover : ∀ node, ¬ touched node → allowed node)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
@@ -646,7 +667,7 @@ theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
           (((z.2.1.2.1.dedup.filter keep).length : Nat) : ℝ≥0∞)) /
         ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   prob_sensitive_run_le_expected publicSeed availableAt impl hfacts hmono
-    (GraphStakes.stakes publicSeed) stall computation touched htouched hopen state
+    (GraphStakes.stakes publicSeed) stall computation touched hcover htouched hopen state
     (fun z => (z.2.1.2.1.dedup.filter keep).length)
     fun z _ => RedrawCell.sum_aiming_le_canonical publicSeed
       (fun cache node => ¬ availableAt cache node) keep hkeep z.2.1.2.1.dedup

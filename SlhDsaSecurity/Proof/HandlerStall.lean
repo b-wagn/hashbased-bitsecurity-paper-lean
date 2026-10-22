@@ -45,7 +45,8 @@ hash call appends its own probe with the carrier it was issued against. -/
 /-- A private sample leaves the record alone. -/
 theorem record_inl (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl) (table : Cells × Padding)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl) (table : Cells × Padding)
     (coin : unifSpec.Domain) (state : HandlerState)
     (step : OracleWorld.Range (Sum.inl coin) × HandlerState)
     (hstep : step ∈ support (((impl table) (Sum.inl coin)).run state)) :
@@ -56,7 +57,8 @@ theorem record_inl (availableAt : HandlerCarrier.State → CanonicalGraph.Node �
 /-- A hash query records itself with the carrier it was issued against. -/
 theorem record_inr (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl) (table : Cells × Padding)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl) (table : Cells × Padding)
     (input : Bytes) (state : HandlerState)
     (step : OracleWorld.Range (Sum.inr input) × HandlerState)
     (hstep : step ∈ support (((impl table) (Sum.inr input)).run state)) :
@@ -68,7 +70,8 @@ theorem record_inr (availableAt : HandlerCarrier.State → CanonicalGraph.Node �
 /-- Carrying a flag it does not touch leaves the handler failure-free. -/
 theorem withFlag_neverFails (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl) (table : Cells × Padding)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     Pr[⊥ | ((withFlag (impl table)) queried).run state] = 0 := by
   rw [withFlag_run, probFailure_bind_eq_add_tsum, hfacts.neverFails table queried state.1]
@@ -77,7 +80,8 @@ theorem withFlag_neverFails (availableAt : HandlerCarrier.State → CanonicalGra
 /-- A released cell stays released, the flag being untouched. -/
 theorem withFlag_frozen (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (index : CanonicalGraph.Node) (table : Cells × Padding)
@@ -98,7 +102,8 @@ open scoped Classical in
 theorem withFlag_aiming_dedup_quiet
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -128,7 +133,8 @@ open scoped Classical in
 /-- Once the cell is released nothing more is charged against it. -/
 theorem withFlag_charged_quiet (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -169,7 +175,8 @@ unstalled.** -/
 theorem expected_aiming_stalled_eq {α : Type}
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
@@ -203,7 +210,8 @@ open scoped Classical in
 theorem prob_charged_stalled_eq {α : Type}
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
@@ -253,7 +261,8 @@ run's own final carrier, so once the stall has fired none of them is charged at 
 theorem prob_claimed_stalled_eq {α : Type}
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
@@ -305,7 +314,8 @@ unstalled.** -/
 theorem expected_aiming_claimed_stalled_eq {α : Type}
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
     (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
@@ -346,9 +356,10 @@ theorem expected_aiming_claimed_stalled_eq {α : Type}
 theorem evalDist_stalled_congr {α : Type}
     (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (hfacts : Facts publicSeed availableAt impl)
-    (index : CanonicalGraph.Node) (left right : Cells × Padding)
-    (hagree : AgreeOff index left right)
+    {allowed : CanonicalGraph.Node → Prop}
+    (hfacts : Facts publicSeed availableAt allowed impl)
+    (index : CanonicalGraph.Node) (hallowed : allowed index)
+    (left right : Cells × Padding) (hagree : AgreeOff index left right)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (oa : OracleComp OracleWorld α) (state : HandlerState × Bool) :
     𝒟[(simulateQ (StalledRun.stalled (withFlag (impl left))
@@ -359,7 +370,7 @@ theorem evalDist_stalled_congr {α : Type}
     (fun inner => availableAt inner.1 index) stall (AgreeOff index)
     (fun queried p first second hfirst hfrozen => by
       rw [withFlag_run, withFlag_run,
-        hfacts.blind index first second hfirst queried p.1 hfrozen])
+        hfacts.blind index hallowed first second hfirst queried p.1 hfrozen])
     oa left right hagree state
 
 end SlhDsaSecurity.HandlerStall

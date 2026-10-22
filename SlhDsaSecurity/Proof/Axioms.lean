@@ -13317,3 +13317,11 @@ info: 'SlhDsaSecurity.CountedHandler.forgetsAlong_withCount' depends on axioms: 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.forgetsAlong_withCount
+
+/-- info: 'SlhDsaSecurity.ServingTable.facts_servingProgram_keysOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.facts_servingProgram_keysOf
+
+/-- info: 'SlhDsaSecurity.ServingTable.lenient_servingProgram_keysOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingTable.lenient_servingProgram_keysOf
