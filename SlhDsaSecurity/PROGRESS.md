@@ -4031,3 +4031,32 @@ Splitting each theorem at its `:= by` and transforming only the head fixes both.
 is where names mean things; the body is where they are merely used.** Same cause as the Greek
 mapping — a substitution whose scope is wider than its meaning. This joins the family of tactics that fail without
 naming their own cause — and it is the only member whose cause is outside Lean entirely.
+
+## The availability of a mechanical route is not evidence that it is the right one
+
+The coverage charge at the bracketed run could be had by transporting the single-run version —
+the transformation was working — and what it was producing was a **second copy of the charge**:
+the `2 ^ -141`, the per-entry `2 ^ -128` and the index set written down a second time, in a
+95-line proof to be kept in step with the first by hand. That is exactly what the one-copy
+argument forbids, and it was about to happen *because the mechanical route was available*.
+
+The charge is parameterised instead: it takes a **pair** of runs, handler-side and tape-side, and
+the five facts it uses of them — their laws agreeing once the blocks are kept, the tape run never
+failing, the two cell correspondences, and the selection's causality. Nothing else about either
+run appears. The three-stage version is one application.
+
+> The three earlier parameterisations were **forced** by a second consumer. This one had to be
+> **chosen**, with the mechanical alternative sitting in front of it and working.
+
+That is the harder case and the one worth naming, because the forcing is what usually does the
+work: a second instance makes the general statement necessary. When there is no second instance
+and a copy would compile, nothing external stops the copy — only noticing what it would cost.
+
+### Two more substitution hazards, same family
+
+* A placeholder set where one token is a substring of another (`LAN`, `AN`) turned `⟨⟨` into
+  `⟨ L∧`. **A substitution set must be prefix-free, or ordered longest-first and checked** — and
+  asserting that no placeholder survives catches it.
+* `SigningLog` and `SigningSpec` resolved to the wrong namespace in a file without `open Security`,
+  and the error named the *arguments whose types mentioned them* rather than the names. Qualify
+  both.
