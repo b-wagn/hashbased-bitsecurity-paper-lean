@@ -3944,3 +3944,38 @@ that probe off the target recording, which is what `LateProvenance.hrecord` need
 therefore to read the demand at the view its input was **actually answered at**, which is the
 discipline the rest of the `Served` family already keeps (`SplitWitness.lean:57-65`) and which
 `NarrowTarget` alone did not inherit when `narrow` was generalised over the state.
+
+## A hypothesis quantified more widely than its use site
+
+`Served.NarrowTarget` asked for its class at **every** view where the target input is still
+uncached. Its consumer, `mem_recordOf_of_cache_fresh`, consults the cover at exactly **one** view
+per step — `state.1`. The statement offered all of them.
+
+That gap is free to state and expensive to discharge, and it is **invisible until a class arrives
+that can tell the two apart**. For a class reading the bytes alone — `IsMessageInput ∧ ¬ PrfClass`
+— the two are the same demand, so the over-quantification cost nothing and nobody saw it. For a
+class reading the handler's state, the wide form is satisfiable at a view with a framing and an
+empty cache, and it collapses.
+
+> Ask **where** a hypothesis is instantiated, not only what it says. A hypothesis quantified more
+> widely than its single use site is free to write and expensive to meet.
+
+The repair, `NarrowTargetAt`, cuts the views down by a caller-supplied predicate, and the caller
+owes exactly two things: the predicate at the start, and that it survives a cache update. Two is
+enough **because inside that induction a view changes no other way** — the recorder's only move is
+a cache update, which is the same fact `ServingForget` uses from the other side to show a
+bracketed run cannot be a plain recorder run.
+
+### What it bought, stated exactly
+
+On the carrier route the leftover stops being a probability question: at views with no request in
+flight the demand is free, with **no hypotheses** (`narrowTargetAt_clear`). What replaces it is a
+statement about the run — *the views this recorder is run at have no request in flight* — which
+is discharged per stage by the bracketing, holds by construction for the adversary's stage, and
+is **open for the signing stage**. That residue is a question about that stage, not a residual
+`2 ^ -128`.
+
+The cache route inherits the repair and **not** the benefit: its class reads the bytes alone, so
+cutting the views down changes nothing, and it still owes its seed charge. What it gains is the
+diagnosis — the leftover there is an artefact of the class being *syntactic*, not of the forgery
+being one object.
