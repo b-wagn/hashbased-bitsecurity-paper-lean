@@ -121,6 +121,7 @@ import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
 import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
+import SlhDsaSecurity.Proof.KeygenValue
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -5370,3 +5371,7 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.Target.target_of_obligations' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.target_of_obligations
+
+/-- info: 'SlhDsaSecurity.KeygenValue.run_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenValue.run_recordedAfterSeeds
