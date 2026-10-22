@@ -1,5 +1,7 @@
 import SlhDsaSecurity.Proof.RecordInvariant
 import SlhDsaSecurity.Proof.RandomizerGate
+import SlhDsaSecurity.Proof.PhaseRightRecord
+import SlhDsaSecurity.Proof.OrderingCompose
 
 /-!
 # The flag the game hop is taken at
@@ -67,5 +69,67 @@ theorem recordFlag_sticky (prfSeed : Digest)
   refine ⟨input, ?_, hclass⟩
   rw [hgained]
   exact Multiset.mem_of_le (record_le_of_mul state.1 gained) hmem
+
+/-! ## The adversary's `PRF_msg` query flags the run
+
+The obligation `hstep`'s first disjunct asks for, and the one neither of the hop's two cache
+equations covers: a framing-down query at a `PRF_msg` input at the real seed must flag **both**
+games.
+
+It does, and for the same reason `hbadIff` is free — **the flag reads the writer, and the
+fusion's `inl` branch adds `RecordedQueries.recordOf` of the query whatever the outer handler
+does with it.** So the branch that looked like the one place the two games had to agree about
+something outside the correspondence turns out to be the one place they *cannot* disagree. The
+fact it rests on is `recordOf (Sum.inr input) = {input}`, one line of the recording handler.
+
+Stated generically in the outer handler, for the reason stickiness was: the two being compared
+differ in exactly that.
+-/
+
+/-- **A hash step of the adversary writes its own input into the record.** -/
+theorem writer_step_inl (outer : QueryImpl OracleWorld (StateT S ProbComp))
+    (queried : OracleWorld.Domain) (log : SigningLog) (state : S)
+    (z : ((OracleWorld.Range queried × Multiplicative Tally) × SigningLog) × S)
+    (hz : z ∈ support ((simulateQ outer
+      (((recordedAdversaryImpl queried).run).run log)).run state)) :
+    z.1.1.2 = Multiplicative.ofAdd
+      ((Counts.single .hash (hashCost queried) : Counts), recordOf queried) := by
+  rw [run_recordedAdversaryImpl, simulateQ_map, StateT.run_map,
+    PhaseRightRecord.simulateQ_worldQuery, support_map] at hz
+  obtain ⟨step, -, heq⟩ := hz
+  rw [← heq]
+
+set_option maxHeartbeats 1000000 in
+/-- **So a query at a `PRF_msg` input at the real seed leaves the run flagged** — whatever the
+outer handler is, and so on both sides of the comparison. -/
+theorem recordFlag_step_inl (prfSeed : Digest)
+    (outer : QueryImpl OracleWorld (StateT S ProbComp))
+    (signer : Message → OracleComp OracleWorld (Option Bytes))
+    (before : Message → S → S) (afterMap : S → S) (input : Bytes)
+    (hclass : RandomizerGate.PrfClass prfSeed input)
+    (state : Multiplicative Tally × SigningLog × S)
+    (step : (OracleWorld + SigningSpec).Range (Sum.inl (Sum.inr input)) ×
+      (Multiplicative Tally × SigningLog × S))
+    (hstep : step ∈ support (((fuseServing outer
+      (recordedAdversaryImpl + recordedSigningOracle signer) before afterMap)
+        (Sum.inl (Sum.inr input))).run state)) :
+    RecordFlag prfSeed step.2 := by
+  classical
+  rw [OrderingCompose.fuseServing_run_inl, mem_support_bind_iff] at hstep
+  obtain ⟨z, hz, hpure⟩ := hstep
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  have hwriter : step.2.1 = state.1 * z.1.1.2 := by rw [hpure]
+  have hgained : z.1.1.2 = Multiplicative.ofAdd
+      ((Counts.single .hash (hashCost (Sum.inr input)) : Counts),
+        recordOf (Sum.inr input)) :=
+    writer_step_inl outer (Sum.inr input) state.2.1 state.2.2 z hz
+  refine ⟨input, ?_, hclass⟩
+  rw [hwriter, hgained]
+  show input ∈ (Multiplicative.toAdd state.1 +
+    ((Counts.single .hash (hashCost (Sum.inr input)) : Counts), recordOf (Sum.inr input))).2
+  show input ∈ (Multiplicative.toAdd state.1).2 + recordOf (Sum.inr input)
+  refine Multiset.mem_add.mpr (Or.inr ?_)
+  show input ∈ ({input} : Multiset Bytes)
+  simp
 
 end SlhDsaSecurity.SeedFlag
