@@ -13553,3 +13553,17 @@ info: 'SlhDsaSecurity.CarrierTail.forgetsTo' depends on axioms: [propext, Classi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.forgetsTo
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.forgetFused_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.forgetFused_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.answerChargedLate_carrier_of_bound' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.answerChargedLate_carrier_of_bound
