@@ -197,6 +197,7 @@ import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.HonestLinked
 import SlhDsaSecurity.Proof.TouchedKeys
+import SlhDsaSecurity.Proof.HonestTail
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
@@ -12516,3 +12517,19 @@ info: 'SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run' depends on axi
 /-- info: 'SlhDsaSecurity.TouchedKeys.touched_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TouchedKeys.touched_honestLinked
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_recorded
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honestLinked
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_honest_handler
+
+/-- info: 'SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestTail.probEvent_tail_honest_handler
