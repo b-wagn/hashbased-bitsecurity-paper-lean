@@ -7747,3 +7747,23 @@ info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun_le
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_tableRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_tableRun_eq
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun_le_of_charge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun_le_of_charge
+
+/-- info: 'SlhDsaSecurity.WalkTable.sharedReduced_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.sharedReduced_iff
+
+/-- info: 'SlhDsaSecurity.WalkTable.cacheBlind_shared' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.cacheBlind_shared
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_shared_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_shared_le
