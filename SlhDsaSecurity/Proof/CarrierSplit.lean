@@ -11,7 +11,7 @@ import SlhDsaSecurity.Proof.SplitCarrierTail
 puts the three together at `AnswerCarrier.answerCarrierRun` and carries the result to
 `SplitTail.splitCarrierTail`, where both charges meet.
 
-**One hypothesis survives the assembly, and it is a finding rather than an omission.**
+**One residue survives the assembly, and the ledger carries it rather than the proof.**
 
 `CarrierCover.cover_carrierRightKeep` holds at the **narrowed** class
 `IsMessageInput ∧ ¬ RandomizerGate.PrfClass`, and the narrowing is not cosmetic:
@@ -24,26 +24,32 @@ is not the PRF seed.
 randomiser alone. The cover is used twice: at the forgery's own digest input, where that is
 exactly enough, and at each *disclosing* witness, where it is not — a served request's
 randomiser is a value the walk drew, and "it is not the PRF seed" is a guess at a secret, which
-at a fixed walk cannot be proved. `AnswerCoverage`'s own header says what to do with such a
-residue: conjoin it to the event, visibly, and charge it where the seed is still random.
+at a fixed walk cannot be proved.
 
-So the assembly below takes `hseed` at the **cache-wide** leftover,
-`SplitWitness.SeedRandomised`, which is what the cache route's join already assumes
-(`AnswerCoverage.targetCovered_of_forgeryDisclosedCovered`'s own `hseed`). The gap between the
-two is exactly the difference between the forgery-only leftover and the cache-wide one, and it
-is where the carrier route and the cache route differ: the carrier's target test carries a
-`FilesRandomiser` clause that the cache's does not, and that clause is what reaches back for
-the wider hypothesis.
+**So it is not assumed here. It is conjoined to the conclusion**, as
+`SplitWitness.SeedRandomised`, for the shared half to charge. That is not a choice made in this
+file; it is what the definition's own docstring says, written before the question arose:
 
-**What this costs, stated plainly.** Either the shared half charges the cache-wide leftover —
-which it is already set up to do, the forgery-only version having been introduced as a
-*weakening* of it — or the carrier's target test loses its `FilesRandomiser` clause and the
-cover is reproved frame-conditionally, with `reaches` threaded and the phase propagation that
-`FusedCover` does not have. The first is a ledger question; the second is new machinery.
+> *It is not charged here and cannot be: the seed is the walk's, and at a fixed walk an
+> adversary may carry it as a constant. It belongs to the shared half, where the record's
+> `PRF_msg` part is charged with the seed drawn after the run.*
 
-The other three hypotheses are not findings, only unowned: freshness at the walk's own cache
-(the same hypothesis the cache route takes) and the two recording-class facts, which are the
-served-agreement and the ordering, and belong to the threads that own those.
+`AnswerCarrier.hsplit_of_join_extra` is the law that carries such a residue through, and
+`hsplit_of_join` is its instance at the empty one.
+
+**Why the alternative was not taken.** The residue could instead be removed by dropping the
+`FilesRandomiser` clause from the carrier's target test and reproving the cover
+frame-conditionally — but that needs `reaches` threaded and the phase propagation `FusedCover`
+does not have, and it buys nothing the ledger does not already provide. The gap between the
+forgery-only leftover and the cache-wide one exists *because* the carrier's target test carries
+a clause the cache's does not; charging the wider one is the same payment the cache route
+already makes.
+
+The three remaining hypotheses are not findings, only unowned: freshness at the walk's own
+cache (the same hypothesis the cache route takes) and the two recording-class facts, which are
+the served-agreement and the ordering, and belong to the threads that own those. `hseed`
+survives only inside `targetCovered_carrierTail_narrow`, where it is a genuine conditional and
+not an assumption of the assembly.
 -/
 
 open OracleComp OracleSpec
@@ -97,9 +103,10 @@ theorem targetCovered_carrierTail_narrow (adversary : Adversary) (walk : Walk)
 `AnswerCarrier.answerCarrierRun` is `AnswerShape.forgetRecord` over the tail, and that map keeps
 the whole recorder state, so the coverage event and both recording-class facts read the same
 objects on either side of it. `GoodWalk`, `¬ ForgerySeedRandomised` and `¬ LateDisclosure` are
-accepted and not used: the first two are subsumed by `hseed` and the third by the recording-class
-hypotheses, which is itself worth seeing — it says the carrier route spends the *wider* leftover
-and then has no further use for the narrow one. -/
+accepted and not used here: the second is subsumed by the residue the conclusion now carries,
+and the third by the recording-class hypotheses, which is **deferral and not elimination** —
+`¬ LateDisclosure` is what supplies `hrightClass` on the cache route. `GoodWalk` is genuinely
+unused by this join. -/
 
 set_option maxHeartbeats 4000000 in
 set_option linter.constructorNameAsVariable false in
@@ -126,9 +133,6 @@ set_option linter.constructorNameAsVariable false in
 theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
     (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
       walk.2 input = none)
-    (hseed : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ¬ SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
     (hleftClass : ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       ∀ entry ∈ result.2.2.1,
@@ -144,9 +148,12 @@ theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
             (result.1, result.2.1) →
           ¬ SplitWitness.LateDisclosure walk.1.1.2.1 (keyAt walk) result →
             ForgeryDisclosedCovered (keyAt walk) (result.1, result.2.1) →
-              BlockViews.TargetCovered result := by
+              BlockViews.TargetCovered result ∨
+                SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1 := by
   intro result hresult _ _ _ hcovered
-  have hseedAt := hseed result hresult
+  by_cases hseedAt : SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1
+  · exact Or.inr hseedAt
+  refine Or.inl ?_
   have hleftAt := hleftClass result hresult
   have hrightAt := hrightClass result hresult
   obtain ⟨rich, hrich, hstate, hfst⟩ :=
@@ -168,9 +175,6 @@ theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
     (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
       walk.2 input = none)
-    (hseed : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ¬ SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
     (hleftClass : ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       ∀ entry ∈ result.2.2.1,
@@ -187,9 +191,11 @@ theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
           ¬ SplitWitness.LateDisclosure walk.1.1.2.1 (keyAt walk) result →
         GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
             (result.1, result.2.1) ∨
-          BlockViews.TargetCovered result :=
-  AnswerCarrier.hsplit_of_join AnswerCarrier.carrierRightKeep adversary walk hwalk hgood
-    (hjoin_answerCarrierRun adversary walk hfreshWalk hseed hleftClass hrightClass)
+          BlockViews.TargetCovered result ∨
+            SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1 :=
+  AnswerCarrier.hsplit_of_join_extra AnswerCarrier.carrierRightKeep adversary walk hwalk hgood
+    (fun result => SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
+    (hjoin_answerCarrierRun adversary walk hfreshWalk hleftClass hrightClass)
 
 set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
@@ -201,9 +207,6 @@ theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : Que
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
     (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
       walk.2 input = none)
-    (hseed : ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      ¬ SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
     (hleftClass : ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       ∀ entry ∈ result.2.2.1,
@@ -222,9 +225,11 @@ theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : Que
             (AnswerShape.forgetRecord z.1) →
         GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
             ((AnswerShape.forgetRecord z.1).1, (AnswerShape.forgetRecord z.1).2.1) ∨
-          BlockViews.TargetCovered (AnswerShape.forgetRecord z.1) := by
+          BlockViews.TargetCovered (AnswerShape.forgetRecord z.1) ∨
+            SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk)
+              (AnswerShape.forgetRecord z.1).2.1 := by
   intro z hz
-  refine hsplit_answerCarrierRun adversary walk hwalk hgood hfreshWalk hseed hleftClass
+  refine hsplit_answerCarrierRun adversary walk hwalk hgood hfreshWalk hleftClass
     hrightClass (AnswerShape.forgetRecord z.1) ?_
   rw [← SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun inClass hne
     AnswerCarrier.carrierRightKeep adversary walk, support_map]
