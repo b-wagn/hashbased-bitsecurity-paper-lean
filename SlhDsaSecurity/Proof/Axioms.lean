@@ -14564,3 +14564,19 @@ info: 'SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun' depends on axioms: [p
 /-- info: 'SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_cont' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_cont
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont

@@ -833,4 +833,170 @@ theorem noticingRecorderOf_eq_rom {α : Type} (leftKeep rightKeep : Bytes → σ
             RecorderView.appendedOf leftKeep rightKeep input
               (CacheView.onQuery state.1 input, state.2) answer))
 
+/-! ## The factorisation with a continuation, which is what composes
+
+`evalDist_noticingSplitTapeRun` factorises **one** run. The carrier's tail is three runs, and
+the middle one contains a *nested* run — the signer's own queries, simulated through the same
+handler between two bracket points. Chaining the one-run statement does not work, and the reason
+is worth stating because it is what forces this generalisation: after a run has consumed part of
+a block, what is left is a block of a length the run itself chose, so the next stage cannot draw
+a fresh one and cannot be handed the remainder as data either.
+
+The fix is to make the continuation a parameter on both sides and to demand of it **exactly what
+the conclusion gives**: that it factorises against freshly drawn blocks, at every pair of
+lengths. The statement then composes with itself — the hypothesis of the composite is the
+conclusion of the tail — and the `pure` case is the hypothesis applied once rather than a
+dropped block.
+
+**Blocks are drawn once, at the top.** That is not an optimisation. Three stages each drawing
+their own block would give the per-cell charge three index sets instead of one, and the counting
+step in `noticingSum_prob_selected_le_expected` would be summing over a different thing. Drawn
+once and threaded, the index set stays `Fin rightLength` over one block and the rate stays the
+per-cell one. The design cannot spend the concentration margin, rather than being shown not to.
+-/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The tape factorisation with an arbitrary continuation on each side.** The hypothesis is
+the conclusion's own shape at the continuation, which is what lets this be used at a nested run:
+the outer induction supplies `hafter` and this supplies the inner run. -/
+theorem evalDist_noticingSplitTapeRun_cont (leftKeep rightKeep : Bytes → σ → Prop)
+    {α γ : Type} (computation : OracleComp OracleWorld α)
+    (handlerAfter : α × StateOf σ → ProbComp γ)
+    (tapeAfter : α × SplitTapeState σ → ProbComp γ)
+    (hafter : ∀ (leftLength rightLength : Nat) (z : α × StateOf σ),
+      𝒟[handlerAfter z] =
+        𝒟[padding leftLength >>= fun leftTape => padding rightLength >>= fun rightTape =>
+            tapeAfter (z.1, (z.2.1, (leftTape, rightTape), z.2.2))]) :
+    ∀ (leftLength rightLength : Nat) (cache : σ) (leftRecord rightRecord : Record),
+      𝒟[(simulateQ (noticingRecorderOf leftKeep rightKeep) computation).run
+          (cache, leftRecord, rightRecord) >>= handlerAfter] =
+        𝒟[padding leftLength >>= fun leftTape =>
+            padding rightLength >>= fun rightTape =>
+              (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+                  (cache, (leftTape, rightTape), (leftRecord, rightRecord)) >>= tapeAfter] := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro leftLength rightLength cache leftRecord rightRecord
+    simp only [simulateQ_pure, StateT.run_pure, pure_bind]
+    exact hafter leftLength rightLength (value, (cache, leftRecord, rightRecord))
+  | query_bind queried next ih =>
+    intro leftLength rightLength cache leftRecord rightRecord
+    simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
+    rcases queried with coin | input
+    · simp only [noticingRecorderOf_run_inl, noticingSplitTapeRecorder_run_inl,
+        RecorderView.recorderOf_run_inl, splitTapeRecorder_run_inl, bind_assoc, pure_bind]
+      refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+        (fun value => ih value leftLength rightLength cache leftRecord rightRecord)) ?_
+      exact evalDist_comm_blocks _ leftLength rightLength _
+    · rw [noticingRecorderOf_run_inr leftKeep rightKeep input (cache, leftRecord, rightRecord)]
+      rw [show (fun leftTape : List HashOutput => padding rightLength >>= fun rightTape =>
+            ((noticingSplitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run
+                (cache, (leftTape, rightTape), (leftRecord, rightRecord)) >>= fun step =>
+              (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+                (next step.1)).run step.2 >>= tapeAfter) =
+          fun leftTape : List HashOutput => padding rightLength >>= fun rightTape =>
+            ((splitTapeRecorder leftKeep rightKeep) (Sum.inr input)).run
+                (CacheView.onQuery cache input, (leftTape, rightTape),
+                  (leftRecord, rightRecord)) >>= fun step =>
+              (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+                (next step.1)).run step.2 >>= tapeAfter from by
+        funext leftTape
+        refine congrArg (fun step => padding rightLength >>= step) ?_
+        funext rightTape
+        rw [noticingSplitTapeRecorder_run_inr]]
+      set noticed : σ := CacheView.onQuery cache input with hnoticed
+      by_cases hfresh : CacheView.cacheOf noticed input = none
+      · by_cases hleft : leftKeep input noticed
+        · simp only [splitRecorder_run_left leftKeep rightKeep input noticed leftRecord
+            rightRecord hfresh hleft, bind_assoc, pure_bind]
+          cases leftLength with
+          | zero =>
+            simp only [padding_zero_bind,
+              splitTapeRecorder_run_left_nil leftKeep rightKeep input noticed _ leftRecord
+                rightRecord hfresh hleft, bind_assoc, pure_bind]
+            refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+              (fun value => ih value 0 rightLength (CacheView.update noticed input value)
+                (leftRecord ++ [(input, value)]) rightRecord)) ?_
+            simp only [padding_zero_bind]
+            exact OracleComp.DeferredSampling.evalDist_bind_comm _ (padding rightLength) _
+          | succ remaining =>
+            simp only [padding_succ_bind,
+              splitTapeRecorder_run_left_cons leftKeep rightKeep input noticed _ _ _ leftRecord
+                rightRecord hfresh hleft, pure_bind]
+            exact OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+              fun value => ih value remaining rightLength
+                (CacheView.update noticed input value)
+                (leftRecord ++ [(input, value)]) rightRecord
+        · by_cases hright : rightKeep input noticed
+          · simp only [splitRecorder_run_right leftKeep rightKeep input noticed leftRecord
+              rightRecord hfresh hleft hright, bind_assoc, pure_bind]
+            cases rightLength with
+            | zero =>
+              simp only [padding_zero_bind,
+                splitTapeRecorder_run_right_nil leftKeep rightKeep input noticed _ leftRecord
+                  rightRecord hfresh hleft hright, bind_assoc, pure_bind]
+              refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+                (fun value => ih value leftLength 0 (CacheView.update noticed input value)
+                  leftRecord (rightRecord ++ [(input, value)]))) ?_
+              simp only [padding_zero_bind]
+              exact OracleComp.DeferredSampling.evalDist_bind_comm _ (padding leftLength) _
+            | succ remaining =>
+              simp only [padding_succ_bind,
+                splitTapeRecorder_run_right_cons leftKeep rightKeep input noticed _ _ _
+                  leftRecord rightRecord hfresh hleft hright, pure_bind]
+              refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+                (fun value => ih value leftLength remaining
+                  (CacheView.update noticed input value)
+                  leftRecord (rightRecord ++ [(input, value)]))) ?_
+              exact OracleComp.DeferredSampling.evalDist_bind_comm _ (padding leftLength) _
+          · simp only [splitRecorder_run_other leftKeep rightKeep input noticed
+              (leftRecord, rightRecord) (fun h => hleft h.2) (fun h => hright h.2),
+              splitTapeRecorder_run_other leftKeep rightKeep input noticed _
+                (leftRecord, rightRecord) (fun h => hleft h.2) (fun h => hright h.2),
+              bind_assoc, pure_bind]
+            refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+              (fun step => ih step.1 leftLength rightLength step.2 leftRecord
+                rightRecord)) ?_
+            exact evalDist_comm_blocks _ leftLength rightLength _
+      · simp only [splitRecorder_run_other leftKeep rightKeep input noticed
+          (leftRecord, rightRecord) (fun h => hfresh h.1) (fun h => hfresh h.1),
+          splitTapeRecorder_run_other leftKeep rightKeep input noticed _
+            (leftRecord, rightRecord) (fun h => hfresh h.1) (fun h => hfresh h.1),
+          bind_assoc, pure_bind]
+        refine Eq.trans (OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _
+          (fun step => ih step.1 leftLength rightLength step.2 leftRecord rightRecord)) ?_
+        exact evalDist_comm_blocks _ leftLength rightLength _
+
+/-- **The one-run factorisation is this one at the forgetting continuation.** So the
+generalisation is a widening and not a fork: `evalDist_noticingSplitTapeRun` is recovered by
+taking the continuation to be `pure` after `forgetSplit`, whose hypothesis is the dropped
+block. -/
+theorem evalDist_noticingSplitTapeRun_of_cont (leftKeep rightKeep : Bytes → σ → Prop)
+    {α : Type} (computation : OracleComp OracleWorld α)
+    (leftLength rightLength : Nat) (cache : σ) (leftRecord rightRecord : Record) :
+    𝒟[(simulateQ (noticingRecorderOf leftKeep rightKeep) computation).run
+        (cache, leftRecord, rightRecord)] =
+      𝒟[padding leftLength >>= fun leftTape =>
+          padding rightLength >>= fun rightTape =>
+            forgetSplit <$>
+              (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+                (cache, (leftTape, rightTape), (leftRecord, rightRecord))] := by
+  classical
+  have hbind := evalDist_noticingSplitTapeRun_cont leftKeep rightKeep computation
+    (fun z => (pure z : ProbComp (α × StateOf σ)))
+    (fun z => (pure (forgetSplit z) : ProbComp (α × StateOf σ)))
+    (fun lL rL z => by
+      have hconst : ∀ leftTape rightTape : List HashOutput,
+          (pure (forgetSplit (z.1, (z.2.1, (leftTape, rightTape), z.2.2))) :
+            ProbComp (α × StateOf σ)) = pure z := fun _ _ => rfl
+      simp only [hconst]
+      rw [OracleComp.DeferredSampling.evalDist_bind_const_neverFails (padding lL)
+          (padding_neverFails lL),
+        OracleComp.DeferredSampling.evalDist_bind_const_neverFails (padding rL)
+          (padding_neverFails rL)])
+    leftLength rightLength cache leftRecord rightRecord
+  simpa only [bind_pure, map_eq_bind_pure_comp, Function.comp_def] using hbind
+
 end SlhDsaSecurity.NoticingTape
