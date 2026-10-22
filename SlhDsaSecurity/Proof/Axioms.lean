@@ -255,6 +255,7 @@ import SlhDsaSecurity.Proof.CarrierCap
 import SlhDsaSecurity.Proof.CarrierLeftRecord
 import SlhDsaSecurity.Proof.AnswerCarrierBound
 import SlhDsaSecurity.Proof.SharedOracleScaling
+import SlhDsaSecurity.Proof.CarrierServedLog
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16013,3 +16014,23 @@ info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms:
 /-- info: 'SlhDsaSecurity.TargetColumn.sharedChargedLate_weighed_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.sharedChargedLate_weighed_at
+
+/-- info: 'SlhDsaSecurity.CarrierServedLog.carrierLogged_of_served_zero' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierServedLog.carrierLogged_of_served_zero
+
+/-- info: 'SlhDsaSecurity.CarrierServedLog.clearWith_cacheAnswer' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierServedLog.clearWith_cacheAnswer
+
+/-- info: 'SlhDsaSecurity.CarrierServedLog.clearWith_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierServedLog.clearWith_run
+
+/-- info: 'SlhDsaSecurity.CarrierServedLog.served_run_of_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierServedLog.served_run_of_clear
+
+/-- info: 'SlhDsaSecurity.CarrierServedLog.carrierLogged_run_of_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierServedLog.carrierLogged_run_of_clear
