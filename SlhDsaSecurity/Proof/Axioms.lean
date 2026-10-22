@@ -8921,3 +8921,103 @@ info: 'SlhDsaSecurity.ServedBridge.signerRandomised_of_servedLog' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedBridge.signerRandomised_of_servedLog
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.graft_of_agree' depends on axioms: [Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.graft_of_agree
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.graft_cacheQuery_base' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.graft_cacheQuery_base
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.agree_cacheQuery' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.agree_cacheQuery
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le_of_growth' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le_of_growth
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le_of_growth' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_le_of_growth
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.Grows.refl' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.Grows.refl
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.Grows.trans' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.Grows.trans
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.grows_setFraming' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.grows_setFraming
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.grows_clearFraming' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.grows_clearFraming
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.servedAt_clearFraming' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.servedAt_clearFraming
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.mem_disclosedAt_of_grows' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.mem_disclosedAt_of_grows
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.forgetBoth_one' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.forgetBoth_one
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.forgetBoth_mul' depends on axioms: [Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.forgetBoth_mul
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.narrow_one' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.narrow_one
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.narrow_mul' depends on axioms: [Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.narrow_mul
+
+/--
+info: 'SlhDsaSecurity.SplitRecorder.forget_narrow' depends on axioms: [Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitRecorder.forget_narrow
