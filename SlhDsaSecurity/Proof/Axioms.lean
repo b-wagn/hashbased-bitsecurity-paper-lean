@@ -13588,3 +13588,17 @@ info: 'SlhDsaSecurity.CarrierTail.forgetsTo' depends on axioms: [propext, Classi
 /-- info: 'SlhDsaSecurity.ChargedProbe.prob_run_cell_le_indexed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.prob_run_cell_le_indexed
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.forgetFused_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.forgetFused_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.answerChargedLate_carrier_of_bound' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.answerChargedLate_carrier_of_bound

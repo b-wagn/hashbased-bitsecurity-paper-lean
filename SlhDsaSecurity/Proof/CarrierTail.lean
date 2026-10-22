@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.BracketedRun
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.RandomiserRecord
+import SlhDsaSecurity.Proof.AnswerShape
 
 /-!
 # The tail the ordering term reads, at the carrier
@@ -413,5 +414,63 @@ theorem forgetsTo (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
     refine bind_congr fun result => ?_
     simp [Function.comp_def, LateProbes.forgetRecordings]
   exact ⟨fun pair => by rw [hmap], by rw [hmap]⟩
+
+/-! ## What the target reads
+
+`FinalAssembly.forgetFused_map` is the one equation the target asks of a refining tail: that its
+results forget to the game's. At the carrier tail it is `forget_carrierTail` followed by the
+recorded tail's own forgetting, which is why it is three lines — the work was done when the two
+sides were put at the same counted handler. -/
+
+/-- **The carrier tail forgets to the game's tail.** The `FinalAssembly.forgetFused_map`
+analogue, and an equality of computations like it. -/
+theorem forgetFused_carrierTail (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (adversary : Adversary) (walk : Walk) :
+    FinalAssembly.forgetFused <$> carrierTail rightKeep adversary walk =
+      WarmedGame.tail adversary walk := by
+  rw [RecordedTail.tail_eq_map_recordedTail, ← forget_carrierTail rightKeep adversary walk,
+    Functor.map_map]
+  rfl
+
+/-! ## What the answer side has to restate, and what it does not
+
+`AnswerShape.map_fusedTail` reads `forgetRecord <$> FusedCoverage.fusedTail` as
+`AnswerJoin.answerRecordedRun` — the *same computation* up to a map, because both are the
+recorder at `SplitWitness.disclosingKeep`, a test on the cache. **The carrier tail has no such
+reading, and the reason is the repair itself.** Its disclosing test is
+`CarriedWitness.disclosingKeep`, which is `HandlerCarrier.FilesLeft`: a comparison against the
+frame in flight. The two tests disagree by construction — that disagreement is what lets the
+carrier file a served request and refuse the signer's own randomiser probe, which the cache test
+can do neither of — so the two runs record different things and no map carries one to the other.
+
+So the analogue of `map_fusedTail` is not an equation between the carrier tail and a run that
+already exists. What survives of it is the part that never mentioned the run: the obligation's
+event factors through `AnswerShape.forgetRecord` at the carrier tail exactly as it does at the
+fused one, so a bound proved at `forgetRecord <$> carrierTail` discharges the obligation at
+`carrierTail`. That is `answerChargedLate_carrier_of_bound`, and it is the whole of the
+presentation move. What is left for the answer side is to restate its bound at that run, which
+is a change of recorder and not a change of argument. -/
+
+open scoped ENNReal in
+/-- **The answer obligation at the carrier tail, from a bound at the carrier's recorded run.**
+The `AnswerShape.answerChargedLate_of_recordedBound` analogue. The hypothesis names
+`AnswerShape.forgetRecord <$> carrierTail` rather than a run of its own, because the carrier
+records against the frame in flight and no existing run does. -/
+theorem answerChargedLate_carrier_of_bound (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → Security.HasTotalBudget adversary q →
+      ∀ walk ∈ support WarmedGame.graphWalk, Target.GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+          AnswerShape.forgetRecord <$> carrierTail rightKeep adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) :
+    Obligations.AnswerChargedLate (carrierTail rightKeep) FinalAssembly.forgetFused
+      LateProbes.Ordering := by
+  intro q adversary hq hbudget walk hwalk hgood
+  refine le_trans (le_of_eq ?_) (hbound q adversary hq hbudget walk hwalk hgood)
+  rw [probEvent_map]
+  rfl
 
 end SlhDsaSecurity.CarrierTail
