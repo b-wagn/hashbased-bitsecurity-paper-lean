@@ -13523,3 +13523,33 @@ info: 'SlhDsaSecurity.CarrierTail.last_stage_forget' depends on axioms: [propext
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.last_stage_forget
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.first_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.first_stage_bind
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.middle_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.middle_stage_bind
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.last_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.last_stage_bind
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.forget_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.forget_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.forgetsTo' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.forgetsTo
