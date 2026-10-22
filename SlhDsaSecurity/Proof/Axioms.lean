@@ -14787,3 +14787,9 @@ info: 'SlhDsaSecurity.FusedTape.threeStageCausal' depends on axioms: [propext, C
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedTape.threeStageCausal
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont
