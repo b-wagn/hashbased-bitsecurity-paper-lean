@@ -353,9 +353,12 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
     · exact Or.inr ⟨entry, hentry, hatseed⟩
   refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ le_rfl)
   exact HandlerCharge.prob_sensitive_run_le publicSeed
-    (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-    strictImpl hstrictFacts hmono (GraphStakes.stakes publicSeed) stall computation touched
-    hcover htouched hopen (inner, false) limit hlimit
+    (fun _ cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+    strictImpl (tableFacts_of_facts publicSeed _ allowed strictImpl hstrictFacts)
+    (fun _ => hmono) (GraphStakes.stakes publicSeed) stall computation touched hcover htouched
+    (fun _ cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+    (fun _ node htouch hne cache hun => hun (hopen node htouch hne cache))
+    (fun _ _ _ => rfl) (inner, false) limit hlimit
 
 set_option maxRecDepth 1000000 in
 open scoped Classical in
@@ -450,9 +453,12 @@ theorem prob_game_sensitive_le_canonical {α : Type} (publicSeed : Digest)
     · exact Or.inr ⟨entry, hentry, hatseed⟩
   refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ le_rfl)
   exact HandlerCharge.prob_sensitive_run_le_canonical publicSeed
-    (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-    strictImpl hstrictFacts hmono stall computation touched hcover htouched hopen
-    (inner, false) keep hkeep
+    (fun _ cache node => CanonicalGraph.Available revealed (signedAt cache) node)
+    strictImpl (tableFacts_of_facts publicSeed _ allowed strictImpl hstrictFacts)
+    (fun _ => hmono) stall computation touched hcover htouched
+    (fun _ cache node => ¬ CanonicalGraph.Available revealed (signedAt cache) node)
+    (fun _ node htouch hne cache hun => hun (hopen node htouch hne cache))
+    (fun _ _ _ => rfl) (inner, false) keep hkeep
 
 open scoped Classical in
 /-- **The charge at the honest reveal count.** The digit a signature discloses never exceeds

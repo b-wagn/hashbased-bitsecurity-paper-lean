@@ -13588,3 +13588,11 @@ info: 'SlhDsaSecurity.CarrierTail.forgetsTo' depends on axioms: [propext, Classi
 /-- info: 'SlhDsaSecurity.ChargedProbe.prob_run_cell_le_indexed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedProbe.prob_run_cell_le_indexed
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sum_weighted_le_of_sum_indexed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sum_weighted_le_of_sum_indexed
+
+/-- info: 'SlhDsaSecurity.HandlerCharge.value_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.value_mem_support

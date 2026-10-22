@@ -41,6 +41,24 @@ open CanonicalGraph SensitiveQuery OpenCache ChargedProbe HandlerFacts
 
 variable {Target : Type}
 
+/-! ## The value a run returns is one the computation could produce
+
+The charge's event is read **outside** the table draw, on the pair the redraw hands back, so
+the availability it reads must be a function of the run's value. What connects that value to
+the table is this: whatever a simulated run returns, the computation at that table could have
+returned it. So a hypothesis stated about the computation's own values reaches every run of it,
+stalled or not, and that is the only bridge the pass needs. -/
+
+/-- **A simulated run's value is one the computation could have produced.** -/
+theorem value_mem_support {β σ : Type}
+    (handler : QueryImpl OracleWorld (StateT σ ProbComp)) (oa : OracleComp OracleWorld β)
+    (start : σ) (z : β × σ) (hz : z ∈ support ((simulateQ handler oa).run start)) :
+    z.1 ∈ support oa := by
+  refine support_simulateQ_run'_subset handler oa start ?_
+  show z.1 ∈ support (Prod.fst <$> (simulateQ handler oa).run start)
+  rw [support_map]
+  exact ⟨z, hz, rfl⟩
+
 /-! ## The charge against one cell -/
 
 set_option maxHeartbeats 1000000 in
@@ -50,12 +68,13 @@ open scoped Classical in
 it: a repeated probe is one chance at the cell, and the containment that pays for this weight
 speaks of the entry a probe installed, which a repeat does not install twice. -/
 theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, availableAt left node → availableAt right node)
+    (hfacts : TableFacts publicSeed availableAt allowed impl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (touched : CanonicalGraph.Node → Prop) (hindex : ¬ touched index)
     (hcover : ∀ node, ¬ touched node → allowed node)
@@ -64,10 +83,12 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (unavailableOf : α → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hreads : ∀ (table : Cells × Padding) (value : α), value ∈ support (computation table) →
+      unavailableOf value = fun cache node => ¬ availableAt table cache node)
     (state : HandlerState × Bool) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
-        ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
-          (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+        ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes (unavailableOf pair.1.1) index pair.2 entry |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -79,12 +100,11 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state)] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup :
-            Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+          ((aiming stakes (unavailableOf z.1) index z.2.1.2.1.dedup : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   have hstall : Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
-      ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
-        (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+      ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes (unavailableOf pair.1.1) index pair.2 entry |
     (do
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -92,41 +112,55 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
         (computation (cells, pad))).run state
       pure (result, cells index))] =
       Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
-          ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
-            (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+          ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes (unavailableOf pair.1.1) index pair.2
+            entry |
         (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-            (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+            (fun inner => availableAt (cells, pad) inner.1 index) stall)
+            (computation (cells, pad))).run state
           pure (result, cells index))] := by
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun cells => congrArg _ ?_
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun pad => congrArg _ ?_
     rw [bind_pure_comp, probEvent_map, bind_pure_comp, probEvent_map]
-    exact HandlerStall.prob_charged_stalled_eq publicSeed (fun _ => availableAt) impl
-      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono) stakes
+    refine Eq.trans (probEvent_congr' (q := fun z : α × (HandlerState × Bool) =>
+        ∃ entry ∈ z.2.1.2.1, ChargedBy stakes
+          (fun cache node => ¬ availableAt (cells, pad) cache node) index (cells index) entry)
+      (fun z hz => by
+        simp only [Function.comp_apply]
+        rw [hreads (cells, pad) z.1 (value_mem_support _ _ _ z hz)]) rfl)
+      (Eq.trans ?_ (probEvent_congr' (q := fun z : α × (HandlerState × Bool) =>
+        ((fun pair : (α × (HandlerState × Bool)) × Cell =>
+          ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes (unavailableOf pair.1.1) index pair.2
+            entry) ∘ fun result => (result, cells index)) z)
+      (fun z hz => by
+        simp only [Function.comp_apply]
+        rw [hreads (cells, pad) z.1 (value_mem_support _ _ _ z hz)]) rfl))
+    exact HandlerStall.prob_charged_stalled_eq publicSeed availableAt impl hfacts hmono stakes
       index (cells, pad) stall (computation (cells, pad)) state
   have hredraw : 𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+          (fun inner => availableAt (cells, pad) inner.1 index) stall)
+          (computation (cells, pad))).run state
         pure (result, cells index)] =
       𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+          (fun inner => availableAt (cells, pad) inner.1 index) stall)
+          (computation (cells, pad))).run state
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)] := by
     refine RedrawCell.evalDist_redraw_coordinate index ($ᵗ Padding : ProbComp Padding) _ ?_
     intro cells other pad hagree
     rw [htouched (other, pad) (cells, pad) fun node hnode =>
       (hagree node fun heq => hindex (heq ▸ hnode)).symm]
-    exact HandlerStall.evalDist_stalled_congr publicSeed (fun _ => availableAt) impl
-      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) index
+    exact HandlerStall.evalDist_stalled_congr publicSeed availableAt impl hfacts index
       (hcover index hindex) (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
       (computation (cells, pad)) state
   rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
@@ -134,7 +168,8 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+          (fun inner => availableAt (cells, pad) inner.1 index) stall)
+          (computation (cells, pad))).run state
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)) =
       (do
@@ -142,35 +177,51 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-            (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
+            (fun inner => availableAt (cells, pad) inner.1 index) stall)
+            (computation (cells, pad))).run state)
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)) := by
     simp only [bind_assoc]
   rw [hassoc]
   refine le_trans (le_of_eq (probEvent_congr' (fun pair _ =>
     show (∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
-        (fun cache node => ¬ availableAt cache node) index pair.2 entry) ↔
+        (unavailableOf pair.1.1) index pair.2 entry) ↔
       ∃ entry ∈ pair.1.2.1.2.1.dedup, ChargedBy stakes
-        (fun cache node => ¬ availableAt cache node) index pair.2 entry from
+        (unavailableOf pair.1.1) index pair.2 entry from
     ⟨fun ⟨entry, hentry, hcharged⟩ => ⟨entry, List.mem_dedup.mpr hentry, hcharged⟩,
       fun ⟨entry, hentry, hcharged⟩ =>
         ⟨entry, List.mem_dedup.mp hentry, hcharged⟩⟩) rfl)) ?_
-  refine le_trans (prob_run_cell_le stakes
-    (fun cache node => ¬ availableAt cache node) index
+  have hcell := prob_run_cell_le_indexed stakes
+    (fun z : α × (HandlerState × Bool) => unavailableOf z.1) index
     (do
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-        (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
-    (fun z => z.2.1.2.1.dedup)) ?_
+        (fun inner => availableAt (cells, pad) inner.1 index) stall)
+        (computation (cells, pad))).run state)
+    (fun z => z.2.1.2.1.dedup)
+  refine le_trans hcell ?_
   refine ENNReal.div_le_div_right (le_of_eq ?_) _
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
   refine tsum_congr fun cells => congrArg _ ?_
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
-  exact tsum_congr fun pad => congrArg _
-    (HandlerStall.expected_aiming_stalled_eq publicSeed (fun _ => availableAt) impl
-      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono) stakes
-      index (cells, pad) stall (computation (cells, pad)) state).symm
+  refine tsum_congr fun pad => congrArg _ ?_
+  have hconv : ∀ run : ProbComp (α × (HandlerState × Bool)),
+      (∀ z ∈ support run, z.1 ∈ support (computation (cells, pad))) →
+      (∑' z : α × (HandlerState × Bool), Pr[= z | run] *
+          ((aiming stakes (unavailableOf z.1) index z.2.1.2.1.dedup : Nat) : ℝ≥0∞)) =
+        ∑' z : α × (HandlerState × Bool), Pr[= z | run] *
+          ((aiming stakes (fun cache node => ¬ availableAt (cells, pad) cache node) index
+            z.2.1.2.1.dedup : Nat) : ℝ≥0∞) := by
+    intro run hrun
+    refine tsum_congr fun z => ?_
+    by_cases hz : z ∈ support run
+    · rw [hreads (cells, pad) z.1 (hrun z hz)]
+    · rw [probOutput_eq_zero_of_not_mem_support hz, zero_mul, zero_mul]
+  rw [hconv _ fun z hz => value_mem_support _ _ _ z hz,
+    hconv _ fun z hz => value_mem_support _ _ _ z hz]
+  exact (HandlerStall.expected_aiming_stalled_eq publicSeed availableAt impl hfacts hmono
+    stakes index (cells, pad) stall (computation (cells, pad)) state).symm
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
@@ -179,12 +230,13 @@ open scoped Classical in
 the stall carried by the claims' own vanishing: a claim is read at the carrier the run ends
 with, so it aims nowhere once that carrier has the cell. -/
 theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, availableAt left node → availableAt right node)
+    (hfacts : TableFacts publicSeed availableAt allowed impl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (touched : CanonicalGraph.Node → Prop) (hindex : ¬ touched index)
     (hcover : ∀ node, ¬ touched node → allowed node)
@@ -193,13 +245,16 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (unavailableOf : α → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hreads : ∀ (table : Cells × Padding) (value : α), value ∈ support (computation table) →
+      unavailableOf value = fun cache node => ¬ availableAt table cache node)
     (state : HandlerState × Bool)
     (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
     (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
         ∃ entry ∈ claims pair.1, ChargedBy stakes
-          (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+          (unavailableOf pair.1.1) index pair.2 entry |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -211,12 +266,12 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state)] *
-          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z).dedup :
-            Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+          ((aiming stakes (unavailableOf z.1) index (claims z).dedup : Nat) : ℝ≥0∞)) /
+        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   have hstall : Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
       ∃ entry ∈ claims pair.1, ChargedBy stakes
-        (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+        (unavailableOf pair.1.1) index pair.2 entry |
     (do
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -225,40 +280,54 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
       pure (result, cells index))] =
       Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
           ∃ entry ∈ claims pair.1, ChargedBy stakes
-            (fun cache node => ¬ availableAt cache node) index pair.2 entry |
+            (unavailableOf pair.1.1) index pair.2 entry |
         (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-            (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+            (fun inner => availableAt (cells, pad) inner.1 index) stall)
+            (computation (cells, pad))).run state
           pure (result, cells index))] := by
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun cells => congrArg _ ?_
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun pad => congrArg _ ?_
     rw [bind_pure_comp, probEvent_map, bind_pure_comp, probEvent_map]
-    exact HandlerStall.prob_claimed_stalled_eq publicSeed (fun _ => availableAt) impl
-      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono) stakes
+    refine Eq.trans (probEvent_congr' (q := fun z : α × (HandlerState × Bool) =>
+        ∃ entry ∈ claims z, ChargedBy stakes
+          (fun cache node => ¬ availableAt (cells, pad) cache node) index (cells index) entry)
+      (fun z hz => by
+        simp only [Function.comp_apply]
+        rw [hreads (cells, pad) z.1 (value_mem_support _ _ _ z hz)]) rfl)
+      (Eq.trans ?_ (probEvent_congr' (q := fun z : α × (HandlerState × Bool) =>
+        ((fun pair : (α × (HandlerState × Bool)) × Cell =>
+          ∃ entry ∈ claims pair.1, ChargedBy stakes (unavailableOf pair.1.1) index pair.2
+            entry) ∘ fun result => (result, cells index)) z)
+      (fun z hz => by
+        simp only [Function.comp_apply]
+        rw [hreads (cells, pad) z.1 (value_mem_support _ _ _ z hz)]) rfl))
+    exact HandlerStall.prob_claimed_stalled_eq publicSeed availableAt impl hfacts hmono stakes
       index (cells, pad) stall (computation (cells, pad)) state claims hcache
   have hredraw : 𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+          (fun inner => availableAt (cells, pad) inner.1 index) stall)
+          (computation (cells, pad))).run state
         pure (result, cells index)] =
       𝒟[do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+          (fun inner => availableAt (cells, pad) inner.1 index) stall)
+          (computation (cells, pad))).run state
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)] := by
     refine RedrawCell.evalDist_redraw_coordinate index ($ᵗ Padding : ProbComp Padding) _ ?_
     intro cells other pad hagree
     rw [htouched (other, pad) (cells, pad) fun node hnode =>
       (hagree node fun heq => hindex (heq ▸ hnode)).symm]
-    exact HandlerStall.evalDist_stalled_congr publicSeed (fun _ => availableAt) impl
-      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) index
+    exact HandlerStall.evalDist_stalled_congr publicSeed availableAt impl hfacts index
       (hcover index hindex) (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
       (computation (cells, pad)) state
   rw [hstall, probEvent_congr' (fun _ _ => Iff.rfl) hredraw]
@@ -266,7 +335,8 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         let result ← (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-          (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state
+          (fun inner => availableAt (cells, pad) inner.1 index) stall)
+          (computation (cells, pad))).run state
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)) =
       (do
@@ -274,35 +344,51 @@ theorem prob_claimed_index_le {α : Type} (publicSeed : Digest)
           let cells ← ($ᵗ Cells : ProbComp Cells)
           let pad ← ($ᵗ Padding : ProbComp Padding)
           (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-            (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
+            (fun inner => availableAt (cells, pad) inner.1 index) stall)
+            (computation (cells, pad))).run state)
         let cell ← ($ᵗ Cell : ProbComp Cell)
         pure (result, cell)) := by
     simp only [bind_assoc]
   rw [hassoc]
   refine le_trans (le_of_eq (probEvent_congr' (fun pair _ =>
     show (∃ entry ∈ claims pair.1, ChargedBy stakes
-        (fun cache node => ¬ availableAt cache node) index pair.2 entry) ↔
+        (unavailableOf pair.1.1) index pair.2 entry) ↔
       ∃ entry ∈ (claims pair.1).dedup, ChargedBy stakes
-        (fun cache node => ¬ availableAt cache node) index pair.2 entry from
+        (unavailableOf pair.1.1) index pair.2 entry from
     ⟨fun ⟨entry, hentry, hcharged⟩ => ⟨entry, List.mem_dedup.mpr hentry, hcharged⟩,
       fun ⟨entry, hentry, hcharged⟩ =>
         ⟨entry, List.mem_dedup.mp hentry, hcharged⟩⟩) rfl)) ?_
-  refine le_trans (prob_run_cell_le stakes
-    (fun cache node => ¬ availableAt cache node) index
+  have hcell := prob_run_cell_le_indexed stakes
+    (fun z : α × (HandlerState × Bool) => unavailableOf z.1) index
     (do
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (StalledRun.stalled (withFlag (impl (cells, pad)))
-        (fun inner => availableAt inner.1 index) stall) (computation (cells, pad))).run state)
-    (fun z => (claims z).dedup)) ?_
+        (fun inner => availableAt (cells, pad) inner.1 index) stall)
+        (computation (cells, pad))).run state)
+    (fun z => (claims z).dedup)
+  refine le_trans hcell ?_
   refine ENNReal.div_le_div_right (le_of_eq ?_) _
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
   refine tsum_congr fun cells => congrArg _ ?_
   rw [tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
-  exact tsum_congr fun pad => congrArg _
-    (HandlerStall.expected_aiming_claimed_stalled_eq publicSeed (fun _ => availableAt) impl
-      (tableFacts_of_facts publicSeed availableAt allowed impl hfacts) (fun _ => hmono)
-      stakes index (cells, pad) stall (computation (cells, pad)) state claims hcache).symm
+  refine tsum_congr fun pad => congrArg _ ?_
+  have hconv : ∀ run : ProbComp (α × (HandlerState × Bool)),
+      (∀ z ∈ support run, z.1 ∈ support (computation (cells, pad))) →
+      (∑' z : α × (HandlerState × Bool), Pr[= z | run] *
+          ((aiming stakes (unavailableOf z.1) index (claims z).dedup : Nat) : ℝ≥0∞)) =
+        ∑' z : α × (HandlerState × Bool), Pr[= z | run] *
+          ((aiming stakes (fun cache node => ¬ availableAt (cells, pad) cache node) index
+            (claims z).dedup : Nat) : ℝ≥0∞) := by
+    intro run hrun
+    refine tsum_congr fun z => ?_
+    by_cases hz : z ∈ support run
+    · rw [hreads (cells, pad) z.1 (hrun z hz)]
+    · rw [probOutput_eq_zero_of_not_mem_support hz, zero_mul, zero_mul]
+  rw [hconv _ fun z hz => value_mem_support _ _ _ z hz,
+    hconv _ fun z hz => value_mem_support _ _ _ z hz]
+  exact (HandlerStall.expected_aiming_claimed_stalled_eq publicSeed availableAt impl hfacts
+    hmono stakes index (cells, pad) stall (computation (cells, pad)) state claims hcache).symm
 
 /-! ## Summed over the cells -/
 
@@ -315,12 +401,13 @@ table only at `touched`, and every cell there but the secret seed is available t
 excluding both from the sum excludes nothing an adversary can use. The charge stops at the
 expectation rather than at a cap, so that the halves sharing a budget add pathwise. -/
 theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, availableAt left node → availableAt right node)
+    (hfacts : TableFacts publicSeed availableAt allowed impl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
@@ -329,18 +416,22 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
-    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, availableAt cache node)
+    (unavailableOf : α → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hopen : ∀ (value : α) (node : CanonicalGraph.Node), touched node →
+      node ≠ CanonicalGraph.Node.secretSeed →
+        ∀ cache : HandlerCarrier.State, ¬ unavailableOf value cache node)
+    (hreads : ∀ (table : Cells × Padding) (value : α), value ∈ support (computation table) →
+      unavailableOf value = fun cache node => ¬ availableAt table cache node)
     (state : HandlerState × Bool) (weight : α × (HandlerState × Bool) → Nat)
     (hweight : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state),
       ∑ index : CanonicalGraph.Node, ChargedProbe.aiming stakes
-        (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup ≤ weight z) :
+        (unavailableOf z.1) index z.2.1.2.1.dedup ≤ weight z) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveOffSeed stakes
-          (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
+          (unavailableOf pair.1.1) pair.2 entry.2 entry.1 |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -358,20 +449,20 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
     (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
       ∃ index ∈ (Finset.univ : Finset CanonicalGraph.Node),
         ¬ touched index ∧ ∃ entry ∈ pair.1.2.1.2.1,
-          ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
+          ChargedBy stakes (unavailableOf pair.1.1) index
             (pair.2 index) entry) ?_) ?_
   · rintro pair - ⟨entry, hentry, hsensitive⟩
     obtain ⟨index, hne, node, hstake, hunavailable, hinput⟩ :=
       (RedrawCell.sensitiveOffSeed_iff_exists stakes
-        (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1).mp hsensitive
-    refine ⟨index, ?_, fun htouch => hunavailable (hopen index htouch hne entry.2),
+        (unavailableOf pair.1.1) pair.2 entry.2 entry.1).mp hsensitive
+    refine ⟨index, ?_, fun htouch => hopen pair.1.1 index htouch hne entry.2 hunavailable,
       entry, hentry, node, hstake, hunavailable, hinput⟩
     simp
   refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
   have hindex : ∀ index : CanonicalGraph.Node,
       Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
           ¬ touched index ∧ ∃ entry ∈ pair.1.2.1.2.1,
-            ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
+            ChargedBy stakes (unavailableOf pair.1.1) index
               (pair.2 index) entry |
         (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -384,8 +475,8 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
             let cells ← ($ᵗ Cells : ProbComp Cells)
             let pad ← ($ᵗ Padding : ProbComp Padding)
             (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state)] *
-            ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1.dedup :
-              Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+            ((aiming stakes (unavailableOf z.1) index z.2.1.2.1.dedup : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
     intro index
     by_cases hi : touched index
     · refine le_trans (probEvent_mono (q := fun _ => False)
@@ -394,11 +485,11 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
     refine le_trans (probEvent_mono
       (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, ChargedBy stakes
-          (fun cache node => ¬ availableAt cache node) index (pair.2 index) entry)
+          (unavailableOf pair.1.1) index (pair.2 index) entry)
       (fun pair _ hpair => hpair.2)) ?_
     refine le_trans (le_of_eq ?_)
       (prob_charged_index_le publicSeed availableAt impl hfacts hmono stakes index touched hi
-        hcover stall computation htouched state)
+        hcover stall computation htouched unavailableOf hreads state)
     have hmapped : (fun pair : (α × (HandlerState × Bool)) × Cells =>
           (pair.1, pair.2 index)) <$> (do
             let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -416,12 +507,14 @@ theorem prob_sensitive_run_le_expected {α : Type} (publicSeed : Digest)
     rw [← hmapped, probEvent_map]
     rfl
   refine le_trans (Finset.sum_le_sum fun index _ => hindex index) ?_
-  exact ChargedProbe.sum_weighted_le_of_sum stakes (fun cache node => ¬ availableAt cache node)
+  have hsum := ChargedProbe.sum_weighted_le_of_sum_indexed stakes
+    (fun z : α × (HandlerState × Bool) => unavailableOf z.1)
     (do
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state)
     (fun z => z.2.1.2.1.dedup) weight hweight
+  exact hsum
 
 set_option maxHeartbeats 8000000 in
 set_option maxRecDepth 1000000 in
@@ -430,12 +523,13 @@ open scoped Classical in
 /-- **The claims a run returns are charged their expected number too**, with the record
 replaced by a list the run's value determines. -/
 theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, availableAt left node → availableAt right node)
+    (hfacts : TableFacts publicSeed availableAt allowed impl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
@@ -444,8 +538,12 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
-    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, availableAt cache node)
+    (unavailableOf : α → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hopen : ∀ (value : α) (node : CanonicalGraph.Node), touched node →
+      node ≠ CanonicalGraph.Node.secretSeed →
+        ∀ cache : HandlerCarrier.State, ¬ unavailableOf value cache node)
+    (hreads : ∀ (table : Cells × Padding) (value : α), value ∈ support (computation table) →
+      unavailableOf value = fun cache node => ¬ availableAt table cache node)
     (state : HandlerState × Bool)
     (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
     (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
@@ -455,10 +553,10 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
         let pad ← ($ᵗ Padding : ProbComp Padding)
         (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state),
       ∑ index : CanonicalGraph.Node, ChargedProbe.aiming stakes
-        (fun cache node => ¬ availableAt cache node) index (claims z).dedup ≤ weight z) :
+        (unavailableOf z.1) index (claims z).dedup ≤ weight z) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ claims pair.1, RedrawCell.SensitiveOffSeed stakes
-          (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
+          (unavailableOf pair.1.1) pair.2 entry.2 entry.1 |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -476,20 +574,20 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
     (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
       ∃ index ∈ (Finset.univ : Finset CanonicalGraph.Node),
         ¬ touched index ∧ ∃ entry ∈ claims pair.1,
-          ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
+          ChargedBy stakes (unavailableOf pair.1.1) index
             (pair.2 index) entry) ?_) ?_
   · rintro pair - ⟨entry, hentry, hsensitive⟩
     obtain ⟨index, hne, node, hstake, hunavailable, hinput⟩ :=
       (RedrawCell.sensitiveOffSeed_iff_exists stakes
-        (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1).mp hsensitive
-    refine ⟨index, ?_, fun htouch => hunavailable (hopen index htouch hne entry.2),
+        (unavailableOf pair.1.1) pair.2 entry.2 entry.1).mp hsensitive
+    refine ⟨index, ?_, fun htouch => hopen pair.1.1 index htouch hne entry.2 hunavailable,
       entry, hentry, node, hstake, hunavailable, hinput⟩
     simp
   refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
   have hindex : ∀ index : CanonicalGraph.Node,
       Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
           ¬ touched index ∧ ∃ entry ∈ claims pair.1,
-            ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
+            ChargedBy stakes (unavailableOf pair.1.1) index
               (pair.2 index) entry |
         (do
           let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -502,8 +600,8 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
             let cells ← ($ᵗ Cells : ProbComp Cells)
             let pad ← ($ᵗ Padding : ProbComp Padding)
             (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state)] *
-            ((aiming stakes (fun cache node => ¬ availableAt cache node) index
-              (claims z).dedup : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+            ((aiming stakes (unavailableOf z.1) index (claims z).dedup : Nat) : ℝ≥0∞)) /
+            ((2 ^ 128 : Nat) : ℝ≥0∞) := by
     intro index
     by_cases hi : touched index
     · refine le_trans (probEvent_mono (q := fun _ => False)
@@ -512,11 +610,11 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
     refine le_trans (probEvent_mono
       (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ claims pair.1, ChargedBy stakes
-          (fun cache node => ¬ availableAt cache node) index (pair.2 index) entry)
+          (unavailableOf pair.1.1) index (pair.2 index) entry)
       (fun pair _ hpair => hpair.2)) ?_
     refine le_trans (le_of_eq ?_)
       (prob_claimed_index_le publicSeed availableAt impl hfacts hmono stakes index touched hi
-        hcover stall computation htouched state claims hcache)
+        hcover stall computation htouched unavailableOf hreads state claims hcache)
     have hmapped : (fun pair : (α × (HandlerState × Bool)) × Cells =>
           (pair.1, pair.2 index)) <$> (do
             let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -534,12 +632,14 @@ theorem prob_claimed_run_le_expected {α : Type} (publicSeed : Digest)
     rw [← hmapped, probEvent_map]
     rfl
   refine le_trans (Finset.sum_le_sum fun index _ => hindex index) ?_
-  exact ChargedProbe.sum_weighted_le_of_sum stakes (fun cache node => ¬ availableAt cache node)
+  have hsum := ChargedProbe.sum_weighted_le_of_sum_indexed stakes
+    (fun z : α × (HandlerState × Bool) => unavailableOf z.1)
     (do
       let cells ← ($ᵗ Cells : ProbComp Cells)
       let pad ← ($ᵗ Padding : ProbComp Padding)
       (simulateQ (withFlag (impl (cells, pad))) (computation (cells, pad))).run state)
     (fun z => (claims z).dedup) weight hweight
+  exact hsum
 
 /-! ## The two caps -/
 
@@ -548,12 +648,13 @@ open scoped Classical in
 /-- **The claims cost their own number**, which is a constant per run and so its own
 expectation. -/
 theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, availableAt left node → availableAt right node)
+    (hfacts : TableFacts publicSeed availableAt allowed impl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
@@ -562,8 +663,12 @@ theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
-    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, availableAt cache node)
+    (unavailableOf : α → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hopen : ∀ (value : α) (node : CanonicalGraph.Node), touched node →
+      node ≠ CanonicalGraph.Node.secretSeed →
+        ∀ cache : HandlerCarrier.State, ¬ unavailableOf value cache node)
+    (hreads : ∀ (table : Cells × Padding) (value : α), value ∈ support (computation table) →
+      unavailableOf value = fun cache node => ¬ availableAt table cache node)
     (state : HandlerState × Bool)
     (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
     (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
@@ -571,7 +676,7 @@ theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
     (hlength : ∀ z : α × (HandlerState × Bool), (claims z).length ≤ limit) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ claims pair.1, RedrawCell.SensitiveOffSeed stakes
-          (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
+          (unavailableOf pair.1.1) pair.2 entry.2 entry.1 |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -581,9 +686,10 @@ theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   le_trans
     (prob_claimed_run_le_expected publicSeed availableAt impl hfacts hmono stakes stall
-      computation touched hcover htouched hopen state claims hcache (fun z => (claims z).length)
+      computation touched hcover htouched unavailableOf hopen hreads state claims hcache
+      (fun z => (claims z).length)
       fun z _ => le_trans (ChargedProbe.sum_targets_length_le stakes
-        (fun cache node => ¬ availableAt cache node) (claims z).dedup)
+        (unavailableOf z.1) (claims z).dedup)
         (List.Sublist.length_le (List.dedup_sublist _)))
     (ChargedProbe.tsum_weight_le _
       (fun z : α × (HandlerState × Bool) => (claims z).length) limit fun z _ => hlength z)
@@ -591,12 +697,13 @@ theorem prob_claimed_run_le {α : Type} (publicSeed : Digest)
 open scoped Classical in
 /-- **The same charge, capped at the record's length.** -/
 theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, availableAt left node → availableAt right node)
+    (hfacts : TableFacts publicSeed availableAt allowed impl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, availableAt table left node → availableAt table right node)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
@@ -605,8 +712,12 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
-    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, availableAt cache node)
+    (unavailableOf : α → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hopen : ∀ (value : α) (node : CanonicalGraph.Node), touched node →
+      node ≠ CanonicalGraph.Node.secretSeed →
+        ∀ cache : HandlerCarrier.State, ¬ unavailableOf value cache node)
+    (hreads : ∀ (table : Cells × Padding) (value : α), value ∈ support (computation table) →
+      unavailableOf value = fun cache node => ¬ availableAt table cache node)
     (state : HandlerState × Bool) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -615,7 +726,7 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
       z.2.1.2.1.length ≤ limit) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveOffSeed stakes
-          (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
+          (unavailableOf pair.1.1) pair.2 entry.2 entry.1 |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -625,9 +736,10 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
       limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   le_trans
     (prob_sensitive_run_le_expected publicSeed availableAt impl hfacts hmono stakes stall
-      computation touched hcover htouched hopen state (fun z => z.2.1.2.1.length)
+      computation touched hcover htouched unavailableOf hopen hreads state
+      (fun z => z.2.1.2.1.length)
       fun z _ => le_trans (ChargedProbe.sum_targets_length_le stakes
-        (fun cache node => ¬ availableAt cache node) z.2.1.2.1.dedup)
+        (unavailableOf z.1) z.2.1.2.1.dedup)
         (List.Sublist.length_le (List.dedup_sublist _)))
     (ChargedProbe.tsum_weight_le _
       (fun z : α × (HandlerState × Bool) => z.2.1.2.1.length) limit hlimit)
@@ -638,12 +750,13 @@ open scoped Classical in
 this half: a whole class of inputs rather than a share of one, left at its expectation so that
 the charges sharing the budget can be added. The probes are counted distinctly. -/
 theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (availableAt : Cells × Padding → HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (impl : Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp))
     {allowed : CanonicalGraph.Node → Prop}
-    (hfacts : Facts publicSeed availableAt allowed impl)
-    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
-      ∀ node, availableAt left node → availableAt right node)
+    (hfacts : TableFacts publicSeed availableAt allowed impl)
+    (hmono : ∀ (table : Cells × Padding) (left right : HandlerCarrier.State),
+      HandlerCarrier.Grows left right →
+        ∀ node, availableAt table left node → availableAt table right node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
     (touched : CanonicalGraph.Node → Prop)
@@ -651,14 +764,18 @@ theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
     (htouched : ∀ left right : Cells × Padding,
       (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
-    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
-      ∀ cache, availableAt cache node)
+    (unavailableOf : α → HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hopen : ∀ (value : α) (node : CanonicalGraph.Node), touched node →
+      node ≠ CanonicalGraph.Node.secretSeed →
+        ∀ cache : HandlerCarrier.State, ¬ unavailableOf value cache node)
+    (hreads : ∀ (table : Cells × Padding) (value : α), value ∈ support (computation table) →
+      unavailableOf value = fun cache node => ¬ availableAt table cache node)
     (state : HandlerState × Bool) (keep : Bytes × HandlerCarrier.State → Bool)
     (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
       RedrawCell.AimsSomewhere publicSeed entry.1 → keep entry = true) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed)
-          (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |
+          (unavailableOf pair.1.1) pair.2 entry.2 entry.1 |
       (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
         let pad ← ($ᵗ Padding : ProbComp Padding)
@@ -673,9 +790,10 @@ theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
           (((z.2.1.2.1.dedup.filter keep).length : Nat) : ℝ≥0∞)) /
         ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   prob_sensitive_run_le_expected publicSeed availableAt impl hfacts hmono
-    (GraphStakes.stakes publicSeed) stall computation touched hcover htouched hopen state
+    (GraphStakes.stakes publicSeed) stall computation touched hcover htouched unavailableOf
+    hopen hreads state
     (fun z => (z.2.1.2.1.dedup.filter keep).length)
     fun z _ => RedrawCell.sum_aiming_le_canonical publicSeed
-      (fun cache node => ¬ availableAt cache node) keep hkeep z.2.1.2.1.dedup
+      (unavailableOf z.1) keep hkeep z.2.1.2.1.dedup
 
 end SlhDsaSecurity.HandlerCharge
