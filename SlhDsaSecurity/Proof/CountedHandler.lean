@@ -45,7 +45,12 @@ theorem withCount_run (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.Stat
         (pure (step.1, (step.2.1, (step.2.2, state.2.2 + hashCost queried))) :
           ProbComp (OracleWorld.Range queried × (HandlerCarrier.State × (τ × Nat)))) := rfl
 
-/-- **A step of the counted handler is a step of the handler, with the counter bumped.** -/
+/-- **A step of the counted handler is a step of the handler, with the counter bumped.**
+
+The carried component comes back too, and not only the carrier. The counter wraps a state whose
+other half is the handler's own — two recordings, for the recorder — and a consumer reasoning
+about *that* half cannot see through the wrapper without it. It is free from the same hypothesis
+the carrier's equality comes from. -/
 theorem withCount_step
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
     (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × Nat))
@@ -53,11 +58,11 @@ theorem withCount_step
     (hstep : step ∈ support (((withCount impl) queried).run state)) :
     ∃ inner : OracleWorld.Range queried × (HandlerCarrier.State × τ),
       inner ∈ support ((impl queried).run (state.1, state.2.1)) ∧
-        step.1 = inner.1 ∧ step.2.1 = inner.2.1 := by
+        step.1 = inner.1 ∧ step.2.1 = inner.2.1 ∧ step.2.2.1 = inner.2.2 := by
   rw [withCount_run, mem_support_bind_iff] at hstep
   obtain ⟨inner, hinner, hpure⟩ := hstep
   rw [support_pure, Set.mem_singleton_iff] at hpure
-  exact ⟨inner, hinner, by rw [hpure], by rw [hpure]⟩
+  exact ⟨inner, hinner, by rw [hpure], by rw [hpure], by rw [hpure]⟩
 
 /-! ## The step facts the wrapped handler needs
 
@@ -101,7 +106,7 @@ theorem files_withCount
         ((withCount impl) (Sum.inr input)) from by simp,
       StateT.run_bind, mem_support_bind_iff] at hresult
     obtain ⟨step, hstep, hrest⟩ := hresult
-    obtain ⟨inner, hinner, hvalue, hcarrier⟩ := withCount_step impl (Sum.inr input) state step
+    obtain ⟨inner, hinner, hvalue, hcarrier, -⟩ := withCount_step impl (Sum.inr input) state step
       hstep
     refine ⟨step.1, step.2, ?_, ?_, ?_, ?_, hrest⟩
     · rw [hcarrier, hvalue]
@@ -125,7 +130,7 @@ theorem files_withCount
       intro state z hz
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
       obtain ⟨step, hstep, hrest⟩ := hz
-      obtain ⟨inner, hinner, -, hcarrier⟩ := withCount_step impl queried state step hstep
+      obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
       refine Grows.trans ?_ (ih step.1 step.2 z hrest)
       rw [hcarrier]
       exact hfiles.stepGrows queried (state.1, state.2.1) inner hinner
@@ -141,7 +146,7 @@ theorem files_withCount
       intro state result hresult hinv
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hresult
       obtain ⟨step, hstep, hrest⟩ := hresult
-      obtain ⟨inner, hinner, -, hcarrier⟩ := withCount_step impl queried state step hstep
+      obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
       refine ih step.1 step.2 result hrest ?_
       rw [hcarrier]
       exact hfiles.invariant Inv hcache hfile
@@ -161,28 +166,28 @@ theorem files_withCount
       intro state z hz
       rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
       obtain ⟨step, hstep, hrest⟩ := hz
-      obtain ⟨inner, hinner, -, hcarrier⟩ := withCount_step impl queried state step hstep
+      obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
       rw [ih step.1 step.2 z hrest, hcarrier]
       exact hfiles.stepFraming queried (state.1, state.2.1) inner hinner
   stepGrows := by
     intro queried state step hstep
-    obtain ⟨inner, hinner, -, hcarrier⟩ := withCount_step impl queried state step hstep
+    obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
     rw [hcarrier]
     exact hfiles.stepGrows queried (state.1, state.2.1) inner hinner
   stepFraming := by
     intro queried state step hstep
-    obtain ⟨inner, hinner, -, hcarrier⟩ := withCount_step impl queried state step hstep
+    obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl queried state step hstep
     rw [hcarrier]
     exact hfiles.stepFraming queried (state.1, state.2.1) inner hinner
   hashCached := by
     intro input state step hstep
-    obtain ⟨inner, hinner, hvalue, hcarrier⟩ := withCount_step impl (Sum.inr input) state step
+    obtain ⟨inner, hinner, hvalue, hcarrier, -⟩ := withCount_step impl (Sum.inr input) state step
       hstep
     rw [hcarrier, hvalue]
     exact hfiles.hashCached input (state.1, state.2.1) inner hinner
   hashServed := by
     intro input state step hstep probe hserved
-    obtain ⟨inner, hinner, -, hcarrier⟩ := withCount_step impl (Sum.inr input) state step hstep
+    obtain ⟨inner, hinner, -, hcarrier, -⟩ := withCount_step impl (Sum.inr input) state step hstep
     rw [hcarrier] at hserved
     exact hfiles.hashServed input (state.1, state.2.1) inner hinner probe hserved
 
