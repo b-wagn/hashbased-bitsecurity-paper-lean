@@ -159,6 +159,7 @@ import SlhDsaSecurity.Proof.RandomiserDeferral
 import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.LateCharge
 import SlhDsaSecurity.Proof.TapeFactor
+import SlhDsaSecurity.Proof.BlockViews
 import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.WalkTable
 
@@ -7747,3 +7748,45 @@ info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun_le
+
+/--
+info: 'SlhDsaSecurity.BlockViews.uniformSample_prod_eq_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.uniformSample_prod_eq_bind
+
+/--
+info: 'SlhDsaSecurity.BlockViews.cons_bijective' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.cons_bijective
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_padding_eq_ofFn' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_padding_eq_ofFn
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_parse_uniform' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_parse_uniform
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_blockTape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_blockTape
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_not_goodBlock_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_not_goodBlock_le
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_blockHit_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_blockHit_le
