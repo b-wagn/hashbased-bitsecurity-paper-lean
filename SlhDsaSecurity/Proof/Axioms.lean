@@ -7009,3 +7009,21 @@ info: 'SlhDsaSecurity.Assembly.le_target_of_full' depends on axioms: [propext, C
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.le_target_of_full
+
+/--
+info: 'SlhDsaSecurity.SplitPrefix.recorder_run_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_run_inl
+
+/--
+info: 'SlhDsaSecurity.SplitPrefix.recorder_run_inr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_run_inr
+
+/--
+info: 'SlhDsaSecurity.SplitPrefix.paddedFrom_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.paddedFrom_bind
