@@ -16290,3 +16290,27 @@ info: 'SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_zero
+
+/--
+info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_eq_probEvent' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_indicator_eq_probEvent
+
+/-- info: 'SlhDsaSecurity.ClassExpectation.expected_card_filter_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ClassExpectation.expected_card_filter_le
+
+/-- info: 'SlhDsaSecurity.TargetColumn.expected_card_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_card_prfClass_le
+
+/-- info: 'SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one

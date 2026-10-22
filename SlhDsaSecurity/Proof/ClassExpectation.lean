@@ -555,4 +555,66 @@ theorem prob_bad_or_coverage_le (inClass : Bytes → Prop)
         initialCache result hmem)
     omega
 
+/-! ## A count that is a sum, summed rather than capped
+
+`expected_indicator_le_probEvent` above bounds a count by a number *and then* multiplies by a
+probability. That is the right instrument when the count is only bounded above. When the count
+is a **sum of indicators whose individual probabilities are known**, capping it first loses a
+factor: the honest value is the sum of the terms, and linearity gives it directly.
+
+The three lemmas below are that route. `expected_indicator_eq_probEvent` is the one-term case —
+an exact equality, not a bound — and `expected_card_filter_le` is the sum of them over a
+`Finset`, by induction on the set. -/
+
+/-- **A count that is zero everywhere has expectation zero.** -/
+theorem expected_zero {β : Type} (run : ProbComp β) :
+    expected run (fun _ => 0) = 0 := by
+  rw [expected]
+  simp
+
+/-- **The expectation of an indicator is the event's probability**, exactly. -/
+theorem expected_indicator_eq_probEvent {β : Type} (run : ProbComp β) (event : β → Prop)
+    [DecidablePred event] :
+    expected run (fun value => if event value then 1 else 0) = Pr[event | run] := by
+  classical
+  rw [expected, probEvent_eq_tsum_ite]
+  refine tsum_congr fun value => ?_
+  by_cases hevent : event value
+  · rw [if_pos hevent, if_pos hevent, Nat.cast_one, mul_one]
+  · rw [if_neg hevent, if_neg hevent, Nat.cast_zero, mul_zero]
+
+open scoped Classical in
+/-- **A count that filters a fixed set is the sum of its terms' probabilities**, so a uniform
+bound on each term bounds the expectation by the set's size times that bound — with no factor
+of the event's own probability, which is what capping the count first would cost. -/
+theorem expected_card_filter_le {β α : Type} [DecidableEq α] (run : ProbComp β)
+    (s : Finset α) (property : α → β → Prop) (rate : ℝ≥0∞)
+    (hrate : ∀ x ∈ s, Pr[fun value => property x value | run] ≤ rate) :
+    expected run (fun value => (s.filter fun x => property x value).card) ≤
+      (s.card : ℝ≥0∞) * rate := by
+  classical
+  induction s using Finset.induction with
+  | empty => simpa using le_of_eq (expected_zero run)
+  | insert x s hx ih =>
+    have hstep : ∀ value : β,
+        ((insert x s).filter fun y => property y value).card =
+          (if property x value then 1 else 0) + (s.filter fun y => property y value).card := by
+      intro value
+      rw [Finset.filter_insert]
+      by_cases hprop : property x value
+      · rw [if_pos hprop, if_pos hprop, Finset.card_insert_of_notMem
+          (fun hmem => hx (Finset.mem_filter.mp hmem).1), add_comm]
+      · rw [if_neg hprop, if_neg hprop, zero_add]
+    rw [show (fun value : β => ((insert x s).filter fun y => property y value).card) =
+      (fun value : β => (if property x value then 1 else 0) +
+        (s.filter fun y => property y value).card) from funext hstep, expected_add]
+    refine le_trans (add_le_add
+      (le_of_eq (expected_indicator_eq_probEvent run (fun value => property x value)))
+      (ih fun y hy => hrate y (Finset.mem_insert_of_mem hy))) ?_
+    refine le_trans (add_le_add (hrate x (Finset.mem_insert_self x s)) le_rfl) ?_
+    rw [Finset.card_insert_of_notMem hx]
+    push_cast
+    ring_nf
+    exact le_rfl
+
 end SlhDsaSecurity.ClassExpectation
