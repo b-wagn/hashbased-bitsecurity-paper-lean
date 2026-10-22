@@ -170,4 +170,109 @@ theorem answerCharged_of_parts {inside outside : QueryKind} (hne : inside ≠ ou
         rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
         ring
 
+/-! ## The same join, in the shape the restated target asks for
+
+The target moved: the answer half is now read at `FusedCoverage.fusedTail` with the ordering
+defect ruled out *pointwise* rather than assumed of the support, and
+`AnswerShape.answerChargedLate_of_recordedBound` takes it at this file's own recorded run. Two
+of the three hypotheses above survive unchanged; `hlate` does not survive at all, because it is
+no longer a hypothesis — its negation is a conjunct of the charged event, and the whole point of
+charging the defect on the shared side is that the set it describes is **not** empty.
+
+`hseed` survives, and the module docstring above still says why it cannot be answered where it
+is asked. It is kept in this shape so that the one remaining gap is a single named hypothesis
+rather than a hole in the middle of a proof; the weakened cover
+(`ObligationShapes.cover_of_served_or_narrow`) is what will retire it, by needing the narrowed
+class at the forgery's own digest alone instead of at every cached message input — and that is a
+change to `SplitWitness.Served.mem_records_of_covered`, not to anything here.
+
+The bound is unchanged to the digit: the `2 ^ -126` the answer side never spent is what pays for
+the leftover, and the ordering defect costs this side nothing because it is charged elsewhere. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer half's bound at its own recorded run, with the ordering defect conjoined.**
+This is exactly the hypothesis `AnswerShape.answerChargedLate_of_recordedBound` consumes. -/
+theorem answerRecordedBound_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hleftBound : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (answerRecordedRun adversary walk),
+        result.2.2.1.length ≤ signingLimit)
+    (hdisclosing : ∀ (adversary : Adversary)
+      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
+      walk ∈ support graphWalk → GoodWalk walk →
+      ∀ result ∈ support (answerRecordedRun adversary walk), ∀ input : Bytes,
+        ServedLog.servedLog
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) input ↔
+          SplitWitness.disclosingKeep walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            input result.2.1)
+    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            SplitWitness.SeedRandomised walk.1.1.2.1
+              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+              result.2.1 |
+          answerRecordedRun adversary walk] ≤ (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)) :
+    ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+          answerRecordedRun adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+  classical
+  intro q adversary _ hbudget walk hwalk hgood
+  calc Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+          AnswerBad ((walk.1, result.1), result.2.1) ∧
+            ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+        answerRecordedRun adversary walk]
+      ≤ Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            (AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ SplitWitness.SeedRandomised walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                result.2.1 ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                result) ∨
+            SplitWitness.SeedRandomised walk.1.1.2.1
+              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+              result.2.1 | answerRecordedRun adversary walk] :=
+        probEvent_mono fun result _ hbad => by
+          by_cases hleftover : SplitWitness.SeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result.2.1
+          · exact Or.inr hleftover
+          · exact Or.inl ⟨hbad.1, hleftover, hbad.2⟩
+    _ ≤ Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            AnswerBad ((walk.1, result.1), result.2.1) ∧
+              ¬ SplitWitness.SeedRandomised walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                result.2.1 ∧
+              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                result | answerRecordedRun adversary walk] +
+          Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+            SplitWitness.SeedRandomised walk.1.1.2.1
+              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+              result.2.1 | answerRecordedRun adversary walk] := probEvent_or_le _ _ _
+    _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141) +
+          (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) :=
+        add_le_add
+          (prob_answerBad_good_le_of_caps_recorded adversary q hne hbudget hwalk hgood.2
+            signingLimit ForsLeaveOneOut.signingLimit_le_tapeBound
+            (fun result hmem => hleftBound adversary walk hwalk hgood _
+              (CoverageCount.mem_support_recorder_countAllHashes _ _ _ hne
+                (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem))
+            (hdisclosing adversary walk hwalk hgood))
+          (hseed q adversary hbudget walk hwalk hgood)
+    _ = (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+        rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
+        ring
+
 end SlhDsaSecurity.AnswerJoin

@@ -241,6 +241,73 @@ theorem prob_answerBad_le_of_caps (adversary : Adversary) (pk : PublicKey)
   · exact Or.inr ⟨CoverageRouted.forgeryCoveredBy_congr pk result
       (hdisclosing result hresult) hcovered, hseed⟩
 
+/-! ## The same charge, before the recordings are forgotten
+
+`prob_answerBad_le_of_caps` concludes at the tail, where the recordings are gone, and so has to
+assume the ordering defect never fires on the support. The assembly no longer wants that
+assumption — it wants the defect's absence charged, which means carrying it as a conjunct of the
+event, which means stating the bound where a conjunct about the recordings is expressible.
+
+That place is the recorded run, one step earlier, and `AnswerCoverage` already has the two
+charges there. The only thing that moves with them is `hdisclosing`, which is read pointwise at
+each supported result and therefore follows wherever the support is read. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side at the recorded run**, with the ordering defect's absence conjoined rather
+than assumed. -/
+theorem prob_answerBad_le_of_caps_recorded (adversary : Adversary) (pk : PublicKey)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
+    (hseparated : ∀ input, CombinedCharge.IsMessageInput pk input →
+      CanonicalTarget.canonicalTarget walk.1.1.2.2 walk.1.2 input = none)
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1 pk)
+        (SplitWitness.targetKeep walk.1.1.2.1 pk)
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput pk) inside outside)
+          (afterSeeds adversary walk.1.1)) walk.2),
+      result.2.2.1.length ≤ leftLength)
+    (hdisclosing : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1 pk)
+        (SplitWitness.targetKeep walk.1.1.2.1 pk)
+        (countAllHashes (afterSeeds adversary walk.1.1)) walk.2), ∀ input : Bytes,
+      ServedLog.servedLog pk (result.1, result.2.1) input ↔
+        SplitWitness.disclosingKeep walk.1.1.2.1 pk input result.2.1)
+    (budget : Nat)
+    (hbudget : ∀ result ∈ support (tail adversary walk), result.1.2 ≤ budget) :
+    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+        RoutedSplit.AnswerBadAt pk ((walk.1, result.1), result.2.1) ∧
+          ¬ SplitWitness.SeedRandomised walk.1.1.2.1 pk result.2.1 ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1 pk result |
+      BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1 pk)
+        (SplitWitness.targetKeep walk.1.1.2.1 pk)
+        (countAllHashes (afterSeeds adversary walk.1.1)) walk.2] ≤
+      ((budget : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
+  have hcharge := AnswerCoverage.prob_bad_or_coverage_le_of_caps_recorded walk.1.1.2.1 pk
+    (CombinedCharge.IsMessageInput pk) hne
+    (fun input inner hkeep => SplitWitness.targetKeep_class walk.1.1.2.1 pk input inner hkeep)
+    (CanonicalBad walk.1.1.2.2 walk.1.2)
+    (fun input => prob_canonicalBad_le walk.1.1.2.2 walk.1.2 input)
+    (fun input answer hbad hmember => by
+      rw [CanonicalBad, hseparated input hmember] at hbad
+      exact absurd hbad (by simp))
+    (afterSeeds adversary walk.1.1) walk.2
+    (CanonicalTarget.clean_of_canonical_cache walk.1.1.2.2 walk.1.2 walk.2
+      (WarmedCharges.walk_cache_canonical hwalk))
+    (fun input hmessage => CoverageTail.walk_cache_fresh pk hpublic withinBounds_structural
+      hwalk input hmessage)
+    leftLength hcap hleftBound budget (by rw [← tail]; exact hbudget)
+  refine le_trans (probEvent_mono ?_) hcharge
+  rintro result hresult
+    ⟨⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered, hseed, hlate⟩
+  · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
+      parent (result.1, result.2.1) output hdeviates hentry hcollision)
+  · exact Or.inr ⟨CoverageRouted.forgeryCoveredBy_congr pk (result.1, result.2.1)
+      (hdisclosing result hresult) hcovered, hseed, hlate⟩
+
 /-! ## The two charges, added
 
 The coverage charge is already counted on the message class, so the two counts are the two
@@ -520,6 +587,77 @@ theorem prob_answerBad_good_le_of_caps (adversary : Adversary) (q : Nat)
   refine ⟨?_, hseed⟩
   rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
     generatedKey_eq_walk adversary hwalk hresult] at hbad
+  exact hbad
+
+/-! ## The same thing at a good walk, still at the recorded run
+
+The three steps are the ones the older chain takes — the generated key is the walk's own, the
+walk's coincidence is the key's, the budget bounds the tail's count — and only the first needs
+anything new, because it is read at a supported result and the support is now the recorder's.
+`CoverageCount.mem_support_rom_of_recorderOf` carries a recorded result to the tail result it
+forgets to, which is exactly what that step wants. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side at a good walk, at the recorded run**, with the ordering defect's absence
+and the narrowing's leftover both conjoined rather than assumed. -/
+theorem prob_answerBad_good_le_of_caps_recorded (adversary : Adversary) (q : Nat)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hgood : ¬ HashSeparation.Possible
+      (walk.1.1.2.2, walk.1.2 (.structural WalkDefects.topNode)))
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.targetKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+      result.2.2.1.length ≤ leftLength)
+    (hdisclosing : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.targetKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (countAllHashes (afterSeeds adversary walk.1.1)) walk.2), ∀ input : Bytes,
+      ServedLog.servedLog
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+          (result.1, result.2.1) input ↔
+        SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+          input result.2.1) :
+    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
+        RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+          ¬ SplitWitness.SeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            result.2.1 ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
+      BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.targetKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (countAllHashes (afterSeeds adversary walk.1.1)) walk.2] ≤
+      (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 141 := by
+  have hpublic := not_possible_generatedKey hwalk hgood
+  have hcharge := prob_answerBad_le_of_caps_recorded adversary
+    (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) hne hwalk hpublic
+    (fun input hmessage => CombinedCharge.separated_of_not_possible walk.1.1.2.2
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) walk.1.2 hpublic
+      withinBounds_structural input hmessage)
+    leftLength hcap hleftBound hdisclosing q
+    (fun result hresult => WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult)
+  refine le_trans (probEvent_mono ?_) hcharge
+  rintro result hresult ⟨hbad, hseed, hlate⟩
+  refine ⟨?_, hseed, hlate⟩
+  have hplain : (result.1, result.2.1) ∈ support (tail adversary walk) :=
+    CoverageCount.mem_support_rom_of_recorderOf _ _ _ (walk.2, [], []) result hresult
+  rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
+    generatedKey_eq_walk adversary hwalk hplain] at hbad
   exact hbad
 
 end SlhDsaSecurity.AnswerSide
