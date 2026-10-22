@@ -7934,10 +7934,6 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le'
 #guard_msgs in
 #print axioms SlhDsaSecurity.TableTail.probEvent_tail_handler
 
-/-- info: 'SlhDsaSecurity.LateRate.targetKeep_signer_randomizerInput' depends on axioms: [propext] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.targetKeep_signer_randomizerInput
-
 /-- info: 'SlhDsaSecurity.LateRate.signer_randomizerInput_isMessageInput' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.signer_randomizerInput_isMessageInput
@@ -8073,3 +8069,19 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_parts' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_parts
+
+/-- info: 'SlhDsaSecurity.LateRate.not_targetKeep_signer_randomizerInput' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.not_targetKeep_signer_randomizerInput
+
+/-- info: 'SlhDsaSecurity.SplitWitness.SeedRandomised' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.SeedRandomised
+
+/-- info: 'SlhDsaSecurity.SplitWitness.not_prfClass_of_not_seedRandomised' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.not_prfClass_of_not_seedRandomised
+
+/-- info: 'SlhDsaSecurity.SplitWitness.mem_records_or_seedRandomised' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitWitness.mem_records_or_seedRandomised

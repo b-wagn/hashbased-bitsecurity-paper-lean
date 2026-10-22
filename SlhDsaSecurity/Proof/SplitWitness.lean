@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.SplitPrefix
 import SlhDsaSecurity.Proof.CoverageRouted
+import SlhDsaSecurity.Proof.RandomizerGate
 
 /-!
 # The coverage event, read off the two recordings
@@ -39,19 +40,30 @@ def disclosingKeep (prfSeed : Digest) (pk : PublicKey) :
     Bytes → QueryCache HashSpec → Prop :=
   fun input cache => SignerRandomised prfSeed pk cache input
 
-/-- The right test: a message-class input the signer did not randomise. -/
+/-- The right test: a message-class input the signer did not randomise, and which is not a
+`PRF_msg` input at the real seed.
+
+The last clause is what keeps a served request out of the target recording. The signer's own
+`PRF_msg` query on a request framed as `PK.root ‖ m` *is* a message input, by the FIPS 205
+format identity `FramingLeak.randomizerInput_eq_messageInput`, and it is not signer-randomised
+when it is made; without the clause the recorder would file it as a target and the target count
+would carry one unit per served request, which the budget has no room for. -/
 def targetKeep (prfSeed : Digest) (pk : PublicKey) : Bytes → QueryCache HashSpec → Prop :=
   fun input cache =>
-    CombinedCharge.IsMessageInput pk input ∧ ¬ SignerRandomised prfSeed pk cache input
+    CombinedCharge.IsMessageInput pk input ∧ ¬ RandomizerGate.PrfClass prfSeed input ∧
+      ¬ SignerRandomised prfSeed pk cache input
 
-/-- **The two tests cover the message class.** -/
+/-- **The two tests cover the message class, less its `PRF_msg` part.** What the narrowing
+leaves out is handed on rather than lost: an input in both classes has `SK.prf` for its
+randomiser, which is the shared half's business. -/
 theorem cover_messageInput (prfSeed : Digest) (pk : PublicKey) (input : Bytes)
-    (cache : QueryCache HashSpec) (hclass : CombinedCharge.IsMessageInput pk input) :
+    (cache : QueryCache HashSpec)
+    (hclass : CombinedCharge.IsMessageInput pk input ∧ ¬ RandomizerGate.PrfClass prfSeed input) :
     disclosingKeep prfSeed pk input cache ∨ targetKeep prfSeed pk input cache := by
   classical
   by_cases hsigner : SignerRandomised prfSeed pk cache input
   · exact Or.inl hsigner
-  · exact Or.inr ⟨hclass, hsigner⟩
+  · exact Or.inr ⟨hclass.1, hclass.2, hsigner⟩
 
 /-- **The left test only becomes truer**, which is what sends a target that is not disclosing
 at the end to the right recording. -/
@@ -73,6 +85,25 @@ theorem disclosingKeep_class (prfSeed : Digest) (pk : PublicKey) (input : Bytes)
     (cache : QueryCache HashSpec) (hkeep : disclosingKeep prfSeed pk input cache) :
     CombinedCharge.IsMessageInput pk input :=
   isMessageInput_of_signerRandomised prfSeed pk cache input hkeep
+
+/-- **The case the narrowing hands on.** The run's cache holds a message input whose randomiser
+is the signer's own `PRF_msg` seed — equivalently, a `PRF_msg` input at the real seed, by
+`Hashing.randomizerInput_injective` read the other way.
+
+Such an input falls outside the target test by construction, so neither the target it might be
+nor the witness it might be is recorded. It is not charged here and cannot be: the seed is the
+walk's, and at a fixed walk an adversary may carry it as a constant. It belongs to the shared
+half, where the record's `PRF_msg` part is charged with the seed drawn after the run. -/
+def SeedRandomised (prfSeed : Digest) (pk : PublicKey) (cache : QueryCache HashSpec) : Prop :=
+  ∃ input : Bytes, cache input ≠ none ∧ CombinedCharge.IsMessageInput pk input ∧
+    RandomizerGate.PrfClass prfSeed input
+
+/-- Off that case, a cached message input is outside the `PRF_msg` class. -/
+theorem not_prfClass_of_not_seedRandomised (prfSeed : Digest) (pk : PublicKey)
+    (cache : QueryCache HashSpec) (hseed : ¬ SeedRandomised prfSeed pk cache) (input : Bytes)
+    (hpresent : cache input ≠ none) (hclass : CombinedCharge.IsMessageInput pk input) :
+    CombinedCharge.IsMessageInput pk input ∧ ¬ RandomizerGate.PrfClass prfSeed input :=
+  ⟨hclass, fun hprf => hseed ⟨input, hpresent, hclass, hprf⟩⟩
 
 /-! ## The ordering defect, and what it really says
 
@@ -102,6 +133,7 @@ theorem disclosedRecorded_of_not_late (prfSeed : Digest) (pk : PublicKey)
     (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
       (targetKeep prfSeed pk)) computation).run (cache, [], [])))
     (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hseed : ¬ SeedRandomised prfSeed pk result.2.1)
     (hlate : ¬ LateDisclosure prfSeed pk result) :
     ∀ (input : Bytes) (answer : HashOutput),
       SignerRandomised prfSeed pk result.2.1 input → result.2.1 input = some answer →
@@ -110,10 +142,13 @@ theorem disclosedRecorded_of_not_late (prfSeed : Digest) (pk : PublicKey)
   intro input answer hsigner hentry
   have hclass : CombinedCharge.IsMessageInput pk input :=
     isMessageInput_of_signerRandomised prfSeed pk result.2.1 input hsigner
+  have hnarrow := not_prfClass_of_not_seedRandomised prfSeed pk result.2.1 hseed input
+    (by rw [hentry]; simp) hclass
   rcases mem_record_of_cache (disclosingKeep prfSeed pk) (targetKeep prfSeed pk)
-    (CombinedCharge.IsMessageInput pk)
+    (fun probe => CombinedCharge.IsMessageInput pk probe ∧
+      ¬ RandomizerGate.PrfClass prfSeed probe)
     (fun probe inner hinner => cover_messageInput prfSeed pk probe inner hinner)
-    computation (cache, [], []) result hmem input answer hclass (hfresh input hclass) hentry with
+    computation (cache, [], []) result hmem input answer hnarrow (hfresh input hclass) hentry with
     hleft | hright
   · exact hleft
   · exact absurd ⟨(input, answer), hright, hsigner⟩ hlate
@@ -147,7 +182,7 @@ theorem late_ordering (prfSeed : Digest) (pk : PublicKey)
       have := hpersist _ _ hearlier
       rw [this] at hprf
       exact Option.some.inj hprf
-    exact hright.2 ⟨message, earlier, hearlier, by rw [hsame]; exact hinput⟩
+    exact hright.2.2 ⟨message, earlier, hearlier, by rw [hsame]; exact hinput⟩
   · rw [← hinput]
     exact habsent
 
@@ -160,6 +195,7 @@ theorem mem_records_of_covered (prfSeed : Digest) (pk : PublicKey)
     (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
       (targetKeep prfSeed pk)) computation).run (cache, [], [])))
     (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hseed : ¬ SeedRandomised prfSeed pk result.2.1)
     (hdisclosedRecorded : ∀ (input : Bytes) (answer : HashOutput),
       SignerRandomised prfSeed pk result.2.1 input → result.2.1 input = some answer →
         (input, answer) ∈ result.2.2.1)
@@ -173,10 +209,18 @@ theorem mem_records_of_covered (prfSeed : Digest) (pk : PublicKey)
   obtain ⟨message, parsed, answer, hframe, hparsed, hentry, hnotself, hcoveredAt⟩ := hcovered
   have hclass : CombinedCharge.IsMessageInput pk
       (Hashing.messageInput parsed.randomizer pk message) := ⟨parsed.randomizer, message, rfl⟩
+  have hnarrow := not_prfClass_of_not_seedRandomised prfSeed pk result.2.1 hseed
+    (Hashing.messageInput parsed.randomizer pk message)
+    (by
+      rw [show result.2.1 (Hashing.messageInput parsed.randomizer pk message) = some answer from
+        hentry]
+      simp) hclass
   have hside := mem_record_of_cache (disclosingKeep prfSeed pk) (targetKeep prfSeed pk)
-    (CombinedCharge.IsMessageInput pk) (fun input inner hinner => cover_messageInput prfSeed pk
+    (fun input => CombinedCharge.IsMessageInput pk input ∧
+      ¬ RandomizerGate.PrfClass prfSeed input)
+    (fun input inner hinner => cover_messageInput prfSeed pk
       input inner hinner) computation (cache, [], []) result hmem
-    (Hashing.messageInput parsed.randomizer pk message) answer hclass
+    (Hashing.messageInput parsed.randomizer pk message) answer hnarrow
     (hfresh _ hclass) hentry
   have htarget : (Hashing.messageInput parsed.randomizer pk message, answer) ∈ result.2.2.2 := by
     rcases hside with hleft | hright
@@ -201,6 +245,7 @@ theorem mem_records_of_covered_of_not_late (prfSeed : Digest) (pk : PublicKey)
     (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
       (targetKeep prfSeed pk)) computation).run (cache, [], [])))
     (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hseed : ¬ SeedRandomised prfSeed pk result.2.1)
     (hlate : ¬ LateDisclosure prfSeed pk result)
     (hcovered : CoverageRouted.ForgeryDisclosedCovered prfSeed pk (result.1, result.2.1)) :
     ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
@@ -208,8 +253,38 @@ theorem mem_records_of_covered_of_not_late (prfSeed : Digest) (pk : PublicKey)
         witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
           (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
             (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree :=
-  mem_records_of_covered prfSeed pk computation cache result hmem hfresh
-    (disclosedRecorded_of_not_late prfSeed pk computation cache result hmem hfresh hlate)
+  mem_records_of_covered prfSeed pk computation cache result hmem hfresh hseed
+    (disclosedRecorded_of_not_late prfSeed pk computation cache result hmem hfresh hseed hlate)
     hcovered
+
+set_option maxHeartbeats 800000 in
+/-- **The join, with the narrowing's leftover named rather than charged.** Either the run's
+cache holds a message input whose randomiser is the signer's `PRF_msg` seed — which is a
+`PRF_msg` input at the real seed, and is the shared half's to charge, with the seed drawn after
+the run — or the covered forgery's digest is an entry of the target recording and each of its
+witnesses an entry of the disclosing one.
+
+The first case cannot be charged here. The seed belongs to the walk, this statement is read at
+a fixed walk, and an adversary may carry the seed as a constant; a `2 ^ -128` defect on this
+side would be a false statement in a small place. -/
+theorem mem_records_or_seedRandomised (prfSeed : Digest) (pk : PublicKey)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
+    (result : (Outcome × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
+      (targetKeep prfSeed pk)) computation).run (cache, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hlate : ¬ LateDisclosure prfSeed pk result)
+    (hcovered : CoverageRouted.ForgeryDisclosedCovered prfSeed pk (result.1, result.2.1)) :
+    SeedRandomised prfSeed pk result.2.1 ∨
+      ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
+        ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
+          witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
+            (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
+              (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree := by
+  classical
+  by_cases hseed : SeedRandomised prfSeed pk result.2.1
+  · exact Or.inl hseed
+  · exact Or.inr (mem_records_of_covered_of_not_late prfSeed pk computation cache result hmem
+      hfresh hseed hlate hcovered)
 
 end SlhDsaSecurity.SplitWitness

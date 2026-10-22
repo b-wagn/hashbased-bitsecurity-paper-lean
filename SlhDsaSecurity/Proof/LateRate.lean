@@ -285,7 +285,7 @@ theorem step_bound (prfSeed : Digest) (pk : PublicKey) (state : SplitState) (inp
           simp
         · rw [hpot]
           refine le_trans (add_le_add (le_trans (hsplit default)
-            (add_le_add hold (prob_entry_fires_le prfSeed pk state.1 input input hright.2)))
+            (add_le_add hold (prob_entry_fires_le prfSeed pk state.1 input input hright.2.2)))
             le_rfl) ?_
           rw [show ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) = ((1 : Nat) : ℝ≥0∞) * rate from by
             rw [rate]; simp, add_assoc]
@@ -378,14 +378,14 @@ The lemma below is that fact, stated at the recorder: it is not an obstruction t
 above, which counts whatever the target recording holds, but it is an obstruction to reading
 that count as the adversary's queries alone. -/
 
-/-- **A served request's own `PRF_msg` query can be a target-class input.** -/
-theorem targetKeep_signer_randomizerInput (prfSeed : Digest) (pk : PublicKey)
-    (cache : QueryCache HashSpec) (message : Bytes)
-    (hnot : ¬ SignerRandomised prfSeed pk cache
-      (Hashing.randomizerInput prfSeed pk.seed (bytesBE n pk.root ++ message))) :
-    targetKeep prfSeed pk
+/-- **A served request's own `PRF_msg` query is kept out of the target recording.** Without the
+narrowing it would be filed there: it is a message input, by the format identity, and it is not
+signer-randomised when it is made. The `PRF_msg` clause is what excludes it. -/
+theorem not_targetKeep_signer_randomizerInput (prfSeed : Digest) (pk : PublicKey)
+    (cache : QueryCache HashSpec) (message : Bytes) :
+    ¬ targetKeep prfSeed pk
       (Hashing.randomizerInput prfSeed pk.seed (bytesBE n pk.root ++ message)) cache :=
-  ⟨⟨prfSeed, message, FramingLeak.randomizerInput_eq_messageInput prfSeed pk message⟩, hnot⟩
+  fun hkeep => hkeep.2.1 ⟨pk.seed, bytesBE n pk.root ++ message, rfl⟩
 
 /-- The same input, read as the digest input it also is. -/
 theorem signer_randomizerInput_isMessageInput (prfSeed : Digest) (pk : PublicKey)
