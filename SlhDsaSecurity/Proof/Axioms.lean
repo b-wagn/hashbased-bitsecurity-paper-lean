@@ -123,6 +123,7 @@ import SlhDsaSecurity.Proof.SharedOracleArithmetic
 import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 import SlhDsaSecurity.Proof.KeygenValue
 import SlhDsaSecurity.Proof.RecordedPhase
+import SlhDsaSecurity.Proof.LinkedGame
 
 /-! Kernel dependency checks for the preparatory results. -/
 
@@ -5377,3 +5378,23 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.KeygenBudget.pow_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.KeygenBudget.pow_le_of_budget
+
+/-- info: 'SlhDsaSecurity.RecordedPhase.faithful_phaseCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordedPhase.faithful_phaseCost
+
+/-- info: 'SlhDsaSecurity.LinkedGame.simulateQ_liftWorld' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.simulateQ_liftWorld
+
+/-- info: 'SlhDsaSecurity.LinkedGame.run_simulateQ_ofLift' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.run_simulateQ_ofLift
+
+/-- info: 'SlhDsaSecurity.LinkedGame.run_unchargedPhase_lift' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.run_unchargedPhase_lift
+
+/-- info: 'SlhDsaSecurity.LinkedGame.recordedAfterSeedsAt_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LinkedGame.recordedAfterSeedsAt_eq
