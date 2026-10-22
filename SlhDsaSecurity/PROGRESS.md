@@ -3146,3 +3146,38 @@ The same shape is why a charge proved for a strictly larger event is immune to w
 one turns out to be, and why a lemma stated against what it uses survives the thing it was
 written for changing. All three are the same move: weaken what the statement commits to, and the
 seam disappears instead of needing a bridge.
+
+## Hand back the most you know, not the least your first consumer asked for
+
+A lemma on the way to the provenance mirror concluded
+
+    mid (randomizerInput sk.prf pk.seed framed) ≠ none
+
+which is true, provable, and useless. It leaves the entry's randomiser and the cached answer
+unrelated, so no contradiction is reachable at the consumer. Returning **the answer and the
+containment** instead — `mid … = some a` together with `mid ⊆ result.2.1` — closes the branch
+immediately, because a target entry of the request's digest shape is then `SignerRandomised` at
+`mid`, which is exactly what the target test denies there.
+
+> An existential that drops the witness the consumer must match is the same failure as naming
+> the wrong state.
+
+This one is nastier than the granularity mismatch, because **the broken version looks like the
+strongest reasonable statement**. A disequality is what you write when you do not yet know what
+the consumer will want, and it reads as appropriately general rather than as lossy. Its
+signature is a conclusion that is existential, negative, or otherwise opaque about a value that
+something downstream has to relate to another value.
+
+So, in the same words as the presentation rule one level down: a lemma should conclude with the
+most it knows, not the least its first consumer asked for. **A consumer that wants less can
+always forget more.**
+
+### The three failures are one failure
+
+Polarity (a hypothesis supplied in one direction and read in the other), granularity (two
+lemmas that both hand back a state, about different steps) and the dropped witness are all a
+statement **committing to less than it knows, or to the wrong thing, in a way that is invisible
+until a second consumer appears.** That is also why every one of them was found by the side that
+had to *supply* the hypothesis rather than by the side that wrote it, and why building a second
+instance of anything keeps paying: an assumption that is invisible rather than absent is the
+worst kind of missing one.
