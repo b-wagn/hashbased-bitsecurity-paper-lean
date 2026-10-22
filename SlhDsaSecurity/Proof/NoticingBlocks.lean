@@ -347,7 +347,7 @@ theorem prob_threeStageTargetCovered_le (leftKeep rightKeep : Bytes → σ → P
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + Security.SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → Security.SigningLog → γ → δ)
+    (value : β → α → ω → Security.SigningLog → γ → σ → δ)
     (cache : σ) (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
     (hleftBound : ∀ result ∈ support (FusedTape.threeStageHandlerRun leftKeep rightKeep inner
         before afterMap first phase last value cache [] []),

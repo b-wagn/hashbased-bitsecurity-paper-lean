@@ -168,7 +168,7 @@ theorem evalDist_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (leftLength rightLength : Nat) (cache : σ) (leftRecord rightRecord : Record) :
     𝒟[(simulateQ (noticingRecorderOf leftKeep rightKeep) first).run
           (cache, leftRecord, rightRecord) >>= fun keys =>
@@ -177,7 +177,9 @@ theorem evalDist_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
           (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
           (simulateQ (noticingRecorderOf leftKeep rightKeep)
               (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-            (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+            (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+              forgetView final.2)
+              :
               ProbComp (δ × SplitPrefix.SplitState))] =
       𝒟[padding leftLength >>= fun leftTape =>
           padding rightLength >>= fun rightTape =>
@@ -188,7 +190,7 @@ theorem evalDist_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
                   (onCarrierTape after)) (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
                 (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
                     (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-                  (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+                  (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
                     forgetViewTape final.2) :
                     ProbComp (δ × SplitPrefix.SplitState))] := by
   classical
@@ -198,14 +200,16 @@ theorem evalDist_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
         (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
           (simulateQ (noticingRecorderOf leftKeep rightKeep) (last keys.1 middle.1)).run
             middle.2.2.2 >>= fun final =>
-              (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+              (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+                forgetView final.2)
+                :
                 ProbComp (δ × SplitPrefix.SplitState)))
     (fun keys => (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep)
         (inner keys.1) (fun request => onCarrierTape (before request)) (onCarrierTape after))
         (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
           (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) (last keys.1 middle.1)).run
             middle.2.2.2 >>= fun final =>
-              (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+              (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
                 forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
     ?_ leftLength rightLength cache leftRecord rightRecord
   intro firstLeft firstRight keys
@@ -213,26 +217,30 @@ theorem evalDist_threeStage (leftKeep rightKeep : Bytes → σ → Prop)
     (phase keys.1)
     (fun middle => (simulateQ (noticingRecorderOf leftKeep rightKeep)
         (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+            forgetView final.2)
+            :
             ProbComp (δ × SplitPrefix.SplitState)))
     (fun middle => (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
         (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+            forgetViewTape final.2)
+            :
             ProbComp (δ × SplitPrefix.SplitState)))
     ?_ firstLeft firstRight 1 [] keys.2.1 keys.2.2.1 keys.2.2.2
   intro middleLeft middleRight middle
   refine evalDist_noticingSplitTapeRun_cont leftKeep rightKeep (last keys.1 middle.1)
-    (fun final => (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+    (fun final => (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
       forgetView final.2) : ProbComp (δ × SplitPrefix.SplitState)))
-    (fun final => (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+    (fun final => (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
       forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
     ?_ middleLeft middleRight middle.2.2.2.1 middle.2.2.2.2.1 middle.2.2.2.2.2
   intro lastLeft lastRight final
   have hconst : ∀ leftTape rightTape : List HashOutput,
-      (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+      (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
           forgetViewTape (final.2.1, (leftTape, rightTape), final.2.2)) :
         ProbComp (δ × SplitPrefix.SplitState)) =
-      pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :=
+      pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1, forgetView final.2) :=
     fun _ _ => rfl
   simp only [hconst]
   rw [OracleComp.DeferredSampling.evalDist_bind_const_neverFails (padding lastLeft)
@@ -425,7 +433,7 @@ noncomputable def threeStageTapeRun (leftKeep rightKeep : Bytes → σ → Prop)
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record)
     (leftTape rightTape : List HashOutput) :
     ProbComp (δ × SplitPrefix.SplitState) :=
@@ -436,7 +444,9 @@ noncomputable def threeStageTapeRun (leftKeep rightKeep : Bytes → σ → Prop)
       (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
       (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
           (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-        (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+        (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+          forgetViewTape final.2)
+          :
           ProbComp (δ × SplitPrefix.SplitState))
 
 set_option maxHeartbeats 4000000 in
@@ -450,7 +460,7 @@ theorem probEvent_length_set_threeStage (leftKeep rightKeep : Bytes → σ → P
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (index : Nat) (newValue : HashOutput) (cache : σ)
     (leftRecord rightRecord : Record) (leftTape rightTape : List HashOutput) :
     Pr[fun w : δ × SplitPrefix.SplitState =>
@@ -469,7 +479,7 @@ theorem probEvent_length_set_threeStage (leftKeep rightKeep : Bytes → σ → P
           (onCarrierTape afterMap)) (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
         (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
             (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
             forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
     (fun w => w.2.2.2) ?_ ?_ ?_ index newValue cache leftTape rightTape leftRecord rightRecord
   · intro z w hw
@@ -493,7 +503,9 @@ theorem probEvent_length_set_threeStage (leftKeep rightKeep : Bytes → σ → P
       (phase z.1)
       (fun middle => (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
             (last z.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value z.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+          (pure (value z.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+            forgetViewTape final.2)
+            :
             ProbComp (δ × SplitPrefix.SplitState)))
       (fun w => w.2.2.2) ?_ ?_ ?_ idx v 1 [] z.2.1 z.2.2.1.1 z.2.2.1.2 z.2.2.2.1 z.2.2.2.2
     · intro y w hw
@@ -507,7 +519,8 @@ theorem probEvent_length_set_threeStage (leftKeep rightKeep : Bytes → σ → P
         ⟨noticingSplitTapeRun_neverFails leftKeep rightKeep _ _, fun _ _ => by simp⟩
     · intro idx2 v2 y
       refine NoticingTape.probEvent_length_set_cont leftKeep rightKeep (last z.1 y.1)
-        (fun final => (pure (value z.1 y.1 y.2.1 y.2.2.1 final.1, forgetViewTape final.2) :
+        (fun final => (pure (value z.1 y.1 y.2.1 y.2.2.1 final.1 final.2.1, forgetViewTape final.2)
+          :
           ProbComp (δ × SplitPrefix.SplitState)))
         (fun w => w.2.2.2) ?_ ?_ ?_ idx2 v2 y.2.2.2.1 y.2.2.2.2.1.1 y.2.2.2.2.1.2
         y.2.2.2.2.2.1 y.2.2.2.2.2.2
@@ -531,7 +544,7 @@ theorem threeStageCausal (leftKeep rightKeep : Bytes → σ → Prop)
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (index : Nat) (leftTape rightTape : List HashOutput) (newValue : HashOutput) :
     Pr[fun w : δ × SplitPrefix.SplitState => index < w.2.2.2.length |
         threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value cache
@@ -641,7 +654,7 @@ theorem threeStageRightOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record)
     (leftTape rightTape : List HashOutput) (w : δ × SplitPrefix.SplitState)
     (hw : w ∈ support (threeStageTapeRun leftKeep rightKeep inner before afterMap first phase
@@ -657,7 +670,7 @@ theorem threeStageRightOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
           (onCarrierTape afterMap)) (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
         (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
             (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
             forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
     (fun v => v.2.2.2) ?_ ?_ cache leftTape rightTape leftRecord rightRecord w hw
   · intro keys v hv
@@ -675,7 +688,9 @@ theorem threeStageRightOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
       (phase keys.1)
       (fun middle => (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
             (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+            forgetViewTape final.2)
+            :
             ProbComp (δ × SplitPrefix.SplitState)))
       (fun v => v.2.2.2) ?_ ?_ 1 [] keys.2.1 keys.2.2.1.1 keys.2.2.1.2 keys.2.2.2.1
       keys.2.2.2.2 v hv idx hreach hcl
@@ -687,7 +702,9 @@ theorem threeStageRightOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
       exact noticingRightOf_prefix leftKeep rightKeep _ y.2.2.2 final hfinal
     · intro y u hu idx2 hreach2 hcl2
       refine NoticingTape.rightOf_getElem?_cont leftKeep rightKeep (last keys.1 y.1)
-        (fun final => (pure (value keys.1 y.1 y.2.1 y.2.2.1 final.1, forgetViewTape final.2) :
+        (fun final => (pure (value keys.1 y.1 y.2.1 y.2.2.1 final.1 final.2.1,
+          forgetViewTape final.2)
+          :
           ProbComp (δ × SplitPrefix.SplitState)))
         (fun v => v.2.2.2) ?_ ?_ y.2.2.2.1 y.2.2.2.2.1.1 y.2.2.2.2.1.2 y.2.2.2.2.2.1
         y.2.2.2.2.2.2 u hu idx2 hreach2 hcl2
@@ -835,7 +852,7 @@ theorem threeStageLeftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record)
     (leftTape rightTape : List HashOutput) (w : δ × SplitPrefix.SplitState)
     (hw : w ∈ support (threeStageTapeRun leftKeep rightKeep inner before afterMap first phase
@@ -851,7 +868,7 @@ theorem threeStageLeftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
           (onCarrierTape afterMap)) (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
         (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
             (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1,
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
             forgetViewTape final.2) : ProbComp (δ × SplitPrefix.SplitState)))
     (fun v => v.2.2.1) ?_ ?_ cache leftTape rightTape leftRecord rightRecord w hw
   · intro keys v hv
@@ -869,7 +886,9 @@ theorem threeStageLeftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
       (phase keys.1)
       (fun middle => (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
             (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetViewTape final.2) :
+          (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1,
+            forgetViewTape final.2)
+            :
             ProbComp (δ × SplitPrefix.SplitState)))
       (fun v => v.2.2.1) ?_ ?_ 1 [] keys.2.1 keys.2.2.1.1 keys.2.2.1.2 keys.2.2.2.1
       keys.2.2.2.2 v hv idx hreach hcl
@@ -881,7 +900,9 @@ theorem threeStageLeftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
       exact noticingLeftOf_prefix leftKeep rightKeep _ y.2.2.2 final hfinal
     · intro y u hu idx2 hreach2 hcl2
       refine NoticingTape.leftOf_getElem?_cont leftKeep rightKeep (last keys.1 y.1)
-        (fun final => (pure (value keys.1 y.1 y.2.1 y.2.2.1 final.1, forgetViewTape final.2) :
+        (fun final => (pure (value keys.1 y.1 y.2.1 y.2.2.1 final.1 final.2.1,
+          forgetViewTape final.2)
+          :
           ProbComp (δ × SplitPrefix.SplitState)))
         (fun v => v.2.2.1) ?_ ?_ y.2.2.2.1 y.2.2.2.2.1.1 y.2.2.2.2.1.2 y.2.2.2.2.2.1
         y.2.2.2.2.2.2 u hu idx2 hreach2 hcl2
@@ -913,7 +934,7 @@ noncomputable def threeStageHandlerRun (leftKeep rightKeep : Bytes → σ → Pr
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record) :
     ProbComp (δ × SplitPrefix.SplitState) :=
   (simulateQ (noticingRecorderOf leftKeep rightKeep) first).run
@@ -923,7 +944,8 @@ noncomputable def threeStageHandlerRun (leftKeep rightKeep : Bytes → σ → Pr
       (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
       (simulateQ (noticingRecorderOf leftKeep rightKeep)
           (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
-        (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+        (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2.1, forgetView final.2)
+          :
           ProbComp (δ × SplitPrefix.SplitState))
 
 theorem threeStage_blockRunOf_snd (leftKeep rightKeep : Bytes → σ → Prop)
@@ -934,7 +956,7 @@ theorem threeStage_blockRunOf_snd (leftKeep rightKeep : Bytes → σ → Prop)
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record) (leftLength rightLength : Nat) :
     Prod.snd <$> NoticingTape.blockRunOf (threeStageTapeRun leftKeep rightKeep inner before
         afterMap first phase last value cache leftRecord rightRecord) leftLength rightLength =
@@ -953,7 +975,7 @@ theorem evalDist_threeStageHandlerRun_eq (leftKeep rightKeep : Bytes → σ → 
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record) (leftLength rightLength : Nat) :
     𝒟[threeStageHandlerRun leftKeep rightKeep inner before afterMap first phase last value
         cache leftRecord rightRecord] =
@@ -974,7 +996,7 @@ theorem mem_support_threeStageBlockRun (leftKeep rightKeep : Bytes → σ → Pr
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record) (leftLength rightLength : Nat)
     (outcome : (List HashOutput × List HashOutput) × (δ × SplitPrefix.SplitState))
     (hmem : outcome ∈ support (NoticingTape.blockRunOf (threeStageTapeRun leftKeep rightKeep
@@ -1003,7 +1025,7 @@ theorem threeStageTapeRun_neverFails (leftKeep rightKeep : Bytes → σ → Prop
     (first : OracleComp OracleWorld β)
     (phase : β → OracleComp (OracleWorld + SigningSpec) α)
     (last : β → α → OracleComp OracleWorld γ)
-    (value : β → α → ω → SigningLog → γ → δ)
+    (value : β → α → ω → SigningLog → γ → σ → δ)
     (cache : σ) (leftRecord rightRecord : Record)
     (leftTape rightTape : List HashOutput) :
     Pr[⊥ | threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value
