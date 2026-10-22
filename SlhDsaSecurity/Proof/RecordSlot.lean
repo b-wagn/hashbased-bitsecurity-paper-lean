@@ -60,4 +60,39 @@ theorem prob_one_target_eq (target : Digest) :
       1 / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
   SecretGuessCharge.prob_single_guess target
 
+/-! ## The filing fix does not close it, and the record it is stated about is the other one
+
+`ObligationShapes`' closing paragraph proposes that this case needs no unit at all: *the
+recorder files on fresh draws, and this draw was not the adversary's*, so it is a bookkeeping
+gap rather than a probability one. Two things are wrong with applying that here, and both are
+checkable rather than arguable.
+
+**The record this charge is read against is not freshness-guarded.**
+`RandomiserRecord.chargedRecord` is `result.1.1.2`, written by
+`RecordedQueries.recordedAdversaryImpl`, which is `QueryImpl.withAddCost` at the cost function
+`fun input => (Counts.single .hash (hashCost input), recordOf input)`. By
+`WriterState.run_withAddCost_run` that cost is added **unconditionally** — the equation mentions
+neither the state nor the cache — so a repeated query is filed like a first one. The positive
+control is `SharedJoin.card_record_eq_work`, and it is an **equality**:
+`Multiset.card result.1.1.2 = result.1.1.1.counts.work`. If repeats were filtered the card would
+fall strictly below the work count on any run that repeats a query, and the equality would be
+false.
+
+The freshness guard the paragraph describes is real but belongs to `RecorderView.appendedOf`,
+whose two branches both test `CacheView.cacheOf state.1 input = none`. That is the split
+recorder, not the cost writer's record. **The paragraph is a true statement about a different
+object.**
+
+**And implementing it would close only half the case.** The paragraph's situation is that the
+signer queried the forgery's digest input first. An adversary need not wait for the signer: it
+can query `Hashing.messageInput x pk m` for a guessed `x` before asking for any signature. That
+query is fresh, so a freshness-guarded record files it too, and if `x` is `SK.prf` the entry is a
+seed witness of exactly the kind this file is about. So the filing fix removes the signer-first
+sub-case and leaves the adversary-first one, which is the one a `q`-shaped charge is counting in
+the first place.
+
+**So the second unit is still needed and the overflow stands.** Recorded here rather than left
+to be rediscovered, since the paragraph reads as though it settles the case.
+-/
+
 end SlhDsaSecurity.RecordSlot
