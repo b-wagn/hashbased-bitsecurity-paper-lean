@@ -160,6 +160,43 @@ theorem queriesUnder_verify_of_fresh (pk : PublicKey) (request : Message) (signa
   exact queriesUnder_of_fresh_liftM _ initialCache finalCache laterCache verified hmem hlater
     probe hfresh hpresent
 
+/-! ## The signer's own randomiser query
+
+The signer's first call, on a request it serves, is the `PRF_msg` query for that request's
+framing. The randomiser defect's charge is about the *answer* to that query, so what provenance
+has to hand on is not only that the signer consulted the input but that the entry is **there**
+— an absent entry would make `replay` answer `default` and turn the coincidence into a
+statement about a fixed constant, which no per-run charge can pay for. -/
+
+/-- **A served request consults its own `PRF_msg` input.** -/
+theorem queriesUnder_sign_randomizer (cache : QueryCache HashSpec) (sk : SecretKey)
+    (request : Message) (framed : Bytes) (hframe : request.frame = some framed) :
+    QueriesUnder cache (Scheme.sign (m := OracleComp HashSpec) sk request)
+      (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) := by
+  rw [Scheme.sign, hframe]
+  refine queriesUnder_bind cache _ _ _ ?_
+  rw [Scheme.signInternal]
+  exact queriesUnder_shortHash cache _ _
+
+/-- **And leaves its answer in the cache**, read at any cache extending the one it left. -/
+theorem sign_randomizer_cached (sk : SecretKey) (request : Message) (framed : Bytes)
+    (hframe : request.frame = some framed)
+    (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
+    (hmem : (answer, finalCache) ∈ support ((simulateQ KeygenUniform.rom
+      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run initialCache))
+    (hlater : ∀ (input : Bytes) (output : HashOutput),
+      finalCache input = some output → laterCache input = some output) :
+    laterCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) ≠ none := by
+  rw [StrippedGame.sign_lift, StrippedGame.run_liftComp] at hmem
+  have hcached := cached_of_queriesUnder (Scheme.sign (m := OracleComp HashSpec) sk request)
+    initialCache finalCache answer _
+    (queriesUnder_sign_randomizer finalCache sk request framed hframe) hmem
+  cases hentry : finalCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) with
+  | none => exact absurd hentry hcached
+  | some output =>
+    rw [hlater _ output hentry]
+    exact Option.some_ne_none output
+
 /-! ## One query of the game's own world
 
 The adversary's handler forwards a world query and the cache is written by that query alone, so

@@ -157,7 +157,6 @@ import SlhDsaSecurity.Proof.CacheProvenance
 import SlhDsaSecurity.Proof.SplitWitness
 import SlhDsaSecurity.Proof.RandomiserDeferral
 import SlhDsaSecurity.Proof.RecordedTail
-import SlhDsaSecurity.Proof.RandomiserRecord
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7124,14 +7123,6 @@ info: 'SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh' depends on axioms: [p
 #print axioms SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh
 
 /--
-info: 'SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step
-
-/--
 info: 'SlhDsaSecurity.PhaseProvenance.provenance_phase' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -7396,25 +7387,45 @@ info: 'SlhDsaSecurity.RecordedTail.probEvent_tail_eq' depends on axioms: [propex
 #print axioms SlhDsaSecurity.RecordedTail.probEvent_tail_eq
 
 /--
-info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_sign_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_sign_randomizer
 
-/-- info: 'SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded' depends on axioms: [propext,
- Classical.choice,
- Quot.sound] -/
+/--
+info: 'SlhDsaSecurity.CacheProvenance.sign_randomizer_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
 #guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded
+#print axioms SlhDsaSecurity.CacheProvenance.sign_randomizer_cached
 
-/-- info: 'SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds' depends on axioms: [propext,
- Classical.choice,
- Quot.sound] -/
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.signerMade_of_fresh_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
 #guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds
+#print axioms SlhDsaSecurity.PhaseProvenance.signerMade_of_fresh_step
 
-/-- info: 'SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record' depends on axioms: [propext,
- Classical.choice,
- Quot.sound] -/
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.bad_of_signerHitsSeed' does not depend on any axioms
+-/
 #guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record
+#print axioms SlhDsaSecurity.RandomiserProvenance.bad_of_signerHitsSeed
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.card_forgeryDigestRecord_le' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.card_forgeryDigestRecord_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.mem_forgeryDigestRecord' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.mem_forgeryDigestRecord
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le

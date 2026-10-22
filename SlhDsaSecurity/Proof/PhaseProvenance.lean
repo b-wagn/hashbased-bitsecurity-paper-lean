@@ -144,9 +144,25 @@ theorem mem_record_of_fresh (queried : OracleWorld.Domain) (log : SigningLog)
     toAdd_ofAdd, show recordOf queried = ({probe} : Multiset Bytes) from by rw [hqueried]; rfl]
   simp
 
+/-- What a signing sub-run leaves behind about an entry it installed: the input is one the
+signer consulted, and — the piece the randomiser charge needs — the request's own `PRF_msg`
+answer is in the cache.
+
+The second half is not decoration. The coincidence the charge pays for is that the randomiser
+the signer *derived* is the seed, and that randomiser is `Hashing.truncate` of the cached
+answer; with no entry there `CacheReplay.replay` answers `default` and the coincidence becomes
+a statement about a fixed constant, which no per-run charge can pay for. So the entry's presence
+has to be carried from where the sub-run is in hand, not recovered later from a `QueriesUnder`
+witness — which does not imply it. -/
+def SignerMade (sk : SecretKey) (cache : QueryCache HashSpec) (request : Message)
+    (probe : Bytes) : Prop :=
+  QueriesUnder cache (Scheme.sign (m := OracleComp HashSpec) sk request) probe ∧
+    ∀ framed : Bytes, request.frame = some framed →
+      cache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) ≠ none
+
 /-- **An entry a signing sub-run installed is one the signer consulted**, read at any cache
-extending the one the sub-run left. -/
-theorem queriesUnder_sign_of_fresh_step (sk : SecretKey) (request : Message) (log : SigningLog)
+extending the one the sub-run left, and the request's own randomiser answer is there too. -/
+theorem signerMade_of_fresh_step (sk : SecretKey) (request : Message) (log : SigningLog)
     (cache laterCache : QueryCache HashSpec)
     (outer : ((Option Bytes × Multiplicative Tally) × SigningLog) × QueryCache HashSpec)
     (houter : outer ∈ support
@@ -154,22 +170,25 @@ theorem queriesUnder_sign_of_fresh_step (sk : SecretKey) (request : Message) (lo
     (hlater : ∀ (input : Bytes) (output : HashOutput),
       outer.2 input = some output → laterCache input = some output)
     (probe : Bytes) (hfresh : cache probe = none) (hpresent : outer.2 probe ≠ none) :
-    QueriesUnder laterCache (Scheme.sign (m := OracleComp HashSpec) sk request) probe := by
+    SignerMade sk laterCache request probe := by
   rw [recordedRun, run_recordedSigningOracle, simulateQ_bind, StateT.run_bind,
     mem_support_bind_iff] at houter
   obtain ⟨step, hstep, hrest⟩ := houter
   rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hrest
   have hcache : outer.2 = step.2 := by rw [hrest]
-  exact queriesUnder_sign_of_fresh sk request cache step.2 laterCache step.1 hstep
-    (fun input output h => hlater input output (by rw [hcache]; exact h)) probe hfresh
-    (by rw [← hcache]; exact hpresent)
+  have hstepLater : ∀ (input : Bytes) (output : HashOutput),
+      step.2 input = some output → laterCache input = some output :=
+    fun input output h => hlater input output (by rw [hcache]; exact h)
+  exact ⟨queriesUnder_sign_of_fresh sk request cache step.2 laterCache step.1 hstep hstepLater
+      probe hfresh (by rw [← hcache]; exact hpresent),
+    fun framed hframe => sign_randomizer_cached sk request framed hframe cache step.2 laterCache
+      step.1 hstep hstepLater⟩
 
 /-- Where an entry the phase installed can have come from: the adversary's own record, or a
 signing sub-run for a request the log names. -/
 def PhaseSource (sk : SecretKey) (record : Multiset Bytes) (log : SigningLog)
     (cache : QueryCache HashSpec) (probe : Bytes) : Prop :=
-  probe ∈ record ∨
-    ∃ entry ∈ log, QueriesUnder cache (Scheme.sign (m := OracleComp HashSpec) sk entry.1) probe
+  probe ∈ record ∨ ∃ entry ∈ log, SignerMade sk cache entry.1 probe
 
 /-- **An entry the adversary's phase installed is the adversary's own query, or the signer's on
 a request the log names.**
@@ -236,7 +255,7 @@ theorem provenance_phase_subset (sk : SecretKey) {α : Type}
         refine Or.inr ⟨⟨request, answer⟩, ?_, ?_⟩
         · rw [hlog, hrest, hanswer, List.append_assoc]
           exact List.mem_append_right log (List.mem_append_left rest (List.mem_singleton_self _))
-        · exact queriesUnder_sign_of_fresh_step sk request log cache laterCache outer houter hgrow
+        · exact signerMade_of_fresh_step sk request log cache laterCache outer houter hgrow
             probe hfresh hpresentOuter
 
 /-- The same read at the phase's own final cache. -/

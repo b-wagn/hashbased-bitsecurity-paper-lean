@@ -1573,6 +1573,37 @@ way it declines points away from the cause.
 The habit that catches the first four early is to ask what the *goal's* shape is before writing
 the lemma, rather than writing the lemma one would like and making the goal fit.
 
+## A sixth, which the elaborator cannot catch: a disjunct that is true outright
+
+The five above are proofs that will not go through. This one is a proof that does, and a
+theorem that says nothing. `RandomiserProvenance.randomiserBad_source` was first stated with its
+overlap case as a bare equation,
+
+```
+∃ payload framed, randomizerInput prf pk.seed payload = messageInput prf pk framed
+```
+
+and `RandomizerGate.messageInput_eq_randomizerInput` exhibits a witness for *every* seed and
+public key, so the disjunct held for every run and the theorem was vacuous. Nothing complained:
+it elaborated, it was proved, its `#print axioms` was clean, and it even composed — the
+downstream bound would have been honest about a case that always fired.
+
+The cause is worth naming because it is easy to repeat. The case came out of the proof carrying
+three things: an equation, *which request* the digest belonged to, and that the randomiser
+behind it was `SK.prf`. The equation is the part that reads like the mathematical content, so
+it is the part that got written down; the other two were existentially quantified away. But the
+equation is the *consequence* and the coincidence is the *cause*, and once the cause is
+quantified away all that is left is a fact about the two byte formats overlapping, which is
+unconditional.
+
+The habit that catches it: for each disjunct of a case split, ask what would have to go *right*
+for an adversary to land in it, and check the statement mentions that. If a case is supposed to
+cost `2 ^ -128`, something in it must be pinned to a single value — here, that the randomiser
+*is* `SK.prf`, and which logged request or which forgery it came from. A disjunct with no such
+pin is not a case, it is a tautology. The cheap mechanical check is to try to prove the
+disjunct on its own, with no hypotheses; `nonvacuous`-style `example`s against an empty log and
+an empty record are two lines each and would have caught this immediately.
+
 ## The coverage cap is a fact about the scheme, not slack in the proof
 
 `CoverageTail`'s charge carries `qm ≤ 5 * 2 ^ 62`, inherited from the load-potential
