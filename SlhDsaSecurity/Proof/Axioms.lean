@@ -14829,3 +14829,39 @@ info: 'SlhDsaSecurity.FusedTape.threeStageLeftOf_getElem?' depends on axioms: [p
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FusedTape.threeStageLeftOf_getElem?
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.blockRunOf_tail_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.blockRunOf_tail_neverFails
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.prob_leftBlock_of' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.prob_leftBlock_of
+
+/--
+info: 'SlhDsaSecurity.FusedTape.threeStage_blockRunOf_snd' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.threeStage_blockRunOf_snd
+
+/--
+info: 'SlhDsaSecurity.FusedTape.evalDist_threeStageHandlerRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.evalDist_threeStageHandlerRun_eq
+
+/--
+info: 'SlhDsaSecurity.FusedTape.mem_support_threeStageBlockRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.mem_support_threeStageBlockRun
+
+/--
+info: 'SlhDsaSecurity.FusedTape.threeStageTapeRun_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.threeStageTapeRun_neverFails

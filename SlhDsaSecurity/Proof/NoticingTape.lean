@@ -1499,4 +1499,46 @@ theorem leftOf_getElem?_cont (leftKeep rightKeep : Bytes → σ → Prop)
         rw [hpure] at hrest
         exact ih _ _ _ _ _ _ w hrest index hreached hcell
 
+open scoped Classical in
+/-- **A run with the blocks beside it never fails, if the run does not.** -/
+theorem blockRunOf_tail_neverFails {ρ : Type}
+    (run : List HashOutput → List HashOutput → ProbComp ρ)
+    (hfail : ∀ leftTape rightTape, Pr[⊥ | run leftTape rightTape] = 0)
+    (leftTape : List HashOutput) (rightLength : Nat) :
+    Pr[⊥ | padding rightLength >>= fun rightTape =>
+        (fun result => ((leftTape, rightTape), result)) <$> run leftTape rightTape] = 0 := by
+  refine probFailure_bind_eq_zero_iff _ _ |>.mpr ⟨padding_neverFails rightLength,
+    fun rightTape _ => ?_⟩
+  rw [map_eq_bind_pure_comp]
+  exact probFailure_bind_eq_zero_iff _ _ |>.mpr
+    ⟨hfail leftTape rightTape, fun _ _ => by simp⟩
+
+open scoped Classical in
+/-- **The disclosing block's own law, at any run.** An event about the left block alone is an
+event about the block draw, which is what lets the concentration bound be read at the blocked
+run. Stated over the run so that the repaired recorder and a bracketed three-stage run read one
+lemma. -/
+theorem prob_leftBlock_of {ρ : Type}
+    (run : List HashOutput → List HashOutput → ProbComp ρ)
+    (hfail : ∀ leftTape rightTape, Pr[⊥ | run leftTape rightTape] = 0)
+    (leftLength rightLength : Nat) (event : List HashOutput → Prop) :
+    Pr[fun outcome : (List HashOutput × List HashOutput) × ρ => event outcome.1.1 |
+        blockRunOf run leftLength rightLength] =
+      Pr[event | padding leftLength] := by
+  classical
+  rw [blockRunOf, probEvent_bind_eq_tsum, probEvent_eq_tsum_ite]
+  refine tsum_congr fun leftTape => ?_
+  have hshape : ∀ outcome ∈ support (padding rightLength >>= fun rightTape =>
+        (fun result => ((leftTape, rightTape), result)) <$> run leftTape rightTape),
+      outcome.1.1 = leftTape := by
+    intro outcome hmem
+    rw [mem_support_bind_iff] at hmem
+    obtain ⟨rightTape, -, hinner⟩ := hmem
+    rw [support_map] at hinner
+    obtain ⟨result, -, hbuilt⟩ := hinner
+    rw [← hbuilt]
+  rw [probEvent_congr' (fun outcome hmem => by rw [hshape outcome hmem]) rfl,
+    probEvent_const, blockRunOf_tail_neverFails run hfail leftTape rightLength, tsub_zero]
+  split <;> simp
+
 end SlhDsaSecurity.NoticingTape

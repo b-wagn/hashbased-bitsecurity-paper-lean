@@ -896,4 +896,128 @@ theorem threeStageLeftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
         exfalso
         omega
 
+/-! ## The three-stage run's plumbing, for the charge above it
+
+`evalDist_threeStage` is the law; these four give it the shape
+`NoticingBlocks.prob_noticingTargetCovered_le`'s proof reads a law in. The reshape is
+`Prod.snd` rather than a forgetting map, because the three-stage tape run already yields the
+cache and the two recordings — `forgetViewTape` did that inside it.
+-/
+
+/-- The handler-side three-stage run: the left of `evalDist_threeStage`, named. -/
+noncomputable def threeStageHandlerRun (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (leftRecord rightRecord : Record) :
+    ProbComp (δ × SplitPrefix.SplitState) :=
+  (simulateQ (noticingRecorderOf leftKeep rightKeep) first).run
+      (cache, leftRecord, rightRecord) >>= fun keys =>
+    (simulateQ (fuseServing (noticingRecorderOf leftKeep rightKeep) (inner keys.1)
+        (fun request => onCarrier (before request)) (onCarrier afterMap))
+      (phase keys.1)).run (1, [], keys.2) >>= fun middle =>
+      (simulateQ (noticingRecorderOf leftKeep rightKeep)
+          (last keys.1 middle.1)).run middle.2.2.2 >>= fun final =>
+        (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1, forgetView final.2) :
+          ProbComp (δ × SplitPrefix.SplitState))
+
+theorem threeStage_blockRunOf_snd (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (leftRecord rightRecord : Record) (leftLength rightLength : Nat) :
+    Prod.snd <$> NoticingTape.blockRunOf (threeStageTapeRun leftKeep rightKeep inner before
+        afterMap first phase last value cache leftRecord rightRecord) leftLength rightLength =
+      padding leftLength >>= fun leftTape => padding rightLength >>= fun rightTape =>
+        threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value cache
+          leftRecord rightRecord leftTape rightTape := by
+  rw [NoticingTape.blockRunOf]
+  simp only [map_bind, Functor.map_map, Function.comp_def, id_map']
+
+/-- **The law, in the shape the charge reads.** -/
+theorem evalDist_threeStageHandlerRun_eq (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (leftRecord rightRecord : Record) (leftLength rightLength : Nat) :
+    𝒟[threeStageHandlerRun leftKeep rightKeep inner before afterMap first phase last value
+        cache leftRecord rightRecord] =
+      𝒟[Prod.snd <$> NoticingTape.blockRunOf (threeStageTapeRun leftKeep rightKeep inner before
+        afterMap first phase last value cache leftRecord rightRecord) leftLength rightLength] := by
+  rw [threeStage_blockRunOf_snd, threeStageHandlerRun]
+  exact evalDist_threeStage leftKeep rightKeep inner before afterMap first phase last value
+    leftLength rightLength cache leftRecord rightRecord
+
+open scoped Classical in
+/-- **A supported outcome of the blocked three-stage run is a supported run against its own two
+blocks.** -/
+theorem mem_support_threeStageBlockRun (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (leftRecord rightRecord : Record) (leftLength rightLength : Nat)
+    (outcome : (List HashOutput × List HashOutput) × (δ × SplitPrefix.SplitState))
+    (hmem : outcome ∈ support (NoticingTape.blockRunOf (threeStageTapeRun leftKeep rightKeep
+      inner before afterMap first phase last value cache leftRecord rightRecord) leftLength
+        rightLength)) :
+    outcome.1.1 ∈ support (padding leftLength) ∧
+      outcome.1.2 ∈ support (padding rightLength) ∧
+        outcome.2 ∈ support (threeStageTapeRun leftKeep rightKeep inner before afterMap first
+          phase last value cache leftRecord rightRecord outcome.1.1 outcome.1.2) := by
+  rw [NoticingTape.blockRunOf, mem_support_bind_iff] at hmem
+  obtain ⟨leftTape, hleftTape, hrest⟩ := hmem
+  rw [mem_support_bind_iff] at hrest
+  obtain ⟨rightTape, hrightTape, hinner⟩ := hrest
+  rw [support_map] at hinner
+  obtain ⟨result, hresult, hshape⟩ := hinner
+  rw [← hshape]
+  exact ⟨hleftTape, hrightTape, hresult⟩
+
+open scoped Classical in
+/-- **The three-stage tape-reading run never fails.** -/
+theorem threeStageTapeRun_neverFails (leftKeep rightKeep : Bytes → σ → Prop)
+    {β α γ δ : Type}
+    (inner : β → QueryImpl (OracleWorld + SigningSpec)
+      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (first : OracleComp OracleWorld β)
+    (phase : β → OracleComp (OracleWorld + SigningSpec) α)
+    (last : β → α → OracleComp OracleWorld γ)
+    (value : β → α → ω → SigningLog → γ → δ)
+    (cache : σ) (leftRecord rightRecord : Record)
+    (leftTape rightTape : List HashOutput) :
+    Pr[⊥ | threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value
+      cache leftRecord rightRecord leftTape rightTape] = 0 := by
+  rw [threeStageTapeRun]
+  refine probFailure_bind_eq_zero_iff _ _ |>.mpr
+    ⟨NoticingTape.noticingSplitTapeRun_neverFails leftKeep rightKeep first _,
+      fun keys _ => ?_⟩
+  refine probFailure_bind_eq_zero_iff _ _ |>.mpr
+    ⟨fusedSplitTapeRun_neverFails leftKeep rightKeep (inner keys.1) before afterMap _ _,
+      fun middle _ => ?_⟩
+  exact probFailure_bind_eq_zero_iff _ _ |>.mpr
+    ⟨NoticingTape.noticingSplitTapeRun_neverFails leftKeep rightKeep _ _,
+      fun _ _ => by simp⟩
+
+
 end SlhDsaSecurity.FusedTape
