@@ -12006,3 +12006,7 @@ info: 'SlhDsaSecurity.FinalAssembly.target_of_producers' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FinalAssembly.target_of_producers
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.closed_disclosedByLog' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog

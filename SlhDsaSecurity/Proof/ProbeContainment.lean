@@ -860,6 +860,31 @@ theorem sensitiveOffSeed_of_claim (publicSeed : Digest)
       witness.child from rfl, hsame]; exact hchild, hunavailable, hwitness⟩
 
 
+
+/-! ## The one property the whole half rests on, at the notion that now carries it
+
+Everything above turns on availability being **closed under the structure**: a node all of whose
+children are available has an available cell. It is what stops a run from reaching a protected
+cell, what makes the stalled run blind, and what answers the objection below. The disclosure
+notion it is read at has changed once already — it is now the served log's — so the closure is
+discharged here, at that notion, rather than left to an instantiation to notice.
+
+Nothing had to be proved for it: `available_of_children_available` takes the
+disclosed set as a **parameter**, so it holds for any, the served log's included. That is the
+same lesson as the writer and the carrier — a lemma stated against what it actually uses
+survives the thing it was written for changing. -/
+
+/-- **Availability is closed under the structure at the served notion.** -/
+theorem closed_disclosedByLog [HasQuery HashSpec Id] (secretSeed publicSeed : Digest)
+    (pk : PublicKey) (state : (Outcome × Nat) × QueryCache HashSpec)
+    (parent : StructuralNode)
+    (hchildren : ∀ child ∈ parent.children,
+      Available (GraphStakes.honestRevealed secretSeed publicSeed)
+        (ServedLog.disclosedByLog pk state) child) :
+    Available (GraphStakes.honestRevealed secretSeed publicSeed)
+      (ServedLog.disclosedByLog pk state) (.structural parent) :=
+  available_of_children_available _ _ hchildren
+
 /-! ## Why the claims charge stands alone, and the run that looks like it breaks it
 
 **The objection, which is worth stating because it will be re-proposed.** An adversary queries
