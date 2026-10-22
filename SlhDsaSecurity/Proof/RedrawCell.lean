@@ -562,21 +562,53 @@ theorem canonicalClass_of_targets (publicSeed : Digest)
         GraphStakes.locate, dif_neg hsome]] at hlocate
     exact absurd hlocate (by simp)
 
-/-- **The weights the charge adds up are at most the record's canonical part.** The class is
-taken as whatever test the count reports it by, so that the charge and the cost that counts it
-speak of the same list and no decidability instance has to be matched across them. -/
+/-- **The probes that aim at a cell**, which is the test this half's weight is taken at and the
+part of the record it has to sit inside. It is narrower than the canonical class — a probe of
+the class whose address no sensitive node carries aims nowhere — and wider than being canonical
+at the walk's own cells, which only a probe that has the cell **right** is. The weights count
+guesses, and a guess is canonical exactly when it is correct, so neither the class nor the
+canonical part is the test the weight is taken at: this one is. -/
+def AimsSomewhere (publicSeed : Digest) (input : Bytes) : Prop :=
+  GraphStakes.locate publicSeed input ≠ none
+
+/-- **A probe the charge weighs aims somewhere.** -/
+theorem aimsSomewhere_of_targets (publicSeed : Digest)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State)
+    (htargets : ChargedProbe.Targets (GraphStakes.stakes publicSeed) unavailable index entry) :
+    AimsSomewhere publicSeed entry.1 := by
+  obtain ⟨node, -, -, hnode⟩ := htargets
+  rw [AimsSomewhere, show GraphStakes.locate publicSeed entry.1 =
+    (GraphStakes.stakes publicSeed).locate entry.1 from rfl, hnode]
+  simp
+
+/-- **A probe that aims somewhere is of the canonical class**, so the class's accounting covers
+it. -/
+theorem canonicalClass_of_aimsSomewhere (publicSeed : Digest) (input : Bytes)
+    (haims : AimsSomewhere publicSeed input) : CanonicalClass publicSeed input := by
+  classical
+  by_cases hsome : ∃ (node : GraphStakes.SensitiveNode) (cell : Cell),
+      GraphStakes.inputOf publicSeed node cell = input
+  · obtain ⟨node, cell, hnode⟩ := hsome
+    exact ⟨node.parent.address, bytesBE n cell, hnode.symm⟩
+  · exact absurd (show GraphStakes.locate publicSeed input = none from by
+      rw [GraphStakes.locate, dif_neg hsome]) haims
+
+/-- **The weights the charge adds up are at most the aiming part of the record.** The test is
+taken as whatever the count reports it by, so that the charge and the count speak of the same
+list and no decidability instance has to be matched across them. -/
 theorem sum_aiming_le_canonical (publicSeed : Digest)
     (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (keep : Bytes × HandlerCarrier.State → Bool)
     (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
-      CanonicalClass publicSeed entry.1 → keep entry = true)
+      AimsSomewhere publicSeed entry.1 → keep entry = true)
     (record : List (Bytes × HandlerCarrier.State)) :
     ∑ index : CanonicalGraph.Node,
         ChargedProbe.aiming (GraphStakes.stakes publicSeed) unavailable index record ≤
       (record.filter keep).length :=
   ChargedProbe.sum_targets_countP_le (GraphStakes.stakes publicSeed) unavailable keep
     (fun index entry htargets =>
-      hkeep entry (canonicalClass_of_targets publicSeed unavailable index entry htargets)) record
+      hkeep entry (aimsSomewhere_of_targets publicSeed unavailable index entry htargets)) record
 
 /-! ### The honest phase aims nowhere
 
@@ -1049,7 +1081,7 @@ theorem prob_sensitive_run_le_canonical {α : Type} (publicSeed : Digest)
       ∀ cache, availableAt cache node)
     (state : HandlerState × Bool) (keep : Bytes × HandlerCarrier.State → Bool)
     (hkeep : ∀ entry : Bytes × HandlerCarrier.State,
-      CanonicalClass publicSeed entry.1 → keep entry = true) :
+      AimsSomewhere publicSeed entry.1 → keep entry = true) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
         ∃ entry ∈ pair.1.2.1.2.1, SensitiveOffSeed (GraphStakes.stakes publicSeed)
           (fun cache node => ¬ availableAt cache node) pair.2 entry.2 entry.1 |

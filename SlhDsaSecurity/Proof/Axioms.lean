@@ -11041,3 +11041,10 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_two' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_two
+/-- info: 'SlhDsaSecurity.RedrawCell.aimsSomewhere_of_targets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.aimsSomewhere_of_targets
+
+/-- info: 'SlhDsaSecurity.RedrawCell.canonicalClass_of_aimsSomewhere' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.canonicalClass_of_aimsSomewhere
