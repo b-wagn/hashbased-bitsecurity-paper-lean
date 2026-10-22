@@ -6422,7 +6422,7 @@ info: 'SlhDsaSecurity.ReplayGate.signerRandomised_of_replay' depends on axioms: 
 #print axioms SlhDsaSecurity.ReplayGate.signerRandomised_of_replay
 
 /--
-info: 'SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay' depends on axioms: [propext, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay
@@ -6584,3 +6584,7 @@ info: 'SlhDsaSecurity.RandomiserCharge.walk_cache_prf_fresh' depends on axioms: 
 /-- info: 'SlhDsaSecurity.BlockDisclosures.block_coverage_le_trials' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlockDisclosures.block_coverage_le_trials
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.selfRandomised_of_only_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.selfRandomised_of_only_self
