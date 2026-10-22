@@ -2378,3 +2378,33 @@ Disclosure must therefore be **"logged or in flight"**: the request being served
 the moment it starts. Then the stall precedes every read by construction rather than by proxy.
 That requires the handler to know which request it is serving, so the handler-separated
 presentation is a dependency of this repair and not an independent convenience.
+
+## The count the input half spends is calls, and cache growth cannot report it
+
+The half's two terms are now charged at expectations: `RedrawCell.prob_sensitive_run_le_canonical`
+weighs the probes by the record's canonical class, and `prob_claimed_run_le` weighs the
+forgery's claims by their own number, a constant. What is left is to say which function of the
+*paired run* those weights are, since `SharedJoin.prob_sharedBad_le_expected` takes
+`countCanonical : Pair → Nat`.
+
+**It cannot be cache growth, and the reason is worth stating because growth is what the pair
+most obviously carries.** The tail starts from the walk's cache, which holds a canonical entry
+at every node. A probe that is *sensitive* is the canonical input of a node with the table's own
+cell in it — so it is answered from that cache and installs nothing. Growth at canonical-class
+inputs therefore counts exactly the probes that **miss**, and none of the ones the charge is
+about.
+
+That is not fatal by itself, since a targeting probe is a miss or the hit itself: each one
+either names a cell it has wrong, which is a fresh in-class input and so growth, or names it
+right, which is the bad event. So the weights are bounded by `growth + 1` run by run, and by
+`growth` on the complement of the event being charged. Whether the join can absorb that `+ 1` is
+an arithmetic question for the join and not for this half, and `259` is already exact.
+
+**The alternative is that the count is a count of calls, which the plain pair does not carry.**
+`ClassGrowth.splitCost` counts calls per class, which is exactly the weight the charge uses —
+repeats included — but it reports them into `Counts`, and `pairedRun`'s game is instrumented
+with the plain hash cost, so its `Outcome.counts` has only `hash` and `verification`.
+`ClassGrowth.probEvent_splitCost` moves an *event* between the two presentations and not a
+count, and the map that identifies them forgets the split, so no function of the plain pair
+recovers the slot. Either the join's counts are read at the split-counted presentation, or this
+half's count is `growth + 1`.

@@ -8423,3 +8423,35 @@ info: 'SlhDsaSecurity.AnswerCoverage.leftRecord_length_le_prfGrowth' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCoverage.leftRecord_length_le_prfGrowth
+
+/-- info: 'SlhDsaSecurity.StalledRun.expectation_frozen_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.expectation_frozen_zero
+
+/-- info: 'SlhDsaSecurity.StalledRun.expectation_stalled_eq_of_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.StalledRun.expectation_stalled_eq_of_zero
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_claimed_stalled_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_claimed_stalled_eq
+
+/--
+info: 'SlhDsaSecurity.ChargedProbe.expected_aiming_claimed_stalled_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.expected_aiming_claimed_stalled_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_claimed_index_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_claimed_index_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_claimed_run_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_claimed_run_le_expected
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_claimed_run_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_claimed_run_le

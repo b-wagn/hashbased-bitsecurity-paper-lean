@@ -1054,6 +1054,112 @@ theorem prob_charged_stalled_eq {α : Type}
       (withFlag_charged_quiet publicSeed availableAt stakes index table queried p hp z hz)
       rfl rfl) computation state
 
+/-! ## The same, for a list the run returns rather than one it records
+
+The forgery's own claims are not probes: they are read off the signature at the cache the run
+ends with, so what weighs them is a function of the run's **value**, which the quietness
+hypothesis above cannot speak about. It does not need to. A claim is charged against a cell only
+while that cell is unavailable at the cache the claim carries, which is the final one — so once
+the stall has fired, and availability only grows, no claim is charged at all.
+`StalledRun.expectation_stalled_eq_of_zero` is that argument, and the hypothesis it takes here
+is the one fact about the claims that makes it work: every claim is read at the run's own final
+cache. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **Stalling does not change the chance that a claim is charged.** -/
+theorem prob_claimed_stalled_eq {α : Type}
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
+    (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : OracleComp OracleWorld α) (state : HandlerState × Bool)
+    (claims : α × (HandlerState × Bool) → List (Bytes × QueryCache HashSpec))
+    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × QueryCache HashSpec),
+      entry ∈ claims z → entry.2 = z.2.1.1) :
+    Pr[fun z : α × (HandlerState × Bool) =>
+        ∃ entry ∈ claims z, ChargedBy stakes
+          (fun cache node => ¬ availableAt cache node) index (table.1 index) entry |
+      (simulateQ (withFlag (lazyProgram publicSeed availableAt table))
+        computation).run state] =
+      Pr[fun z : α × (HandlerState × Bool) =>
+          ∃ entry ∈ claims z, ChargedBy stakes
+            (fun cache node => ¬ availableAt cache node) index (table.1 index) entry |
+        (simulateQ (StalledRun.stalled (withFlag (lazyProgram publicSeed availableAt table))
+          (fun inner => availableAt inner.1 index) stall) computation).run state] := by
+  classical
+  have hform : ∀ run : ProbComp (α × (HandlerState × Bool)),
+      Pr[fun z : α × (HandlerState × Bool) =>
+          ∃ entry ∈ claims z, ChargedBy stakes
+            (fun cache node => ¬ availableAt cache node) index (table.1 index) entry | run] =
+        ∑' z : α × (HandlerState × Bool), Pr[= z | run] *
+          (if ∃ entry ∈ claims z, ChargedBy stakes
+            (fun cache node => ¬ availableAt cache node) index (table.1 index) entry
+            then 1 else 0) := by
+    intro run
+    rw [probEvent_eq_tsum_ite]
+    refine tsum_congr fun z => ?_
+    by_cases hz : ∃ entry ∈ claims z, ChargedBy stakes
+        (fun cache node => ¬ availableAt cache node) index (table.1 index) entry
+    · simp [hz]
+    · simp [hz]
+  rw [hform, hform]
+  refine StalledRun.expectation_stalled_eq_of_zero
+    (withFlag (lazyProgram publicSeed availableAt table))
+    (fun inner => availableAt inner.1 index) stall
+    (fun z => if ∃ entry ∈ claims z, ChargedBy stakes
+      (fun cache node => ¬ availableAt cache node) index (table.1 index) entry then 1 else 0)
+    (fun queried p hp z hz =>
+      withFlag_frozen publicSeed availableAt hmono index table queried p hp z hz)
+    (fun z hz => if_neg ?_) computation state
+  rintro ⟨entry, hentry, -, -, hunavailable, -⟩
+  exact hunavailable (by rw [hcache z entry hentry]; exact hz)
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The expected number of claims aiming at a cell is the same stalled and unstalled**, and
+for the same reason: a claim read at the run's own final cache aims nowhere once that cache has
+the cell available. -/
+theorem expected_aiming_claimed_stalled_eq {α : Type}
+    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+      ∀ node, availableAt left node → availableAt right node)
+    (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
+    (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
+    (computation : OracleComp OracleWorld α) (state : HandlerState × Bool)
+    (claims : α × (HandlerState × Bool) → List (Bytes × QueryCache HashSpec))
+    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × QueryCache HashSpec),
+      entry ∈ claims z → entry.2 = z.2.1.1) :
+    (∑' z : α × (HandlerState × Bool),
+        Pr[= z | (simulateQ (withFlag (lazyProgram publicSeed availableAt table))
+            computation).run state] *
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
+            Nat) : ℝ≥0∞)) =
+      ∑' z : α × (HandlerState × Bool),
+        Pr[= z | (simulateQ (StalledRun.stalled
+            (withFlag (lazyProgram publicSeed availableAt table))
+            (fun inner => availableAt inner.1 index) stall) computation).run state] *
+          ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
+            Nat) : ℝ≥0∞) := by
+  classical
+  refine StalledRun.expectation_stalled_eq_of_zero
+    (withFlag (lazyProgram publicSeed availableAt table))
+    (fun inner => availableAt inner.1 index) stall
+    (fun z => ((aiming stakes (fun cache node => ¬ availableAt cache node) index (claims z) :
+      Nat) : ℝ≥0∞))
+    (fun queried p hp z hz =>
+      withFlag_frozen publicSeed availableAt hmono index table queried p hp z hz)
+    (fun z hz => ?_) computation state
+  have hnil : (claims z).filter (fun entry => decide (Targets stakes
+      (fun cache node => ¬ availableAt cache node) index entry)) = [] := by
+    rw [List.filter_eq_nil_iff]
+    intro entry hentry hdecide
+    obtain ⟨-, -, hunavailable, -⟩ := of_decide_eq_true hdecide
+    exact hunavailable (by rw [hcache z entry hentry]; exact hz)
+  rw [aiming, hnil]
+  simp
+
 
 /-! ## The lazy presentation against the eager one
 
