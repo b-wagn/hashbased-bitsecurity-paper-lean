@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.CarrierAvailability
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RoutedSplit
@@ -13602,3 +13603,25 @@ info: 'SlhDsaSecurity.CarrierTail.answerChargedLate_carrier_of_bound' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.answerChargedLate_carrier_of_bound
+
+/--
+info: 'SlhDsaSecurity.CarrierAvailability.availableAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierAvailability.availableAt_mono
+
+/--
+info: 'SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le
+
+/--
+info: 'SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le_canonical
