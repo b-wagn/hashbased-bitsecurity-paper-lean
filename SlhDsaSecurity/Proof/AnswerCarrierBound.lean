@@ -53,8 +53,8 @@ open scoped Classical in
 excluded and everything else proved. -/
 theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outside)
     (adversary : Adversary) {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
-    (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    :
+    (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk)
+    (hgood : Target.GoodWalk walk) :
     Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
         (RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord z.1).1),
               (AnswerShape.forgetRecord z.1).2.1) ∧

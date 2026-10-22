@@ -134,8 +134,7 @@ set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
 /-- **`hjoin`, at `answerCarrierRun`.** -/
 theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (hwalk : walk ∈ support WarmedGame.graphWalk)
-    :
+    (hwalk : walk ∈ support WarmedGame.graphWalk) :
     ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       Target.GoodWalk walk →
@@ -187,8 +186,7 @@ set_option linter.constructorNameAsVariable false in
 /-- **`hsplit` at `answerCarrierRun`**, with everything discharged but the leftover the
 conclusion carries. -/
 theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    :
+    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
     ∀ result ∈ support
         (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
       RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
@@ -210,8 +208,7 @@ set_option linter.constructorNameAsVariable false in
 end. -/
 theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
     (hne : inside ≠ outside) (adversary : Adversary) (walk : Walk)
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    :
+    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
     ∀ z ∈ support (SplitTail.splitCarrierTail inClass inside outside
         AnswerCarrier.carrierRightKeep adversary walk),
       RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord z.1).1),

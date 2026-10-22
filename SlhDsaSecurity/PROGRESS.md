@@ -5281,3 +5281,31 @@ That is worth stating as a shape: **a refutation of a charge applies to every bo
 charged quantity**, so a route that differs from a refuted one only in how tightly it bounds the
 same expectation is refuted too. Checking that takes reading the refutation's hypothesis rather
 than its headline.
+
+### Item A closed: the answer half assumes nothing
+
+`AnswerCarrierBound.answerBound_carrier` now takes only `hne`, the adversary, its budget, the
+walk, and the walk's two facts (`hwalk`, `hgood`). Every hypothesis it used to carry is
+discharged:
+
+* `hfreshWalk` — `CoverageTail.walk_cache_fresh`, which was already a theorem;
+* `hleftClass` — `CarrierLeftRecord.servedLog_leftRecord_carrierTail`;
+* `hrightClass` — `CarrierLeftRecord.not_servedLog_rightRecord_carrierTail`;
+* `hpublic` — `AnswerSide.not_possible_generatedKey` at the good walk.
+
+So the answer half is `q / 2 ^ 128 + 2 ^ -141` with nothing assumed, and the first of the three
+hypotheses of the 126 top is closed.
+
+**The two class facts had to move inside the join, not merely be supplied.**
+`not_servedLog_rightRecord_carrierTail` consumes `¬ LateDisclosure`, which the join receives
+per result, so no amount of instantiating from outside would have worked — the hypothesis and
+its discharger only meet inside. That is why the previous two attempts to do this as one
+restructuring kept failing: the shape change and the textual edit were the same operation.
+
+**Taken in six commits rather than one**, each green, after two rounds of backing out long
+patches. The lesson is not about patches: a signature with four hypotheses to remove is four
+changes, and bundling them means every one of them has to be right before any of them can be
+checked.
+
+`targetCovered_carrierTail_narrow` keeps its two class parameters, correctly. It is the
+per-result conditional the join is built from, and it should not know where they come from.
