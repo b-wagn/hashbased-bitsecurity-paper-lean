@@ -16314,3 +16314,7 @@ info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_eq_probEvent' depends 
 /-- info: 'SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one
+
+/-- info: 'SlhDsaSecurity.GraphStakes.not_available_wotsHashNode_child' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GraphStakes.not_available_wotsHashNode_child
