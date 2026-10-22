@@ -1087,6 +1087,13 @@ theorem signature_eq {left right : Signature} (hrandom : left.randomizer = right
   cases right
   simp_all
 
+/-- **The two spellings of a digest's FORS key are one key.** The obligations are stated at
+`SplitCharged.forsKeyOfDigest`, so that is the spelling to arrive in, and this is the single
+crossing from the other. Two spellings of one key cost a normalisation at every use until one of
+them is named preferred; the preferred one is whichever the obligations read. -/
+theorem forsKeyOf_eq (digest : HashOutput) :
+    HonestProbes.forsKeyOf digest = SplitCharged.forsKeyOfDigest digest := rfl
+
 /-- The cells the union cache computes, one node at a time. -/
 theorem value_unionCache (publicSeed : Digest) (table : Cells × Padding)
     (cache : QueryCache HashSpec) (node : CanonicalGraph.Node) :
@@ -1151,6 +1158,108 @@ theorem randomizer_congr (cache : QueryCache HashSpec) (left right : Cells × Pa
       (fun parent heq => HashSeparation.randomizer_tweakable_ne hprf heq.symm),
     unionCache_of_not_canonical sk.publicKey.seed right cache _
       (fun parent heq => HashSeparation.randomizer_tweakable_ne hprf heq.symm)]
+
+/-- The key the climb's bottom layer sits at is the digest's own FORS key, however its two
+coordinates are spelled. -/
+theorem forsRoots_key (digest : HashOutput)
+    (htree : (MessageDigest.treeIndex digest).toNat < 2 ^ (totalHeight - subtreeHeight)) :
+    (⟨⟨(MessageDigest.treeIndex digest).toNat, htree⟩,
+        (MessageDigest.leafIndex digest).toFin⟩ : ForsKey) =
+      SplitCharged.forsKeyOfDigest digest := rfl
+
+/-! ## The signature, as one congruence
+
+The four parts meet here. The randomiser and the digest are answered by the cache, the FORS part
+and the climb are cells, and so the whole signature is unchanged by a table agreeing at the
+cells it discloses.
+
+**Normalise the digest before anything else.** Every other part is indexed by it — the FORS
+indices, the FORS address, the tree and the leaf the climb starts at — so a rewrite that fires
+first and moves the digest off the shape `signedDigest_congr` speaks about leaves the digest
+rewrite unable to fire, and the symptom is a pattern plainly present and not found. Rewriting
+the randomiser first does exactly that: it makes one side's digest the digest of *the other
+side's* randomiser.
+
+`hsigned` is a parameter and the debt it stands for is real. It says the leaves *this digest*
+selects are signed, which is what makes their secrets available, and it is true for an
+**ordering** reason: the signer queries its digest before it reads any FORS secret, so by the
+time it reads one the cache already holds what makes that secret available. Instantiating this
+parameter against `CacheAvailability.signedAt` means **proving that ordering, not recalling
+it**. It is stated about `signedDigest left cache sk message`, the digest the signer actually
+computes; the quantified version would be the much stronger claim that every leaf of every
+digest is signed, which is false and would make everything available. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **A signature reads only the cells it discloses.** -/
+theorem signInternal_congr (cache : QueryCache HashSpec) (left right : Cells × Padding)
+    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight))) (sk : SecretKey)
+    (message : Bytes)
+    (hagree : ∀ node, CanonicalGraph.Available
+        (@GraphStakes.honestRevealed
+          (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache))
+          (left.1 CanonicalGraph.Node.secretSeed) sk.publicKey.seed) signed node →
+        left.1 node = right.1 node)
+    (hleft : sk.seed = left.1 CanonicalGraph.Node.secretSeed)
+    (hright : sk.seed = right.1 CanonicalGraph.Node.secretSeed)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    (hprf : sk.prf ≠ sk.publicKey.seed)
+    (hsigned : ∀ tree : Fin forsTrees,
+      HonestProbes.forsSecretIndex
+          (MessageDigest.forsIndices (signedDigest left cache sk message)) tree ∈
+        signed (SplitCharged.forsKeyOfDigest (signedDigest left cache sk message))) :
+    @Scheme.signInternal Id Id.instMonad
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache)) sk message =
+      @Scheme.signInternal Id Id.instMonad
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache)) sk message := by
+  have hdigest : @Hashing.messageDigest Id
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache))
+        (@Hashing.randomizer Id Id.instMonad
+          (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache)) sk.prf
+          sk.publicKey.seed message) sk.publicKey message =
+      @Hashing.messageDigest Id
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache))
+        (@Hashing.randomizer Id Id.instMonad
+          (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache)) sk.prf
+          sk.publicKey.seed message) sk.publicKey message :=
+    signedDigest_congr cache left right sk message hpublic hprf
+  have hroots : left.1 (.structural
+        (.forsRoots (SplitCharged.forsKeyOfDigest (signedDigest left cache sk message)))) =
+      right.1 (.structural
+        (.forsRoots (SplitCharged.forsKeyOfDigest (signedDigest left cache sk message)))) :=
+    hagree _ (CanonicalGraph.available_of_alwaysAvailable _ signed
+      (@GraphStakes.honestRevealed_le
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache)) _ _) trivial)
+  have hdisclose : ∀ node,
+      ForsDiscloses (SplitCharged.forsKeyOfDigest (signedDigest left cache sk message))
+          (MessageDigest.forsIndices (signedDigest left cache sk message)) node →
+        left.1 node = right.1 node := by
+    rintro node (⟨tree, rfl⟩ | ⟨tree, level, rfl⟩)
+    · exact hagree _ (hsigned tree)
+    · exact hagree _ (CanonicalGraph.available_of_alwaysAvailable _ signed
+        (@GraphStakes.honestRevealed_le
+          (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache)) _ _) trivial)
+  have hfkey := forsKey_congr cache left right sk
+    (SplitCharged.forsKeyOfDigest (signedDigest left cache sk message))
+    (MessageDigest.forsIndices (signedDigest left cache sk message)) hleft hright hroots
+  simp only [signedDigest] at hroots hdisclose hfkey
+  unfold Scheme.signInternal
+  simp only [bind, pure]
+  rw [← hdigest]
+  simp only [← SplitCharged.forsKeyOfDigest_address]
+  refine signature_mk_eq (randomizer_congr cache left right sk message hprf) ?_ ?_
+  · exact fors_sign_congr_shared sk.publicKey.seed cache left right
+      (SplitCharged.forsKeyOfDigest _) _ sk.seed hleft hright hdisclose
+  · rw [hfkey]
+    refine signLayers_congr_shared sk.publicKey.seed cache left right signed sk.seed hleft hright
+      hagree layers 0 _ _ (MessageDigest.treeIndex _).isLt _ (by omega) fun hl => ?_
+    rw [@GraphStakes.honestMessage_zero
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache))
+        (left.1 CanonicalGraph.Node.secretSeed) sk.publicKey.seed hl _ _,
+      forsRoots_key, value_unionCache, hroots, ← value_unionCache,
+      ← @CanonicalGraph.fors_publicKey_cell
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache))
+        (MessageDigest.forsIndices _) (right.1 CanonicalGraph.Node.secretSeed)
+        sk.publicKey.seed (SplitCharged.forsKeyOfDigest _), ← hright]
 
 /-- A handler cache saying nothing the programmed entries contradict. -/
 def Compatible (publicSeed : Digest) (table : Cells × Padding)

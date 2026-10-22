@@ -7441,3 +7441,15 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le' depends 
 /-- info: 'SlhDsaSecurity.RedrawCell.signature_mk_eq' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.signature_mk_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.forsKeyOf_eq' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.forsKeyOf_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.forsRoots_key' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.forsRoots_key
+
+/-- info: 'SlhDsaSecurity.RedrawCell.signInternal_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.signInternal_congr
