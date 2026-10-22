@@ -204,6 +204,7 @@ import SlhDsaSecurity.Proof.HonestLinked
 import SlhDsaSecurity.Proof.TouchedKeys
 import SlhDsaSecurity.Proof.HonestTail
 import SlhDsaSecurity.Proof.HandlerStall
+import SlhDsaSecurity.Proof.HandlerCharge
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -12644,3 +12645,35 @@ info: 'SlhDsaSecurity.HandlerStall.expected_aiming_claimed_stalled_eq' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerStall.expected_aiming_claimed_stalled_eq
+
+/-- info: 'SlhDsaSecurity.HandlerCharge.prob_charged_index_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.prob_charged_index_le
+
+/-- info: 'SlhDsaSecurity.HandlerCharge.prob_claimed_index_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.prob_claimed_index_le
+
+/-- info: 'SlhDsaSecurity.HandlerCharge.prob_sensitive_run_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.prob_sensitive_run_le_expected
+
+/-- info: 'SlhDsaSecurity.HandlerCharge.prob_claimed_run_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.prob_claimed_run_le_expected
+
+/-- info: 'SlhDsaSecurity.HandlerCharge.prob_claimed_run_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.prob_claimed_run_le
+
+/-- info: 'SlhDsaSecurity.HandlerCharge.prob_sensitive_run_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.prob_sensitive_run_le
+
+/--
+info: 'SlhDsaSecurity.HandlerCharge.prob_sensitive_run_le_canonical' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerCharge.prob_sensitive_run_le_canonical
