@@ -231,6 +231,7 @@ import SlhDsaSecurity.Proof.NoticingBlocks
 import SlhDsaSecurity.Proof.FusedTape
 import SlhDsaSecurity.Proof.BracketedOrdering
 import SlhDsaSecurity.Proof.CarrierClearFraming
+import SlhDsaSecurity.Proof.OrderingCompose
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14797,3 +14798,19 @@ info: 'SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.PotentialCharge.prob_fired_le_cont' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PotentialCharge.prob_fired_le_cont
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.mass_fused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.mass_fused
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.gauge_fused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.gauge_fused
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.prob_fired_le_fused' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.prob_fired_le_fused
+
+/-- info: 'SlhDsaSecurity.OrderingCompose.prob_fired_le_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OrderingCompose.prob_fired_le_threeStage
