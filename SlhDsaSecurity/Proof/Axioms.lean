@@ -5247,3 +5247,15 @@ info: 'SlhDsaSecurity.HonestProbes.signLayers_head_authentication_cell' depends 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestProbes.signLayers_head_authentication_cell
+
+/-- info: 'SlhDsaSecurity.WriterState.run_withAddCost_apply' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_withAddCost_apply
+
+/-- info: 'SlhDsaSecurity.WriterState.run_simulateQ_withAddCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.run_simulateQ_withAddCost
+
+/-- info: 'SlhDsaSecurity.WriterState.simulateQ_run_addCostOracle_map' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WriterState.simulateQ_run_addCostOracle_map
