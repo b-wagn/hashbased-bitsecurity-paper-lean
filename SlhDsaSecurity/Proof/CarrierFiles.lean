@@ -340,7 +340,14 @@ theorem agreesWithLog_carrierRun (rightKeep : Bytes → State → Prop) (sk : Se
 
 /-- **And the disclosing recording is inside the concentration's cap.** The two hypotheses are
 the recorder's own and are stated here rather than assumed silently: the recording holds each
-input once, and holds only inputs the carrier serves. -/
+input once, and holds only inputs the carrier serves.
+
+**Both survive the repair, and the reason is the repair's whole shape.** The notice changes the
+carrier, not `appendedOf`'s freshness guard — so the served set grows on cache hits while the
+recording still grows only on misses. *The repair widens the served set without widening the
+thing that is counted*, which is exactly what keeps one entry per served request true while
+filed-even-when-cached becomes true. A repair that had widened both would have bought the
+second at the price of the first, and the cap is not buyable. -/
 theorem leftRecord_length_le_cap (rightKeep : Bytes → State → Prop) (sk : SecretKey)
     (hpk : sk.publicKey = pk)
     (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
