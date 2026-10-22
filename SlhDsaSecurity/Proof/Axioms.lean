@@ -12471,3 +12471,7 @@ info: 'SlhDsaSecurity.Target.allowanceOf' depends on axioms: [propext, Classical
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.allowanceOf
+
+/-- info: 'SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate

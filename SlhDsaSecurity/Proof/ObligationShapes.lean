@@ -99,6 +99,29 @@ theorem seedRandomised_of_signer_query (prfSeed : Digest) (pk : PublicKey)
     ⟨prfSeed, message, FramingLeak.randomizerInput_eq_messageInput prfSeed pk message⟩,
     ⟨pk.seed, bytesBE n pk.root ++ message, rfl⟩⟩
 
+/-- **A guess at `SK.prf` is testable at one query**, which is why the forgery's published
+randomiser is not a one-shot guess at a secret the adversary never sees.
+
+The randomiser the signer publishes for a framing is `Hashing.truncate` of the oracle's answer
+at `Hashing.randomizerInput SK.prf PK.seed framed` — that is this equation, and
+`ReplayGate.randomizer_eq_of_replay` is the same fact about a *published* signature, read off
+the log. An adversary holding one signature can therefore test a candidate `x` by asking at
+`Hashing.randomizerInput x PK.seed framed` and comparing the truncation with what the signature
+carries, at one query per candidate.
+
+So "never sees it" is true and "cannot check a guess" is false, and the second is what would be
+needed for a constant. The event's probability is the probability of *finding* the seed, which
+is one unit of `2 ^ -128` per query and not one unit in total. `RandomiserDeferral`'s module
+docstring is the same obstruction read from the other end: deferring the draw is necessary and
+not sufficient, because the tail's signer derives every randomiser by querying at the seed, and
+what closes that gap is an identical-until-bad hop whose bad flag is exactly a query at a
+`PRF_msg` input at the real seed. -/
+theorem publishedRandomizer_eq_truncate (cache : QueryCache HashSpec) (sk : SecretKey)
+    (framed : Bytes) :
+    HonestProbes.replayRandomizer cache sk framed =
+      Hashing.truncate (CacheReplay.replay cache
+        (Hashing.randomizerInput sk.prf sk.publicKey.seed framed)) := rfl
+
 /-- **A disclosing input needs no class.** `SplitWitness.Served.cover` asks for the narrowed
 class to conclude that an input is filed on one side or the other; an input the left test keeps
 is filed for that reason alone. So the class is needed only where the left test fails, which in
