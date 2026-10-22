@@ -888,7 +888,8 @@ theorem right_record_suffix {α : Type}
             state.1 probe = some value → mid probe = some value) ∧
           (∀ (probe : Bytes) (value : HashOutput),
             mid probe = some value → result.2.1 probe = some value) ∧
-            mid entry.1 = none ∧ rightKeep entry.1 mid := by
+            mid entry.1 = none ∧ rightKeep entry.1 mid ∧
+              result.2.1 entry.1 = some entry.2 := by
   classical
   induction computation using OracleComp.inductionOn generalizing state result with
   | pure value =>
@@ -909,8 +910,8 @@ theorem right_record_suffix {α : Type}
       rw [support_pure, Set.mem_singleton_iff] at hpure
       have hsame : step.2 = state := congrArg Prod.snd hpure
       refine ⟨suffix, by rw [hsuffix, hsame], fun entry hentry => ?_⟩
-      obtain ⟨mid, hstart, hlater, habsent, hkeep⟩ := hentries entry hentry
-      exact ⟨mid, by rw [← hsame]; exact hstart, hlater, habsent, hkeep⟩
+      obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal⟩ := hentries entry hentry
+      exact ⟨mid, by rw [← hsame]; exact hstart, hlater, habsent, hkeep, hfinal⟩
     · rw [recorder_run_inr, mem_support_bind_iff] at hstep
       obtain ⟨inner, hinner, hpure⟩ := hstep
       rw [support_pure, Set.mem_singleton_iff] at hpure
@@ -923,8 +924,8 @@ theorem right_record_suffix {α : Type}
           exact Prod.ext rfl (appended_of_cached leftKeep rightKeep input state cached cached
             hcached)
         refine ⟨suffix, by rw [hsuffix, hstate], fun entry hentry => ?_⟩
-        obtain ⟨mid, hstart, hlater, habsent, hkeep⟩ := hentries entry hentry
-        exact ⟨mid, by rw [← hstate]; exact hstart, hlater, habsent, hkeep⟩
+        obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal⟩ := hentries entry hentry
+        exact ⟨mid, by rw [← hstate]; exact hstart, hlater, habsent, hkeep, hfinal⟩
       | none =>
         rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hinner
         obtain ⟨answer, -, hpair⟩ := hinner
@@ -950,11 +951,12 @@ theorem right_record_suffix {α : Type}
                 state.1 probe = some value → mid probe = some value) ∧
               (∀ (probe : Bytes) (value : HashOutput),
                 mid probe = some value → result.2.1 probe = some value) ∧
-                mid entry.1 = none ∧ rightKeep entry.1 mid := by
+                mid entry.1 = none ∧ rightKeep entry.1 mid ∧
+                  result.2.1 entry.1 = some entry.2 := by
           intro entry hentry
-          obtain ⟨mid, hstart, hlater, habsent, hkeep⟩ := hentries entry hentry
+          obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal⟩ := hentries entry hentry
           exact ⟨mid, fun probe value hprobe => hstart probe value (hstartStep probe value hprobe),
-            hlater, habsent, hkeep⟩
+            hlater, habsent, hkeep, hfinal⟩
         by_cases hleft : leftKeep input state.1
         · refine ⟨suffix, ?_, hshift⟩
           rw [hsuffix, hrecStep,
@@ -966,11 +968,14 @@ theorem right_record_suffix {α : Type}
               simp
             · intro entry hentry
               rcases List.mem_cons.mp hentry with hnew | hold
-              · refine ⟨state.1, fun _ _ hprobe => hprobe, ?_, ?_, ?_⟩
+              · refine ⟨state.1, fun _ _ hprobe => hprobe, ?_, ?_, ?_, ?_⟩
                 · intro probe value hprobe
                   exact hpersistStep probe value (hstartStep probe value hprobe)
                 · rw [hnew]; exact hcached
                 · rw [hnew]; exact hright
+                · rw [hnew]
+                  refine hpersistStep input answer ?_
+                  rw [hcacheStep, QueryCache.cacheQuery_self]
               · exact hshift entry hold
           · refine ⟨suffix, ?_, hshift⟩
             rw [hsuffix, hrecStep,
@@ -992,7 +997,7 @@ theorem right_record_eq_of_never {α : Type}
     right_record_suffix leftKeep rightKeep computation state result hmem
   rcases suffix with _ | ⟨head, rest⟩
   · simpa using hsuffix
-  · obtain ⟨mid, hstart, hlater, habsent, hkeep⟩ := hentries head (by simp)
+  · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries head (by simp)
     exact absurd hkeep (hnever head mid hstart hlater habsent)
 
 /-! ## Two independent draws, two events
