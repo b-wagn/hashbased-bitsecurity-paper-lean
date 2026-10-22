@@ -221,7 +221,13 @@ constant that bounds `2 · served` on every run is the whole budget. So this sha
 charge's constant to bound its *expected* count, and the honest version of the assembly is
 `prob_sharedBad_le_expected` once all four charges are stated there;
 `ClassExpectation.prob_bad_le_expected` is the generic tool for moving one of them, and what it
-asks for is the tail in its `countQueries (classCost …)` presentation. -/
+asks for is the tail in its `countQueries (classCost …)` presentation.
+
+**And there is no margin to spend instead.** With the forgery's `+ 1` absorbed into the record
+and `2 · served` in place, the four terms add to `(q - 2 ^ subtreeHeight) + 259` *exactly*, not
+with room to spare — `work + 2 · served + 2 ^ subtreeHeight ≤ q` is the two-hashes-per-request
+fact and it is tight. So a cap-versus-expectation factor anywhere on this side has nowhere to
+go, and the instinct to look for the margin on seeing a cap-shaped charge will not find one. -/
 theorem sharedCharged_of_parts (qs : Nat)
     (ordering recordPrf : (q : Nat) → Adversary → Pair → Prop)
     (qcOf qpOf qmOf : (q : Nat) → Adversary → Nat)
