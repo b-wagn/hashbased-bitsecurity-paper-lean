@@ -182,6 +182,63 @@ theorem card_three_parts_le_two_records (pair : SharedJoin.RecordedPair) :
   have hfirst := SharedJoin.card_parts_le_record pair
   omega
 
+/-! ## And so `hparts` holds, at two records' worth
+
+The pathwise ceiling above is half of it; the other half is `SharedJoin.card_record_le_budget`,
+which bounds the record itself by `q - 2 ^ subtreeHeight`. Neither was available until the
+second was stated — it was a line inside `card_parts_le_budget`'s proof rather than a lemma —
+and with it the composition is the two-part version's, one part longer.
+
+**This is a ceiling and it is proved**, which is the difference between a doubled ledger line
+and an arithmetic claim about one. It does not say the factor is two: `RecordColumn` shows the
+second and third parts meet, and the counterexample that forbids bounding the message-class part
+below the record says nothing about how large the overlap actually is. What it does say is that
+no run exceeds two records' worth, so the doubled line is sound whatever the overlap turns out
+to be. -/
+
+open scoped Classical in
+/-- **`hparts` at two budgets' worth, at any tail that forgets to the game.** The three
+expectations add pathwise, the sum is bounded by two records on every run, and the record is
+bounded by the budget's slack — so all the tail supplies is that its pairs forget to supported
+ones, which is `LateProbes.ForgetsTo`. -/
+theorem expected_three_parts_le_two_budgets_at (fused : LateProbes.FusedTail) (q : Nat)
+    (adversary : Adversary) (hforget : LateProbes.ForgetsTo fused adversary)
+    (hbudget : HasTotalBudget adversary q) :
+    ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+        (fun pair =>
+          Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) ≤
+      ((2 * (q - 2 ^ subtreeHeight) : Nat) : ℝ≥0∞) := by
+  classical
+  rw [← ClassExpectation.expected_add, ← ClassExpectation.expected_add]
+  refine ClassExpectation.expected_le_of_le _ _ _ fun pair hpair => ?_
+  have hrecord := SharedJoin.card_record_le_budget adversary q hbudget
+    (LateProbes.mem_support_forget hforget hpair)
+  have hthree := card_three_parts_le_two_records (LateProbes.forgetRecordings pair)
+  omega
+
+open scoped Classical in
+/-- **And at the fused tail**, which is where the column reads it. -/
+theorem expected_three_parts_le_two_budgets (q : Nat) (adversary : Adversary)
+    (hbudget : HasTotalBudget adversary q) :
+    ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+        (fun pair =>
+          Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
+      ClassExpectation.expected (LateProbes.pairedOf FusedCoverage.fusedTail adversary)
+        (fun pair =>
+          Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) ≤
+      ((2 * (q - 2 ^ subtreeHeight) : Nat) : ℝ≥0∞) :=
+  expected_three_parts_le_two_budgets_at FusedCoverage.fusedTail q adversary
+    (FusedCoverage.forgetsTo adversary) hbudget
+
 /-! ## Can one entry carry both charges at once?
 
 The doubling comes from a union bound: the record's message-class part stakes a unit on *"this

@@ -5026,3 +5026,24 @@ at its three sequencing points, taking `sk := keys.1.1` with `hpk` from
 good walk, and feeding `hcache` from the run's own cache. That is bookkeeping over a
 decomposition this development has now written five times, and it is the only thing between
 here and the served-agreement hypothesis.
+## `hparts` at two budgets' worth, which makes the doubled line a proved ceiling
+
+`TargetColumn.expected_three_parts_le_two_budgets` discharges `hparts` at
+`2 * (q - 2 ^ subtreeHeight)`. It is a composition of two facts and no new argument: the three
+parts fit in two records' worth on every run (`card_three_parts_le_two_records`), and the record
+fits in the budget's slack (`SharedJoin.card_record_le_budget`). The expectations add pathwise,
+so the whole thing is `expected_add` twice and `expected_le_of_le` once, with
+`LateProbes.ForgetsTo` as the only thing the tail has to supply.
+
+**The halves were written in different rounds and neither was usable alone**, which is the part
+worth remembering. The pathwise ceiling existed and was explicitly marked as not composable,
+because nothing bounded the record. The record bound existed only *inside* another proof. Each
+was reported, correctly, as blocked on the other. Stating the hidden one took seven lines and
+the composition took six.
+
+**What it buys and what it does not.** It makes the doubled ledger line a **proved ceiling**
+rather than an arithmetic claim: no run exceeds two records' worth, so the line is sound
+whatever the real overlap is. It does **not** say the factor is two — `RecordColumn` shows the
+second and third parts meet, and the counterexample forbidding a sub-record bound on the
+message-class part says nothing about how big the overlap actually is. A smaller factor is still
+available to whoever bounds that overlap; this says only that two suffices.
