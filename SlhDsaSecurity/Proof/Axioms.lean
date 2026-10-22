@@ -14793,3 +14793,7 @@ info: 'SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.rightOf_getElem?_cont
+
+/-- info: 'SlhDsaSecurity.PotentialCharge.prob_fired_le_cont' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PotentialCharge.prob_fired_le_cont
