@@ -3207,6 +3207,30 @@ two `sorry`s — which was reverted. The author's note is the useful part: **the
 dropped before the judgement about edit quality did, and the signal was in the diff rather than
 in how it felt.** Reading the diff is therefore the check; feeling fine is not.
 
+### The mirror image: a hypothesis that looks necessary at one layer
+
+The cell correspondence relates a final recording's offset to a starting block's. Chaining it
+across three stages appeared to need an invariant — *the block shortens by exactly as much as
+the recording grows* — and that was flagged as a real lemma, true, obvious and load-bearing.
+
+**It is the hinge, and the correspondence does not have to turn on it.** Stated with the
+continuation as a parameter, each layer's hypothesis is the conclusion **at the continuation's
+own starting recording and block**, so no global index arithmetic ever appears: the outer layer
+relates the original offsets to the intermediate, the inner relates the intermediate to the
+final, and nothing counts how many cells an earlier stage consumed.
+
+> The single-run form made the invariant look **required**, because at one layer the intermediate
+> offsets *are* the original ones.
+
+So this is the mirror of the second-consumer failures above. Those are errors invisible until a
+second consumer distinguishes a statement from its specialisation. This is a **hypothesis that
+looks necessary** until the statement is put in the shape a second consumer forces — and then
+turns out not to be needed at all. Both have the same cause and opposite symptoms: at one layer
+the general and the specific coincide.
+
+Fifth payoff of the continuation shape, and the first where it **retired** a lemma rather than
+enabling one.
+
 ### The three failures are one failure
 
 Polarity (a hypothesis supplied in one direction and read in the other), granularity (two
