@@ -234,6 +234,8 @@ import SlhDsaSecurity.Proof.BracketedOrdering
 import SlhDsaSecurity.Proof.CarrierClearFraming
 import SlhDsaSecurity.Proof.OrderingCompose
 import SlhDsaSecurity.Proof.CarrierCharge
+import SlhDsaSecurity.Proof.ViewRate
+import SlhDsaSecurity.Proof.CarrierOrdering
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14972,3 +14974,31 @@ info: 'SlhDsaSecurity.CountedView.forgetsAlong_counted' depends on axioms: [prop
 /-- info: 'SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep
+
+/-- info: 'SlhDsaSecurity.ViewRate.gauge_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ViewRate.gauge_stepOf
+
+/-- info: 'SlhDsaSecurity.ViewRate.potential_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ViewRate.potential_stepOf
+
+/-- info: 'SlhDsaSecurity.ViewRate.step_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ViewRate.step_bound
+
+/-- info: 'SlhDsaSecurity.CarrierCharge.step_bound_charged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCharge.step_bound_charged
+
+/-- info: 'SlhDsaSecurity.CarrierOrdering.prob_ordering_perWalk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierOrdering.prob_ordering_perWalk
+
+/-- info: 'SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail
+
+/-- info: 'SlhDsaSecurity.CarrierOrdering.chargedKeepAt_carrierRightKeep' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierOrdering.chargedKeepAt_carrierRightKeep

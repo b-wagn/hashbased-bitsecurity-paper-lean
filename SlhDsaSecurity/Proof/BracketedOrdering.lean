@@ -74,16 +74,24 @@ theorem probes_le_recordMessageClass
 
 /-! ## The charge
 
-The per-walk bound is the hypothesis. On a bad walk the probe list is empty and the event
-carries `Target.GoodWalk`, so the walk-wise charge is trivial there and the hypothesis is only
-read where it has content. -/
+The per-walk bound is the hypothesis, **and it carries `Target.GoodWalk`.** That is not a
+convenience: off a good walk `LateProbes.probes` is empty, so the hypothesis without the guard
+would read `Pr[Ordering] ≤ 0` and be false. The event being charged carries `GoodWalk` too, so
+the walk-wise charge is discharged outright on a bad walk and the hypothesis is only read where
+it has content.
+
+The guard was missing when this lemma was first written and the error was invisible until its
+consumer: at the one layer where the bound is read, `GoodWalk` is in hand, so nothing complained
+until a proof had to produce the hypothesis for every walk. Same family as the dropped
+witnesses — a statement the proof could not have supported, found by the consumer rather than by
+the proof. -/
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The ordering term, at the pair that carries the recordings**, from the per-walk charge
 rather than from a recorder run. -/
 theorem prob_ordering_le
-    (hcharge : ∀ walk ∈ support WarmedGame.graphWalk,
+    (hcharge : ∀ walk ∈ support WarmedGame.graphWalk, Target.GoodWalk walk →
       Pr[fun result => LateProbes.Ordering (walk, result) | fused adversary walk] ≤
         expected (fused adversary walk)
             (fun result => Multiset.card (LateProbes.probes (walk, result))) /
@@ -103,7 +111,10 @@ theorem prob_ordering_le
     (fun pair => Target.GoodWalk pair.1 ∧ LateProbes.Ordering pair)
     (fun pair => Multiset.card (LateProbes.probes pair)) 0 fun walk hwalk => ?_) ?_
   · rw [add_zero]
-    exact le_trans (probEvent_mono fun result _ hbad => hbad.2) (hcharge walk hwalk)
+    by_cases hgood : Target.GoodWalk walk
+    · exact le_trans (probEvent_mono fun result _ hbad => hbad.2) (hcharge walk hwalk hgood)
+    · rw [probEvent_eq_zero fun result _ hbad => hgood hbad.1]
+      exact zero_le
   · rw [add_zero]
     exact ENNReal.div_le_div_right (expected_mono _ _ _
       fun pair hpair => Multiset.card_le_card (hprobes pair hpair)) _

@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.BracketedRun
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.OrderingCompose
+import SlhDsaSecurity.Proof.ViewRate
 
 /-!
 # The carrier handler, as the potential charge reads it
@@ -357,5 +358,51 @@ theorem not_disclosing_of_chargedRightKeep (prfSeed : Digest) (key : PublicKey)
     (hkeep : chargedRightKeep prfSeed key rightKeep input state) :
     ¬ SplitWitness.disclosingKeep prfSeed key input state.cache :=
   hkeep.2
+
+/-! ## The step bound, discharged
+
+`ViewRate.step_bound` at this view, with the signer's own `spent`, `becomes` and rate. Five of
+its six hypotheses are the cache-level facts `LateRate.prob_lateDisclosure_le` already uses — they
+are about caches and answers and know nothing about a carrier — and the sixth, `hexcludes`, is
+free at `chargedRightKeep` by construction.
+
+So the step bound at the carrier has **no hypotheses**, and neither does the charge above it. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The step bound at the carrier, with nothing assumed.** -/
+theorem step_bound_charged (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (prfSeed : Digest) (key : PublicKey) (state : CountedState) (input : Bytes)
+    (hfresh : cacheAt state input = none) (hnotfired : ¬ Fired prfSeed key state) :
+    ∃ bound after : Nat,
+      (∀ answer : HashOutput,
+          ¬ Fired prfSeed key
+              (stepAt pk (chargedRightKeep prfSeed key rightKeep) state input answer) →
+            potentialAt (LateCharge.Spent prfSeed key)
+              (stepAt pk (chargedRightKeep prfSeed key rightKeep) state input answer) ≤ bound) ∧
+        (∀ answer : HashOutput,
+            gaugeAt (stepAt pk (chargedRightKeep prfSeed key rightKeep) state input answer) =
+              after) ∧
+          Pr[fun answer : HashOutput =>
+                Fired prfSeed key
+                  (stepAt pk (chargedRightKeep prfSeed key rightKeep) state input answer) |
+              ($ᵗ HashOutput : ProbComp HashOutput)] +
+              ((bound : Nat) : ℝ≥0∞) * LateRate.rate ≤
+            ((potentialAt (LateCharge.Spent prfSeed key) state : Nat) : ℝ≥0∞) * LateRate.rate +
+              ((after - gaugeAt state : Nat) : ℝ≥0∞) * LateRate.rate :=
+  @ViewRate.step_bound HandlerCarrier.State (servingView pk) (disclosingKeep pk)
+    (chargedRightKeep prfSeed key rightKeep) (SplitWitness.disclosingKeep prfSeed key)
+    (LateCharge.Spent prfSeed key) (LateCharge.BecomesSpent prfSeed key) LateRate.rate
+    (fun _ _ _ hkeep => hkeep.2)
+    (fun cache input entry hspent =>
+      LateRate.becomesSpent_of_spent prfSeed key cache input entry hspent)
+    (fun cache input entry answer hcacheFresh =>
+      LateCharge.spent_cacheQuery_iff prfSeed key cache input entry answer hcacheFresh)
+    (fun cache entry hleft => LateCharge.spent_of_signerRandomised prfSeed key cache entry hleft)
+    (fun cache input record hcacheFresh hnot =>
+      LateCharge.prob_record_fires_le prfSeed key cache input record hcacheFresh hnot)
+    (fun cache input entry hnot =>
+      LateCharge.prob_entry_fires_le prfSeed key cache input entry hnot)
+    (state.1, state.2.1) input hfresh hnotfired
 
 end SlhDsaSecurity.CarrierCharge
