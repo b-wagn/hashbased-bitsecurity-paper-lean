@@ -3881,3 +3881,33 @@ each other.
 
 Two people each referred this piece to the other for a round. The line is what decided it, not
 the argument — which is the case for drawing one early even when it looks like bureaucracy.
+
+## `AgreesWithLog` is not the iff the coverage join wants, and my saying it was needs correcting
+
+I reported that `hsplit` at the carrier needs nothing beyond `CarrierFiles.agreesWithLog_carrierRun`,
+on the grounds that `CoverageRouted.forgeryCoveredBy_congr` wants the iff one input at a time and
+`AgreesWithLog` gives it at every input. The conclusion survives; the reason does not.
+
+`ServingCarrier.AgreesWithLog` is `Served state input ↔ ServingCarrier.logServed sk state.cache
+signed input`, and `logServed` names the **replayed** randomiser,
+`HonestProbes.replayRandomizer cache sk framed`. What the join wants is `ServedLog.servedLog`,
+which names the **published** one, `parsed.randomizer`, read off the signature bytes. Those agree
+only because the signer published what it computed — `ServedAgreement.servedLog_iff_logServed`,
+a theorem, not a definitional unfolding.
+
+So my side had the **same shape** of issue as the input half's: an interface whose two readings
+look interchangeable and are not. The difference is luck of ordering — ours was already bridged
+one file over, and packaged as `ServedBridge.ServedAgree`, the two-way containment. Theirs had to
+be proved. Calling mine "enough" without naming the bridge was the kind of claim that is right
+for a reason the claimant has not checked.
+
+**The gap this exposes:** `ServedAgree` is produced at the serving-program run
+(`ServedAgreement`, from `logFiled_run_with` and `agreesWithLogAt_run_with` composed with
+`servedLog_iff_logServed`) and **not** at the carrier tail's run. `agreesWithLog_carrierRun`
+gives only `AgreesWithLog`. Both ingredients exist at the carrier; the composition does not.
+
+Method, twice in one sitting: I first asserted the gap before checking the bridge existed, then
+nearly withdrew it on a `grep "ServedAgree"` that was matching the module name `ServedAgreement`
+as a prefix. **A substring search for a short name inside a namespace that starts with it will
+match the namespace**, and both the false positive and the false negative were resolved the same
+way — by reading the matched lines instead of counting them.
