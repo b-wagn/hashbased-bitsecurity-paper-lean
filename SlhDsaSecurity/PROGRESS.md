@@ -3616,3 +3616,39 @@ the one place a misapplication would have been invisible; and the presampling co
 (`DigestTape.padding`, `TapeFactor`, `BlockViews.evalDist_blockTape`) was read only far enough to
 confirm both joints are **equalities of laws** rather than bounds, so the block attaches to the
 game without slack.
+
+## The presampling coupling is an identity, and three never-fails carry it
+
+`TapeFactor` and `BlockViews` were read end to end. **The coupling from the adaptive run to the
+drawn blocks is an equality of laws, not a bound, and it is unconditional in the block lengths.**
+`evalDist_splitTapeRun` is proved by induction on the computation with no hypothesis on
+`leftLength`, `rightLength`, `leftKeep` or `rightKeep`: a block that is too short is fallen back
+from (`splitTapeRecorder_run_*_nil` draws), and a block that is too long has its remainder
+dropped. That is why no length hypothesis appears anywhere in the factorisation and why the whole
+route is affordable — only the two *class* blocks are front-loaded; coins and out-of-class
+answers keep drawing inline.
+
+**The selection has to be causal, not deterministic, and that is the one subtle step.**
+`probEvent_length_set` says overwriting cell `index` of the target block does not change the
+probability that the recording reaches past `index`. Its only hard case is the step that reads
+the cell: the two runs genuinely diverge past it, and the induction does not go through — but at
+that step the event is already true and a recording that only grows keeps it true, so both sides
+are `1`. **A circular argument would hide exactly here, and it is discharged by a proved lemma
+rather than by an assumption.** What it buys is `prob_exists_hit_le_expected`: the charge is the
+*expected* recording length times the rate, never a block length.
+
+**Three never-fails are load-bearing**, and all three are proved: `padding_neverFails` (dropping
+an unused block), `splitTapeRun_neverFails` and `blockRun_tail_neverFails` (`prob_leftBlock`
+moving a block-only event off the run). A failing oracle anywhere would make
+`evalDist_bind_const_neverFails` and `prob_leftBlock` silently wrong rather than unprovable.
+
+**What crosses into the block is three hypotheses, all elaborated**: `hcap : leftLength ≤ 5*2^62`,
+and `hleftBound`/`hrightBound`, the on-support caps saying neither recording outruns its block.
+The cell correspondences (`rightOf_getElem?`, `leftOf_getElem?`) are claimed **only where the
+block still has a cell**, which is why those two caps exist; a too-small `rightLength` makes
+`hrightBound` unprovable rather than fudgeable. `rightLength` is otherwise free: it caps a
+*count*, and the charge stays an expectation in the cells actually read.
+
+Taking the disclosures off the **whole** block rather than the reached prefix is an over-count in
+the safe direction, and `GoodBlock` is stated at the whole block too, so the cap and the coverage
+read the same object.
