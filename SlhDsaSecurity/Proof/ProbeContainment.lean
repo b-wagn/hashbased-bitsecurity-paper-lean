@@ -859,6 +859,33 @@ theorem sensitiveOffSeed_of_claim (publicSeed : Digest)
   exact ⟨witness, by rw [show (GraphStakes.stakes publicSeed).stake witness =
       witness.child from rfl, hsame]; exact hchild, hunavailable, hwitness⟩
 
+
+/-! ## Why the claims charge stands alone, and the run that looks like it breaks it
+
+**The objection, which is worth stating because it will be re-proposed.** An adversary queries
+the canonical input of an unavailable node, reads the cell off the answer, claims it, and
+`InputBad` holds with probability one — so no constant bound on it can be right.
+
+**It cannot do that, and the reason is in the charge's first hypothesis.** A node's canonical
+input *contains its children's cells as its payload*:
+`canonicalInput publicSeed cells parent = tweakableInput publicSeed parent.address
+(childBytes cells parent.children)`. So forming that input already requires holding the children's
+cells. And if the node's own cell is unavailable then some child's is too — that is the
+contrapositive of `hclosed`, the closure hypothesis every charge here takes — so forming it
+requires an unavailable cell. The recursion bottoms out at the secret seed, which no signature
+discloses. "Query it and read the cell off" presupposes the cell it was supposed to produce.
+
+What the adversary can do instead is **guess**: write `tweakableInput publicSeed addr payload`
+with a payload it hopes is the cell. The handler serves a canonical answer only where
+`OpenCache.openCache publicSeed (availableAt state) table` has one, which by `hclosed` is only
+where every child is available — so at an unavailable node it draws fresh and the run learns
+nothing. A lucky guess lower down cannot cascade upward either, for the same reason: serving the
+node above needs the node below available.
+
+**So the claims charge is sound on its own and `hclosed` is what makes it so.** The probes' own
+weight pays for a different event — that some *probe* of the run is sensitive — and
+`RoutedSplit.InputBad` does not quantify over the run's probes at all. -/
+
 /-! ## The shape this half owes the join
 
 Pinned by elaboration rather than by eye, because a mismatch between what an owner proves and
