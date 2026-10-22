@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.ServingTable
 import SlhDsaSecurity.Proof.CarrierAvailability
+import SlhDsaSecurity.Proof.CountedHandler
 
 /-!
 # The charge, composed at the half's own run
@@ -222,6 +223,49 @@ theorem verifier_subrun [HasQuery HashSpec Id] (adversary : Adversary)
   subst hmapped
   subst htail
   exact ⟨adversaryStep.2, verifierStep, hverifier, rfl⟩
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **Every input the forgery's FORS recovery asks is one the run already drew.**
+
+The last piece of the claims' bridge. The recovery's inputs are the verifier's, because the
+verifier ran inside this computation and asked them for real;
+`VerifierProbes.queriesUnder_verify_fors` is that step, and
+`CountedHandler.cached_queriesUnder_counted` turns "the run asked it" into
+"the carrier holds it" at the handler the charge is read under. -/
+theorem cached_forsQueries [HasQuery HashSpec Id] (adversary : Adversary)
+    (prfSeed publicSeed : Digest) (table : Cells × Padding) (inner : HandlerState)
+    (z : SeededValue × (HandlerState × Bool))
+    (hz : z ∈ support ((simulateQ (withFlag (strictImpl prfSeed publicSeed table))
+      (seededLinked adversary prfSeed publicSeed table)).run (inner, false)))
+    (message : Bytes) (parsed : Signature)
+    (hframe : z.1.1.1.1.1.message.frame = some message)
+    (hparsed : Signature.fromBytes? z.1.1.1.1.1.signature = some parsed)
+    (probe : Bytes)
+    (hquery : CacheReplay.QueriesUnder z.2.1.1.cache
+      (SlhDsaSecurity.Fors.publicKeyFromSignature (m := OracleComp HashSpec) parsed.fors
+        (MessageDigest.forsIndices (VerifierProbes.digestOf z.2.1.1.cache
+          (keysOf prfSeed publicSeed table).2 message parsed))
+        (keysOf prfSeed publicSeed table).2.seed
+        (Scheme.forsAddress (VerifierProbes.digestOf z.2.1.1.cache
+          (keysOf prfSeed publicSeed table).2 message parsed))) probe) :
+    z.2.1.1.cache probe ≠ none := by
+  classical
+  obtain ⟨mid, verifierStep, hverifier, hstate⟩ :=
+    verifier_subrun adversary prfSeed publicSeed table inner z hz
+  rw [RecordedQueries.countRecorded, WarmedSplit.verify_liftM, simulateQ_map, StateT.run_map,
+    support_map] at hverifier
+  obtain ⟨counted, hcounted, hmapped⟩ := hverifier
+  have hcarrier : counted.2.1.1 = z.2.1.1 := by rw [← hstate, ← hmapped]
+  rw [← hcarrier]
+  refine CountedHandler.cached_queriesUnder_counted (keysOf prfSeed publicSeed table).2
+    (strictImpl prfSeed publicSeed table)
+    (ServedAgreement.files_servingProgram publicSeed (keysOf prfSeed publicSeed table).2 _ table)
+    RecordedQueries.verifierCost _ mid counted hcounted probe ?_
+  rw [hcarrier]
+  exact VerifierProbes.queriesUnder_verify_fors z.2.1.1.cache
+    (keysOf prfSeed publicSeed table).2 z.1.1.1.1.1.message z.1.1.1.1.1.signature message parsed
+    hframe hparsed probe hquery
 
 /-! ## The claims, charged at the handler that will not serve them
 
