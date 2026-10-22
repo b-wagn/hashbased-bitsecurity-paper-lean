@@ -246,6 +246,7 @@ import SlhDsaSecurity.Proof.SplitTail
 import SlhDsaSecurity.Proof.SplitCarrierTail
 import SlhDsaSecurity.Proof.CarrierCover
 import SlhDsaSecurity.Proof.CarrierJoin
+import SlhDsaSecurity.Proof.RecordPrfCharge
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15614,3 +15615,23 @@ info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail
+
+/-- info: 'SlhDsaSecurity.RecordPrfCharge.prob_prfClass_single_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordPrfCharge.prob_prfClass_single_le
+
+/--
+info: 'SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind
+
+/--
+info: 'SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind_le_work' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind_le_work
