@@ -1110,4 +1110,147 @@ theorem evalDist_noticingSplitTapeRun_of_cont (leftKeep rightKeep : Bytes → σ
     leftLength rightLength cache leftRecord rightRecord
   simpa only [bind_pure, map_eq_bind_pure_comp, Function.comp_def] using hbind
 
+/-! ## The selection's causality, with a continuation
+
+`noticingProbEvent_length_set` says a single run's selection of a target cell does not see that
+cell's value. The bracketed tail is three runs, and chaining the single-run statement hits the
+same obstruction the factorisation did: after the first stage the two sides are in different
+states, so the second stage's probability is not the same object on both sides.
+
+The repair is the same one, and that it is the same one is the point. The continuation is a
+parameter, and what is asked of it is **the conclusion's own shape** — that its selection does
+not see the cell either — plus two facts that compose by themselves: it never fails, and it
+never shortens the target recording. The `pure` case is then the continuation's own causality
+rather than a termination, and the step that *reads* the cell is settled on both sides by the
+recording already being long enough, exactly as before.
+-/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **Once the recording is long enough the whole rest of the run keeps it so.** The
+continuation form of `noticingProbEvent_length_eq_one`: the run only grows the recording and the
+continuation only grows it further, and neither can fail. -/
+theorem probEvent_length_eq_one_cont (leftKeep rightKeep : Bytes → σ → Prop)
+    {α γ : Type} (computation : OracleComp OracleWorld α)
+    (after : α × SplitTapeState σ → ProbComp γ) (finalRight : γ → Record)
+    (hgrow : ∀ (z : α × SplitTapeState σ) (w : γ), w ∈ support (after z) ->
+      (rightOf z.2).length ≤ (finalRight w).length)
+    (hfail : ∀ z, Pr[⊥ | after z] = 0)
+    (cache : σ) (tapes : List HashOutput × List HashOutput)
+    (leftRecord rightRecord : Record) (entry : Bytes × HashOutput) (bound : Nat)
+    (hbound : bound < (rightRecord ++ [entry]).length) :
+    Pr[fun w => bound < (finalRight w).length |
+        (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+          (cache, tapes, (leftRecord, rightRecord ++ [entry])) >>= after] = 1 := by
+  classical
+  refine probEvent_eq_one ?_
+  constructor
+  · refine probFailure_bind_eq_zero_iff _ _ |>.mpr
+      ⟨noticingSplitTapeRun_neverFails leftKeep rightKeep computation _,
+        fun z _ => hfail z⟩
+  · intro w hw
+    rw [mem_support_bind_iff] at hw
+    obtain ⟨z, hz, hafterMem⟩ := hw
+    have hprefix := noticingRightOf_prefix leftKeep rightKeep computation
+      (cache, tapes, (leftRecord, rightRecord ++ [entry])) z hz
+    exact lt_of_lt_of_le (lt_of_lt_of_le hbound hprefix.length_le) (hgrow z w hafterMem)
+
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **Overwriting an unread cell does not move the selection**, with a continuation. The
+hypothesis `hafter` is this statement at the continuation, so the conclusion composes with
+itself across the stages of a bracketed run. -/
+theorem probEvent_length_set_cont (leftKeep rightKeep : Bytes → σ → Prop)
+    {α γ : Type} (computation : OracleComp OracleWorld α)
+    (after : α × SplitTapeState σ → ProbComp γ) (finalRight : γ → Record)
+    (hgrow : ∀ (z : α × SplitTapeState σ) (w : γ), w ∈ support (after z) ->
+      (rightOf z.2).length ≤ (finalRight w).length)
+    (hfail : ∀ z, Pr[⊥ | after z] = 0)
+    (hafter : ∀ (bound cell : Nat) (newValue : HashOutput)
+        (z : α × SplitTapeState σ),
+      Pr[fun w => bound < (finalRight w).length | after z] =
+        Pr[fun w => bound < (finalRight w).length |
+          after (z.1, (z.2.1, (z.2.2.1.1, z.2.2.1.2.set cell newValue), z.2.2.2))]) :
+    ∀ (index : Nat) (newValue : HashOutput) (cache : σ)
+      (leftTape rightTape : List HashOutput) (leftRecord rightRecord : Record),
+      Pr[fun w => rightRecord.length + index < (finalRight w).length |
+          (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+            (cache, (leftTape, rightTape), (leftRecord, rightRecord)) >>= after] =
+        Pr[fun w => rightRecord.length + index < (finalRight w).length |
+          (simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+            (cache, (leftTape, rightTape.set index newValue), (leftRecord, rightRecord))
+              >>= after] := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro index newValue cache leftTape rightTape leftRecord rightRecord
+    simp only [simulateQ_pure, StateT.run_pure, pure_bind]
+    exact hafter (rightRecord.length + index) index newValue
+      (value, (cache, (leftTape, rightTape), (leftRecord, rightRecord)))
+  | query_bind queried next ih =>
+    intro index newValue cache leftTape rightTape leftRecord rightRecord
+    simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
+    rcases queried with coin | input
+    · simp only [noticingSplitTapeRecorder_run_inl, splitTapeRecorder_run_inl, bind_assoc,
+        pure_bind]
+      rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+      exact tsum_congr fun answer => congrArg _
+        (ih answer index newValue cache leftTape rightTape leftRecord rightRecord)
+    · simp only [noticingSplitTapeRecorder_run_inr]
+      set noticed : σ := CacheView.onQuery cache input with hnoticed
+      by_cases hfresh : CacheView.cacheOf noticed input = none
+      · by_cases hleft : leftKeep input noticed
+        · cases leftTape with
+          | nil =>
+            simp only [splitTapeRecorder_run_left_nil leftKeep rightKeep input noticed _
+              leftRecord rightRecord hfresh hleft, bind_assoc, pure_bind]
+            rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+            exact tsum_congr fun answer => congrArg _
+              (ih answer index newValue (CacheView.update noticed input answer) [] rightTape
+                (leftRecord ++ [(input, answer)]) rightRecord)
+          | cons head rest =>
+            simp only [splitTapeRecorder_run_left_cons leftKeep rightKeep input noticed head rest
+              _ leftRecord rightRecord hfresh hleft, pure_bind]
+            exact ih head index newValue (CacheView.update noticed input head) rest rightTape
+              (leftRecord ++ [(input, head)]) rightRecord
+        · by_cases hright : rightKeep input noticed
+          · cases rightTape with
+            | nil => simp only [List.set_nil]
+            | cons head rest =>
+              cases index with
+              | zero =>
+                simp only [List.set_cons_zero,
+                  splitTapeRecorder_run_right_cons leftKeep rightKeep input noticed leftTape _ _
+                    leftRecord rightRecord hfresh hleft hright, pure_bind, Nat.add_zero]
+                rw [probEvent_length_eq_one_cont leftKeep rightKeep (next head) after finalRight
+                    hgrow hfail (CacheView.update noticed input head) (leftTape, rest) leftRecord
+                    rightRecord (input, head) rightRecord.length (by simp),
+                  probEvent_length_eq_one_cont leftKeep rightKeep (next newValue) after
+                    finalRight hgrow hfail (CacheView.update noticed input newValue)
+                    (leftTape, rest) leftRecord rightRecord (input, newValue)
+                    rightRecord.length (by simp)]
+              | succ remaining =>
+                simp only [List.set_cons_succ,
+                  splitTapeRecorder_run_right_cons leftKeep rightKeep input noticed leftTape head
+                    _ leftRecord rightRecord hfresh hleft hright, pure_bind]
+                have hlength : rightRecord.length + (remaining + 1) =
+                    (rightRecord ++ [(input, head)]).length + remaining := by
+                  simp only [List.length_append, List.length_cons, List.length_nil]
+                  omega
+                rw [hlength]
+                exact ih head remaining newValue (CacheView.update noticed input head) leftTape
+                  rest leftRecord (rightRecord ++ [(input, head)])
+          · simp only [splitTapeRecorder_run_other leftKeep rightKeep input noticed _
+              (leftRecord, rightRecord) (fun h => hleft h.2) (fun h => hright h.2),
+              bind_assoc, pure_bind]
+            rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+            exact tsum_congr fun step => congrArg _
+              (ih step.1 index newValue step.2 leftTape rightTape leftRecord rightRecord)
+      · simp only [splitTapeRecorder_run_other leftKeep rightKeep input noticed _
+          (leftRecord, rightRecord) (fun h => hfresh h.1) (fun h => hfresh h.1),
+          bind_assoc, pure_bind]
+        rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
+        exact tsum_congr fun step => congrArg _
+          (ih step.1 index newValue step.2 leftTape rightTape leftRecord rightRecord)
+
 end SlhDsaSecurity.NoticingTape

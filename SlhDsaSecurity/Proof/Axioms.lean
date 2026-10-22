@@ -14703,3 +14703,15 @@ info: 'SlhDsaSecurity.NoticingTape.noticingCausal' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.CountedHandler.run_withFlag_withExtra' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.run_withFlag_withExtra
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.probEvent_length_eq_one_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.probEvent_length_eq_one_cont
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.probEvent_length_set_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.probEvent_length_set_cont
