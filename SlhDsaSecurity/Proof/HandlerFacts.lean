@@ -321,7 +321,15 @@ structure TableFacts (publicSeed : Digest)
     step ∈ support (((impl table) queried).run state) →
       step.2.2.1 = state.2.1 ++ appended queried state.1
   /-- **The availability does not read the cell either.** Without this the two sides of a
-  comparison would stall at different moments. -/
+  comparison would stall at different moments.
+
+  **Three independent consumers, one guard.** It makes the two stalled runs comparable against
+  a single `Frozen`, which is what `StalledRun`'s congruence takes; it closes `blind` at the
+  honest availability, where the handler's key and its availability read different cells; and it
+  is what lets a caller's wrapper — the computation returning `availableAt table` beside its
+  value, so the event can read it after the redraw — inherit its own `htouched`. All three are
+  at the two cells `RedrawCell.seedAndRoot` names. A field with three consumers that arrived
+  independently is not a convenience to be simplified away. -/
   availBlind : ∀ (index : Node), allowed index → ∀ (left right : Cells × Padding),
     AgreeOff index left right → availableAt left = availableAt right
   /-- A step at a state where a cell is unavailable does not read that cell — at the indices

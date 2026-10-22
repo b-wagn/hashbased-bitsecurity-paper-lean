@@ -13584,3 +13584,7 @@ info: 'SlhDsaSecurity.CarrierTail.forgetsTo' depends on axioms: [propext, Classi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.forgetsTo
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.prob_run_cell_le_indexed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.prob_run_cell_le_indexed
