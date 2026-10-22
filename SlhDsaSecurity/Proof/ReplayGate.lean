@@ -127,4 +127,31 @@ theorem randomiserBad_of_replay {x : Trace} (hfaithful : LogFaithful x)
         signature_eq_of_replay hparsed hcanonical hdisclosed honly]⟩ hwin.2
   · exact ⟨message, prfAnswer, hentry, hsigned⟩
 
+/-! ## The split the target asks for
+
+With the replay case closed, the three-way split of a win is the target's `hsplit`, at the three
+events the three charges are stated on. The log's faithfulness is the only thing it still asks
+of the game. -/
+
+attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedGame.tail
+  WarmedGame.warmedRun Scheme.keygenInternal Scheme.verify Scheme.sign
+  Security.signingOracle Security.countQueries
+
+set_option linter.constructorNameAsVariable false in
+set_option maxHeartbeats 1000000 in
+/-- **A win on a good walk is one of the three charged events.** -/
+theorem cases_of_win_charged (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support WarmedGame.graphWalk)
+    {result : (Outcome × Nat) × QueryCache HashSpec}
+    (hresult : result ∈ support (WarmedGame.tail adversary walk))
+    (hfaithful : LogFaithful ((walk.1, result.1), result.2))
+    (hwin : Wins .strong result.1.1) :
+    AnswerBad ((walk.1, result.1), result.2) ∨ InputBad ((walk.1, result.1), result.2) ∨
+      RandomiserBad ((walk.1, result.1), result.2) := by
+  rcases cases_of_win_three adversary hwalk hresult hwin with hanswer | hinput | hreplay
+  · exact Or.inl hanswer
+  · exact Or.inr (Or.inl hinput)
+  · exact Or.inr (Or.inr (randomiserBad_of_replay hfaithful hwin hreplay))
+
 end SlhDsaSecurity.ReplayGate

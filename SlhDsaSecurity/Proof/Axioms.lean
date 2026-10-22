@@ -6499,3 +6499,9 @@ info: 'SlhDsaSecurity.ReplayGate.randomiserBad_of_replay' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_classes' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_classes
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.cases_of_win_charged' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.cases_of_win_charged
