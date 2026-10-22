@@ -11721,6 +11721,28 @@ info: 'SlhDsaSecurity.RecorderView.appendedOf_right_mem' depends on axioms: [pro
 #print axioms SlhDsaSecurity.RecorderView.appendedOf_right_mem
 
 /--
+info: 'SlhDsaSecurity.RecorderView.appendedOf_right_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_right_shape
+
+/--
+info: 'SlhDsaSecurity.CarrierRecordings.step_right_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.step_right_shape
+
+/--
+info: 'SlhDsaSecurity.CarrierRecordings.step_recordFreshNodup' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.step_recordFreshNodup
+
+/-- info: 'SlhDsaSecurity.CarrierRecordings.recordFreshNodup_bracket' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.recordFreshNodup_bracket
+
+/--
 info: 'SlhDsaSecurity.CarrierRecordings.step_right_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in

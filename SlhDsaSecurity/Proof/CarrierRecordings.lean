@@ -72,6 +72,38 @@ theorem step_right_mem (rightKeep : Bytes → HandlerCarrier.State → Prop)
       · rw [hinput, hanswer]
         exact (files_countedCarrierRecorder pk rightKeep).hashCached input state step hstep
 
+open scoped Classical in
+/-- **The target recording after a step, as a list.** The shape reading of the step, which an
+invariant about multiplicity needs and membership cannot give. -/
+theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (queried : OracleWorld.Domain) (state : CountedState)
+    (step : OracleWorld.Range queried × CountedState)
+    (hstep : step ∈ support (((countedCarrierRecorder pk rightKeep) queried).run state)) :
+    step.2.2.1.2 = state.2.1.2 ∨
+      ∃ pair : Bytes × HashOutput, step.2.2.1.2 = state.2.1.2 ++ [pair] ∧
+        state.1.cache pair.1 = none := by
+  classical
+  obtain ⟨inner, hinner, hvalue, -, hcarried⟩ := withCount_step _ queried state step hstep
+  rcases queried with coin | input
+  · refine Or.inl ?_
+    rw [hcarried, show inner.2.2 = (state.1, state.2.1).2 from
+      congrArg Prod.snd (@recorderOf_step_inl HandlerCarrier.State (servingView pk)
+        (disclosingKeep pk) rightKeep coin (state.1, state.2.1) inner
+        (by rw [← @noticingRecorderOf_run_inl HandlerCarrier.State (servingView pk)]; exact
+          hinner))]
+  · have hinr := hinner
+    rw [@noticingRecorderOf_run_inr HandlerCarrier.State (servingView pk) (disclosingKeep pk)
+      rightKeep input (state.1, state.2.1)] at hinr
+    rw [hcarried, @recorderOf_step_record HandlerCarrier.State (servingView pk)
+      (disclosingKeep pk) rightKeep input _ inner hinr]
+    rcases @appendedOf_right_shape HandlerCarrier.State (servingView pk) (disclosingKeep pk)
+      rightKeep input _ inner.1 with hsame | ⟨hshape, hfresh, -⟩
+    · exact Or.inl hsame
+    · refine Or.inr ⟨(input, inner.1), hshape, ?_⟩
+      show HandlerCarrier.cacheOf state.1 input = none
+      rw [← cacheOf_servingNotice pk state.1 input]
+      exact hfresh
+
 /-! ## The two invariants -/
 
 /-- **Every target-recorded input is of the narrowed class.** -/
@@ -133,5 +165,44 @@ theorem step_recordCached (rightKeep : Bytes → HandlerCarrier.State → Prop)
     simp
   · rw [hcached]
     simp
+
+/-! ## And each input once
+
+Carried with `RecordCached`, because that is what proves it: an entry is appended only when its
+input is fresh, and every entry already recorded is cached, so the new one is none of them. The
+two halves travel together for the same reason the step fact reports both. -/
+
+/-- **The target recording is cached and holds each input once.** -/
+def RecordFreshNodup (state : CountedState) : Prop :=
+  RecordCached state ∧ (state.2.1.2.map Prod.fst).Nodup
+
+theorem recordFreshNodup_bracket {f : CountedState → CountedState} (hf : Bracket f)
+    (state : CountedState) (hinv : RecordFreshNodup state) : RecordFreshNodup (f state) := by
+  refine ⟨recordCached_bracket hf state hinv.1, ?_⟩
+  rw [(hf state).2]
+  exact hinv.2
+
+open scoped Classical in
+/-- **The step fact.** The appended input was fresh, every recorded input is cached, so the two
+cannot coincide. -/
+theorem step_recordFreshNodup (rightKeep : Bytes → HandlerCarrier.State → Prop)
+    (queried : OracleWorld.Domain) (state : CountedState)
+    (step : OracleWorld.Range queried × CountedState)
+    (hstep : step ∈ support (((countedCarrierRecorder pk rightKeep) queried).run state))
+    (hinv : RecordFreshNodup state) : RecordFreshNodup step.2 := by
+  classical
+  refine ⟨step_recordCached pk rightKeep queried state step hstep hinv.1, ?_⟩
+  rcases step_right_shape pk rightKeep queried state step hstep with
+    hsame | ⟨pair, hshape, hfresh⟩
+  · rw [hsame]
+    exact hinv.2
+  · rw [hshape, List.map_append]
+    refine List.Nodup.append hinv.2 (by simp) ?_
+    intro probe hprior hnew
+    rw [List.map_cons, List.map_nil, List.mem_singleton] at hnew
+    obtain ⟨prior, hpriorMem, hpriorInput⟩ := List.mem_map.mp hprior
+    refine absurd hfresh ?_
+    rw [← hnew, ← hpriorInput]
+    exact hinv.1 prior hpriorMem
 
 end SlhDsaSecurity.CarrierRecordings
