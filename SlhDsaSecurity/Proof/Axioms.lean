@@ -237,6 +237,7 @@ import SlhDsaSecurity.Proof.CarrierCharge
 import SlhDsaSecurity.Proof.ViewRate
 import SlhDsaSecurity.Proof.CarrierOrdering
 import SlhDsaSecurity.Proof.CarrierCoverage
+import SlhDsaSecurity.Proof.CarrierShared
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15053,3 +15054,15 @@ info: 'SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage
+
+/-- info: 'SlhDsaSecurity.CarrierShared.prob_seed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierShared.prob_seed_le
+
+/-- info: 'SlhDsaSecurity.CarrierShared.sharedChargedLate_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierShared.sharedChargedLate_at
+
+/-- info: 'SlhDsaSecurity.CarrierShared.sharedChargedLate_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierShared.sharedChargedLate_clear
