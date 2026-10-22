@@ -297,6 +297,70 @@ theorem defects_le_six :
   refine ENNReal.div_le_div_right ?_ _
   exact Nat.cast_le.mpr (by norm_num)
 
+/-- **A defect proportional to the served requests, added to the four constant ones.** -/
+theorem defects_add_served_le (served : Nat) :
+    (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (served : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      ((6 + served : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  calc (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
+        (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (served : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+      ≤ ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (served : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by gcongr; exact defects_le_six
+    _ = _ := by rw [ENNReal.div_add_div_same, ← Nat.cast_add]
+
+/-! ## Two slacks
+
+The halves no longer spend the same room. Key generation's `2 ^ subtreeHeight` is reserved on
+both, but the signer's own hashing is reserved only where the record is counted, so the counts
+the two halves are measured against differ. What the allowance has to meet is unchanged in
+substance: the forgery's claimed cells and the defects together must fit inside the two reserves
+put together. -/
+
+/-- **The target, from two counts reserving different amounts and a defect allowance.** -/
+theorem le_target_of_two_slacks (queries inputSlack answerSlack extra defectUnits : Nat)
+    (hinput : inputSlack ≤ queries) (hanswer : answerSlack ≤ queries)
+    (hfits : extra + defectUnits ≤ inputSlack + answerSlack)
+    (defect : ℝ≥0∞)
+    (hdefect : defect ≤ (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    ((queries - inputSlack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((queries - answerSlack : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect ≤
+      (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+  have hsum : (queries - inputSlack + extra) + (queries - answerSlack) + defectUnits ≤
+      2 * queries := by omega
+  calc ((queries - inputSlack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((queries - answerSlack : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect
+      ≤ ((queries - inputSlack + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((queries - answerSlack : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by gcongr
+    _ = (((queries - inputSlack + extra) + (queries - answerSlack) + defectUnits : Nat) :
+          ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        rw [ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+        push_cast
+        ring_nf
+    _ ≤ ((2 * queries : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        ENNReal.div_le_div_right (Nat.cast_le.mpr hsum) _
+    _ = (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+        rw [show ((2 * queries : Nat) : ℝ≥0∞) = (queries : ℝ≥0∞) + (queries : ℝ≥0∞) from by
+          push_cast; ring, ← ENNReal.div_add_div_same, half_add_half]
+
+/-- **The accounting with the signer's spend reserved.** The forgery's two hundred and
+fifty-nine claimed cells and six constant defects, plus one defect unit per served request,
+against key generation's five hundred and twelve reserved on both halves and one more per
+served request reserved on the half that counts the record. -/
+theorem le_target_of_served (queries served : Nat) (hkeygen : 2 ^ subtreeHeight + served ≤ queries)
+    (defect : ℝ≥0∞)
+    (hdefect : defect ≤ ((6 + served : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    ((queries - (2 ^ subtreeHeight + served) + 259 : Nat) : ℝ≥0∞) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((queries - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect ≤
+      (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
+  refine le_target_of_two_slacks queries (2 ^ subtreeHeight + served) (2 ^ subtreeHeight) 259
+    (6 + served) hkeygen (by omega) ?_ defect hdefect
+  simp only [subtreeHeight]
+  omega
+
 /-- **The target, from the two counts and a defect allowance.** -/
 theorem le_target_of_counts (queries slack extra defectUnits : Nat)
     (hslack : slack ≤ queries) (hfits : extra + defectUnits ≤ 2 * slack)
