@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.RecordColumn
+import SlhDsaSecurity.Proof.CarrierDemand
 
 /-!
 # The target, with the record charge in the column it belongs to
@@ -804,5 +805,62 @@ theorem seedEvent_empty_of_prfClass_charge (adversary : Adversary) (bound : Nat)
   · intro pair hevent
     rw [recordPrfClass_eq_zero_of_not_recordMeets pair hevent]
     simp
+
+/-! ## Why the seed clause is charged at all, and whether the reduction needs it
+
+Every round so far has taken the clause as given and asked which count pays for it.
+`seedEvent_empty_of_prfClass_charge` shows that question has no good answer. The question left
+is whether the clause is **necessary** — whether a run on which the adversary has found the seed
+still yields the entry the reduction reads.
+
+**It does not, and the reason is structural rather than bookkeeping.** By
+`AnswerCarrier.not_narrowTarget_of_forgerySeedRandomised` and `CarrierDemand`'s in-flight
+branch, the clause is needed exactly where the forgery's digest input coincides with the
+**in-flight frame's own randomiser input** — `case_randomiser`'s conclusion, which forces both
+the published randomiser to be `SK.prf` and the served frame to be `bytesBE n PK.root ++` the
+forgery's. On such a view that input is kept by **neither** test:
+`HandlerCarrier.not_filesLeft_randomizerInput` keeps it out of the disclosing recording and
+`AnswerCarrier.not_carrierRightKeep_randomizerInput` out of the target one, which is
+`filed_nowhere_at_inflight_randomizer` below.
+
+So the forgery's digest input is in no recording, and the coverage clause — which charges per
+entry of the target recording — has nothing to read. The reduction does not merely lose a
+convenient hypothesis there; it loses the object it argues about.
+
+**And the exclusion is deliberate on both sides.** Neither test is being conservative: the
+signer's randomiser probe is kept out of the disclosing recording because the recorder's test
+compares against the frame in flight, and out of the target recording because
+`LateProvenance.hrecord` needs every target-recorded input to be a query the record holds, and
+the record holds the adversary's and the verifier's queries only. Admitting the probe to either
+side breaks a different argument. That is why the clause cannot simply be dropped.
+
+**Conclusion: the reduction genuinely breaks there.** The format identity
+`FramingLeak.randomizerInput_eq_messageInput` makes one byte string serve as both a `PRF_msg`
+input at the real seed and an `H_msg` input at the forgery's message, and on the runs where the
+adversary realises that coincidence the reduction has no recorded entry for the forgery. The
+cost is a bit of the theorem, for a structural reason and not a bookkeeping one.
+
+What remains open is the *size* of the event, which is narrower than `ForgerySeedRandomised`:
+it needs the signer to have served a request at that one derived frame. Nobody has charged that
+narrower event, and it is the only thing left that could change the number. -/
+
+/-- **At a view with a request in flight, the in-flight frame's randomiser input is kept by
+neither test.** So if the forgery's digest input coincides with it, the forgery is in no
+recording and the coverage clause has no entry to read. -/
+theorem filed_nowhere_at_inflight_randomizer
+    (walk : (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec))
+    (state : HandlerCarrier.State) (framed : Bytes)
+    (hframing : state.framing = some framed) :
+    ¬ CarriedWitness.disclosingKeep
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+        (Hashing.randomizerInput walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed framed)
+        state ∧
+      ¬ AnswerCarrier.carrierRightKeep walk
+        (Hashing.randomizerInput walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed framed)
+        state :=
+  ⟨HandlerCarrier.not_filesLeft_randomizerInput _ state walk.1.1.2.1 framed hframing,
+    AnswerCarrier.not_carrierRightKeep_randomizerInput walk state framed hframing⟩
 
 end SlhDsaSecurity.TargetColumn
