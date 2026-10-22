@@ -176,6 +176,7 @@ import SlhDsaSecurity.Proof.ServedLog
 import SlhDsaSecurity.Proof.SplitRecorder
 import SlhDsaSecurity.Proof.ServingCarrier
 import SlhDsaSecurity.Proof.AnswerJoin
+import SlhDsaSecurity.Proof.PhaseFusion
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8690,3 +8691,29 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_three' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_three
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.fuse_run' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.fuse_run
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.run_fuse' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.run_fuse
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.fuseServing_id' depends on axioms: [Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.fuseServing_id
+
+/-- info: 'SlhDsaSecurity.ServingCarrier.grows_of_framing' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.grows_of_framing
+
+/--
+info: 'SlhDsaSecurity.ServingCarrier.disclosedAt_eq_logDisclosed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingCarrier.disclosedAt_eq_logDisclosed
+
+/-- info: 'SlhDsaSecurity.PhaseFusion.run_phase_fused' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseFusion.run_phase_fused

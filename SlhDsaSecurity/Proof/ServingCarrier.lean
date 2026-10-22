@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.ServedDisclosure
+import SlhDsaSecurity.Proof.HonestProbes
 
 /-!
 # What a handler has to carry for disclosure to be served-indexed
@@ -38,7 +39,7 @@ open OracleComp OracleSpec
 
 namespace SlhDsaSecurity.ServingCarrier
 
-open CanonicalGraph
+open CanonicalGraph Security
 
 /-- What a handler carries: the cache, the digest inputs the signer has served, and the framing
 of the request it is serving. -/
@@ -63,8 +64,13 @@ noncomputable abbrev disclosedAt (state : Carrier) (key : ForsKey) :
 A handler sets the framing while it serves, files an input it recognises, and caches an answer.
 Each is monotone, which is all the charge above needs of them. -/
 
-/-- Growth of a carrier: entries persist and served inputs stay served. The framing is not part
-of it — it goes up and down, and disclosure does not read it. -/
+/-- Growth of a carrier, stated at **what it discloses** and not at its three components.
+
+That is not a stylistic choice. The step in which a request completes takes its framing out of
+flight, and a relation that fixed the framing component would fail at exactly that step — the
+step the whole notion exists for. So the relation says two things and neither mentions the
+framing: entries persist, and served inputs stay served. `grows_of_framing` is the visible form
+of that: *any* change of framing is growth. -/
 def Grows (left right : Carrier) : Prop :=
   (∀ (input : Bytes) (answer : HashOutput),
       left.cache input = some answer → right.cache input = some answer) ∧
@@ -97,11 +103,17 @@ def file (state : Carrier) (input : Bytes) : Carrier :=
 def cacheAnswer (state : Carrier) (input : Bytes) (answer : HashOutput) : Carrier :=
   { state with cache := state.cache.cacheQuery input answer }
 
+/-- **Any change of framing is growth.** The relation does not constrain the component, so the
+completing step — which takes a request out of flight — is growth like every other. A
+componentwise relation would be false here, and this is the lemma that says so. -/
+theorem grows_of_framing (state : Carrier) (framing : Option Bytes) :
+    Grows state { state with framing := framing } := Grows.refl state
+
 theorem grows_setFraming (state : Carrier) (framed : Bytes) :
-    Grows state (setFraming state framed) := Grows.refl state
+    Grows state (setFraming state framed) := grows_of_framing state (some framed)
 
 theorem grows_clearFraming (state : Carrier) : Grows state (clearFraming state) :=
-  Grows.refl state
+  grows_of_framing state none
 
 theorem grows_file (state : Carrier) (input : Bytes) : Grows state (file state input) :=
   ⟨fun _ _ h => h, fun probe hprobe => Multiset.mem_cons_of_mem hprobe⟩
@@ -180,5 +192,41 @@ theorem framed_of_filesLeft (pk : PublicKey) (state : Carrier) (input : Bytes)
       input = Hashing.messageInput randomizer pk framed := by
   obtain ⟨-, framed, hframing, randomizer, hinput⟩ := hfiles
   exact ⟨framed, randomizer, hframing, hinput⟩
+
+/-! ## The carrier and the trace must agree
+
+The entries a probe is paired with carry whatever availability is read from, so they carry a
+carrier; the event `RoutedSplit.InputBad` reads disclosure at the trace, whose record of what was
+served is the **log**. Those are two objects and the instantiation needs them to be one. At the
+end of a run they are: every completed request is logged and nothing is in flight. Stating it
+here, where both sides can see it, is what keeps that from surfacing at the join.
+-/
+
+/-- The digest inputs a signing log names, each read at the cache the randomiser is replayed
+from. -/
+def logServed (sk : SecretKey) (cache : QueryCache HashSpec) (signed : SigningLog)
+    (input : Bytes) : Prop :=
+  ∃ entry ∈ signed, ∃ framed : Bytes, entry.1.frame = some framed ∧
+    input = Hashing.messageInput (HonestProbes.replayRandomizer cache sk framed)
+      sk.publicKey framed
+
+/-- **What a run must leave true**: the carrier served exactly what the log names. -/
+def AgreesWithLog (sk : SecretKey) (signed : SigningLog) (state : Carrier) : Prop :=
+  ∀ input : Bytes, Served state input ↔ logServed sk state.cache signed input
+
+/-- **Under agreement the two readings of disclosure are one `Finset`.** This is what lets the
+entries and the event be instantiated at the same object. -/
+theorem disclosedAt_eq_logDisclosed (sk : SecretKey) (signed : SigningLog) (state : Carrier)
+    (hagree : AgreesWithLog sk signed state) (key : ForsKey) :
+    disclosedAt state key =
+      ServedDisclosure.servedAt (fun cache => logServed sk cache signed) id state.cache key := by
+  classical
+  refine Finset.ext fun index => ?_
+  rw [ServedDisclosure.mem_servedAt, ServedDisclosure.mem_servedAt]
+  constructor
+  · rintro ⟨input, answer, hserved, hcache, hkey, tree, htree⟩
+    exact ⟨input, answer, (hagree input).mp hserved, hcache, hkey, tree, htree⟩
+  · rintro ⟨input, answer, hlog, hcache, hkey, tree, htree⟩
+    exact ⟨input, answer, (hagree input).mpr hlog, hcache, hkey, tree, htree⟩
 
 end SlhDsaSecurity.ServingCarrier
