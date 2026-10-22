@@ -305,4 +305,104 @@ theorem card_parts_weighed_le_record (pair : SharedJoin.RecordedPair)
     rw [hweighed, recordPrfClass_eq_zero_of_not_recordMeets pair hmeets]
     simpa using SharedJoin.card_parts_le_record pair
 
+/-! ## The shared half at the weighed count, so the indicator step has somewhere to land
+
+`RecordColumn.sharedChargedLate_of_parts_record_at` charges the ordering column on every run and
+therefore needs the three parts to fit twice. This is the same assembly with the middle disjunct
+narrowed to `Ordering ∧ ¬ seedEvent` and charged at `weighedMessageClass`, which
+`card_parts_weighed_le_record` makes fit **once**.
+
+The narrowing is free at the cover: a run with both `Ordering` and the seed event falls to the
+seed disjunct, which is the partition stated as a case split rather than as a count.
+
+`hordering` is the step routed to `LateProbes`' owner and is a hypothesis here. Stating it at
+this shape is the point — when that step lands it meets this by `exact`, and if the shapes
+differ that is the seam to fix before either side is built on. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The shared obligation with both columns charged where they are owed.** The middle term is
+read only on runs the seed branch does not already pay for, so `hparts` is at one record's
+worth. -/
+theorem sharedChargedLate_weighed_at (fused : LateProbes.FusedTail)
+    (claims : Nat) (late seedEvent : LateProbes.SplitPair → Prop)
+    (hclaims : 259 ≤ claims)
+    (hlate : ∀ pair : LateProbes.SplitPair, late pair →
+      LateProbes.Ordering pair ∨ seedEvent pair)
+    (hordering : ∀ adversary : Adversary,
+      Pr[fun pair : LateProbes.SplitPair =>
+          GoodWalk pair.1 ∧ LateProbes.Ordering pair ∧ ¬ seedEvent pair |
+          LateProbes.pairedOf fused adversary] ≤
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair => weighedMessageClass (LateProbes.forgetRecordings pair)) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      SharedAssembly.InputBulletAt fused adversary LateProbes.Ordering)
+    (hrecord : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧ seedEvent pair |
+          LateProbes.pairedOf fused adversary] ≤
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hparts : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair => weighedMessageClass (LateProbes.forgetRecordings pair)) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair))) ≤
+        ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞)) :
+    Obligations.SharedChargedLate claims fused FinalAssembly.forgetFused late := by
+  classical
+  intro q adversary _ hbudget
+  have hordering := hordering adversary
+  refine le_trans (probEvent_mono (q := fun pair : LateProbes.SplitPair =>
+    (GoodWalk pair.1 ∧ RoutedSplit.InputBad (SharedAssembly.splitTraceOf pair) ∧
+        ¬ LateProbes.Ordering pair) ∨
+      ((GoodWalk pair.1 ∧ LateProbes.Ordering pair ∧ ¬ seedEvent pair) ∨
+        (GoodWalk pair.1 ∧ seedEvent pair))) ?_) ?_
+  · rintro pair - ⟨hgood, hshared | hlatePair⟩
+    · rcases SharedJoin.cover_of_em
+        (fun pair : LateProbes.SplitPair =>
+          RoutedSplit.InputBad (SharedAssembly.splitTraceOf pair))
+        LateProbes.Ordering pair hshared with hin | hord
+      · exact Or.inl ⟨hgood, hin⟩
+      · by_cases hseed : seedEvent pair
+        · exact Or.inr (Or.inr ⟨hgood, hseed⟩)
+        · exact Or.inr (Or.inl ⟨hgood, hord, hseed⟩)
+    · rcases hlate pair hlatePair with hord | hseeded
+      · by_cases hseed : seedEvent pair
+        · exact Or.inr (Or.inr ⟨hgood, hseed⟩)
+        · exact Or.inr (Or.inl ⟨hgood, hord, hseed⟩)
+      · exact Or.inr (Or.inr ⟨hgood, hseeded⟩)
+  refine le_trans (probEvent_or_le _ _ _) ?_
+  refine le_trans (add_le_add (hinput q adversary hbudget)
+    (le_trans (probEvent_or_le _ _ _)
+      (add_le_add hordering (hrecord q adversary hbudget)))) ?_
+  rw [← add_assoc, ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+  refine ENNReal.div_le_div_right ?_ _
+  calc (ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+        ((259 : Nat) : ℝ≥0∞) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair => weighedMessageClass (LateProbes.forgetRecordings pair))) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair)))
+      = (ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+          ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair => weighedMessageClass (LateProbes.forgetRecordings pair)) +
+          ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (RecordColumn.recordPrfClass (LateProbes.forgetRecordings pair)))) +
+          ((259 : Nat) : ℝ≥0∞) := by ring
+    _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((claims : Nat) : ℝ≥0∞) :=
+        add_le_add (hparts q adversary hbudget) (Nat.cast_le.mpr hclaims)
+    _ = ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
+
 end SlhDsaSecurity.TargetColumn
