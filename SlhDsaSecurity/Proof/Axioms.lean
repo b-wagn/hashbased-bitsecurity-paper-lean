@@ -16133,3 +16133,31 @@ info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets' depends 
 /-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerEvent.prob_event_eq
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_start' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_start
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.step_leftServed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.step_leftServed
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_startServingOn' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_startServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_stopServingOn' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_stopServingOn
+
+/-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.leftServed_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail
