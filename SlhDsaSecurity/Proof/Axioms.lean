@@ -7852,45 +7852,45 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le'
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.fired_iff_lateDisclosure
 
-/-- info: 'SlhDsaSecurity.LateRate.run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.run_inl
+#print axioms SlhDsaSecurity.LateRate.Served.run_inl
 
-/-- info: 'SlhDsaSecurity.LateRate.run_inl_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.run_inl_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.run_inl_mass
+#print axioms SlhDsaSecurity.LateRate.Served.run_inl_mass
 
-/-- info: 'SlhDsaSecurity.LateRate.run_inr_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.run_inr_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.run_inr_cached
+#print axioms SlhDsaSecurity.LateRate.Served.run_inr_cached
 
-/-- info: 'SlhDsaSecurity.LateRate.run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.run_inr_fresh
+#print axioms SlhDsaSecurity.LateRate.Served.run_inr_fresh
 
-/-- info: 'SlhDsaSecurity.LateRate.run_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.run_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.run_mass
+#print axioms SlhDsaSecurity.LateRate.Served.run_mass
 
-/-- info: 'SlhDsaSecurity.LateRate.gauge_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.gauge_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.gauge_stepOf
+#print axioms SlhDsaSecurity.LateRate.Served.gauge_stepOf
 
-/-- info: 'SlhDsaSecurity.LateRate.gauge_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.gauge_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.gauge_run
+#print axioms SlhDsaSecurity.LateRate.Served.gauge_run
 
 /-- info: 'SlhDsaSecurity.LateRate.becomesSpent_of_spent' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.becomesSpent_of_spent
 
-/-- info: 'SlhDsaSecurity.LateRate.potential_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.potential_split' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.potential_split
+#print axioms SlhDsaSecurity.LateRate.Served.potential_split
 
-/-- info: 'SlhDsaSecurity.LateRate.potential_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.potential_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.potential_stepOf
+#print axioms SlhDsaSecurity.LateRate.Served.potential_stepOf
 
 /-- info: 'SlhDsaSecurity.LateRate.rate_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -7900,9 +7900,15 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le'
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.rate_le3
 
-/-- info: 'SlhDsaSecurity.LateRate.step_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.LateRate.Served.step_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.LateRate.step_bound
+#print axioms SlhDsaSecurity.LateRate.Served.step_bound
+
+/--
+info: 'SlhDsaSecurity.LateRate.Served.prob_fired_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LateRate.Served.prob_fired_le
 
 /-- info: 'SlhDsaSecurity.LateRate.prob_lateDisclosure_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
