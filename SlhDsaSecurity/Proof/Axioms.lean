@@ -196,6 +196,7 @@ import SlhDsaSecurity.Proof.RecordedChain
 import SlhDsaSecurity.Proof.InputBullet
 import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.HonestLinked
+import SlhDsaSecurity.Proof.TouchedKeys
 import SlhDsaSecurity.Proof.FinalAssembly
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
@@ -12499,3 +12500,19 @@ info: 'SlhDsaSecurity.ServedAgreement.not_served_lazyProgram_run' depends on axi
 /-- info: 'SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestLinked.honestAfterSeeds_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.honestKeys_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.honestKeys_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.keysOf_eq
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.keysOf_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.keysOf_congr
+
+/-- info: 'SlhDsaSecurity.TouchedKeys.touched_honestLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TouchedKeys.touched_honestLinked
