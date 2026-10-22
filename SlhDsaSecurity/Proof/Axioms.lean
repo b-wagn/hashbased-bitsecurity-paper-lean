@@ -253,6 +253,7 @@ import SlhDsaSecurity.Proof.CarrierSplit
 import SlhDsaSecurity.Proof.RecordSlot
 import SlhDsaSecurity.Proof.CarrierCap
 import SlhDsaSecurity.Proof.CarrierLeftRecord
+import SlhDsaSecurity.Proof.AnswerCarrierBound
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15967,3 +15968,23 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundExtra_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.answerBoundExtra_splitTail
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrierBound.not_isMessageInput_of_canonicalBad' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrierBound.not_isMessageInput_of_canonicalBad
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier

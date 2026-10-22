@@ -4853,3 +4853,35 @@ the file, plus the `constructorNameAsVariable` linter off for the statements tha
 Same shape as the `answerCarrierRun` boundary: **make the object opaque at the point where
 nothing below has to see through it**, and the timeouts are a symptom of the object's size
 rather than of any name in the statement.
+## The answer half, composed
+
+`AnswerCarrierBound.answerBound_carrier` is the answer half's bound at
+`SplitTail.splitCarrierTail`: `q / 2 ^ 128 + 2 ^ -141`, with nothing assumed but the walk's
+support and goodness, the budget, the key's non-separation, the walk's freshness on the message
+class, and the two served-class facts about the recordings that the `hsplit` thread owns. Every
+charge under it is proved: the structural one at the outside slot, the coverage one at the
+inside slot, `hshare`, the work bound, both recording bounds and the disclosing cap.
+
+**The split is three-way, so the bound is on the event with the residue excluded.**
+`CarrierSplit.hsplit_splitCarrierTail` sends the charged event to the two charges *or*
+`SplitWitness.SeedRandomised`. The answer half does not pay for that clause and cannot: a
+two-clause split is unavailable for the reason the seed conjunct was — the exceptional runs are
+in the support and `hsplit` is pathwise. So it is conjoined to the event and charged on the
+shared side, which is where the earlier leftover went too. `answerBoundExtra_splitTail` is the
+composition that takes a residue, and `answerBound_splitTail` is its instance at none.
+
+**The class the counter splits at is the message class**, and the two facts naming it are
+`AnswerCarrier.carrierRightKeep_class` (the target test inside it) and
+`not_isMessageInput_of_canonicalBad` (the structural clause outside it). The second is
+`AnswerSide.prob_canonicalBad_message_eq_zero` read **pathwise** rather than as a rate: same two
+lines, same ingredient — on a message input the canonical target is `none`, so there is nothing
+for an answer to hit — but the composition needs it per run, because `hsplit` is per run and a
+rate cannot be conjoined to an event.
+
+**One hypothesis had to be narrowed before it could be supplied.** `rightRecord_le_of_budget_splitTail`
+quantified its class hypothesis over *all* walks, because the walk was bound after it in the
+signature. At the call site `inClass` is the message class **at this walk's key**, so the
+general form is not merely inconvenient — it is unprovable. Moving the walk's binder ahead of
+the hypothesis fixed it. That is the same family as carrying a hypothesis that is not needed:
+**a hypothesis quantified over more than the lemma uses is a hypothesis no call site can
+supply**, and the binder order is what decides it.
