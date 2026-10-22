@@ -7160,3 +7160,45 @@ info: 'SlhDsaSecurity.TapeFactor.probEvent_length_set' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TapeFactor.probEvent_length_set
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.evalDist_padding_set' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.evalDist_padding_set
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.eq_of_getElem?_set' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.eq_of_getElem?_set
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.probEvent_const_and' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.probEvent_const_and
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.prob_selected_hit_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.prob_selected_hit_le
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.sum_tsum_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.sum_tsum_comm
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.sum_prob_selected_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.sum_prob_selected_le_expected
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.prob_exists_hit_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.prob_exists_hit_le_expected
