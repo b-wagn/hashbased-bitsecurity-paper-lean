@@ -435,4 +435,73 @@ theorem prob_answerBad_le_of_classes (adversary : Adversary) (q qs qm : Nat)
   refine le_trans (prob_answerBad_good_le adversary qs qm hqm hwalk hgood hinside houtside)
     (add_le_add (ENNReal.div_le_div_right (Nat.cast_le.mpr hsum) _) le_add_self)
 
+/-! ## The answer side at a good walk, with the coverage charge closed
+
+`prob_answerBad_le_of_caps` is read at a key fixed before the tail runs;
+`Obligations.AnswerCharged` is read at the key the run's own cache generates, on a walk that is
+no coincidence, against the experiment's budget. The three steps between are the ones the older
+chain already takes — the generated key is the walk's own (`generatedKey_eq_walk`), the walk's
+own coincidence is the key's (`not_possible_generatedKey`), and the budget bounds the tail's
+count (`WarmedCharges.count_le_of_budget_tail`) — so this is that chain with the coverage
+hypothesis gone.
+
+The `2 ^ -126` the target allows is not spent. It is the target's own defect allowance and
+nothing on this route needs it; it is left in rather than tightened away. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The answer side at a good walk**, with the coverage charge closed and the narrowing's
+leftover still visible. -/
+theorem prob_answerBad_good_le_of_caps (adversary : Adversary) (q : Nat)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk)
+    (hgood : ¬ HashSeparation.Possible
+      (walk.1.1.2.2, walk.1.2 (.structural WalkDefects.topNode)))
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hlate : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.targetKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+      ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+        ((result.1.1, result.1.2 inside + result.1.2 outside), result.2))
+    (hleftBound : ∀ result ∈ support (BlockViews.recordedRun
+        (SplitWitness.disclosingKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (SplitWitness.targetKeep walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
+          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
+      result.2.2.1.length ≤ leftLength) :
+    Pr[fun result => RoutedSplit.AnswerBad ((walk.1, result.1), result.2) ∧
+        ¬ SplitWitness.SeedRandomised walk.1.1.2.1
+          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result.2 |
+      tail adversary walk] ≤
+      (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+          (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+  have hpublic := not_possible_generatedKey hwalk hgood
+  have hcharge := prob_answerBad_le_of_caps adversary
+    (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) hne hwalk hpublic
+    (fun input hmessage => CombinedCharge.separated_of_not_possible walk.1.1.2.2
+      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) walk.1.2 hpublic
+      withinBounds_structural input hmessage)
+    leftLength hcap hlate hleftBound q
+    (fun result hresult => WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult)
+  refine le_trans (le_trans (probEvent_mono ?_) hcharge) ?_
+  · rintro result hresult ⟨hbad, hseed⟩
+    refine ⟨?_, hseed⟩
+    rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
+      generatedKey_eq_walk adversary hwalk hresult] at hbad
+    exact hbad
+  · refine add_le_add le_rfl ?_
+    rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
+    exact le_add_self
+
 end SlhDsaSecurity.AnswerSide

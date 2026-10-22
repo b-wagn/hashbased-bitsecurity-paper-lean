@@ -8494,3 +8494,9 @@ info: 'SlhDsaSecurity.CacheProvenance.sign_digest_cached' depends on axioms: [pr
 /-- info: 'SlhDsaSecurity.ServedDisclosure.closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedDisclosure.closed
+
+/--
+info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerSide.prob_answerBad_good_le_of_caps
