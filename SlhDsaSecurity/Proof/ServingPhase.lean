@@ -146,4 +146,55 @@ theorem not_filesLeft_adversary (pk : PublicKey)
     ¬ HandlerCarrier.FilesLeft pk state.2.2.1 input :=
   HandlerCarrier.not_filesLeft_of_clear pk state.2.2.1 hclear input
 
+/-! ## The other half, and what it retires
+
+The ordering defect needs one fact beyond the blindness above: **no target-recorded input is a
+served request's own digest input.** At a cache-readable disclosing test that fact is an ordering
+statement — the signer asks for its randomiser before its digest, so the randomiser's answer is
+cached by the time the digest query is made — and nothing reports what the cache holds partway
+through a sub-run, which is why it has stood as a hypothesis.
+
+At the carrier's test there is no ordering to establish and no cache to consult. The bracket sets
+the framing before the sub-run, `servingProgram_framing` never writes it, and the signer's digest
+input is `Hashing.messageInput _ pk message` for the very `message` the framing names, by
+`HonestProbes.probes_sign`. So the test holds at the state the query is made from, for the
+state's own reason. -/
+
+theorem framing_startServing (request : Message) (message : Bytes)
+    (hframe : request.frame = some message) (state : HandlerState) :
+    (startServing request state).1.framing = some message := by
+  rw [startServing, hframe]
+  exact HandlerCarrier.framing_setFraming state.1 message
+
+open scoped Classical in
+/-- **The framing stays the request's own for the whole of the signer's sub-run**, so it names
+that request at every query the signer makes, not only at the two ends. -/
+theorem framing_serving_run (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (request : Message) (message : Bytes) (hframe : request.frame = some message)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : HandlerState)
+    (z : α × HandlerState)
+    (hz : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+      computation).run (startServing request state))) :
+    z.2.1.framing = some message := by
+  rw [servingProgram_run_framing publicSeed pk availableAt table computation
+    (startServing request state) z hz]
+  exact framing_startServing request message hframe state
+
+/-- **The signer's own digest query meets the carrier's left test at the state it is made from.**
+The flag is the whole of it: the input's shape comes from the request the framing names, and no
+entry of the cache is read. This is the fact the ordering defect's remaining hypothesis asks
+for, with the ordering gone. -/
+theorem filesLeft_signer_digest (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (request : Message) (message : Bytes) (hframe : request.frame = some message)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : HandlerState)
+    (z : α × HandlerState)
+    (hz : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+      computation).run (startServing request state)))
+    (randomizer : Digest) :
+    HandlerCarrier.FilesLeft pk z.2.1 (Hashing.messageInput randomizer pk message) :=
+  ⟨message, framing_serving_run publicSeed pk availableAt table request message hframe
+    computation state z hz, randomizer, rfl⟩
+
 end SlhDsaSecurity.ServingPhase

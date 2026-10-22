@@ -11101,6 +11101,22 @@ info: 'SlhDsaSecurity.ServingPhase.framing_clear_run' depends on axioms: [propex
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingPhase.not_filesLeft_adversary
 
+/-- info: 'SlhDsaSecurity.ServingPhase.framing_startServing' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingPhase.framing_startServing
+
+/--
+info: 'SlhDsaSecurity.ServingPhase.framing_serving_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingPhase.framing_serving_run
+
+/--
+info: 'SlhDsaSecurity.ServingPhase.filesLeft_signer_digest' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingPhase.filesLeft_signer_digest
+
 /--
 info: 'SlhDsaSecurity.FusedGame.run_afterSeeds_split' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
