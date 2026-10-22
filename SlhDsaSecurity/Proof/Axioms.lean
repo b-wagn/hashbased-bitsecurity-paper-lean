@@ -16088,3 +16088,7 @@ info: 'SlhDsaSecurity.CarrierServedLog.carrierBelowLog_of_invariants' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierServedLog.carrierBelowLog_of_invariants
+
+/-- info: 'SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled

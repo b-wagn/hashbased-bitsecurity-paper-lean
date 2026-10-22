@@ -457,4 +457,108 @@ theorem card_prf_le_indicator_record (pair : SharedJoin.RecordedPair) :
   · rw [if_neg hmeets, recordPrfClass_eq_zero_of_not_recordMeets pair hmeets]
     simp
 
+/-! ## The shared half at the count the blind charge gives
+
+`hrecord` restated: the seed event is charged against the **whole** record, which is what
+`RecordPrfCharge.prob_recordMeetsPrfClass_blind` produces — `card` guesses from `card` inputs —
+rather than against the `PRF_msg` part, which cannot pay it.
+
+**The corrected hypothesis does not fit `Obligations.SharedChargedLate`**, and that is the whole
+content of this section. Its bound is `(q - 2 ^ subtreeHeight + claims) / 2 ^ 128`, one record's
+worth; the three charges now sum to `expected aiming + 259 + expected messageClass +
+expected record`, and `aiming` is a part of the record, so the sum reaches **two** records'
+worth. So the statement below concludes at the doubled bound with the number written out, rather
+than at an obligation whose constant it cannot meet.
+
+That is a lemma with an explicit bound and **not** a ledger line: nothing here restates
+`Obligations`, `Target` or any top, and `HasTotalSecurityBits` does not appear. Composing this
+to `126` is one arithmetic step — `nat_line_doubled` and `three_q_le_126`, both above — and it is
+deliberately not taken here. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The shared side's event, at the doubled line and the honest count.** -/
+theorem prob_sharedBad_le_doubled (fused : LateProbes.FusedTail)
+    (claims : Nat) (late seedEvent : LateProbes.SplitPair → Prop)
+    (hclaims : 259 ≤ claims)
+    (hlate : ∀ pair : LateProbes.SplitPair, late pair →
+      LateProbes.Ordering pair ∨ seedEvent pair)
+    (hordering : ∀ adversary : Adversary,
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧ LateProbes.Ordering pair |
+          LateProbes.pairedOf fused adversary] ≤
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      SharedAssembly.InputBulletAt fused adversary LateProbes.Ordering)
+    (hrecord : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧ seedEvent pair |
+          LateProbes.pairedOf fused adversary] ≤
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordOf (LateProbes.forgetRecordings pair))) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hparts : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordOf (LateProbes.forgetRecordings pair))) ≤
+        ((2 * (q - 2 ^ subtreeHeight) : Nat) : ℝ≥0∞)) :
+    ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[fun pair : LateProbes.SplitPair => GoodWalk pair.1 ∧
+          (RoutedSplit.InputBad (SharedAssembly.splitTraceOf pair) ∨ late pair) |
+        LateProbes.pairedOf fused adversary] ≤
+        ((2 * (q - 2 ^ subtreeHeight) + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  intro q adversary _ hbudget
+  have hordering := hordering adversary
+  refine le_trans (probEvent_mono (q := fun pair : LateProbes.SplitPair =>
+    (GoodWalk pair.1 ∧ RoutedSplit.InputBad (SharedAssembly.splitTraceOf pair) ∧
+        ¬ LateProbes.Ordering pair) ∨
+      ((GoodWalk pair.1 ∧ LateProbes.Ordering pair) ∨
+        (GoodWalk pair.1 ∧ seedEvent pair))) ?_) ?_
+  · rintro pair - ⟨hgood, hshared | hlatePair⟩
+    · exact (SharedJoin.cover_of_em
+        (fun pair : LateProbes.SplitPair =>
+          RoutedSplit.InputBad (SharedAssembly.splitTraceOf pair))
+        LateProbes.Ordering pair hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord =>
+          Or.inl ⟨hgood, hord⟩
+    · exact Or.inr ((hlate pair hlatePair).imp (fun hord => ⟨hgood, hord⟩)
+        fun hseeded => ⟨hgood, hseeded⟩)
+  refine le_trans (probEvent_or_le _ _ _) ?_
+  refine le_trans (add_le_add (hinput q adversary hbudget)
+    (le_trans (probEvent_or_le _ _ _)
+      (add_le_add hordering (hrecord q adversary hbudget)))) ?_
+  rw [← add_assoc, ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+  refine ENNReal.div_le_div_right ?_ _
+  calc (ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+        ((259 : Nat) : ℝ≥0∞) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair)))) +
+        ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+          (fun pair =>
+            Multiset.card (SharedJoin.recordOf (LateProbes.forgetRecordings pair)))
+      = (ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordAiming (LateProbes.forgetRecordings pair))) +
+          ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card
+                (SharedJoin.recordMessageClass (LateProbes.forgetRecordings pair))) +
+          ClassExpectation.expected (LateProbes.pairedOf fused adversary)
+            (fun pair =>
+              Multiset.card (SharedJoin.recordOf (LateProbes.forgetRecordings pair)))) +
+          ((259 : Nat) : ℝ≥0∞) := by ring
+    _ ≤ ((2 * (q - 2 ^ subtreeHeight) : Nat) : ℝ≥0∞) + ((claims : Nat) : ℝ≥0∞) :=
+        add_le_add (hparts q adversary hbudget) (Nat.cast_le.mpr hclaims)
+    _ = ((2 * (q - 2 ^ subtreeHeight) + claims : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
+
 end SlhDsaSecurity.TargetColumn
