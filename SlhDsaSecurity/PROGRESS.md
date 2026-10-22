@@ -4140,6 +4140,24 @@ Nothing was lost: the file was restored from HEAD and the duplicate draft left i
 The duplication itself was the second signal — the thread discovered the collision by
 independently re-deriving a result that was already proved in the file it had overwritten.
 
+## Two experiments, twenty lines apart
+
+`HasBudget` is the **verifier-counted** experiment: key generation and signing are free, and
+`counts.work` excludes them. `HasTotalBudget` charges **every** hash call in the game — keygen,
+signing, the adversary's, and verification — and caps signing requests *separately* at
+`signingLimit`. `HasSecurityBits` is stated against the first; **`HasTotalSecurityBits`, the
+target, is stated against the second.**
+
+A thread reasoned that an adversary with `q = 1` still gets `2 ^ 64` signing queries, concluded
+the format leak is not gated by a `q`-priced guess, and reversed a correct instinct on that
+basis. The fact is true — of the *other* experiment. `FramingLeak`'s header says *"the signing
+query is free: it is not charged to `q`"*, which is true there and **false here**, and it had
+been relayed twice without anyone checking which experiment it was about.
+
+> When a statement file holds two experiments with the same shape, a fact about "the budget" is
+> a fact about **one** of them. Check which before quoting it, and qualify it where it is
+> written.
+
 ## A proof that proves more than its statement says
 
 A counting fact was reported missing, correctly as far as the *stated* lemmas go: the one that
