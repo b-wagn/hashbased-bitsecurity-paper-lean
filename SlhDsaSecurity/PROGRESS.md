@@ -3004,23 +3004,33 @@ assembly must close `(q - 512 + 259) + q + 6 ≤ 2 * q` — `Assembly.le_target_
 constants have `512 - 265 = 247` units spare. (`Target.lean`'s own docstring says the margin is
 `759`; that belongs to `le_target_of_counts`, which `allowance` does not call. The figure is 247.)
 
-Hence the rule: **a charge against a single published object is a constant and can be paid; a
-charge against the query set scales with `q` and cannot be.** Two leftovers that read almost the
-same sat on opposite sides of it.
+Hence the first half of the rule, which holds: **a charge quantified over the query set scales
+with `q` and cannot be paid at all.** Two leftovers that read almost the same sit on opposite
+sides of *statability*.
 
 * `SplitWitness.SeedRandomised` — *some* cached message input has `SK.prf` for its randomiser.
-  One unit per query. Unpayable.
+  Quantified over the whole cache, so it cannot leave the answer side without a `q`-shaped
+  charge. Unpayable, and not movable either.
 * `AnswerCoverage.ForgerySeedRandomised` — the **forgery's** published randomiser is `SK.prf`.
-  The forgery is one object, so one guess at a secret the signer never publishes. One unit.
+  One object, so it *can* be moved to the paired run and charged there as `seedUnits`.
+
+**The second half of the rule, as I first wrote it, was wrong, and the correction is the entry
+above this one.** I said a charge against a single published object *is* a constant. It is not:
+`ObligationShapes.publishedRandomizer_eq_truncate` makes the seed testable one candidate per
+query, so `seedUnits` is `q`-shaped and is deliberately left a parameter. Naming one object buys
+**statability at the averaged run**, not a constant. Counting the adversary's outputs is not
+counting its chances — a guess is a constant only when a wrong guess cannot be told from a right
+one.
 
 `SplitWitness.mem_records_of_covered` only ever needed the narrowing at the forgery's digest, so
 the second is what the argument actually uses and the first was an artefact of stating it over
 the cache. Narrowing it is the same repair as the weakened cover, not a second one.
 
 The corollary a reviewer can apply without the arithmetic: **before asking how tight a leftover's
-bound is, ask what it is quantified over.** A leftover quantified over the run's queries is dead
-on arrival whatever the constant in front of it, and no amount of sharpening moves it — while one
-quantified over the adversary's single output is almost certainly affordable.
+bound is, ask what it is quantified over, and then whether what it names is testable.** A
+leftover quantified over the run's queries is dead on arrival whatever the constant in front of
+it. One quantified over the adversary's single output can at least be moved to where the
+randomness lives — which is necessary, and, as this entry had to learn, not sufficient.
 
 ## And the same test condemns the disclosing cap
 

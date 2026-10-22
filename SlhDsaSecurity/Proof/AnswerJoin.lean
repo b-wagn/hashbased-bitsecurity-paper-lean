@@ -281,12 +281,18 @@ theorem answerRecordedBound_of_parts {inside outside : QueryKind} (hne : inside 
 where it has none. The repair is the one `hlate` already had: make it a **conjunct** and let the
 shared half charge the complement where the seed is still random.
 
-What makes that affordable here and not for the disclosing cap is what the event is indexed by.
-`SplitWitness.SeedRandomised` ranges over the whole cache, so its complement costs one unit per
-query, and the ledger's `q` coefficient is exactly two with both units spent.
-`AnswerCoverage.ForgerySeedRandomised` names the **forgery's** published randomiser, and the
-forgery is one object — one guess at a 128-bit secret the signer never publishes, hence one
-constant, against 247 spare.
+What makes that statable here and not for the disclosing cap is what the event is quantified over.
+`SplitWitness.SeedRandomised` ranges over the whole cache, so it cannot leave this side at all
+without a `q`-shaped charge, and the ledger's `q` coefficient is exactly two with both units
+spent. `AnswerCoverage.ForgerySeedRandomised` names the **forgery's** published randomiser — one
+object — so it can be moved to the paired run, where the seed is still random and the charge is
+`ObligationShapes.sharedChargedLate_of_parts`' `seedUnits`, taken out of the shared side's claims.
+
+**`seedUnits` is not `1`.** An earlier version of this paragraph said the forgery's randomiser was
+one guess at a secret the signer never publishes;
+`ObligationShapes.publishedRandomizer_eq_truncate` refutes that — the published randomiser is
+`Hashing.truncate` of the answer at the seed's own `PRF_msg` input, so a single signing request
+makes the secret testable one candidate per query.
 
 The bound is unchanged to the digit, including the `2 ^ -126` this side still does not spend; it
 is stated so that the restated `Obligations.AnswerChargedLate` consumes it without an adapter. -/
@@ -372,7 +378,15 @@ is a rewrite of the other:
   to the digit, with the `2 ^ -126` unspent.
 
 When the clause goes, the second is what the assembly instantiates. If the two ever disagree
-about anything but the class, the second stops elaborating. -/
+about anything but the class, the second stops elaborating.
+
+**The disclosing cap is a parameter for the same reason.** `CarrierFiles.leftRecord_length_le_cap`
+concludes at `5 * 2 ^ 62` — the concentration's own cap — and `signingLimit = 2 ^ 64` is
+*smaller*, so a hypothesis hard-wired to `signingLimit` could **not** be discharged from it:
+there is no `le_trans` in that direction. Taking `leftLength` free, with the concentration's cap
+as the side condition, lets the carrier's own lemma land by `exact`, and `signingLimit` with
+`ForsLeaveOneOut.signingLimit_le_tapeBound` is still available for a caller that has the log
+length instead. -/
 
 /-- The recorded run at a target class left free. At `SplitWitness.narrowClass` it is
 `answerRecordedRun`, definitionally. -/
@@ -398,6 +412,7 @@ set_option maxHeartbeats 1000000 in
 theorem answerRecordedBound_class_of_parts
     (narrow : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes → Prop)
     {inside outside : QueryKind} (hne : inside ≠ outside)
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
     (hrightClass : ∀ (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec)
       (input : Bytes), narrow walk input → CombinedCharge.IsMessageInput
         (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input)
@@ -430,7 +445,7 @@ theorem answerRecordedBound_class_of_parts
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
           inside outside) (afterSeeds adversary walk.1.1)) walk.2),
-        result.2.2.1.length ≤ signingLimit)
+        result.2.2.1.length ≤ leftLength)
     (hdisclosing : ∀ (adversary : Adversary)
       (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
       walk ∈ support graphWalk → GoodWalk walk →
@@ -456,7 +471,7 @@ theorem answerRecordedBound_class_of_parts
   classical
   intro q adversary _ hbudget walk hwalk hgood
   refine le_trans (prob_answerBad_good_le_of_caps_recorded_class adversary q (narrow walk) hne hbudget
-    hwalk hgood.2 (hrightClass walk) signingLimit ForsLeaveOneOut.signingLimit_le_tapeBound
+    hwalk hgood.2 (hrightClass walk) leftLength hcap
     (hcover adversary walk hwalk hgood) (hleftBound adversary walk hwalk hgood)
     (hdisclosing adversary walk hwalk hgood)) ?_
   rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
@@ -468,6 +483,7 @@ set_option maxHeartbeats 1000000 in
 is `AnswerCoverage.narrowTarget_messageClass`, which holds of every result, so the conjunct drops
 and the event is the obligation's own. This is what the clause's retirement instantiates. -/
 theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
+    (leftLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
     (hcover : ∀ (adversary : Adversary)
       (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
       walk ∈ support graphWalk → GoodWalk walk →
@@ -502,7 +518,7 @@ theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : in
         (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
             (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
           inside outside) (afterSeeds adversary walk.1.1)) walk.2),
-        result.2.2.1.length ≤ signingLimit)
+        result.2.2.1.length ≤ leftLength)
     (hdisclosing : ∀ (adversary : Adversary)
       (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
       walk ∈ support graphWalk → GoodWalk walk →
@@ -532,8 +548,8 @@ theorem answerRecordedBound_wide_of_parts {inside outside : QueryKind} (hne : in
     (answerRecordedBound_class_of_parts
       (fun w => CombinedCharge.IsMessageInput
         (SplitCharged.generatedKey w.1.1.1 w.1.1.2.1 w.1.1.2.2 w.2))
-      hne (fun _ input hinput => hinput) hcover hleftBound hdisclosing q adversary hq
-      hbudget walk hwalk hgood)
+      hne leftLength hcap (fun _ input hinput => hinput) hcover hleftBound hdisclosing q
+      adversary hq hbudget walk hwalk hgood)
   exact fun result _ hbad =>
     ⟨hbad.1, AnswerCoverage.narrowTarget_messageClass _ result, hbad.2⟩
 
