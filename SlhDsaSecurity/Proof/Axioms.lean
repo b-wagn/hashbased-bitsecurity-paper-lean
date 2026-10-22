@@ -207,6 +207,7 @@ import SlhDsaSecurity.Proof.CarrierSignRecord
 import SlhDsaSecurity.Proof.CarrierPhaseRecord
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.CarrierRecord
+import SlhDsaSecurity.Proof.BracketedOrdering
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
 import SlhDsaSecurity.Proof.HonestLinked
@@ -14624,3 +14625,23 @@ info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrow_at' depe
 /-- info: 'SlhDsaSecurity.CarrierRecord.hrecord' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierRecord.hrecord
+
+/--
+info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass
+
+/-- info: 'SlhDsaSecurity.BracketedOrdering.prob_ordering_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedOrdering.prob_ordering_le
+
+/--
+info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail
