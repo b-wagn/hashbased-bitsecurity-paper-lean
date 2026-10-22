@@ -1,5 +1,7 @@
 import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.RandomizerGate
+import SlhDsaSecurity.Proof.SeedFlag
+import SlhDsaSecurity.Proof.BracketedRun
 
 /-!
 # The modified game's carrier, as a view rather than as a new handler
@@ -240,5 +242,67 @@ theorem countedSplitRecorder_run (pk : PublicKey) (prfSeed : Digest)
         (pure (step.1, (step.2.1, (step.2.2, state.2.2 + Security.hashCost queried))) :
           ProbComp (OracleWorld.Range queried ×
             (SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)))) := rfl
+
+/-! ## The correspondence at the fused state, and the flag across it
+
+`rel` is an equation, so it is given by the map below and `hbadIff` is `Iff.rfl`: the flag reads
+the fused writer's record, and the split touches the carrier only. That the two sides' flags
+agree is therefore not a property of the construction but of where the flag lives — which is why
+`SeedFlag.RecordFlag` was stated at the fused state and generically in the handler's own.
+-/
+
+/-- The modified counted state a real one corresponds to. -/
+noncomputable def splitStateOf (prfSeed : Digest) (state : BracketedRun.CountedState) :
+    SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat) :=
+  (splitOf prfSeed state.1, state.2)
+
+/-- And the same at the fused state, where the writer and the log ride along untouched. -/
+noncomputable def splitFusedOf (prfSeed : Digest)
+    (state : Multiplicative RecordedQueries.Tally × Security.SigningLog × BracketedRun.CountedState) :
+    Multiplicative RecordedQueries.Tally × Security.SigningLog ×
+      (SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)) :=
+  (state.1, state.2.1, splitStateOf prfSeed state.2.2)
+
+/-- **The flag crosses the correspondence by `rfl`.** It reads the writer, and the split moves
+nothing but the carrier's cache. -/
+theorem recordFlag_splitFusedOf (prfSeed : Digest)
+    (state : Multiplicative RecordedQueries.Tally × Security.SigningLog × BracketedRun.CountedState) :
+    SeedFlag.RecordFlag prfSeed state ↔
+      SeedFlag.RecordFlag prfSeed (splitFusedOf prfSeed state) := Iff.rfl
+
+/-! ## Neither handler fails
+
+Generic in the view, because nothing about failing depends on which cache an answer comes from:
+a coin samples, a hit is a `pure`, a miss is a map of a uniform draw. -/
+
+open scoped Classical in
+/-- **A step of the recorder that notices never fails, at any view.** -/
+theorem noticingRecorderOf_step_mass {σ : Type} [RecorderView.CacheView σ]
+    (leftKeep rightKeep : Bytes → σ → Prop) (queried : OracleWorld.Domain)
+    (state : RecorderView.StateOf σ) :
+    Pr[⊥ | ((RecorderView.noticingRecorderOf leftKeep rightKeep) queried).run state] = 0 := by
+  classical
+  rcases queried with coin | input
+  · rw [RecorderView.noticingRecorderOf_run_inl, RecorderView.recorderOf_run_inl]
+    simp
+  · cases hcache : RecorderView.CacheView.cacheOf state.1 input with
+    | some answer =>
+      rw [RecorderView.noticingRecorderOf_run_inr_some leftKeep rightKeep input state answer
+        hcache]
+      simp
+    | none =>
+      rw [RecorderView.noticingRecorderOf_run_inr_none leftKeep rightKeep input state hcache]
+      simp
+
+open scoped Classical in
+/-- **And so does the modified counted recorder's.** -/
+theorem countedSplitRecorder_mass (pk : PublicKey) (prfSeed : Digest)
+    (rightKeep : Bytes → HandlerCarrier.State → Prop) (queried : OracleWorld.Domain)
+    (state : SplitCarrier × ((DigestTape.Record × DigestTape.Record) × Nat)) :
+    Pr[⊥ | ((countedSplitRecorder pk prfSeed rightKeep) queried).run state] = 0 := by
+  rw [countedSplitRecorder_run]
+  exact (probFailure_bind_eq_zero_iff _ _).mpr
+    ⟨@noticingRecorderOf_step_mass SplitCarrier (splitView pk prfSeed) _ _ queried _,
+      fun _ _ => by simp⟩
 
 end SlhDsaSecurity.SplitSeedView

@@ -16455,3 +16455,15 @@ info: 'SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_framing' depends on 
 /-- info: 'SlhDsaSecurity.SplitSeedView.countedSplitRecorder_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitSeedView.countedSplitRecorder_run
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.recordFlag_splitFusedOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.recordFlag_splitFusedOf
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.noticingRecorderOf_step_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.noticingRecorderOf_step_mass
+
+/-- info: 'SlhDsaSecurity.SplitSeedView.countedSplitRecorder_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitSeedView.countedSplitRecorder_mass
