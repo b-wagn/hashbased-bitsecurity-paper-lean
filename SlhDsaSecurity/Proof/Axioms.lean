@@ -14404,3 +14404,11 @@ info: 'SlhDsaSecurity.CarrierRecord.keys_publicKey' depends on axioms: [propext,
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierRecord.keys_publicKey
+
+/-- info: 'SlhDsaSecurity.AnswerCarrier.not_narrowTarget_of_forgerySeedRandomised' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.not_narrowTarget_of_forgerySeedRandomised
+
+/-- info: 'SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.narrowTarget_of_not_forgerySeedRandomised
