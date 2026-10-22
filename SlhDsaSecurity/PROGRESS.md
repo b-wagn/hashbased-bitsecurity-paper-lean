@@ -3118,3 +3118,31 @@ type-checking anything downstream of it.
 This has cost an hour once. It is worth knowing in the same breath as the probe-check discipline,
 because the two interact: a probe that "passes" against a stale olean is checking a statement
 that no longer exists.
+
+## When two lemmas will not meet at a step, quantify over the states
+
+Three of this week's hardest moments were two true lemmas that could not be put together, and
+the repairs that suggested themselves were all of the same expensive kind: carry more state,
+refine the induction, match the objects up. One of them was closed instead by **not matching
+anything**, and that is the escape worth generalising.
+
+The signer's digest branch needed "the cache at which the recorder filed this entry already
+holds the randomiser answer". `SplitPrefix.right_record_witness` hands back the cache before the
+installing query, *inside* the signing sub-run; `provenance_phase_subset` inducts over the phase,
+where one signing request is a single step, so its pre-state is from *before* the randomiser
+query. The two lemmas both hand back a state and are about different steps — a **granularity**
+mismatch, which carrying the state faithfully does not fix, because it would carry the wrong
+cache faithfully.
+
+What closed it was `SplitPrefix.right_record_suffix`, applied one bind later: for *every* entry
+the rest of the computation files, it hands back a cache sandwiched between the one the first
+step left and the final one. Every such cache holds the randomiser answer, by sandwiching alone.
+No step is named, so there is nothing to match.
+
+> When two lemmas cannot be matched at a step, look for one that **quantifies over the states**
+> instead of naming one.
+
+The same shape is why a charge proved for a strictly larger event is immune to what the smaller
+one turns out to be, and why a lemma stated against what it uses survives the thing it was
+written for changing. All three are the same move: weaken what the statement commits to, and the
+seam disappears instead of needing a bridge.
