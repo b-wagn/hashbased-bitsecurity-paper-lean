@@ -1,3 +1,4 @@
+import SlhDsaSecurity.Proof.ReplayGate
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RoutedSplit
@@ -6401,3 +6402,45 @@ info: 'SlhDsaSecurity.length_bytesBE' depends on axioms: [propext]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.length_bytesBE
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.secretKeyOf_publicKey' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.secretKeyOf_publicKey
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.keyOf_seed' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.keyOf_seed
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.signerRandomised_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.signerRandomised_of_replay
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.randomizer_eq_of_replay
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.eq_signInternal_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.eq_signInternal_of_replay
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.signature_eq_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.signature_eq_of_replay
+
+/--
+info: 'SlhDsaSecurity.ReplayGate.randomiserBad_of_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ReplayGate.randomiserBad_of_replay

@@ -120,14 +120,28 @@ def CanonicalForgery (x : Trace) : Prop :=
       Signature.fromBytes? x.1.2.1.forgery.signature = some parsed ∧
         CanonicalAt x message parsed
 
+/-- Every one of the fourteen positions the forgery's digest selects is disclosed by some
+cached digest of the signer's own. -/
+def Disclosed (x : Trace) (message : Bytes) (parsed : Signature) : Prop :=
+  ∀ tree : MessageDigest.ForsTree,
+    GraphStakes.forsIndex
+        (MessageDigest.forsIndices (digestOf x.2 (keyOf x) message parsed)) tree ∈
+      CacheAvailability.signedAt x.1.1.1.2.1 (keyOf x) x.2
+        (forsKeyOfDigest (digestOf x.2 (keyOf x) message parsed))
+
 /-- **The replay case**, which is the canonical branch with its coverage side closed off: the
-forgery is the signer's own signature, and the only disclosing digest that selects its
-positions is the one the forgery itself reads. -/
+forgery is the signer's own signature, its positions are disclosed, and the only disclosing
+digest that selects them is the one the forgery itself reads.
+
+`Disclosed` is carried rather than dropped because `OnlySelfAt` is a statement about every
+disclosing input and says nothing about there being one. What the replay argument needs is a
+disclosing input to apply it to, and that is what this supplies. -/
 def ReplayForgery (x : Trace) : Prop :=
   ∃ (message : Bytes) (parsed : Signature),
     x.1.2.1.forgery.message.frame = some message ∧
       Signature.fromBytes? x.1.2.1.forgery.signature = some parsed ∧
-        CanonicalAt x message parsed ∧ OnlySelfAt x message parsed
+        CanonicalAt x message parsed ∧ Disclosed x message parsed ∧
+          OnlySelfAt x message parsed
 
 /-! ## The record holds both kinds of claim
 
@@ -250,7 +264,7 @@ theorem cases_of_canonical (adversary : Adversary)
         hframe hparsed (cached_digest adversary hresult message parsed hframe hparsed)
         hsigned with hcovered | honly
     · exact Or.inl (Or.inr hcovered)
-    · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical, honly⟩)
+    · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical, hsigned, honly⟩)
   · push Not at hsigned
     obtain ⟨tree, hunsigned⟩ := hsigned
     have hsecrets : ∀ tree : Fin forsTrees, (parsed.fors tree).secret =
