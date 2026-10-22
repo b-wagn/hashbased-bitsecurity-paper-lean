@@ -248,6 +248,7 @@ import SlhDsaSecurity.Proof.CarrierCover
 import SlhDsaSecurity.Proof.CarrierJoin
 import SlhDsaSecurity.Proof.RecordPrfCharge
 import SlhDsaSecurity.Proof.RecordColumn
+import SlhDsaSecurity.Proof.RecordSlot
 import SlhDsaSecurity.Proof.CarrierSplit
 
 /--
@@ -15689,3 +15690,11 @@ info: 'SlhDsaSecurity.RecordColumn.sharedChargedLate_of_parts_record_at' depends
 /-- info: 'SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf
+
+/-- info: 'SlhDsaSecurity.RecordSlot.prob_two_targets_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.prob_two_targets_le
+
+/-- info: 'SlhDsaSecurity.RecordSlot.prob_one_target_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecordSlot.prob_one_target_eq
