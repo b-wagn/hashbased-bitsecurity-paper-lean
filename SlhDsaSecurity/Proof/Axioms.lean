@@ -15278,3 +15278,11 @@ info: 'SlhDsaSecurity.SplitCounted.run_splitCarrierRecorder_counted' depends on 
 /-- info: 'SlhDsaSecurity.SplitCounted.sumSlots_stopServingOn' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCounted.sumSlots_stopServingOn
+
+/-- info: 'SlhDsaSecurity.ObligationShapes.randomiser_eq_of_forgerySeed' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.randomiser_eq_of_forgerySeed
+
+/-- info: 'SlhDsaSecurity.ObligationShapes.randomiserBad_of_forgerySeed' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.randomiserBad_of_forgerySeed

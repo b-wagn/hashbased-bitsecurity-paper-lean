@@ -315,6 +315,67 @@ theorem sharedChargedLate_of_parts (claims seedUnits : Nat) (hclaims : 259 + see
     hclaims (fun _ hlate => hlate) FusedCoverage.forgetsTo FusedCoverage.isRecorderRun
     LateProvenance.hrecord hinput hseed
 
+/-! ## Why `seedUnits` cannot be a numeral at all, and where the event belongs instead
+
+The section below says why the leftover is not **one** unit. This one says why it is not any
+fixed number of them, and names the charge that already covers it.
+
+**What the event is.** `randomiser_eq_of_forgerySeed` below: `ForgerySeedRandomised` holds
+exactly when the forgery's published randomiser **is** `SK.prf`, by the format identity and
+`Hashing.randomizerInput_injective`. Nothing about the forgery being one object survives that
+reading — the event is "the adversary found the seed", and `publishedRandomizer_eq_truncate`
+makes finding it cost one query per candidate. So the probability is `q`-shaped and a hypothesis
+bounding it by `seedUnits / 2 ^ 128` for a numeral `seedUnits` is **false** for large `q`, not
+merely unproved. It is the same error as `InputBullet.bullet_of_bound`'s hypothesis, in the same
+place in the argument, and `seedUnits` being a parameter hides it rather than records it: a
+parameter of type `Nat` is still a constant.
+
+**Where it belongs.** `randomiserBad_of_forgerySeed` below: the verifier's own digest query at
+the forgery's randomiser *is* a `PRF_msg` query at the real seed, because
+`FramingLeak.randomizerInput_eq_messageInput` reads one format as the other. So the event is
+contained in `ReplayGate.RandomiserBad` — the randomiser defect the ledger already carries —
+given two side conditions, both named rather than assumed: that the verifier's query is in the
+cache, which it is on any run that verifies, and that nothing was signed at the frame
+`bytesBE n PK.root ++ message`, which is exactly the in-flight coincidence `CarrierDemand`
+isolates on the carrier route.
+
+So the leftover is not a new charge needing new units. It is an old charge needing a
+containment, and what remains to decide is whether the randomiser defect's own count has room
+for it — a question about that charge's slack, not about this one's rate. -/
+
+/-- **The leftover is "the adversary found the seed", and nothing weaker.** -/
+theorem randomiser_eq_of_forgerySeed (prfSeed : Digest) (pk : PublicKey)
+    (result : (Outcome × Nat) × QueryCache HashSpec)
+    (message : Bytes) (parsed : Signature)
+    (hframe : result.1.1.forgery.message.frame = some message)
+    (hparsed : Signature.fromBytes? result.1.1.forgery.signature = some parsed)
+    (hseed : AnswerCoverage.ForgerySeedRandomised prfSeed pk result) :
+    parsed.randomizer = prfSeed := by
+  obtain ⟨message', parsed', hframe', hparsed', seed, framed, hinput⟩ := hseed
+  rw [hframe] at hframe'
+  rw [hparsed] at hparsed'
+  obtain rfl := Option.some.inj hframe'
+  obtain rfl := Option.some.inj hparsed'
+  exact (Hashing.randomizerInput_injective
+    ((FramingLeak.randomizerInput_eq_messageInput parsed.randomizer pk message).trans hinput)).1
+
+/-- **And it is the randomiser defect**, at the frame the format identity names. -/
+theorem randomiserBad_of_forgerySeed (x : RoutedSplit.Trace)
+    (message : Bytes) (parsed : Signature) (answer : HashOutput)
+    (hframe : x.1.2.1.forgery.message.frame = some message)
+    (hparsed : Signature.fromBytes? x.1.2.1.forgery.signature = some parsed)
+    (hseed : AnswerCoverage.ForgerySeedRandomised x.1.1.1.2.1 (RoutedSplit.keyOf x) (x.1.2, x.2))
+    (hverify : x.2 (Hashing.messageInput parsed.randomizer (RoutedSplit.keyOf x) message) =
+      some answer)
+    (hnotsigned : ¬ ∃ entry ∈ x.1.2.1.signed,
+      entry.1.frame = some (bytesBE n (RoutedSplit.keyOf x).root ++ message)) :
+    ReplayGate.RandomiserBad x := by
+  have hr := randomiser_eq_of_forgerySeed x.1.1.1.2.1 (RoutedSplit.keyOf x) (x.1.2, x.2)
+    message parsed hframe hparsed hseed
+  refine ⟨bytesBE n (RoutedSplit.keyOf x).root ++ message, answer, ?_, hnotsigned⟩
+  rw [← hr, FramingLeak.randomizerInput_eq_messageInput]
+  exact hverify
+
 /-! ## Why `seedUnits` is a parameter and not `1`
 
 The leftover is `AnswerCoverage.ForgerySeedRandomised`: the forgery's published randomiser is
