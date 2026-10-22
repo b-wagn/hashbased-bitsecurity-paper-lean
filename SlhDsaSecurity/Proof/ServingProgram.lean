@@ -560,6 +560,76 @@ theorem servingProgram_query_step {α : Type} (pk : PublicKey)
     rw [hstate]
     exact Multiset.mem_cons_self _ _
 
+
+/-! ## The hash step on its own
+
+`servingProgram_query_step` reads a step through the continuation that follows it, which is what
+a chain of named queries wants. An induction over an arbitrary computation wants the same facts
+about the step alone, with the continuation left to the induction hypothesis. These are those. -/
+
+open scoped Classical in
+/-- **A hash step leaves its own input cached**, holding the value it returned. -/
+theorem servingProgram_hash_cached (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (input : Bytes) (state : HandlerState)
+    (step : OracleWorld.Range (Sum.inr input) × HandlerState)
+    (hstep : step ∈ support (((servingProgram publicSeed pk availableAt table)
+      (Sum.inr input)).run state)) : step.2.1.cache input = some step.1 := by
+  classical
+  have hbind : step ∈ support
+      (lazyAnswer publicSeed availableAt table input state.1 >>= fun inner =>
+        (pure (inner.1,
+          ((if HandlerCarrier.FilesLeft pk state.1 input then
+              HandlerCarrier.file inner.2 input else inner.2),
+            state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
+          ProbComp (OracleWorld.Range (Sum.inr input) × HandlerState))) := hstep
+  rw [mem_support_bind_iff] at hbind
+  obtain ⟨inner, hinner, hpure⟩ := hbind
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  have hvalue : step.1 = inner.1 := by rw [hpure]
+  have hcache : step.2.1.cache = inner.2.cache := by
+    rw [hpure]
+    by_cases hfiles : HandlerCarrier.FilesLeft pk state.1 input
+    · rw [if_pos hfiles]; rfl
+    · rw [if_neg hfiles]
+  rw [hcache, hvalue]
+  exact lazyAnswer_cached publicSeed availableAt table input state.1 inner hinner
+
+open scoped Classical in
+/-- **A hash step serves nothing but its own input.** Filing is the only thing that adds to the
+served set, and a step files at most the input it is answering. -/
+theorem servingProgram_hash_served (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (input : Bytes) (state : HandlerState)
+    (step : OracleWorld.Range (Sum.inr input) × HandlerState)
+    (hstep : step ∈ support (((servingProgram publicSeed pk availableAt table)
+      (Sum.inr input)).run state)) (probe : Bytes)
+    (hserved : HandlerCarrier.Served step.2.1 probe) :
+    HandlerCarrier.Served state.1 probe ∨ probe = input := by
+  classical
+  have hbind : step ∈ support
+      (lazyAnswer publicSeed availableAt table input state.1 >>= fun inner =>
+        (pure (inner.1,
+          ((if HandlerCarrier.FilesLeft pk state.1 input then
+              HandlerCarrier.file inner.2 input else inner.2),
+            state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
+          ProbComp (OracleWorld.Range (Sum.inr input) × HandlerState))) := hstep
+  rw [mem_support_bind_iff] at hbind
+  obtain ⟨inner, hinner, hpure⟩ := hbind
+  rw [support_pure, Set.mem_singleton_iff] at hpure
+  have hinnerServed : inner.2.served = state.1.served :=
+    lazyAnswer_served publicSeed availableAt table input state.1 inner hinner
+  rw [show step.2.1 =
+    (if HandlerCarrier.FilesLeft pk state.1 input then HandlerCarrier.file inner.2 input
+      else inner.2) from by rw [hpure]] at hserved
+  by_cases hfiles : HandlerCarrier.FilesLeft pk state.1 input
+  · rw [if_pos hfiles] at hserved
+    rcases Multiset.mem_cons.mp hserved with rfl | hrest
+    · exact Or.inr rfl
+    · exact Or.inl (by show probe ∈ state.1.served; rw [← hinnerServed]; exact hrest)
+  · rw [if_neg hfiles] at hserved
+    exact Or.inl (by show probe ∈ state.1.served; rw [← hinnerServed]; exact hserved)
+
 /-! ## What the served set contains
 
 Every input the handler files is of the shape `HandlerCarrier.FilesLeft` demands — a message

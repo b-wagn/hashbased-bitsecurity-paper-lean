@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.ServingPhase
 import SlhDsaSecurity.Proof.ServedBridge
 import SlhDsaSecurity.Proof.SignerRandomiser
+import SlhDsaSecurity.Proof.StrippedGame
 
 /-!
 # The carrier's served set and the log's, at a run of the serving phase
@@ -349,17 +350,18 @@ most of it by itself: it files only where `HandlerCarrier.FilesLeft` holds, and 
 the framing, which is set only across a signing step and names that step's own request. So every
 served input has the shape of some logged request's digest input — with *some* randomiser.
 
-**That last word is the whole of the remaining gap, and it is not the handler's to close.**
+**That last word is not the handler's to settle**, and this section does not try to.
 `ServingCarrier.logServed` names one randomiser, the one the cache replays, and pinning the
 filed input to it is a statement about what the signer *asks*: of all the inputs of its
 framing's digest shape, it asks only its own digest's. That is
-`ServedBridge.sign_messageShape_randomizer`, which is stated along `CacheReplay.QueriesUnder` —
-the replay semantics — while what is filed here is a query of the handler's run. The bridge
-between those two readings of "the signer asked this" is what is missing, and it is a statement
-about `Scheme.sign`, not about the carrier.
+`ServedBridge.sign_messageShape_randomizer`, stated along `CacheReplay.QueriesUnder` — the
+replay semantics — while what is filed here is a query of the handler's run. `served_queriesUnder`
+below crosses between the two readings, and `servedLog_sign` puts the shape and the crossing
+together; what is proved here is the half that needs neither.
 
-So this section proves the containment at the shape and names the residue rather than assuming
-it. -/
+Keeping them apart is worth the two lemmas. The shape holds of every run of this handler and
+asks nothing of the signer; the randomiser holds only because the signer is the one being run.
+A single statement would have hidden which of the two any later change had broken. -/
 
 /-- A framing that names a logged request. -/
 def FramingAdmitted (log : SigningLog) (framing : Option Bytes) : Prop :=
@@ -541,5 +543,355 @@ theorem servedShape_phase_run_empty (pk : PublicKey)
   servedShape_phase_run publicSeed pk availableAt table sk computation
     (accumulated, [], (HandlerCarrier.empty, probes, count)) rfl
     (fun probe hprobe => absurd hprobe (ServingProgram.not_served_empty probe)) z hz input hserved
+
+/-! ## What the handler files is what the computation consults
+
+The residue of the last section is one word: the filed input names *some* randomiser, and
+`ServingCarrier.logServed` names the one the cache replays. Closing it means getting from "the
+handler filed this while running the signer" to "the signer consults this", which is the
+crossing `ServedBridge.sign_messageShape_randomizer` is stated on the far side of —
+`CacheReplay.QueriesUnder`, the replay path, against a run of `Scheme.sign` at a different
+instantiation of its monad.
+
+`StrippedGame.sign_lift` does the instantiation: signing in the game's monad is the lift of
+signing in the hash-only one. `served_queriesUnder` does the crossing, by the induction
+`ProbeContainment.strip_probes_queriesUnder` does for the probe list, at the served set and at
+this handler. The two differ in what they have to track — the record grows at every query, the
+served set only where the framing admits one — but the step is the same: the run's answer is
+cached and persists, so at any later cache the replayed answer is the one the run took, and the
+continuations agree.
+
+Read at a later cache, because that is the only cache at which they do agree: the handler draws
+its answers and the replay reads them back, so a cache that does not yet hold them replays
+something else. -/
+
+/-- **An input a run files is one the computation consults**, read at any cache the run's own
+extends. -/
+theorem served_queriesUnder {α : Type} (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (computation : OracleComp HashSpec α) :
+    ∀ (state : HandlerState) (z : α × HandlerState),
+      z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+        (OracleComp.liftComp computation OracleWorld)).run state) →
+      ∀ later : QueryCache HashSpec,
+        (∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
+          later input = some value) →
+        ∀ probe : Bytes, HandlerCarrier.Served z.2.1 probe →
+          HandlerCarrier.Served state.1 probe ∨ CacheReplay.QueriesUnder later computation probe
+      := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state z hz later _ probe hserved
+    rw [OracleComp.liftComp_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hz
+    rw [show z.2 = state from by rw [hz]] at hserved
+    exact Or.inl hserved
+  | query_bind input next ih =>
+    intro state z hz later hlater probe hserved
+    have hz' : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+        (liftM (OracleWorld.query (Sum.inr input)) >>=
+          fun answer : HashOutput =>
+            OracleComp.liftComp (next answer) OracleWorld)).run state) := hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz'
+    obtain ⟨step, hstepRun, hrest⟩ := hz'
+    have hcached : step.2.1.cache input = some step.1 :=
+      servingProgram_hash_cached publicSeed pk availableAt table input state step hstepRun
+    have hpersists : HandlerCarrier.Grows step.2.1 z.2.1 :=
+      servingProgram_run_persists publicSeed pk availableAt table _ step.2 z hrest
+    have hreplay : CacheReplay.replay later input = step.1 := by
+      simp [CacheReplay.replay, hlater input step.1 (hpersists.1 input step.1 hcached)]
+    rcases ih step.1 step.2 z hrest later hlater probe hserved with hstep | htail
+    · rcases servingProgram_hash_served publicSeed pk availableAt table input state step hstepRun
+        probe hstep with hbefore | rfl
+      · exact Or.inl hbefore
+      · exact Or.inr (CacheReplay.QueriesUnder.head _ _)
+    · exact Or.inr (CacheReplay.QueriesUnder.tail input probe next (by rw [hreplay]; exact htail))
+
+/-- **An input a run of the signer files is one the signer consults.** `StrippedGame.sign_lift`
+is the only thing between this and the lemma above. -/
+theorem served_queriesUnder_sign (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (request : Message) (state : HandlerState)
+    (z : Option Bytes × HandlerState)
+    (hz : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+      (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state))
+    (later : QueryCache HashSpec)
+    (hlater : ∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
+      later input = some value)
+    (probe : Bytes) (hserved : HandlerCarrier.Served z.2.1 probe) :
+    HandlerCarrier.Served state.1 probe ∨
+      CacheReplay.QueriesUnder later (Scheme.sign (m := OracleComp HashSpec) sk request) probe := by
+  rw [StrippedGame.sign_lift] at hz
+  exact served_queriesUnder publicSeed pk availableAt table _ state z hz later hlater probe
+    hserved
+
+/-! ## The exact containment, at one request
+
+Two readings of a filed input, put together. The carrier says it has the shape of the framing in
+flight — that is the filing rule, and it needs no run. The run says the signer consults it — that
+is `served_queriesUnder_sign`. Only the second pins the randomiser, and only through
+`ServedBridge.sign_messageShape_randomizer`: of all the inputs of its framing's digest shape the
+signer asks only its own digest's, the structural ones being separated by `HashSeparation` and
+the randomiser's by length.
+
+So the shape alone was never going to be enough, and neither was the run alone: the shape says
+*which framing*, the run says *which randomiser*. -/
+
+/-- **A run under a set framing serves nothing but that framing's shape.** -/
+theorem servedFramed_run {α : Type} (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (framed : Bytes) (computation : OracleComp OracleWorld α) (state : HandlerState)
+    (hframing : state.1.framing = some framed) (result : α × HandlerState)
+    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+      computation).run state))
+    (probe : Bytes) (hserved : HandlerCarrier.Served result.2.1 probe) :
+    HandlerCarrier.Served state.1 probe ∨
+      ∃ randomizer : Digest, probe = Hashing.messageInput randomizer pk framed := by
+  refine (servingProgram_invariant publicSeed pk availableAt table
+    (fun carrier => carrier.framing = some framed ∧
+      ∀ p : Bytes, HandlerCarrier.Served carrier p →
+        HandlerCarrier.Served state.1 p ∨
+          ∃ randomizer : Digest, p = Hashing.messageInput randomizer pk framed)
+    (fun carrier input answer hinv => ⟨hinv.1, hinv.2⟩)
+    (fun carrier input hinv hfiles => ⟨by rw [HandlerCarrier.framing_file]; exact hinv.1,
+      fun p hp => ?_⟩)
+    computation state result hresult ⟨hframing, fun p hp => Or.inl hp⟩).2 probe hserved
+  rcases Multiset.mem_cons.mp hp with rfl | hrest
+  · obtain ⟨witness, hwitness, randomizer, hinput⟩ := hfiles
+    rw [hinv.1] at hwitness
+    rw [← Option.some.inj hwitness] at hinput
+    exact Or.inr ⟨randomizer, hinput⟩
+  · exact hinv.2 p hrest
+
+/-- **A served request serves exactly its own digest input.** The randomiser is the one the
+cache replays, which is what `ServingCarrier.logServed` names it by. -/
+theorem servedLog_sign (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (hpk : sk.publicKey = pk)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    (request : Message) (framed : Bytes) (hframe : request.frame = some framed)
+    (state : HandlerState) (hframing : state.1.framing = some framed)
+    (z : Option Bytes × HandlerState)
+    (hz : z ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+      (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state))
+    (later : QueryCache HashSpec)
+    (hlater : ∀ (input : Bytes) (value : HashOutput), z.2.1.cache input = some value →
+      later input = some value)
+    (probe : Bytes) (hserved : HandlerCarrier.Served z.2.1 probe) :
+    HandlerCarrier.Served state.1 probe ∨
+      probe = Hashing.messageInput (HonestProbes.replayRandomizer later sk framed)
+        sk.publicKey framed := by
+  subst hpk
+  rcases served_queriesUnder_sign publicSeed sk.publicKey availableAt table sk request state z hz
+    later hlater probe hserved with hbefore | hquery
+  · exact Or.inl hbefore
+  rcases servedFramed_run publicSeed sk.publicKey availableAt table framed
+    (Scheme.sign (m := OracleComp OracleWorld) sk request) state hframing z hz probe hserved with
+    hbefore | ⟨randomizer, rfl⟩
+  · exact Or.inl hbefore
+  exact Or.inr (congrArg (fun value => Hashing.messageInput value sk.publicKey framed)
+    (ServedBridge.sign_messageShape_randomizer later sk request framed hframe hpublic randomizer
+      hquery))
+
+/-! ## The carrier is below the log, at a run
+
+The invariant is quantified over the cache it will be read at, because the cache a run ends with
+is not known while the run is going on, and the randomiser the log names is read back off it.
+Quantifying instead of fixing is what lets one statement serve every step.
+
+The adversary's step needs nothing but `servedClear_run`: with the framing clear nothing is
+filed, so the served set does not move and the invariant is carried across unchanged. That is
+the whole of the adversary's contribution to this direction, and it is the property the cache
+proxy could not have had. -/
+
+/-- **A run under a clear framing serves nothing new.** -/
+theorem servedClear_run {α : Type} (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (computation : OracleComp OracleWorld α) (state : HandlerState)
+    (hclear : state.1.framing = none) (result : α × HandlerState)
+    (hresult : result ∈ support ((simulateQ (servingProgram publicSeed pk availableAt table)
+      computation).run state))
+    (probe : Bytes) (hserved : HandlerCarrier.Served result.2.1 probe) :
+    HandlerCarrier.Served state.1 probe :=
+  (servingProgram_invariant publicSeed pk availableAt table
+    (fun carrier => carrier.framing = none ∧
+      ∀ p : Bytes, HandlerCarrier.Served carrier p → HandlerCarrier.Served state.1 p)
+    (fun carrier input answer hinv => ⟨hinv.1, hinv.2⟩)
+    (fun carrier input hinv hfiles =>
+      absurd hfiles (HandlerCarrier.not_filesLeft_of_clear pk carrier hinv.1 input))
+    computation state result hresult ⟨hclear, fun p hp => hp⟩).2 probe hserved
+
+/-- **What a run leaves true of its carrier and its log**, read at any cache the carrier's own
+extends. -/
+def CarrierLogged (sk : SecretKey) (log : SigningLog) (carrier : HandlerCarrier.State) : Prop :=
+  ∀ later : QueryCache HashSpec,
+    (∀ (input : Bytes) (value : HashOutput), carrier.cache input = some value →
+      later input = some value) →
+    ∀ input : Bytes, HandlerCarrier.Served carrier input →
+      ServingCarrier.logServed sk later log input
+
+theorem logServed_append (sk : SecretKey) (cache : QueryCache HashSpec) (log : SigningLog)
+    (entry : (_ : Message) × Option Bytes) (input : Bytes)
+    (hlog : ServingCarrier.logServed sk cache log input) :
+    ServingCarrier.logServed sk cache (log ++ [entry]) input := by
+  obtain ⟨probe, hprobe, framed, hframe, hinput⟩ := hlog
+  exact ⟨probe, List.mem_append.mpr (Or.inl hprobe), framed, hframe, hinput⟩
+
+open scoped Classical in
+/-- **A step of the phase preserves it.** -/
+theorem carrierLogged_step (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (hpk : sk.publicKey = pk)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    (queried : (OracleWorld + SigningSpec).Domain)
+    (state : Multiplicative Tally × SigningLog × HandlerState)
+    (step : (OracleWorld + SigningSpec).Range queried ×
+      (Multiplicative Tally × SigningLog × HandlerState))
+    (hstep : step ∈ support (((servingPhase publicSeed pk availableAt table sk) queried).run
+      state)) (hclear : state.2.2.1.framing = none)
+    (hinv : CarrierLogged sk state.2.1 state.2.2.1) :
+    CarrierLogged sk step.2.2.1 step.2.2.2.1 := by
+  classical
+  have hgrow := servingPhase_persists publicSeed pk availableAt table sk queried state step hstep
+  rcases queried with world | request
+  · have hrun : step ∈ support
+        ((simulateQ (servingProgram publicSeed pk availableAt table)
+          (((recordedAdversaryImpl world).run).run state.2.1)).run state.2.2 >>=
+          fun inner =>
+            (pure (inner.1.1.1, (state.1 * inner.1.1.2, inner.1.2, inner.2)) :
+              ProbComp ((OracleWorld + SigningSpec).Range (Sum.inl world) ×
+                (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+    rw [mem_support_bind_iff] at hrun
+    obtain ⟨inner, hinner, hpure⟩ := hrun
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    have hlog : step.2.2.1 = state.2.1 := by
+      have hmapped := hinner
+      rw [run_recordedAdversaryImpl, simulateQ_map, StateT.run_map, support_map] at hmapped
+      obtain ⟨raw, -, hinnerEq⟩ := hmapped
+      rw [hpure, ← hinnerEq]
+    have hcarrier : step.2.2.2 = inner.2 := by rw [hpure]
+    rw [hlog]
+    intro later hlater input hserved
+    refine hinv later (fun probe value hvalue => hlater probe value (hgrow.1 probe value hvalue))
+      input ?_
+    rw [hcarrier] at hserved
+    exact servedClear_run publicSeed pk availableAt table _ state.2.2 hclear inner hinner input
+      hserved
+  · have hrun : step ∈ support
+        ((simulateQ (servingProgram publicSeed pk availableAt table)
+          (((recordedSigningOracle (Scheme.sign sk) request).run).run state.2.1)).run
+            (startServing request state.2.2) >>= fun inner =>
+          (pure (inner.1.1.1,
+            (state.1 * inner.1.1.2, inner.1.2, stopServing inner.2)) :
+            ProbComp ((OracleWorld + SigningSpec).Range (Sum.inr request) ×
+              (Multiplicative Tally × SigningLog × HandlerState)))) := hstep
+    rw [mem_support_bind_iff] at hrun
+    obtain ⟨inner, hinner, hpure⟩ := hrun
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [run_recordedSigningOracle] at hinner
+    obtain ⟨signStep, hsign, hvalue⟩ := state_of_bind_pure publicSeed pk availableAt table
+      (Scheme.sign sk request) _ (startServing request state.2.2) inner hinner
+    have hlog : step.2.2.1 = state.2.1 ++ [⟨request, signStep.1⟩] := by
+      rw [hpure]
+      exact congrArg (fun y => y.1.2) hvalue
+    have hcarrier : step.2.2.2.1 = HandlerCarrier.clearFraming signStep.2.1 := by
+      rw [hpure]
+      exact congrArg (fun y => HandlerCarrier.clearFraming y.2.1) hvalue
+    rw [hlog]
+    intro later hlater input hserved
+    have hlaterSign : ∀ (probe : Bytes) (value : HashOutput),
+        signStep.2.1.cache probe = some value → later probe = some value :=
+      fun probe value hvalue => hlater probe value (by rw [hcarrier]; exact hvalue)
+    have hservedSign : HandlerCarrier.Served signStep.2.1 input := by
+      rw [hcarrier] at hserved
+      exact hserved
+    have hold : HandlerCarrier.Served (startServing request state.2.2).1 input →
+        ServingCarrier.logServed sk later (state.2.1 ++ [⟨request, signStep.1⟩]) input := by
+      intro hbefore
+      refine logServed_append sk later state.2.1 _ input
+        (hinv later (fun probe value hvalue => hlater probe value (hgrow.1 probe value hvalue))
+          input ?_)
+      cases hframe : request.frame with
+      | none =>
+        rw [show startServing request state.2.2 = state.2.2 from by
+          simp only [startServing, hframe]] at hbefore
+        exact hbefore
+      | some framed =>
+        rw [show (startServing request state.2.2).1 =
+          HandlerCarrier.setFraming state.2.2.1 framed from by
+            simp only [startServing, hframe]] at hbefore
+        exact hbefore
+    cases hframe : request.frame with
+    | none =>
+      refine hold ?_
+      exact servedClear_run publicSeed pk availableAt table
+        (Scheme.sign (m := OracleComp OracleWorld) sk request) (startServing request state.2.2)
+        (by simp only [startServing, hframe]; exact hclear) signStep hsign input hservedSign
+    | some framed =>
+      rcases servedLog_sign publicSeed pk availableAt table sk hpk hpublic request framed hframe
+        (startServing request state.2.2) (by simp only [startServing, hframe]; rfl) signStep hsign
+        later hlaterSign input hservedSign with hbefore | hinput
+      · exact hold hbefore
+      · exact ⟨⟨request, signStep.1⟩,
+          List.mem_append.mpr (Or.inr (List.mem_singleton.mpr rfl)), framed, hframe, hinput⟩
+
+open scoped Classical in
+/-- **And therefore a whole run of the phase.** -/
+theorem carrierLogged_run (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (hpk : sk.publicKey = pk)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
+    ∀ (state : Multiplicative Tally × SigningLog × HandlerState),
+      state.2.2.1.framing = none → CarrierLogged sk state.2.1 state.2.2.1 →
+      ∀ z ∈ support ((simulateQ (servingPhase publicSeed pk availableAt table sk)
+        computation).run state), CarrierLogged sk z.2.2.1 z.2.2.2.1 := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state hclear hinv z hz
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+    rw [show z.2 = state from by rw [hz]]
+    exact hinv
+  | query_bind queried next ih =>
+    intro state hclear hinv z hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+    obtain ⟨step, hstep, hrest⟩ := hz
+    exact ih step.1 step.2
+      (framing_clear_step publicSeed pk availableAt table sk queried state hclear step hstep)
+      (carrierLogged_step publicSeed pk availableAt table sk hpk hpublic queried state step hstep
+        hclear hinv) z hrest
+
+/-- **Nothing is served at the start**, so the invariant holds there for free. -/
+theorem carrierLogged_empty (sk : SecretKey) (log : SigningLog) :
+    CarrierLogged sk log HandlerCarrier.empty :=
+  fun _ _ input hserved => absurd hserved (ServingProgram.not_served_empty input)
+
+/-! ## `ServingCarrier.AgreesWithLog`, at a run
+
+Both directions, at the carrier's own cache. Neither is the mirror of the other: one is about
+what the signer asks and the other about what the handler files, and they were proved in
+different shapes for that reason. Putting them together is the last line. -/
+
+/-- **A run of the serving phase leaves the carrier and the log naming the same set.** This is
+`ServingCarrier.AgreesWithLog`, which is what lets the entries a probe is paired with and the
+event `RoutedSplit.InputBad` be instantiated at one object. -/
+theorem agreesWithLog_run (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (sk : SecretKey) (hpk : sk.publicKey = pk)
+    (hpublic : ¬ HashSeparation.Possible (sk.publicKey.seed, sk.publicKey.root))
+    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (accumulated : Multiplicative Tally) (probes : List (Bytes × HandlerCarrier.State))
+    (count : Nat) (z : α × (Multiplicative Tally × SigningLog × HandlerState))
+    (hz : z ∈ support ((simulateQ (servingPhase publicSeed pk availableAt table sk)
+      computation).run (accumulated, [], (HandlerCarrier.empty, probes, count)))) :
+    ServingCarrier.AgreesWithLog sk z.2.2.1 z.2.2.2.1 := by
+  intro input
+  constructor
+  · exact carrierLogged_run publicSeed pk availableAt table sk hpk hpublic computation
+      (accumulated, [], (HandlerCarrier.empty, probes, count)) rfl
+      (carrierLogged_empty sk []) z hz z.2.2.2.1.cache (fun _ _ hvalue => hvalue) input
+  · exact logServed_subset_served sk z.2.2.1 z.2.2.2.1
+      (logFiled_run publicSeed pk availableAt table sk hpk computation
+        (accumulated, [], (HandlerCarrier.empty, probes, count)) (logFiled_nil sk _) z hz) input
 
 end SlhDsaSecurity.ServedAgreement

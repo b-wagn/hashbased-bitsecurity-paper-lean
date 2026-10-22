@@ -11597,3 +11597,75 @@ info: 'SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty' depends on ax
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedAgreement.servedShape_phase_run_empty
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_hash_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_hash_cached
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_hash_served' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_hash_served
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.served_queriesUnder_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.served_queriesUnder_sign
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedFramed_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedFramed_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedLog_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedLog_sign
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.servedClear_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.servedClear_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.logServed_append' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.logServed_append
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_step
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_run
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.carrierLogged_empty' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.carrierLogged_empty
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.agreesWithLog_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.agreesWithLog_run
