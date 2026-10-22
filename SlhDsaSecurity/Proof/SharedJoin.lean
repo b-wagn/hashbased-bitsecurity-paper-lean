@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.RandomiserProvenance
 import SlhDsaSecurity.Proof.ClassExpectation
+import SlhDsaSecurity.Proof.ClassGrowth
 
 /-!
 # The shared side's four charges, added
@@ -256,5 +257,57 @@ theorem sharedCharged_of_parts (qs : Nat)
     (SignerEvent qs) (hinput q adversary hbudget) (hordering q adversary hbudget)
     (hrecord q adversary hbudget) (prob_signerEvent_le adversary q qs hbudget)
     (hrandomiser q adversary hbudget)
+
+/-! ## The signer's coincidence, in expectation form
+
+`ClassGrowth.run_splitCost_eq_map` identifies the split-counted run with the plain one, so the
+charge may be read at the instrumented presentation and the bound carried back. Done that way
+the signer's coincidence comes out in expectation form with no new machinery, which is what the
+answer side's coverage term did.
+
+**It lands at the wrong count, and the reason is a fact about what the counter can see.**
+`ClassGrowth.splitCost` is indexed by the **input**: one unit of the inside slot for a hash call
+at an in-class input, whoever makes it. The adversary's in-class call and the signer's are calls
+at the *same* input — that is the whole content of the search attack — so no input-indexed cost
+can charge one and not the other. What the conversion therefore gives is
+
+    E[every in-class hash call],  pathwise  ≤  work's `PRF_msg` part  +  2 · served,
+
+which is the randomiser defect's allotment *plus* mine, not mine. Since the record half pays its
+own `PRF_msg` part as well, the two together overshoot by that part, and the sum has no margin.
+
+The overshoot is only on the branch the record half already pays for: where the adversary makes
+no in-class call, the in-class calls are the signer's alone and the count is `2 · served` exactly.
+So what closes it is an expectation *restricted to that branch*, which `ClassExpectation` does
+not provide — or a count that can tell the two callers apart, which an input-indexed cost cannot
+be and an instrumentation wrapped around the signer's own sub-computation could. The second is a
+presentation change of the same kind as `RecordedTail`'s, and what it must produce is a slot
+whose value on every run is at most twice the served requests and at least one per in-class call
+the signer makes. -/
+
+open scoped Classical in
+/-- **The signer's coincidence, charged at the expected number of in-class hash calls.** -/
+theorem prob_signerHitsSeed_tail_le_expected (adversary : Adversary)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support graphWalk) (hgood : GoodWalk walk) :
+    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed |
+      tail adversary walk] ≤
+      expected ((simulateQ KeygenUniform.rom
+          (countQueries (ClassGrowth.splitCost (RandomizerGate.PrfClass walk.1.1.2.1)
+            .hash .verification) (afterSeeds adversary walk.1.1))).run walk.2)
+        (fun result => result.1.2 .hash) * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
+  rw [tail, ClassGrowth.probEvent_splitCost (RandomizerGate.PrfClass walk.1.1.2.1)
+    (inside := QueryKind.hash) (outside := QueryKind.verification) (by decide)
+    (afterSeeds adversary walk.1.1) walk.2]
+  refine le_trans (probEvent_mono fun result _ hhit =>
+    bad_of_signerHitsSeed _ _ _ _ result.1 hhit) ?_
+  exact ClassExpectation.prob_bad_le_expected_cost _ _ _ _ .hash
+    (fun input hmember => le_of_eq
+      (ClassGrowth.splitCost_inside _ _ _ input hmember).symm)
+    (RandomizerGate.prob_randomizerHitsSeed_le walk.1.1.2.1)
+    (fun _ _ hbad => hbad.1) (afterSeeds adversary walk.1.1) walk.2
+    (RandomizerGate.cleanBad_of_canonical walk.1.1.2.2 walk.1.1.2.1 walk.1.2 walk.2 hgood.1
+      (WarmedCharges.walk_cache_canonical hwalk))
 
 end SlhDsaSecurity.SharedJoin
