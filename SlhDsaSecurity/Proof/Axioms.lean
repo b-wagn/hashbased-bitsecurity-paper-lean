@@ -262,6 +262,7 @@ import SlhDsaSecurity.Proof.SeedFlag
 import SlhDsaSecurity.Proof.PrfClassCount
 import SlhDsaSecurity.Proof.SplitSeedView
 import SlhDsaSecurity.Proof.ForgetsOn
+import SlhDsaSecurity.Proof.GuessingBar
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16544,3 +16545,21 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 /-- info: 'SlhDsaSecurity.ProbeContainment.counts_hashCost' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.counts_hashCost
+
+/--
+info: 'SlhDsaSecurity.GuessingBar.two_stakes_eq_target' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GuessingBar.two_stakes_eq_target
+
+/--
+info: 'SlhDsaSecurity.GuessingBar.within_target_of_stakes' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GuessingBar.within_target_of_stakes
+
+/--
+info: 'SlhDsaSecurity.GuessingBar.one_stake_is_half' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.GuessingBar.one_stake_is_half
