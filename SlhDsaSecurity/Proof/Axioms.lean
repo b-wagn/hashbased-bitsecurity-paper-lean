@@ -16100,3 +16100,19 @@ info: 'SlhDsaSecurity.CarrierServedLog.carrierBelowLog_of_invariants' depends on
 /-- info: 'SlhDsaSecurity.ProbeContainment.weight_le_recordAim_serving' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim_serving
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets_at' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets_at
+
+/--
+info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets
