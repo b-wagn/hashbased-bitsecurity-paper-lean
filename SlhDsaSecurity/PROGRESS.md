@@ -4636,3 +4636,52 @@ record hypotheses want.
 assembly of `leftRecord_length_le_cap` into a cap at `carrierTail` itself. The ingredients for
 that assembly are all present; whether someone is already holding them together is not something
 a grep can answer.
+
+
+### `hsplit` end to end, and the seam that does not meet
+
+`SlhDsaSecurity/Proof/CarrierSplit.lean` assembles `hsplit` at
+`AnswerCarrier.answerCarrierRun` from `hsplit_of_join`, `CarrierJoin.targetCovered_carrierTail`
+and `CarrierCover.cover_carrierRightKeep`, and carries it to
+`SplitTail.splitCarrierTail` by one `support_map` along
+`SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun`. It is a citation at three of the
+four joints. At the fourth it is not, and that is the finding.
+
+**The seam.** The carrier's cover holds at the **narrowed** class
+`IsMessageInput ∧ ¬ PrfClass`, and the narrowing is load-bearing:
+`RandomizerGate.messageInput_eq_randomizerInput_iff` makes
+`PrfClass prfSeed (messageInput r pk m)` hold exactly when `r = prfSeed`, so the carrier's
+`FilesRandomiser` clause is refuted precisely by knowing the randomiser is not the PRF seed.
+The cover is used twice — at the forgery's own digest input, where `¬ ForgerySeedRandomised` is
+exactly enough, and at each **disclosing witness**, where it is not. A served request's
+randomiser is a value the walk drew; "it is not the PRF seed" is a guess at a secret, and at a
+fixed walk it cannot be proved. So the assembly takes `hseed` at the cache-wide leftover
+`SplitWitness.SeedRandomised`, which is what the cache route's join already assumes.
+
+**The gap is exactly forgery-only versus cache-wide**, and it exists because the carrier's
+target test carries a `FilesRandomiser` clause the cache's does not. Two ways to close it, with
+different kinds of cost: charge the cache-wide leftover in the shared half — which it is
+already set up to do, the forgery-only version having been introduced as a *weakening* of it,
+so this is a ledger question — or drop the `FilesRandomiser` clause from the carrier's target
+test and reprove the cover frame-conditionally, with `reaches` threaded and the phase
+propagation `FusedCover` does not have, which is new machinery. **This is the invoice for the
+unconditional cover arriving at the far end**, and it is the same invoice, not a second one.
+
+**One generalisation on the way, which passed the test.** `CarrierJoin`'s `hclass` was
+`IsMessageInput → inClass`; it is now `IsMessageInput → cache input ≠ none → inClass`, with
+`hdisclosingClass` replaced by `hdisclosingMessage : disclosing → IsMessageInput`. Both uses
+already have the cache premise, the added premise is exactly what `SeedRandomised` is stated
+against, and the build went green with no call site changed.
+
+**What the join does not use.** `GoodWalk` is not used by `hjoin_answerCarrierRun` at all, and
+`¬ ForgerySeedRandomised` is subsumed by `hseed`. `¬ LateDisclosure` is not used *here* only
+because the work it does on the cache route has been moved into the two recording-class
+hypotheses — it is what supplies `hrightClass` there — so that is deferral, not elimination.
+Those two hypotheses (served-agreement and ordering) and freshness at the walk's own cache are
+unowned rather than findings; the freshness one is the same hypothesis the cache route takes.
+
+Also recorded: the only place this file unfolds `answerCarrierRun` is one small bridge lemma,
+with `attribute [local irreducible]` immediately after it. `AnswerCarrier`'s own note says
+everything downstream must treat the run as opaque or the unifier walks into `carrierTail` at
+every membership — which is exactly what it did, at four million heartbeats, before the bridge
+existed.
