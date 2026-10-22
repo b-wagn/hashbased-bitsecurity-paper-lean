@@ -3076,9 +3076,11 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.CoverageRouted.forgeryCovered_of_witnesses
 
-/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryCovered_or_only_self' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryDisclosedCovered_or_only_self' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.CoverageRouted.forgeryCovered_or_only_self
+#print axioms SlhDsaSecurity.CoverageRouted.forgeryDisclosedCovered_or_only_self
 
 /--
 info: 'SlhDsaSecurity.CoverageRouted.parse_instance_eq_of_forsKeyOfDigest_eq' depends on axioms: [propext,
@@ -6517,3 +6519,13 @@ info: 'SlhDsaSecurity.ReplayGate.cases_of_win_charged' depends on axioms: [prope
 /-- info: 'SlhDsaSecurity.RedrawCell.fors_sign_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.fors_sign_congr
+
+/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryCovered_of_disclosed' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.forgeryCovered_of_disclosed
+
+/-- info: 'SlhDsaSecurity.CoverageRouted.forgeryDisclosedCovered_of_witnesses' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageRouted.forgeryDisclosedCovered_of_witnesses

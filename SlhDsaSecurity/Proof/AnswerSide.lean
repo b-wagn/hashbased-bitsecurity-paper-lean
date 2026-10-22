@@ -119,6 +119,11 @@ theorem prob_answerBad_le (adversary : Adversary) (pk : PublicKey) (qs qm : Nat)
   calc Pr[fun result => RoutedSplit.AnswerBadAt pk ((walk.1, result.1), result.2) |
         tail adversary walk]
       ≤ Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+            StructuralTerm.DeviatingCollision walk.1.1.2.2 walk.1.2 result ∨
+              CoverageTail.ForgeryCovered pk result | tail adversary walk] :=
+        probEvent_mono fun result _ hbad =>
+          hbad.imp id (CoverageRouted.forgeryCovered_of_disclosed walk.1.1.2.1 pk result)
+    _ ≤ Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
             StructuralTerm.DeviatingCollision walk.1.1.2.2 walk.1.2 result |
           tail adversary walk] +
           Pr[CoverageTail.ForgeryCovered pk | tail adversary walk] := probEvent_or_le _ _ _
