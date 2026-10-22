@@ -81,6 +81,25 @@ so both obligations are stated at a refining tail — and at *an arbitrary one*,
 below this file can name the presentation. The instantiation is an application, made where the
 presentation is defined. -/
 
+/-- The answer half at a refining tail, with its defect term a **parameter**.
+
+The term is a parameter because the half's stated allowance and the half's proved bound are not
+the same quantity: `AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow` concludes
+`q / 2 ^ 128 + 1 / 2 ^ 141`, and the `2 ^ -126` beside it is added by a weakening. Reading the
+obligation at what is proved is four units of `2 ^ -128` cheaper, and the two readings are this
+definition at two arguments rather than two definitions. -/
+def AnswerChargedAt {γ : Type} (answerDefect : ℝ≥0∞)
+    (fused : Adversary →
+      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
+      Prop) : Prop :=
+  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+    ∀ walk ∈ support graphWalk, GoodWalk walk →
+      Pr[fun result : γ => AnswerBad ((walk.1, (forget result).1), (forget result).2) ∧
+          ¬ late (walk, result) | fused adversary walk] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefect
+
 /-- The answer half at a refining tail, with late disclosure ruled out rather than assumed. -/
 def AnswerChargedLate {γ : Type}
     (fused : Adversary →
@@ -113,6 +132,30 @@ set_option maxHeartbeats 1000000 in
 /-- **The target, from the two obligations at a refining tail.** The split is the two-way one:
 a win is the answer side or the input side, and the defect is what the answer side is allowed to
 rule out. -/
+theorem target_of_charges_fused_at {γ : Type} (answerDefect : ℝ≥0∞)
+    (claims defectUnits : Nat)
+    (hdefect : Target.defectsAt answerDefect ≤
+      ((defectUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
+    (hclaims : claims + defectUnits ≤ 2 ^ subtreeHeight)
+    (fused : Adversary →
+      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
+    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
+    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
+      Prop)
+    (hforget : ∀ (adversary : Adversary) (walk : (((Digest × Digest × Digest) ×
+      CanonicalGraph.Cells) × QueryCache HashSpec)),
+      forget <$> fused adversary walk = tail adversary walk)
+    (hanswer : AnswerChargedAt answerDefect fused forget late)
+    (hshared : SharedChargedLate claims fused forget late) :
+    HasTotalSecurityBits .strong 127 :=
+  Target.target_of_obligations_fused_at answerDefect claims defectUnits hdefect hclaims
+    fused forget hforget AnswerBad InputBad late
+    (fun adversary _ hwalk _ _ hresult hwin =>
+      SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin)
+    hanswer hshared
+
+/-- **The target at the answer half's stated allowance.** The reading the obligations were
+written at; `target_of_charges_fused_at` at `Target.answerDefectProved` is four units cheaper. -/
 theorem target_of_charges_fused {γ : Type} (claims : Nat)
     (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
     (fused : Adversary →
@@ -126,9 +169,9 @@ theorem target_of_charges_fused {γ : Type} (claims : Nat)
     (hanswer : AnswerChargedLate fused forget late)
     (hshared : SharedChargedLate claims fused forget late) :
     HasTotalSecurityBits .strong 127 :=
-  Target.target_of_obligations_fused claims hclaims fused forget hforget AnswerBad InputBad late
-    (fun adversary _ hwalk _ _ hresult hwin =>
-      SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin)
-    hanswer hshared
+  target_of_charges_fused_at
+    ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
+    claims 6 (by rw [← Target.defects_eq_defectsAt]; exact Target.defects_le_six_units) hclaims
+    fused forget late hforget hanswer hshared
 
 end SlhDsaSecurity.Obligations

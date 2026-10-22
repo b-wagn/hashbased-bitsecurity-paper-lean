@@ -13523,3 +13523,59 @@ info: 'SlhDsaSecurity.CarrierTail.last_stage_forget' depends on axioms: [propext
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierTail.last_stage_forget
+
+/--
+info: 'SlhDsaSecurity.Target.defects_eq_defectsAt' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.defects_eq_defectsAt
+
+/--
+info: 'SlhDsaSecurity.Target.defectsAt_proved_le_two' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.defectsAt_proved_le_two
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceAt' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceAt
+
+/--
+info: 'SlhDsaSecurity.Target.defects_le_six_units' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.defects_le_six_units
+
+/--
+info: 'SlhDsaSecurity.Target.target_of_obligations_fused_at' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations_fused_at
+
+/--
+info: 'SlhDsaSecurity.Obligations.target_of_charges_fused_at' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Obligations.target_of_charges_fused_at
+
+/--
+info: 'SlhDsaSecurity.FinalAssembly.target_of_producers_at' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FinalAssembly.target_of_producers_at
+
+/--
+info: 'SlhDsaSecurity.FinalAssembly.target_of_producers_proved' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FinalAssembly.target_of_producers_proved
+
+/--
+info: 'SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves_proved' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves_proved
