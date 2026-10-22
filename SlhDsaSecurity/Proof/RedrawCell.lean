@@ -1064,6 +1064,44 @@ theorem signLayers_congr_shared (publicSeed : Digest) (cache : QueryCache HashSp
   exact signLayers_congr publicSeed cache left right signed hagree remaining layer tree leaf
     htree message hbound hmessage
 
+/-! ## The signature, as one congruence
+
+The four parts meet here. The randomiser and the digest are answered by the cache, the FORS part
+and the climb are cells, and so the whole signature is unchanged by a table agreeing at the
+cells it discloses.
+
+`hsigned` is a parameter and the debt it stands for is real. It says the leaves *this digest*
+selects are signed, which is what makes their secrets available, and it is true for an
+**ordering** reason: the signer queries its digest before it reads any FORS secret, so by the
+time it reads one the cache already holds what makes that secret available. Instantiating this
+parameter against `CacheAvailability.signedAt` means **proving that ordering, not recalling
+it**. It is stated about `signedDigest left cache sk message`, the digest the signer actually
+computes; the quantified version would be the much stronger claim that every leaf of every
+digest is signed, which is false and would make everything available. -/
+
+/-- Two signatures agree when their three parts do. -/
+theorem signature_eq {left right : Signature} (hrandom : left.randomizer = right.randomizer)
+    (hfors : left.fors = right.fors) (hhypertree : left.hypertree = right.hypertree) :
+    left = right := by
+  cases left
+  cases right
+  simp_all
+
+/-- **The randomiser is the cache's, not the table's.** -/
+theorem randomizer_congr (cache : QueryCache HashSpec) (left right : Cells × Padding)
+    (sk : SecretKey) (message : Bytes) (hprf : sk.prf ≠ sk.publicKey.seed) :
+    @Hashing.randomizer Id Id.instMonad
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed left cache)) sk.prf
+        sk.publicKey.seed message =
+      @Hashing.randomizer Id Id.instMonad
+        (CacheReplay.replayQuery (unionCache sk.publicKey.seed right cache)) sk.prf
+        sk.publicKey.seed message := by
+  rw [randomizer_replay, randomizer_replay,
+    unionCache_of_not_canonical sk.publicKey.seed left cache _
+      (fun parent heq => HashSeparation.randomizer_tweakable_ne hprf heq.symm),
+    unionCache_of_not_canonical sk.publicKey.seed right cache _
+      (fun parent heq => HashSeparation.randomizer_tweakable_ne hprf heq.symm)]
+
 /-- A handler cache saying nothing the programmed entries contradict. -/
 def Compatible (publicSeed : Digest) (table : Cells × Padding)
     (cache : QueryCache HashSpec) : Prop :=

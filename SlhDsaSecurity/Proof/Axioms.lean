@@ -7190,3 +7190,11 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
 /-- info: 'SlhDsaSecurity.RedrawCell.signLayers_congr_shared' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.signLayers_congr_shared
+
+/-- info: 'SlhDsaSecurity.RedrawCell.signature_eq' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.signature_eq
+
+/-- info: 'SlhDsaSecurity.RedrawCell.randomizer_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.randomizer_congr
