@@ -7120,14 +7120,6 @@ info: 'SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh' depends on axioms: [p
 #print axioms SlhDsaSecurity.PhaseProvenance.mem_record_of_fresh
 
 /--
-info: 'SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PhaseProvenance.queriesUnder_sign_of_fresh_step
-
-/--
 info: 'SlhDsaSecurity.PhaseProvenance.provenance_phase' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -7170,3 +7162,39 @@ info: 'SlhDsaSecurity.RandomiserProvenance.randomiserBad_source' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserProvenance.randomiserBad_source
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_sign_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_sign_randomizer
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.sign_randomizer_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.sign_randomizer_cached
+
+/--
+info: 'SlhDsaSecurity.PhaseProvenance.signerMade_of_fresh_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PhaseProvenance.signerMade_of_fresh_step
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.bad_of_signerHitsSeed' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.bad_of_signerHitsSeed
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.card_forgeryDigestRecord_le' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.card_forgeryDigestRecord_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.mem_forgeryDigestRecord' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.mem_forgeryDigestRecord

@@ -95,9 +95,7 @@ theorem provenance_afterSeeds (adversary : Adversary) (sds : Digest × Digest ×
       (probe ∈ record ∨
         QueriesUnder result.2
           (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) probe ∨
-        (∃ entry ∈ result.1.1.signed,
-          QueriesUnder result.2
-            (Scheme.sign (m := OracleComp HashSpec) keys.1 entry.1) probe) ∨
+        (∃ entry ∈ result.1.1.signed, SignerMade keys.1 result.2 entry.1 probe) ∨
         QueriesUnder result.2
           (Scheme.verify (m := OracleComp HashSpec) keys.2 result.1.1.forgery.message
             result.1.1.forgery.signature) probe) := by
@@ -178,35 +176,92 @@ With the provenance in hand the four closure lemmas do the rest. Key generation'
 canonical and open with `PK.seed`; the signer's `PRF_msg` probe is at its own request's framing,
 which the defect excludes because that request is in the log; the verifier's probes are
 tweakable at `PK.seed` bar its one digest call. What survives is the adversary's own query — or
-the digest overlap, which is carried as the second case.
+the digest overlap, which is carried.
 
-`Target.GoodWalk` supplies both of the walk's own coincidences the argument spends: the two
-seeds differ, which is what makes `PRF_msg` and tweakable inputs disjoint, and it is already
-charged by `Target.prob_bad_walk`. -/
+**The overlap has two sources and they are charged differently.** The verifier's is the
+forgery's own randomiser being `SK.prf`, which is one guess at the seed and nothing more; so it
+is folded into the record as one extra element rather than named as a separate case, and the
+same deferral that pays for the adversary's own queries pays for it at one more unit. The
+signer's is an *answer* hitting the seed — the randomiser it derived for a request it served
+happening to be `SK.prf` — and that is a different kind of event, chargeable against the run's
+own randomness without any deferral, so it is named and charged separately below.
+
+`Target.GoodWalk` supplies the walk's own coincidence the argument spends: the two seeds
+differ, which is what makes `PRF_msg` and tweakable inputs disjoint, and it is already charged
+by `Target.prob_bad_walk`. -/
+
+/-- **The signer's coincidence.** The randomiser the signer derived for a request it served is
+the seed itself.
+
+Stated at the *cache entry* the answer sits in, not at `HonestProbes.replayRandomizer`, and the
+difference matters: `replay` answers `default` at an absent input, so the predicate read through
+`replayRandomizer` alone would also be satisfied by `Hashing.truncate default = SK.prf`, a
+statement about a fixed constant that no per-run charge can pay for. The entry's presence comes
+from the signing sub-run, through `PhaseProvenance.SignerMade`. -/
+def SignerHitsSeed (prfSeed publicSeed : Digest) (cache : QueryCache HashSpec)
+    (signed : SigningLog) : Prop :=
+  ∃ entry ∈ signed, ∃ (framed : Bytes) (answer : HashOutput),
+    entry.1.frame = some framed ∧
+      cache (Hashing.randomizerInput prfSeed publicSeed framed) = some answer ∧
+        Hashing.truncate answer = prfSeed
+
+/-- **A signer coincidence is an answer that hits the seed**, in the form the charge reads. -/
+theorem bad_of_signerHitsSeed (prfSeed publicSeed : Digest) (cache : QueryCache HashSpec)
+    (signed : SigningLog) {α : Type} (value : α)
+    (hhit : SignerHitsSeed prfSeed publicSeed cache signed) :
+    GrowthCharge.Bad (RandomizerGate.RandomizerHitsSeed prfSeed) (value, cache) := by
+  obtain ⟨entry, -, framed, answer, -, hentry, htruncate⟩ := hhit
+  exact ⟨_, answer, hentry, ⟨publicSeed, framed, rfl⟩, htruncate⟩
+
+/-- The one input the forgery's own digest query names, when the forgery has one.
+
+Adding it to the record is how the verifier's half of the overlap is charged. The forgery's
+randomiser being `SK.prf` is *exactly* this input being a `PRF_msg` input at the seed, so it is
+one more guess at the seed and costs one more unit of the record's cap — no separate argument,
+and nothing for the deferral to be told about beyond the cap. -/
+noncomputable def forgeryDigestRecord (pk : PublicKey) (forgery : Forgery) : Multiset Bytes :=
+  match forgery.message.frame with
+  | none => 0
+  | some framed =>
+    match Signature.fromBytes? forgery.signature with
+    | none => 0
+    | some parsed => {Hashing.messageInput parsed.randomizer pk framed}
+
+theorem card_forgeryDigestRecord_le (pk : PublicKey) (forgery : Forgery) :
+    Multiset.card (forgeryDigestRecord pk forgery) ≤ 1 := by
+  unfold forgeryDigestRecord
+  split
+  · simp
+  · split <;> simp
+
+theorem mem_forgeryDigestRecord (pk : PublicKey) (forgery : Forgery) (framed : Bytes)
+    (parsed : Signature) (hframe : forgery.message.frame = some framed)
+    (hparsed : Signature.fromBytes? forgery.signature = some parsed) :
+    Hashing.messageInput parsed.randomizer pk framed ∈ forgeryDigestRecord pk forgery := by
+  simp only [forgeryDigestRecord, hframe, hparsed]
+  simp
 
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.tail
 
-/-- **The randomiser defect is the adversary's own `PRF_msg` query, or the digest overlap.**
+/-- **The randomiser defect is a query at a `PRF_msg` input the run wrote, or the signer's own
+randomiser hitting the seed.**
 
-The first case is a membership in the record, whose `Multiset.toFinset` is the `Finset Bytes`
-with a cardinality cap `RandomizerGate.prob_run_randomizerInput_le` consumes. The second is a
-message input that *is* this `PRF_msg` input — which, by
-`RandomizerGate.messageInput_eq_randomizerInput_iff`, can only happen when the randomiser behind
-that digest is `SK.prf` itself, so it is already stated here with the randomiser identified. -/
+The first case is a membership in the record — the adversary's own hash inputs together with
+the forgery's one digest input — whose `Multiset.toFinset` is the `Finset Bytes` with a
+cardinality cap `RandomizerGate.prob_run_randomizerInput_le` consumes. The second is the
+signer's coincidence, charged by `prob_signerHitsSeed_tail_le` below without any deferral. -/
 theorem randomiserBad_source (adversary : Adversary)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
     {result : (Outcome × Nat) × QueryCache HashSpec}
     (hresult : result ∈ support (WarmedGame.tail adversary walk))
     (hbad : ReplayGate.RandomiserBad ((walk.1, result.1), result.2)) :
-    ∃ record : Multiset Bytes, Multiset.card record ≤ result.1.1.counts.work ∧
+    ∃ record : Multiset Bytes, Multiset.card record ≤ result.1.1.counts.work + 1 ∧
       ((∃ input ∈ record, ∃ (seed : Digest) (payload : Bytes),
           input = Hashing.randomizerInput walk.1.1.2.1 seed payload) ∨
-        ∃ payload framed : Bytes,
-          Hashing.randomizerInput walk.1.1.2.1
-              (RoutedSplit.keyOf ((walk.1, result.1), result.2)).seed payload =
-            Hashing.messageInput walk.1.1.2.1
-              (RoutedSplit.keyOf ((walk.1, result.1), result.2)) framed) := by
+        SignerHitsSeed walk.1.1.2.1
+          (RoutedSplit.keyOf ((walk.1, result.1), result.2)).seed result.2
+          result.1.1.signed) := by
   classical
   obtain ⟨message, answer, hentry, hunsigned⟩ := hbad
   set pk := RoutedSplit.keyOf ((walk.1, result.1), result.2) with hpk
@@ -226,29 +281,45 @@ theorem randomiserBad_source (adversary : Adversary)
   have hkey : keys.2 = pk := by rw [hpk, RoutedSplit.keyOf, SplitCharged.generatedKey, hkeys]
   have hsecret : keys.1 = ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ := by
     rw [hkeys, SigningFaithful.keygen_secretKey, hpk, RoutedSplit.keyOf]
-  refine ⟨record, hcard, ?_⟩
+  refine ⟨record + forgeryDigestRecord pk result.1.1.forgery, ?_, ?_⟩
+  · rw [Multiset.card_add]
+    exact Nat.add_le_add hcard (card_forgeryDigestRecord_le pk result.1.1.forgery)
   rcases hsource with hmem | hkeygen | ⟨entry, hentryMem, hsign⟩ | hverify
-  · exact Or.inl ⟨_, hmem, pk.seed, message, rfl⟩
+  · exact Or.inl ⟨_, Multiset.mem_add.mpr (Or.inl hmem), pk.seed, message, rfl⟩
   · exact absurd hkeygen fun hquery =>
       keygen_not_randomizerInput result.2 walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2
         walk.1.1.2.1 pk.seed message hgood.1 hquery
   · rw [hsecret] at hsign
     obtain ⟨framed, hframe, hmessage⟩ :=
       sign_messageProbe result.2 ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ entry.1 walk.1.1.2.1 pk.seed
-        message hne hsign
+        message hne hsign.1
     rcases hmessage with hrandomizer | hdigest
     · obtain ⟨-, -, hequal⟩ := Hashing.randomizerInput_injective hrandomizer
       exact absurd ⟨entry, hentryMem, hequal ▸ hframe⟩ hunsigned
-    · refine Or.inr ⟨message, framed, ?_⟩
-      rw [hdigest, RandomizerGate.messageInput_eq_randomizerInput_iff _ walk.1.1.2.1 pk.seed pk
-        framed message hdigest.symm]
-  · obtain ⟨framed, parsed, -, -, hdigest⟩ :=
+    · refine Or.inr ⟨entry, hentryMem, framed, ?_⟩
+      have hcached : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) ≠ none :=
+        hsign.2 framed hframe
+      cases hvalue : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) with
+      | none => exact absurd hvalue hcached
+      | some cached =>
+        refine ⟨cached, hframe, rfl, ?_⟩
+        have hreplay : HonestProbes.replayRandomizer result.2
+            ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ framed = Hashing.truncate cached := by
+          rw [HonestProbes.replayRandomizer,
+            show CacheReplay.replay result.2
+              (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) = cached from by
+              simp [CacheReplay.replay, hvalue]]
+        rw [← hreplay]
+        exact RandomizerGate.messageInput_eq_randomizerInput_iff _ walk.1.1.2.1 pk.seed pk
+          framed message hdigest.symm
+  · obtain ⟨framed, parsed, hframe, hparsed, hdigest⟩ :=
       VerifierFormat.verify_probe_randomizerInput result.2 keys.2 result.1.1.forgery.message
         result.1.1.forgery.signature walk.1.1.2.1 pk.seed message (by rw [hkey]; exact hne)
         hverify rfl
     rw [hkey] at hdigest
-    refine Or.inr ⟨message, framed, ?_⟩
-    rw [hdigest, RandomizerGate.messageInput_eq_randomizerInput_iff _ walk.1.1.2.1 pk.seed pk
-      framed message hdigest.symm]
+    exact Or.inl ⟨Hashing.messageInput parsed.randomizer pk framed,
+      Multiset.mem_add.mpr (Or.inr (mem_forgeryDigestRecord pk result.1.1.forgery framed parsed
+        hframe hparsed)),
+      pk.seed, message, hdigest.symm⟩
 
 end SlhDsaSecurity.RandomiserProvenance
