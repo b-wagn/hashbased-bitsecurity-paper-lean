@@ -259,6 +259,7 @@ import SlhDsaSecurity.Proof.HandlerEvent
 import SlhDsaSecurity.Proof.CarrierServedLog
 import SlhDsaSecurity.Proof.LedgerThird
 import SlhDsaSecurity.Proof.SeedFlag
+import SlhDsaSecurity.Proof.PrfClassCount
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16251,3 +16252,41 @@ info: 'SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail' depend
 /-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_sticky' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedFlag.recordFlag_sticky
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.prf_column_within_one_unit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.prf_column_within_one_unit
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit
+
+/--
+info: 'SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin
+
+/--
+info: 'SlhDsaSecurity.PrfClassCount.expected_indicator_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PrfClassCount.expected_indicator_eq
+
+/--
+info: 'SlhDsaSecurity.PrfClassCount.prob_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PrfClassCount.prob_prfClass_le
+
+/--
+info: 'SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le

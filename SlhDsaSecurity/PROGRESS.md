@@ -5135,3 +5135,31 @@ the shape should not have to carry a served set to get it.
 The remaining two are the ordering fact (`hrightClass`, which `¬ LateDisclosure` supplies on the
 cache route) and freshness at the walk's own cache, which is the same hypothesis the cache route
 takes.
+
+## Summing beats union-bounding, and the threshold was the route's rather than the quantity's
+
+`PrfClassCount.expected_card_filter_prfClass_le`: the expected number of a record's entries that
+are `PRF_msg` inputs at a seed drawn **after** the record is at most `card record / 2 ^ 128`.
+Each entry lies in the class for at most one seed — `RandomizerGate.prfGuess` recovers the seed
+from the input — so each contributes `2 ^ -128` and the sum is the record's size over `2 ^ 128`,
+which for any budget below `2 ^ 128` is **less than one entry's worth**.
+
+**The quadratic was the route, not the quantity.** The previous round bounded the count by the
+record *on* the event and multiplied by the event's probability: `B · (B / 2 ^ 128)`, which
+squares. The direct computation never bounds the count by `B` at all. That is the same shape of
+loss as a union bound that cannot see a partition — *bounding a sum of small things by a big
+thing times a small thing* — and it is visible only once the sum is written out. The indicator
+step itself (`LedgerThird.expected_le_mul_probEvent`) is sound; it is simply lossy here.
+
+**So the threshold is gone.** `q₀ ≈ 2 ^ 67.97` was a property of the lossy route. At one unit of
+the `claims` column the ledger closes with **246 units spare** for every budget up to `2 ^ 128`
+(`prf_column_within_one_unit`, `claims_spare_with_prf_unit_margin`). The `q`-dependent
+threshold theorems are kept, because what a `q`-shaped column *would* have cost is the thing
+worth remembering.
+
+**What is not gone is the order.** The summed bound is proved with the seed drawn after the
+record. In the real game the walk fixes the seed first, and an adversary that knows it can aim
+every query at it — at which point the count is the whole record and the bound is false. So this
+discharges the column exactly when the blind-order count transfers to the real one, and that
+transfer is the open hop. **An arithmetic obstruction has become an ordering one**, which is a
+better place to be but is not the same as being done.
