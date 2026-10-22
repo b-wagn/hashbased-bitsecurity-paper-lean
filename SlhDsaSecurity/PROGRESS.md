@@ -1693,3 +1693,28 @@ rather than a restatement of it.
 Until then `AnswerSide.prob_answerBad_le_of_budget` carries that one hypothesis and no `hsum`,
 and concludes `budget / 2 ^ 128 + constant` — at `budget = q - 2 ^ subtreeHeight` and
 `constant = 1 / 2 ^ 141`, the bound the target reads.
+
+## Both sides of the answer half have to be in expectation, and why no re-capping reaches it
+
+The two-class counter put the structural side in expectation. It is worth writing down why that
+is not half the job but all but one step of it, since the arithmetic looks as though a tighter
+uniform bound on the other side would do.
+
+Pathwise `inside + outside ≤ count ≤ q - 512`. With the structural side in expectation that
+gives `E[outside] ≤ q - 512 - E[inside]`. If the coverage side keeps a uniform limit `trials`
+with `inside ≤ trials` on every run, closing the sum needs
+
+    E[outside] + trials ≤ q - 512,
+
+which forces `trials ≤ E[inside]` — a uniform bound on a quantity sitting below that quantity's
+own mean. So no choice of `trials` works, and in particular uncapping `qm` by the index split,
+which was necessary for its own reason, does not reach this.
+
+What makes it the last step rather than a wall is that the expectation form already exists where
+the tape is uniform: `BlockDisclosures.block_coverage_le` concludes
+`1 / 2 ^ 141 + expectedUses policy / 2 ^ 128`, and only `expectedUses_le_trials` turns that into
+a uniform bound. What is missing is the transport — carrying the game's recording to that tape
+without discarding conditional uniformity. A union over a `Finset` of bad words is exactly what
+discards it: it is consistent with a process putting all its mass on bad words of one length,
+for which the expectation form is false. Real runs are not like that because reaching a length
+leaves the word uniform, and that is the fact the transport has to keep.
