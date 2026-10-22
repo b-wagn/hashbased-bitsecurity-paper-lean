@@ -232,11 +232,11 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
     (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Target CanonicalGraph.Node) (index : CanonicalGraph.Node)
-    (hindex : CanonicalGraph.Node.secretSeed ≠ index)
+    (touched : CanonicalGraph.Node → Prop) (hindex : ¬ touched index)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
-    (hseed : ∀ left right : Cells × Padding,
-      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+    (htouched : ∀ left right : Cells × Padding,
+      (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
     (state : HandlerState × Bool) :
     Pr[fun pair : (α × (HandlerState × Bool)) × Cell =>
@@ -302,7 +302,8 @@ theorem prob_charged_index_le {α : Type} (publicSeed : Digest)
         pure (result, cell)] := by
     refine evalDist_redraw_coordinate index ($ᵗ Padding : ProbComp Padding) _ ?_
     intro cells other pad hagree
-    rw [hseed (other, pad) (cells, pad) (hagree CanonicalGraph.Node.secretSeed hindex).symm]
+    rw [htouched (other, pad) (cells, pad) fun node hnode =>
+      (hagree node fun heq => hindex (heq ▸ hnode)).symm]
     exact evalDist_stalled_lazyProgram_congr publicSeed availableAt hclosed index
       (cells, pad) (other, pad) ⟨hagree, fun parent _ => rfl⟩ stall
       (computation (cells, pad)) state
@@ -356,7 +357,14 @@ run is blind to it and the redrawing below cannot reach it.
 
 Every other cell is reached, and `SensitiveOffSeed` is exactly that half of the event. The two
 are complementary, which is what lets the counts be added: a query's address names its node
-before any cell is read, so a probe falls in one avenue or the other and never both. -/
+before any cell is read, so a probe falls in one avenue or the other and never both.
+
+The computation is allowed to read more than the seed, and what it may read is a parameter:
+`touched` names the cells it reads, and `hopen` asks that every one of them but the seed be
+available at every state. Such a cell costs nothing to exclude, since no query staking it is
+sensitive at any state — the event at that index is empty. A public value the computation
+carries, such as the honest root, is of that kind. A cell the signatures only make available
+part way through is not, and may not be put in `touched`. -/
 
 /-- A sensitive query whose staked cell is the secret seed — the seed-guessing avenue, charged
 by `TrackedQueries.prob_meets_real_le` and not here. -/
@@ -374,6 +382,24 @@ def SensitiveOffSeed (stakes : Stakes Target CanonicalGraph.Node)
   ∃ node : Target, stakes.stake node ≠ CanonicalGraph.Node.secretSeed ∧
     unavailable cache (stakes.stake node) ∧
     stakes.inputOf node (cells (stakes.stake node)) = candidate
+
+/-- The two cells a computation that carries the honest key reads: the secret seed it is run
+from, and the honest root it carries as its public value. -/
+def seedAndRoot (node : CanonicalGraph.Node) : Prop :=
+  node = CanonicalGraph.Node.secretSeed ∨ node = .structural CanonicalGraph.topRoot
+
+/-- **The root costs nothing to exclude.** It is a `tree` node, whose children are subtree cells
+and WOTS public keys, none of them protected, so it is available at every state and no sensitive
+query stakes it. -/
+theorem open_seedAndRoot (revealed : WotsKey → Fin chains → Nat)
+    (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
+    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (node : CanonicalGraph.Node) (htouched : seedAndRoot node)
+    (hne : node ≠ CanonicalGraph.Node.secretSeed) :
+    CanonicalGraph.Available revealed signed node := by
+  rcases htouched with rfl | rfl
+  · exact absurd rfl hne
+  · exact CanonicalGraph.available_of_alwaysAvailable revealed signed hrevealed trivial
 
 /-- **The two avenues cover the event between them.** -/
 theorem sensitive_iff_off_or_at_seed (stakes : Stakes Target CanonicalGraph.Node)
@@ -415,7 +441,9 @@ set_option maxHeartbeats 8000000 in
 set_option maxRecDepth 1000000 in
 set_option linter.constructorNameAsVariable false in
 open scoped Classical in
-/-- **A run of the handler that answers only what it may is charged one unit per probe.** -/
+/-- **A run of the handler that answers only what it may is charged one unit per probe.** The
+run reads the table only at `touched`, and every cell there but the secret seed is available
+throughout, so excluding both from the sum excludes nothing an adversary can use. -/
 theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
     (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
     (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
@@ -426,9 +454,12 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
     (stakes : Stakes Target CanonicalGraph.Node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
-    (hseed : ∀ left right : Cells × Padding,
-      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+    (touched : CanonicalGraph.Node → Prop)
+    (htouched : ∀ left right : Cells × Padding,
+      (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
+      ∀ cache, availableAt cache node)
     (state : HandlerState × Bool) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -449,20 +480,21 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
   refine le_trans (probEvent_mono
     (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
       ∃ index ∈ (Finset.univ : Finset CanonicalGraph.Node),
-        index ≠ CanonicalGraph.Node.secretSeed ∧ ∃ entry ∈ pair.1.2.1.2.1,
+        ¬ touched index ∧ ∃ entry ∈ pair.1.2.1.2.1,
           ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
             (pair.2 index) entry) ?_) ?_
   · rintro pair - ⟨entry, hentry, hsensitive⟩
-    obtain ⟨index, hne, hcharged⟩ :=
+    obtain ⟨index, hne, node, hstake, hunavailable, hinput⟩ :=
       (sensitiveOffSeed_iff_exists stakes (fun cache node => ¬ availableAt cache node) pair.2
         entry.2 entry.1).mp hsensitive
-    refine ⟨index, ?_, hne, entry, hentry, hcharged⟩
+    refine ⟨index, ?_, fun htouch => hunavailable (hopen index htouch hne entry.2),
+      entry, hentry, node, hstake, hunavailable, hinput⟩
     simp
   refine le_trans (probEvent_exists_finset_le_sum _ _ _) ?_
   -- Each cell's charge reads the result and that cell alone.
   have hindex : ∀ index : CanonicalGraph.Node,
       Pr[fun pair : (α × (HandlerState × Bool)) × Cells =>
-          index ≠ CanonicalGraph.Node.secretSeed ∧ ∃ entry ∈ pair.1.2.1.2.1,
+          ¬ touched index ∧ ∃ entry ∈ pair.1.2.1.2.1,
             ChargedBy stakes (fun cache node => ¬ availableAt cache node) index
               (pair.2 index) entry |
         (do
@@ -480,9 +512,9 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
             ((aiming stakes (fun cache node => ¬ availableAt cache node) index z.2.1.2.1 :
               Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
     intro index
-    by_cases hi : CanonicalGraph.Node.secretSeed = index
+    by_cases hi : touched index
     · refine le_trans (probEvent_mono (q := fun _ => False)
-        (fun pair _ hpair => hpair.1 hi.symm)) ?_
+        (fun pair _ hpair => hpair.1 hi)) ?_
       simp
     refine le_trans (probEvent_mono
       (q := fun pair : (α × (HandlerState × Bool)) × Cells =>
@@ -490,8 +522,8 @@ theorem prob_sensitive_run_le {α : Type} (publicSeed : Digest)
           (fun cache node => ¬ availableAt cache node) index (pair.2 index) entry)
       (fun pair _ hpair => hpair.2)) ?_
     refine le_trans (le_of_eq ?_)
-      (prob_charged_index_le publicSeed availableAt hclosed hmono stakes index hi stall
-        computation hseed state)
+      (prob_charged_index_le publicSeed availableAt hclosed hmono stakes index touched hi
+        stall computation htouched state)
     have hmapped : (fun pair : (α × (HandlerState × Bool)) × Cells =>
           (pair.1, pair.2 index)) <$> (do
             let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -954,9 +986,12 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
         CanonicalGraph.Available revealed (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
-    (hseed : ∀ left right : Cells × Padding,
-      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+    (touched : CanonicalGraph.Node → Prop)
+    (htouched : ∀ left right : Cells × Padding,
+      (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
+      ∀ cache, CanonicalGraph.Available revealed (signedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = []) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -1013,8 +1048,8 @@ theorem prob_game_sensitive_le {α : Type} (publicSeed : Digest)
   refine le_trans (probEvent_or_le _ _ _) (add_le_add ?_ le_rfl)
   exact prob_sensitive_run_le publicSeed
     (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node)
-    hclosed hmono (GraphStakes.stakes publicSeed) stall computation hseed (inner, false)
-    limit hlimit
+    hclosed hmono (GraphStakes.stakes publicSeed) stall computation touched htouched hopen
+    (inner, false) limit hlimit
 
 open scoped Classical in
 /-- **The charge at the honest reveal count.** The digit a signature discloses never exceeds
@@ -1036,9 +1071,13 @@ theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
           (signedAt right) node)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : Cells × Padding → OracleComp OracleWorld α)
-    (hseed : ∀ left right : Cells × Padding,
-      left.1 CanonicalGraph.Node.secretSeed = right.1 CanonicalGraph.Node.secretSeed →
+    (touched : CanonicalGraph.Node → Prop)
+    (htouched : ∀ left right : Cells × Padding,
+      (∀ node, touched node → left.1 node = right.1 node) →
         computation left = computation right)
+    (hopen : ∀ node, touched node → node ≠ CanonicalGraph.Node.secretSeed →
+      ∀ cache, CanonicalGraph.Available (GraphStakes.honestRevealed secretSeed publicSeed)
+        (signedAt cache) node)
     (inner : HandlerState) (hinner : inner.2.1 = []) (limit : Nat)
     (hlimit : ∀ z ∈ support (do
         let cells ← ($ᵗ Cells : ProbComp Cells)
@@ -1071,6 +1110,6 @@ theorem prob_game_sensitive_honest_le [HasQuery HashSpec Id] {α : Type}
           pure (result, cells))] :=
   prob_game_sensitive_le publicSeed (GraphStakes.honestRevealed secretSeed publicSeed)
     (GraphStakes.honestRevealed_le secretSeed publicSeed) signedAt hclosed hmono stall
-    computation hseed inner hinner limit hlimit
+    computation touched htouched hopen inner hinner limit hlimit
 
 end SlhDsaSecurity.RedrawCell
