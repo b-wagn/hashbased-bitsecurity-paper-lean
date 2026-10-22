@@ -54,7 +54,6 @@ excluded and everything else proved. -/
 theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outside)
     (adversary : Adversary) {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
     (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (hpublic : ¬ HashSeparation.Possible ((keyAt walk).seed, (keyAt walk).root))
     :
     Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
         (RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord z.1).1),
@@ -69,6 +68,8 @@ theorem answerBound_carrier {inside outside : QueryKind} (hne : inside ≠ outsi
           AnswerCarrier.carrierRightKeep adversary walk] ≤
       ((q : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) + (1 : ENNReal) / 2 ^ 141 := by
   classical
+  have hpublic : ¬ HashSeparation.Possible ((keyAt walk).seed, (keyAt walk).root) :=
+    AnswerSide.not_possible_generatedKey hwalk hgood.2
   refine answerBoundExtra_splitTail (CombinedCharge.IsMessageInput (keyAt walk)) hne
     (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
     (fun input => AnswerSide.prob_canonicalBad_le walk.1.1.2.2 walk.1.2 input)
