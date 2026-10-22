@@ -160,6 +160,7 @@ import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.LateCharge
 import SlhDsaSecurity.Proof.TapeFactor
 import SlhDsaSecurity.Proof.PotentialCharge
+import SlhDsaSecurity.Proof.WalkTable
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7702,3 +7703,47 @@ info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.PotentialCharge.prob_fired_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.PotentialCharge.prob_fired_le
+
+/-- info: 'SlhDsaSecurity.WalkTable.evalDist_bind_congr_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.evalDist_bind_congr_support
+
+/-- info: 'SlhDsaSecurity.WalkTable.cellsOfOutputs_fullOutput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.cellsOfOutputs_fullOutput
+
+/-- info: 'SlhDsaSecurity.WalkTable.mem_support_graphWalk_walkOfTable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.mem_support_graphWalk_walkOfTable
+
+/-- info: 'SlhDsaSecurity.WalkTable.secretSeed_of_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.secretSeed_of_mem_support
+
+/-- info: 'SlhDsaSecurity.WalkTable.evalDist_warmup_table' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.evalDist_warmup_table
+
+/-- info: 'SlhDsaSecurity.WalkTable.evalDist_graphWalk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.evalDist_graphWalk
+
+/-- info: 'SlhDsaSecurity.WalkTable.evalDist_pairedRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.evalDist_pairedRun
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun
+
+/-- info: 'SlhDsaSecurity.WalkTable.uniformSample_prod_eq_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.uniformSample_prod_eq_bind
+
+/-- info: 'SlhDsaSecurity.WalkTable.tableRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.tableRun_eq
+
+/-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun_le

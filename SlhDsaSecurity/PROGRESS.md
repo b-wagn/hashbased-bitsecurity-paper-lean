@@ -2076,3 +2076,31 @@ earlier" — the shape neither `prob_badWithin_le` nor `SecretGuessCharge` reach
 place in this development that wanted it. The count has to be a gauge on the *state* rather than
 a counter on the queries: with the counter in the value, a step's own increase can only be
 recovered by cancelling across an `ℝ≥0∞` inequality, which needs a finiteness nothing supplies.
+## The walk deferred is a drawn table, and that is all it costs
+
+`Obligations.SharedCharged` is now stated at `Target.pairedRun`, the walk and the game in one
+measure. The charges want something that looks different — `RedrawCell.prob_game_sensitive_le`
+begins `cells ← $ᵗ Cells; pad ← $ᵗ Padding` — and the two are the same presentation.
+`CanonicalGraph.Programming.warmup_seed_uniform` is why: with the secret seed drawn, the walk's
+cells and cache *are* a uniform cells-and-padding pair read through `cacheFrom`. `WalkTable`
+carries that across to the paired run, and `WalkTable.probEvent_pairedRun_le` is what the
+obligation now reduces to — a bound for each fixed `SK.prf` and public seed, with the table and
+the secret seed it carries still in the measure.
+
+**The secret seed is recovered, not re-drawn.** The walk's value carries it and the table's law
+does not, so the presentation reads it off the table's own `secretSeed` cell. That is sound only
+on the walk's support — the traversal never overwrites that cell — so the step needs a
+support-wise congruence under a bind, which VCVio does not have;
+`WalkTable.evalDist_bind_congr_support` is four lines and is the only place the support fact is
+used.
+
+**`WarmedGame.seeds` draws the seeds in the wrong order for this.** It draws the secret seed
+first, and the table's law wants it drawn last, after the public seed its canonical inputs
+mention. The draws are independent, so `DeferredSampling.evalDist_bind_comm` twice is the whole
+of the reordering, but the order is not an accident of presentation: fixing the public seed
+before the table is what makes the charge's `publicSeed` parameter legitimate, and fixing the
+secret seed is what the obligation may not do.
+
+**Nothing stated per-walk has to be restated.** `WalkTable.mem_support_graphWalk_walkOfTable`
+says a drawn table names a walk in `support graphWalk`, so `WarmProbes.length_record_le_of_budget`,
+the walk's cache being clean, and every other per-walk fact apply at the new shape unchanged.
