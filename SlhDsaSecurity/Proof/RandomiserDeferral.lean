@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.RandomiserProvenance
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.LazyBridge
+import SlhDsaSecurity.Proof.WalkTable
 
 /-!
 # `SK.prf` has to be drawn after the walk, and what that costs the obligation's shape
@@ -257,5 +258,61 @@ still separate that from `prob_record_meets_prfClass_le`, and they are of differ
   the charge from being paid twice. That equality is the analogue of
   `TrackedQueries.prob_meets_eq` for two *handlers* agreeing off a set, rather than for two
   caches; nothing in `BlindComparison` is stated at that generality yet. -/
+
+/-! ## The crossing the randomiser charge needs
+
+`WalkTable.probEvent_pairedRun_le` fixes `SK.prf` and the public seed and keeps the cell table in
+the measure. That is the *input* half's shape, whose secret is the table. This charge's secret is
+`SK.prf`, so the shape it needs is the opposite one: the table and the public seed fixed, and
+`SK.prf` still in the measure.
+
+Both come from the same presentation and for the same reason. `WalkTable.tablePairedRun` draws
+all three explicitly and the three draws are independent, so whichever of them a charge has to
+defer may be moved last. Here it is moved past the public seed and past the table, which is
+`DeferredSampling.evalDist_bind_comm` twice and nothing else — the walk reads `SK.prf` nowhere,
+as `mem_support_withPrf` says in the other presentation.
+
+What the charge then faces is **not** a prf-free run: `WalkTable.walkOfTable prfSeed publicSeed
+table` carries `SK.prf` in its seed triple, and the tail's signer derives every randomiser by
+querying at it. Deferring the draw is necessary and not sufficient, and the hop that closes the
+gap is `HandlerComparison.prob_bad_eq`. -/
+
+/-- The run the randomiser charge reads: the public seed and the cell table fixed, `SK.prf`
+drawn after both. -/
+noncomputable def prfRun (adversary : Adversary) (publicSeed : Digest)
+    (table : Cells × CanonicalGraph.Padding) :
+    ProbComp ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
+      ((Outcome × Nat) × QueryCache HashSpec)) := do
+  let prfSeed ← ($ᵗ Digest : ProbComp Digest)
+  let result ← tail adversary (WalkTable.walkOfTable prfSeed publicSeed table)
+  pure (WalkTable.walkOfTable prfSeed publicSeed table, result)
+
+/-- **A bound at each public seed and table, with `SK.prf` deferred, is a bound at the paired
+run.** The counterpart of `WalkTable.probEvent_pairedRun_le` for a charge whose secret is
+`SK.prf` rather than the cell table. -/
+theorem probEvent_pairedRun_prf_le (adversary : Adversary)
+    (event : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
+      ((Outcome × Nat) × QueryCache HashSpec)) → Prop) (bound : ℝ≥0∞)
+    (hinner : ∀ (publicSeed : Digest) (table : Cells × CanonicalGraph.Padding),
+      Pr[event | prfRun adversary publicSeed table] ≤ bound) :
+    Pr[event | Target.pairedRun adversary] ≤ bound := by
+  classical
+  have hlaw : 𝒟[WalkTable.tablePairedRun adversary] =
+      𝒟[(do
+        let publicSeed ← ($ᵗ Digest : ProbComp Digest)
+        let table ← ($ᵗ (Cells × CanonicalGraph.Padding) :
+          ProbComp (Cells × CanonicalGraph.Padding))
+        let prfSeed ← ($ᵗ Digest : ProbComp Digest)
+        let result ← tail adversary (WalkTable.walkOfTable prfSeed publicSeed table)
+        pure (WalkTable.walkOfTable prfSeed publicSeed table, result))] := by
+    rw [WalkTable.tablePairedRun]
+    refine (OracleComp.DeferredSampling.evalDist_bind_comm _ _ _).trans ?_
+    refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ fun publicSeed => ?_
+    exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
+  rw [WalkTable.probEvent_pairedRun adversary event,
+    probEvent_congr' (fun _ _ => Iff.rfl) hlaw]
+  refine WalkDefects.probEvent_bind_le _ _ _ _ fun publicSeed => ?_
+  refine WalkDefects.probEvent_bind_le _ _ _ _ fun table => ?_
+  exact hinner publicSeed table
 
 end SlhDsaSecurity.RandomiserDeferral

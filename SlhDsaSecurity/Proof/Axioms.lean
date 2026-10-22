@@ -166,6 +166,10 @@ import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
 import SlhDsaSecurity.Proof.SharedJoin
 import SlhDsaSecurity.Proof.CoverageCount
+import SlhDsaSecurity.Proof.HandlerComparison
+import SlhDsaSecurity.Proof.SignerRandomiser
+import SlhDsaSecurity.Proof.OffClassBlind
+import SlhDsaSecurity.Proof.RandomiserRecord
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8126,3 +8130,153 @@ info: 'SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected' depends o
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.run_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.run_neverFails
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.bad_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.bad_persists
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.prob_bad_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_one
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.evalDist_bind_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.evalDist_bind_congr
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.prob_bad_one_of_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_one_of_step
+
+/--
+info: 'SlhDsaSecurity.HandlerComparison.prob_bad_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_eq
+
+/--
+info: 'SlhDsaSecurity.SignerRandomiser.signInternal_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRandomiser.signInternal_eq
+
+/--
+info: 'SlhDsaSecurity.SignerRandomiser.probes_signInternalAt' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRandomiser.probes_signInternalAt
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.run_eq_graft' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.run_eq_graft
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.asksOff_signInternalAt' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.asksOff_signInternalAt
+
+/--
+info: 'SlhDsaSecurity.OffClassBlind.run_signInternalAt_eq_graft' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OffClassBlind.run_signInternalAt_eq_graft
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.mem_record_head' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.mem_record_head
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.mem_verifierRecord' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.mem_verifierRecord
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.card_chargedRecord_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.card_chargedRecord_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.randomiserBad_source_record
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.pairedRun_eq_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.pairedRun_eq_map
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.probEvent_pairedRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.probEvent_pairedRun_eq
+
+/--
+info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_dichotomy' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.randomiserBad_dichotomy
+
+/-- info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_pairedRun_prf_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_pairedRun_prf_le
+
+/-- info: 'SlhDsaSecurity.SignerRandomiser.not_prfClass_of_probes_signInternalAt' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignerRandomiser.not_prfClass_of_probes_signInternalAt
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.mem_support_of_countRecorded
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.provenance_recordedAfterSeeds
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgeryDigest' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgeryDigest
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.prob_randomiserBad_le_record
+
+/-- info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_cached' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_cached

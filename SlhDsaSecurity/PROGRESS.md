@@ -2260,3 +2260,46 @@ Note for whoever takes the *input* side's deferral — the until-first-hit seed,
 "What is not done" as a `Factorizes` obligation. It is a different shape from this one (a secret
 drawn **last**, not answers read off a block drawn **first**), so `TapeFactor` does not discharge
 it. The two observations above should still apply, and the three primitives are the same.
+
+## `SeedRandomised` has a fourth source, and it is the signer's own randomiser query
+
+`SplitWitness.SeedRandomised prfSeed pk cache` — the cache holds a message input that is also a
+`PRF_msg` input at the real seed — was introduced to narrow the coverage recorder's target test,
+with the residue to be folded into the shared side as "the adversary's query, the signer's digest
+query, or the verifier's digest query". There is a fourth party, and it makes the event cheap.
+
+The signer's **randomiser** query for a request whose frame is `PK.root ‖ M` is made at
+`Hashing.randomizerInput SK.prf PK.seed (PK.root ‖ M)`, and by
+`RandomizerGate.messageInput_eq_randomizerInput` that byte string *is*
+`Hashing.messageInput SK.prf pk M`. So it is a message input whose randomiser is `SK.prf`, and
+it is in the cache because the signer put it there. The frame is legal whenever `PK.root`'s
+leading byte is zero, which is `FramingClosure.prepend_digest_exists_frame`. An adversary that
+reads `PK.root`, sees a zero leading byte and asks for one such signature makes `SeedRandomised`
+hold outright, so `Pr[SeedRandomised] ≥ 2 ^ -8` for that adversary and no `2 ^ -128` charge
+covers it.
+
+**It is in neither of the two things the shared side charges.** The record is the adversary's
+own queries and the verifier's — `RecordedQueries`' handler records at exactly those two places,
+and the signer's hashing goes through `liftM` into the base monad, invisible to it. And
+`RandomiserProvenance.SignerHitsSeed` asks in addition that the *answer* truncate to the seed,
+which this case says nothing about.
+
+`RandomiserRecord.recordMeetsPrfClass_of_cached` is the fold with that party named and excluded:
+a cached `PRF_msg`-class input that is **not** `RandomiserRecord.SignerRandomiserInput` — not the
+`PRF_msg` input of a request the log names — is in the charged record or gives `SignerHitsSeed`.
+It is stated at `RandomizerGate.PrfClass` rather than at `SeedRandomised`, which is stronger and
+is what both consumers want.
+
+What the answer side needs is therefore a target test narrowed by the *excluded* class rather
+than by `SeedRandomised`: the signer's own randomiser inputs are cached message inputs that
+disclose nothing, since their answers are randomisers and not digests, and the coverage argument
+has no reason to count them. Narrowing by "message input, `PRF_msg`-class, and not a served
+request's own `PRF_msg` input" is the test that both excludes them and leaves a residue the
+shared side can pay for.
+
+**Third time for the same root cause.** `PRF_msg` and `H_msg` are one function on byte strings in
+this model, as they are in FIPS 205 for the SHAKE parameter sets, and the two formats are
+distinguished only by what their first block happens to be. Every statement that says "this
+cached input is of class X" has to be checked against the possibility that some *other* party
+wrote it under the other reading. Two such statements have already been repaired; this is the
+third.
