@@ -11788,6 +11788,12 @@ info: 'SlhDsaSecurity.CarrierRecordings.step_right_shape' depends on axioms: [pr
 #print axioms SlhDsaSecurity.CarrierRecordings.step_right_shape
 
 /--
+info: 'SlhDsaSecurity.CarrierRecordings.run_right_suffix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.run_right_suffix
+
+/--
 info: 'SlhDsaSecurity.CarrierRecordings.step_recordFreshNodup' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
