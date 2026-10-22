@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.StalledRun
+import SlhDsaSecurity.Proof.HandlerCarrier
 import SlhDsaSecurity.Proof.SensitiveShape
 import SlhDsaSecurity.Proof.CanonicalGraph.Programming
 
@@ -177,12 +178,12 @@ so the charge consumes it unchanged. The only new behaviour is that a miss at a 
 is answered from the table rather than drawn. -/
 
 /-- The cache, the probes with the cache each was issued against, and the charged count. -/
-abbrev HandlerState := QueryCache HashSpec × List (Bytes × QueryCache HashSpec) × Nat
+abbrev HandlerState := HandlerCarrier.State × List (Bytes × HandlerCarrier.State) × Nat
 
 open scoped Classical in
 /-- **The handler.** Fresh uniform everywhere, except at an input the run may legitimately
 read, which is answered from the table. -/
-noncomputable def lazyProgram (availableAt : QueryCache HashSpec → Node → Prop)
+noncomputable def lazyProgram (availableAt : HandlerCarrier.State → Node → Prop)
     (table : Cells × Padding) : QueryImpl OracleWorld (StateT HandlerState ProbComp) :=
   fun queried state =>
     match queried with
@@ -191,44 +192,44 @@ noncomputable def lazyProgram (availableAt : QueryCache HashSpec → Node → Pr
         pure (value, state)
     | Sum.inr input => do
         let step ←
-          (match state.1 input with
+          (match state.1.cache input with
             | some cached => (pure (cached, state.1) : ProbComp _)
             | none =>
               match openCache publicSeed (availableAt state.1) table input with
-              | some answer => pure (answer, state.1.cacheQuery input answer)
+              | some answer => pure (answer, HandlerCarrier.cacheAnswer state.1 input answer)
               | none =>
-                (fun answer => (answer, state.1.cacheQuery input answer)) <$>
+                (fun answer => (answer, HandlerCarrier.cacheAnswer state.1 input answer)) <$>
                   ($ᵗ HashOutput : ProbComp HashOutput))
         pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1))
 
 open scoped Classical in
-theorem lazyProgram_run_inl (availableAt : QueryCache HashSpec → Node → Prop)
+theorem lazyProgram_run_inl (availableAt : HandlerCarrier.State → Node → Prop)
     (table : Cells × Padding) (coin : unifSpec.Domain) (state : HandlerState) :
     ((lazyProgram publicSeed availableAt table) (Sum.inl coin)).run state =
       ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _) >>= fun value =>
         (pure (value, state) : ProbComp _) := rfl
 
 open scoped Classical in
-theorem lazyProgram_run_inr (availableAt : QueryCache HashSpec → Node → Prop)
+theorem lazyProgram_run_inr (availableAt : HandlerCarrier.State → Node → Prop)
     (table : Cells × Padding) (input : Bytes) (state : HandlerState) :
     ((lazyProgram publicSeed availableAt table) (Sum.inr input)).run state =
-      (match state.1 input with
+      (match state.1.cache input with
         | some cached => (pure (cached, state.1) : ProbComp _)
         | none =>
           match openCache publicSeed (availableAt state.1) table input with
-          | some answer => pure (answer, state.1.cacheQuery input answer)
+          | some answer => pure (answer, HandlerCarrier.cacheAnswer state.1 input answer)
           | none =>
-            (fun answer => (answer, state.1.cacheQuery input answer)) <$>
+            (fun answer => (answer, HandlerCarrier.cacheAnswer state.1 input answer)) <$>
               ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun step =>
         (pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
           ProbComp _) := rfl
 
 /-- **The step condition `StalledRun` consumes.** At a state where cell `index` is unavailable,
 the handler's step does not depend on that cell or on its node's padding. -/
-theorem lazyProgram_step_congr (availableAt : QueryCache HashSpec → Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
-      (∀ child ∈ parent.children, availableAt cache child) →
-        availableAt cache (.structural parent))
+theorem lazyProgram_step_congr (availableAt : HandlerCarrier.State → Node → Prop)
+    (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt carrier child) →
+        availableAt carrier (.structural parent))
     (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
     (queried : OracleWorld.Domain) (state : HandlerState)
     (hindex : ¬ availableAt state.1 index) :
@@ -245,7 +246,7 @@ theorem lazyProgram_step_congr (availableAt : QueryCache HashSpec → Node → P
 /-- **The step condition at the canonical graph.** Availability by the signatures issued so far
 is closed under the structure, so the handler never reads an unavailable cell. -/
 theorem lazyProgram_step_congr_graph (revealed : WotsKey → Fin chains → Nat)
-    (signedAt : QueryCache HashSpec → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
     (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
     (queried : OracleWorld.Domain) (state : HandlerState)
     (hindex : ¬ Available revealed (signedAt state.1) index) :
@@ -318,10 +319,10 @@ theorem withFlag_run (impl : QueryImpl OracleWorld (StateT HandlerState ProbComp
 
 /-- **The stalled run does not mention the cell it stalled on.** -/
 theorem evalDist_stalled_lazyProgram_congr {α : Type}
-    (availableAt : QueryCache HashSpec → Node → Prop)
-    (hclosed : ∀ (cache : QueryCache HashSpec) (parent : StructuralNode),
-      (∀ child ∈ parent.children, availableAt cache child) →
-        availableAt cache (.structural parent))
+    (availableAt : HandlerCarrier.State → Node → Prop)
+    (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt carrier child) →
+        availableAt carrier (.structural parent))
     (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
     (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (oa : OracleComp OracleWorld α) (state : HandlerState × Bool) :
@@ -344,7 +345,7 @@ open scoped Classical in
 canonical input of a node the two availability predicates disagree about, the handler's step is
 the same at both. -/
 theorem lazyProgram_step_congr_available
-    (lenient strict : QueryCache HashSpec → Node → Prop) (table : Cells × Padding)
+    (lenient strict : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : HandlerState)
     (hnot : ∀ input, queried = Sum.inr input →
       ∀ parent : StructuralNode, canonicalInput publicSeed table.1 parent = input →

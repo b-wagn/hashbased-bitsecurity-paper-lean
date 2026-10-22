@@ -47,15 +47,15 @@ variable {Node : Type}
 /-- A candidate input is charged **against a given cell**: it is the canonical input of a node
 staking that cell, and the signatures have not made it available. -/
 def SensitiveAt (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : QueryCache HashSpec) (candidate : Bytes) (index : CanonicalGraph.Node) : Prop :=
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : HandlerCarrier.State) (candidate : Bytes) (index : CanonicalGraph.Node) : Prop :=
   ∃ node : Node, stakes.stake node = index ∧ unavailable cache index ∧
     stakes.inputOf node (cells index) = candidate
 
 /-- Being charged at some cell is being charged. -/
 theorem sensitive_iff_exists (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : QueryCache HashSpec) (candidate : Bytes) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : HandlerCarrier.State) (candidate : Bytes) :
     Sensitive stakes unavailable cells cache candidate ↔
       ∃ index, SensitiveAt stakes unavailable cells cache candidate index := by
   constructor
@@ -69,8 +69,8 @@ is read and the node names the cell, so the events "this probe is charged agains
 disjoint as `i` ranges over the cells — which is what makes their sum one unit per probe rather
 than one per cell. -/
 theorem sensitiveAt_unique (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (cache : QueryCache HashSpec) (candidate : Bytes) {first second : CanonicalGraph.Node}
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (cache : HandlerCarrier.State) (candidate : Bytes) {first second : CanonicalGraph.Node}
     (hfirst : SensitiveAt stakes unavailable cells cache candidate first)
     (hsecond : SensitiveAt stakes unavailable cells cache candidate second) :
     first = second := by
@@ -99,15 +99,15 @@ weights are the whole point. -/
 /-- The cell a probe aims at, read off its address alone. No cell is consulted, so this is a
 property of the probe and the state, not of the table. -/
 def Targets (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec) : Prop :=
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State) : Prop :=
   ∃ node : Node, stakes.stake node = index ∧ unavailable entry.2 index ∧
     stakes.locate entry.1 = some node
 
 /-- A charged probe aims where it is charged. -/
 theorem targets_of_sensitiveAt (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State)
     (hcharged : SensitiveAt stakes unavailable cells entry.2 entry.1 index) :
     Targets stakes unavailable index entry := by
   obtain ⟨node, hstake, hunavailable, hinput⟩ := hcharged
@@ -115,8 +115,8 @@ theorem targets_of_sensitiveAt (stakes : Stakes Node CanonicalGraph.Node)
 
 /-- **A probe aims at one cell.** -/
 theorem targets_unique (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (entry : Bytes × QueryCache HashSpec) {first second : CanonicalGraph.Node}
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (entry : Bytes × HandlerCarrier.State) {first second : CanonicalGraph.Node}
     (hfirst : Targets stakes unavailable first entry)
     (hsecond : Targets stakes unavailable second entry) : first = second := by
   obtain ⟨node, hstake, -, hlocate⟩ := hfirst
@@ -130,11 +130,11 @@ probe aiming anywhere. The half that pays for these probes does not pay for all 
 honest phase's are not in its budget — so what the weights have to be compared against is the
 length of the list the filter leaves, not of the record. -/
 theorem sum_targets_countP_le (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (keep : Bytes × QueryCache HashSpec → Bool)
-    (hkeep : ∀ (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec),
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (keep : Bytes × HandlerCarrier.State → Bool)
+    (hkeep : ∀ (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State),
       Targets stakes unavailable index entry → keep entry = true)
-    (probes : List (Bytes × QueryCache HashSpec)) :
+    (probes : List (Bytes × HandlerCarrier.State)) :
     ∑ index : CanonicalGraph.Node,
         (probes.filter (fun entry => decide (Targets stakes unavailable index entry))).length ≤
       (probes.filter keep).length := by
@@ -179,8 +179,8 @@ set_option linter.constructorNameAsVariable false in
 open scoped Classical in
 /-- **The weights add to the number of probes.** -/
 theorem sum_targets_length_le (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (probes : List (Bytes × QueryCache HashSpec)) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (probes : List (Bytes × HandlerCarrier.State)) :
     ∑ index : CanonicalGraph.Node,
         (probes.filter (fun entry => decide (Targets stakes unavailable index entry))).length ≤
       probes.length := by
@@ -217,8 +217,8 @@ value. -/
 open scoped Classical in
 /-- **The charge against one cell, weighted by the probes aiming at it.** -/
 theorem prob_list_sensitiveAt_le (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (probes : List (Bytes × QueryCache HashSpec)) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (probes : List (Bytes × HandlerCarrier.State)) :
     Pr[fun cells : Cells =>
         ∃ entry ∈ probes, SensitiveAt stakes unavailable cells entry.2 entry.1 index |
       ($ᵗ Cells : ProbComp Cells)] ≤
@@ -264,8 +264,8 @@ open scoped Classical in
 /-- **The charge at a fixed record, summed over the cells.** Each probe is counted once,
 because it aims at one cell. -/
 theorem prob_list_sensitive_le_of_sum (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (probes : List (Bytes × QueryCache HashSpec)) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (probes : List (Bytes × HandlerCarrier.State)) :
     ∑ index : CanonicalGraph.Node,
         Pr[fun cells : Cells =>
             ∃ entry ∈ probes, SensitiveAt stakes unavailable cells entry.2 entry.1 index |
@@ -303,22 +303,22 @@ aiming at it. -/
 
 /-- A probe charged against a cell, as a condition on that cell alone. -/
 def ChargedBy (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (cell : Cell) (entry : Bytes × QueryCache HashSpec) : Prop :=
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (cell : Cell) (entry : Bytes × HandlerCarrier.State) : Prop :=
   ∃ node : Node, stakes.stake node = index ∧ unavailable entry.2 index ∧
     stakes.inputOf node cell = entry.1
 
 /-- It is being charged, with the cell read off the table. -/
 theorem chargedBy_iff (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State) :
     ChargedBy stakes unavailable index (cells index) entry ↔
       SensitiveAt stakes unavailable cells entry.2 entry.1 index := Iff.rfl
 
 /-- A probe charged by a cell aims at it. -/
 theorem targets_of_chargedBy (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (cell : Cell) (entry : Bytes × QueryCache HashSpec)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (cell : Cell) (entry : Bytes × HandlerCarrier.State)
     (hcharged : ChargedBy stakes unavailable index cell entry) :
     Targets stakes unavailable index entry := by
   obtain ⟨node, hstake, hunavailable, hinput⟩ := hcharged
@@ -328,8 +328,8 @@ open scoped Classical in
 /-- **One probe, one cell.** At most one value of the cell charges a given probe, so a uniform
 cell charges it with the probability of a single guess. -/
 theorem prob_cell_entry_le (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State) :
     Pr[fun cell : Cell => ChargedBy stakes unavailable index cell entry |
       ($ᵗ Cell : ProbComp Cell)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
@@ -352,8 +352,8 @@ theorem prob_cell_entry_le (stakes : Stakes Node CanonicalGraph.Node)
 open scoped Classical in
 /-- **The charge against one cell at a fixed record**, with that cell alone drawn. -/
 theorem prob_cell_list_le (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (probes : List (Bytes × QueryCache HashSpec)) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (probes : List (Bytes × HandlerCarrier.State)) :
     Pr[fun cell : Cell => ∃ entry ∈ probes, ChargedBy stakes unavailable index cell entry |
       ($ᵗ Cell : ProbComp Cell)] ≤
       (probes.filter (fun entry => decide (Targets stakes unavailable index entry))).length /
@@ -396,17 +396,17 @@ except that it does not draw the cell. -/
 open scoped Classical in
 /-- The number of probes a record aims at a given cell. -/
 noncomputable def aiming (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (probes : List (Bytes × QueryCache HashSpec)) : Nat :=
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (probes : List (Bytes × HandlerCarrier.State)) : Nat :=
   (probes.filter (fun entry => decide (Targets stakes unavailable index entry))).length
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The charge against one cell, over a run that does not draw it.** -/
 theorem prob_run_cell_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (index : CanonicalGraph.Node) (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) :
+    (record : γ → List (Bytes × HandlerCarrier.State)) :
     Pr[fun pair : γ × Cell =>
         ∃ entry ∈ record pair.1, ChargedBy stakes unavailable index pair.2 entry |
       (do
@@ -464,8 +464,8 @@ can be added at their expectations and cannot be added at four almost-sure caps,
 splits the budget between its own queries and its requests is the adversary's choice. The cap
 form below is this one with the expectation taken at the end. -/
 theorem sum_weighted_le_of_sum {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) (weight : γ → Nat)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × HandlerCarrier.State)) (weight : γ → Nat)
     (hweight : ∀ result ∈ support run,
       ∑ index : CanonicalGraph.Node, aiming stakes unavailable index (record result) ≤
         weight result) :
@@ -522,8 +522,8 @@ open scoped Classical in
 record, so the only thing it turns on is `sum_targets_length_le` under one measure and the
 exchange of the sum over cells with the expectation. -/
 theorem sum_weighted_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × HandlerCarrier.State)) (limit : Nat)
     (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
     ∑ index : CanonicalGraph.Node,
         (∑' result, Pr[= result | run] *
@@ -545,8 +545,8 @@ over runs is carried out through `tsum_fintype` and `ENNReal.tsum_comm` rather t
 index type being finite, since it is the step at which a factor of the number of cells would
 hide. -/
 theorem prob_run_sensitive_le {γ : Type} (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (run : ProbComp γ)
-    (record : γ → List (Bytes × QueryCache HashSpec)) (limit : Nat)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (run : ProbComp γ)
+    (record : γ → List (Bytes × HandlerCarrier.State)) (limit : Nat)
     (hlimit : ∀ result ∈ support run, (record result).length ≤ limit) :
     ∑ index : CanonicalGraph.Node,
         Pr[fun pair : γ × Cell =>
@@ -597,13 +597,13 @@ def probeOf : OracleWorld.Domain → Option Bytes
 
 /-- A recorded entry charged against a given cell. -/
 def Charged (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (index : CanonicalGraph.Node) (entry : Bytes × QueryCache HashSpec) : Prop :=
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (index : CanonicalGraph.Node) (entry : Bytes × HandlerCarrier.State) : Prop :=
   SensitiveAt stakes unavailable cells entry.2 entry.1 index
 
 /-- A query charged against a given cell at a given state. -/
 def ChargedHere (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
     (index : CanonicalGraph.Node) (state : HandlerState)
     (queried : OracleWorld.Domain) : Prop :=
   ∃ input, probeOf queried = some input ∧
@@ -614,7 +614,7 @@ variable (publicSeed : Digest)
 open scoped Classical in
 /-- **The flagged handler**: the one that answers only what a run may legitimately compute,
 with a sticky flag set when a probe is charged against `index`. -/
-noncomputable def flagged (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+noncomputable def flagged (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) :
     QueryImpl OracleWorld (StateT (HandlerState × Bool) ProbComp) :=
@@ -625,7 +625,7 @@ noncomputable def flagged (availableAt : QueryCache HashSpec → CanonicalGraph.
         state.1 queried)))
 
 open scoped Classical in
-theorem flagged_run (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem flagged_run (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     ((flagged publicSeed availableAt stakes index table) queried).run state =
@@ -637,7 +637,7 @@ theorem flagged_run (availableAt : QueryCache HashSpec → CanonicalGraph.Node �
 
 open scoped Classical in
 /-- A private sample leaves the handler's state alone. -/
-theorem lazyProgram_step_inl (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem lazyProgram_step_inl (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (coin : unifSpec.Domain) (state : HandlerState)
     (step : OracleWorld.Range (Sum.inl coin) × HandlerState)
     (hstep : step ∈ support (((lazyProgram publicSeed availableAt table)
@@ -649,7 +649,7 @@ theorem lazyProgram_step_inl (availableAt : QueryCache HashSpec → CanonicalGra
 
 open scoped Classical in
 /-- A hash query records itself with the cache it was issued against. -/
-theorem lazyProgram_step_inr (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem lazyProgram_step_inr (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (input : Bytes) (state : HandlerState)
     (step : OracleWorld.Range (Sum.inr input) × HandlerState)
     (hstep : step ∈ support (((lazyProgram publicSeed availableAt table)
@@ -667,7 +667,7 @@ none can arise once it is released. -/
 
 open scoped Classical in
 /-- The handler never fails. -/
-theorem lazyProgram_neverFails (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem lazyProgram_neverFails (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState) :
     Pr[⊥ | ((lazyProgram publicSeed availableAt table) queried).run state] = 0 := by
   classical
@@ -675,7 +675,7 @@ theorem lazyProgram_neverFails (availableAt : QueryCache HashSpec → CanonicalG
   · rw [lazyProgram_run_inl]
     simp
   · rw [lazyProgram_run_inr]
-    cases hcached : state.1 input with
+    cases hcached : state.1.cache input with
     | some cached => simp
     | none =>
       cases hopen : openCache publicSeed (availableAt state.1) table input with
@@ -684,11 +684,11 @@ theorem lazyProgram_neverFails (availableAt : QueryCache HashSpec → CanonicalG
 
 open scoped Classical in
 /-- Cache entries survive a step, so what a run has determined only grows. -/
-theorem lazyProgram_cache_mono (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem lazyProgram_cache_mono (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState)
     (step : OracleWorld.Range queried × HandlerState)
     (hstep : step ∈ support (((lazyProgram publicSeed availableAt table) queried).run state))
-    (probe : Bytes) (hprobe : state.1 probe ≠ none) : step.2.1 probe ≠ none := by
+    (probe : Bytes) (hprobe : state.1.cache probe ≠ none) : step.2.1.cache probe ≠ none := by
   classical
   rcases queried with coin | input
   · rw [lazyProgram_run_inl, mem_support_bind_iff] at hstep
@@ -700,11 +700,12 @@ theorem lazyProgram_cache_mono (availableAt : QueryCache HashSpec → CanonicalG
     obtain ⟨inner, hinner, hpure⟩ := hstep
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [hpure]
-    show inner.2 probe ≠ none
+    show inner.2.cache probe ≠ none
     have hgrow : inner.2 = state.1 ∨
-        ∃ answer : HashOutput, inner.2 = state.1.cacheQuery input answer := by
+        ∃ answer : HashOutput,
+          inner.2 = HandlerCarrier.cacheAnswer state.1 input answer := by
       revert hinner
-      cases hcached : state.1 input with
+      cases hcached : state.1.cache input with
       | some cached =>
         intro hinner
         simp only [support_pure, Set.mem_singleton_iff] at hinner
@@ -723,16 +724,17 @@ theorem lazyProgram_cache_mono (availableAt : QueryCache HashSpec → CanonicalG
     rcases hgrow with hsame | ⟨answer, hcache⟩
     · rw [hsame]; exact hprobe
     · rw [hcache]
+      show (state.1.cache.cacheQuery input answer) probe ≠ none
       by_cases hsame : probe = input
       · subst hsame
         rw [QueryCache.cacheQuery_self]
         simp
-      · rw [QueryCache.cacheQuery_of_ne state.1 answer hsame]
+      · rw [QueryCache.cacheQuery_of_ne state.1.cache answer hsame]
         exact hprobe
 
 open scoped Classical in
 /-- The flagged handler never fails either. -/
-theorem flagged_neverFails (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem flagged_neverFails (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     Pr[⊥ | ((flagged publicSeed availableAt stakes index table) queried).run state] = 0 := by
@@ -743,8 +745,8 @@ theorem flagged_neverFails (availableAt : QueryCache HashSpec → CanonicalGraph
 open scoped Classical in
 /-- **A released cell stays released.** Availability grows with the cache, and the cache only
 grows, so a state where the cell is available is followed by states where it is. -/
-theorem flagged_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+theorem flagged_frozen (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
@@ -765,7 +767,7 @@ theorem flagged_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Nod
 open scoped Classical in
 /-- **No charge arises once the cell is released.** A charge needs the cell to be unavailable,
 so a state where it is available is followed by states with the same flag. -/
-theorem flagged_quiet (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem flagged_quiet (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -793,7 +795,7 @@ and the flag says exactly that one of them was charged. -/
 open scoped Classical in
 /-- **The flag says that a recorded probe was charged.** -/
 theorem flag_iff_record {α : Type}
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (state : HandlerState × Bool)
@@ -868,7 +870,7 @@ measure rather than under one measure per cell. -/
 
 open scoped Classical in
 /-- Carrying a flag it does not touch leaves the handler failure-free. -/
-theorem withFlag_neverFails (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem withFlag_neverFails (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     Pr[⊥ | ((withFlag (lazyProgram publicSeed availableAt table)) queried).run state] = 0 := by
   rw [withFlag_run, probFailure_bind_eq_add_tsum,
@@ -877,8 +879,8 @@ theorem withFlag_neverFails (availableAt : QueryCache HashSpec → CanonicalGrap
 
 open scoped Classical in
 /-- A released cell stays released, the flag being untouched. -/
-theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+theorem withFlag_frozen (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (index : CanonicalGraph.Node) (table : Cells × Padding)
     (queried : OracleWorld.Domain) (state : HandlerState × Bool)
@@ -898,7 +900,7 @@ theorem withFlag_frozen (availableAt : QueryCache HashSpec → CanonicalGraph.No
 
 open scoped Classical in
 /-- **Once the cell is released nothing more aims at it**, so the count stands still. -/
-theorem withFlag_aiming_quiet (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem withFlag_aiming_quiet (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -937,8 +939,8 @@ probe is inserting one element. -/
 open scoped Classical in
 /-- **The weight at a de-duplicated record counts distinct probes.** -/
 theorem aiming_dedup_eq_card (stakes : Stakes Node CanonicalGraph.Node)
-    (unavailable : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (index : CanonicalGraph.Node) (probes : List (Bytes × QueryCache HashSpec)) :
+    (unavailable : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (index : CanonicalGraph.Node) (probes : List (Bytes × HandlerCarrier.State)) :
     aiming stakes unavailable index probes.dedup =
       (probes.toFinset.filter (fun entry => Targets stakes unavailable index entry)).card := by
   classical
@@ -950,7 +952,7 @@ theorem aiming_dedup_eq_card (stakes : Stakes Node CanonicalGraph.Node)
 open scoped Classical in
 /-- **Once the cell is released nothing more aims at it**, counting distinct probes. -/
 theorem withFlag_aiming_dedup_quiet
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -986,8 +988,8 @@ the sum over cells. The count is of *distinct* probes: the record is de-duplicat
 weighed, since a repeat is one chance at the cell and the containment that pays for these
 weights speaks of the entry a probe installed. -/
 theorem expected_aiming_stalled_eq {α : Type}
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
@@ -1026,7 +1028,7 @@ record, which the handler carries. -/
 
 open scoped Classical in
 /-- Once the cell is released nothing more is charged against it. -/
-theorem withFlag_charged_quiet (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+theorem withFlag_charged_quiet (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hstate : availableAt state.1.1 index)
@@ -1063,8 +1065,8 @@ set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **Stalling does not change the chance of a charged probe.** -/
 theorem prob_charged_stalled_eq {α : Type}
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
@@ -1122,14 +1124,14 @@ set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **Stalling does not change the chance that a claim is charged.** -/
 theorem prob_claimed_stalled_eq {α : Type}
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool)
-    (claims : α × (HandlerState × Bool) → List (Bytes × QueryCache HashSpec))
-    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × QueryCache HashSpec),
+    (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
+    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) :
     Pr[fun z : α × (HandlerState × Bool) =>
         ∃ entry ∈ claims z, ChargedBy stakes
@@ -1176,14 +1178,14 @@ unstalled**, and for the same reason: a claim read at the run's own final cache 
 once that cache has the cell available. The list is de-duplicated before it is weighed, as the
 record is, so that both weights count chances rather than entries. -/
 theorem expected_aiming_claimed_stalled_eq {α : Type}
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
-    (hmono : ∀ (left right : QueryCache HashSpec), CacheAvailability.Persists left right →
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
+    (hmono : ∀ (left right : HandlerCarrier.State), HandlerCarrier.Grows left right →
       ∀ node, availableAt left node → availableAt right node)
     (stakes : Stakes Node CanonicalGraph.Node) (index : CanonicalGraph.Node)
     (table : Cells × Padding) (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
     (computation : OracleComp OracleWorld α) (state : HandlerState × Bool)
-    (claims : α × (HandlerState × Bool) → List (Bytes × QueryCache HashSpec))
-    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × QueryCache HashSpec),
+    (claims : α × (HandlerState × Bool) → List (Bytes × HandlerCarrier.State))
+    (hcache : ∀ (z : α × (HandlerState × Bool)) (entry : Bytes × HandlerCarrier.State),
       entry ∈ claims z → entry.2 = z.2.1.1) :
     (∑' z : α × (HandlerState × Bool),
         Pr[= z | (simulateQ (withFlag (lazyProgram publicSeed availableAt table))
@@ -1227,7 +1229,7 @@ The flag lives only here. Neither handler reads it, and the charge itself stays 
 /-- The query is at the canonical input of a node the signatures leave a child of
 unavailable. -/
 def SensitiveQueryAt (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
     (state : HandlerState) (queried : OracleWorld.Domain) : Prop :=
   ∃ input, probeOf queried = some input ∧
     ∃ parent : StructuralNode, (∃ child ∈ parent.children, ¬ availableAt state.1 child) ∧
@@ -1236,7 +1238,7 @@ def SensitiveQueryAt (publicSeed : Digest)
 open scoped Classical in
 /-- The handler at a chosen availability, with a flag set at a sensitive query. -/
 noncomputable def sensitiveFlagged
-    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt lenient : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) :
     QueryImpl OracleWorld (StateT (HandlerState × Bool) ProbComp) :=
   fun queried state => do
@@ -1246,7 +1248,7 @@ noncomputable def sensitiveFlagged
 
 open scoped Classical in
 theorem sensitiveFlagged_run
-    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt lenient : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     ((sensitiveFlagged publicSeed availableAt lenient table) queried).run state =
       ((lazyProgram publicSeed lenient table) queried).run state.1 >>= fun step =>
@@ -1256,7 +1258,7 @@ theorem sensitiveFlagged_run
 
 open scoped Classical in
 theorem sensitiveFlagged_neverFails
-    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt lenient : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
     Pr[⊥ | ((sensitiveFlagged publicSeed availableAt lenient table) queried).run state] = 0 := by
   rw [sensitiveFlagged_run, probFailure_bind_eq_add_tsum,
@@ -1265,7 +1267,7 @@ theorem sensitiveFlagged_neverFails
 
 open scoped Classical in
 theorem sensitiveFlagged_sticky
-    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt lenient : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (inner : HandlerState)
     (step : OracleWorld.Range queried × (HandlerState × Bool))
     (hstep : step ∈ support (((sensitiveFlagged publicSeed availableAt lenient table)
@@ -1279,7 +1281,7 @@ theorem sensitiveFlagged_sticky
 
 open scoped Classical in
 theorem sensitiveFlagged_fires
-    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt lenient : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (inner : HandlerState)
     (flag : Bool) (hbad : SensitiveQueryAt publicSeed availableAt table.1 inner queried)
     (step : OracleWorld.Range queried × (HandlerState × Bool))
@@ -1295,7 +1297,7 @@ theorem sensitiveFlagged_fires
 open scoped Classical in
 /-- **Off the sensitive inputs the two availabilities give the same step.** -/
 theorem sensitiveFlagged_agree
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState × Bool)
     (hnot : ¬ SensitiveQueryAt publicSeed availableAt table.1 state.1 queried) :
     ((sensitiveFlagged publicSeed availableAt (fun _ _ => True) table) queried).run state =
@@ -1313,7 +1315,7 @@ set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **The lazy presentation and the eager one flag a sensitive query equally often.** -/
 theorem probEvent_sensitiveFlagged_eq {α : Type}
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (state : HandlerState × Bool) :
     Pr[fun z : α × (HandlerState × Bool) => z.2.2 = true |
@@ -1348,15 +1350,15 @@ it without any bookkeeping about suffixes. -/
 /-- A recorded query at the canonical input of a node sensitive at the cache it was issued
 against. -/
 def SensitiveEntry (publicSeed : Digest)
-    (availableAt : QueryCache HashSpec → CanonicalGraph.Node → Prop) (cells : Cells)
-    (entry : Bytes × QueryCache HashSpec) : Prop :=
+    (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop) (cells : Cells)
+    (entry : Bytes × HandlerCarrier.State) : Prop :=
   ∃ parent : StructuralNode, (∃ child ∈ parent.children, ¬ availableAt entry.2 child) ∧
     canonicalInput publicSeed cells parent = entry.1
 
 open scoped Classical in
 /-- **The comparison's flag says a recorded query was sensitive.** -/
 theorem sensitiveFlagged_flag_iff_record {α : Type}
-    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt lenient : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (state : HandlerState × Bool)
     (hstate : state.2 = true ↔ ∃ entry ∈ state.1.2.1,
@@ -1426,8 +1428,8 @@ open scoped Classical in
 /-- **A query at a sensitive node is one of the charge's candidates.** -/
 theorem sensitive_of_sensitiveEntry (revealed : WotsKey → Fin chains → Nat)
     (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
-    (signedAt : QueryCache HashSpec → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
-    (cells : Cells) (entry : Bytes × QueryCache HashSpec)
+    (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (cells : Cells) (entry : Bytes × HandlerCarrier.State)
     (hentry : SensitiveEntry publicSeed
       (fun cache node => CanonicalGraph.Available revealed (signedAt cache) node) cells entry) :
     Sensitive (GraphStakes.stakes publicSeed)
@@ -1464,7 +1466,7 @@ does not read the flag they agree, which is all the charge needs. -/
 open scoped Classical in
 /-- **The two wrappers agree off the flag.** -/
 theorem probEvent_sensitiveFlagged_eq_withFlag {α : Type}
-    (availableAt lenient : QueryCache HashSpec → CanonicalGraph.Node → Prop)
+    (availableAt lenient : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (computation : OracleComp OracleWorld α)
     (event : α × HandlerState → Prop) :
     ∀ (inner : HandlerState) (left right : Bool),
