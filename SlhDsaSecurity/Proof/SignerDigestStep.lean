@@ -4,9 +4,13 @@ import SlhDsaSecurity.Proof.SignerRandomiser
 /-!
 # The signer's two message-dependent queries, in order
 
-`LateProvenance.SignerDigestFree` is false — `ObligationShapes.targetKeep_default` and
-`messageInput_default_eq_replay` refute it — and the repair is to prove its consequence by
-provenance instead. Of the four parties, three cases are settled by statements that read the
+`LateProvenance.SignerDigestFree` was false before it was guarded —
+`ObligationShapes.targetKeep_default` and `messageInput_default_eq_replay` refute the unguarded
+form, and the guard is the negation of the first's `hcold`, so they no longer apply. The guarded
+hypothesis is **open**, and believed false at `2 ^ -128` by an argument that is prose rather
+than Lean (see that file's section). Either way the repair is the same: prove its consequence by
+provenance instead, so that nothing rests on a hypothesis whose failure set is the defect the
+shared half already pays for. Of the four parties, three cases are settled by statements that read the
 input alone; the fourth is this file.
 
 **Why the other three need no state and this one does.** "Not message-class" and "in the

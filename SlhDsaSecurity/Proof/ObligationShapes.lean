@@ -277,7 +277,7 @@ theorem target_of_answer_and_leaves (claims seedUnits : Nat)
   FinalAssembly.target_of_producers claims hfits hanswer
     (sharedChargedLate_of_parts claims seedUnits hclaims hinput hsigner hseed)
 
-/-! ## `hsigner` is false, and it is false for a reason worth writing down
+/-! ## `hsigner` was false, is now guarded, and is open
 
 `LateProvenance.SignerDigestFree` says no target-recorded input is a request's own digest
 input. Its docstring's justification is right — such a query is signer-randomised **when it is
@@ -297,8 +297,23 @@ of a one-query refutation:
 * `messageInput_default_eq_replay` — at such a cache that input **is**
   `messageInput (replayRandomizer cache sk m) pk m`.
 
-So an adversary that queries that one input, for a message it never has signed, produces a
-target-recorded entry that `SignerDigestFree` forbids. No carrier, no ordering, no budget.
+So an adversary that queries that one input, for a message it never has signed, produced a
+target-recorded entry that the **unguarded** `SignerDigestFree` forbade. No carrier, no ordering,
+no budget.
+
+**`SignerDigestFree` has since been guarded, and these two lemmas no longer refute it.**
+It now assumes `cache (randomizerInput prf seed framed) ≠ none`, which is the negation of
+`targetKeep_default`'s `hcold` at the same cache, so the two cannot be instantiated together.
+The hypothesis is **open**, not refuted, and the two lemmas below stand as the refutation of the
+version that preceded the guard — which is why they are kept.
+
+What is believed, and is *not* formalised, is that the guarded statement is still false at
+`2 ^ -128`: query `messageInput r pk framed` for a guessed `r` while the randomiser input is
+uncached, so the entry is target-recorded; let the randomiser be queried later, satisfying the
+guard; and if its truncation is `r`, the hypothesis fails. The failure set is then exactly
+`LateDisclosure`, the defect the shared half already pays for — which is the reason to replace
+the hypothesis rather than guard it further. **That argument is prose, not Lean.** Nobody should
+cite this section as a refutation of the guarded form.
 
 The escape clause is narrower than it looks: `¬ PrfClass` fails only when `truncate default` is
 `SK.prf` itself, by injectivity of the format through `FramingLeak.randomizerInput_eq_messageInput`
