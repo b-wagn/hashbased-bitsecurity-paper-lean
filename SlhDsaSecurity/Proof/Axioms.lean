@@ -7003,3 +7003,51 @@ info: 'SlhDsaSecurity.AnswerSide.prob_answerBad_le_of_budget' depends on axioms:
 /-- info: 'SlhDsaSecurity.SplitPrefix.prob_prefix_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitPrefix.prob_prefix_le
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_cached
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_left' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_left
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_right' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_right
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.appended_of_neither' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.appended_of_neither
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.recorder_eq_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_eq_rom
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.mem_support_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.mem_support_rom
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.recorder_cache_mono' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_cache_mono
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.recorder_cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.recorder_cache_value_persists
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.mem_record_of_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.mem_record_of_cache
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.growthOn_cacheQuery' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.growthOn_cacheQuery
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.left_record_length_le_growth' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.left_record_length_le_growth
+
+/-- info: 'SlhDsaSecurity.SplitPrefix.right_record_length_le_growth' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitPrefix.right_record_length_le_growth
