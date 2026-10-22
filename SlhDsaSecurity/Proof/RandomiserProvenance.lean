@@ -368,4 +368,36 @@ theorem prob_signerHitsSeed_tail_le (adversary : Adversary) (q : Nat)
     ClassCharge.GrowthAtMostOn.of_growthAtMost hgrowth,
     ClassCharge.GrowthAtMostOn.of_growthAtMost hgrowth⟩
 
+/-! ## The same bound at the paired run
+
+The shared obligation is read at `Target.pairedRun`, the walk and the game together, because the
+*other* half of the randomiser defect is a guess at `SK.prf` and no per-walk bound for it can
+exist: conditioning on the walk fixes the secret, and an adversary that hardcodes a guess wins
+with certainty on the walks that carry it.
+
+This half is different in kind and the distinction is the reason it needs no such repair. What
+it spends is the **oracle's own fresh answer** at an input the signer chooses, not a guess at
+anything the walk fixed, so no choice of walk biases it and the per-walk bound above is sound as
+it stands. All that is left is to average it, which is `Averaging.probEvent_bind_pair_le` with
+`Target.GoodWalk` carried as a conjunct: on a walk that fails it the event is empty, and on one
+that meets it the conjunct discharges the hypothesis `prob_signerHitsSeed_tail_le` takes. -/
+
+/-- **The signer's coincidence, at the paired run.** -/
+theorem prob_signerHitsSeed_paired_le (adversary : Adversary) (q : Nat)
+    (hbudget : HasTotalBudget adversary q) :
+    Pr[fun pair => Target.GoodWalk pair.1 ∧
+        SignerHitsSeed pair.1.1.1.2.1 pair.1.1.1.2.2 pair.2.2 pair.2.1.1.signed |
+      Target.pairedRun adversary] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [Target.pairedRun]
+  refine Averaging.probEvent_bind_pair_le WarmedGame.graphWalk (WarmedGame.tail adversary)
+    (fun walk result => Target.GoodWalk walk ∧
+      SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed) _ ?_
+  intro walk hwalk
+  by_cases hgood : Target.GoodWalk walk
+  · exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
+      (prob_signerHitsSeed_tail_le adversary q hbudget hwalk hgood)
+  · rw [probEvent_eq_zero fun result _ hbad => hgood hbad.1]
+    exact zero_le
+
 end SlhDsaSecurity.RandomiserProvenance
