@@ -1390,4 +1390,113 @@ theorem rightOf_getElem?_cont (leftKeep rightKeep : Bytes → σ → Prop)
         rw [hpure] at hrest
         exact ih _ _ _ _ _ _ w hrest index hreached hcell
 
+/-- The unread remainder of the disclosing block. -/
+def leftTapeOf (state : SplitTapeState σ) : List HashOutput := state.2.1.1
+
+set_option maxHeartbeats 2000000 in
+open scoped Classical in
+/-- **Each recorded disclosing answer is the block cell it was read from**, with a continuation.
+The mirror of `rightOf_getElem?_cont`. The two sides are not one lemma: the recorder's branches
+differ in which block they consume and which recording they file, so a side-parameterised
+version would have to swap the branch cases rather than abstract them. -/
+theorem leftOf_getElem?_cont (leftKeep rightKeep : Bytes → σ → Prop)
+    {α γ : Type} (computation : OracleComp OracleWorld α)
+    (after : α × SplitTapeState σ → ProbComp γ)
+    (finalLeft : γ → Record)
+    (hprefix : ∀ (z : α × SplitTapeState σ) (w : γ),
+      w ∈ support (after z) → leftOf z.2 <+: finalLeft w)
+    (hafter : ∀ (z : α × SplitTapeState σ) (w : γ),
+      w ∈ support (after z) → ∀ index : Nat,
+        (leftOf z.2).length + index < (finalLeft w).length →
+        index < (leftTapeOf z.2).length →
+          ((finalLeft w)[(leftOf z.2).length + index]?).map Prod.snd =
+            (leftTapeOf z.2)[index]?) :
+    ∀ (cache : σ) (leftTape rightTape : List HashOutput)
+      (leftRecord rightRecord : Record) (w : γ),
+      w ∈ support ((simulateQ (noticingSplitTapeRecorder leftKeep rightKeep) computation).run
+        (cache, (leftTape, rightTape), (leftRecord, rightRecord)) >>= after) →
+      ∀ index : Nat, leftRecord.length + index < (finalLeft w).length →
+        index < leftTape.length →
+        ((finalLeft w)[leftRecord.length + index]?).map Prod.snd = leftTape[index]? := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro cache leftTape rightTape leftRecord rightRecord w hw index hreached hcell
+    rw [simulateQ_pure, StateT.run_pure, pure_bind] at hw
+    exact hafter (value, (cache, (leftTape, rightTape), (leftRecord, rightRecord))) w hw index
+      hreached hcell
+  | query_bind queried next ih =>
+    intro cache leftTape rightTape leftRecord rightRecord w hw index hreached hcell
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc,
+      mem_support_bind_iff] at hw
+    obtain ⟨step, hstep, hrest⟩ := hw
+    rcases queried with coin | input
+    · rw [noticingSplitTapeRecorder_run_inl, splitTapeRecorder_run_inl,
+        mem_support_bind_iff] at hstep
+      obtain ⟨answer, -, hpure⟩ := hstep
+      rw [support_pure, Set.mem_singleton_iff] at hpure
+      rw [hpure] at hrest
+      exact ih _ _ _ _ _ _ w hrest index hreached hcell
+    · rw [noticingSplitTapeRecorder_run_inr] at hstep
+      set noticed : σ := CacheView.onQuery cache input with hnoticed
+      by_cases hfresh : CacheView.cacheOf noticed input = none
+      · by_cases hleft : leftKeep input noticed
+        · cases leftTape with
+          | nil => exact absurd hcell (by simp)
+          | cons head rest =>
+            rw [splitTapeRecorder_run_left_cons leftKeep rightKeep input noticed head rest
+              rightTape leftRecord rightRecord hfresh hleft, support_pure,
+              Set.mem_singleton_iff] at hstep
+            rw [hstep] at hrest
+            cases index with
+            | zero =>
+              rw [mem_support_bind_iff] at hrest
+              obtain ⟨inner, hinner, hw2⟩ := hrest
+              have hmid := noticingLeftOf_prefix leftKeep rightKeep (next head)
+                (CacheView.update noticed input head, (rest, rightTape),
+                  (leftRecord ++ [(input, head)], rightRecord)) inner hinner
+              have hall : leftRecord ++ [(input, head)] <+: finalLeft w :=
+                List.IsPrefix.trans hmid (hprefix inner w hw2)
+              rw [Nat.add_zero]
+              rw [getElem?_of_prefix hall leftRecord.length (by simp)]
+              simp
+            | succ smaller =>
+              have hstep' := ih _ _ _ _ _ _ w hrest smaller
+                (by simpa using (by omega : leftRecord.length + 1 + smaller <
+                  (finalLeft w).length))
+                (by simpa using Nat.lt_of_succ_lt_succ (by simpa using hcell))
+              rw [show leftRecord.length + (smaller + 1) =
+                  (leftRecord ++ [(input, head)]).length + smaller from by simp; omega]
+              rw [hstep']
+              simp
+        · by_cases hright : rightKeep input noticed
+          · cases rightTape with
+            | nil =>
+              rw [splitTapeRecorder_run_right_nil leftKeep rightKeep input noticed leftTape
+                leftRecord rightRecord hfresh hleft hright, mem_support_bind_iff] at hstep
+              obtain ⟨answer, -, hpure⟩ := hstep
+              rw [support_pure, Set.mem_singleton_iff] at hpure
+              rw [hpure] at hrest
+              exact ih _ _ _ _ _ _ w hrest index hreached hcell
+            | cons head rest =>
+              rw [splitTapeRecorder_run_right_cons leftKeep rightKeep input noticed leftTape head
+                rest leftRecord rightRecord hfresh hleft hright, support_pure,
+                Set.mem_singleton_iff] at hstep
+              rw [hstep] at hrest
+              exact ih _ _ _ _ _ _ w hrest index hreached hcell
+          · rw [splitTapeRecorder_run_other leftKeep rightKeep input noticed
+              (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hleft h.2)
+              (fun h => hright h.2), mem_support_bind_iff] at hstep
+            obtain ⟨answer, -, hpure⟩ := hstep
+            rw [support_pure, Set.mem_singleton_iff] at hpure
+            rw [hpure] at hrest
+            exact ih _ _ _ _ _ _ w hrest index hreached hcell
+      · rw [splitTapeRecorder_run_other leftKeep rightKeep input noticed
+          (leftTape, rightTape) (leftRecord, rightRecord) (fun h => hfresh h.1)
+          (fun h => hfresh h.1), mem_support_bind_iff] at hstep
+        obtain ⟨answer, -, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        rw [hpure] at hrest
+        exact ih _ _ _ _ _ _ w hrest index hreached hcell
+
 end SlhDsaSecurity.NoticingTape
