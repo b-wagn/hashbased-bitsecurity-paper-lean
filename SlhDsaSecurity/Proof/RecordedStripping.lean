@@ -48,8 +48,13 @@ theorem writerRun_bind {ω : Type} [Monoid ω] {α β : Type}
     simulateQ_map, StateT.run_map]
 
 /-- **A handler may be replaced by one with the same law**, at every cache carrying the warm
-table. The counted case is `StrippedGame.evalDist_countedRun_congr`; nothing in the argument
-reads the writer, so it is stated here over any. -/
+table.
+
+**This is `StrippedGame.evalDist_countedRun_congr` with the writer freed** — the same argument,
+which never reads the writer it carries, so the counted game's law and the recorded game's are
+one proof and not two. It lives here rather than beside the counted one only because the input
+half is mid-transport and that file is depended on by three other results; whoever consolidates
+later should read the two as a single statement. -/
 theorem evalDist_writerRun_congr {ω : Type} [Monoid ω] (warm : QueryCache HashSpec)
     (impl impl' : QueryImpl (OracleWorld + SigningSpec)
       (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
