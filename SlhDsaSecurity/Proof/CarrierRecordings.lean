@@ -120,8 +120,9 @@ argument needs and an invariant cannot give. -/
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **Every entry a run files as a target comes with the carrier it was filed at**: fresh there,
-passing the right test at the state the notice had reached, and contained in the run's own
-carrier afterwards. -/
+passing the right test at the state the notice had reached, contained in the run's own carrier
+afterwards, and **with the framing the run started under**, because a test that reads the flag
+cannot be checked at a state whose flag is unknown. -/
 theorem run_right_suffix (rightKeep : Bytes → HandlerCarrier.State → Prop)
     {α : Type} (computation : OracleComp OracleWorld α) :
     ∀ (state : CountedState) (result : α × CountedState),
@@ -135,7 +136,8 @@ theorem run_right_suffix (rightKeep : Bytes → HandlerCarrier.State → Prop)
               mid.cache probe = some value → result.2.1.cache probe = some value) ∧
               mid.cache entry.1 = none ∧
                 rightKeep entry.1 (servingNotice pk mid entry.1) ∧
-                  result.2.1.cache entry.1 = some entry.2 := by
+                  result.2.1.cache entry.1 = some entry.2 ∧
+                    mid.framing = state.1.framing := by
   classical
   induction computation using OracleComp.inductionOn with
   | pure value =>
@@ -150,16 +152,18 @@ theorem run_right_suffix (rightKeep : Bytes → HandlerCarrier.State → Prop)
     obtain ⟨suffix, hsuffix, hentries⟩ := ih step.1 step.2 result hrest
     have hstepGrow := ((files_countedCarrierRecorder pk rightKeep).stepGrows queried state step
       hstep).1
+    have hstepFraming := (files_countedCarrierRecorder pk rightKeep).stepFraming queried state
+      step hstep
     rcases step_right_shape pk rightKeep queried state step hstep with
       hsame | ⟨appended, answer, -, hshape, hfresh, hright, hcachedSelf⟩
     · refine ⟨suffix, by rw [hsuffix, hsame], fun entry hentry => ?_⟩
-      obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal⟩ := hentries entry hentry
+      obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal, hframing⟩ := hentries entry hentry
       exact ⟨mid, fun probe value hvalue => hstart probe value (hstepGrow probe value hvalue),
-        hlater, habsent, hkeep, hfinal⟩
+        hlater, habsent, hkeep, hfinal, by rw [hframing, hstepFraming]⟩
     · refine ⟨(appended, answer) :: suffix, by rw [hsuffix, hshape, List.append_assoc]; rfl,
         fun entry hentry => ?_⟩
       rcases List.mem_cons.mp hentry with hself | hlater
-      · refine ⟨state.1, fun _ _ hvalue => hvalue, fun probe value hvalue => ?_, ?_, ?_, ?_⟩
+      · refine ⟨state.1, fun _ _ hvalue => hvalue, fun probe value hvalue => ?_, ?_, ?_, ?_, rfl⟩
         · exact ((files_countedCarrierRecorder pk rightKeep).runPersists (next step.1) step.2
             result hrest).1 probe value (hstepGrow probe value hvalue)
         · rw [hself]
@@ -169,9 +173,9 @@ theorem run_right_suffix (rightKeep : Bytes → HandlerCarrier.State → Prop)
         · rw [hself]
           exact ((files_countedCarrierRecorder pk rightKeep).runPersists (next step.1) step.2
             result hrest).1 appended answer hcachedSelf
-      · obtain ⟨mid, hstart, hmidLater, habsent, hkeep, hfinal⟩ := hentries entry hlater
+      · obtain ⟨mid, hstart, hmidLater, habsent, hkeep, hfinal, hframing⟩ := hentries entry hlater
         exact ⟨mid, fun probe value hvalue => hstart probe value (hstepGrow probe value hvalue),
-          hmidLater, habsent, hkeep, hfinal⟩
+          hmidLater, habsent, hkeep, hfinal, by rw [hframing, hstepFraming]⟩
 
 /-! ## The two invariants -/
 
