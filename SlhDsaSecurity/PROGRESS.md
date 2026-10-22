@@ -2917,3 +2917,55 @@ at one state and so elaborated at one type. At a view the two sides are spelled 
 states, `rw` meets `HashSpec.Range input` where the goal has `OracleWorld.Range (Sum.inr input)`,
 and the rewrite fails under `instances` transparency. `CoverageCount.rom_run_inr_some/none` are
 the shared oracle's two branches with that ascription written down, and they exist only for this.
+
+## The ledger, and what it decides
+
+Every architectural choice left is decided by one piece of arithmetic, so it is worth writing
+down once rather than rediscovering it. `Target.allowance` closes
+
+    (q - 2 ^ subtreeHeight + 259) / 2 ^ 128 + (q / 2 ^ 128 + defects)  ≤  q / 2 ^ 127
+
+with `2 ^ subtreeHeight = 512`. Reading the two sides apart:
+
+* **The `q` coefficient is exactly two, and there is no slack in it.** The answer side spends
+  one unit per query; the shared side spends the expected record, bounded by `q - 512`. The
+  target is `2q / 2 ^ 128`. Nothing `q`-proportional can be added anywhere.
+* **The constants have `247` units spare**: `259` claimed cells and `6` for the defects, against
+  the `512` that key generation's spend reserves.
+
+So the question to ask of any new charge is not whether it is small but **what it is charged
+against**:
+
+> A charge against a single output — the forgery, its signature, its published randomiser — is
+> a *constant*, and the constants have room. A charge against a query set *scales with `q`*, and
+> there is nothing to give.
+
+Two leftovers were settled by exactly this distinction, in opposite directions.
+
+**The forgery's randomiser being `SK.prf`** is one guess at a secret the adversary never sees —
+the signer publishes `truncate (PRF_msg …)`, never the seed itself. One unit, payable. It cannot
+be paid *at a fixed walk*, because the walk fixes the seed and an adversary that hardcodes one
+makes the event certain on the walk where that value is drawn; so it leaves `AnswerBad` as a
+conjunct and is paid at the paired run, where the walk is averaged.
+
+**The disclosing cap** — that the signer-randomised recording is no longer than the signing
+limit — fails the same way and cannot be repaired the same way. At the walk whose seed is `r`,
+an adversary that hardcodes `r` asks `randomizerInput r pk.seed mᵢ`, reads `aᵢ`, then asks
+`messageInput (truncate aᵢ) pk mᵢ`, which is signer-randomised at that moment and is filed left.
+That is one entry per *pair of queries*, past the limit once `q > 2 ^ 65`. The charge is
+`q`-proportional, so by the ledger it cannot be bought; and it cannot be aimed at the unspent
+part of the record either, because the record's two parts are disjoint — `recordAiming` filters
+by `AimsSomewhere` and `recordMessageClass` takes the message-class entries that aim **nowhere**
+— and a message input aims nowhere. Nor is the cap re-tunable: `prob_not_goodBlock_le` wants
+`length ≤ 5 · 2 ^ 62`, which is `1.25 · signingLimit`.
+
+A cap that must hold exactly, cannot be bought, and cannot be relaxed has to be **true by
+construction**: one entry per served request, filed on the framing rather than on a cache
+coincidence. That is what `HandlerCarrier.FilesLeft` is for, and it is why the framing match is
+load-bearing for the budget rather than a convenience.
+
+The general lesson, stated so it survives this particular cap: **a test that an adversary can
+satisfy by computing is not a cap, however small the coincidence looks.** The cache-based test
+calls an input disclosing when nothing was disclosed — the adversary made both queries itself
+and no FORS position was revealed — so it was never counting the right thing. Being wrong by a
+`2 ^ -128` guess at a fixed walk is how that showed up, but the over-counting was there first.
