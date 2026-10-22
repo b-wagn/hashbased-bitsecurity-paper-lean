@@ -2,6 +2,7 @@ import SlhDsaSecurity.Proof.VerifierFormat
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
+import SlhDsaSecurity.Proof.ServedAgreement
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RoutedSplit
@@ -11464,3 +11465,33 @@ info: 'SlhDsaSecurity.ServingProgram.not_served_empty' depends on axioms: [prope
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingProgram.not_served_empty
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_run_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_run_persists
+
+/--
+info: 'SlhDsaSecurity.ServingProgram.servingProgram_query_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServingProgram.servingProgram_query_step
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.signInternalAt_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.signInternalAt_shape
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.sign_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.sign_shape
+
+/--
+info: 'SlhDsaSecurity.ServedAgreement.served_of_sign' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ServedAgreement.served_of_sign
