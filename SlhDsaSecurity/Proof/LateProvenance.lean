@@ -79,8 +79,7 @@ theorem verify_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec 
     (result : (Bool × Tally) × SplitPrefix.SplitState)
     (hmem : result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
       (countRecorded verifierCost (Scheme.verify pk message signature))).run state))
-    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.2)
-    (hfresh : state.1 entry.1 = none) :
+    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.2) :
     entry ∈ state.2.2 ∨ entry.1 ∈ result.1.2.2 := by
   classical
   obtain ⟨suffix, hsuffix, hentries⟩ :=
@@ -88,7 +87,12 @@ theorem verify_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec 
   rw [hsuffix] at hentry
   rcases List.mem_append.mp hentry with hprior | hnew
   · exact Or.inl hprior
-  · obtain ⟨-, -, -, -, -, hfinal⟩ := hentries entry hnew
+  · obtain ⟨mid, hstart, -, habsent, -, hfinal⟩ := hentries entry hnew
+    have hfresh : state.1 entry.1 = none := by
+      rcases hstate : state.1 entry.1 with _ | value
+      · rfl
+      · rw [hstart entry.1 value hstate] at habsent
+        exact absurd habsent (by simp)
     refine Or.inr (mem_record_countRecorded _ state.1 (result.1, result.2.1)
       (SplitPrefix.mem_support_rom leftKeep rightKeep _ state result hmem) entry.1 hfresh ?_)
     exact Option.ne_none_iff_exists'.mpr ⟨entry.2, hfinal⟩

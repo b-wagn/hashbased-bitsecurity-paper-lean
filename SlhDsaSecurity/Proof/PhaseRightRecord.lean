@@ -312,8 +312,7 @@ theorem keygen_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec 
     (later : QueryCache HashSpec)
     (hlater : ∀ (probe : Bytes) (value : HashOutput),
       result.2.1 probe = some value → later probe = some value)
-    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.2)
-    (hfresh : state.1 entry.1 = none) :
+    (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.2) :
     entry ∈ state.2.2 ∨ QueriesUnder later
       (Scheme.keygenInternal (m := OracleComp HashSpec) secretSeed prfSeed publicSeed)
       entry.1 := by
@@ -323,7 +322,12 @@ theorem keygen_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec 
   rw [hsuffix] at hentry
   rcases List.mem_append.mp hentry with hprior | hnew
   · exact Or.inl hprior
-  · obtain ⟨-, -, -, -, -, hfinal⟩ := hentries entry hnew
+  · obtain ⟨mid, hstart, -, habsent, -, hfinal⟩ := hentries entry hnew
+    have hfresh : state.1 entry.1 = none := by
+      rcases hstate : state.1 entry.1 with _ | value
+      · rfl
+      · rw [hstart entry.1 value hstate] at habsent
+        exact absurd habsent (by simp)
     refine Or.inr (CacheProvenance.queriesUnder_keygenInternal_of_fresh secretSeed prfSeed
       publicSeed state.1 result.2.1 later result.1
       (mem_support_rom leftKeep rightKeep _ state result hmem) hlater entry.1 hfresh ?_)
