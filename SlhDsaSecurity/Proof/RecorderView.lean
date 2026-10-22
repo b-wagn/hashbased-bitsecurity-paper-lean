@@ -186,6 +186,24 @@ theorem appendedOf_right_shape (leftKeep rightKeep : Bytes → σ → Prop) (inp
         rw [appendedOf_of_neither leftKeep rightKeep input state answer hleft hright]
 
 open scoped Classical in
+/-- **An entry of the disclosing recording after a step is one that was there, or this step's
+own**, filed fresh and on the left test. The mirror of `appendedOf_right_mem`, which the
+carrier's served-agreement needs for the same reason the target's class needed that one. -/
+theorem appendedOf_left_mem (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
+    (state : StateOf σ) (answer : HashOutput) (entry : Bytes × HashOutput)
+    (hentry : entry ∈ (appendedOf leftKeep rightKeep input state answer).1) :
+    entry ∈ state.2.1 ∨ (entry = (input, answer) ∧
+      CacheView.cacheOf state.1 input = none ∧ leftKeep input state.1) := by
+  classical
+  rw [appendedOf] at hentry
+  split_ifs at hentry with hleft hright
+  · rcases List.mem_append.mp hentry with hprior | hself
+    · exact Or.inl hprior
+    · exact Or.inr ⟨List.mem_singleton.mp hself, hleft.1, hleft.2⟩
+  · exact Or.inl hentry
+  · exact Or.inl hentry
+
+open scoped Classical in
 /-- **A step appends at most this query's own entry to the target recording**, and when it does,
 the query was fresh and the right test held. The membership reading of the shape above. -/
 theorem appendedOf_right_mem (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)

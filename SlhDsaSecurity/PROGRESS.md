@@ -4728,3 +4728,35 @@ the ledger does not already provide.
 where the shared half must charge it. That is the distinction between deferral and elimination
 applied to this file's own change, and it is the same distinction recorded above for
 `¬ LateDisclosure`.
+
+### The disclosing recording's shape half
+
+`SlhDsaSecurity/Proof/CarrierLeftRecord.lean` takes the first half of the served-agreement
+hypothesis. `CarrierRecordings` reads the target recording and not the disclosing one, so the
+disclosing side had nothing: `RecorderView.appendedOf_left_mem` is the mirror of
+`appendedOf_right_mem` and was simply missing, and `step_left_mem` is `step_right_mem` at the
+other branch.
+
+`leftFramed_carrierTail` is the payoff: **every entry of the carrier tail's disclosing
+recording names a frame** — its input is `Hashing.messageInput randomizer (keyAt walk) framed`
+for some frame that was in flight — with no hypothesis.
+
+**Proved as an invariant, not as a suffix, and the contrast with `Tracks` is the point.**
+`CarrierRecordings.run_right_suffix` hands back the state each entry was filed at because its
+consumers need the *cache* in force there; nothing here does, since `FilesLeft` reads the
+framing alone and the conclusion quantifies the view away. So this is a `RecordInvariant`
+client and the brackets are free, `Bracket` fixing both recordings outright.
+`SplitCounted.Tracks` had to be a **relation** because it compares a run's two ends; this is a
+property of one state that every step preserves, so a predicate composes by itself. *Same
+machinery, opposite call, and the thing that decides it is whether the statement mentions one
+state or two.*
+
+**What is left, and it is the half with the content.** `ServedLog.servedLog` asks that the
+frame appear in the signed log, with an answer that parses, and with the parsed signature's
+randomiser equal to the entry's. Both connectors exist: `CarriedWitness.served_servingNotice_self`
+puts a left-filed input into the carrier's served set from that step on, which `HandlerCarrier.Grows`
+carries to the end; and `ServedBridge.ServedAgree`'s `CarrierBelowLog` puts the carrier's served
+set below the log's. So the remaining obligation is `Served → servedLog`, with no recorder in
+it — but it has to be stated **before** `BracketedRun.forgetCarrier`, which drops the carrier
+the tail ends at. That is why it is not in this file, and it is where `ServedAgreement`'s own
+run laws already live.
