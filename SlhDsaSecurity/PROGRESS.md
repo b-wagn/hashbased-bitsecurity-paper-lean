@@ -3772,3 +3772,29 @@ replacement now asserts its count, and the stray arrows are normalised.
 
 Both are the absence rule in a new costume: **the check that something did not happen has to be
 able to fail.**
+
+## A check that something did not happen has to be able to fail
+
+Three rounds were reported green on a filter that could only ever match zero. Lean emits
+`error: File.lean:NN:NN:`; the grep looked for `File.lean:NN:NN: error`. **No match reads
+identically to no errors**, and nothing downstream distinguishes them. In the same sitting a
+`str.replace` whose pattern never occurred silently dropped an edit, and the next build's
+"greenness" hid that too.
+
+Both are the absence rule in new costume, and the costume is what makes them hard:
+
+> A check that establishes an **absence** must be able to **fail**. Run it once against a state
+> you know is dirty, and confirm it says so.
+
+So: every replacement asserts its count; every error filter is sanity-checked against a
+deliberately broken file. This is cheap — adding one bad declaration, building, confirming the
+filter reports it, and reverting takes one round trip — and it is the only thing that separates
+"the check passed" from "the check ran".
+
+The same reasoning retires a weaker habit. Counting matches is not enough either: a count of
+zero from a pattern that cannot match is still zero. What is needed is a **positive control** —
+a state where the answer is known to be non-zero.
+
+Related, already recorded: an absence established an hour ago is not an absence now, because the
+thing that invalidates it is usually something that arrived rather than something that was
+missed; and a grep establishing an absence must not be truncated.
