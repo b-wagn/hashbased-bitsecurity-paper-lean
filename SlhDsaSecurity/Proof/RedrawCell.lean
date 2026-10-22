@@ -665,7 +665,23 @@ def SensitiveOffSeed (stakes : Stakes Target CanonicalGraph.Node)
     stakes.inputOf node (cells (stakes.stake node)) = candidate
 
 /-- The two cells a computation that carries the honest key reads: the secret seed it is run
-from, and the honest root it carries as its public value. -/
+from, and the honest root it carries as its public value.
+
+**These are also the only two cells the handler reads, and that is not a coincidence.** Once
+the chain is run at the handler that files what the signer discloses, the handler's dependence
+on the drawn table is exactly two things, and they are these two cells.
+
+* Its filing test reads the public key: `HandlerCarrier.FilesLeft` unfolds to
+  `Hashing.messageInput randomizer pk framed`, which is
+  `… ++ bytesBE n pk.seed ++ bytesBE n pk.root ++ message`, and at a drawn table `pk.root` is
+  the cell `table.1 (.structural topRoot)`.
+* Its availability reads the secret seed: the honest reveal count is
+  `GraphStakes.honestRevealed (table.1 Node.secretSeed) publicSeed`.
+
+So the hypothesis that two tables agreeing off an untouched index give the *same handler* closes
+both the comparison under two keys and the comparison under two availabilities, by the same
+argument and with no widening. That `open_seedAndRoot` pays for excluding exactly these two
+stops looking like a convenient choice: this is the set the construction forces. -/
 def seedAndRoot (node : CanonicalGraph.Node) : Prop :=
   node = CanonicalGraph.Node.secretSeed ∨ node = .structural CanonicalGraph.topRoot
 

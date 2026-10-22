@@ -321,4 +321,70 @@ theorem lenient_servingProgram_keysOf (prfSeed publicSeed : Digest)
     (HandlerFacts.lenient_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
       availableAt).agree table queried state hnot
 
+/-! ## And at the availability the table determines
+
+The honest reveal count is read at the walk's own secret seed, which at a drawn table is the
+cell `table.1 Node.secretSeed`. So the availability is a function of the table, like the key,
+and like the key its dependence is on one of the two cells `RedrawCell.seedAndRoot` names. -/
+
+open WalkTable TableTail in
+/-- The served availability at the honest reveal count the drawn table itself determines. -/
+def honestAvailableAt [HasQuery HashSpec Id] (publicSeed : Digest)
+    (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (table : Cells × Padding) : HandlerCarrier.State → Node → Prop :=
+  fun cache node => CanonicalGraph.Available
+    (GraphStakes.honestRevealed (table.1 Node.secretSeed) publicSeed) (signedAt cache) node
+
+open WalkTable TableTail in
+/-- **The availability reads one cell, and it is the seed.** So two tables agreeing off an index
+the comparison is allowed at give the *same* availability — which is what keeps the two sides of
+a stalled comparison stalling at the same moment. -/
+theorem availBlind_honestAvailableAt [HasQuery HashSpec Id] (publicSeed : Digest)
+    (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
+    (index : Node) (hallowed : ¬ RedrawCell.seedAndRoot index)
+    (left right : Cells × Padding) (hagree : AgreeOff index left right) :
+    honestAvailableAt publicSeed signedAt left = honestAvailableAt publicSeed signedAt right := by
+  show (fun cache node => CanonicalGraph.Available
+      (GraphStakes.honestRevealed (left.1 Node.secretSeed) publicSeed) (signedAt cache) node) =
+    (fun cache node => CanonicalGraph.Available
+      (GraphStakes.honestRevealed (right.1 Node.secretSeed) publicSeed) (signedAt cache) node)
+  rw [hagree.1 Node.secretSeed fun heq => hallowed (Or.inl heq.symm)]
+
+open WalkTable TableTail in
+/-- **The serving handler at the table's own key and the table's own availability satisfies the
+facts, off the seed and the root.** Both of its readings of the table are of those two cells —
+the key's root for the filing test, the seed for the availability — so one hypothesis closes
+both comparisons. -/
+theorem tableFacts_servingProgram_keysOf (prfSeed publicSeed : Digest)
+    (availableAt : Cells × Padding → HandlerCarrier.State → Node → Prop)
+    (hclosed : ∀ (table : Cells × Padding) (carrier : HandlerCarrier.State)
+      (parent : StructuralNode),
+      (∀ child ∈ parent.children, availableAt table carrier child) →
+        availableAt table carrier (.structural parent))
+    (havail : ∀ (index : Node), ¬ RedrawCell.seedAndRoot index →
+      ∀ (left right : Cells × Padding), AgreeOff index left right →
+        availableAt left = availableAt right) :
+    HandlerFacts.TableFacts publicSeed availableAt
+      (fun index => ¬ RedrawCell.seedAndRoot index)
+      (fun table => servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+        (availableAt table) table) where
+  neverFails table queried state :=
+    (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+      (availableAt table) (hclosed table)).neverFails table queried state
+  grows table queried state step hstep :=
+    (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+      (availableAt table) (hclosed table)).grows table queried state step hstep
+  record table queried state step hstep :=
+    (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed table).2
+      (availableAt table) (hclosed table)).record table queried state step hstep
+  availBlind := havail
+  blind index hallowed left right hagree queried state hindex := by
+    rw [show keysOf prfSeed publicSeed left = keysOf prfSeed publicSeed right from
+        TouchedKeys.keysOf_congr prfSeed publicSeed left right
+          fun node hnode => hagree.1 node fun heq => hallowed (heq ▸ hnode),
+      show availableAt left = availableAt right from havail index hallowed left right hagree]
+    refine (HandlerFacts.facts_servingProgram publicSeed (keysOf prfSeed publicSeed right).2
+      (availableAt right) (hclosed right)).blind index trivial left right hagree queried state ?_
+    rwa [← show availableAt left = availableAt right from havail index hallowed left right hagree]
+
 end SlhDsaSecurity.ServingTable
