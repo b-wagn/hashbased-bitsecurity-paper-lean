@@ -4097,6 +4097,28 @@ and a copy would compile, nothing external stops the copy — only noticing what
   and the error named the *arguments whose types mentioned them* rather than the names. Qualify
   both.
 
+## A factored-out definition is a message
+
+The seed leftover was chased for four rounds as a new charge needing new units. It was already
+named, already had a home, already had a budget slot, and already had a paragraph saying why all
+three existed — `RecordMeetsPrfClass`, a `def` with one consumer, stated as its own event rather
+than inlined into the reduction that uses it, with a docstring explaining that the answer side
+hands in a second case the obvious target does not subsume.
+
+Two correct lemmas were written at the wrong target before the right one was read.
+
+> When an event is stated as its own definition rather than inlined into the reduction that uses
+> it, **that factoring is a message**, and the message is usually *"a second case needs somewhere
+> to go."* A `def` with one consumer and a paragraph defending its existence is the signal, and
+> it is cheap to look for.
+
+This is narrower and more actionable than "check the door". The door tells you a cost was
+anticipated; the factoring tells you *which* cost and *why it did not go where you are about to
+put it*.
+
+And the corollary, from the thread that wrote both lemmas: **correctness of the thing proved is
+not evidence that it is the thing needed.** Both lemmas were true. Neither was wanted.
+
 ## Two claims that are not the same claim
 
 A thread disclaimed authorship of advice that was in its own output, twice, without opening the
