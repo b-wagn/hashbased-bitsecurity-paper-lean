@@ -8361,3 +8361,21 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_expected' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_expected
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.simulateQ_replay_randomizer' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.simulateQ_replay_randomizer
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.queriesUnder_sign_digest' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.queriesUnder_sign_digest
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.sign_digest_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.sign_digest_cached
