@@ -28,6 +28,30 @@ namespace SlhDsaSecurity.SignerRightRecord
 
 open Security CacheAvailability SplitPrefix SignerRandomiser
 
+/-- **One step files at most its own input.** The four cases of `appended`: a hit and a
+left-kept query leave the target recording alone, a right-kept one appends this query's own
+entry, and a query neither test keeps appends nothing. -/
+theorem appended_right_mem (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (input : Bytes) (state : SplitState) (answer : HashOutput) (entry : Bytes × HashOutput)
+    (hentry : entry ∈ (appended leftKeep rightKeep input state answer).2) :
+    entry ∈ state.2.2 ∨ entry.1 = input := by
+  classical
+  cases hcached : state.1 input with
+  | some cached =>
+    rw [appended_of_cached leftKeep rightKeep input state answer cached hcached] at hentry
+    exact Or.inl hentry
+  | none =>
+    by_cases hleft : leftKeep input state.1
+    · rw [appended_of_left leftKeep rightKeep input state answer hcached hleft] at hentry
+      exact Or.inl hentry
+    · by_cases hright : rightKeep input state.1
+      · rw [appended_of_right leftKeep rightKeep input state answer hcached hleft hright] at hentry
+        rcases List.mem_append.mp hentry with hprior | hself
+        · exact Or.inl hprior
+        · exact Or.inr (by rw [List.mem_singleton.mp hself])
+      · rw [appended_of_neither leftKeep rightKeep input state answer hleft hright] at hentry
+        exact Or.inl hentry
+
 /-- A hash query of the scheme's, simulated, is the implementation at that input. -/
 theorem simulateQ_hash {σ : Type} (impl : QueryImpl OracleWorld (StateT σ ProbComp))
     (input : Bytes) :
@@ -95,26 +119,11 @@ theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache Has
     rw [show step.2.2 = appended leftKeep rightKeep
       (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state step.1 from
         hstepRecord] at hold
-    cases hcachedProbe : state.1 (Hashing.randomizerInput sk.prf sk.publicKey.seed message) with
-    | some cached =>
-      rw [appended_of_cached leftKeep rightKeep (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state step.1 cached hcachedProbe] at hold
-      exact Or.inl hold
-    | none =>
-      by_cases hleftProbe : leftKeep (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state.1
-      · rw [appended_of_left leftKeep rightKeep (Hashing.randomizerInput sk.prf sk.publicKey.seed message)
-            state step.1 hcachedProbe hleftProbe] at hold
-        exact Or.inl hold
-      · by_cases hrightProbe : rightKeep (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state.1
-        · rw [appended_of_right leftKeep rightKeep
-            (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state step.1 hcachedProbe
-            hleftProbe hrightProbe] at hold
-          rcases List.mem_append.mp hold with hprior | hself
-          · exact Or.inl hprior
-          · exact Or.inr (Or.inl (by rw [List.mem_singleton.mp hself]))
-        · rw [appended_of_neither leftKeep rightKeep
-            (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state step.1 hleftProbe
-            hrightProbe] at hold
-          exact Or.inl hold
+    rcases appended_right_mem leftKeep rightKeep
+      (Hashing.randomizerInput sk.prf sk.publicKey.seed message) state step.1 entry hold with
+      hprior | hself
+    · exact Or.inl hprior
+    · exact Or.inr (Or.inl hself)
   · obtain ⟨mid, hstart, hlater, habsent, hkeep, -⟩ := hentries entry hnew
     exact Or.inr (Or.inr ⟨mid, step.1, hstart _ _ hcached, hlater, habsent, hkeep⟩)
 
