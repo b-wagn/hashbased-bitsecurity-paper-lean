@@ -116,4 +116,28 @@ theorem isBracketedRecorderRun (rightKeep : Walk → Bytes → HandlerCarrier.St
           (Multiplicative.toAdd tally).2 + verified.2.2), state.2.2),
       rfl, bracket_startServingOn, bracket_stopServingOn, rfl⟩
 
+/-! ## What one stage forgets to
+
+The tail's first and third stages run under the handler directly, and this is what each of them
+projects to: the same computation under the shared oracle, counted by `countAllHashes`, with the
+handler's counter carried in from where the previous stage left it.
+
+That the starting counter appears on the right is the whole reason `run_withCount_count` was
+stated with it rather than at zero. The first stage starts at zero, the second where the first
+stopped, the third where the second did — and the three add up only because each equation says
+what it started from. -/
+
+/-- **A stage under the handler is the same computation under the shared oracle.** -/
+theorem stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
+    {α : Type} (computation : OracleComp OracleWorld α) (state : CountedState) :
+    (fun z : α × CountedState => ((z.1, z.2.2.2), z.2.1.cache)) <$>
+        (simulateQ (handlerAt rightKeep walk) computation).run state =
+      (fun r : (α × Nat) × QueryCache HashSpec => ((r.1.1, state.2.2 + r.1.2), r.2)) <$>
+        (simulateQ KeygenUniform.rom (countAllHashes computation)).run state.1.cache :=
+  CountedHandler.run_withCount_count
+    (@noticingRecorderOf HandlerCarrier.State (servingView (keyAt walk))
+      (disclosingKeep (keyAt walk)) (rightKeep walk))
+    KeygenUniform.rom (CarrierFiles.forgetsAlong_carrierRecorder (keyAt walk) (rightKeep walk))
+    computation state
+
 end SlhDsaSecurity.CarrierTail
