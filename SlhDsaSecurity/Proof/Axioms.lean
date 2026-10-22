@@ -15410,13 +15410,11 @@ info: 'SlhDsaSecurity.SplitCarrierTail.run_withSplit_count' depends on axioms: [
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.run_withSplit_count
 
-
 /--
 info: 'SlhDsaSecurity.SplitCarrierTail.splitHandlerAt_step_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.splitHandlerAt_step_forget
-
 
 /--
 info: 'SlhDsaSecurity.SplitCarrierTail.startServingOn_cacheSplit' does not depend on any axioms
@@ -15429,11 +15427,6 @@ info: 'SlhDsaSecurity.SplitCarrierTail.stopServingOn_cacheSplit' does not depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.stopServingOn_cacheSplit
-
-
-
-
-
 
 /--
 info: 'SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -15454,10 +15447,6 @@ info: 'SlhDsaSecurity.SplitCarrierTail.prob_bad_splitCarrierTail_le' depends on 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.prob_bad_splitCarrierTail_le
-
-
-
-
 
 /--
 info: 'SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun' depends on axioms: [propext,
@@ -15560,3 +15549,15 @@ info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail' depends on axi
 /-- info: 'SlhDsaSecurity.CarrierCover.cover_answerCarrierRun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCover.cover_answerCarrierRun
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.verifier_subrun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.verifier_subrun
+
+/-- info: 'SlhDsaSecurity.CountedHandler.cached_queriesUnder_counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.cached_queriesUnder_counted
+
+/-- info: 'SlhDsaSecurity.ChargedHalf.cached_forsQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedHalf.cached_forsQueries
