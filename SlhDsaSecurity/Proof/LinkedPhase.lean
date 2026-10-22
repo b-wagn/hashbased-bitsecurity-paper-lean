@@ -15,6 +15,15 @@ together into one handler over the product of their states, and `simulateQ_link_
 running the composite *is* the nesting. The only thing standing between the experiment and that
 combinator was the writer, which `WriterState.toStateful` has moved into the state.
 
+The frame machinery next door is not what this wants, and the reason is worth recording. A
+`Frame`'s two lenses must be *separated*, so `parSumWith` would give the hash half and the
+signing half states that cannot interfere — and they would then have been unable to accumulate
+into one `Counts` cell. The experiment's single counter would have become two components whose
+product is the real count, changing the accounting shape for nothing. The two halves are
+already summed over one target monad in the game, so once the writer has moved they are a
+single handler, and `link` composes it with the inner one using a product only where one
+genuinely belongs: between the outer handler's state and the inner handler's.
+
 So `phaseHandler` is the experiment's own pair of oracles, read as a stateful handler, and
 `run_link_phaseHandler` is the identity: simulating the adversary against the composite from
 `((1, []), s)` is the experiment's phase followed by the inner handler. Nothing about the game

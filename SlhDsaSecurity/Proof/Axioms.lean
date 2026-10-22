@@ -5207,3 +5207,31 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.LinkedPhase.run_link_phaseHandler' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LinkedPhase.run_link_phaseHandler
+
+/-- info: 'SlhDsaSecurity.HonestProbes.subtree_root_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.subtree_root_cell
+
+/-- info: 'SlhDsaSecurity.HonestProbes.signLayers_succ_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.signLayers_succ_eq
+
+/-- info: 'SlhDsaSecurity.HonestProbes.signLayers_head' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.signLayers_head
+
+/-- info: 'SlhDsaSecurity.HonestProbes.signLayers_tail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.signLayers_tail
+
+/-- info: 'SlhDsaSecurity.HonestProbes.signLayers_head_wots_cell' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.signLayers_head_wots_cell
+
+/--
+info: 'SlhDsaSecurity.HonestProbes.signLayers_head_authentication_cell' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.HonestProbes.signLayers_head_authentication_cell
