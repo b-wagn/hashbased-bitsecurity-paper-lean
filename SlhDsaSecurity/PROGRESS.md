@@ -1936,6 +1936,25 @@ where no recorded input is of the class, the only in-class entries left are the 
 and `2 · served` is exact. So the two terms do not merely happen to add — the branch that makes
 one of them small is the branch the other one pays for.
 
+**A fourth thing the accounting cannot be read as, found by writing the join.** The four terms
+add *pathwise*, and that is not the same as four of them each being capped. The partition
+`work + 2 · served + 2 ^ subtreeHeight ≤ q` holds on each run, and the split between `work` and
+`served` is a property of the run — one adversary spends the budget on its own queries, another
+on requests. So an almost-sure cap for each count has to cover that count's own worst run, and
+four worst-case caps are four budgets, not one. `SharedJoin.prob_sharedBad_le_expected` is the
+sum at the shape that works: each charge bounded by its **expected** count, the four
+expectations added by `ClassExpectation.expected_add`, and the one uniform bound taken at the
+end. `SharedJoin.prob_sharedBad_le` is the same sum at four constants, kept because it is what a
+cap-shaped charge produces, and it is sound only when those constants bound the expectations.
+
+This is the move the answer side already made for its coverage term, and
+`ClassExpectation.prob_bad_le_expected` states the reason in general: each charge's limit is
+chosen by the adversary run by run, so the only number that bounds one on every run is the whole
+budget, and a pair of fixed limits can only be `budget, budget`. It applies to all four shared
+charges, the signer's coincidence included — its charge holds at every constant limit, because
+the growth is a conjunct of its event rather than a hypothesis, but whoever supplies that
+conjunct can only supply `2 · served`, which is again a property of the run.
+
 **What this forbids.** No charge on the shared side may be stated against `q` or against the
 whole record. Three of them currently are, or were: the randomiser defect against the record's
 whole cardinality, the signer's coincidence against `q`, and the ordering defect against every
