@@ -4932,3 +4932,11 @@ info: 'SlhDsaSecurity.ChargedProbe.probEvent_sensitiveFlagged_eq_withFlag' depen
 /-- info: 'SlhDsaSecurity.HonestProbes.probes_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HonestProbes.probes_sign
+
+/-- info: 'SlhDsaSecurity.RedrawCell.sensitive_iff_off_or_at_seed' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.sensitive_iff_off_or_at_seed
+
+/-- info: 'SlhDsaSecurity.RedrawCell.sensitiveOffSeed_iff_exists' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.sensitiveOffSeed_iff_exists
