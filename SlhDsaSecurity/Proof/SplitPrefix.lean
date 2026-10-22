@@ -783,6 +783,97 @@ theorem right_record_class {α : Type}
           · rw [hrecStep, appended_of_neither leftKeep rightKeep input state answer hleft hright]
             exact hstart
 
+/-! ## When a right-recorded entry was recorded
+
+The right test is checked at the cache in force, and what it said there is the only thing the
+recording remembers about the order. This lemma hands that cache back: every entry the right
+recording holds was recorded at some cache which the final one extends, where its own input was
+absent and the right test held. Reading the order off the recorder is what lets a later
+argument say which of two queries came first without appealing to who makes them. -/
+
+theorem right_record_witness {α : Type}
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
+    (computation : OracleComp OracleWorld α) (state : SplitState) (result : α × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder leftKeep rightKeep) computation).run state)) :
+    ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨ ∃ mid : QueryCache HashSpec,
+      (∀ (probe : Bytes) (value : HashOutput),
+        mid probe = some value → result.2.1 probe = some value) ∧
+        mid entry.1 = none ∧ rightKeep entry.1 mid := by
+  classical
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [hmem]
+    exact fun entry hentry => Or.inl hentry
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    intro entry hentry
+    rcases ih step.1 step.2 result hrest entry hentry with hold | hwitness
+    · rcases queried with coin | input
+      · rw [recorder_run_inl, mem_support_bind_iff] at hstep
+        obtain ⟨value, -, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        have hsame : step.2 = state := congrArg Prod.snd hpure
+        rw [hsame] at hold
+        exact Or.inl hold
+      · rw [recorder_run_inr, mem_support_bind_iff] at hstep
+        obtain ⟨inner, hinner, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        cases hcached : state.1 input with
+        | some cached =>
+          rw [QueryImpl.withCaching_run_some _ hcached, support_pure,
+            Set.mem_singleton_iff] at hinner
+          have hstate : step.2 = state := by
+            rw [hpure, hinner]
+            exact Prod.ext rfl (appended_of_cached leftKeep rightKeep input state cached cached
+              hcached)
+          rw [hstate] at hold
+          exact Or.inl hold
+        | none =>
+          rw [QueryImpl.withCaching_run_none _ hcached, support_map] at hinner
+          obtain ⟨answer, -, hpair⟩ := hinner
+          have hinnerCache : inner.2 = state.1.cacheQuery input answer :=
+            (Prod.ext_iff.mp hpair).2.symm
+          have hinnerAnswer : inner.1 = answer := (Prod.ext_iff.mp hpair).1.symm
+          have hcacheStep : step.2.1 = state.1.cacheQuery input answer := by
+            rw [hpure, ← hinnerCache]
+          have hrecStep : step.2.2 = appended leftKeep rightKeep input state answer := by
+            rw [hpure, ← hinnerAnswer]
+          have hpersistStep : ∀ (probe : Bytes) (value : HashOutput),
+              step.2.1 probe = some value → result.2.1 probe = some value := by
+            intro probe value hprobe
+            exact recorder_cache_value_persists leftKeep rightKeep (next step.1) step.2 result
+              hrest probe value hprobe
+          by_cases hleft : leftKeep input state.1
+          · rw [hrecStep, appended_of_left leftKeep rightKeep input state answer hcached hleft]
+              at hold
+            exact Or.inl hold
+          · by_cases hright : rightKeep input state.1
+            · rw [hrecStep,
+                appended_of_right leftKeep rightKeep input state answer hcached hleft hright]
+                at hold
+              rcases List.mem_append.mp hold with hstart | hnew
+              · exact Or.inl hstart
+              · refine Or.inr ⟨state.1, ?_, ?_, ?_⟩
+                · intro probe value hprobe
+                  refine hpersistStep probe value ?_
+                  rw [hcacheStep]
+                  have hne : probe ≠ input := by
+                    intro hsame
+                    rw [hsame, hcached] at hprobe
+                    simp at hprobe
+                  rw [QueryCache.cacheQuery_of_ne state.1 answer hne]
+                  exact hprobe
+                · rw [List.mem_singleton.mp hnew]
+                  exact hcached
+                · rw [List.mem_singleton.mp hnew]
+                  exact hright
+            · rw [hrecStep,
+                appended_of_neither leftKeep rightKeep input state answer hleft hright] at hold
+              exact Or.inl hold
+    · exact Or.inr hwitness
+
 /-! ## Two independent draws, two events
 
 The run's own answers are what the induction charges; the two padding blocks are drawn

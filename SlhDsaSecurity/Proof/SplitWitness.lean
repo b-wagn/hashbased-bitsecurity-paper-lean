@@ -74,6 +74,83 @@ theorem disclosingKeep_class (prfSeed : Digest) (pk : PublicKey) (input : Bytes)
     CombinedCharge.IsMessageInput pk input :=
   isMessageInput_of_signerRandomised prfSeed pk cache input hkeep
 
+/-! ## The ordering defect, and what it really says
+
+`mem_records_of_covered` asks that every disclosing entry of the final cache be in the
+disclosing recording. What can go wrong is one thing only: an entry the recorder filed as a
+target, because it was not disclosing when it was queried, which the run later made disclosing.
+That is `LateDisclosure`, and on its complement the hypothesis holds.
+
+Its content is an ordering, and the ordering is read off the recorder rather than off the story
+about who queries what. `right_record_witness` hands back the cache in force when the entry was
+filed; at that cache the `PRF_msg` entry for the entry's own message cannot have been present,
+since entries never change and the entry is disclosing at the end. So the digest query came
+first and the `PRF_msg` answer that discloses it was drawn afterwards — the adversary named a
+randomiser before the answer it truncates existed. -/
+
+/-- **The ordering defect.** Some target-recorded digest is disclosing at the end. -/
+def LateDisclosure (prfSeed : Digest) (pk : PublicKey)
+    (result : (Outcome × Nat) × SplitState) : Prop :=
+  ∃ entry ∈ result.2.2.2, SignerRandomised prfSeed pk result.2.1 entry.1
+
+set_option maxHeartbeats 800000 in
+/-- **Off the defect, every disclosing entry is in the disclosing recording.** This is the
+hypothesis `mem_records_of_covered` carries. -/
+theorem disclosedRecorded_of_not_late (prfSeed : Digest) (pk : PublicKey)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
+    (result : (Outcome × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
+      (targetKeep prfSeed pk)) computation).run (cache, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hlate : ¬ LateDisclosure prfSeed pk result) :
+    ∀ (input : Bytes) (answer : HashOutput),
+      SignerRandomised prfSeed pk result.2.1 input → result.2.1 input = some answer →
+        (input, answer) ∈ result.2.2.1 := by
+  classical
+  intro input answer hsigner hentry
+  have hclass : CombinedCharge.IsMessageInput pk input :=
+    isMessageInput_of_signerRandomised prfSeed pk result.2.1 input hsigner
+  rcases mem_record_of_cache (disclosingKeep prfSeed pk) (targetKeep prfSeed pk)
+    (CombinedCharge.IsMessageInput pk)
+    (fun probe inner hinner => cover_messageInput prfSeed pk probe inner hinner)
+    computation (cache, [], []) result hmem input answer hclass (hfresh input hclass) hentry with
+    hleft | hright
+  · exact hleft
+  · exact absurd ⟨(input, answer), hright, hsigner⟩ hlate
+
+set_option maxHeartbeats 800000 in
+/-- **What the defect says about the order.** The `PRF_msg` entry whose answer discloses the
+digest was absent when the digest was queried, and present at the end: the randomiser the query
+carried was named before the answer it truncates to was drawn. -/
+theorem late_ordering (prfSeed : Digest) (pk : PublicKey)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
+    (result : (Outcome × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
+      (targetKeep prfSeed pk)) computation).run (cache, [], [])))
+    (hlate : LateDisclosure prfSeed pk result) :
+    ∃ (message : Bytes) (prfAnswer : HashOutput) (mid : QueryCache HashSpec),
+      (∀ (probe : Bytes) (value : HashOutput),
+          mid probe = some value → result.2.1 probe = some value) ∧
+        mid (Hashing.randomizerInput prfSeed pk.seed message) = none ∧
+          result.2.1 (Hashing.randomizerInput prfSeed pk.seed message) = some prfAnswer ∧
+            mid (Hashing.messageInput (Hashing.truncate prfAnswer) pk message) = none := by
+  classical
+  obtain ⟨entry, hentry, hsigner⟩ := hlate
+  rcases right_record_witness (disclosingKeep prfSeed pk) (targetKeep prfSeed pk) computation
+    (cache, [], []) result hmem entry hentry with hnil | ⟨mid, hpersist, habsent, hright⟩
+  · exact absurd hnil (by simp)
+  obtain ⟨message, prfAnswer, hprf, hinput⟩ := hsigner
+  refine ⟨message, prfAnswer, mid, hpersist, ?_, hprf, ?_⟩
+  · by_contra hpresent
+    obtain ⟨earlier, hearlier⟩ := Option.ne_none_iff_exists'.mp hpresent
+    have hsame : earlier = prfAnswer := by
+      have := hpersist _ _ hearlier
+      rw [this] at hprf
+      exact Option.some.inj hprf
+    exact hright.2 ⟨message, earlier, hearlier, by rw [hsame]; exact hinput⟩
+  · rw [← hinput]
+    exact habsent
+
 set_option maxHeartbeats 800000 in
 /-- **The covered forgery, as coordinates of the two recordings.** Its own digest is an entry of
 the target recording and each of its covering witnesses is an entry of the disclosing one. -/
@@ -113,5 +190,26 @@ theorem mem_records_of_covered (prfSeed : Digest) (pk : PublicKey)
   obtain ⟨other, otherAnswer, hne, hsigner, hother, hinstance, hleaf⟩ := hcoveredAt tree
   exact ⟨(other, otherAnswer), hdisclosedRecorded other otherAnswer hsigner hother, hne,
     hinstance, hleaf⟩
+
+set_option maxHeartbeats 800000 in
+/-- **The join, with the ordering defect named.** Off `LateDisclosure` the covered forgery's
+digest is an entry of the target recording and its witnesses are entries of the disclosing one,
+with nothing left to assume about which query came first. -/
+theorem mem_records_of_covered_of_not_late (prfSeed : Digest) (pk : PublicKey)
+    (computation : OracleComp OracleWorld (Outcome × Nat)) (cache : QueryCache HashSpec)
+    (result : (Outcome × Nat) × SplitState)
+    (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
+      (targetKeep prfSeed pk)) computation).run (cache, [], [])))
+    (hfresh : ∀ input : Bytes, CombinedCharge.IsMessageInput pk input → cache input = none)
+    (hlate : ¬ LateDisclosure prfSeed pk result)
+    (hcovered : CoverageRouted.ForgeryDisclosedCovered prfSeed pk (result.1, result.2.1)) :
+    ∃ target : Bytes × HashOutput, target ∈ result.2.2.2 ∧
+      ∀ tree : MessageDigest.ForsTree, ∃ witness : Bytes × HashOutput,
+        witness ∈ result.2.2.1 ∧ witness.1 ≠ target.1 ∧
+          (MessageDigest.parse witness.2).1 = (MessageDigest.parse target.2).1 ∧
+            (MessageDigest.parse witness.2).2 tree = (MessageDigest.parse target.2).2 tree :=
+  mem_records_of_covered prfSeed pk computation cache result hmem hfresh
+    (disclosedRecorded_of_not_late prfSeed pk computation cache result hmem hfresh hlate)
+    hcovered
 
 end SlhDsaSecurity.SplitWitness
