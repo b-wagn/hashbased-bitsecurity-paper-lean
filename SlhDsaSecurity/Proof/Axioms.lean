@@ -13410,3 +13410,51 @@ info: 'SlhDsaSecurity.HandlerLenient.prob_game_sensitive_honest_le_canonical' de
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerLenient.prob_game_sensitive_honest_le_canonical
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.romWithCount_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.romWithCount_run
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.romWithCount_step_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.romWithCount_step_map
+
+/--
+info: 'SlhDsaSecurity.CountedHandler.run_romWithCount_count' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CountedHandler.run_romWithCount_count
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.handlerAt_step_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.handlerAt_step_forget
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.forgetsAlong_counted' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.forgetsAlong_counted
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.startServingOn_cacheCount' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.startServingOn_cacheCount
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.stopServingOn_cacheCount' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.stopServingOn_cacheCount
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.middle_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.middle_forget

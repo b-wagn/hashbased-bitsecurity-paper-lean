@@ -140,4 +140,84 @@ theorem stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Pr
     KeygenUniform.rom (CarrierFiles.forgetsAlong_carrierRecorder (keyAt walk) (rightKeep walk))
     computation state
 
+/-! ## The middle stage's projection keeps the count
+
+`stage_forget` is enough for the stages that run under the handler directly. The fused stage is
+projected by `ServingForget.run_fuseServing_map`, which needs the handler to forget along the
+same map the brackets preserve — and that map has to keep the **count** as well as the cache,
+because the count is what the middle stage contributes to the tail's value. So the handler on
+the far side is `CountedHandler.romWithCount`, and this is the law. -/
+
+theorem handlerAt_step_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) (queried : OracleWorld.Domain) (state : CountedState) :
+    (fun z : OracleWorld.Range queried × CountedState => (z.1, (z.2.1.cache, z.2.2.2))) <$>
+        ((handlerAt rightKeep walk) queried).run state =
+      (CountedHandler.romWithCount queried).run (state.1.cache, state.2.2) := by
+  rw [handlerAt, CarrierFiles.countedCarrierRecorder, CountedHandler.withCount_run,
+    CountedHandler.romWithCount_run, map_eq_bind_pure_comp, bind_assoc]
+  show _ = (KeygenUniform.rom queried).run
+      (CacheView.cacheOf (σ := HandlerCarrier.State) (state.1, state.2.1).1) >>= _
+  rw [← CarrierFiles.noticingRecorderOf_forget_step (keyAt walk) (rightKeep walk) queried
+      (state.1, state.2.1), map_eq_bind_pure_comp, bind_assoc]
+  refine bind_congr fun step => ?_
+  simp only [Function.comp_def, pure_bind]
+  rfl
+
+theorem forgetsAlong_counted (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk) :
+    ServingForget.ForgetsAlong (fun state : CountedState => (state.1.cache, state.2.2))
+      (handlerAt rightKeep walk) CountedHandler.romWithCount := by
+  intro β computation
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state
+    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
+  | query_bind queried next ih =>
+    intro state
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind, simulateQ_bind,
+      simulateQ_spec_query, StateT.run_bind,
+      ← handlerAt_step_forget rightKeep walk queried state, bind_map_left]
+    exact bind_congr fun step => ih step.1 step.2
+
+/-- **The brackets keep the cache and the count**, which is the projection the middle stage is
+read through. `BracketedRun.Bracket` asks for the cache and the recordings; this asks for the
+cache and the count, and both hold for the same reason — the brackets write the framing and
+nothing else. -/
+theorem startServingOn_cacheCount (request : Message) (state : CountedState) :
+    ((ServedAgreement.startServingOn request state).1.cache,
+        (ServedAgreement.startServingOn request state).2.2) =
+      (state.1.cache, state.2.2) := by
+  rw [ServedAgreement.startServingOn]
+  cases request.frame with
+  | none => rfl
+  | some framed => rfl
+
+theorem stopServingOn_cacheCount (state : CountedState) :
+    ((ServedAgreement.stopServingOn state).1.cache,
+      (ServedAgreement.stopServingOn (τ := (DigestTape.Record × DigestTape.Record) × Nat)
+        state).2.2) = (state.1.cache, state.2.2) := rfl
+
+/-- **The middle stage, projected.** The bracketed fused phase over the carrier's handler is the
+unbracketed fused phase over the shared oracle with a counter — which is the form
+`PhaseFusion.run_phase_fused` turns back into the nested run `RecordedTail.recordedAfterSeeds`
+is written as. -/
+theorem middle_forget {α : Type} (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
+    (walk : Walk)
+    (inner : QueryImpl (OracleWorld + SigningSpec)
+      (WriterT (Multiplicative Tally) (StateT SigningLog (OracleComp OracleWorld))))
+    (computation : OracleComp (OracleWorld + SigningSpec) α)
+    (accumulated : Multiplicative Tally) (log : SigningLog) (state : CountedState) :
+    (fun step : α × (Multiplicative Tally × SigningLog × CountedState) =>
+        (step.1, (step.2.1, step.2.2.1, (step.2.2.2.1.cache, step.2.2.2.2.2)))) <$>
+      (simulateQ (fuseServing (handlerAt rightKeep walk) inner
+        ServedAgreement.startServingOn ServedAgreement.stopServingOn) computation).run
+        (accumulated, log, state) =
+      (simulateQ (fuse CountedHandler.romWithCount inner) computation).run
+        (accumulated, log, (state.1.cache, state.2.2)) :=
+  ServingForget.run_fuseServing_map (fun s : CountedState => (s.1.cache, s.2.2))
+    (handlerAt rightKeep walk) CountedHandler.romWithCount inner
+    ServedAgreement.startServingOn ServedAgreement.stopServingOn startServingOn_cacheCount
+    stopServingOn_cacheCount (forgetsAlong_counted rightKeep walk) computation accumulated log
+    state
+
 end SlhDsaSecurity.CarrierTail
