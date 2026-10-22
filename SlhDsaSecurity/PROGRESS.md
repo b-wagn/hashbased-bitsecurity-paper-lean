@@ -3485,3 +3485,31 @@ symptom is misleading in every case — the error names the goal, not the applic
 Related and already recorded: `simp only` fails silently in the files that set
 `backward.isDefEq.respectTransparency false`, and `lake env lean` reads oleans rather than
 sources. All three are cases of a tactic failing in a way that does not name its own cause.
+
+## The target now rests on five leaves
+
+With `FinalAssembly.lateOrSeed` instantiating the defect as
+`LateProbes.Ordering ∨ AnswerCoverage.ForgerySeedRandomised`, the answer obligation's `¬ late`
+is the answer side's own two conjuncts by `not_or`, and
+`AnswerShape.answerChargedLateSeed_of_parts` composes the presentation move with
+`AnswerJoin.answerRecordedBound_narrow_of_parts`. `hseed` is gone from the answer side: it is a
+conjunct of the charged event, and its complement is paid on the shared side at `seedUnits`.
+
+What `HasTotalSecurityBits .strong 127` now rests on, beyond the two arithmetic side conditions
+`hclaims` and `hfits`:
+
+| leaf | side | status |
+| --- | --- | --- |
+| `hjoinNarrow` | answer | the narrowed class at the forgery; `Served.mem_records_of_covered_narrowTarget` is its shape |
+| `hleftBound` | answer | `CarrierFiles.leftRecord_length_le_cap` |
+| `hdisclosing` | answer | `CarrierFiles.agreesWithLog_carrierRun` |
+| `hinput` | shared | `SharedAssembly.InputBullet` |
+| `hseed` | shared | the forgery-randomiser charge at `seedUnits` |
+
+The provenance hypothesis is not among them — `LateProvenance.hrecord` is proved and its
+consumer switched, so `target_of_answer_and_leaves` takes three hypotheses rather than four.
+
+Two of the five are the carrier's and are proved already; what is missing there is the tail
+object, not the lemmas. The composition was probe-checked before landing, as every join in this
+development now is, and the probe is what recounted the leaves after the provenance retirement
+changed the arity under me.
