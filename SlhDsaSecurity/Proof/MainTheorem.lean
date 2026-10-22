@@ -12,14 +12,33 @@ avenues. This file does the last arithmetic step, and it is worth isolating beca
 only place where the shape of the whole argument is checked against the statement it is
 supposed to prove.
 
+**What this file still supplies is `totalSecurityBits_of_bound`**, which `Target` applies
+twice. The other five theorems here are earlier shapes of the same step and have no consumers;
+`totalSecurityBits_of_halves` in particular is the one the sections below are written around, and
+nothing calls it.
+
 `totalSecurityBits_of_halves` says: given a split of the winning event into an answer-side
 event and an input-side event, and a bound of `q / 2 ^ 128` on each, the target
 `HasTotalSecurityBits .strong 127` follows. The two bounds add to `q / 2 ^ 127` exactly, with
 no room to spare — which is the arithmetic fact that has shaped every choice in this
 development: the per-class accounting, the joint answer-side charge whose rate is a maximum
-rather than a sum, and the exact rather than approximate input-side comparison.
+rather than a sum, and the exact rather than approximate input-side comparison. The defects had
+to go somewhere, and where they went is `Assembly.le_target_of_full`'s single reserve, which is
+why the live route runs through `totalSecurityBits_of_bound` instead.
 
-What remains after this file is exactly its three hypotheses, instantiated at the real game:
+## What actually remains
+
+**Not the three hypotheses below.** The proof is now assembled by
+`ObligationShapes.target_of_answer_and_leaves`, and what remains is *its* three:
+
+* `hanswer` — `Obligations.AnswerChargedLate` at `FusedCoverage.fusedTail`, supplied by
+  `AnswerShape.answerChargedLate_of_parts`, which reduces it to the disclosing cap, the
+  recorder-test/signing-log agreement and the narrowed class at the forgery.
+* `hinput` — `SharedAssembly.InputBullet`, the input half's probe containment.
+* `hsigner` — `LateProvenance.SignerDigestFree`, in its guarded form.
+
+The three listed below belong to `totalSecurityBits_of_halves` and are kept because the charges
+they name are all still live — it is the assembly around them that moved:
 
 * `hsplit` — an accepted fresh forgery forces one of the two events. The structural half of
   this is `HypertreeDispatch.cases_of_accepted` together with the five charge compositions and

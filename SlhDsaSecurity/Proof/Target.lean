@@ -147,8 +147,12 @@ theorem prob_bad_walk_paired (adversary : Adversary) :
 
 /-! ## The allowance
 
-Six units of `2 ^ -128` against the four defects, and `259` claimed cells against the `1024`
-that key generation's spend reserves on the two halves. -/
+Six units of `2 ^ -128` against the four defects, and `claims` cells against the `512` that key
+generation's spend reserves. `allowanceOf` calls `Assembly.le_target_of_full`, which reserves on
+**one** half — the answer half is charged the whole `q` — so the budget is `2 ^ subtreeHeight`
+and not twice it, and `hclaims` is `claims + 6 ≤ 512`. At the live `claims = 259` the margin is
+`247`. (A `1024` belongs to `Assembly.le_target_of_counts`, which reserves on both halves and
+which `allowanceOf` does not call.) -/
 
 /-- The four small defects, as one quantity. -/
 noncomputable def defects : ℝ≥0∞ :=

@@ -82,7 +82,11 @@ target.
 `prob_combinedBad_whole_game_le` is that charge at the whole game, discharging the growth
 budget from `HasTotalBudget` exactly as the structural term does. It is the `hanswer`
 obligation of `MainTheorem.totalSecurityBits_of_halves`, for the cells and disclosures that
-the experiment's key generation and signing produce. -/
+the experiment's key generation and signing produce.
+
+*That assembly is no longer the live one* — `totalSecurityBits_of_halves` has no consumers, and
+the proof is assembled by `ObligationShapes.target_of_answer_and_leaves`. The charge below is
+still live; it is the shape it was once an obligation of that moved. -/
 
 /-- **The answer side for the whole game.** -/
 theorem prob_combinedBad_whole_game_le (adversary : Adversary) (q : Nat)

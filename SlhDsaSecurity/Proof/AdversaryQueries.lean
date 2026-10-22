@@ -240,10 +240,11 @@ theorem work_le_count_countQueries (kind : QueryKind) (hkind : kind ≠ .signing
 /-! ## What the signer spends
 
 A request whose context is too long is refused before any query; a request that is served is
-charged at least the one hash its randomiser costs, and that call is the signer's, so the work
-budget never sees it. So every served request leaves one more unit of the total count unspent,
-on top of what key generation left — and the log says how many were served, since the answer it
-records is `some` exactly when the frame was. -/
+charged **two** hashes — its randomiser's and its message digest's — and both calls are the
+signer's, so the work budget never sees either. So every served request leaves two more units of
+the total count unspent, on top of what key generation left; `two_le_count_sign` is that fact and
+the statements below carry `2 * servedCount` because of it. The log says how many were served,
+since the answer it records is `some` exactly when the frame was. -/
 
 /-- The number of requests the signer served, read off the log it left. -/
 def servedCount (log : SigningLog) : Nat :=
@@ -308,8 +309,10 @@ theorem two_le_count_sign (sk : SecretKey) (request : Message) (message : Bytes)
     cache result hmem
 
 set_option maxHeartbeats 1000000 in
-/-- **A signing request charges nothing to the work budget, and a served one spends a unit of
-the total.** -/
+/-- **A signing request charges nothing to the work budget, and a served one spends two units
+of the total.** Two, not one: signing opens with the randomiser's hash call and follows it with
+the message digest's, and `two_le_count_sign` is that. The statement reserves `2 * servedCount`
+on both sides, and `Assembly.le_target_of_served` spends both. -/
 theorem work_add_served_le_count_signingOracle (sk : SecretKey) (request : Message)
     (log : SigningLog) (cache : QueryCache HashSpec)
     (outer : (((Option Bytes × Multiplicative Counts) × SigningLog) × Nat) ×
@@ -366,8 +369,9 @@ theorem work_add_served_le_count_adversaryImpl (queried : OracleWorld.Domain)
   simp [work_single_hash]
 
 set_option maxHeartbeats 1000000 in
-/-- **The adversary's phase leaves one unit of the total unspent per served request**, on top of
-charging no more work than it makes hash calls. -/
+/-- **The adversary's phase leaves two units of the total unspent per served request**, on top
+of charging no more work than it makes hash calls — the randomiser's hash call and the digest's,
+by `two_le_count_sign`. -/
 theorem work_add_served_le_count_adversary (sk : SecretKey) {α : Type}
     (computation : OracleComp (OracleWorld + SigningSpec) α) :
     ∀ (log : SigningLog) (cache : QueryCache HashSpec)
@@ -461,10 +465,11 @@ theorem work_add_keygen_le_total (adversary : Adversary) (sds : Digest × Digest
 
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
-/-- **The work the game charges, plus key generation's spend and one unit per served request,
+/-- **The work the game charges, plus key generation's spend and two units per served request,
 never exceeds the hash calls the game makes.** The signer hashes without being charged, so each
-request it serves leaves another unit of the budget unspent — and unlike key generation's, that
-room grows with the number of requests, which is what a defect proportional to them needs. -/
+request it serves leaves two more units of the budget unspent — its randomiser's call and its
+digest's, by `two_le_count_sign`. Unlike key generation's, that room grows with the number of
+requests, which is what a defect proportional to them needs. -/
 theorem work_add_keygen_add_served_le_total (adversary : Adversary)
     (sds : Digest × Digest × Digest) (cache : QueryCache HashSpec)
     (result : (Outcome × Nat) × QueryCache HashSpec)

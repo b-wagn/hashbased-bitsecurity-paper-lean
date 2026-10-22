@@ -160,8 +160,10 @@ theorem work_add_pow_le_of_budget_recorded {adversary : Adversary} {q : Nat}
 
 Key generation's spend is a constant, and a defect proportional to the number of served
 requests cannot be paid out of a constant. The signer's own hashing is the room that grows with
-them: a served request is charged at least the one hash its randomiser costs, and that call is
-the signer's, so the work budget never sees it. -/
+them: a served request is charged at least **two** hashes — its randomiser's and its message
+digest's — and both calls are the signer's, so the work budget never sees either. That is
+`AdversaryQueries.two_le_count_sign`, and it is why the statements below reserve
+`2 * servedCount` rather than one unit apiece. -/
 
 /-- **The budget bounds the work, with key generation's spend and the signer's reserved.** -/
 theorem work_add_pow_add_served_le_of_budget_tail {adversary : Adversary} {q : Nat}

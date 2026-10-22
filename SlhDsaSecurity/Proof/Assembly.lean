@@ -4,21 +4,40 @@ import Mathlib.Topology.Instances.ENNReal.Lemmas
 /-!
 # The assembly step for the 127-bit bound
 
-The three contributions to the all-queries-counted bound combine exactly:
+**The live ledger is `le_target_of_full`, and it is the only one of the five in this file that
+has a consumer.** `Target.allowanceOf` applies it, and its whole content is the `Nat` line
 
-* the structural term costs `q / 2 ^ 128 = 2q / 2 ^ 129`;
-* the FORS coverage term, routed through the sharper `2 ^ 102` load cap, costs
-  `q / 2 ^ 129`;
-* relating the actual honest disclosures to a capped set costs an additive `2 ^ -126 =
-  8 / 2 ^ 129`.
+    (q - slack + extra) + q + defectUnits ≤ 2 * q
 
-Their sum is `(3q + 8) / 2 ^ 129`, and the target is `4q / 2 ^ 129`, so the bound holds
-exactly when `3q + 8 ≤ 4q`, i.e. `q ≥ 8`. Charging every hash call makes that automatic:
-key generation alone costs far more than eight hashes, and in any case an accepted forgery
-forces at least 569 charged calls.
+at `slack = 2 ^ subtreeHeight = 512` (key generation's own hashing, reserved on the input half),
+`extra = claims` (the forgery's claimed cells, `259` at the live instantiation) and
+`defectUnits = 6` (`defects_le_six`, covering the load cap at `2 ^ -126`, the coverage tape at
+`2 ^ -141`, the seed coincidence at `2 ^ -128` and the input-format coincidence at `2 ^ -165`).
+So what has to hold is `claims + 6 ≤ 512`, and at `claims = 259` the margin is **247** units of
+`2 ^ -128`.
 
-This also shows why the plain `2 ^ 103` load cap cannot be used. It would make the FORS term
-`2q / 2 ^ 129`, giving a total of `4q / 2 ^ 129` with no room left for the additive term.
+The `q` coefficient has **no** margin: the same line is `2 * q` on the right and `q + q` on the
+left, one per half. A third `q`-proportional term cannot be added anywhere, whatever constant it
+carries. Constants can, up to the 247.
+
+## The four earlier ledgers, and why they are still here
+
+This file accumulated a ledger per design generation, and **four of the five are now unconsumed**.
+They are kept because each is true and cheap to re-reach for, and named here because a reader who
+takes the wrong one gets a margin that is wrong by a factor of three.
+
+| theorem | shape | consumers |
+| --- | --- | --- |
+| `le_target_of_terms` | three terms, `3q + 8 ≤ 4q`, needs `q ≥ 8` | none |
+| `le_target_of_halves` | two halves at `q / 2 ^ 128`, met with equality | none |
+| `le_target_of_two_slacks` | the two halves reserve different amounts | none |
+| `le_target_of_served` | `two_slacks` with the signer's spend reserved | none |
+| `le_target_of_counts` | both halves reserve `slack`, so `extra + defectUnits ≤ 2 * slack` | none |
+| **`le_target_of_full`** | **the answer half spends the whole `q`; `extra + defectUnits ≤ slack`** | **`Target.allowanceOf`** |
+
+The `759`/`1024`-style figures that appear in older notes belong to `le_target_of_counts` and
+`le_target_of_two_slacks`, which reserve on *both* halves. `le_target_of_full` reserves on one,
+which is why its margin is 247 and not 759.
 -/
 
 open ENNReal
@@ -48,8 +67,21 @@ theorem target_eq (q : Nat) :
   rw [hden, Nat.cast_mul, Nat.cast_ofNat,
     ENNReal.mul_div_mul_left _ _ (by norm_num) (by norm_num)]
 
-/-- **The assembly step.** The structural term, the sharper FORS term and the additive cost
-of capping the disclosures sum to at most the target once `q ≥ 8`. -/
+/-- **The assembly step, first generation.** The structural term, a FORS term at
+`q / 2 ^ 129` and the additive cost of capping the disclosures sum to at most the target once
+`q ≥ 8`.
+
+*Currently unconsumed.* It belongs to a design in which the FORS coverage term was
+`q`-proportional at half the structural rate, which is what the `2 ^ 102` cap buys
+(`ForsConcentrationSharper`, additive `2 ^ -126`). The header's remark that the `2 ^ 103` cap
+"cannot be used" is about **that** term and is correct about it.
+
+**Both caps are live, for different terms, and the remark should not be read as a prohibition.**
+`2 ^ 102` is the sharper one and is what `CombinedCharge`, `WholeGameStructural` and
+`WarmedCharges` take as `hmoment`; `2 ^ 103` is the coverage tape's, where
+`BlockViews.GoodBlock` is `∑ loads ^ 14 ≤ 2 ^ 103` and `BlockViews.prob_not_goodBlock_le` turns
+it into the flat `2 ^ -141` the live coverage charge spends. The live coverage clause is not
+`q`-proportional at all, so the trade-off this ledger describes does not arise for it. -/
 theorem le_target_of_terms {advantage structural fors capFail : ℝ≥0∞} (q : Nat) (hq : 8 ≤ q)
     (hsplit : advantage ≤ structural + fors + capFail)
     (hstructural : structural ≤ (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
@@ -98,7 +130,10 @@ theorem half_add_half (queries : Nat) :
   rw [hden, hnum, ENNReal.mul_div_mul_left _ _ (by norm_num) (by norm_num)]
 
 /-- **The two-half assembly.** An answer-side charge and an input-side charge, each at
-`q / 2 ^ 128`, together meet the target exactly. -/
+`q / 2 ^ 128`, together meet the target exactly.
+
+*Currently unconsumed:* meeting the target with equality leaves nowhere for the defects, which is
+what the sections below are about. `half_add_half`, the arithmetic underneath it, **is** live. -/
 theorem le_target_of_halves {advantage answerSide inputSide : ℝ≥0∞} (queries : Nat)
     (hsplit : advantage ≤ answerSide + inputSide)
     (hanswer : answerSide ≤ (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
@@ -228,9 +263,14 @@ theorem weighted_add_defect_le (weighted queries : Nat)
   refine ENNReal.div_le_div_right (Nat.cast_le.mpr ?_) _
   omega
 
-/-! ## The accounting the finished proof has to meet
+/-! ## An accounting that reserves on both halves
 
-The halves as they now stand are not `q / 2 ^ 128` each. Both are smaller by the honest
+**This is not the accounting the finished proof meets** — that is `le_target_of_full`, under
+*The accounting the finished proof does meet* below. `le_target_of_counts` is kept because it is
+the honest ledger for a design in which both halves subtract key generation's spend, and because
+its arithmetic is what the `759`-unit margin in older notes refers to.
+
+The halves as they stand in *that* design are not `q / 2 ^ 128` each. Both are smaller by the honest
 phase's own hashing, which is charged to `q` and can buy nothing — key generation spends at
 least `2 ^ subtreeHeight = 512` calls while leaving the walk's cache untouched. The input half
 is larger by the forgery's claimed cells, charged as candidates so that "output an unavailable
@@ -243,12 +283,16 @@ So the sum to check is
     (q - 512 + 259) / 2 ^ 128 + (q - 512) / 2 ^ 128 + (2 ^ -126 + 2 ^ -141 + 2 ^ -165)
       ≤ q / 2 ^ 127
 
-and it holds with room: the two counts give `2 q - 765`, the defects are under `5 / 2 ^ 128`,
-and `2 q - 760 ≤ 2 q`. The margin is `760` units where `5` are needed, which is the point of
-charging every hash call — the honest phase pays for the defects many times over.
+and it holds with room: the two counts give `2 q - 765`, the three defects are under
+`5 / 2 ^ 128` (`defects_le_five`), and `2 q - 760 ≤ 2 q`. The margin is `760` units where `5` are
+needed.
 
-`le_target_of_counts` is that, with the constants as parameters so the arithmetic does not have
-to be redone if a count moves. -/
+Both numerals are of this design and not of the live one. The live defect sum has a **fourth**
+term, the seed coincidence, and is bounded by `defects_le_six`; and the live margin is 247,
+because `le_target_of_full` reserves on one half rather than two.
+
+`le_target_of_counts` is this, with the constants as parameters so the arithmetic does not have
+to be redone if a count moves. *Currently unconsumed.* -/
 
 private theorem cast_pow (k : Nat) : ((2 ^ k : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by
   push_cast; ring
@@ -265,7 +309,10 @@ private theorem div_pow_eq (m j k : Nat) (hjk : j ≤ k) :
     push_cast; ring
   rw [hsplit, hnum, ENNReal.mul_div_mul_left _ _ (by positivity) (by simp)]
 
-/-- Three small defects cost under five units of `2 ^ -128`. -/
+/-- Three small defects cost under five units of `2 ^ -128`.
+
+*Currently unconsumed.* The live defect sum has a fourth term — the seed coincidence, at
+`2 ^ -128` — and is `defects_le_six`, which `Target.allowanceOf` uses. -/
 theorem defects_le_five :
     (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) +
         (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞) ≤
@@ -318,7 +365,9 @@ the two halves are measured against differ. What the allowance has to meet is un
 substance: the forgery's claimed cells and the defects together must fit inside the two reserves
 put together. -/
 
-/-- **The target, from two counts reserving different amounts and a defect allowance.** -/
+/-- **The target, from two counts reserving different amounts and a defect allowance.**
+
+*Currently unconsumed*, with `le_target_of_served` below it. -/
 theorem le_target_of_two_slacks (queries inputSlack answerSlack extra defectUnits : Nat)
     (hinput : inputSlack ≤ queries) (hanswer : answerSlack ≤ queries)
     (hfits : extra + defectUnits ≤ inputSlack + answerSlack)
@@ -348,7 +397,9 @@ theorem le_target_of_two_slacks (queries inputSlack answerSlack extra defectUnit
 /-- **The accounting with the signer's spend reserved.** The forgery's two hundred and
 fifty-nine claimed cells and six constant defects, plus one defect unit per served request,
 against key generation's five hundred and twelve reserved on both halves and one more per
-served request reserved on the half that counts the record. -/
+served request reserved on the half that counts the record.
+
+*Currently unconsumed.* -/
 theorem le_target_of_served (queries served : Nat)
     (hkeygen : 2 ^ subtreeHeight + 2 * served ≤ queries) (defect : ℝ≥0∞)
     (hdefect : defect ≤ ((6 + 2 * served : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
@@ -361,7 +412,8 @@ theorem le_target_of_served (queries served : Nat)
   simp only [subtreeHeight]
   omega
 
-/-- **The target, from the two counts and a defect allowance.** -/
+/-- **The target, from the two counts and a defect allowance.** *Currently unconsumed*; see the
+section above for which design it belongs to. -/
 theorem le_target_of_counts (queries slack extra defectUnits : Nat)
     (hslack : slack ≤ queries) (hfits : extra + defectUnits ≤ 2 * slack)
     (defect : ℝ≥0∞)
@@ -387,9 +439,27 @@ theorem le_target_of_counts (queries slack extra defectUnits : Nat)
         rw [show ((2 * queries : Nat) : ℝ≥0∞) = (queries : ℝ≥0∞) + (queries : ℝ≥0∞) from by
           push_cast; ring, ← ENNReal.div_add_div_same, half_add_half]
 
+/-! ## The accounting the finished proof does meet
+
+`Target.allowanceOf` calls `le_target_of_full` and nothing else in this file, so this is the
+ledger the 127-bit bound actually rests on. It differs from every accounting above in one
+respect, and the difference is the whole of why its margin is 247 rather than 759: **only the
+input half subtracts key generation's spend.** The answer half is charged the entire `q`.
+
+So the `Nat` line is `(q - slack + extra) + q + defectUnits ≤ 2 * q`, which for `slack ≤ q` is
+`extra + defectUnits ≤ slack` — a single reserve, `512`, against `claims + 6`. At `claims = 259`
+that leaves 247 units of `2 ^ -128` for any further constant, and nothing at all for a further
+`q`-proportional term.
+
+`Target.allowanceOf` keeps `claims` a parameter for exactly that reason: a caller with a constant
+charge raises the numeral and the inequality still holds, while a caller with a `q`-shaped charge
+finds it cannot, at the call site rather than three files away. -/
+
 /-- **The target, with the answer side charged the whole count.** The reserve the other side
 keeps is what pays for it: the answer half never has to subtract key generation's own hashes,
-because the input half's `slack` already covers the extra and the defects. -/
+because the input half's `slack` already covers the extra and the defects.
+
+**This is the live ledger**, applied by `Target.allowanceOf`. -/
 theorem le_target_of_full (queries slack extra defectUnits : Nat)
     (hslack : slack ≤ queries) (hfits : extra + defectUnits ≤ slack)
     (defect : ℝ≥0∞)
