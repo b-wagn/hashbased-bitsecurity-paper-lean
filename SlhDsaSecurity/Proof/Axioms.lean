@@ -1,4 +1,5 @@
 import SlhDsaSecurity.Proof.VerifierFormat
+import SlhDsaSecurity.Proof.ProbeContainment
 import SlhDsaSecurity.Proof.RandomiserCharge
 import SlhDsaSecurity.Proof.Obligations
 import SlhDsaSecurity.Proof.ReplayGate
@@ -11048,3 +11049,35 @@ info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_two' depends on axioms: [prope
 /-- info: 'SlhDsaSecurity.RedrawCell.canonicalClass_of_aimsSomewhere' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.canonicalClass_of_aimsSomewhere
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.queriesUnder_strip' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.queriesUnder_strip
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.canonical_of_strippedKeygen_probe' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.canonical_of_strippedKeygen_probe
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.probes_sign' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.probes_sign
+
+/-- info: 'SlhDsaSecurity.ProbeContainment.openCache_canonical_ne_none' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.openCache_canonical_ne_none
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.no_cold_strippedKeygen_probe' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.no_cold_strippedKeygen_probe
+
+/--
+info: 'SlhDsaSecurity.ProbeContainment.not_aims_of_strippedSign_probe' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ProbeContainment.not_aims_of_strippedSign_probe
