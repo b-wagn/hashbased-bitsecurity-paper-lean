@@ -14540,3 +14540,19 @@ info: 'SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun' depends on axioms: [p
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_cont' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_cont
+
+/--
+info: 'SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingTape.evalDist_noticingSplitTapeRun_of_cont
