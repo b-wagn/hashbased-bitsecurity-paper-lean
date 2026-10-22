@@ -812,6 +812,53 @@ theorem probesIn_recordAiming (adversary : Adversary) :
   fun _ _ => le_refl _
 
 
+
+/-! ## The forgery's claims never stake the secret seed
+
+The half is charged at `RedrawCell.SensitiveOffSeed`, the avenue whose staked cell is not the
+secret seed; the seed's own avenue is charged elsewhere and must not be paid for twice. For the
+forgery's claims the distinction costs nothing, and structurally rather than by hypothesis:
+every claimed candidate is the canonical input of a FORS leaf or a WOTS chain step, whose staked
+cell is a **structural** node — a signature carries no claim about the seed. So a sensitive
+claim is a sensitive claim off the seed, and the seed term does not arise on this side at all.
+-/
+
+/-- **Every claim is the input of a node that stakes a structural cell.** -/
+theorem claimedCandidates_cases (publicSeed : Digest) (forsKey : ForsKey)
+    (indices : SlhDsaSecurity.Fors.Indices) (signature : Signature)
+    (keyAt : Fin layers → WotsKey) (stepAt : Fin layers → Fin chains → Fin (w - 1))
+    (candidate : Bytes)
+    (hmem : candidate ∈
+      GraphStakes.claimedCandidates publicSeed forsKey indices signature keyAt stepAt) :
+    ∃ (node : GraphStakes.SensitiveNode) (cell : SensitiveQuery.Cell),
+      node.child ≠ Node.secretSeed ∧ GraphStakes.inputOf publicSeed node cell = candidate := by
+  rw [GraphStakes.claimedCandidates, List.mem_append] at hmem
+  rcases hmem with hfors | hwots
+  · obtain ⟨tree, -, htree⟩ := List.mem_map.mp hfors
+    exact ⟨GraphStakes.forsLeafNode forsKey (GraphStakes.forsIndex indices tree),
+      (signature.fors tree).secret, by simp [GraphStakes.forsLeafNode], htree⟩
+  · obtain ⟨layer, -, hlayer⟩ := List.mem_flatMap.mp hwots
+    obtain ⟨chain, -, hchain⟩ := List.mem_map.mp hlayer
+    exact ⟨GraphStakes.wotsHashNode (keyAt layer) chain (stepAt layer chain),
+      ((signature.hypertree layer).wots chain), by simp [GraphStakes.wotsHashNode], hchain⟩
+
+/-- **A sensitive claim is sensitive off the seed.** -/
+theorem sensitiveOffSeed_of_claim (publicSeed : Digest)
+    (unavailable : HandlerCarrier.State → Node → Prop) (table : Cells)
+    (state : HandlerCarrier.State) (candidate : Bytes)
+    (hclaim : ∃ (node : GraphStakes.SensitiveNode) (cell : SensitiveQuery.Cell),
+      node.child ≠ Node.secretSeed ∧ GraphStakes.inputOf publicSeed node cell = candidate)
+    (hsensitive : SensitiveQuery.Sensitive (GraphStakes.stakes publicSeed) unavailable table
+      state candidate) :
+    RedrawCell.SensitiveOffSeed (GraphStakes.stakes publicSeed) unavailable table state
+      candidate := by
+  obtain ⟨node, cell, hchild, hinput⟩ := hclaim
+  obtain ⟨witness, hunavailable, hwitness⟩ := hsensitive
+  have hsame : witness = node :=
+    (GraphStakes.inputOf_inj publicSeed (hwitness.trans hinput.symm)).1
+  exact ⟨witness, by rw [show (GraphStakes.stakes publicSeed).stake witness =
+      witness.child from rfl, hsame]; exact hchild, hunavailable, hwitness⟩
+
 /-! ## The shape this half owes the join
 
 Pinned by elaboration rather than by eye, because a mismatch between what an owner proves and
@@ -824,7 +871,19 @@ owes is `prob_sharedBad_le_expected`'s `hinput` itself, at the recorded **paired
 count the record's aiming part. `SharedJoin.hinput_of_probesIn` is for an owner whose charge is
 per-walk; the ordering defect is such an owner and this one is not. -/
 
-/-- The input half's bullet, as the join takes it. -/
+/-- The input half's bullet at the recorded pair.
+
+**The target has moved one pair along and this statement is kept only as its hinge.** The
+ordering defect is not a predicate of the recorded pair, so the bullet that quantifies over it
+is read at the split pair: `SharedAssembly.InputBullet` is that statement, and it is what this
+half now has to produce. `SharedAssembly.inputBullet_of_recorded` proves that the move costs
+nothing for an ordering event that *is* a recorded-pair predicate — this statement gives that
+one by transport alone — so the two are one obligation and the larger pair is the one to prove
+it at.
+
+What makes the transport free on this half's side is that `¬ ordering` is never read: the bound
+below is proved for the event **without** that conjunct, which is strictly larger, so the bullet
+follows by `probEvent_mono` and the ordering term is used pointwise or not at all. -/
 def InputBullet (adversary : Adversary) (ordering : SharedJoin.RecordedPair → Prop) : Prop :=
   Pr[fun pair : SharedJoin.RecordedPair => Target.GoodWalk pair.1 ∧
       RoutedSplit.InputBad (SharedJoin.recordedTraceOf pair) ∧ ¬ ordering pair |
