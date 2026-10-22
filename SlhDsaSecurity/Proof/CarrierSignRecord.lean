@@ -50,6 +50,9 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
     (result : Signature × CountedState)
     (hresult : result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep)
       (Scheme.signInternal (m := OracleComp OracleWorld) sk message)).run state))
+    (later : QueryCache HashSpec)
+    (hlaterRun : ∀ (probe : Bytes) (value : HashOutput),
+      result.2.1.cache probe = some value → later probe = some value)
     (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.1.2) :
     entry ∈ state.2.1.2 ∨
       entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed message ∨
@@ -60,7 +63,7 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
             mid.cache entry.1 = none ∧
               rightKeep entry.1 (servingNotice pk mid entry.1) ∧
                 mid.framing = state.1.framing ∧
-                  CacheReplay.QueriesUnder result.2.1.cache
+                  CacheReplay.QueriesUnder later
                     (SignerRandomiser.signInternalAt (m := OracleComp HashSpec)
                       (Hashing.truncate answer) sk message) entry.1 := by
   classical
@@ -102,7 +105,7 @@ theorem signInternal_right_record (rightKeep : Bytes → HandlerCarrier.State �
     · rw [hframing]
       exact (files_countedCarrierRecorder pk rightKeep).stepFraming _ state step hstep
     · exact CacheProvenance.queriesUnder_of_fresh_liftM _ step.2.1.cache result.2.1.cache
-        result.2.1.cache result.1 hmemRom (fun _ _ h => h) entry.1 hfreshStart
+        later result.1 hmemRom hlaterRun entry.1 hfreshStart
         (Option.ne_none_iff_exists'.mpr ⟨entry.2, hfinal⟩)
 
 set_option maxHeartbeats 1000000 in
@@ -125,6 +128,9 @@ theorem sign_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
     (state : CountedState) (result : Option Bytes × CountedState)
     (hresult : result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep)
       (Scheme.sign (m := OracleComp OracleWorld) sk request)).run state))
+    (later : QueryCache HashSpec)
+    (hlaterRun : ∀ (probe : Bytes) (value : HashOutput),
+      result.2.1.cache probe = some value → later probe = some value)
     (entry : Bytes × HashOutput) (hentry : entry ∈ result.2.2.1.2) :
     entry ∈ state.2.1.2 ∨
       entry.1 = Hashing.randomizerInput sk.prf sk.publicKey.seed framed ∨
@@ -135,7 +141,7 @@ theorem sign_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
             mid.cache entry.1 = none ∧
               rightKeep entry.1 (servingNotice pk mid entry.1) ∧
                 mid.framing = state.1.framing ∧
-                  CacheReplay.QueriesUnder result.2.1.cache
+                  CacheReplay.QueriesUnder later
                     (SignerRandomiser.signInternalAt (m := OracleComp HashSpec)
                       (Hashing.truncate answer) sk framed) entry.1 := by
   classical
@@ -145,7 +151,10 @@ theorem sign_right_record (rightKeep : Bytes → HandlerCarrier.State → Prop)
   obtain ⟨inner, hinner, hvalue⟩ := hresult
   have hstate : result.2 = inner.2 := by rw [hvalue]
   rw [hstate] at hentry ⊢
-  exact signInternal_right_record pk rightKeep sk framed state inner hinner entry hentry
+  refine signInternal_right_record pk rightKeep sk framed state inner hinner later
+    (fun probe value hprobe => hlaterRun probe value ?_) entry hentry
+  rw [hstate]
+  exact hprobe
 
 /-! ## The two outer phases
 

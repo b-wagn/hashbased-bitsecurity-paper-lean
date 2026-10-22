@@ -80,7 +80,11 @@ def CarrierRightSource (sk : SecretKey) (rightKeep : Bytes → HandlerCarrier.St
             (∀ (probe : Bytes) (value : HashOutput),
               mid.cache probe = some value → final probe = some value) ∧
               mid.cache entry.1 = none ∧
-                rightKeep entry.1 (servingNotice pk mid entry.1)
+                rightKeep entry.1 (servingNotice pk mid entry.1) ∧
+                  mid.framing = some framed ∧
+                    CacheReplay.QueriesUnder final
+                      (SignerRandomiser.signInternalAt (m := OracleComp HashSpec)
+                        (Hashing.truncate answer) sk framed) entry.1
 
 theorem CarrierRightSource.mono {sk : SecretKey}
     {rightKeep : Bytes → HandlerCarrier.State → Prop} {record wider : Multiset Bytes}
@@ -163,6 +167,29 @@ theorem right_record_phase (rightKeep : Bytes → HandlerCarrier.State → Prop)
         obtain ⟨signed, hsigned, hsignedPure⟩ := support_bind_exists hz
         have hsignedState : z.2 = signed.2 := congrArg Prod.snd hsignedPure
         rw [hsignedState] at hstepMem
+        have hcarrierFinal : ∀ (probe : Bytes) (value : HashOutput),
+            signed.2.1.cache probe = some value → final probe = some value := by
+          intro probe value hprobe
+          refine hfinal probe value ?_
+          have hgrow : ∀ (probe : Bytes) (value : HashOutput),
+              step.2.2.2.1.cache probe = some value →
+                result.2.2.2.1.cache probe = some value := by
+            refine phase_invariant (Inv := fun t : CountedState => ∀ probe value,
+                step.2.2.2.1.cache probe = some value → t.1.cache probe = some value)
+              (countedCarrierRecorder pk rightKeep) _ _ _ ?_ ?_ ?_ (next step.1)
+              step.2.1 step.2.2.1 step.2.2.2 result hrest (fun _ _ h => h)
+            · intro q st stp hstp hinv probe' value' hvalue'
+              exact ((files_countedCarrierRecorder pk rightKeep).stepGrows q st stp hstp).1
+                probe' value' (hinv probe' value' hvalue')
+            · intro request' st hinv probe' value' hvalue'
+              rw [(CarrierTail.bracket_startServingOn request' st).1]
+              exact hinv probe' value' hvalue'
+            · intro st hinv probe' value' hvalue'
+              rw [(CarrierTail.bracket_stopServingOn st).1]
+              exact hinv probe' value' hvalue'
+          refine hgrow probe value ?_
+          rw [hzstate, (CarrierTail.bracket_stopServingOn z.2).1, hsignedState]
+          exact hprobe
         cases hframe : request.frame with
         | none =>
           rw [sign_right_record_none pk rightKeep sk request hframe _ signed hsigned,
@@ -170,33 +197,17 @@ theorem right_record_phase (rightKeep : Bytes → HandlerCarrier.State → Prop)
             at hstepMem
           exact Or.inl hstepMem
         | some framed =>
-          rcases sign_right_record pk rightKeep sk request framed hframe _ signed hsigned entry
-            hstepMem with hprior | hrandomiser | ⟨mid, answer, hmid, hlater, habsent, hkeep, -, -⟩
+          rcases sign_right_record pk rightKeep sk request framed hframe _ signed hsigned
+            final hcarrierFinal entry hstepMem with
+            hprior | hrandomiser | ⟨mid, answer, hmid, hlater, habsent, hkeep, hframing, hqueries⟩
           · rw [(CarrierTail.bracket_startServingOn request carrier).2] at hprior
             exact Or.inl hprior
           · exact Or.inr (Or.inr ⟨framed, Or.inl hrandomiser⟩)
-          · refine Or.inr (Or.inr ⟨framed, Or.inr ⟨mid, answer, hmid, ?_, habsent, hkeep⟩⟩)
-            intro probe value hprobe
-            refine hfinal probe value ?_
-            have hgrow : ∀ (probe : Bytes) (value : HashOutput),
-                step.2.2.2.1.cache probe = some value →
-                  result.2.2.2.1.cache probe = some value := by
-              refine phase_invariant (Inv := fun s : CountedState => ∀ probe value,
-                  step.2.2.2.1.cache probe = some value → s.1.cache probe = some value)
-                (countedCarrierRecorder pk rightKeep) _ _ _ ?_ ?_ ?_ (next step.1)
-                step.2.1 step.2.2.1 step.2.2.2 result hrest (fun _ _ h => h)
-              · intro q st stp hstp hinv probe' value' hvalue'
-                exact ((files_countedCarrierRecorder pk rightKeep).stepGrows q st stp hstp).1
-                  probe' value' (hinv probe' value' hvalue')
-              · intro request' st hinv probe' value' hvalue'
-                rw [(CarrierTail.bracket_startServingOn request' st).1]
-                exact hinv probe' value' hvalue'
-              · intro st hinv probe' value' hvalue'
-                rw [(CarrierTail.bracket_stopServingOn st).1]
-                exact hinv probe' value' hvalue'
-            refine hgrow probe value ?_
-            rw [hzstate, (CarrierTail.bracket_stopServingOn z.2).1, hsignedState]
-            exact hlater probe value hprobe
+          · refine Or.inr (Or.inr ⟨framed, Or.inr ⟨mid, answer, hmid,
+              fun probe value hprobe => hcarrierFinal probe value (hlater probe value hprobe),
+              habsent, hkeep, ?_, hqueries⟩⟩)
+            rw [hframing, ServedAgreement.startServingOn, hframe]
+            rfl
     · exact Or.inr hsource
 
 end SlhDsaSecurity.CarrierPhaseRecord
