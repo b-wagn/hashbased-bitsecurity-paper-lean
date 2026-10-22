@@ -86,6 +86,78 @@ theorem rightRecord_length_le_count
     rw [hrecords, hcount]
     omega
 
+/-! ## The split counter read as the total count
+
+The join is stated at a computation returning the game's `Outcome × Nat` — the count
+`countAllHashes` keeps — while the charge needs the run instrumented with the split `Counts`.
+They are the same run: `ClassGrowth.countAllHashes_eq_readOff` says summing the two slots
+*is* `countAllHashes`, so the recorded run of one is the image of the recorded run of the other.
+That is what lets the join be applied where the counts are split, and the budget be read where
+they are not. -/
+
+open scoped Classical in
+/-- **A split-counted recorded run is a total-counted one.** -/
+theorem mem_support_recorder_countAllHashes
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside) {α : Type}
+    (computation : OracleComp OracleWorld α) (state : SplitPrefix.SplitState)
+    (result : (α × Counts) × SplitPrefix.SplitState)
+    (hmem : result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+      (countQueries (splitCost inClass inside outside) computation)).run state)) :
+    ((result.1.1, result.1.2 inside + result.1.2 outside), result.2) ∈
+      support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+        (countAllHashes computation)).run state) := by
+  classical
+  rw [← countAllHashes_eq_readOff (splitCost inClass inside outside)
+      (fun counts => counts inside + counts outside) rfl (splitSum_add inside outside)
+      (splitCost_add_eq_hashCost inClass hne) computation,
+    simulateQ_map, StateT.run_map, support_map]
+  exact ⟨result, hmem, rfl⟩
+
+open scoped Classical in
+/-- **The in-class count is inside the budget.** The two slots add to the run's own hash count,
+the recordings are invisible to it, and the budget bounds it — so the inside slot alone is
+bounded, which is the cap the target recording needs. -/
+theorem inside_le_of_budget
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside) {α : Type}
+    (computation : OracleComp OracleWorld α) (state : SplitPrefix.SplitState)
+    (result : (α × Counts) × SplitPrefix.SplitState)
+    (hmem : result ∈ support ((simulateQ (SplitPrefix.recorder leftKeep rightKeep)
+      (countQueries (splitCost inClass inside outside) computation)).run state))
+    (budget : Nat)
+    (hbudget : ∀ plain ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes computation)).run state.1), plain.1.2 ≤ budget) :
+    result.1.2 inside ≤ budget := by
+  have htotal := SplitPrefix.mem_support_rom leftKeep rightKeep (countAllHashes computation)
+    state _ (mem_support_recorder_countAllHashes leftKeep rightKeep inClass hne computation
+      state result hmem)
+  have hle : result.1.2 inside + result.1.2 outside ≤ budget := hbudget _ htotal
+  omega
+
+open scoped Classical in
+/-- **The target recording is inside the budget**, which is the cap the charge needs — and a cap
+on the *count*, not on the charge: the charge stays an expectation in the entries actually
+filed. -/
+theorem rightRecord_length_le_budget
+    (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop) (inClass : Bytes → Prop)
+    {inside outside : QueryKind} (hne : inside ≠ outside)
+    (hrightClass : ∀ input cache, rightKeep input cache → inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
+    (result : (α × Counts) × SplitPrefix.SplitState)
+    (hmem : result ∈ support (BlockViews.recordedRun leftKeep rightKeep
+      (countQueries (splitCost inClass inside outside) computation) cache))
+    (budget : Nat)
+    (hbudget : ∀ plain ∈ support ((simulateQ KeygenUniform.rom
+      (countAllHashes computation)).run cache), plain.1.2 ≤ budget) :
+    result.2.2.2.length ≤ budget := by
+  have hcount := rightRecord_length_le_count leftKeep rightKeep inClass inside outside
+    hrightClass computation (cache, [], []) result hmem
+  have hinside := inside_le_of_budget leftKeep rightKeep inClass hne computation
+    (cache, [], []) result hmem budget hbudget
+  simp only [List.length_nil, Nat.zero_add] at hcount
+  omega
+
 /-! ## An expected count is a sum of tail probabilities
 
 The recorder is write-only, so the plain run and the recorded run agree on every event that

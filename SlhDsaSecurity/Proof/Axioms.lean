@@ -170,6 +170,7 @@ import SlhDsaSecurity.Proof.HandlerComparison
 import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.OffClassBlind
 import SlhDsaSecurity.Proof.RandomiserRecord
+import SlhDsaSecurity.Proof.AnswerCoverage
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8288,3 +8289,39 @@ info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_dichotomy' depends on axiom
 /-- info: 'SlhDsaSecurity.SplitPrefix.right_record_eq_of_never' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitPrefix.right_record_eq_of_never
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.mem_support_recorder_countAllHashes' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.mem_support_recorder_countAllHashes
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.inside_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.inside_le_of_budget
+
+/--
+info: 'SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CoverageCount.rightRecord_length_le_budget
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.targetCovered_of_forgeryDisclosedCovered
+
+/--
+info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps
