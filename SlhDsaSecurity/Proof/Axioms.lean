@@ -7747,3 +7747,49 @@ info: 'SlhDsaSecurity.TapeFactor.rightOf_getElem?' depends on axioms: [propext, 
 /-- info: 'SlhDsaSecurity.WalkTable.probEvent_pairedRun_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WalkTable.probEvent_pairedRun_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.entryCandidates_eq' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.entryCandidates_eq
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.card_entryCandidates_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.card_entryCandidates_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.card_prfCandidates_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.card_prfCandidates_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.mem_prfCandidates' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.mem_prfCandidates
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.growthAtMostOn_prfClass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.growthAtMostOn_prfClass
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_within_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_within_le
+
+/--
+info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le

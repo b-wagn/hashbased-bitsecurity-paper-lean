@@ -87,11 +87,12 @@ theorem provenance_afterSeeds (adversary : Adversary) (sds : Digest × Digest ×
     (cache : QueryCache HashSpec) (result : (Outcome × Nat) × QueryCache HashSpec)
     (hresult : result ∈ support ((simulateQ KeygenUniform.rom
       (countAllHashes (WarmedGame.afterSeeds adversary sds))).run cache))
-    (probe : Bytes) (hfresh : cache probe = none) (hpresent : result.2 probe ≠ none) :
+    :
     ∃ (keys : SecretKey × PublicKey) (record : Multiset Bytes),
       keys = @Scheme.keygenInternal Id Id.instMonad (replayQuery result.2)
         sds.1 sds.2.1 sds.2.2 ∧
       Multiset.card record ≤ result.1.1.counts.work ∧
+      ∀ probe : Bytes, cache probe = none → result.2 probe ≠ none →
       (probe ∈ record ∨
         QueriesUnder result.2
           (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) probe ∨
@@ -147,6 +148,7 @@ theorem provenance_afterSeeds (adversary : Adversary) (sds : Digest × Digest ×
     exact WarmedSplit.keygenInternal_eq_replay_of_subset _ _ _ cache keyCache result.2 (sk, pk)
       hkeys hkeyGrow
   refine ⟨(sk, pk), (Multiplicative.toAdd recorded.1.1.2).2, hkeyreplay, hcard, ?_⟩
+  intro probe hfresh hpresent
   -- Attribute the entry to the first phase whose cache holds it.
   by_cases hkeyFresh : keyCache probe = none
   · by_cases hadvFresh : advCache probe = none
@@ -241,15 +243,197 @@ theorem mem_forgeryDigestRecord (pk : PublicKey) (forgery : Forgery) (framed : B
   simp only [forgeryDigestRecord, hframe, hparsed]
   simp
 
+/-! ## How many inputs of the class a run can hold
+
+The charge's rate is the growth of the `PRF_msg` class at the real seed, so what it costs is how
+many such entries a run can install. Provenance answers that exactly: every one is the
+adversary's own recorded query, or one of the **two** inputs a served request names — its
+randomiser's and its digest's — or the forgery's own digest. Key generation is ruled out
+because a canonical input opens with `PK.seed`, and the verifier's other calls because they are
+tweakable at `PK.seed`.
+
+So the growth is the record's `PRF_msg` part, plus twice the served requests, plus one for the
+forgery. The first and last of those are the randomiser defect's *own* charge, which is what
+makes the two terms partition rather than add: on a run where no recorded input is of the class
+and the forgery's digest is not either, the growth is `2 · served` and nothing more.
+
+The two-per-request is not slack to be squeezed to one. A served request's digest input *is* an
+input of the class, at its own randomiser read as the seed, exactly when the coincidence being
+charged has already fired at that request. So the second unit is only ever spent on a request
+that has already lost, but it cannot be dropped: the growth bound would be false without it,
+and a growth bound that is false is worse than a rate that is twice as large. -/
+
+open scoped Classical in
+/-- The at most two inputs of the class one logged entry can name. Empty unless the request was
+served, which is what keeps the count on the served requests rather than on all of them. -/
+noncomputable def entryCandidates (sk : SecretKey) (cache : QueryCache HashSpec)
+    (entry : (t : Message) × Option Bytes) : Finset Bytes :=
+  if entry.2.isSome then
+    entry.1.frame.elim ∅ fun framed =>
+      {Hashing.randomizerInput sk.prf sk.publicKey.seed framed,
+        Hashing.messageInput (HonestProbes.replayRandomizer cache sk framed) sk.publicKey framed}
+  else ∅
+
+open scoped Classical in
+theorem entryCandidates_eq (sk : SecretKey) (cache : QueryCache HashSpec)
+    (entry : (t : Message) × Option Bytes) (framed : Bytes)
+    (hserved : entry.2.isSome) (hframe : entry.1.frame = some framed) :
+    entryCandidates sk cache entry =
+      {Hashing.randomizerInput sk.prf sk.publicKey.seed framed,
+        Hashing.messageInput (HonestProbes.replayRandomizer cache sk framed) sk.publicKey
+          framed} := by
+  rw [entryCandidates, if_pos hserved, hframe]
+  rfl
+
+open scoped Classical in
+theorem card_entryCandidates_le (sk : SecretKey) (cache : QueryCache HashSpec)
+    (entry : (t : Message) × Option Bytes) :
+    (entryCandidates sk cache entry).card ≤ if entry.2.isSome = true then 2 else 0 := by
+  rw [entryCandidates]
+  by_cases hserved : entry.2.isSome = true
+  · rw [if_pos hserved, if_pos hserved]
+    cases entry.1.frame with
+    | none => simp
+    | some framed => exact le_trans (Finset.card_insert_le _ _) (by simp)
+  · rw [if_neg hserved, if_neg hserved, Finset.card_empty]
+
+open scoped Classical in
+/-- Every input of the class a run can hold: the adversary's own recorded ones that are of the
+class, and the two each served request names. The forgery's own digest is expected to be in the
+record already, which is where `randomiserBad_source` puts it. -/
+noncomputable def prfCandidates (prfSeed : Digest) (sk : SecretKey)
+    (cache : QueryCache HashSpec) (record : Multiset Bytes) (signed : SigningLog) :
+    Finset Bytes :=
+  record.toFinset.filter (RandomizerGate.PrfClass prfSeed) ∪
+    signed.toFinset.biUnion (entryCandidates sk cache)
+
+open scoped Classical in
+theorem card_prfCandidates_le (prfSeed : Digest) (sk : SecretKey)
+    (cache : QueryCache HashSpec) (record : Multiset Bytes) (signed : SigningLog) :
+    (prfCandidates prfSeed sk cache record signed).card ≤
+      (record.toFinset.filter (RandomizerGate.PrfClass prfSeed)).card +
+        2 * AdversaryQueries.servedCount signed := by
+  refine le_trans (Finset.card_union_le _ _) (Nat.add_le_add_left ?_ _)
+  refine le_trans Finset.card_biUnion_le ?_
+  refine le_trans (Finset.sum_le_sum fun entry _ => card_entryCandidates_le sk cache entry) ?_
+  rw [← Finset.sum_filter, Finset.sum_const, smul_eq_mul, mul_comm]
+  refine Nat.mul_le_mul_left 2 ?_
+  rw [AdversaryQueries.servedCount, ← List.toFinset_filter]
+  exact List.toFinset_card_le _
+
+open scoped Classical in
+/-- **Every input of the class a run installs is one of the candidates.** Key generation cannot
+have made it — a canonical input opens with `PK.seed` — and the verifier's calls other than its
+one digest are tweakable at `PK.seed`, so what is left is the record, or a served request's own
+two inputs. -/
+theorem mem_prfCandidates (sds : Digest × Digest × Digest)
+    (cache : QueryCache HashSpec) (result : (Outcome × Nat) × QueryCache HashSpec)
+    (keys : SecretKey × PublicKey) (record : Multiset Bytes)
+    (hkeys : keys = @Scheme.keygenInternal Id Id.instMonad (replayQuery result.2)
+      sds.1 sds.2.1 sds.2.2)
+    (hprov : ∀ probe : Bytes, cache probe = none → result.2 probe ≠ none →
+      (probe ∈ record ∨
+        QueriesUnder result.2
+          (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) probe ∨
+        (∃ entry ∈ result.1.1.signed, SignerMade keys.1 result.2 entry.1 probe) ∨
+        QueriesUnder result.2
+          (Scheme.verify (m := OracleComp HashSpec) keys.2 result.1.1.forgery.message
+            result.1.1.forgery.signature) probe))
+    (hforgery : ∀ input ∈ forgeryDigestRecord keys.2 result.1.1.forgery, input ∈ record)
+    (hne : sds.2.1 ≠ sds.2.2)
+    (hserved : ∀ entry ∈ result.1.1.signed, ∀ framed : Bytes,
+      entry.1.frame = some framed → entry.2.isSome)
+    (probe : Bytes) (hclass : RandomizerGate.PrfClass sds.2.1 probe)
+    (hfresh : cache probe = none) (hpresent : result.2 probe ≠ none) :
+    probe ∈ prfCandidates sds.2.1 keys.1 result.2 record result.1.1.signed := by
+  have hclass' := hclass
+  obtain ⟨seed, payload, rfl⟩ := hclass
+  have hkeyseed : keys.1.publicKey.seed = sds.2.2 := by
+    rw [hkeys, SigningFaithful.keygen_secretKey]
+    exact (GameBridge.keygen_publicKey sds.1 sds.2.1 sds.2.2 result.2).1
+  have hpkseed : keys.2.seed = sds.2.2 := by
+    rw [hkeys]
+    exact (GameBridge.keygen_publicKey sds.1 sds.2.1 sds.2.2 result.2).1
+  rcases hprov _ hfresh hpresent with hmem | hkeygen | ⟨entry, hentry, hsign⟩ | hverify
+  · exact Finset.mem_union_left _
+      (Finset.mem_filter.mpr ⟨Multiset.mem_toFinset.mpr hmem, hclass'⟩)
+  · exact absurd hkeygen fun hquery =>
+      keygen_not_randomizerInput result.2 sds.1 sds.2.1 sds.2.2 sds.2.1 seed payload hne hquery
+  · refine Finset.mem_union_right _ ?_
+    obtain ⟨framed, hframe, hmessage⟩ :=
+      sign_messageProbe result.2 keys.1 entry.1 sds.2.1 seed payload
+        (by rw [hkeyseed]; exact hne) hsign.1
+    refine Finset.mem_biUnion.mpr ⟨entry, List.mem_toFinset.mpr hentry, ?_⟩
+    rw [entryCandidates_eq keys.1 result.2 entry framed
+      (hserved entry hentry framed hframe) hframe]
+    rcases hmessage with hrandomizer | hdigest
+    · rw [hrandomizer]
+      exact Finset.mem_insert_self _ _
+    · rw [hdigest]
+      exact Finset.mem_insert_of_mem (Finset.mem_singleton_self _)
+  · obtain ⟨framed, parsed, hframe, hparsed, hdigest⟩ :=
+      VerifierFormat.verify_probe_randomizerInput result.2 keys.2
+        result.1.1.forgery.message result.1.1.forgery.signature sds.2.1 seed payload
+        (by rw [hpkseed]; exact hne) hverify rfl
+    exact Finset.mem_union_left _ (Finset.mem_filter.mpr
+      ⟨Multiset.mem_toFinset.mpr (hforgery _
+        (hdigest ▸ mem_forgeryDigestRecord keys.2 result.1.1.forgery framed parsed hframe
+          hparsed)), hclass'⟩)
+
+open scoped Classical in
+/-- **The class's growth, sharply.** A duplicate-free list of in-class inputs the run installed
+injects into the candidates, so its length is at most their number. -/
+theorem growthAtMostOn_prfClass (sds : Digest × Digest × Digest)
+    (cache : QueryCache HashSpec) (result : (Outcome × Nat) × QueryCache HashSpec)
+    (keys : SecretKey × PublicKey) (record : Multiset Bytes)
+    (hkeys : keys = @Scheme.keygenInternal Id Id.instMonad (replayQuery result.2)
+      sds.1 sds.2.1 sds.2.2)
+    (hprov : ∀ probe : Bytes, cache probe = none → result.2 probe ≠ none →
+      (probe ∈ record ∨
+        QueriesUnder result.2
+          (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2) probe ∨
+        (∃ entry ∈ result.1.1.signed, SignerMade keys.1 result.2 entry.1 probe) ∨
+        QueriesUnder result.2
+          (Scheme.verify (m := OracleComp HashSpec) keys.2 result.1.1.forgery.message
+            result.1.1.forgery.signature) probe))
+    (hforgery : ∀ input ∈ forgeryDigestRecord keys.2 result.1.1.forgery, input ∈ record)
+    (hne : sds.2.1 ≠ sds.2.2)
+    (hserved : ∀ entry ∈ result.1.1.signed, ∀ framed : Bytes,
+      entry.1.frame = some framed → entry.2.isSome) :
+    ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass sds.2.1) cache result.2
+      ((record.toFinset.filter (RandomizerGate.PrfClass sds.2.1)).card +
+        2 * AdversaryQueries.servedCount result.1.1.signed) := by
+  intro inputs hnodup hmembers
+  have hsub : inputs.toFinset ⊆ prfCandidates sds.2.1 keys.1 result.2 record
+      result.1.1.signed := by
+    intro input hinput
+    rw [List.mem_toFinset] at hinput
+    obtain ⟨hclass, hfresh, hpresent⟩ := hmembers input hinput
+    exact mem_prfCandidates sds cache result keys record hkeys hprov hforgery hne hserved input
+      hclass hfresh hpresent
+  calc inputs.length = inputs.toFinset.card := (List.toFinset_card_of_nodup hnodup).symm
+    _ ≤ (prfCandidates sds.2.1 keys.1 result.2 record result.1.1.signed).card :=
+        Finset.card_le_card hsub
+    _ ≤ _ := card_prfCandidates_le sds.2.1 keys.1 result.2 record result.1.1.signed
+
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.tail
 
+open scoped Classical in
 /-- **The randomiser defect is a query at a `PRF_msg` input the run wrote, or the signer's own
-randomiser hitting the seed.**
+randomiser hitting the seed** — and the class's growth is bounded by the record's own part of
+it plus twice the served requests.
 
 The first case is a membership in the record — the adversary's own hash inputs together with
 the forgery's one digest input — whose `Multiset.toFinset` is the `Finset Bytes` with a
 cardinality cap `RandomizerGate.prob_run_randomizerInput_le` consumes. The second is the
-signer's coincidence, charged by `prob_signerHitsSeed_tail_le` below without any deferral. -/
+signer's coincidence, charged by `prob_signerHitsSeed_tail_le_of_growth` below without any
+deferral.
+
+The growth is handed back **with the same record**, which is what lets the two be charged
+against disjoint counts rather than against the same one twice: on a run where no recorded
+input is of the class — the complement of the first case — the filtered term is zero and the
+growth is `2 · served`, so the signer's coincidence costs the served requests and nothing the
+record half has already paid for. -/
 theorem randomiserBad_source (adversary : Adversary)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
@@ -257,8 +441,10 @@ theorem randomiserBad_source (adversary : Adversary)
     (hresult : result ∈ support (WarmedGame.tail adversary walk))
     (hbad : ReplayGate.RandomiserBad ((walk.1, result.1), result.2)) :
     ∃ record : Multiset Bytes, Multiset.card record ≤ result.1.1.counts.work + 1 ∧
-      ((∃ input ∈ record, ∃ (seed : Digest) (payload : Bytes),
-          input = Hashing.randomizerInput walk.1.1.2.1 seed payload) ∨
+      ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass walk.1.1.2.1) walk.2 result.2
+        ((record.toFinset.filter (RandomizerGate.PrfClass walk.1.1.2.1)).card +
+          2 * AdversaryQueries.servedCount result.1.1.signed) ∧
+      ((∃ input ∈ record, RandomizerGate.PrfClass walk.1.1.2.1 input) ∨
         SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed) := by
   classical
   obtain ⟨message, answer, hentry, hunsigned⟩ := hbad
@@ -271,17 +457,28 @@ theorem randomiserBad_source (adversary : Adversary)
       (countAllHashes (WarmedGame.afterSeeds adversary walk.1.1))).run walk.2) := by
     rw [WarmedGame.tail] at hresult
     exact hresult
-  obtain ⟨keys, record, hkeys, hcard, hsource⟩ :=
+  obtain ⟨keys, record, hkeys, hcard, hprovenance⟩ :=
     provenance_afterSeeds adversary walk.1.1 walk.2 result hrun
-      (Hashing.randomizerInput walk.1.1.2.1 pk.seed message)
-      (RandomiserCharge.walk_cache_prf_fresh hwalk hgood pk.seed message)
-      (by rw [hentry]; exact Option.some_ne_none answer)
+  have hsource := hprovenance (Hashing.randomizerInput walk.1.1.2.1 pk.seed message)
+    (RandomiserCharge.walk_cache_prf_fresh hwalk hgood pk.seed message)
+    (by rw [hentry]; exact Option.some_ne_none answer)
   have hkey : keys.2 = pk := by rw [hpk, RoutedSplit.keyOf, SplitCharged.generatedKey, hkeys]
   have hsecret : keys.1 = ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ := by
     rw [hkeys, SigningFaithful.keygen_secretKey, hpk, RoutedSplit.keyOf]
-  refine ⟨record + forgeryDigestRecord pk result.1.1.forgery, ?_, ?_⟩
+  have hserved : ∀ entry ∈ result.1.1.signed, ∀ framed : Bytes,
+      entry.1.frame = some framed → entry.2.isSome := by
+    intro entry hentryMem framed hframe
+    rw [SigningFaithful.logFaithful_tail adversary hresult entry hentryMem framed hframe]
+    rfl
+  refine ⟨record + forgeryDigestRecord pk result.1.1.forgery, ?_, ?_, ?_⟩
   · rw [Multiset.card_add]
     exact Nat.add_le_add hcard (card_forgeryDigestRecord_le pk result.1.1.forgery)
+  · exact growthAtMostOn_prfClass walk.1.1 walk.2 result keys
+      (record + forgeryDigestRecord pk result.1.1.forgery) hkeys
+      (fun probe hfresh hpresent =>
+        (hprovenance probe hfresh hpresent).imp (fun h => Multiset.mem_add.mpr (Or.inl h)) id)
+      (fun input hinput => Multiset.mem_add.mpr (Or.inr (by rw [← hkey]; exact hinput)))
+      hgood.1 hserved
   rcases hsource with hmem | hkeygen | ⟨entry, hentryMem, hsign⟩ | hverify
   · exact Or.inl ⟨_, Multiset.mem_add.mpr (Or.inl hmem), pk.seed, message, rfl⟩
   · exact absurd hkeygen fun hquery =>
@@ -328,45 +525,94 @@ chose, so it is charged against the run's own randomness and needs no deferral: 
 answer truncates to a fixed digest with probability `2 ^ -128`, and only an input of the
 `PRF_msg` class at this seed can fire the event at all.
 
-**The budget it is charged against has to be the total hash count, and that is not a
-convenience.** Every served request makes one in-class query, so the number of coincidences on
-offer is the number of requests; if that were capped only by `Security.signingLimit` the charge
-would be `2 ^ 64 / 2 ^ 128 = 2 ^ -64`, a *constant*, which for small `q` is far larger than the
-`q / 2 ^ 127` the theorem allows and would sink it. What makes it proportional to `q` is that a
-served request costs at least two counted hashes
-(`AdversaryQueries.work_add_served_le_count_signingOracle`), so the requests are paid for out of
-`Security.HasTotalBudget`'s cap on the total count like everything else. Bounding the in-class
-growth by the total growth is the blunt form of that, and it is enough.
+**What count the charge is against, and what it is not.** It is one unit per fresh query at an
+input of that class — *per query, not per request*. Attributing it to requests is wrong, and
+not by a constant factor: an adversary that has `SK.prf` hardcoded may query
+`randomizerInput SK.prf PK.seed m` for `N` framings of its own choosing, keep the one whose
+answer truncates to `SK.prf`, and then make a **single** signing request on that message. The
+event fires with probability about `N / 2 ^ 128` with one request logged, so no bound of the
+form `(requests) / 2 ^ 128` holds at a fixed walk. The search is free to the attacker in the
+sense that matters here: those `N` queries are the adversary's own and are paid for on the
+`work` side, not on the signing side.
+
+That attack costs the walk's own randomness — it only works on the walk carrying the hardcoded
+seed — so the `requests`-shaped bound may well be *true* once the walk is averaged in. It is
+not provable by averaging a per-walk bound, because the per-walk statement it would average is
+false. Getting it would need the walk's randomness in the measure, which is the same deferral
+`RandomiserDeferral` builds for the record half.
+
+So the charge is stated against the class's own growth, as a parameter, and whoever can bound
+that growth chooses the number. `prob_signerHitsSeed_tail_le` instantiates it bluntly at `q`.
+The sharp instantiation is the one provenance supports: every in-class entry is the adversary's
+own recorded query, or one of the two inputs a served request names, or the forgery's own
+digest — so the growth is `(the record's `PRF_msg` part) + 2 · (served requests) + 1`, and the
+first and last terms are the randomiser defect's own charge, leaving `2 · served` once that
+case is split off.
 
 The walk's cache is clean for the event by `RandomizerGate.cleanBad_of_canonical`: its entries
 are canonical, a canonical input opens with `PK.seed`, and the two seeds differ on a good walk.
 -/
 
-/-- **The signer's coincidence, at this run's own walk.** -/
+/-- **The signer's coincidence, with the class's growth read off the run.** This is the shape
+the assembly needs rather than the one with the growth as an almost-sure hypothesis: the sharp
+growth bound holds only on the branch where the record misses the class, and a conjunct can be
+discharged per branch where a hypothesis cannot. The outside limit is needed for the charge's
+shape but does not enter the rate, which is why `q` is good enough for it. -/
+theorem prob_signerHitsSeed_within_le (adversary : Adversary) (q limit : Nat)
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
+    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed ∧
+          ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass walk.1.1.2.1) walk.2 result.2
+            limit |
+      WarmedGame.tail adversary walk] ≤ limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [WarmedGame.tail]
+  refine le_trans (probEvent_mono ?_)
+    (RandomizerGate.prob_randomizerHitsSeed_run_le
+      (countAllHashes (WarmedGame.afterSeeds adversary walk.1.1)) walk.1.1.2.1 walk.2 limit q
+      (RandomizerGate.cleanBad_of_canonical walk.1.1.2.2 walk.1.1.2.1 walk.1.2 walk.2 hgood.1
+        (WarmedCharges.walk_cache_canonical hwalk)))
+  intro result hresult hhit
+  have hres : result ∈ support (WarmedGame.tail adversary walk) := by
+    rw [WarmedGame.tail]; exact hresult
+  have houtside : GrowthCharge.GrowthAtMost walk.2 result.2 q :=
+    GrowthBudget.GrowthAtMost.mono
+      (GrowthBudget.growth_le_count (WarmedGame.afterSeeds adversary walk.1.1) walk.2 result
+        hresult)
+      (WarmedCharges.count_le_of_budget_tail hbudget hwalk hres)
+  exact ⟨bad_of_signerHitsSeed _ _ _ _ result.1 hhit.1, hhit.2,
+    ClassCharge.GrowthAtMostOn.of_growthAtMost houtside⟩
+
+/-- **The signer's coincidence, against the growth of its own class**, when that growth is
+bounded on the whole support. -/
+theorem prob_signerHitsSeed_tail_le_of_growth (adversary : Adversary) (q limit : Nat)
+    (hbudget : HasTotalBudget adversary q)
+    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
+    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
+    (hgrowth : ∀ result ∈ support (WarmedGame.tail adversary walk),
+      ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass walk.1.1.2.1) walk.2 result.2 limit) :
+    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed |
+      WarmedGame.tail adversary walk] ≤ limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  le_trans (probEvent_mono fun result hresult hhit => ⟨hhit, hgrowth result hresult⟩)
+    (prob_signerHitsSeed_within_le adversary q limit hbudget hwalk hgood)
+
+/-- **The signer's coincidence, at this run's own walk**, with the class's growth bounded
+bluntly by the whole growth. -/
 theorem prob_signerHitsSeed_tail_le (adversary : Adversary) (q : Nat)
     (hbudget : HasTotalBudget adversary q)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
     Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
         SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed |
-      WarmedGame.tail adversary walk] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  rw [WarmedGame.tail]
-  refine le_trans (probEvent_mono ?_)
-    (RandomizerGate.prob_randomizerHitsSeed_run_le
-      (countAllHashes (WarmedGame.afterSeeds adversary walk.1.1)) walk.1.1.2.1 walk.2 q q
-      (RandomizerGate.cleanBad_of_canonical walk.1.1.2.2 walk.1.1.2.1 walk.1.2 walk.2 hgood.1
-        (WarmedCharges.walk_cache_canonical hwalk)))
-  intro result hresult hhit
-  have hres : result ∈ support (WarmedGame.tail adversary walk) := by
-    rw [WarmedGame.tail]; exact hresult
-  have hgrowth : GrowthCharge.GrowthAtMost walk.2 result.2 q :=
-    GrowthBudget.GrowthAtMost.mono
-      (GrowthBudget.growth_le_count (WarmedGame.afterSeeds adversary walk.1.1) walk.2 result
-        hresult)
-      (WarmedCharges.count_le_of_budget_tail hbudget hwalk hres)
-  exact ⟨bad_of_signerHitsSeed _ _ _ _ result.1 hhit,
-    ClassCharge.GrowthAtMostOn.of_growthAtMost hgrowth,
-    ClassCharge.GrowthAtMostOn.of_growthAtMost hgrowth⟩
+      WarmedGame.tail adversary walk] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_signerHitsSeed_tail_le_of_growth adversary q q hbudget hwalk hgood
+    fun result hresult => ClassCharge.GrowthAtMostOn.of_growthAtMost
+      (GrowthBudget.GrowthAtMost.mono
+        (GrowthBudget.growth_le_count (WarmedGame.afterSeeds adversary walk.1.1) walk.2 result
+          (by rw [WarmedGame.tail] at hresult; exact hresult))
+        (WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult))
 
 /-! ## The same bound at the paired run
 
@@ -375,19 +621,46 @@ The shared obligation is read at `Target.pairedRun`, the walk and the game toget
 exist: conditioning on the walk fixes the secret, and an adversary that hardcodes a guess wins
 with certainty on the walks that carry it.
 
-This half is different in kind and the distinction is the reason it needs no such repair. What
-it spends is the **oracle's own fresh answer** at an input the signer chooses, not a guess at
-anything the walk fixed, so no choice of walk biases it and the per-walk bound above is sound as
-it stands. All that is left is to average it, which is `Averaging.probEvent_bind_pair_le` with
-`Target.GoodWalk` carried as a conjunct: on a walk that fails it the event is empty, and on one
-that meets it the conjunct discharges the hypothesis `prob_signerHitsSeed_tail_le` takes. -/
+This half still spends the oracle's own fresh answer rather than a guess at the seed, so the
+per-walk bound stands as proved and only has to be averaged. That is
+`Averaging.probEvent_bind_pair_le` with `Target.GoodWalk` carried as a conjunct: on a walk that
+fails it the event is empty, and on one that meets it the conjunct discharges the hypothesis the
+per-walk bound takes. -/
 
-/-- **The signer's coincidence, at the paired run.** -/
-theorem prob_signerHitsSeed_paired_le (adversary : Adversary) (q : Nat)
+/-- **The signer's coincidence at the paired run, with the class's growth read off the run.**
+This is the form the shared obligation is assembled from. -/
+theorem prob_signerHitsSeed_paired_within_le (adversary : Adversary) (q limit : Nat)
     (hbudget : HasTotalBudget adversary q) :
     Pr[fun pair => Target.GoodWalk pair.1 ∧
+        (SignerHitsSeed pair.1.1.1.2.1 pair.1.1.1.2.2 pair.2.2 pair.2.1.1.signed ∧
+          ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass pair.1.1.1.2.1) pair.1.2 pair.2.2
+            limit) |
+      Target.pairedRun adversary] ≤ limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  classical
+  rw [Target.pairedRun]
+  refine Averaging.probEvent_bind_pair_le WarmedGame.graphWalk (WarmedGame.tail adversary)
+    (fun walk result => Target.GoodWalk walk ∧
+      (SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2 result.1.1.signed ∧
+        ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass walk.1.1.2.1) walk.2 result.2
+          limit)) _ ?_
+  intro walk hwalk
+  by_cases hgood : Target.GoodWalk walk
+  · exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
+      (prob_signerHitsSeed_within_le adversary q limit hbudget hwalk hgood)
+  · rw [probEvent_eq_zero fun result _ hbad => hgood hbad.1]
+    exact zero_le
+
+/-- **The signer's coincidence at the paired run, against the growth of its own class**, when
+that growth is bounded on the whole support. -/
+theorem prob_signerHitsSeed_paired_le_of_growth (adversary : Adversary) (q limit : Nat)
+    (hbudget : HasTotalBudget adversary q)
+    (hgrowth : ∀ walk ∈ support WarmedGame.graphWalk,
+      ∀ result ∈ support (WarmedGame.tail adversary walk),
+        ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass walk.1.1.2.1) walk.2 result.2
+          limit) :
+    Pr[fun pair => Target.GoodWalk pair.1 ∧
         SignerHitsSeed pair.1.1.1.2.1 pair.1.1.1.2.2 pair.2.2 pair.2.1.1.signed |
-      Target.pairedRun adversary] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+      Target.pairedRun adversary] ≤ limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
   rw [Target.pairedRun]
   refine Averaging.probEvent_bind_pair_le WarmedGame.graphWalk (WarmedGame.tail adversary)
@@ -396,8 +669,22 @@ theorem prob_signerHitsSeed_paired_le (adversary : Adversary) (q : Nat)
   intro walk hwalk
   by_cases hgood : Target.GoodWalk walk
   · exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
-      (prob_signerHitsSeed_tail_le adversary q hbudget hwalk hgood)
+      (prob_signerHitsSeed_tail_le_of_growth adversary q limit hbudget hwalk hgood
+        (hgrowth walk hwalk))
   · rw [probEvent_eq_zero fun result _ hbad => hgood hbad.1]
     exact zero_le
+
+/-- **The signer's coincidence, at the paired run**, at the blunt instantiation. -/
+theorem prob_signerHitsSeed_paired_le (adversary : Adversary) (q : Nat)
+    (hbudget : HasTotalBudget adversary q) :
+    Pr[fun pair => Target.GoodWalk pair.1 ∧
+        SignerHitsSeed pair.1.1.1.2.1 pair.1.1.1.2.2 pair.2.2 pair.2.1.1.signed |
+      Target.pairedRun adversary] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  prob_signerHitsSeed_paired_le_of_growth adversary q q hbudget
+    fun walk hwalk result hresult => ClassCharge.GrowthAtMostOn.of_growthAtMost
+      (GrowthBudget.GrowthAtMost.mono
+        (GrowthBudget.growth_le_count (WarmedGame.afterSeeds adversary walk.1.1) walk.2 result
+          (by rw [WarmedGame.tail] at hresult; exact hresult))
+        (WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult))
 
 end SlhDsaSecurity.RandomiserProvenance
