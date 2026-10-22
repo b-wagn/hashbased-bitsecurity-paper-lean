@@ -281,12 +281,18 @@ theorem answerRecordedBound_of_parts {inside outside : QueryKind} (hne : inside 
 where it has none. The repair is the one `hlate` already had: make it a **conjunct** and let the
 shared half charge the complement where the seed is still random.
 
-What makes that affordable here and not for the disclosing cap is what the event is indexed by.
-`SplitWitness.SeedRandomised` ranges over the whole cache, so its complement costs one unit per
-query, and the ledger's `q` coefficient is exactly two with both units spent.
-`AnswerCoverage.ForgerySeedRandomised` names the **forgery's** published randomiser, and the
-forgery is one object — one guess at a 128-bit secret the signer never publishes, hence one
-constant, against 247 spare.
+What makes that statable here and not for the disclosing cap is what the event is quantified over.
+`SplitWitness.SeedRandomised` ranges over the whole cache, so it cannot leave this side at all
+without a `q`-shaped charge, and the ledger's `q` coefficient is exactly two with both units
+spent. `AnswerCoverage.ForgerySeedRandomised` names the **forgery's** published randomiser — one
+object — so it can be moved to the paired run, where the seed is still random and the charge is
+`ObligationShapes.sharedChargedLate_of_parts`' `seedUnits`, taken out of the shared side's claims.
+
+**`seedUnits` is not `1`.** An earlier version of this paragraph said the forgery's randomiser was
+one guess at a secret the signer never publishes;
+`ObligationShapes.publishedRandomizer_eq_truncate` refutes that — the published randomiser is
+`Hashing.truncate` of the answer at the seed's own `PRF_msg` input, so a single signing request
+makes the secret testable one candidate per query.
 
 The bound is unchanged to the digit, including the `2 ^ -126` this side still does not spend; it
 is stated so that the restated `Obligations.AnswerChargedLate` consumes it without an adapter. -/

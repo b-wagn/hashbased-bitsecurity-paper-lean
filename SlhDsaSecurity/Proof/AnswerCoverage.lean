@@ -188,11 +188,19 @@ What `SplitWitness.mem_records_of_covered` actually uses the narrowing for is **
 forgery's own digest — and the weakened cover (`ObligationShapes.cover_of_served_or_narrow`)
 leaves nothing else needing it, because a disclosing witness satisfies `served ∨ narrow` by being
 served. So the honest leftover is `ForgerySeedRandomised`: *the forgery's published randomiser is
-`SK.prf`*. The forgery is a single object, so that is **one** guess at a 128-bit secret the signer
-never publishes, which is a constant, and the ledger's constants have 247 units spare.
+`SK.prf`*. It names one object rather than a query set, which is what makes it statable at the
+paired run at all, and the shared half charges it there at `seedUnits` units of `2 ^ -128`
+(`ObligationShapes.sharedChargedLate_of_parts`, whose `hclaims : 259 + seedUnits ≤ claims` is what
+the ledger's spare constants have to cover).
 
-That is the whole difference between a leftover that can be charged and one that cannot, and it is
-a difference in what the event is indexed by rather than in how tight the argument is.
+**It is not one unit, and the earlier version of this paragraph said it was.** The reason that
+looked right — a guess at a secret the signer never publishes — is refuted by
+`ObligationShapes.publishedRandomizer_eq_truncate`: a signature's randomiser is `Hashing.truncate`
+of the oracle's answer at the seed's own `PRF_msg` input, so one signing request turns the secret
+into a *testable* quantity, one candidate per query. `ObligationShapes`' section "Why `seedUnits`
+is a parameter and not `1`" is that argument. Counting the adversary's outputs is not counting its
+chances, and the difference between a leftover that can be charged and one that cannot is what the
+event is **quantified over** — not how tight the argument is.
 
 The narrowed join is a hypothesis here and not a step, because proving it is the weakening of
 `SplitWitness.Served.mem_records_of_covered` — its `hnarrowCached` cut down from every cached
