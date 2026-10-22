@@ -2969,3 +2969,50 @@ satisfy by computing is not a cap, however small the coincidence looks.** The ca
 calls an input disclosing when nothing was disclosed — the adversary made both queries itself
 and no FORS position was revealed — so it was never counting the right thing. Being wrong by a
 `2 ^ -128` guess at a fixed walk is how that showed up, but the over-counting was there first.
+## What a charge is indexed by decides whether it can be paid
+
+The ledger has two kinds of room and they are not interchangeable. In units of `2 ^ -128` the
+assembly must close `(q - 512 + 259) + q + 6 ≤ 2 * q` — `Assembly.le_target_of_full`, applied by
+`Target.allowance`. So the **`q` coefficient is exactly two and both units are spent**, while the
+constants have `512 - 265 = 247` units spare. (`Target.lean`'s own docstring says the margin is
+`759`; that belongs to `le_target_of_counts`, which `allowance` does not call. The figure is 247.)
+
+Hence the rule: **a charge against a single published object is a constant and can be paid; a
+charge against the query set scales with `q` and cannot be.** Two leftovers that read almost the
+same sat on opposite sides of it.
+
+* `SplitWitness.SeedRandomised` — *some* cached message input has `SK.prf` for its randomiser.
+  One unit per query. Unpayable.
+* `AnswerCoverage.ForgerySeedRandomised` — the **forgery's** published randomiser is `SK.prf`.
+  The forgery is one object, so one guess at a secret the signer never publishes. One unit.
+
+`SplitWitness.mem_records_of_covered` only ever needed the narrowing at the forgery's digest, so
+the second is what the argument actually uses and the first was an artefact of stating it over
+the cache. Narrowing it is the same repair as the weakened cover, not a second one.
+
+The corollary a reviewer can apply without the arithmetic: **before asking how tight a leftover's
+bound is, ask what it is quantified over.** A leftover quantified over the run's queries is dead
+on arrival whatever the constant in front of it, and no amount of sharpening moves it — while one
+quantified over the adversary's single output is almost certainly affordable.
+
+## And the same test condemns the disclosing cap
+
+`hleftBound` says the disclosing recording is no longer than `signingLimit`. It is **false**, and
+by a counterexample rather than a gap. `SplitWitness.disclosingKeep` is a *cache* test — the
+`PRF_msg` entry the randomiser truncates from is present — so at the walk whose `prfSeed` is `r`,
+an adversary that hardcodes `r` manufactures one disclosing entry per **pair** of queries: ask
+`randomizerInput r pk.seed mᵢ`, read `aᵢ`, ask `messageInput (truncate aᵢ) pk mᵢ`, which is
+signer-randomised at that moment and so is filed left. With `q` queries that is `q / 2` entries,
+past `signingLimit` once `q > 2 ^ 65`. `GoodWalk` excludes two seed coincidences and not this, and
+the statement is `∀ walk ∈ support graphWalk`, so one such walk is enough.
+
+There is no q-proportional restatement either: `BlockViews.prob_targetCovered_le` needs
+`leftLength ≤ 5 * 2 ^ 62` for its `2 ^ -141` term, which caps the recording absolutely. And the
+complement cannot be charged, by the rule above — it is one unit per query.
+
+So the cap has to become **structurally** true, by filing on served requests rather than on a
+cache coincidence. `ServedAgreement.record_length_le_cap` is exactly that, at the carrier: the
+served set is the image of the signing log, so the recording is one entry per request by
+construction, with no seed secrecy anywhere. The same move repairs `hdisclosing`, whose false
+direction is the same event read at the forgery's digest — at the carrier the disclosing test
+*is* the log, and `ServedAgreement.agreesWithLog_run` is the iff.
