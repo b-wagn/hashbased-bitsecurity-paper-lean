@@ -175,4 +175,78 @@ theorem facts_servingProgram (publicSeed : Digest) (pk : PublicKey)
         lazyAnswer_congr publicSeed availableAt hclosed index left right hagree input state.1
           hindex]
 
+/-! ## The fifth fact, for the comparison rather than the charge
+
+The charge is proved at the handler run at the *real* availability; the game's own run is the
+handler at **total** availability, which answers every canonical input. `ChargedProbe`'s
+comparison closes that gap by flagging the queries where the two can differ, and what it asks is
+one fact more — that off those queries the two handlers take the same step.
+
+It is a fact about a **pair** of handlers rather than about one, so it cannot be a field of
+`Facts`, which is parameterised by a single availability. It is `Lenient`, and both handlers
+satisfy it for the same reason: the step at a hash query is `lazyAnswer`'s, and `lazyAnswer`
+reads availability only through `openCache`. -/
+
+open scoped Classical in
+/-- **One answer, at two availabilities.** -/
+theorem lazyAnswer_congr_available (publicSeed : Digest)
+    (lenient strict : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
+    (input : Bytes) (carrier : HandlerCarrier.State)
+    (hnot : ∀ parent : StructuralNode, canonicalInput publicSeed table.1 parent = input →
+      ((∀ child ∈ parent.children, lenient carrier child) ↔
+        ∀ child ∈ parent.children, strict carrier child)) :
+    LazyBudget.lazyAnswer publicSeed lenient table input carrier =
+      LazyBudget.lazyAnswer publicSeed strict table input carrier := by
+  classical
+  rw [LazyBudget.lazyAnswer, LazyBudget.lazyAnswer,
+    openCache_congr_of_not_sensitive publicSeed (lenient carrier) (strict carrier) table input
+      hnot]
+
+/-- **Off the sensitive inputs the two availabilities give the same step.** -/
+structure Lenient (publicSeed : Digest) (availableAt : HandlerCarrier.State → Node → Prop)
+    (lenientImpl strictImpl :
+      Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp)) : Prop where
+  /-- A query that is at no sensitive node's canonical input is answered alike. -/
+  agree : ∀ (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState),
+    ¬ ChargedProbe.SensitiveQueryAt publicSeed availableAt table.1 state queried →
+      ((lenientImpl table) queried).run state = ((strictImpl table) queried).run state
+
+open scoped Classical in
+/-- **The lazy handler at total availability against itself at the real one.** -/
+theorem lenient_lazyProgram (publicSeed : Digest)
+    (availableAt : HandlerCarrier.State → Node → Prop) :
+    Lenient publicSeed availableAt (fun table => lazyProgram publicSeed (fun _ _ => True) table)
+      (fun table => lazyProgram publicSeed availableAt table) where
+  agree table queried state hnot := by
+    classical
+    rcases queried with coin | input
+    · rw [lazyProgram_run_inl, lazyProgram_run_inl]
+    · rw [lazyProgram_run_inr, lazyProgram_run_inr,
+        openCache_congr_of_not_sensitive publicSeed (fun _ => True) (availableAt state.1) table
+          input ?_]
+      intro parent hparent
+      refine ⟨fun _ child hchild => ?_, fun _ _ _ => trivial⟩
+      by_contra hunavailable
+      exact hnot ⟨input, rfl, parent, ⟨child, hchild, hunavailable⟩, hparent⟩
+
+open scoped Classical in
+/-- **The serving handler at total availability against itself at the real one.** The filing is
+the same on both sides, reading the framing and the input and never availability. -/
+theorem lenient_servingProgram (publicSeed : Digest) (pk : PublicKey)
+    (availableAt : HandlerCarrier.State → Node → Prop) :
+    Lenient publicSeed availableAt
+      (fun table => ServingProgram.servingProgram publicSeed pk (fun _ _ => True) table)
+      (fun table => ServingProgram.servingProgram publicSeed pk availableAt table) where
+  agree table queried state hnot := by
+    classical
+    rcases queried with coin | input
+    · rw [ServingProgram.servingProgram_run_inl, ServingProgram.servingProgram_run_inl]
+    · rw [ServingProgram.servingProgram_run_inr, ServingProgram.servingProgram_run_inr,
+        lazyAnswer_congr_available publicSeed (fun _ _ => True) availableAt table input state.1
+          ?_]
+      intro parent hparent
+      refine ⟨fun _ child hchild => ?_, fun _ _ _ => trivial⟩
+      by_contra hunavailable
+      exact hnot ⟨input, rfl, parent, ⟨child, hchild, hunavailable⟩, hparent⟩
+
 end SlhDsaSecurity.HandlerFacts
