@@ -34,14 +34,16 @@ def AnswerCharged : Prop :=
         (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
 
-/-- The input half and the randomiser defect against one budget, read at the walk and the game
-together. Both halves defer a secret the walk carries — the cell table and `SK.prf` — so neither
-can be read at a fixed walk, where that secret is already determined. -/
+/-- The input half, read at the walk and the game together. It defers a secret the walk carries
+— the cell table — so it cannot be read at a fixed walk, where that secret is already
+determined. The ordering defect is paid inside it, against the same record.
+
+Until the served-disclosure rewrite the shared side also carried the randomiser defect. That
+charge is gone: the replay branch closes outright by strong freshness, so no branch reaches it. -/
 def SharedCharged : Prop :=
   ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    Pr[fun pair => GoodWalk pair.1 ∧
-        (InputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
-          RandomiserBad ((pair.1.1, pair.2.1), pair.2.2)) | Target.pairedRun adversary] ≤
+    Pr[fun pair => GoodWalk pair.1 ∧ InputBad ((pair.1.1, pair.2.1), pair.2.2) |
+      Target.pairedRun adversary] ≤
       ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
 
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedGame.tail
@@ -50,12 +52,15 @@ attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedG
 
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
-/-- **The target, from the three statements that are left.** -/
+/-- **The target, from the two statements that are left.** -/
 theorem target_of_charges (hanswer : AnswerCharged) (hshared : SharedCharged) :
     HasTotalSecurityBits .strong 127 :=
-  Target.target_of_obligations AnswerBad InputBad RandomiserBad
+  Target.target_of_obligations AnswerBad InputBad (fun _ => False)
     (fun adversary _ hwalk _ _ hresult hwin =>
-      SigningFaithful.cases_of_win_charged_three adversary hwalk hresult hwin)
-    hanswer hshared
+      (SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin).imp id Or.inl)
+    hanswer
+    fun q adversary hq hbudget =>
+      le_trans (probEvent_mono fun _ _ hbad => ⟨hbad.1, hbad.2.resolve_right id⟩)
+        (hshared q adversary hq hbudget)
 
 end SlhDsaSecurity.Obligations
