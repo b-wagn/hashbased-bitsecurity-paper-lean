@@ -183,6 +183,7 @@ import SlhDsaSecurity.Proof.HandlerCarrier
 import SlhDsaSecurity.Proof.ServingProgram
 import SlhDsaSecurity.Proof.ServingPhase
 import SlhDsaSecurity.Proof.FusedGame
+import SlhDsaSecurity.Proof.FusedCoverage
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -11211,3 +11212,27 @@ info: 'SlhDsaSecurity.ServingProgram.served_isMessageInput_run' depends on axiom
 /-- info: 'SlhDsaSecurity.HandlerCarrier.served_clearFraming' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerCarrier.served_clearFraming
+
+/--
+info: 'SlhDsaSecurity.FusedCoverage.run_recorder_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedCoverage.run_recorder_forget
+
+/--
+info: 'SlhDsaSecurity.FusedCoverage.isRecorderRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedCoverage.isRecorderRun
+
+/--
+info: 'SlhDsaSecurity.FusedCoverage.forget_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedCoverage.forget_fusedTail
+
+/--
+info: 'SlhDsaSecurity.FusedCoverage.forgetsTo' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedCoverage.forgetsTo
