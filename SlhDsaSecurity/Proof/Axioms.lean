@@ -13172,3 +13172,15 @@ info: 'SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder' depends on axio
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierFiles.forgetsAlong_carrierRecorder
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.sign_randomizer_answer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.sign_randomizer_answer
+
+/--
+info: 'SlhDsaSecurity.CacheProvenance.sign_digest_answer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CacheProvenance.sign_digest_answer

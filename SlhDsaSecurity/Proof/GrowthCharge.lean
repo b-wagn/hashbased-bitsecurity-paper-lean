@@ -31,7 +31,10 @@ set_option backward.isDefEq.respectTransparency false
 
 namespace SlhDsaSecurity.GrowthCharge
 
-/-- Cache entries are never removed or overwritten along a run. -/
+/-- Cache entries are never removed or overwritten along a run.
+
+Presence only; `cache_value_persists` below says it with the **value**, and is the one a
+consumer that has to relate the answer to anything should use. -/
 theorem cache_mono {α : Type} (computation : OracleComp OracleWorld α)
     (initialCache finalCache : QueryCache HashSpec) (result : α)
     (hmem : (result, finalCache) ∈

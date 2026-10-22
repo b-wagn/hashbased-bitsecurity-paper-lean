@@ -683,7 +683,11 @@ theorem lazyProgram_neverFails (availableAt : HandlerCarrier.State → Canonical
       | none => simp
 
 open scoped Classical in
-/-- Cache entries survive a step, so what a run has determined only grows. -/
+/-- Cache entries survive a step, so what a run has determined only grows.
+
+Presence only, and unlike the recorder's and the plain run's monotonicity this one has **no
+value-preserving sibling**. Nothing needs one yet; a consumer that has to relate the answer at a
+surviving entry to anything will have to prove it, rather than find it here. -/
 theorem lazyProgram_cache_mono (availableAt : HandlerCarrier.State → CanonicalGraph.Node → Prop)
     (table : Cells × Padding) (queried : OracleWorld.Domain) (state : HandlerState)
     (step : OracleWorld.Range queried × HandlerState)
