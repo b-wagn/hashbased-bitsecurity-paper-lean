@@ -591,16 +591,16 @@ slots are the work count, and the work count is inside the budget. -/
 theorem rightRecord_le_of_budget_splitTail (inClass : Bytes → Prop)
     {inside outside : QueryKind} (hne : inside ≠ outside)
     (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    (hrightClass : ∀ (walk : Walk) (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input)
     {adversary : Adversary} {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
     {walk : Walk} (hwalk : walk ∈ support WarmedGame.graphWalk)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep walk input view → inClass input)
     (result : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts)
     (hresult : result ∈ support
       (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk)) :
     result.1.2.2.2.length ≤ q := by
   have hshare := SplitTail.splitCarrierTail_share inClass inside outside rightKeep adversary
-    walk (hrightClass walk) result hresult
+    walk hrightClass result hresult
   have hcount := count_le_of_budget_splitTail inClass hne rightKeep hbudget hwalk result hresult
   omega
 
@@ -654,6 +654,66 @@ theorem rightRecord_le_of_carrierTail (inClass : Bytes → Prop) {inside outside
   refine hright result.1 ?_
   rw [← SplitTail.map_splitCarrierTail inClass hne rightKeep adversary walk, support_map]
   exact Set.mem_image_of_mem Prod.fst hresult
+
+
+
+/-! ## The composition, with a residue excluded
+
+`CarrierSplit.hsplit_splitCarrierTail` sends the charged event to **three** clauses, not two:
+the structural charge, the coverage charge, and a residue — `SplitWitness.SeedRandomised`, the
+narrowing's leftover, which the answer half does not pay for and the shared side does. So the
+bound this file can take is on the charged event with the residue **excluded**, and that is not
+a weakening of convenience: a two-clause split is unavailable, for the reason
+`answerBoundSeed_of_charges`' docstring gives about the seed conjunct — the exceptional runs are
+in the support and `hsplit` is pathwise.
+
+Excluding it costs nothing here and is where it has to be paid: conjoined to the event, charged
+on the shared side, exactly as the earlier leftover was. -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The answer half's bound at the split tail, with a residue excluded from the event.** -/
+theorem answerBoundExtra_splitTail (inClass : Bytes → Prop) {inside outside : QueryKind}
+    (hne : inside ≠ outside) (bad : Bytes → HashOutput → Prop)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ENNReal))
+    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
+    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
+    (walk : Walk) (hclean : GrowthCharge.CleanBad bad walk.2)
+    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
+      rightKeep walk input view → inClass input)
+    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
+    (hleftBound : ∀ result ∈ support
+      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
+      result.1.2.2.1.length ≤ leftLength)
+    (hrightBound : ∀ result ∈ support
+      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
+      result.1.2.2.2.length ≤ rightLength)
+    (budget : Nat)
+    (hwork : ∀ result ∈ support
+      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
+      result.1.1.2 ≤ budget)
+    (charged extra : (Outcome × Nat) × SplitPrefix.SplitState → Prop)
+    (hsplit : ∀ z ∈ support
+        (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
+      charged (AnswerShape.forgetRecord z.1) →
+        GrowthCharge.Bad bad ((AnswerShape.forgetRecord z.1).1,
+            (AnswerShape.forgetRecord z.1).2.1) ∨
+          BlockViews.TargetCovered (AnswerShape.forgetRecord z.1) ∨
+            extra (AnswerShape.forgetRecord z.1)) :
+    Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
+        charged (AnswerShape.forgetRecord z.1) ∧ ¬ extra (AnswerShape.forgetRecord z.1) |
+        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk] ≤
+      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
+        (1 : ENNReal) / 2 ^ 141 := by
+  classical
+  refine le_trans (probEvent_mono (fun z hz hevent => ?_))
+    (answerBound_splitTail inClass hne bad hrate hbadClass rightKeep adversary walk hclean
+      hrightClass leftLength rightLength hcap hleftBound hrightBound budget hwork)
+  rcases hsplit z hz hevent.1 with hstructural | hcoverage | hresidue
+  · exact Or.inl hstructural
+  · exact Or.inr hcoverage
+  · exact absurd hresidue hevent.2
 
 
 end SlhDsaSecurity.SplitCarrierTail

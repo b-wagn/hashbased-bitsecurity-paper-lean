@@ -253,6 +253,7 @@ import SlhDsaSecurity.Proof.CarrierSplit
 import SlhDsaSecurity.Proof.RecordSlot
 import SlhDsaSecurity.Proof.CarrierCap
 import SlhDsaSecurity.Proof.CarrierLeftRecord
+import SlhDsaSecurity.Proof.AnswerCarrierBound
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15394,76 +15395,6 @@ info: 'SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomi
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserRecord.recordMeetsPrfClass_of_forgerySeedRandomised
 
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.romWithSplit_run' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.romWithSplit_run
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.romWithSplit_step_map' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.romWithSplit_step_map
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_count' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_count
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.run_withSplit_count' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.run_withSplit_count
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.splitHandlerAt_step_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.splitHandlerAt_step_forget
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.startServingOn_cacheSplit' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.startServingOn_cacheSplit
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.stopServingOn_cacheSplit' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.stopServingOn_cacheSplit
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_recorded
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.forget_splitCarrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.forget_splitCarrierTail
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.prob_bad_splitCarrierTail_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.prob_bad_splitCarrierTail_le
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun
-
 /-- info: 'SlhDsaSecurity.CarrierCover.forgetsAlong_dropCount' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCover.forgetsAlong_dropCount
@@ -15487,60 +15418,6 @@ info: 'SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun'
 /-- info: 'SlhDsaSecurity.CarrierCover.cover_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCover.cover_carrierTail
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rom_stage_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rom_stage_forget
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.forgetsAlong_romWithSplit' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.forgetsAlong_romWithSplit
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rom_middle_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rom_middle_forget
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rom_first_stage_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rom_first_stage_forget
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rom_first_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rom_first_stage_bind
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rom_middle_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rom_middle_stage_bind
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rom_last_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rom_last_stage_bind
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.answerBound_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.answerBound_splitTail
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail
 
 /-- info: 'SlhDsaSecurity.CarrierCover.not_filesRandomiser_of_not_prfClass' does not depend on any axioms -/
 #guard_msgs in
@@ -15570,22 +15447,6 @@ info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail' depends on axi
 #guard_msgs in
 #print axioms SlhDsaSecurity.ChargedHalf.cached_forsQueries
 
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.count_le_of_budget_splitTail' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.count_le_of_budget_splitTail
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail
-
 /-- info: 'SlhDsaSecurity.SharedAssembly.prob_forgerySeed_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedAssembly.prob_forgerySeed_le_record
@@ -15605,22 +15466,6 @@ info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record' depend
 /-- info: 'SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierJoin.targetCovered_carrierTail
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.leftRecord_le_of_carrierTail' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.leftRecord_le_of_carrierTail
-
-/--
-info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail
 
 /-- info: 'SlhDsaSecurity.RecordPrfCharge.prob_prfClass_single_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -15923,3 +15768,179 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk' depends on axioms: [
 /-- info: 'SlhDsaSecurity.InputBullet.probEvent_inputBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.InputBullet.probEvent_inputBad_le
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.romWithSplit_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.romWithSplit_run
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.romWithSplit_step_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.romWithSplit_step_map
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_count' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_count
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.run_withSplit_count' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.run_withSplit_count
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rom_stage_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rom_stage_forget
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.splitHandlerAt_step_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.splitHandlerAt_step_forget
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.forgetsAlong_romWithSplit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.forgetsAlong_romWithSplit
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.startServingOn_cacheSplit' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.startServingOn_cacheSplit
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.stopServingOn_cacheSplit' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.stopServingOn_cacheSplit
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rom_middle_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rom_middle_forget
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rom_first_stage_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rom_first_stage_forget
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rom_first_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rom_first_stage_bind
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rom_middle_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rom_middle_stage_bind
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rom_last_stage_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rom_last_stage_bind
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.run_romWithSplit_recorded
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.forget_splitCarrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.forget_splitCarrierTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.prob_bad_splitCarrierTail_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.prob_bad_splitCarrierTail_le
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.answerBound_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.answerBound_splitTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.count_le_of_budget_splitTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.count_le_of_budget_splitTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.leftRecord_le_of_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.leftRecord_le_of_carrierTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail
+
+/--
+info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundExtra_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SplitCarrierTail.answerBoundExtra_splitTail
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrierBound.not_isMessageInput_of_canonicalBad' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrierBound.not_isMessageInput_of_canonicalBad
+
+/--
+info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier
