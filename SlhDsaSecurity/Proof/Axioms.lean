@@ -254,6 +254,7 @@ import SlhDsaSecurity.Proof.RecordSlot
 import SlhDsaSecurity.Proof.CarrierCap
 import SlhDsaSecurity.Proof.CarrierLeftRecord
 import SlhDsaSecurity.Proof.AnswerCarrierBound
+import SlhDsaSecurity.Proof.SharedOracleScaling
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -15988,3 +15989,15 @@ info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms:
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier
+
+/-- info: 'SlhDsaSecurity.SharedOracleScaling.target_eq_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleScaling.target_eq_127
+
+/-- info: 'SlhDsaSecurity.SharedOracleScaling.holds_at_two_pow_81' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleScaling.holds_at_two_pow_81
+
+/-- info: 'SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100
