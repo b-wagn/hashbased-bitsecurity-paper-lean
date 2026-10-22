@@ -163,6 +163,7 @@ import SlhDsaSecurity.Proof.PotentialCharge
 import SlhDsaSecurity.Proof.WalkTable
 import SlhDsaSecurity.Proof.LateRate
 import SlhDsaSecurity.Proof.TableTail
+import SlhDsaSecurity.Proof.BlockViews
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -7939,3 +7940,99 @@ info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_paired_within_le'
 /-- info: 'SlhDsaSecurity.LateRate.signer_randomizerInput_isMessageInput' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateRate.signer_randomizerInput_isMessageInput
+
+/--
+info: 'SlhDsaSecurity.BlockViews.uniformSample_prod_eq_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.uniformSample_prod_eq_bind
+
+/--
+info: 'SlhDsaSecurity.BlockViews.cons_bijective' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.cons_bijective
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_padding_eq_ofFn' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_padding_eq_ofFn
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_parse_uniform' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_parse_uniform
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_blockTape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_blockTape
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_not_goodBlock_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_not_goodBlock_le
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_blockHit_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_blockHit_le
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.leftOf_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.leftOf_prefix
+
+/--
+info: 'SlhDsaSecurity.TapeFactor.leftOf_getElem?' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeFactor.leftOf_getElem?
+
+/--
+info: 'SlhDsaSecurity.BlockViews.covered_of_recordCovers' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.covered_of_recordCovers
+
+/--
+info: 'SlhDsaSecurity.BlockViews.evalDist_recordedRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.evalDist_recordedRun_eq
+
+/--
+info: 'SlhDsaSecurity.BlockViews.mem_support_blockRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.mem_support_blockRun
+
+/--
+info: 'SlhDsaSecurity.BlockViews.blockRun_tail_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.blockRun_tail_neverFails
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_leftBlock' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_leftBlock
+
+/--
+info: 'SlhDsaSecurity.BlockViews.tsum_probOutput_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.tsum_probOutput_map
+
+/--
+info: 'SlhDsaSecurity.BlockViews.prob_targetCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlockViews.prob_targetCovered_le
