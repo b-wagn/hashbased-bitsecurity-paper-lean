@@ -201,6 +201,7 @@ import SlhDsaSecurity.Proof.SignerRightRecord
 import SlhDsaSecurity.Proof.PhaseRightRecord
 import SlhDsaSecurity.Proof.ServedRandomised
 import SlhDsaSecurity.Proof.RecordInvariant
+import SlhDsaSecurity.Proof.CarrierRecordings
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -11712,6 +11713,38 @@ info: 'SlhDsaSecurity.RecordInvariant.phase_invariant' depends on axioms: [prope
 /-- info: 'SlhDsaSecurity.RecordInvariant.bracket_invariant' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordInvariant.bracket_invariant
+
+/--
+info: 'SlhDsaSecurity.RecorderView.appendedOf_right_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RecorderView.appendedOf_right_mem
+
+/--
+info: 'SlhDsaSecurity.CarrierRecordings.step_right_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.step_right_mem
+
+/--
+info: 'SlhDsaSecurity.CarrierRecordings.step_recordClass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.step_recordClass
+
+/--
+info: 'SlhDsaSecurity.CarrierRecordings.step_recordCached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.step_recordCached
+
+/-- info: 'SlhDsaSecurity.CarrierRecordings.recordClass_bracket' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.recordClass_bracket
+
+/-- info: 'SlhDsaSecurity.CarrierRecordings.recordCached_bracket' does not depend on any axioms -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierRecordings.recordCached_bracket
 
 /-- info: 'SlhDsaSecurity.RecordedWalkTable.prob_le_expected_of_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
