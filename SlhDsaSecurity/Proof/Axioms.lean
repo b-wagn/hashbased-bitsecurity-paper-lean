@@ -15066,3 +15066,11 @@ info: 'SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage' depends on axio
 /-- info: 'SlhDsaSecurity.CarrierShared.sharedChargedLate_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierShared.sharedChargedLate_clear
+
+/--
+info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le
