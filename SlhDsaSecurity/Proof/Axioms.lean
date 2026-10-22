@@ -5294,3 +5294,23 @@ info: 'SlhDsaSecurity.VerifierProbes.deviatingCollision_or_canonical_of_verified
 #guard_msgs in
 #print axioms SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_seeds_ne
 
+/-- info: 'SlhDsaSecurity.WalkDefects.value_topNode' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.value_topNode
+
+/-- info: 'SlhDsaSecurity.WalkDefects.outputs_coordinate_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.outputs_coordinate_uniform
+
+/-- info: 'SlhDsaSecurity.WalkDefects.prob_possible_walk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.prob_possible_walk
+
+/--
+info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated
+
