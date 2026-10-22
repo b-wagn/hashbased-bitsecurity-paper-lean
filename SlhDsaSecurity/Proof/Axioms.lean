@@ -4996,3 +4996,7 @@ info: 'SlhDsaSecurity.RecordedBudget.card_toFinset_append_le_of_budget_served' d
 /-- info: 'SlhDsaSecurity.RedrawCell.open_seedAndRoot' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.open_seedAndRoot
+
+/-- info: 'SlhDsaSecurity.OpenCache.reading_step_congr' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.OpenCache.reading_step_congr
