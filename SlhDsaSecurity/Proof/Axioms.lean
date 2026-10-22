@@ -228,6 +228,7 @@ import SlhDsaSecurity.Proof.CarrierAvailability
 import SlhDsaSecurity.Proof.NoticingTape
 import SlhDsaSecurity.Proof.NoticingCoverage
 import SlhDsaSecurity.Proof.NoticingBlocks
+import SlhDsaSecurity.Proof.FusedTape
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -14620,3 +14621,39 @@ info: 'SlhDsaSecurity.SplitWitness.Served.mem_records_of_covered_narrow_at' depe
 /-- info: 'SlhDsaSecurity.CountedHandler.run_toStateful_withAddCost' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.run_toStateful_withAddCost
+
+/--
+info: 'SlhDsaSecurity.FusedTape.onCarrier_fst' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.onCarrier_fst
+
+/--
+info: 'SlhDsaSecurity.FusedTape.onCarrierTape_fst' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.onCarrierTape_fst
+
+/--
+info: 'SlhDsaSecurity.FusedTape.fuseServing_run_inl' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.fuseServing_run_inl
+
+/--
+info: 'SlhDsaSecurity.FusedTape.fuseServing_run_inr' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.fuseServing_run_inr
+
+/--
+info: 'SlhDsaSecurity.FusedTape.evalDist_fusedSplitTapeRun_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.evalDist_fusedSplitTapeRun_cont
+
+/--
+info: 'SlhDsaSecurity.FusedTape.evalDist_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FusedTape.evalDist_threeStage
