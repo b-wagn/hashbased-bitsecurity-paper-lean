@@ -4695,3 +4695,36 @@ with `attribute [local irreducible]` immediately after it. `AnswerCarrier`'s own
 everything downstream must treat the run as opaque or the unifier walks into `carrierTail` at
 every membership — which is exactly what it did, at four million heartbeats, before the bridge
 existed.
+
+### The seam, settled by the paragraph that defined it
+
+The ledger decision on the seam above is **option 1**, and it was not a judgement call.
+`SplitWitness.SeedRandomised`'s own docstring, written before the question arose, says:
+
+> *It is not charged here and cannot be: the seed is the walk's, and at a fixed walk an
+> adversary may carry it as a constant. It belongs to the shared half, where the record's
+> `PRF_msg` part is charged with the seed drawn after the run.*
+
+So the residue is **not assumed** in the assembly any more. It is conjoined to the conclusion.
+`CarrierSplit.hjoin_answerCarrierRun` now ends in `TargetCovered result ∨ SeedRandomised …`,
+and `hsplit_answerCarrierRun` and `hsplit_splitCarrierTail` carry that third disjunct through
+to the tail where both charges meet. **`hseed` is gone as a hypothesis of the assembly**; it
+survives only inside `targetCovered_carrierTail_narrow`, where it is a genuine conditional.
+
+The law that carries it is `AnswerCarrier.hsplit_of_join_extra`: `hsplit_of_join` with the join
+allowed to return a residue instead of `TargetCovered`. **`hsplit_of_join` is now its instance
+at the empty residue** — same name, same statement, same use, and no call site moved, which is
+the test. That is the fourth generalisation this way today.
+
+**Why this is the cheap settlement and not merely the chosen one.** The alternative was to drop
+the `FilesRandomiser` clause from the carrier's target test and reprove the cover
+frame-conditionally, needing `reaches` threaded plus the phase propagation `FusedCover` does
+not have. But the gap between the forgery-only leftover and the cache-wide one exists *because*
+the carrier's target test carries a clause the cache's does not — so charging the wider
+leftover is the same payment the cache route already makes, and the machinery would buy nothing
+the ledger does not already provide.
+
+**A hypothesis that stops being assumed has not stopped costing.** It is now in the statement,
+where the shared half must charge it. That is the distinction between deferral and elimination
+applied to this file's own change, and it is the same distinction recorded above for
+`¬ LateDisclosure`.

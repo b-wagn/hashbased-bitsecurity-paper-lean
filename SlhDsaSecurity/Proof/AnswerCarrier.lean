@@ -543,6 +543,58 @@ theorem mem_support_tail_of_answerCarrierRun
       (fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) hmem
   rwa [map_answerCarrierRun_eq_tail rightKeep adversary walk] at hmapped
 
+/-! ## The join, with a residue the ledger carries
+
+`hjoin` is asked for `TargetCovered` outright. A route that cannot always produce it — because
+part of what it would need is a guess at a secret the walk drew, which at a fixed walk cannot
+be proved — hands back a **residue** instead, conjoined to the conclusion, for the shared half
+to charge where the seed is still random. `SplitWitness.SeedRandomised`'s own docstring says
+that is where such a thing belongs.
+
+So the law below takes the join with an extra disjunct and carries it through.
+`hsplit_of_join` is its instance at the empty residue, unchanged in name, statement and use. -/
+
+set_option maxHeartbeats 4000000 in
+open scoped Classical in
+/-- **`hsplit` at the carrier's run, with a residue carried.** -/
+theorem hsplit_of_join_extra
+    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
+      HandlerCarrier.State → Prop)
+    (adversary : Adversary)
+    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
+    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
+    (extra : (Outcome × Nat) × SplitPrefix.SplitState → Prop)
+    (hjoin : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      Target.GoodWalk walk →
+        ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) →
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
+            CoverageRouted.ForgeryDisclosedCovered
+                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+                (result.1, result.2.1) →
+              BlockViews.TargetCovered result ∨ extra result) :
+    ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
+      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
+          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
+            (result.1, result.2.1) ∧
+          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
+            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
+        GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
+            (result.1, result.2.1) ∨
+          BlockViews.TargetCovered result ∨ extra result := by
+  classical
+  rintro result hmem ⟨hbad, hseed, hlate⟩
+  rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
+    AnswerSide.generatedKey_eq_walk adversary hwalk
+      (mem_support_tail_of_answerCarrierRun rightKeep adversary walk result hmem)] at hbad
+  rcases hbad with ⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered
+  · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
+      parent (result.1, result.2.1) output hdeviates hentry hcollision)
+  · exact Or.inr (hjoin result hmem hgood hseed hlate hcovered)
+
 set_option maxHeartbeats 4000000 in
 open scoped Classical in
 /-- **`hsplit` at the carrier's run**, in the shape `answerBoundSeed_of_charges` consumes. -/
@@ -574,13 +626,12 @@ theorem hsplit_of_join
             (result.1, result.2.1) ∨
           BlockViews.TargetCovered result := by
   classical
-  rintro result hmem ⟨hbad, hseed, hlate⟩
-  rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
-    AnswerSide.generatedKey_eq_walk adversary hwalk
-      (mem_support_tail_of_answerCarrierRun rightKeep adversary walk result hmem)] at hbad
-  rcases hbad with ⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered
-  · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
-      parent (result.1, result.2.1) output hdeviates hentry hcollision)
-  · exact Or.inr (hjoin result hmem hgood hseed hlate hcovered)
+  intro result hmem hbad
+  rcases hsplit_of_join_extra rightKeep adversary walk hwalk hgood (fun _ => False)
+    (fun r hr hg hs hl hc => Or.inl (hjoin r hr hg hs hl hc)) result hmem hbad with
+    hleft | hright | hfalse
+  · exact Or.inl hleft
+  · exact Or.inr hright
+  · exact absurd hfalse not_false
 
 end SlhDsaSecurity.AnswerCarrier

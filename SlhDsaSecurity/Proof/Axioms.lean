@@ -15689,3 +15689,7 @@ info: 'SlhDsaSecurity.RecordColumn.sharedChargedLate_of_parts_record_at' depends
 /-- info: 'SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf' depends on axioms: [propext] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf
+
+/-- info: 'SlhDsaSecurity.AnswerCarrier.hsplit_of_join_extra' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerCarrier.hsplit_of_join_extra
