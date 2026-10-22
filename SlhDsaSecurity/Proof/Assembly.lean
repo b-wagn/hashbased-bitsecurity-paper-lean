@@ -34,6 +34,7 @@ takes the wrong one gets a margin that is wrong by a factor of three.
 | `le_target_of_served` | `two_slacks` with the signer's spend reserved | none |
 | `le_target_of_counts` | both halves reserve `slack`, so `extra + defectUnits ≤ 2 * slack` | none |
 | **`le_target_of_full`** | **the answer half spends the whole `q`; `extra + defectUnits ≤ slack`** | **`Target.allowanceOf`** |
+| **`le_target_doubled`** | **the shared half carries two records; target `3q / 2 ^ 128`** | **`Target.allowanceDoubled` — the live line** |
 
 The `759`/`1024`-style figures that appear in older notes belong to `le_target_of_counts` and
 `le_target_of_two_slacks`, which reserve on *both* halves. `le_target_of_full` reserves on one,
@@ -483,5 +484,64 @@ theorem le_target_of_full (queries slack extra defectUnits : Nat)
     _ = (queries : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
         rw [show ((2 * queries : Nat) : ℝ≥0∞) = (queries : ℝ≥0∞) + (queries : ℝ≥0∞) from by
           push_cast; ring, ← ENNReal.div_add_div_same, half_add_half]
+
+/-! ## The ledger the shared half actually needs: two records
+
+`le_target_of_full` gives the shared half one record's worth. If the `PRF_msg` column cannot be
+bounded in the real order — `PrfClassCount.expected_card_filter_prfClass_le` proves the count
+below one entry's worth only with the seed drawn **after** the record, and in the real order the
+bound is false — then what is available is `TargetColumn.expected_three_parts_le_two_budgets`,
+two records' worth, and the line below is the one that closes.
+
+**It does not close against `q / 2 ^ 127`, and that is the whole content of the fallback.** With
+`2 * (q - slack)` on the shared side the left is `3q` at best, so the target it meets is
+`3 * q / 2 ^ 128`, which is `q / 2 ^ 126.415…`. `doubled_le_126` rounds that to `q / 2 ^ 126`,
+which is the number to quote if this line becomes live.
+
+**That question is settled and this is the line.** The assembly charges each clause at
+`expected count / 2 ^ 128` and sums the counts against the budget, so the seed clause's count
+must be record-sized — the union bound gives `Pr[seed event] ≤ card record / 2 ^ 128` and
+nothing better. The `PRF_msg` part is *below one*, and charging the clause at that count would
+force the seed event to be empty, which is `TargetColumn.seedEvent_empty_of_prfClass_charge`.
+**Being small is what disqualifies it.** -/
+
+/-- **The ledger with the shared half carrying two records.** The `Nat` line is
+`2 * (q - slack) + extra + q + defectUnits ≤ 3 * q`, which for `slack ≤ q` is
+`extra + defectUnits ≤ 2 * slack` — twice the room of `le_target_of_full`, against a target one
+factor of `3 / 2` weaker. -/
+theorem le_target_doubled (queries slack extra defectUnits : Nat)
+    (hslack : slack ≤ queries) (hfits : extra + defectUnits ≤ 2 * slack)
+    (defect : ℝ≥0∞)
+    (hdefect : defect ≤ (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    ((2 * (queries - slack) + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect ≤
+      ((3 * queries : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  have hsum : (2 * (queries - slack) + extra) + queries + defectUnits ≤ 3 * queries := by omega
+  calc ((2 * (queries - slack) + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defect
+      ≤ ((2 * (queries - slack) + extra : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (queries : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          (defectUnits : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by gcongr
+    _ = (((2 * (queries - slack) + extra) + queries + defectUnits : Nat) : ℝ≥0∞) /
+          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+        rw [ENNReal.div_add_div_same, ENNReal.div_add_div_same]
+        push_cast
+        ring_nf
+    _ ≤ ((3 * queries : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+        ENNReal.div_le_div_right (Nat.cast_le.mpr hsum) _
+
+/-- **And `3 * q / 2 ^ 128` is inside `q / 2 ^ 126`**, which is the roundable form. The sharp
+value is `q / 2 ^ 126.415…`; the rounding spends the difference rather than earning it. -/
+theorem doubled_le_126 (queries : Nat) :
+    ((3 * queries : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) ≤
+      (queries : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) := by
+  have hfour : (queries : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) =
+      ((4 * queries : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+    have hden : ((2 ^ 128 : Nat) : ℝ≥0∞) = 4 * ((2 ^ 126 : Nat) : ℝ≥0∞) := by
+      push_cast; ring
+    rw [hden, Nat.cast_mul, Nat.cast_ofNat,
+      ENNReal.mul_div_mul_left _ _ (by norm_num) (by norm_num)]
+  rw [hfour]
+  exact ENNReal.div_le_div_right (Nat.cast_le.mpr (by omega)) _
 
 end SlhDsaSecurity.Assembly

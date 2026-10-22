@@ -305,15 +305,52 @@ one unit and the ledger keeps **246** of its 247 spare.
 (`LedgerThird.prf_column_within_one_unit`). It is a count, so it enters the `claims` column,
 where the units are counts; it is not a probability and does not belong in `defects`.
 
-**What this does not settle.** That bound is proved with the seed drawn *after* the record. In
-the real order the walk fixes the seed first and an adversary may aim every query at it, where
-the count is the whole record. So this line is the ledger's side of the column and the hop is
-the rest of it. -/
+**This line is not the live one, and the reason is not the hop.** The assembly charges each
+clause at `expected count / 2 ^ 128` and sums the counts, so the seed clause's count must be
+record-sized; a clause charged at a sub-unit count forces its event to be empty
+(`TargetColumn.seedEvent_empty_of_prfClass_charge`). **The column's smallness is what
+disqualifies it**, so no hop can rescue this line. It is kept as the measurement of what a
+sharp count would have been worth, and `Target.allowanceDoubled` is the live line. -/
 theorem allowanceWithPrfUnit (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
     ((q - 2 ^ subtreeHeight + 260 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
         ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
   allowanceOf 260 q (by simp only [subtreeHeight]; omega) hkeygen
+
+/-- **The fallback allowance, if the shared half has to carry two records.**
+
+The `Nat` line is `2 * (q - 512) + 259 + q + 6 ≤ 3 * q`, i.e. **`265 ≤ 1024`**, with **759**
+units spare. The price of the room is the target: this closes against `3 * q / 2 ^ 128`, which
+is `q / 2 ^ 126.415…` and rounds to `q / 2 ^ 126` — **not** `q / 2 ^ 127`.
+
+**This is the live line.** The assembly needs the seed clause's count, not only its event, and
+the count must be record-sized for the charge to be the union bound's; so the shared half
+carries two records and the target is `3 * q / 2 ^ 128`. `allowanceWithPrfUnit` is kept beside
+it as the record of what a sharp count would have been worth, not as an alternative. -/
+theorem allowanceDoubled (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
+      ((3 * q : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+  rw [← add_assoc]
+  exact Assembly.le_target_doubled q (2 ^ subtreeHeight) 259 6 hkeygen
+    (by simp only [subtreeHeight]; omega) defects defects_le_six_units
+
+/-- **The same, rounded to the bit count it would be quoted at.** -/
+theorem allowanceDoubled_le_126 (q : Nat) (hkeygen : 2 ^ subtreeHeight ≤ q) :
+    ((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) ≤
+      (q : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) :=
+  le_trans (allowanceDoubled q hkeygen) (Assembly.doubled_le_126 q)
+
+/-- **The fallback's line**, so it too need not be reconstructed: `259 + 6 ≤ 1024`. -/
+theorem allowanceDoubled_line : (259 : Nat) + 6 ≤ 2 * 2 ^ subtreeHeight := by
+  simp only [subtreeHeight]
+  omega
+
+/-- **And its spare**, which is three times the other line's and bought with a bit. -/
+theorem allowanceDoubled_margin : 2 * 2 ^ subtreeHeight - ((259 : Nat) + 6) = 759 := by
+  simp only [subtreeHeight]
+  omega
 
 /-- **The line itself**, so a reader need not reconstruct it: `260 + 6 ≤ 512`. -/
 theorem allowanceWithPrfUnit_line : (260 : Nat) + 6 ≤ 2 ^ subtreeHeight := by
@@ -418,6 +455,103 @@ theorem target_of_obligations
           ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) := by rw [defects]; ring
     _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
         allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
+
+/-! ## The target at the line the shared half can actually meet
+
+`target_of_obligations` is the same statement with the shared half at one record's worth, which
+is what `q / 2 ^ 127` needs. `TargetColumn.seedEvent_empty_of_prfClass_charge` shows the seed
+clause cannot be charged at the `PRF_msg` part's count, so the shared half carries two records
+(`TargetColumn.expected_three_parts_le_two_budgets`), and the number that falls out is `126`.
+
+**The obligations are the same five**, in the same shapes, with one numeral changed in
+`hshared`. Which line a top stands on is therefore a question about `hshared` alone, and both
+tops are stated so that neither has to be rebuilt when the other's hypothesis lands. -/
+
+set_option maxHeartbeats 1000000 in
+/-- **The target at `126`**, from the same five obligations with the shared half doubled. -/
+theorem target_of_obligations_doubled
+    (answerBad inputBad randomiserBad :
+      (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) × QueryCache HashSpec → Prop)
+    (hsplit : ∀ (adversary : Adversary), ∀ walk ∈ support graphWalk, GoodWalk walk →
+      ∀ result ∈ support (tail adversary walk), Wins .strong result.1.1 →
+        answerBad ((walk.1, result.1), result.2) ∨
+          inputBad ((walk.1, result.1), result.2) ∨
+            randomiserBad ((walk.1, result.1), result.2))
+    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      ∀ walk ∈ support graphWalk, GoodWalk walk →
+        Pr[fun result => answerBad ((walk.1, result.1), result.2) | tail adversary walk] ≤
+          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))
+    (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[fun pair => GoodWalk pair.1 ∧
+          (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+            randomiserBad ((pair.1.1, pair.2.1), pair.2.2)) | pairedRun adversary] ≤
+        ((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    HasTotalSecurityBits .strong 126 := by
+  classical
+  refine MainTheorem.totalSecurityBits_of_bound_at 126
+    (fun q => (q : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)) (fun q _ => le_rfl)
+    fun q adversary hq hbudget => ?_
+  rw [WarmedGame.warmedRun_eq, probEvent_map]
+  have hgoodAnswer :
+      Pr[fun pair => GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2) |
+        pairedRun adversary] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+    refine Averaging.probEvent_bind_pair_le graphWalk (tail adversary)
+      (fun walk result => GoodWalk walk ∧ answerBad ((walk.1, result.1), result.2)) _
+      fun walk hwalk => ?_
+    by_cases hgood : GoodWalk walk
+    · exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
+        (hanswer q adversary hq hbudget walk hwalk hgood)
+    · rw [show (fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        GoodWalk walk ∧ answerBad ((walk.1, result.1), result.2)) = fun _ => False from by
+        funext _; simp [hgood]]
+      simp
+  calc Pr[fun pair : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
+        ((Outcome × Nat) × QueryCache HashSpec) =>
+        Wins .strong (((pair.1.1, pair.2.1), pair.2.2) : (((Digest × Digest × Digest) × Cells) ×
+          (Outcome × Nat)) × QueryCache HashSpec).1.2.1 | pairedRun adversary]
+      ≤ Pr[fun pair => (GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2)) ∨
+            ((GoodWalk pair.1 ∧ (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+              randomiserBad ((pair.1.1, pair.2.1), pair.2.2))) ∨ ¬ GoodWalk pair.1) |
+          pairedRun adversary] := by
+        refine probEvent_mono fun pair hpair hwin => ?_
+        by_cases hgood : GoodWalk pair.1
+        · obtain ⟨walk, hwalk, result, hresult, hpair⟩ : ∃ walk ∈ support graphWalk,
+              ∃ result ∈ support (tail adversary walk), (walk, result) = pair := by
+            simpa [pairedRun, eq_comm] using hpair
+          subst hpair
+          rcases hsplit adversary walk hwalk hgood result hresult hwin with
+            hanswerBad | hinputBad | hrandomiserBad
+          · exact Or.inl ⟨hgood, hanswerBad⟩
+          · exact Or.inr (Or.inl ⟨hgood, Or.inl hinputBad⟩)
+          · exact Or.inr (Or.inl ⟨hgood, Or.inr hrandomiserBad⟩)
+        · exact Or.inr (Or.inr hgood)
+    _ ≤ Pr[fun pair => GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2) |
+            pairedRun adversary] +
+          Pr[fun pair => (GoodWalk pair.1 ∧ (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+            randomiserBad ((pair.1.1, pair.2.1), pair.2.2))) ∨ ¬ GoodWalk pair.1 |
+            pairedRun adversary] := probEvent_or_le _ _ _
+    _ ≤ Pr[fun pair => GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2) |
+            pairedRun adversary] +
+          (Pr[fun pair => GoodWalk pair.1 ∧ (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+              randomiserBad ((pair.1.1, pair.2.1), pair.2.2)) | pairedRun adversary] +
+            Pr[fun pair => ¬ GoodWalk pair.1 | pairedRun adversary]) :=
+        add_le_add le_rfl (probEvent_or_le _ _ _)
+    _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
+          (((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞))) :=
+        add_le_add hgoodAnswer
+          (add_le_add (hshared q adversary hq hbudget) (prob_bad_walk_paired adversary))
+    _ = ((2 * (q - 2 ^ subtreeHeight) + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) := by rw [defects]; ring
+    _ ≤ (q : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) :=
+        allowanceDoubled_le_126 q (KeygenBudget.pow_le_of_budget q adversary hbudget)
 
 /-! ## The same, at a tail that carries more than the game's result
 

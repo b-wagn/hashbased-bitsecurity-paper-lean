@@ -245,4 +245,17 @@ theorem totalSecurityBits_of_bound (bound : Nat → ℝ≥0∞)
     WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
   exact le_trans (hbound q adversary hq hbudget) (hsum q hq)
 
+/-- **The same at any bit count.** `totalSecurityBits_of_bound` is this at `127`; the parameter
+is here because the ledger now has two lines and the second lands at `126`. Nothing in the proof
+reads the number. -/
+theorem totalSecurityBits_of_bound_at (bits : Nat) (bound : Nat → ℝ≥0∞)
+    (hsum : ∀ q : Nat, 1 ≤ q → bound q ≤ (q : ℝ≥0∞) / ((2 ^ bits : Nat) : ℝ≥0∞))
+    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
+      Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary] ≤ bound q) :
+    HasTotalSecurityBits .strong bits := by
+  intro q hq adversary hbudget
+  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1),
+    WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
+  exact le_trans (hbound q adversary hq hbudget) (hsum q hq)
+
 end SlhDsaSecurity.MainTheorem

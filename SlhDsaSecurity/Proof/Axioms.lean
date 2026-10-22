@@ -16368,3 +16368,59 @@ info: 'SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge' depends o
 /-- info: 'SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target
+
+/--
+info: 'SlhDsaSecurity.Assembly.le_target_doubled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.le_target_doubled
+
+/--
+info: 'SlhDsaSecurity.Assembly.doubled_le_126' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Assembly.doubled_le_126
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled_le_126' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled_le_126
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled_line' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled_line
+
+/--
+info: 'SlhDsaSecurity.Target.allowanceDoubled_margin' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.allowanceDoubled_margin
+
+/--
+info: 'SlhDsaSecurity.PrfClassCount.expected_card_multiset_filter_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.PrfClassCount.expected_card_multiset_filter_le
+
+/--
+info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_bound_at' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.MainTheorem.totalSecurityBits_of_bound_at
+
+/--
+info: 'SlhDsaSecurity.Target.target_of_obligations_doubled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target.target_of_obligations_doubled
