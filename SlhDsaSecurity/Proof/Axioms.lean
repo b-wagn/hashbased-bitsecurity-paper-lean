@@ -8325,3 +8325,31 @@ info: 'SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps' depends on
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCoverage.prob_bad_or_coverage_le_of_caps
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sum_targets_countP_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sum_targets_countP_le
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.sum_weighted_le_of_sum' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.sum_weighted_le_of_sum
+
+/-- info: 'SlhDsaSecurity.ChargedProbe.tsum_weight_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ChargedProbe.tsum_weight_le
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_expected
+
+/-- info: 'SlhDsaSecurity.RedrawCell.canonicalClass_of_targets' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.canonicalClass_of_targets
+
+/-- info: 'SlhDsaSecurity.RedrawCell.sum_aiming_le_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.sum_aiming_le_canonical
+
+/-- info: 'SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RedrawCell.prob_sensitive_run_le_canonical

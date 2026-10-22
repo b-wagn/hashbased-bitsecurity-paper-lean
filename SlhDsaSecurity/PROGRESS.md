@@ -2303,3 +2303,27 @@ distinguished only by what their first block happens to be. Every statement that
 cached input is of class X" has to be checked against the possibility that some *other* party
 wrote it under the other reading. Two such statements have already been repaired; this is the
 third.
+## The claims need blindness too, and the weight that carries it is zero rather than frozen
+
+The input half's charge is now at an expectation — `RedrawCell.prob_sensitive_run_le_expected`
+weighs a run by whatever bounds its own aiming probes run by run, and
+`prob_sensitive_run_le_canonical` takes that weight to be the record's canonical part, which is
+a whole class of inputs and so a count an input-indexed cost can report. The `259` claims are a
+separate term added after it.
+
+**That term is not free of the stalling machinery, and this is exactly where.** A claimed
+candidate is charged against the cell its address names, and the per-candidate rate is `2 ^ -128`
+only for a run whose law does not depend on that cell. The real run's law does depend on it —
+the handler serves the cell whenever its node is available — so the chance has to be read at the
+*stalled* run, exactly as the probes' does. What the claims cannot reuse is the step that
+transports the event there: `ChargedProbe.prob_charged_stalled_eq` goes through
+`StalledRun.expectation_stalled_eq`, whose weight is a function of the handler's **state**, and
+a claim is a function of the run's **value** — the forgery — and of the final cache.
+
+**The way through is not to generalise that lemma.** Its hypothesis is that a quiet step leaves
+the weight where it found it, which a value-dependent weight cannot even state. But the claims
+do not need it: a claim targets an index only if that index is *unavailable at the cache the
+claim carries*, which is the final one, and availability only grows — so once the stall has
+fired the index is available at the end and no claim targets it. The claims' weight is therefore
+**zero on a frozen run**, not frozen. That is a different statement about `stalled`, with both
+sides zero, and it can be proved beside `expectation_stalled_eq` without touching it.
