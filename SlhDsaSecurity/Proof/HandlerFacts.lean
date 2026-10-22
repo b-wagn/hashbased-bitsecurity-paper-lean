@@ -202,7 +202,13 @@ theorem lazyAnswer_congr_available (publicSeed : Digest)
     openCache_congr_of_not_sensitive publicSeed (lenient carrier) (strict carrier) table input
       hnot]
 
-/-- **Off the sensitive inputs the two availabilities give the same step.** -/
+/-- **Off the sensitive inputs the two availabilities give the same step.**
+
+Not a field of `Facts`, and not for want of room: an interface collects what **one** object
+owes, and this is a relation between two. Making it a field would force a handler to know about
+its own alternative — it would have to carry, as part of being a handler, the identity of the
+lenient twin it is to be compared against. So it stands beside `Facts`, and a reader needing
+both says so by taking both. -/
 structure Lenient (publicSeed : Digest) (availableAt : HandlerCarrier.State → Node → Prop)
     (lenientImpl strictImpl :
       Cells × Padding → QueryImpl OracleWorld (StateT HandlerState ProbComp)) : Prop where
