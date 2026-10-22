@@ -3827,3 +3827,27 @@ The general lesson, which is the fourth instance this week: **the right abstract
 than the one asked for.** "Abstract over the run" would have meant carrying a recorder; what the
 charges actually share is three propositions, and finding that out took reading what the
 composition reads rather than what the chain carries.
+
+## The coverage charge at the recorder that notices
+
+`NoticingBlockViews.prob_noticingTargetCovered_le` is `BlockViews.prob_targetCovered_le` at
+`RecorderView.noticingRecorderOf`, with the same statement, the same hypotheses and the same
+`1 / 2 ^ 141 + expected(target recording) / 2 ^ 128`. Every proof in the file is the cache
+version's with four names changed, because `NoticingTape` landed the whole tape layer beneath
+the line — factorisation, causality, the two cell-for-cell readings, the leave-one-out charge —
+with statements that differ from `TapeFactor`'s only in the word `noticing`.
+
+**It spends none of the 0.24-bit margin, and the reason is structural rather than arithmetic.**
+The notice moves which state the two *tests* are read at. It moves neither the freshness guard
+that decides when a cell is filed (`cacheOf_onQuery`), nor the rate a filed cell is charged at.
+So what is summed is still the target recording and the per-cell factor is still a fresh uniform
+answer; the concentration input is the identical lemma at the identical cap.
+
+The boundary that made this cheap is worth recording: **below the line everything is about `σ`
+and two predicates; above it everything names the game's own FORS events** — `GoodBlock`,
+`BlockHit`, `RecordCovers`, `TargetCovered`. Drawn there, the lower half generalises once and the
+upper half mirrors mechanically. Drawn anywhere else, both halves would have had to know about
+each other.
+
+Two people each referred this piece to the other for a round. The line is what decided it, not
+the argument — which is the case for drawing one early even when it looks like bureaucracy.

@@ -213,6 +213,7 @@ import SlhDsaSecurity.Proof.HonestTail
 import SlhDsaSecurity.Proof.ServingForget
 import SlhDsaSecurity.Proof.BracketedRun
 import SlhDsaSecurity.Proof.CarrierTail
+import SlhDsaSecurity.Proof.NoticingBlockViews
 import SlhDsaSecurity.Proof.AnswerCarrier
 import SlhDsaSecurity.Proof.HandlerStall
 import SlhDsaSecurity.Proof.HandlerCharge
@@ -10255,6 +10256,56 @@ info: 'SlhDsaSecurity.AnswerCarrier.answerBound_of_charges' depends on axioms: [
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrier.answerBound_of_charges
+
+/--
+info: 'SlhDsaSecurity.NoticingBlockViews.evalDist_noticingRecordedRun_eq' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlockViews.evalDist_noticingRecordedRun_eq
+
+/--
+info: 'SlhDsaSecurity.NoticingBlockViews.mem_support_noticingBlockRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlockViews.mem_support_noticingBlockRun
+
+/--
+info: 'SlhDsaSecurity.NoticingBlockViews.noticingBlockRun_tail_neverFails' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlockViews.noticingBlockRun_tail_neverFails
+
+/--
+info: 'SlhDsaSecurity.NoticingBlockViews.prob_noticingTargetCovered_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlockViews.prob_noticingTargetCovered_le
+
+/--
+info: 'SlhDsaSecurity.NoticingBlockViews.prob_leftBlock' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlockViews.prob_leftBlock
+
+/--
+info: 'SlhDsaSecurity.NoticingBlockViews.tsum_probOutput_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoticingBlockViews.tsum_probOutput_map
+
+/--
+info: 'SlhDsaSecurity.CarrierTail.answerChargedAt_carrier_of_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTail.answerChargedAt_carrier_of_bound
 
 /--
 info: 'SlhDsaSecurity.AnswerCarrier.answerChargedLate_of_carrierBound' depends on axioms: [propext,
