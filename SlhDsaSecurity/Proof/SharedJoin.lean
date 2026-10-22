@@ -97,12 +97,21 @@ list its own handler produces and shows that list sits inside the record's part 
 `ProbesIn` is that obligation and `card_le_of_probesIn` is what it buys. Nothing has to be
 restated at a counter.
 
-The two parts are disjoint on a good walk — a canonical input opens with `PK.seed ‖ ADRS` and a
-message input with a randomiser, and `HashSeparation` separates them once the key is no
-coincidence — so their cardinalities add to at most the record's, which is the work, which with
-key generation's reserved spend is `q - 2 ^ subtreeHeight`. That is `card_parts_le_budget`, and
-with the forgery's `259` claims against the `512` key generation puts back it is the whole of
-the shared side's arithmetic. -/
+The two parts are disjoint **by construction, on every run**: `recordMessageClass` carries
+`¬ AimsSomewhere` as a conjunct of its own filter, so an input in both parts would have to aim
+and not aim. `card_parts_le_record` takes no hypotheses at all, and neither does the arithmetic
+that follows it — the shared side's accounting is not conditioned on the walk.
+
+What the good walk *is* for is one step further in, and it is a different statement.
+`mem_recordMessageClass` has to put a message input of the record **into** the message-class
+part, which needs that input not to aim; that is `not_aimsSomewhere_messageInput`, where a
+canonical input opens with `PK.seed ‖ ADRS` and a message input with a randomiser and
+`HashSeparation` separates them once the key is no coincidence.
+
+So the two cardinalities add to at most the record's, which is the work, which with key
+generation's reserved spend is `q - 2 ^ subtreeHeight`. That is `card_parts_le_budget`, and with
+the forgery's `259` claims against the `512` key generation puts back it is the whole of the
+shared side's arithmetic. -/
 
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.tail
   RecordedTail.recordedAfterSeeds RecordedTail.recordedTail
