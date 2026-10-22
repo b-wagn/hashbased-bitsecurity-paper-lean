@@ -1492,6 +1492,7 @@ computed by a walk that is not.** Key generation's root, the FORS public key, an
 signature. Each time the fix has been to replace the walk by the value — and this time the
 value has to be read at the right moment as well, which is what moving into the handler buys.
 
+<<<<<<< HEAD
 **A habit worth keeping.** Three times in this line of work the lemma that was needed already
 existed one file over, twice in a more general form than the one being written — the writer's
 run lemmas generic in the monoid, the Merkle node's cell identity, the sum handler's apply
@@ -1499,3 +1500,18 @@ lemmas. The rule that catches it is to look in the file that would *own* the sta
 writing it: the file about writers owns a lemma about writers, whatever the reason for wanting
 it. Five accidental duplicates have been found here after the fact, and each cost more to find
 than the look would have.
+=======
+## A budget that admits an adversary at all pays for key generation
+
+The accounting hands the charges `q - 2 ^ subtreeHeight`, and on `Nat` that subtraction
+truncates, so it counts hash calls only once `q` is known to reach `512`. It does, and for a
+reason internal to the budget: every run of the game builds the top subtree and is charged for
+it, so a smaller budget is exceeded on every run the game has, and an event asserted with
+probability one that holds nowhere has probability zero instead.
+
+That argument also settles what looked like a gap. Nothing in the chain requires the support of
+the run to be nonempty, and nothing has to: an adversary whose run can fail everywhere makes
+`HasTotalBudget` false for every `q`, so the theorem says nothing about it. The empty case is
+closed by the same line that closes the small-budget case rather than excluded by a hypothesis
+no one had stated.
+>>>>>>> worktree-agent-a67295ec5296995e4

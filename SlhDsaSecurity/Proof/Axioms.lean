@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.KeygenBudget
 import SlhDsaSecurity.Proof.Target
+import SlhDsaSecurity.Proof.RoutedSplit
 import SlhDsaSecurity.Proof.WalkDefects
 import SlhDsaSecurity.Proof.CanonicalSplit
 import SlhDsaSecurity.Proof.WriterState
@@ -5377,3 +5378,31 @@ info: 'SlhDsaSecurity.WalkDefects.probEvent_le_of_tail_of_separated' depends on 
 /-- info: 'SlhDsaSecurity.KeygenBudget.pow_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.KeygenBudget.pow_le_of_budget
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.mem_claimedCandidates_wots' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.mem_claimedCandidates_wots
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.mem_claimedCandidates_fors' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.mem_claimedCandidates_fors
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_win_routed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.cases_of_win_routed
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.queriesUnder_verify_message' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.queriesUnder_verify_message
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.cached_digest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.cached_digest
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_canonical' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.cases_of_canonical
+
+/-- info: 'SlhDsaSecurity.RoutedSplit.cases_of_win_three' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RoutedSplit.cases_of_win_three
