@@ -2327,3 +2327,54 @@ claim carries*, which is the final one, and availability only grows — so once 
 fired the index is available at the end and no claim targets it. The claims' weight is therefore
 **zero on a frozen run**, not frozen. That is a different statement about `stalled`, with both
 sides zero, and it can be proved beside `expectation_stalled_eq` without touching it.
+
+## The budget does not close as decomposed, and why disclosure is the cause
+
+Adding the charges up on a particular run showed the decomposition spending more than the target
+allows, and the run is short. An adversary queries `Hashing.messageInput r_i pk M` for `N`
+distinct randomisers at **one** message, then asks for a single signature on it. Then `q ≈ N`,
+and three terms each spend about `N / 2 ^ 128`: the answer side's coverage, the shared side's
+record charge, and the ordering defect. Three units a query against a target of two.
+
+The first instinct — re-apportion, or tighten the loosest term — does not work, and the reason
+is worth keeping. **Two of the charges are real and tight.** The seed guess, "some record entry's
+first block is `SK.prf`", is tight because an adversary can simply try `q` guesses. The late
+randomiser, "some `PRF_msg` answer truncates to a randomiser already named at its own message",
+is tight because the run above realises it. Together they are the whole target, and a term of one
+full unit does not fit in what is left of one unit however small the other becomes. Coverage has
+real slack — with the disclosing block capped by the signing limit its true per-target rate is
+nearer `2 ^ -136` than `2 ^ -128` — and the slack is useless for the same reason.
+
+**Neither event is a forgery.** An adversary that knows `SK.prf` can predict digests but holds no
+FORS or WOTS secret; one that names a randomiser the signer later derives has merely pre-queried
+a digest. They are places where the extraction gives up, and the decomposition was paying for
+giving up.
+
+### The cause is that disclosure is defined by the cache
+
+`CacheAvailability.signedAt` counts a digest as disclosing when the `PRF_msg` entry for its
+message is in the cache. That is a proxy for *the signer produced a signature at this digest*,
+and an adversary that knows `SK.prf` satisfies the proxy by making the query itself. The proxy
+lets a fiction count as a disclosure, and the seed guess is the charge that pays for the fiction.
+
+Defined by the **signing log**, the replay case closes by strong freshness alone: if the only
+disclosing input is the forgery's own, its message was signed at the forgery's own digest input,
+which pins the randomiser and the message by `Hashing.messageInput_injective`, which makes the
+forgery the logged signature. Both steps are already proved. Index by the digest *input*, not by
+the digest value — two inputs can carry the same digest, and then nothing pins the randomiser.
+
+So `ReplayGate.RandomiserBad` has no branch reaching it, the ordering defect goes with it — under
+the log notion nothing can become disclosing after it is filed — and the disclosing cap becomes
+one per served request with no hypothesis.
+
+### The prerequisite, which is not optional
+
+`Security.signingOracle` appends the log entry **after** `Scheme.sign` returns. So under plain
+"logged" the signer reads its own FORS secrets while they are still undisclosed, the stall that
+the input half's blindness argument depends on has not happened, and the stalled run reads a cell
+it must be blind to. The cache proxy got that ordering right, which is why it was chosen.
+
+Disclosure must therefore be **"logged or in flight"**: the request being served discloses from
+the moment it starts. Then the stall precedes every read by construction rather than by proxy.
+That requires the handler to know which request it is serving, so the handler-separated
+presentation is a dependency of this repair and not an independent convenience.
