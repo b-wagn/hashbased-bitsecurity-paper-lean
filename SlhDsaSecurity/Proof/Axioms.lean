@@ -164,6 +164,7 @@ import SlhDsaSecurity.Proof.WalkTable
 import SlhDsaSecurity.Proof.LateRate
 import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
+import SlhDsaSecurity.Proof.SharedJoin
 
 /-- info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms -/
 #guard_msgs in
@@ -8036,3 +8037,39 @@ info: 'SlhDsaSecurity.BlockViews.prob_targetCovered_le' depends on axioms: [prop
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlockViews.prob_targetCovered_le
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.prob_sharedBad_le_sum' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.prob_sharedBad_le_sum
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.add_rearrange' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.add_rearrange
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.prob_sharedBad_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.prob_sharedBad_le_expected
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.prob_sharedBad_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.prob_sharedBad_le
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.prob_signerEvent_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.prob_signerEvent_le
+
+/--
+info: 'SlhDsaSecurity.SharedJoin.sharedCharged_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharedJoin.sharedCharged_of_parts
