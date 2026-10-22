@@ -861,6 +861,71 @@ theorem sensitiveOffSeed_of_claim (publicSeed : Digest)
 
 
 
+
+/-! ## The claims the charge is handed
+
+The charge takes its list as a function of the run's result and pairs each entry with the
+carrier availability is read at, so the half builds its own list rather than growing a
+carrier-valued twin of `WarmProbes.claimedEntries`: the list is the half's and nobody else reads
+it.
+
+A forgery whose frame or signature does not parse claims nothing, so the list is empty there —
+which is sound because `RoutedSplit.InputBad` requires both to parse before it asks anything
+else. Its length is `259` when they do and `0` when they do not, so the constant bounds it
+either way. -/
+
+open scoped Classical in
+/-- The forgery's claimed candidates, paired with the carrier they are read at. -/
+noncomputable def claimsOf [HasQuery HashSpec Id] (publicSeed : Digest)
+    (pk : PublicKey) (forgery : Forgery) (carrier : HandlerCarrier.State) :
+    List (Bytes × HandlerCarrier.State) :=
+  match forgery.message.frame, Signature.fromBytes? forgery.signature with
+  | some message, some parsed =>
+      (ClaimedProbes.claimedCandidatesOf publicSeed carrier.cache pk message parsed).map
+        fun input => (input, carrier)
+  | _, _ => []
+
+open scoped Classical in
+/-- **Every claim is read at the carrier the run ends with.** -/
+theorem claimsOf_carrier [HasQuery HashSpec Id] (publicSeed : Digest)
+    (pk : PublicKey) (forgery : Forgery)
+    (carrier : HandlerCarrier.State) (entry : Bytes × HandlerCarrier.State)
+    (hentry : entry ∈ claimsOf publicSeed pk forgery carrier) : entry.2 = carrier := by
+  classical
+  rw [claimsOf] at hentry
+  split at hentry
+  · obtain ⟨input, -, hinput⟩ := List.mem_map.mp hentry
+    rw [← hinput]
+  · exact absurd hentry (by simp)
+
+open scoped Classical in
+/-- **And there are at most `259` of them.** -/
+theorem length_claimsOf [HasQuery HashSpec Id] (publicSeed : Digest)
+    (pk : PublicKey) (forgery : Forgery)
+    (carrier : HandlerCarrier.State) :
+    (claimsOf publicSeed pk forgery carrier).length ≤ 259 := by
+  classical
+  rw [claimsOf]
+  split
+  · rw [List.length_map, ClaimedProbes.length_claimedCandidatesOf]
+  · simp
+
+open scoped Classical in
+/-- **A claim of the forgery's is an entry of the list**, which is the direction the event
+implication needs. -/
+theorem mem_claimsOf [HasQuery HashSpec Id] (publicSeed : Digest)
+    (pk : PublicKey) (forgery : Forgery)
+    (carrier : HandlerCarrier.State) (message : Bytes) (parsed : Signature)
+    (hframe : forgery.message.frame = some message)
+    (hparsed : Signature.fromBytes? forgery.signature = some parsed)
+    (candidate : Bytes)
+    (hcandidate : candidate ∈
+      ClaimedProbes.claimedCandidatesOf publicSeed carrier.cache pk message parsed) :
+    (candidate, carrier) ∈ claimsOf publicSeed pk forgery carrier := by
+  classical
+  rw [claimsOf, hframe, hparsed]
+  exact List.mem_map.mpr ⟨candidate, hcandidate, rfl⟩
+
 /-! ## The one property the whole half rests on, at the notion that now carries it
 
 Everything above turns on availability being **closed under the structure**: a node all of whose
