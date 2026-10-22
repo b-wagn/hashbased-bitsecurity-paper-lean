@@ -34,13 +34,15 @@ def AnswerCharged : Prop :=
         (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
 
-/-- The input half and the randomiser defect against one budget. -/
+/-- The input half and the randomiser defect against one budget, read at the walk and the game
+together. Both halves defer a secret the walk carries — the cell table and `SK.prf` — so neither
+can be read at a fixed walk, where that secret is already determined. -/
 def SharedCharged : Prop :=
   ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    ∀ walk ∈ support graphWalk, GoodWalk walk →
-      Pr[fun result => InputBad ((walk.1, result.1), result.2) ∨
-          RandomiserBad ((walk.1, result.1), result.2) | tail adversary walk] ≤
-        ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
+    Pr[fun pair => GoodWalk pair.1 ∧
+        (InputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+          RandomiserBad ((pair.1.1, pair.2.1), pair.2.2)) | Target.pairedRun adversary] ≤
+      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
 
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedGame.tail
   WarmedGame.warmedRun Scheme.keygenInternal Scheme.verify Scheme.sign

@@ -87,6 +87,41 @@ theorem probEvent_le_of_good_walk (adversary : Adversary)
     (fun walk hwalk hgood => htail walk hwalk (not_not.mp hgood))) ?_
   exact add_le_add le_rfl prob_bad_walk
 
+/-! ## The walk and the game together
+
+A charge whose secret is *in the walk* cannot be read at a fixed walk. Conditioning on the walk
+fixes `SK.prf` and the cell table, and an adversary may have been chosen knowing them — for the
+walk whose `SK.prf` is the constant it hardcodes, the event it is charged for happens with
+probability one. Every deferral in this development draws its secret after the run, and that is
+not available once the walk is a parameter.
+
+So the obligations that defer a secret are stated *here*, on the walk and the game taken
+together, where the walk's own randomness is still in the measure. The answer side is unaffected
+and stays at a fixed walk: its charges are guesses at the tail's own fresh answers, which no
+choice of adversary can bias in advance. -/
+
+/-- The walk and the game that follows it, with the walk's value retained. -/
+noncomputable def pairedRun (adversary : Adversary) :
+    ProbComp ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
+      ((Outcome × Nat) × QueryCache HashSpec)) := do
+  let walk ← graphWalk
+  let result ← tail adversary walk
+  pure (walk, result)
+
+/-- **The walk's own coincidences, read at the paired run.** -/
+theorem prob_bad_walk_paired (adversary : Adversary) :
+    Pr[fun pair => ¬ GoodWalk pair.1 | pairedRun adversary] ≤
+      1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞) := by
+  classical
+  refine le_trans (WalkDefects.probEvent_bind_pair_split_le graphWalk (tail adversary)
+    (fun walk _ => ¬ GoodWalk walk) (fun walk => ¬ GoodWalk walk) 0
+    fun walk _ hgood => ?_) ?_
+  · rw [show (fun _ : (Outcome × Nat) × QueryCache HashSpec => ¬ GoodWalk walk) =
+      fun _ => False from by funext _; simp [not_not.mp hgood]]
+    simp
+  · rw [zero_add]
+    exact prob_bad_walk
+
 /-! ## The allowance
 
 Six units of `2 ^ -128` against the four defects, and `259` claimed cells against the `1024`
@@ -139,47 +174,73 @@ theorem target_of_obligations
             ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
               (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))
     (hshared : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      ∀ walk ∈ support graphWalk, GoodWalk walk →
-        Pr[fun result => inputBad ((walk.1, result.1), result.2) ∨
-            randomiserBad ((walk.1, result.1), result.2) | tail adversary walk] ≤
-          ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+      Pr[fun pair => GoodWalk pair.1 ∧
+          (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+            randomiserBad ((pair.1.1, pair.2.1), pair.2.2)) | pairedRun adversary] ≤
+        ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     HasTotalSecurityBits .strong 127 := by
   classical
   refine MainTheorem.totalSecurityBits_of_bound
     (fun q => (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞)) (fun q _ => le_rfl)
     fun q adversary hq hbudget => ?_
-  refine le_trans (probEvent_le_of_good_walk adversary
-    (fun result => Wins .strong result.1.2.1)
-    (((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-      ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-          (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)))) ?_) ?_
-  · intro walk hwalk hgood
-    calc Pr[fun result => Wins .strong result.1.1 | tail adversary walk]
-        ≤ Pr[fun result => answerBad ((walk.1, result.1), result.2) ∨
-              (inputBad ((walk.1, result.1), result.2) ∨
-                randomiserBad ((walk.1, result.1), result.2)) | tail adversary walk] :=
-          probEvent_mono fun result hresult hwin =>
-            hsplit adversary walk hwalk hgood result hresult hwin
-      _ ≤ Pr[fun result => answerBad ((walk.1, result.1), result.2) | tail adversary walk] +
-            Pr[fun result => inputBad ((walk.1, result.1), result.2) ∨
-              randomiserBad ((walk.1, result.1), result.2) | tail adversary walk] :=
-          probEvent_or_le _ _ _
-      _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-              ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-                (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
-            ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-          add_le_add (hanswer q adversary hq hbudget walk hwalk hgood)
-            (hshared q adversary hq hbudget walk hwalk hgood)
-      _ = _ := by ring
-  · rw [show ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+  rw [WarmedGame.warmedRun_eq, probEvent_map]
+  have hgoodAnswer :
+      Pr[fun pair => GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2) |
+        pairedRun adversary] ≤
+        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
           ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
-            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
-        (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞)) =
-      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) from by
-      rw [defects]; ring]
-    exact allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
+            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞)) := by
+    refine Averaging.probEvent_bind_pair_le graphWalk (tail adversary)
+      (fun walk result => GoodWalk walk ∧ answerBad ((walk.1, result.1), result.2)) _
+      fun walk hwalk => ?_
+    by_cases hgood : GoodWalk walk
+    · exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
+        (hanswer q adversary hq hbudget walk hwalk hgood)
+    · rw [show (fun result : (Outcome × Nat) × QueryCache HashSpec =>
+        GoodWalk walk ∧ answerBad ((walk.1, result.1), result.2)) = fun _ => False from by
+        funext _; simp [hgood]]
+      simp
+  calc Pr[fun pair : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
+        ((Outcome × Nat) × QueryCache HashSpec) =>
+        Wins .strong (((pair.1.1, pair.2.1), pair.2.2) : (((Digest × Digest × Digest) × Cells) ×
+          (Outcome × Nat)) × QueryCache HashSpec).1.2.1 | pairedRun adversary]
+      ≤ Pr[fun pair => (GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2)) ∨
+            ((GoodWalk pair.1 ∧ (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+              randomiserBad ((pair.1.1, pair.2.1), pair.2.2))) ∨ ¬ GoodWalk pair.1) |
+          pairedRun adversary] := by
+        refine probEvent_mono fun pair hpair hwin => ?_
+        by_cases hgood : GoodWalk pair.1
+        · obtain ⟨walk, hwalk, result, hresult, hpair⟩ : ∃ walk ∈ support graphWalk,
+              ∃ result ∈ support (tail adversary walk), (walk, result) = pair := by
+            simpa [pairedRun, eq_comm] using hpair
+          subst hpair
+          rcases hsplit adversary walk hwalk hgood result hresult hwin with
+            hanswerBad | hinputBad | hrandomiserBad
+          · exact Or.inl ⟨hgood, hanswerBad⟩
+          · exact Or.inr (Or.inl ⟨hgood, Or.inl hinputBad⟩)
+          · exact Or.inr (Or.inl ⟨hgood, Or.inr hrandomiserBad⟩)
+        · exact Or.inr (Or.inr hgood)
+    _ ≤ Pr[fun pair => GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2) |
+            pairedRun adversary] +
+          Pr[fun pair => (GoodWalk pair.1 ∧ (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+            randomiserBad ((pair.1.1, pair.2.1), pair.2.2))) ∨ ¬ GoodWalk pair.1 |
+            pairedRun adversary] := probEvent_or_le _ _ _
+    _ ≤ Pr[fun pair => GoodWalk pair.1 ∧ answerBad ((pair.1.1, pair.2.1), pair.2.2) |
+            pairedRun adversary] +
+          (Pr[fun pair => GoodWalk pair.1 ∧ (inputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
+              randomiserBad ((pair.1.1, pair.2.1), pair.2.2)) | pairedRun adversary] +
+            Pr[fun pair => ¬ GoodWalk pair.1 | pairedRun adversary]) :=
+        add_le_add le_rfl (probEvent_or_le _ _ _)
+    _ ≤ ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) +
+              (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) +
+          (((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+            (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞))) :=
+        add_le_add hgoodAnswer
+          (add_le_add (hshared q adversary hq hbudget) (prob_bad_walk_paired adversary))
+    _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
+          ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + defects) := by rw [defects]; ring
+    _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
+        allowance q (KeygenBudget.pow_le_of_budget q adversary hbudget)
 
 end SlhDsaSecurity.Target
