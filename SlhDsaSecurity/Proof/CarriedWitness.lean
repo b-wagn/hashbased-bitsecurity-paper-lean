@@ -25,6 +25,16 @@ adversary, and is the log thread's. The false direction is gone, not relocated.
 **The update files and caches in one step**, which is what `servingUpdate` is. It is a legal
 `CacheView` because the law constrains only the cache, and filing does not touch it; that the
 law is this weak is what makes the instantiation possible at all.
+
+**A test that reads a flag can only be instantiated at a presentation that sets the flag.** That
+is the other face of the rule above: `FilesLeft` is not merely unforgeable, it is *empty*
+wherever nothing frames. So the left test and the tail have to move together — a run that reads
+the flag over a computation with no bracket in it files nothing, and every question about what
+the recording holds answers itself for the wrong reason.
+
+Two gaps between this file and a carrier tail are recorded rather than papered over: the one at
+`servingUpdate` below, and that a bracketed run is not a `LateProbes.IsRecorderRun`, since
+brackets write the state between queries and no `OracleComp OracleWorld` can.
 -/
 
 open OracleComp OracleSpec
@@ -42,7 +52,27 @@ that filed later would disclose after the signer's own reads, which is the failu
 -/
 
 open scoped Classical in
-/-- Install an answer, and file the input when the flag says the signer is serving it. -/
+/-- Install an answer, and file the input when the flag says the signer is serving it.
+
+**This definition is not yet the one the carrier needs, and the gap is recorded here so that
+nothing is built on it.** `RecorderView.recorderOf` calls `CacheView.update` on the *fresh*
+branch only — a cache hit returns the cached answer and leaves the state — so filing through the
+update files only inputs the run itself drew. That is exactly what `HandlerCarrier.FilesLeft`'s
+docstring forbids: a served request whose digest input is already cached is served all the same,
+and leaving it unfiled makes the signer's own reads unavailable at the carrier.
+
+The consequence is worse than a missing entry, which is why it is flagged rather than deferred.
+Filing only on fresh draws makes the ordering defect **vacuous**: a target-recorded input was
+not filed at its own query, it is installed in the cache by that query, so it is never fresh
+again, so it can never be filed later and `Served` can never reach it. `Late` would be false by
+construction, and the charge that bounds it would look discharged while the case it exists for —
+the adversary asking a digest input *before* the request that makes it a served one — had simply
+been defined away.
+
+The repair is one more operation on the view, applied at **every** hash query rather than only
+at a miss, with the single law that it does not touch the cache — which is all
+`run_recorderOf_forget` ever reads. At `σ := QueryCache HashSpec` it is the identity, so the
+cache instantiation and `recorderOf_cache` are unaffected. -/
 noncomputable def servingUpdate (state : State) (input : Bytes) (answer : HashOutput) : State :=
   if FilesLeft pk state input then file (cacheAnswer state input answer) input
   else cacheAnswer state input answer
