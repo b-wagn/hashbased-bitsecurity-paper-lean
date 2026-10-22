@@ -202,6 +202,7 @@ import SlhDsaSecurity.Proof.PhaseRightRecord
 import SlhDsaSecurity.Proof.ServedRandomised
 import SlhDsaSecurity.Proof.RecordInvariant
 import SlhDsaSecurity.Proof.CarrierRecordings
+import SlhDsaSecurity.Proof.CarrierTailRecordings
 import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -11765,6 +11766,46 @@ info: 'SlhDsaSecurity.CarrierRecordings.step_recordFreshNodup' depends on axioms
 /-- info: 'SlhDsaSecurity.CarrierRecordings.recordFreshNodup_bracket' does not depend on any axioms -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierRecordings.recordFreshNodup_bracket
+
+/-- info: 'SlhDsaSecurity.CarrierTailRecordings.recordClass_startAt' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTailRecordings.recordClass_startAt
+
+/-- info: 'SlhDsaSecurity.CarrierTailRecordings.recordFreshNodup_startAt' depends on axioms: [propext] -/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTailRecordings.recordFreshNodup_startAt
+
+/--
+info: 'SlhDsaSecurity.CarrierTailRecordings.recordClass_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTailRecordings.recordClass_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierTailRecordings.recordFreshNodup_carrierTail' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTailRecordings.recordFreshNodup_carrierTail
+
+/--
+info: 'SlhDsaSecurity.CarrierTailRecordings.recordClass_answerCarrierRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTailRecordings.recordClass_answerCarrierRun
+
+/--
+info: 'SlhDsaSecurity.CarrierTailRecordings.recordFreshNodup_answerCarrierRun' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierTailRecordings.recordFreshNodup_answerCarrierRun
 
 /--
 info: 'SlhDsaSecurity.CarrierRecordings.step_right_mem' depends on axioms: [propext, Classical.choice, Quot.sound]
