@@ -154,4 +154,84 @@ theorem target_of_answer_and_leaves (claims : Nat) (hclaims : 259 ≤ claims)
   FinalAssembly.target_of_producers claims hfits hanswer
     (sharedChargedLate_fusedTail claims hclaims hinput hrecord hparts)
 
+/-! ## What the three parts actually cost, with the overlap in
+
+`RecordColumn` shows the three parts are **not** disjoint and that the overlap is the charged
+event itself, so `hparts` at one record's worth is not available. What is available is two
+records' worth, and the proof is as short as the claim: the first two parts are disjoint by
+construction and the third is a sub-multiset of the record, so each half of the sum is bounded
+by the record separately.
+
+That bound is a **ceiling and not a floor**. It says the doubled ledger line suffices; it does
+not say the factor is really two, and no adversary attaining it is exhibited here. If the
+message-class part can be bounded below the record the factor shrinks and so does the price.
+-/
+
+open scoped Classical in
+/-- **The three parts fit in two records' worth**, with no hypothesis and no disjointness
+between the second and third. -/
+theorem card_three_parts_le_two_records (pair : SharedJoin.RecordedPair) :
+    Multiset.card (SharedJoin.recordAiming pair) +
+        Multiset.card (SharedJoin.recordMessageClass pair) +
+      Multiset.card (RecordColumn.recordPrfClass pair) ≤
+        2 * Multiset.card (SharedJoin.recordOf pair) := by
+  classical
+  have hthird : Multiset.card (RecordColumn.recordPrfClass pair) ≤
+      Multiset.card (SharedJoin.recordOf pair) :=
+    Multiset.card_le_card (Multiset.filter_le _ _)
+  have hfirst := SharedJoin.card_parts_le_record pair
+  omega
+
+/-! ## Can one entry carry both charges at once?
+
+The doubling comes from a union bound: the record's message-class part stakes a unit on *"this
+entry is a late probe at a fresh draw"* and its `PRF_msg` part stakes one on *"this entry's
+randomiser field is the secret"*, and `RecordColumn` shows the two parts meet. A union bound is
+an upper bound on our ignorance, so the question is not whether the two events are different —
+they are — but whether both units are ever **needed in the same run**.
+
+**They are not, and the reason is that the overlap is the charged event.** An entry in both
+parts is a witness for `RandomiserRecord.RecordMeetsPrfClass`, by
+`RecordColumn.recordMeetsPrfClass_iff`. So on a run where the seed charge's event **fails**, the
+`PRF_msg` part is empty — `recordPrfClass_eq_zero_of_not_recordMeets` — and the three parts fit
+in **one** record's worth, which is `card_three_parts_le_record_of_not_recordMeets`. And on a run
+where it holds, the shared disjunction is already satisfied by the seed branch, so the ordering
+unit at the overlapping entry buys nothing that is not already bought.
+
+**So the two charges partition the runs, not the entries.** The entries do overlap — that is
+`RecordColumn.prfClass_messageInput_prf`, and no lemma here contradicts it — but a run pays
+either the ordering column or the seed column at those entries, never both. That is what a union
+bound over the two parts cannot see, and it is why the `3/2` is slack in the accounting rather
+than a loss in the construction.
+
+**What this does not establish.** It does not prove `hparts` at one record's worth
+unconditionally — the bound below carries `¬ RecordMeetsPrfClass` as a hypothesis, and turning
+that into a charge is a case split in the shared assembly, not a counting lemma. And it is not
+an attack result: it says our bound can be sharpened, not that no adversary gains from the
+format identity. -/
+
+open scoped Classical in
+/-- **Off the seed charge's own event, the `PRF_msg` part of the record is empty.** -/
+theorem recordPrfClass_eq_zero_of_not_recordMeets (pair : SharedJoin.RecordedPair)
+    (hnot : ¬ RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2) :
+    RecordColumn.recordPrfClass pair = 0 := by
+  classical
+  by_contra hne
+  obtain ⟨input, hinput⟩ := Multiset.exists_mem_of_ne_zero hne
+  exact hnot ((RecordColumn.recordMeetsPrfClass_iff pair).mpr
+    ⟨input, hinput, (Multiset.mem_filter.mp hinput).2⟩)
+
+open scoped Classical in
+/-- **And there the three parts fit in one record's worth**, with no subtraction and no
+doubling. The doubled line is needed only on runs the seed charge already pays for. -/
+theorem card_three_parts_le_record_of_not_recordMeets (pair : SharedJoin.RecordedPair)
+    (hnot : ¬ RandomiserRecord.RecordMeetsPrfClass pair.1.1.1.2.1 pair.2) :
+    Multiset.card (SharedJoin.recordAiming pair) +
+        Multiset.card (SharedJoin.recordMessageClass pair) +
+      Multiset.card (RecordColumn.recordPrfClass pair) ≤
+        Multiset.card (SharedJoin.recordOf pair) := by
+  classical
+  rw [recordPrfClass_eq_zero_of_not_recordMeets pair hnot]
+  simpa using SharedJoin.card_parts_le_record pair
+
 end SlhDsaSecurity.TargetColumn
