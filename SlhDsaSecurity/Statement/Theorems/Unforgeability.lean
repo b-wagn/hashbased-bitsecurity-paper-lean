@@ -1,5 +1,7 @@
 import SlhDsaSecurity.Statement.Security
+import SlhDsaSecurity.Statement.SecurityNoVerify
 import SlhDsaSecurity.Proof.ShareFinal
+import SlhDsaSecurity.Proof.NoVerifyTarget
 import SlhDsaSecurity.Proof.Security
 
 /-!
@@ -19,8 +21,16 @@ open Security
 theorem slhDsa_eufCma_total_127 : HasTotalSecurityBits .standard 127 :=
   total_strong_implies_standard 127 ShareFinal.hasTotalSecurityBits_strong_127
 
+/-- **The same, with final verification's hash calls not counted.** -/
+theorem slhDsa_eufCma_noVerify_127 : HasNoVerifySecurityBits .standard 127 :=
+  NoVerifyTarget.hasNoVerifySecurityBits_standard_127
+
 /-- info: 'SlhDsaSecurity.slhDsa_eufCma_total_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms slhDsa_eufCma_total_127
+
+/-- info: 'SlhDsaSecurity.slhDsa_eufCma_noVerify_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms slhDsa_eufCma_noVerify_127
 
 end SlhDsaSecurity

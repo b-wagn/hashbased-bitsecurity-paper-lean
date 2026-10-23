@@ -39,6 +39,9 @@ lazily sampled random oracle.
   `q ≥ 1` with probability one
   ([`StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean),
   [`Unforgeability.lean`](SlhDsaSecurity/Statement/Theorems/Unforgeability.lean)).
+  The same 127 bits hold with final verification's hash calls not counted (only key generation,
+  signing, and the adversary's own calls), which is the stronger statement. Signing requests are
+  capped at `2^64` throughout.
 - **Correctness:** error `0`; a request with an over-long context is always rejected
   ([`Correctness.lean`](SlhDsaSecurity/Statement/Theorems/Correctness.lean)).
 
@@ -53,7 +56,7 @@ the flag one `2^-128` per recorded guess by stalling and redrawing each unreveal
 
 ## Code
 
-For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SlhDsaSecurity/Statement/`](SlhDsaSecurity/Statement/): the scheme, the game in `Security.lean` and `CorrectnessGame.lean`, and the four main theorems in [`Theorems/`](SlhDsaSecurity/Statement/Theorems/).
+For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SlhDsaSecurity/Statement/`](SlhDsaSecurity/Statement/): the scheme, the games in `Security.lean`, `SecurityNoVerify.lean` and `CorrectnessGame.lean`, and the six main theorems in [`Theorems/`](SlhDsaSecurity/Statement/Theorems/).
 
 ## Build
 

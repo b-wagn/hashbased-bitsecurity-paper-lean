@@ -247,6 +247,8 @@ import SlhDsaSecurity.Proof.ShareWhole
 import SlhDsaSecurity.Proof.ShareClaims
 import SlhDsaSecurity.Proof.ShareEvent
 import SlhDsaSecurity.Proof.ShareFinal
+import SlhDsaSecurity.Proof.NoVerifyBudget
+import SlhDsaSecurity.Proof.NoVerifyTarget
 
 
 /--
@@ -17312,3 +17314,75 @@ info: 'SlhDsaSecurity.ShareFinal.hasTotalSecurityBits_strong_127' depends on axi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareFinal.hasTotalSecurityBits_strong_127
+
+/--
+info: 'SlhDsaSecurity.NoVerifyBudget.adversaryImpl_charge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyBudget.adversaryImpl_charge
+
+/--
+info: 'SlhDsaSecurity.NoVerifyBudget.signingOracle_charge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyBudget.signingOracle_charge
+
+/--
+info: 'SlhDsaSecurity.NoVerifyBudget.adversary_verification_eq_zero' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyBudget.adversary_verification_eq_zero
+
+/--
+info: 'SlhDsaSecurity.NoVerifyBudget.verifier_count_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyBudget.verifier_count_le
+
+/--
+info: 'SlhDsaSecurity.NoVerifyBudget.outcome_verification_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyBudget.outcome_verification_le
+
+/--
+info: 'SlhDsaSecurity.NoVerifyBudget.hasTotalBudget_of_noVerify' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyBudget.hasTotalBudget_of_noVerify
+
+/--
+info: 'SlhDsaSecurity.NoVerifyTarget.hsharedCore' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyTarget.hsharedCore
+
+/--
+info: 'SlhDsaSecurity.NoVerifyTarget.hsharedFused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyTarget.hsharedFused
+
+/--
+info: 'SlhDsaSecurity.NoVerifyTarget.warmed_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyTarget.warmed_le
+
+/--
+info: 'SlhDsaSecurity.NoVerifyTarget.hasNoVerifySecurityBits_strong_127' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyTarget.hasNoVerifySecurityBits_strong_127
+
+/--
+info: 'SlhDsaSecurity.NoVerifyTarget.hasNoVerifySecurityBits_standard_127' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.NoVerifyTarget.hasNoVerifySecurityBits_standard_127

@@ -1,5 +1,7 @@
 import SlhDsaSecurity.Statement.Security
+import SlhDsaSecurity.Statement.SecurityNoVerify
 import SlhDsaSecurity.Proof.ShareFinal
+import SlhDsaSecurity.Proof.NoVerifyTarget
 
 /-!
 # Strong unforgeability (SUF-CMA) of SLH-DSA-SHAKE-128s: the theorem
@@ -20,8 +22,18 @@ open Security
 theorem slhDsa_sufCma_total_127 : HasTotalSecurityBits .strong 127 :=
   ShareFinal.hasTotalSecurityBits_strong_127
 
+/-- **The same, with final verification's hash calls not counted.** Key generation, signing and
+the adversary's own calls are charged; any adversary within a total budget is within this one,
+so this is the stronger statement. -/
+theorem slhDsa_sufCma_noVerify_127 : HasNoVerifySecurityBits .strong 127 :=
+  NoVerifyTarget.hasNoVerifySecurityBits_strong_127
+
 /-- info: 'SlhDsaSecurity.slhDsa_sufCma_total_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms slhDsa_sufCma_total_127
+
+/-- info: 'SlhDsaSecurity.slhDsa_sufCma_noVerify_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms slhDsa_sufCma_noVerify_127
 
 end SlhDsaSecurity
