@@ -265,6 +265,7 @@ import SlhDsaSecurity.Proof.ForgetsOn
 import SlhDsaSecurity.Proof.GuessingBar
 import SlhDsaSecurity.Proof.ServingCounted
 import SlhDsaSecurity.Proof.Target127
+import SlhDsaSecurity.Proof.FiredCoverage
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16665,13 +16666,205 @@ info: 'SlhDsaSecurity.Target127.exists_candidate_of_prfHit' depends on axioms: [
 #print axioms SlhDsaSecurity.Target127.exists_candidate_of_prfHit
 
 /--
-info: 'SlhDsaSecurity.Target127.shared_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.Target127.shared_of_parts
-
-/--
 info: 'SlhDsaSecurity.Target127.target_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target127.target_of_parts
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.card_leafPairs_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.card_leafPairs_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.card_helped_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.card_helped_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.succ_pow_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.succ_pow_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.prob_helpedBy_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.prob_helpedBy_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.prob_instance_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.prob_instance_eq
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.tsum_probOutput_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.tsum_probOutput_bind
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.tsum_probOutput_pure' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.tsum_probOutput_pure
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.tsum_padding_set' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.tsum_padding_set
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.probEvent_reach_and_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.probEvent_reach_and_eq
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.probEvent_reach_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.probEvent_reach_eq
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.probEvent_blockRunOf_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.probEvent_blockRunOf_eq
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_const_mul' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_const_mul
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_resample' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_resample
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_mono_index' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_mono_index
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_mono_weight' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_mono_weight
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_le_const' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_le_const
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.prob_thin_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.prob_thin_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_le_const_of_length' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_le_const_of_length
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.mem_leftDisclosures' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.mem_leftDisclosures
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.firedCovered_cases' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.firedCovered_cases
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.tsum_ite_eq_probEvent' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.tsum_ite_eq_probEvent
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.evalDist_parse_pair' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.evalDist_parse_pair
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.tsum_pair_helpedBy_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.tsum_pair_helpedBy_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.tsum_instance_eq_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.tsum_instance_eq_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.cellView_set_self' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.cellView_set_self
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.cellView_set_ne' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.cellView_set_ne
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.tsum_tsum_swap' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.tsum_tsum_swap
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_helped_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_helped_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.reachMass_sameInstance_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.reachMass_sameInstance_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.mem_support_blockRunOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.mem_support_blockRunOf
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.prob_not_goodLeft_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.prob_not_goodLeft_le
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.second_order_constants' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.second_order_constants
+
+/--
+info: 'SlhDsaSecurity.FiredCoverage.prob_firedCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FiredCoverage.prob_firedCovered_le

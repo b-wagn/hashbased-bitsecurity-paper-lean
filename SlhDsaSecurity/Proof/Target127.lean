@@ -25,17 +25,26 @@ so the event is thinned by `2 ^ -128` *on top of* whatever coverage it helps, an
 is second order. The answer half absorbs it inside its own column — that is the answer side's
 obligation below, stated with nothing excluded but the seed guess.
 
-So this socket takes `late := PrfHit`: some query the adversary or the verifier made is a
-`PRF_msg` input at the walk's `SK.prf`. The shared half pays for it at the record entries **not**
-prefixed by `PK.seed` — the only ones that can carry `SK.prf` on a good walk — which are disjoint
-from the aiming part the input half pays at, so the two fit in one record:
-`aiming + candidates ≤ record ≤ q - 2 ^ subtreeHeight`.
+So this socket takes `late := PrfHit ∨ SignerHit`: some query the adversary or the verifier made
+is a `PRF_msg` input at the walk's `SK.prf`, or some signature's randomiser *is* `SK.prf`. The
+second is there because it is what keeps the seed hop's blind game from being blind: when the
+signer's own digest query happens to be a `PRF_msg` input at the real seed, the game reads the
+seed through the signer and not through the adversary.
 
-What is assumed here, stated in the shape each producer will deliver:
+**The shared half is one obligation, not a sum of two, and that is forced.** A guess charge in
+the real order — secret drawn first — is false at the expected count of the real run: an
+adversary that stops guessing once it has hit makes `Pr[hit]` exceed `E[guesses] / 2 ^ 128` by a
+second-order amount, and the ledger has no slack for any amount. The count has to be taken in the
+blind game, where the secret is drawn after the run. Two such charges taken in two blind games
+cannot then be added inside one record: each count is bounded by the record pathwise, but only in
+its own game. So the input half's aiming guesses and the `SK.prf` guesses have to be counted in
+**one** game blind to both, where `aiming + candidates ≤ record` holds pathwise — which is what
+`card_aiming_add_candidates_le_record` is for.
 
-* `hanswer` — the answer half at the carrier tail, with only `PrfHit` excluded;
-* `hclaims` — `InputBullet.ClaimsCharged`, the input half;
-* `hprf` — the seed guess, at the record's candidate part (the game hop's output).
+What is assumed here:
+
+* `hanswer` — the answer half at the carrier tail, with only `late` excluded;
+* `hshared` — the input half and `late`, together, against one record and the forgery's claims.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -55,8 +64,15 @@ walk's `SK.prf`. -/
 def PrfHit (pair : RecordedPair) : Prop :=
   RecordMeetsPrfClass pair.1.1.1.2.1 pair.2
 
-/-- **The defect at the split pair**: the seed guess, read through the recordings' forgetting. -/
-def late (pair : SplitPair) : Prop := PrfHit (forgetRecordings pair)
+/-- **The signer's coincidence**: some signature's randomiser is the walk's `SK.prf`. -/
+def SignerHit (pair : RecordedPair) : Prop :=
+  RandomiserProvenance.SignerHitsSeed pair.1.1.1.2.1 pair.1.1.1.2.2 pair.2.2 pair.2.1.1.1.signed
+
+/-- **The defect at the recorded pair**: the seed guess or the signer's coincidence. -/
+def Late (pair : RecordedPair) : Prop := PrfHit pair ∨ SignerHit pair
+
+/-- **The defect at the split pair**, read through the recordings' forgetting. -/
+def late (pair : SplitPair) : Prop := Late (forgetRecordings pair)
 
 open scoped Classical in
 /-- **The record's `PRF_msg` candidates**: its entries not prefixed by `PK.seed`. -/
@@ -124,85 +140,13 @@ theorem exists_candidate_of_prfHit (pair : RecordedPair) (hgood : GoodWalk pair.
   refine ⟨Multiset.mem_toFinset.mp hinput, fun hseed => hgood.1 ?_⟩
   exact eq_of_seedPrefixed (seedPrefixed_of_prfClass hprf) hseed
 
-/-! ## The shared half, from the input half and the seed charge -/
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **The shared half at any tail that forgets to the recorded one**, from the input half's
-obligation and the seed charge at the candidates, inside one record's worth of the budget. -/
-theorem shared_of_parts (fused : FusedTail) (q : Nat) (adversary : Adversary)
-    (hforget : ForgetsTo fused adversary) (hbudget : HasTotalBudget adversary q)
-    (hclaims : InputBullet.ClaimsCharged adversary)
-    (hprf : Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ PrfHit pair |
-        recordedPairedRun adversary] ≤
-      expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordPrfCandidates pair)) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Pr[fun pair => GoodWalk pair.1 ∧
-        (RoutedSplit.InputBad ((pair.1.1, (FinalAssembly.forgetFused pair.2).1),
-          (FinalAssembly.forgetFused pair.2).2) ∨ late pair) |
-      pairedFused (fused adversary)] ≤
-      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  have hpaired : pairedFused (fused adversary) = pairedOf fused adversary := rfl
-  rw [hpaired]
-  have hmove : Pr[fun pair => GoodWalk pair.1 ∧
-        (RoutedSplit.InputBad ((pair.1.1, (FinalAssembly.forgetFused pair.2).1),
-          (FinalAssembly.forgetFused pair.2).2) ∨ late pair) | pairedOf fused adversary] =
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
-          (RoutedSplit.InputBad (recordedTraceOf pair) ∨ PrfHit pair) |
-        recordedPairedRun adversary] :=
-    probEvent_forget hforget
-      (fun pair : RecordedPair => GoodWalk pair.1 ∧
-        (RoutedSplit.InputBad (recordedTraceOf pair) ∨ PrfHit pair))
-  rw [hmove]
-  have hparts : expected (recordedPairedRun adversary)
-        (fun pair => Multiset.card (recordAiming pair)) +
-      expected (recordedPairedRun adversary)
-        (fun pair => Multiset.card (recordPrfCandidates pair)) ≤
-      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) := by
-    rw [← expected_add]
-    exact expected_le_of_le _ _ _ fun pair hpair =>
-      le_trans (card_aiming_add_candidates_le_record pair)
-        (card_record_le_budget adversary q hbudget hpair)
-  calc Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
-          (RoutedSplit.InputBad (recordedTraceOf pair) ∨ PrfHit pair) |
-        recordedPairedRun adversary]
-      ≤ Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
-            RoutedSplit.InputBad (recordedTraceOf pair) | recordedPairedRun adversary] +
-          Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ PrfHit pair |
-            recordedPairedRun adversary] := by
-        refine le_trans (probEvent_mono (q := fun pair : RecordedPair =>
-          (GoodWalk pair.1 ∧ RoutedSplit.InputBad (recordedTraceOf pair)) ∨
-            (GoodWalk pair.1 ∧ PrfHit pair)) fun pair _ hpair =>
-          hpair.2.imp (fun h => ⟨hpair.1, h⟩) fun h => ⟨hpair.1, h⟩) ?_
-        exact probEvent_or_le _ _ _
-    _ ≤ (expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) +
-        expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordPrfCandidates pair)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) := add_le_add hclaims hprf
-    _ = (expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordAiming pair)) +
-          expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordPrfCandidates pair)) + ((259 : Nat) : ℝ≥0∞)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        rw [ENNReal.div_add_div_same]
-        ring_nf
-    _ ≤ (((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((259 : Nat) : ℝ≥0∞)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-        by gcongr
-    _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-        (congrArg (fun total : ℝ≥0∞ => total / ((2 ^ 128 : Nat) : ℝ≥0∞))
-          (Nat.cast_add (q - 2 ^ subtreeHeight) 259)).symm
-
 /-! ## The target -/
 
 set_option maxHeartbeats 1000000 in
-/-- **`127`, from three obligations.** The answer half at the carrier tail with the seed guess
-excluded and nothing else; the input half; and the seed guess charged at the record's
-`PRF_msg` candidates. The walk's two coincidences, the answer half's constant and the forgery's
-`259` claims share the `2 ^ subtreeHeight` cells key generation pays for. -/
+/-- **`127`, from two obligations.** The answer half at the carrier tail with `late` excluded and
+nothing else; and the input half with `late` against one record's worth of the budget and the
+forgery's `259` claims. The walk's two coincidences and the answer half's constant share the
+`2 ^ subtreeHeight` cells key generation pays for. -/
 theorem target_of_parts (answerDefect : ℝ≥0∞) (defectUnits : Nat)
     (hdefect : defectsAt answerDefect ≤
       ((defectUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
@@ -214,21 +158,23 @@ theorem target_of_parts (answerDefect : ℝ≥0∞) (defectUnits : Nat)
               (FinalAssembly.forgetFused result).2) ∧ ¬ late (walk, result) |
             CarrierTail.carrierTail keep adversary walk] ≤
           (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefect)
-    (hclaims : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      InputBullet.ClaimsCharged adversary)
-    (hprf : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ PrfHit pair |
-          recordedPairedRun adversary] ≤
-        expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordPrfCandidates pair)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞)) :
+    (hshared : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
+      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
+          (RoutedSplit.InputBad (recordedTraceOf pair) ∨ Late pair) |
+        recordedPairedRun adversary] ≤
+        ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
     HasTotalSecurityBits .strong 127 :=
   Obligations.target_of_charges_fused_at answerDefect 259 defectUnits hdefect hfits
     (CarrierTail.carrierTail keep) FinalAssembly.forgetFused late
     (fun adversary walk => CarrierTail.forgetFused_carrierTail keep adversary walk)
     hanswer
-    (fun q adversary _ hbudget => shared_of_parts (CarrierTail.carrierTail keep) q adversary
-      (CarrierTail.forgetsTo keep adversary) hbudget (hclaims q adversary hbudget)
-      (hprf q adversary hbudget))
+    (fun q adversary _ hbudget => by
+      have hpaired : pairedFused (CarrierTail.carrierTail keep adversary) =
+          pairedOf (CarrierTail.carrierTail keep) adversary := rfl
+      rw [hpaired]
+      refine le_trans (le_of_eq ?_) (hshared q adversary hbudget)
+      exact probEvent_forget (CarrierTail.forgetsTo keep adversary)
+        (fun pair : RecordedPair => GoodWalk pair.1 ∧
+          (RoutedSplit.InputBad (recordedTraceOf pair) ∨ Late pair)))
 
 end SlhDsaSecurity.Target127

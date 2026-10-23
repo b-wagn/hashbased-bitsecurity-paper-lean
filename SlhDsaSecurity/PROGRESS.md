@@ -5421,3 +5421,30 @@ record: `aiming + candidates ≤ record ≤ q - 2 ^ subtreeHeight`. That composi
   probes in the weight; needs restating).
 * `hprf` — `Pr[GoodWalk ∧ PrfHit | recordedPairedRun] ≤ E[card recordPrfCandidates] / 2 ^ 128`,
   the seed hop's output (blind order is `RandomiserDeferral.prob_record_meets_prfClass_le`).
+
+### Two corrections to the socket, and the second-order coverage charge
+
+**`hprf` in real order was false**, and the socket no longer takes it. With `SK.prf` drawn first,
+an adversary that stops guessing once a guess has hit makes `Pr[hit]` exceed
+`E[guesses] / 2 ^ 128` by `ε² (1 - ε)`: one signature, a guess `g₁`, stop on a match, else a guess
+`g₂` — the expected number of guesses is `1 + (1 - ε) ^ 2` and the hit probability `ε + ε (1 - ε)`.
+The ledger has no slack for any amount, so a guess charge must be counted in the **blind** game
+(secret drawn after the run). Two such charges in two blind games cannot be added inside one
+record, since each count is pathwise below the record only in its own game; so the input half's
+aiming guesses and the `SK.prf` guesses have to share **one** game blind to both.
+
+**The signer's coincidence belongs in `late`.** When a signature's randomiser is `SK.prf` itself,
+the signer's digest query is a `PRF_msg` input at the real seed and the seed hop's modified game
+reads `SK.prf` through the signer. `late` is now `PrfHit ∨ SignerHit`, and the socket
+(`Target127.target_of_parts`) takes the shared half as one obligation at the recorded pair:
+`Pr[GoodWalk ∧ (InputBad ∨ Late)] ≤ (q - 512 + 259) / 2 ^ 128`.
+
+**`FiredCoverage.prob_firedCovered_le`** is the generic coverage charge the answer half needs: the
+target recording's cells may be covered by the disclosing block *or by other target cells that
+fired* (were later served). Over `NoticingTape.blockRunOf`, with three run hypotheses — suffix
+causality (`hcausal`, cells at or after an index do not decide whether it is reached), one fresh
+`PRF_msg` coin per fired cell (`hthin1`, `2 ^ -128`) and two for two cells (`hthin2`) — it charges
+`2 ^ -126 + E[len] · 2 ^ -129 + rightLength · E[len] · 2 ^ -303`. The first-order term uses the
+sharper load cap `2 ^ 102`; the pair rate is `prob_helpedBy_le` (two uniform views at one instance
+cover each other with probability `≤ 2 ^ -177`). At `rightLength ≤ 2 ^ 128` the fired cells cost
+under `2 ^ -175` per expected target, inside the half unit the sharper cap frees.
