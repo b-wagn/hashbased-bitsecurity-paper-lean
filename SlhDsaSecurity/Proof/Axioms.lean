@@ -265,6 +265,7 @@ import SlhDsaSecurity.Proof.ShareJointBound
 import SlhDsaSecurity.Proof.ShareJointShared
 import SlhDsaSecurity.Proof.WorkFinal
 import SlhDsaSecurity.Proof.AnswerNoRequests
+import SlhDsaSecurity.Proof.RelabelOracle
 
 /--
 info: 'SlhDsaSecurity.Checksum.checksum_le' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -17597,3 +17598,27 @@ info: 'SlhDsaSecurity.AnswerNoRequests.fresh_add_right_le_work' depends on axiom
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerNoRequests.fresh_add_right_le_work
+
+/--
+info: 'SlhDsaSecurity.RelabelOracle.pull_cacheQuery' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RelabelOracle.pull_cacheQuery
+
+/--
+info: 'SlhDsaSecurity.RelabelOracle.randomOracle_pull' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RelabelOracle.randomOracle_pull
+
+/--
+info: 'SlhDsaSecurity.RelabelOracle.step_relabel' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RelabelOracle.step_relabel
+
+/--
+info: 'SlhDsaSecurity.RelabelOracle.run_relabel' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.RelabelOracle.run_relabel
