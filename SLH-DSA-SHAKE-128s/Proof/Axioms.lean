@@ -219,6 +219,7 @@ import «SLH-DSA-SHAKE-128s».Proof.ShareJointBound
 import «SLH-DSA-SHAKE-128s».Proof.ShareJointShared
 import «SLH-DSA-SHAKE-128s».Proof.WorkFinal
 import «SLH-DSA-SHAKE-128s».Proof.Averaging
+import «SLH-DSA-SHAKE-128s».Statement.Scheme
 
 /--
 info: 'SlhDsaSecurity.withinBounds_structural' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -9855,3 +9856,9 @@ info: 'SlhDsaSecurity.WriterState.run_simulateQ_withAddCost' depends on axioms: 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.WriterState.run_simulateQ_withAddCost
+
+/--
+info: 'SlhDsaSecurity.fin_cases_eq_finCases' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.fin_cases_eq_finCases

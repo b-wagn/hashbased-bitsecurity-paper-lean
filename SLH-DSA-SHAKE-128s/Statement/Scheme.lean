@@ -165,6 +165,17 @@ structure Signature where
   hypertree : HypertreeSignature
 deriving DecidableEq
 
+/-- `Fin.cases` by direct matching. Core's goes through `Fin.induction`, which evaluates its
+unused argument, so compiled nested uses take exponential time; `@[csimp]` swaps it in. -/
+def finCases {n : Nat} {motive : Fin (n + 1) → Sort _} (zero : motive 0)
+    (succ : ∀ i : Fin n, motive i.succ) : ∀ i, motive i
+  | ⟨0, hi⟩ => by rwa [Fin.mk_zero]
+  | ⟨i + 1, hi⟩ => succ ⟨i, Nat.lt_of_succ_lt_succ hi⟩
+
+@[csimp] theorem fin_cases_eq_finCases : @Fin.cases = @finCases := by
+  funext n motive zero succ i
+  rcases i with ⟨_ | i, hi⟩ <;> rfl
+
 /-- Run the indexed computations in increasing order. -/
 def sequenceFin {m : Type → Type} [Monad m] {α : Type} :
     (size : Nat) → (Fin size → m α) → m (Fin size → α)

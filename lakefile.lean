@@ -13,3 +13,7 @@ lean_lib Xmss
 @[default_target]
 lean_lib «SLH-DSA-SHAKE-128s» where
   globs := #[.submodules `«SLH-DSA-SHAKE-128s»]
+
+/-- Runs the specification on NIST's ACVP vectors: `lake exe slh-dsa-kat`. -/
+lean_exe «slh-dsa-kat» where
+  root := `«SLH-DSA-SHAKE-128s».Test.Run
