@@ -138,7 +138,10 @@ def HasSecurityBits (Z : Finset Xmss.Unforgeability.QueryKind) (bits : Nat) : Pr
     securityGame.HasQueryBound () Z adversary q →
     securityGame.advantage () adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
 
-/-- The adversary's own work: signing requests, its hash calls and verifying its forgery. -/
+/-- The adversary's work is the sum of:
+- its signing requests (+1 per request, at most `2^64`),
+- its hash calls (+1 per call it makes to the random oracle),
+- the hash calls of verifying its forgery (+1 per call). -/
 def adversaryWork : Finset Xmss.Unforgeability.QueryKind := {.sign, .hash, .verifier}
 
 end SlhDsaSecurity.Security
