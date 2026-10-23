@@ -285,6 +285,7 @@ import SlhDsaSecurity.Proof.ShareSignCongr
 import SlhDsaSecurity.Proof.ShareBlindFacts
 import SlhDsaSecurity.Proof.ShareBound
 import SlhDsaSecurity.Proof.SharePresent
+import SlhDsaSecurity.Proof.ShareRealCap
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18425,3 +18426,39 @@ info: 'SlhDsaSecurity.SharePresent.linkedRun_eq' depends on axioms: [propext, Cl
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharePresent.linkedRun_eq
+
+/--
+info: 'SlhDsaSecurity.ShareRealCap.answer_isSome' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareRealCap.answer_isSome
+
+/--
+info: 'SlhDsaSecurity.ShareRealCap.exists_of_mem_support_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareRealCap.exists_of_mem_support_map
+
+/--
+info: 'SlhDsaSecurity.ShareRealCap.reportsCost_real' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareRealCap.reportsCost_real
+
+/--
+info: 'SlhDsaSecurity.ShareRealCap.evalDist_realFlat_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareRealCap.evalDist_realFlat_cap
+
+/--
+info: 'SlhDsaSecurity.ShareRealCap.exists_recordedTail_of_linked' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareRealCap.exists_recordedTail_of_linked
+
+/--
+info: 'SlhDsaSecurity.ShareRealCap.cost_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareRealCap.cost_le_of_budget
