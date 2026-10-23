@@ -41,7 +41,7 @@ theorem reassociate_stopServingOn
       FusedTape.onCarrier ServedAgreement.stopServingOn (reassociate state) := rfl
 
 /-- The value the tail reads, with the final count taken off the carrier. -/
-def tailValue (keys : (SecretKey × PublicKey)) (forgery : Forgery)
+def tailValue (_keys : (SecretKey × PublicKey)) (forgery : Forgery)
     (accumulated : Multiplicative Tally) (log : SigningLog)
     (final : Bool × Tally) (carrier : Counted) :
     (Outcome × Multiset Bytes) × Nat :=

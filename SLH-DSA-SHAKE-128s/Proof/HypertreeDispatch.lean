@@ -89,6 +89,7 @@ Stepping over a layer advances the message to that layer's replayed root, which 
 `CacheReplay.run_eq_replay` identifies with the root the oracle run actually produced. -/
 
 open CacheReplay in
+omit [HasQuery HashSpec Id] in
 /-- Descend into this layer. -/
 theorem queriesUnder_rootFromSignature_head (cache : QueryCache HashSpec) (publicSeed : Digest)
     (remaining : Nat) (signatures : Fin (remaining + 1) → XmssSignature) (layer tree : Nat)
@@ -102,6 +103,7 @@ theorem queriesUnder_rootFromSignature_head (cache : QueryCache HashSpec) (publi
   queriesUnder_bind cache _ _ probe hquery
 
 open CacheReplay in
+omit [HasQuery HashSpec Id] in
 /-- Step over this layer to the next, advancing the message to this layer's replayed root. -/
 theorem queriesUnder_rootFromSignature_tail (cache : QueryCache HashSpec) (publicSeed : Digest)
     (remaining : Nat) (signatures : Fin (remaining + 1) → XmssSignature) (layer tree : Nat)

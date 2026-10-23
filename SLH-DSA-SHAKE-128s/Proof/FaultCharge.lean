@@ -381,7 +381,7 @@ theorem deviatingCollision_or_residue_of_fault {α : Type}
         hcache)
       intro probe hprobe
       exact hcached probe (@HypertreeDispatch.queriesUnder_rootFromSignature_head
-        (CacheReplay.replayQuery cache) cache publicSeed remaining signatures layer tree leaf
+        cache publicSeed remaining signatures layer tree leaf
         message probe hprobe)
     · exact Or.inr (Or.inl hwots)
     · have hstep : ∀ probe, QueriesUnder cache
@@ -393,7 +393,7 @@ theorem deviatingCollision_or_residue_of_fault {α : Type}
               (SlhDsaSecurity.Hypertree.address layer tree))) probe → cache probe ≠ none := by
         intro probe hprobe
         refine hcached probe (@HypertreeDispatch.queriesUnder_rootFromSignature_tail
-          (CacheReplay.replayQuery cache) cache publicSeed remaining signatures layer tree leaf
+          cache publicSeed remaining signatures layer tree leaf
           message probe ?_)
         rwa [@VerifierNaturality.merkle_simulate Id Id.instMonad _ (CacheReplay.replay cache)
           (CacheReplay.replayQuery cache) (replay_agrees cache) leaf (signatures 0) message

@@ -146,7 +146,7 @@ theorem queriesUnder_root_chain (cache : QueryCache HashSpec) (publicSeed : Dige
     intro signatures layer tree leaf message i chain hdigit
     induction i using Fin.cases with
     | zero =>
-      refine @HypertreeDispatch.queriesUnder_rootFromSignature_head (replayQuery cache) cache publicSeed remaining
+      refine @HypertreeDispatch.queriesUnder_rootFromSignature_head cache publicSeed remaining
         signatures layer tree leaf message _ ?_
       refine FaultCharge.queriesUnder_merkle_wots cache leaf (signatures 0) message publicSeed _ _ ?_
       have h := FaultCharge.queriesUnder_wots_chain cache (signatures 0).wots message publicSeed
@@ -156,7 +156,7 @@ theorem queriesUnder_root_chain (cache : QueryCache HashSpec) (publicSeed : Dige
           omega)
       exact h
     | succ j =>
-      refine @HypertreeDispatch.queriesUnder_rootFromSignature_tail (replayQuery cache) cache publicSeed remaining
+      refine @HypertreeDispatch.queriesUnder_rootFromSignature_tail cache publicSeed remaining
         signatures layer tree leaf message _ ?_
       rw [← ShareClaims.merkle_replay]
       exact ih (fun k => signatures k.succ) (layer + 1) (tree / 2 ^ subtreeHeight)

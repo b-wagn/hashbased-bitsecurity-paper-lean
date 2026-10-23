@@ -89,7 +89,7 @@ theorem deviatingCollision_of_leafCollision_canonical {α : Type}
     StructuralTerm.DeviatingCollision publicSeed
       (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
   have hindex : index.val < forsTrees * 2 ^ (forsHeight - (0 : Fin (forsHeight + 1)).val) := by
-    simpa using index.isLt
+    simp
   refine deviatingCollision_of_leafCollision publicSeed secretSeed
     (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) cache
     (.forsTree key 0 ⟨index.val, hindex⟩) (.structural (.forsPrf key index))

@@ -104,7 +104,7 @@ theorem grows_clearFraming (state : State) : Grows state (clearFraming state) :=
   grows_of_framing state none
 
 theorem grows_file (state : State) (input : Bytes) : Grows state (file state input) :=
-  ⟨fun _ _ h => h, fun probe hprobe => Multiset.mem_cons_of_mem hprobe⟩
+  ⟨fun _ _ h => h, fun _ hprobe => Multiset.mem_cons_of_mem hprobe⟩
 
 theorem grows_cacheAnswer (state : State) (input : Bytes) (answer : HashOutput)
     (hfresh : state.cache input = none) : Grows state (cacheAnswer state input answer) := by

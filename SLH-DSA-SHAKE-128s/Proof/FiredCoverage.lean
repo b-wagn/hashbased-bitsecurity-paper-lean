@@ -16,7 +16,6 @@ together with the target cells that **fired**: cells whose input a later signatu
 charge is
 
     Pr[¬ good block] + E[length] · 2 ^ -129 + E[length] · rightLength · 2 ^ -303,
-
 so at any `rightLength ≤ 2 ^ 128` the fired cells cost a sliver of the half unit the sharper
 load cap (`2 ^ 102`) leaves free.
 
@@ -159,9 +158,9 @@ theorem prob_helpedBy_le (revealed : Disclosures) (loads : Instance → Nat)
       _ ≤ 2 ^ 285 := by norm_num
   rw [probEvent_uniformSample]
   have hcard : Fintype.card (View × View) = 2 ^ 462 := by
-    simp only [View, Instance, ForsCoverage.Tree, Leaf, MessageDigest.View,
-      MessageDigest.Instance, MessageDigest.ForsTree, MessageDigest.ForsLeaf, Fintype.card_prod,
-      Fintype.card_fun, Fintype.card_fin, totalHeight, forsHeight, forsTrees]
+    simp only [View, MessageDigest.View,
+      MessageDigest.Instance, MessageDigest.ForsTree, MessageDigest.ForsLeaf,
+      totalHeight, forsHeight, forsTrees]
     norm_num
   rw [hcard]
   calc ((Finset.univ.filter fun pair : View × View => HelpedBy revealed pair.1 pair.2).card :
@@ -193,12 +192,12 @@ theorem prob_instance_eq (index : Instance) :
     rw [hset, Finset.card_image_of_injective _ (fun left right h => (Prod.mk.inj h).2),
       Finset.card_univ]
     simp only [ForsCoverage.Tree, Leaf, MessageDigest.ForsTree, MessageDigest.ForsLeaf,
-      Fintype.card_fun, Fintype.card_fin, forsHeight, forsTrees]
+      forsHeight, forsTrees]
     norm_num
   have hcard : Fintype.card View = 2 ^ 231 := by
-    simp only [View, Instance, ForsCoverage.Tree, Leaf, MessageDigest.View,
-      MessageDigest.Instance, MessageDigest.ForsTree, MessageDigest.ForsLeaf, Fintype.card_prod,
-      Fintype.card_fun, Fintype.card_fin, totalHeight, forsHeight, forsTrees]
+    simp only [View, MessageDigest.View,
+      MessageDigest.Instance, MessageDigest.ForsTree, MessageDigest.ForsLeaf,
+      totalHeight, forsHeight, forsTrees]
     norm_num
   rw [hcount, hcard]
   apply le_of_eq
@@ -515,7 +514,7 @@ theorem evalDist_parse_pair :
       (do let left ← MessageDigest.parse <$> ($ᵗ HashOutput : ProbComp HashOutput)
           let right ← MessageDigest.parse <$> ($ᵗ HashOutput : ProbComp HashOutput)
           pure (left, right)) := by
-    simp only [map_bind, map_pure, map_eq_bind_pure_comp, bind_assoc, pure_bind,
+    simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
       Function.comp_def]
   rw [hshape, evalDist_bind, evalDist_parse_uniform, evalDist_bind]
   refine congrArg _ (funext fun left => ?_)

@@ -762,7 +762,7 @@ theorem threeStage_blockRunOf_snd (leftKeep rightKeep : Bytes → σ → Prop)
         threeStageTapeRun leftKeep rightKeep inner before afterMap first phase last value cache
           leftRecord rightRecord leftTape rightTape := by
   rw [NoticingTape.blockRunOf]
-  simp only [map_bind, Functor.map_map, Function.comp_def, id_map']
+  simp only [map_bind, Functor.map_map, id_map']
 
 /-- **The law, in the shape the charge reads.** -/
 theorem evalDist_threeStageHandlerRun_eq (leftKeep rightKeep : Bytes → σ → Prop)

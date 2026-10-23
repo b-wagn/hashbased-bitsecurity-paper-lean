@@ -45,6 +45,7 @@ def targetKeep (narrow : Bytes → σ → Prop) (served : Bytes → σ → Prop)
     Bytes → σ → Prop :=
   fun input view => narrow input view ∧ ¬ served input view
 
+omit [CacheView σ] in
 /-- The right test keeps the narrowed class. -/
 theorem targetKeep_narrow (narrow : Bytes → σ → Prop) (served : Bytes → σ → Prop)
     (input : Bytes) (view : σ) (hkeep : targetKeep narrow served input view) :

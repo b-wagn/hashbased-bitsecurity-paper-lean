@@ -146,7 +146,7 @@ theorem forgeryDisclosedCovered_or_only_self (pk : PublicKey)
     (hentry : result.2 (Hashing.messageInput parsed.randomizer pk message) = some answer)
     (hfresh : ¬ ServedLog.servedLog pk result
       (Hashing.messageInput parsed.randomizer pk message))
-    (hsigned : ∀ tree : MessageDigest.ForsTree,
+    (_hsigned : ∀ tree : MessageDigest.ForsTree,
       GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree ∈
         ServedLog.disclosedByLog pk result (SplitCharged.forsKeyOfDigest answer)) :
     ForgeryDisclosedCovered pk result ∨

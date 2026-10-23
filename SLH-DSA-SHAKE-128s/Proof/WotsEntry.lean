@@ -52,7 +52,7 @@ theorem queriesUnder_chain (cache : QueryCache HashSpec) (publicSeed : Digest)
             { address with hashOrIndex := BitVec.ofNat 32 start } (bytesBE n value))) >>=
             (fun answer => SlhDsaSecurity.Wots.chain (m := OracleComp HashSpec) publicSeed
               address (start + 1) remaining (Hashing.truncate answer)) from by
-        simp [SlhDsaSecurity.Wots.chain, Hashing.tweakable, Hashing.shortHash, bind_assoc]]
+        simp [SlhDsaSecurity.Wots.chain, Hashing.tweakable, Hashing.shortHash]]
       refine QueriesUnder.tail _ _ _ ?_
       simp only [SlhDsaSecurity.Wots.chain, replayFold_step_eq_tweakable] at hstep ⊢
       exact hstep

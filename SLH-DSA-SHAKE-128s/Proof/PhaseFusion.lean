@@ -79,7 +79,7 @@ theorem run_fuse {α : Type} (outer : QueryImpl OracleWorld (StateT S ProbComp))
       simulateQ_bind, StateT.run_bind, map_bind]
     refine bind_congr fun step => ?_
     rw [pure_bind, ih step.1.1.1 (accumulated * step.1.1.2) step.1.2 step.2]
-    simp only [StateT.run_map, simulateQ_map, Functor.map_map, Function.comp_def, mul_assoc]
+    simp only [StateT.run_map, simulateQ_map, Functor.map_map, mul_assoc]
 
 /-! ## What it is for
 
@@ -120,6 +120,6 @@ theorem run_phase_fused {α : Type} (outer : QueryImpl OracleWorld (StateT S Pro
         (((step.1, step.2.1), step.2.2.1), step.2.2.2)) <$>
         (simulateQ (fuse outer inner) computation).run (1, log, state) := by
   rw [run_fuse outer inner computation 1 log state, Functor.map_map]
-  simp [Function.comp_def, one_mul]
+  simp [one_mul]
 
 end SlhDsaSecurity.PhaseFusion

@@ -249,7 +249,7 @@ its own digest input. Everything run-level below is these two under an induction
 sub-run is the signer followed by a log append, and the append is pure. -/
 theorem state_of_bind_pure {α β : Type} (pk : PublicKey)
     {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (hfiles : Files pk impl)
+    (_hfiles : Files pk impl)
     (computation : OracleComp OracleWorld α) (tail : α → β) (state : (HandlerCarrier.State × τ))
     (result : β × (HandlerCarrier.State × τ))
     (hresult : result ∈ support ((simulateQ impl
@@ -398,7 +398,7 @@ theorem randomizer_of_signInternalAt {σ : Type} (impl : QueryImpl OracleWorld (
 randomiser the final cache replays. -/
 def SignerFaithful (pk : PublicKey)
     {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (hfiles : Files pk impl)
+    (_hfiles : Files pk impl)
     (sk : SecretKey) (signer : Message → OracleComp OracleWorld (Option Bytes)) : Prop :=
   ∀ (request : Message) (framed : Bytes), request.frame = some framed →
     ∀ (state : (HandlerCarrier.State × τ)) (result : Option Bytes × (HandlerCarrier.State × τ)),
@@ -734,7 +734,7 @@ theorem servedLog_signer (pk : PublicKey)
     {τ : Type} (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
     (hfiles : Files pk impl)
     (signer : Message → OracleComp OracleWorld (Option Bytes)) (sk : SecretKey)
-    (hpk : sk.publicKey = pk) (hshape : SignerShape sk signer)
+    (hpk : sk.publicKey = pk) (_hshape : SignerShape sk signer)
     (warm : QueryCache HashSpec) (hpins : SignerPins sk warm signer)
     (request : Message) (framed : Bytes) (hframe : request.frame = some framed)
     (state : (HandlerCarrier.State × τ)) (hframing : state.1.framing = some framed)
@@ -785,10 +785,10 @@ theorem servedClear_run {α : Type} (pk : PublicKey)
   (hfiles.invariant
     (fun carrier => carrier.framing = none ∧
       ∀ p : Bytes, HandlerCarrier.Served carrier p → HandlerCarrier.Served state.1 p)
-    (fun carrier input answer hinv => ⟨hinv.1, hinv.2⟩)
+    (fun _ _ _ hinv => ⟨hinv.1, hinv.2⟩)
     (fun carrier input hinv hfiles =>
       absurd hfiles (HandlerCarrier.not_filesLeft_of_clear pk carrier hinv.1 input))
-    computation state result hresult ⟨hclear, fun p hp => hp⟩).2 probe hserved
+    computation state result hresult ⟨hclear, fun _ hp => hp⟩).2 probe hserved
 
 /-- **What a run leaves true of its carrier and its log**, read at any cache the carrier's own
 extends. -/

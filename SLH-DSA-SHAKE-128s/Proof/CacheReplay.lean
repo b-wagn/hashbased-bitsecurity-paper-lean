@@ -154,13 +154,13 @@ entries, which is what the structural charge quantifies over — so an accepted 
 collisions can be read off the cache the game itself left behind. -/
 
 /-- The `HasQuery` instance that answers from a finished cache. -/
-def replayQuery (cache : QueryCache HashSpec) : HasQuery HashSpec Id :=
+@[reducible] def replayQuery (cache : QueryCache HashSpec) : HasQuery HashSpec Id :=
   ⟨fun input => ((cache input).getD default : Id HashOutput)⟩
 
 theorem hash_replayQuery (cache : QueryCache HashSpec) (input : Bytes) (output : HashOutput)
     (hentry : cache input = some output) :
     @Hashing.hash Id (replayQuery cache) input = output := by
-  simp [Hashing.hash, replayQuery, hentry]
+  simp [Hashing.hash, hentry]
 
 /-- A tweakable call reads the truncation of the cached answer at its own byte input. -/
 theorem tweakable_replayQuery (cache : QueryCache HashSpec) (publicSeed : Digest)
@@ -168,15 +168,15 @@ theorem tweakable_replayQuery (cache : QueryCache HashSpec) (publicSeed : Digest
     (hentry : cache (Hashing.tweakableInput publicSeed address payload) = some output) :
     @Hashing.tweakable Id _ (replayQuery cache) publicSeed address payload =
       Hashing.truncate output := by
-  simp only [Hashing.tweakable, Hashing.shortHash, Hashing.hash, replayQuery, hentry,
-    Option.getD_some]
+  simp only [Hashing.tweakable, Hashing.shortHash, Hashing.hash
+    ]
   simp [Functor.map, hentry]
 
 /-- The same for a bare `shortHash`, which the FORS compression collision is stated with. -/
 theorem shortHash_replayQuery (cache : QueryCache HashSpec) (input : Bytes)
     (output : HashOutput) (hentry : cache input = some output) :
     @Hashing.shortHash Id _ (replayQuery cache) input = Hashing.truncate output := by
-  simp only [Hashing.shortHash, Hashing.hash, replayQuery, hentry, Option.getD_some]
+  simp only [Hashing.shortHash, Hashing.hash]
   simp [Functor.map, hentry]
 
 /-! ## Which inputs a replayed run has cached
@@ -267,7 +267,7 @@ theorem queriesUnder_shortHash {α : Type} (cache : QueryCache HashSpec) (input 
   rw [show (Hashing.shortHash (m := OracleComp HashSpec) input) >>= next =
       (Hashing.hash (m := OracleComp HashSpec) input) >>=
         (fun answer => next (Hashing.truncate answer)) from by
-    simp [Hashing.shortHash, bind_assoc]]
+    simp [Hashing.shortHash]]
   exact queriesUnder_hash cache input _
 
 /-- A tweakable call consults the byte input it is built from. -/
@@ -312,7 +312,7 @@ theorem queriesUnder_foldlM_tail {ι : Type} (cache : QueryCache HashSpec)
         (fun value => xs.foldlM (fun v i => Hashing.shortHash (inputOf v i)) value) =
       (Hashing.hash (m := OracleComp HashSpec) (inputOf init x)) >>=
         (fun answer => xs.foldlM (fun v i => Hashing.shortHash (inputOf v i))
-          (Hashing.truncate answer)) from by simp [Hashing.shortHash, bind_assoc]]
+          (Hashing.truncate answer)) from by simp [Hashing.shortHash]]
   exact QueriesUnder.tail (inputOf init x) probe _ hquery
 
 /-! ## Peeling to arbitrary depth
@@ -373,7 +373,7 @@ theorem replayFold_step_eq_tweakable (cache : QueryCache HashSpec) (publicSeed :
     (address : Address) (payload : Bytes) :
     Hashing.truncate (replay cache (Hashing.tweakableInput publicSeed address payload)) =
       @Hashing.tweakable Id _ (replayQuery cache) publicSeed address payload := by
-  simp [Hashing.tweakable, Hashing.shortHash, Hashing.hash, replayQuery, replay, Functor.map]
+  simp [Hashing.tweakable, Hashing.shortHash, Hashing.hash, replay, Functor.map]
 
 /-! ## Matching the two folds' index types
 

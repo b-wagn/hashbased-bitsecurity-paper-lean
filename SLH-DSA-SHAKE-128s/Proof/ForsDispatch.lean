@@ -284,6 +284,7 @@ siblings — so a signature with no collision anywhere is the signature `Fors.si
 merely one whose secrets agree with it. Reading it that way is what lets a canonical FORS part
 be compared with the part a signing request returned. -/
 
+omit [HasQuery HashSpec Id] in
 /-- The honest authentication index, as the extraction names it and as the signer computes it:
 the sibling of the selected leaf at that height, offset by the tree. -/
 theorem fors_auth_index (indices : SlhDsaSecurity.Fors.Indices) (i : Fin forsTrees)

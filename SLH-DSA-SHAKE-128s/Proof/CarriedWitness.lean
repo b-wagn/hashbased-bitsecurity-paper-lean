@@ -79,7 +79,7 @@ theorem filesLeft_servingNotice (state : State) (input probe : Bytes) :
 
 open scoped Classical in
 /-- The carrier as a recorder state, with the signing oracle's own notice. -/
-noncomputable def servingView : CacheView State where
+@[reducible] noncomputable def servingView : CacheView State where
   cacheOf := cacheOf
   update := cacheAnswer
   onQuery := servingNotice pk

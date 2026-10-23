@@ -213,7 +213,7 @@ index divided by the height's power of two, which is how `Fin` is built below. -
 /-- **The path branch of a layer collision is charged.** -/
 theorem deviatingCollision_of_pathBranch {α : Type} (secretSeed publicSeed : Digest)
     (cache : QueryCache HashSpec) (location : Tree) (leafIndex : Nat)
-    (hleafIndex : leafIndex < 2 ^ subtreeHeight) (leaf : Digest) (siblings : Nat → Digest)
+    (_hleafIndex : leafIndex < 2 ^ subtreeHeight) (leaf : Digest) (siblings : Nat → Digest)
     (pathHeight : Fin subtreeHeight)
     (hcollision : BinaryPath.Collision
       (@SlhDsaSecurity.Merkle.node Id _ (CacheReplay.replayQuery cache) secretSeed publicSeed

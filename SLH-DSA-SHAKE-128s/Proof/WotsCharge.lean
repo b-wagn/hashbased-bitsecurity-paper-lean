@@ -201,7 +201,7 @@ the chain from the derived secret, which is the form the charge takes. -/
 theorem deviatingCollision_of_chainBranch {α : Type} (secretSeed publicSeed message : Digest)
     (cache : QueryCache HashSpec) (key : WotsKey) (chainIndex : Fin chains)
     (forged : Digest) (offset : Nat)
-    (hoffset : offset < w - 1 - (Checksum.encode message chainIndex).val)
+    (_hoffset : offset < w - 1 - (Checksum.encode message chainIndex).val)
     (hcollision : @Wots.ChainCollision (CacheReplay.replayQuery cache) publicSeed
       { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val }
       (Checksum.encode message chainIndex).val forged

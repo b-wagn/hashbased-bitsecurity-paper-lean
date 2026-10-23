@@ -145,7 +145,7 @@ theorem run_addCost_query_bind {ι : Type} {spec : OracleSpec ι} {ω : Type} [A
           (simulateQ (addCostOracle cost) (next answer)).run := by
   simp only [simulateQ_bind, simulateQ_spec_query, addCostOracle, QueryImpl.withAddCost,
     QueryImpl.withCost]
-  simp [Functor.map_map, map_bind, bind_map_left]
+  simp [map_bind, bind_map_left]
 
 set_option maxHeartbeats 1000000 in
 /-- **The phase's three layers are one handler.** -/

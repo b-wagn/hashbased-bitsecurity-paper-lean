@@ -52,8 +52,8 @@ theorem withinBounds_structural (parent : StructuralNode) : WithinBounds parent.
   cases parent with
   | wotsPrf key chain =>
     simp only [WithinBounds, StructuralNode.address, Tree.address, WotsKey.address,
-      ForsKey.address, Hypertree.address, Merkle.wotsAddress, Merkle.nodeAddress,
-      Fors.secretAddress, Fors.nodeAddress, Wots.secretAddress, Wots.publicKeyAddress,
+      Hypertree.address, Merkle.wotsAddress,
+      Wots.secretAddress,
       Address.setTypeAndClear]
     refine ⟨hlayer key.tree, htree key.tree, hleaf key.leaf, ?_, by simp⟩
     have hlt : chain.val < 2 ^ 6 := by
@@ -64,8 +64,7 @@ theorem withinBounds_structural (parent : StructuralNode) : WithinBounds parent.
     exact hlt
   | wotsHash key chain step =>
     simp only [WithinBounds, StructuralNode.address, Tree.address, WotsKey.address,
-      ForsKey.address, Hypertree.address, Merkle.wotsAddress, Merkle.nodeAddress,
-      Fors.secretAddress, Fors.nodeAddress, Wots.secretAddress, Wots.publicKeyAddress,
+      Hypertree.address, Merkle.wotsAddress,
       Address.setTypeAndClear]
     refine ⟨hlayer key.tree, htree key.tree, hleaf key.leaf, ?_, ?_⟩
     · have hlt : chain.val < 2 ^ 6 := by
@@ -82,14 +81,13 @@ theorem withinBounds_structural (parent : StructuralNode) : WithinBounds parent.
       exact hlt
   | wotsPk key =>
     simp only [WithinBounds, StructuralNode.address, Tree.address, WotsKey.address,
-      ForsKey.address, Hypertree.address, Merkle.wotsAddress, Merkle.nodeAddress,
-      Fors.secretAddress, Fors.nodeAddress, Wots.secretAddress, Wots.publicKeyAddress,
+      Hypertree.address, Merkle.wotsAddress,
+      Wots.publicKeyAddress,
       Address.setTypeAndClear]
     exact ⟨hlayer key.tree, htree key.tree, hleaf key.leaf, by simp, by simp⟩
   | tree location height index =>
-    simp only [WithinBounds, StructuralNode.address, Tree.address, WotsKey.address,
-      ForsKey.address, Hypertree.address, Merkle.wotsAddress, Merkle.nodeAddress,
-      Fors.secretAddress, Fors.nodeAddress, Wots.secretAddress, Wots.publicKeyAddress,
+    simp only [WithinBounds, StructuralNode.address, Tree.address,
+      Hypertree.address, Merkle.nodeAddress,
       Address.setTypeAndClear]
     refine ⟨hlayer location, htree location, by simp, ?_, ?_⟩
     · have hlt : height.val + 1 < 2 ^ 6 := by
@@ -106,9 +104,9 @@ theorem withinBounds_structural (parent : StructuralNode) : WithinBounds parent.
       rw [ofNat_toNat_of_lt (by omega)]
       exact hlt
   | forsPrf key index =>
-    simp only [WithinBounds, StructuralNode.address, Tree.address, WotsKey.address,
-      ForsKey.address, Hypertree.address, Merkle.wotsAddress, Merkle.nodeAddress,
-      Fors.secretAddress, Fors.nodeAddress, Wots.secretAddress, Wots.publicKeyAddress,
+    simp only [WithinBounds, StructuralNode.address,
+      ForsKey.address, Hypertree.address,
+      Fors.secretAddress,
       Address.setTypeAndClear]
     refine ⟨by simp, ?_, hleaf key.leaf, by simp, ?_⟩
     · have hlt : key.tree.val < 2 ^ 54 := by
@@ -123,9 +121,9 @@ theorem withinBounds_structural (parent : StructuralNode) : WithinBounds parent.
       rw [ofNat_toNat_of_lt (by omega)]
       exact hlt
   | forsTree key height index =>
-    simp only [WithinBounds, StructuralNode.address, Tree.address, WotsKey.address,
-      ForsKey.address, Hypertree.address, Merkle.wotsAddress, Merkle.nodeAddress,
-      Fors.secretAddress, Fors.nodeAddress, Wots.secretAddress, Wots.publicKeyAddress,
+    simp only [WithinBounds, StructuralNode.address,
+      ForsKey.address, Hypertree.address,
+      Fors.nodeAddress,
       Address.setTypeAndClear]
     refine ⟨by simp, ?_, hleaf key.leaf, ?_, ?_⟩
     · have hlt : key.tree.val < 2 ^ 54 := by
@@ -149,9 +147,8 @@ theorem withinBounds_structural (parent : StructuralNode) : WithinBounds parent.
       rw [ofNat_toNat_of_lt (by omega)]
       exact hlt
   | forsRoots key =>
-    simp only [WithinBounds, StructuralNode.address, Tree.address, WotsKey.address,
-      ForsKey.address, Hypertree.address, Merkle.wotsAddress, Merkle.nodeAddress,
-      Fors.secretAddress, Fors.nodeAddress, Wots.secretAddress, Wots.publicKeyAddress,
+    simp only [WithinBounds, StructuralNode.address,
+      ForsKey.address, Hypertree.address,
       Address.setTypeAndClear]
     refine ⟨by simp, ?_, hleaf key.leaf, by simp, by simp⟩
     have hlt : key.tree.val < 2 ^ 54 := by

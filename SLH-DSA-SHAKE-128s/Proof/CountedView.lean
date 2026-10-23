@@ -38,7 +38,7 @@ def reassociate (state : HandlerCarrier.State ×
 open scoped Classical in
 /-- **The carrier-with-counter as a cache view.** The notice bumps the counter, which is what
 `withCount` does on a hash query and the only thing it does. -/
-noncomputable def countedView (pk : PublicKey) : CacheView Counted where
+@[reducible] noncomputable def countedView (pk : PublicKey) : CacheView Counted where
   cacheOf := fun state => state.1.cache
   update := fun state input answer => (HandlerCarrier.cacheAnswer state.1 input answer, state.2)
   onQuery := fun state input => (servingNotice pk state.1 input, state.2 + 1)
@@ -94,7 +94,7 @@ theorem step_counted (pk : PublicKey) (rightKeep : Bytes → HandlerCarrier.Stat
           (servingNotice pk state.1 input, state.2.1) hcached,
         @recorderOf_run_inr_none Counted (countedView pk) _ _ input
           ((servingNotice pk state.1 input, state.2.2 + 1), state.2.1) hcached]
-      simp only [map_bind, Functor.map_map, bind_assoc, pure_bind, Function.comp_def, map_pure]
+      simp only [map_bind, map_pure]
       rfl
 
 open scoped Classical in

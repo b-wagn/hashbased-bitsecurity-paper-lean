@@ -259,7 +259,7 @@ theorem run_liftM_probComp {γ : Type} (sample : ProbComp γ) (cache : QueryCach
   | pure value => simp [simulateQ_pure, StateT.run_pure, map_pure]
   | query_bind coin next ih =>
     simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, ih,
-      map_eq_bind_pure_comp, Function.comp_def, bind_assoc, pure_bind]
+      map_eq_bind_pure_comp, Function.comp_def, bind_assoc]
     rfl
 
 /-- **The warmup may be inserted after the seeds are sampled.** -/
