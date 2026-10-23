@@ -1,7 +1,7 @@
 # XMSS and SLH-DSA bit security in Lean 4
 
 Machine-checked correctness, security proofs, and attacks for target-sum and checksum XMSS, and
-a 127-bit strong-unforgeability proof for SLH-DSA-SHAKE-128s, using
+a 127-bit strong-unforgeability proof for SLH-DSA-128s, using
 [VCVio](https://github.com/Verified-zkEVM/VCVio).
 
 ## XMSS
@@ -27,23 +27,26 @@ Exact integer security levels for all 16 counting modes containing direct hash q
 
 **Correctness:** error at most `2^-256` for target sum and `0` for checksum.
 
-## SLH-DSA-SHAKE-128s
+## SLH-DSA-128s
 
-[`SlhDsaSecurity/`](SlhDsaSecurity/) formalizes FIPS 205 SLH-DSA at the 128s parameter set
+[`SLH-DSA-128s/`](SLH-DSA-128s/) formalizes pure FIPS 205 SLH-DSA at the 128s parameter set
 (`n = 16`, `h = 63`, `d = 7`, `h' = 9`, `a = 12`, `k = 14`, `w = 16`) with deterministic signing,
-byte-level addresses, the checksum, and the standard 7856-byte signature encoding, all sharing one
-lazily sampled random oracle.
+the SHAKE instantiation's input formats and 32-byte addresses, the checksum, and the standard
+7856-byte signature encoding. Every hash function is idealized as one shared, lazily sampled
+random oracle.
 
 **Strong unforgeability, 127 bits:** `Pr[win] ≤ q / 2^127` for every adversary whose work is
 at most `q ≥ 1` with probability one, where the game is an `Xmss.SecurityGame` counting hash
 calls by source (`sign`, `hash`, `keygen`, `signer`, `verifier`) and the counting mode is the
 adversary's own work, `Z = {sign, hash, verifier}`: its signing requests, its own hash calls,
 and the verification of its forgery. Key generation's and the signer's hash calls are free
-([`SecurityBySource.lean`](SlhDsaSecurity/Statement/SecurityBySource.lean),
-[`StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean)).
-The framework has no signing limit and SLH-DSA's security fails without one (past `2^64`
-signatures the FORS leaves are all revealed), so `HasLimitedSecurityBits` adds FIPS 205's
-`2^64` as an almost-sure bound on the `sign` count.
+([`SecurityBySource.lean`](SLH-DSA-128s/Statement/SecurityBySource.lean),
+[`StrongUnforgeability.lean`](SLH-DSA-128s/Statement/Theorems/StrongUnforgeability.lean)).
+The framework has no signing limit, and the `q / 2^127` bound does not survive far past FIPS
+205's `2^64` signatures (more signatures reveal more FORS leaves, which a forgery can reuse), so
+`HasLimitedSecurityBits` adds `2^64` as an almost-sure bound on the `sign` count. Verifying a
+well-formed forgery costs at least 569 hash calls, so an adversary that can win at all has
+`q ≥ 569`, and the bound is never below `569 / 2^127`.
 
 The proof splits the forgery event into an *answer* half (a fresh hash answer hitting a target:
 FORS coverage, structural collisions) and a *shared* half (a query guessing a secret the
@@ -59,7 +62,7 @@ costs. `WorkFinal` assembles the bound.
 
 ## Code
 
-For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SlhDsaSecurity/Statement/`](SlhDsaSecurity/Statement/): the scheme, the games in `Security.lean` and `SecurityBySource.lean`, and the theorem in [`Theorems/StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean).
+For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SLH-DSA-128s/Statement/`](SLH-DSA-128s/Statement/): the scheme, the games in `Security.lean` and `SecurityBySource.lean`, and the theorem in [`Theorems/StrongUnforgeability.lean`](SLH-DSA-128s/Statement/Theorems/StrongUnforgeability.lean).
 
 ## Build
 
@@ -72,4 +75,4 @@ scripts/check_statement_imports.sh
 python3 scripts/generate_encoding_count.py --check
 ```
 
-The build checks all proofs and guards the main theorems' axioms: `propext`, `Classical.choice`, and `Quot.sound`. For SLH-DSA every public theorem is guarded in [`Proof/Axioms.lean`](SlhDsaSecurity/Proof/Axioms.lean) and `Proof/AxiomWalk.lean` checks every declaration; `python3 scripts/guard_sweep.py .` reports any public theorem without a guard.
+The build checks all proofs and guards the main theorems' axioms: `propext`, `Classical.choice`, and `Quot.sound`. For SLH-DSA every public theorem is guarded in [`Proof/Axioms.lean`](SLH-DSA-128s/Proof/Axioms.lean) and `Proof/AxiomWalk.lean` checks every declaration; `python3 scripts/guard_sweep.py .` reports any public theorem without a guard.

@@ -10,7 +10,7 @@ than a declaration. A sweep without those reports hundreds of false positives,
 which is worse than no sweep at all -- nobody reads the output twice.
 
 It walks the statement and proof trees recursively, and counts both the entries in
-`SlhDsaSecurity/Proof/Axioms.lean` and the guards the main theorems carry inline in
+`SLH-DSA-128s/Proof/Axioms.lean` and the guards the main theorems carry inline in
 `Statement/Theorems/`. What it cannot see: a declaration indented inside a `section`, and
 one named by a macro.
 """
@@ -19,7 +19,7 @@ import re
 import sys
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "."
-DIRS = ["SlhDsaSecurity/Proof", "SlhDsaSecurity/Statement"]
+DIRS = ["SLH-DSA-128s/Proof", "SLH-DSA-128s/Statement"]
 DECL = re.compile(
     r"^(?:@\[[^\]]*\]\s*)?(?:protected\s+|nonrec\s+)?(?:theorem|lemma)\s+([^\s:({\[]+)")
 
@@ -92,7 +92,7 @@ if uncovered:
           % len(uncovered))
     for path, full_name in uncovered:
         print("  %s  %s" % (path, full_name))
-    print("Add an entry per name to SlhDsaSecurity/Proof/Axioms.lean: a #guard_msgs-guarded")
+    print("Add an entry per name to SLH-DSA-128s/Proof/Axioms.lean: a #guard_msgs-guarded")
     print("#print axioms, with the expected text copied from what the kernel actually prints")
     print("(elaborate the #print axioms line first and paste its output), never written by hand.")
     sys.exit(1)

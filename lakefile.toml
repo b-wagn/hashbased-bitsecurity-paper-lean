@@ -1,6 +1,6 @@
 name = "xmss-security"
 version = "0.1.0"
-defaultTargets = ["Xmss", "SlhDsaSecurity"]
+defaultTargets = ["Xmss", "SLH-DSA-128s"]
 
 [[require]]
 name = "VCVio"
@@ -11,4 +11,5 @@ rev = "cbd4144"
 name = "Xmss"
 
 [[lean_lib]]
-name = "SlhDsaSecurity"
+name = "SLH-DSA-128s"
+roots = ["«SLH-DSA-128s».Proof.AxiomWalk"]
