@@ -594,8 +594,8 @@ set_option linter.constructorNameAsVariable false in
 for any game whose blind runs keep the charged entries within `bound`. -/
 theorem blind_bound_of (publicSeed : Digest)
     (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) (bound : Nat)
-    (hbound : ∀ setup : Setup, ∀ z ∈ support (blindRun comp setup),
-      charged publicSeed z.2.record ≤ bound) :
+    (hbound : ∀ setup : Setup, setup.publicSeed = publicSeed →
+      ∀ z ∈ support (blindRun comp setup), charged publicSeed z.2.record ≤ bound) :
     Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed comp] ≤
       (bound : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
@@ -610,7 +610,7 @@ theorem blind_bound_of (publicSeed : Digest)
   refine Nat.cast_le.mpr ?_
   simp only [tableGame, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at htz
   obtain ⟨table, -, z, hz, rfl⟩ := htz
-  have h := hbound _ z hz
+  have h := hbound _ rfl z hz
   unfold charged at h
   convert h
 
@@ -618,7 +618,7 @@ theorem blind_bound_of (publicSeed : Digest)
 theorem blind_bound (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
     Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed (shareComp adversary limit)] ≤
       ((limit + 3929 + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-  blind_bound_of publicSeed (shareComp adversary limit) _ fun setup z hz =>
+  blind_bound_of publicSeed (shareComp adversary limit) _ fun setup _ z hz =>
     (charged_le_length publicSeed _).trans (length_blindRun adversary limit setup z hz)
 
 end SlhDsaSecurity.ShareBound
