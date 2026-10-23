@@ -268,6 +268,7 @@ import SlhDsaSecurity.Proof.Target127
 import SlhDsaSecurity.Proof.FiredCoverage
 import SlhDsaSecurity.Proof.SuffixCausal
 import SlhDsaSecurity.Proof.TapeWatch
+import SlhDsaSecurity.Proof.SignedWatch
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16956,3 +16957,111 @@ info: 'SlhDsaSecurity.TapeWatch.tape_run_rom' depends on axioms: [propext, Class
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TapeWatch.tape_run_rom
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.run_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.run_invariant
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.tsum_bound_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.tsum_bound_le_one
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.add_le_of_two' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.add_le_of_two
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.tsum_add_le_of_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.tsum_add_le_of_support
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.expect_run_signed_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.expect_run_signed_le
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.expect_bind_signed_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.expect_bind_signed_le
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.pure_signed_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.pure_signed_le
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.tapeStep_inr_cases' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.tapeStep_inr_cases
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.tapeStep_inl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.tapeStep_inl
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.tapeStep_cache_self' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.tapeStep_cache_self
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.tapeStep_cache_ne' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.tapeStep_cache_ne
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.tapeStep_cache_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.tapeStep_cache_persists
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.watchValue_step_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.watchValue_step_cached
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.watchValue_le_of_cache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.watchValue_le_of_cache
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.watchValue_le_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.watchValue_le_one
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.watchPair_step_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.watchPair_step_le
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.fused_step_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.fused_step_le
+
+/--
+info: 'SlhDsaSecurity.SignedWatch.watchPair_onCarrierTape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SignedWatch.watchPair_onCarrierTape
