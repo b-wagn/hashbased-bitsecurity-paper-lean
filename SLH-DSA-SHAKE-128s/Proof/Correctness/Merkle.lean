@@ -1,0 +1,33 @@
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
+import «SLH-DSA-SHAKE-128s».Proof.Correctness.Wots
+import «SLH-DSA-SHAKE-128s».Proof.Correctness.BinaryPath
+
+/-! Correctness of an XMSS subtree under a fixed hash, including its actual path fold. -/
+
+open OracleComp OracleSpec
+
+namespace SlhDsaSecurity.Correctness.Merkle
+
+variable [HasQuery HashSpec Id]
+
+theorem publicKeyFromSignature_sign (message secretSeed publicSeed : Digest)
+    (address : Address) (index : Fin (2 ^ subtreeHeight)) :
+    SlhDsaSecurity.Merkle.publicKeyFromSignature (m := Id) index
+        (SlhDsaSecurity.Merkle.sign (m := Id) message secretSeed publicSeed address index)
+        message publicSeed address =
+      SlhDsaSecurity.Merkle.node (m := Id) secretSeed publicSeed address subtreeHeight 0 := by
+  simp only [SlhDsaSecurity.Merkle.sign, SlhDsaSecurity.Merkle.publicKeyFromSignature,
+    sequenceFin_id, bind, pure, Wots.publicKeyFromSignature_sign, foldlM_id]
+  have hpath := recover_path
+    (SlhDsaSecurity.Merkle.node (m := Id) secretSeed publicSeed address)
+    (fun height nodeIndex left right => Hashing.tweakable (m := Id) publicSeed
+      (SlhDsaSecurity.Merkle.nodeAddress address height nodeIndex)
+      (bytesBE n left ++ bytesBE n right))
+    (fun _ _ => rfl) subtreeHeight index.val
+  rw [Nat.div_eq_of_lt index.isLt] at hpath
+  convert hpath using 1
+  congr 1
+  funext value j
+  split <;> rfl
+
+end SlhDsaSecurity.Correctness.Merkle

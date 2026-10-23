@@ -1,6 +1,9 @@
-# XMSS bit security in Lean 4
+# XMSS and SLH-DSA bit security in Lean 4
 
-Machine-checked correctness, security proofs, and attacks for target-sum and checksum XMSS, using [VCVio](https://github.com/Verified-zkEVM/VCVio).
+Machine-checked security proofs for XMSS and SLH-DSA-SHAKE-128s in the random-oracle model,
+using [VCVio](https://github.com/Verified-zkEVM/VCVio).
+
+## XMSS
 
 Both schemes use 128-bit hashes, `2^32` epochs, 16-position chains (`w = 4`), and 256-bit messages and seeds. Key generation stores the chain values and Merkle tree.
 
@@ -19,23 +22,31 @@ Exact integer security levels for all 16 counting modes containing direct hash q
 | `q_H, q_S, q_Sign`         | 127                 | 127                 | 124            |
 | plus `q_Gen` or `q_Verify` | 127                 | 127                 | 127            |
 
-`q_H` counts direct hash queries, `q_S` signing requests, and `q_Gen`/`q_Sign`/`q_Verify` the hashes of key generation, signing, and final verification. Security at `b` bits means `Pr[win] ≤ q / 2^b` for every budget `q ≥ 1` bounding the selected counts with probability one.
+`q_H` counts the adversary's hash queries, `q_S` its signing requests, and `q_Gen`, `q_Sign`,
+`q_Verify` the hashes of key generation, signing and final verification. Correctness error is at
+most `2^-256` (target sum) and `0` (checksum).
 
-**Correctness:** error at most `2^-256` for target sum and `0` for checksum.
+## SLH-DSA-SHAKE-128s
 
-## Code
+FIPS 205 SLH-DSA at the 128s parameters, with deterministic signing and the SHAKE
+instantiation's formats.
 
-[`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/).
+**Theorem** (`slhDsa_sufCma_127`): 127 bits of strong unforgeability, counting the adversary's
+signing requests (`q_S`, at most `2^64`), its hash queries (`q_H`) and the verification of its forgery (`q_Verify`).
 
 ## Build
 
-Lean `v4.31.0`; VCVio pinned to `cbd4144`.
+Lean `v4.31.0`, VCVio `cbd4144`.
 
 ```sh
 lake exe cache get
 lake build
 scripts/check_statement_imports.sh
 python3 scripts/generate_encoding_count.py --check
+# SLH-DSA test vectors
+git -C .lake/packages/VCVio submodule update --init   # VCVio's native libraries, needed to link
+lake exe slh-dsa-kat                                  # signing takes minutes per vector
 ```
 
-The build checks all proofs and guards the six main theorems' axioms: `propext`, `Classical.choice`, and `Quot.sound`.
+The build fails if a main theorem depends on an axiom other than `propext`, `Classical.choice` and
+`Quot.sound`.
