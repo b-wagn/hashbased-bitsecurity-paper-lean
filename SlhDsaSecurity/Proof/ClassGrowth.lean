@@ -2,18 +2,14 @@ import SlhDsaSecurity.Proof.AdversaryQueries
 import SlhDsaSecurity.Proof.GrowthCharge
 
 /-!
-# Growth inside one class never exceeds that class's own queries
+# The split class counter
 
-`ClassCharge.prob_badWithinClasses_le` charges a bad answer at the rate of its own class and
-spends only that class's growth budget. To use it, that budget has to be bounded, and bounding
-it by the whole growth throws away everything the class was for: the `PRF_msg` class is where a
-single defect lives, while the total growth is a whole half of the target.
-
-What bounds it is the obvious thing, proved the same way `GrowthBudget.growth_le_count` proves
-its unrestricted form: a cache entry is only ever created by a query at its own input, so an
-entry inside the class is created by a query inside the class. Reading the class's queries off
-the same `Security.countQueries` instrumentation the rest of the accounting uses keeps the
-counter in a form the phase-by-phase arguments already know how to split.
+`classCost` counts the hash calls at inputs of one class, and `splitCost` charges a class to one
+slot of the counter and its complement to another, so that a single run carries both counts. The
+sum of the two slots is the run's own hash count (`countAllHashes_eq_readOff`), so the split
+counted run is the all-hashes-counted run with its count resolved into two parts, and one budget
+pays for both. The counts are read off the same `Security.countQueries` instrumentation the rest
+of the accounting uses.
 -/
 
 open OracleComp OracleSpec
@@ -75,12 +71,8 @@ theorem splitCost_add_eq_hashCost (inClass : Bytes → Prop) {inside outside : Q
 The two class counts are only worth separating if their *sum* is something the budget already
 speaks about. It is: every query is charged its hash cost, split between the two slots, so any
 linear readout of the split counter that recovers the hash cost run for run recovers
-`countAllHashes`. `GrowthBudget.countAllHashes_eq_component` is the single-slot case of the
-same statement.
-
-This is the step that keeps the split honest. The split-counted run is not a new experiment —
-it is the all-hashes-counted run with its count resolved into two parts, so whatever bounds the
-total bounds the two parts together, with no second budget anywhere. -/
+`countAllHashes`. The split-counted run is not a new experiment, so whatever bounds the total
+bounds the two parts together, with no second budget anywhere. -/
 
 /-- **A linear readout that recovers the hash cost recovers the total count.** -/
 theorem countAllHashes_eq_readOff {α : Type} (cost : OracleWorld.Domain → Counts)

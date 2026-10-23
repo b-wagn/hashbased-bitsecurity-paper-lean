@@ -9,7 +9,8 @@ At one setup the chain is: the real game has the law of the capped real game (th
 fires, `ShareRealCap`); the capped real game is coupled with the lenient game so that the event
 raises the lenient flag (`ShareWhole`, `ShareEvent`); the lenient flag has the law of the blind
 flag (`ShareUntilBad`). `BySourceShared` averages this over `SK.prf`, the public seed and the
-table, and charges the blind flag with `ShareBound.blind_bound`.
+table. This file states the real event at a setup (`RealEvent`), the setup a drawn walk is
+(`setupOf`), and the commutation of expectations (`ex_comm`) used to average.
 -/
 
 open OracleComp OracleSpec ENNReal OracleComp.ProgramLogic.Relational
@@ -27,8 +28,6 @@ def RealEvent (setup : Setup)
   RoutedSplit.InputBad (SharedJoin.recordedTraceOf (realPair setup real)) ∨
     Target127.Late (realPair setup real)
 
-/-! ## The budget pays for key generation -/
-
 attribute [local irreducible] WarmedGame.afterSeeds Scheme.verify Scheme.keygenInternal
   Security.countQueries
 
@@ -42,7 +41,7 @@ theorem goodWalk_iff (prfSeed publicSeed : Digest) (table : Cells × Padding) :
     Target.GoodWalk (WalkTable.walkOfTable prfSeed publicSeed table) ↔
       (setupOf prfSeed publicSeed table).Good := Iff.rfl
 
-/-! ## Averaged over the seeds and the table -/
+/-! ## Expectations commute -/
 
 open BlindCharge in
 theorem ex_comm {α β : Type} (mx : ProbComp α) (my : ProbComp β) (f : α → β → ℝ≥0∞) :

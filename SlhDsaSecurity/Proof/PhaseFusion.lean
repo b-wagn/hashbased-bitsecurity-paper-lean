@@ -4,10 +4,10 @@ import SlhDsaSecurity.Proof.KeygenUniform
 /-!
 # The signer, inside the stack the charge simulates
 
-`PROGRESS.md` has called this the deepest of the obstructions: the charge simulates one handler
-over `OracleWorld`, and the signing oracle sits *outside* that simulation, so by the time the
-charge sees a query it cannot tell whose it is. Anything the signing oracle would like to tell
-the charge — that it is serving, and which request — has nowhere to go.
+The charge simulates one handler over `OracleWorld`, and the signing oracle sits *outside* that
+simulation, so by the time the charge sees a query it cannot tell whose it is. Anything the
+signing oracle would like to tell the charge, that it is serving and which request, has nowhere
+to go.
 
 Nothing about the game has to change for it to go somewhere. The game's phase is
 
@@ -17,18 +17,15 @@ with `inner` the adversary-and-signing handler into a writer over the log over `
 OracleWorld`, and `outer` whatever handler the charge simulates. `fuse` is the same two steps
 taken as one: a single handler on `OracleWorld + SigningSpec` into `StateT (ω × SigningLog × S)
 ProbComp`, whose every step runs `inner`'s step and then `outer` on what it emitted. `run_fuse`
-is that it is the same computation — not the same law, the same computation.
+is that it is the same computation, not merely the same law.
 
-What that buys is the whole point. In the fused handler a signing request is **one step**, and
-that step has `outer`'s state in hand on both sides of the signer's sub-run. A variant that sets
-a flag before the sub-run and clears it after is then an ordinary handler, writing to its own
-state, with no change to what the game computes; the sub-run's queries are `outer`'s to see,
-tagged. Before the fusion there was no such place to stand.
+In the fused handler a signing request is **one step**, and that step has `outer`'s state in
+hand on both sides of the signer's sub-run. A variant that sets a flag before the sub-run and
+clears it after is then an ordinary handler, writing to its own state, with no change to what
+the game computes; the sub-run's queries are `outer`'s to see, tagged.
 
-The writer's monoid is a parameter, so this serves `Security.CountedRun` and
-`SplitRecorder.SplitRun` alike, and `WriterState.run_toStateful` is its one-level-down
-counterpart: that moves a writer into a state at a fixed base monad, this moves a whole
-two-layer run under an outer simulation.
+The writer's monoid is a parameter, so this serves `Security.CountedRun` and any other writer
+over the log alike.
 -/
 
 open OracleComp OracleSpec
@@ -89,8 +86,7 @@ theorem run_fuse {α : Type} (outer : QueryImpl OracleWorld (StateT S ProbComp))
 The fused handler takes a signing request in one step, with the outer handler's state in hand
 before and after the signer's sub-run. `serving` is that step wrapped: set something in the
 state, run, clear it. It is stated against an arbitrary pair of state maps because what gets set
-is the carrier's business and not the fusion's — `ServingCarrier.setFraming` and `clearFraming`
-are the intended pair, and the fusion neither knows nor needs to. -/
+is the carrier's business and not the fusion's. -/
 
 /-- The fused handler with the signing step bracketed by two state maps. -/
 noncomputable def fuseServing (outer : QueryImpl OracleWorld (StateT S ProbComp))

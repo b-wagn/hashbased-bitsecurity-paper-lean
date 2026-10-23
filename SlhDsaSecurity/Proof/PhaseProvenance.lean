@@ -19,17 +19,15 @@ record.
 
 Recording is invisible (`RecordedQueries.run_simulateQ_map_writer`), so running the induction at
 the recording handler costs nothing: the game's own phase is the image of the recorded one under
-`forget`, and `mem_recordedRun_of_mem_countedRun` carries a support membership across.
+`forget`.
 
-The signing branch carries the request's presence **in the log**, which is what the randomiser
-defect needs: `ReplayGate.RandomiserBad` says no logged entry frames to the message, so a
-signing sub-run named by the log cannot be the one that made a `PRF_msg` entry at that message,
-except through the digest overlap. Carrying it costs one more induction, `log_append`, because
-the phase's log is only a *prefix* of the one the outcome reports.
+The signing branch carries the request's presence **in the log**, so a signing sub-run the log
+names can be told from the adversary's own queries. Carrying it costs one more induction,
+`log_append`, because the phase's log is only a *prefix* of the one the outcome reports.
 
 The adversary's branch is the one place provenance cannot go through `CacheReplay`: the
-adversary's handler forwards *world* queries, and a coin is not a hash call. `queried_of_fresh_step`
-is that step, and it is where the coin half is discharged.
+adversary's handler forwards *world* queries, and a coin is not a hash call.
+`CacheProvenance.queried_of_fresh_step` is that step, and it is where the coin half is discharged.
 -/
 
 open OracleComp OracleSpec
@@ -145,15 +143,12 @@ theorem mem_record_of_fresh (queried : OracleWorld.Domain) (log : SigningLog)
   simp
 
 /-- What a signing sub-run leaves behind about an entry it installed: the input is one the
-signer consulted, and — the piece the randomiser charge needs — the request's own `PRF_msg`
-answer is in the cache.
+signer consulted, and the request's own `PRF_msg` answer is in the cache.
 
-The second half is not decoration. The coincidence the charge pays for is that the randomiser
-the signer *derived* is the seed, and that randomiser is `Hashing.truncate` of the cached
-answer; with no entry there `CacheReplay.replay` answers `default` and the coincidence becomes
-a statement about a fixed constant, which no per-run charge can pay for. So the entry's presence
-has to be carried from where the sub-run is in hand, not recovered later from a `QueriesUnder`
-witness — which does not imply it. -/
+The second half is not decoration. The randomiser the signer *derived* is `Hashing.truncate` of
+the cached answer; with no entry there `CacheReplay.replay` answers `default` and the randomiser
+becomes a fixed constant. So the entry's presence has to be carried from where the sub-run is in
+hand, not recovered later from a `QueriesUnder` witness, which does not imply it. -/
 def SignerMade (sk : SecretKey) (cache : QueryCache HashSpec) (request : Message)
     (probe : Bytes) : Prop :=
   QueriesUnder cache (Scheme.sign (m := OracleComp HashSpec) sk request) probe ∧
@@ -257,12 +252,5 @@ theorem provenance_phase_subset (sk : SecretKey) {α : Type}
           exact List.mem_append_right log (List.mem_append_left rest (List.mem_singleton_self _))
         · exact signerMade_of_fresh_step sk request log cache laterCache outer houter hgrow
             probe hfresh hpresentOuter
-
-/-! ## Recording costs nothing
-
-The game's own phase is the recorded phase read through `forget`, as an equality of
-computations, so a supported result of the game's phase is the image of a supported result of
-the recorded one — same value, same log, same cache, and a record besides. That is how a
-statement proved at the recording handler is used on the game. -/
 
 end SlhDsaSecurity.PhaseProvenance

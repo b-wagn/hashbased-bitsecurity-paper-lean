@@ -7,17 +7,16 @@ import SlhDsaSecurity.Proof.SignedWatch
 /-!
 # The stall-and-redraw charge, at any oracle spec and any state
 
-`HandlerCharge` charges a run one unit of `2 ^ -128` per probe aiming at a cell, by stalling the
-run at the cell's release, redrawing the cell after the stalled run, and weighing the redrawn
-cell by the probes aiming at it. It is written at `OracleWorld` and at the handler state the
-input half's handlers keep. The shared half's games run over their own oracles and keep their
-own state, so this file is the same argument with both abstract.
+`prob_sensitive_le` charges a run one unit of `2 ^ -128` per probe aiming at a cell, by stalling
+the run at the cell's release, redrawing the cell after the stalled run, and weighing the
+redrawn cell by the probes aiming at it. It is stated for an arbitrary oracle spec and handler
+state.
 
 What a handler has to supply is four facts, each a property of one step:
 
-* it never fails;
+* it never fails (`hfail`);
 * it **files** what it records: a step appends entries, each beside the snapshot `now` of the
-  state it started from (`hrecord`);
+  state it started from (`hfiles`);
 * availability only grows along a step (`hmono`);
 * it is **blind** to a cell while that cell is unavailable (`hblind`), and whether a cell is
   unavailable is itself blind to that cell (`hunavail`).

@@ -9,26 +9,14 @@ import SlhDsaSecurity.Proof.SigningFaithful
 # The carrier's served set and the log's, where they meet
 
 The input half's charge reads availability at the handler's carrier; the extraction's events
-read disclosure from the signing log, which is in the `Outcome` already. The two have to be the
-same object where they meet, and this file is that bridge: what has to hold, which direction
-each side needs, and the one `Scheme.sign` fact the agreement turns on.
+read disclosure from the signing log, which is in the `Outcome` already. This file relates the
+two: `CarrierBelowLog` is the containment the composition needs, `signerRandomised_of_servedLog`
+shows that a logged served input passes the recorder's disclosing test, and
+`sign_messageShape_randomizer` is the one `Scheme.sign` fact the agreement turns on.
 
-**They are not equal as the carrier is currently specified, and the obstacle is one clause.**
-`ServingCarrier.FilesLeft` requires the query to be **fresh**. A request whose digest input is
-already in the cache when the signer asks is therefore served and never filed, so
-`ServedLog.servedLog` holds of it and `ServingCarrier.Served` does not. Dropping the freshness
-clause closes the gap — the handler sees cached queries too, and nothing else in `FilesLeft`
-depends on freshness — and with it dropped the two agree on a good walk. The clause is there
-because the recorder wants freshness anyway, which is a reason to record at fresh queries, not a
-reason to *file* only at them.
-
-**Which direction each side needs, so the asymmetry is on the record.** The composition needs
-`Served ⊆ servedLog`: a smaller served set makes more cells unavailable, hence a bigger
-`InputBad`, so the charge covers the extraction's event exactly when the carrier serves no more
-than the log does. That direction survives the freshness clause. The *other* direction is what
-the carrier's own blindness argument needs — the signer's own reads must be available at the
-carrier, or the stalled run reads a cell it must be blind to — and that is the one the clause
-breaks. So the clause does not endanger the join; it endangers the charge whose carrier it is.
+**Which direction the composition needs.** `Served ⊆ servedLog`: a smaller served set makes
+more cells unavailable, hence a bigger `InputBad`, so the charge covers the extraction's event
+exactly when the carrier serves no more than the log does.
 
 **What the agreement turns on.** A filed input is a query the signer made while serving a
 framing, of that framing's own digest shape. For it to be the log's served input, the randomiser
@@ -85,25 +73,16 @@ theorem sign_messageShape_randomizer (cache : QueryCache HashSpec) (sk : SecretK
         sk.publicKey framed)
     · exact (Hashing.messageInput_injective hdigest).1
 
-/-! ## The bridge, as the two containments
-
-Stated separately because they are not equally true, and because each side needs only one of
-them. `ServedAgree` is the conjunction, which is what a carrier without the freshness clause
-should supply. -/
+/-! ## The containment the composition needs -/
 
 /-- **What the composition needs**: the carrier serves no more than the log does. -/
 def CarrierBelowLog (pk : PublicKey) (state : ServingCarrier.Carrier)
     (result : (Outcome × Nat) × QueryCache HashSpec) : Prop :=
   ∀ input : Bytes, ServingCarrier.Served state input → ServedLog.servedLog pk result input
 
-/-! ## What each containment buys
-
-Disclosure is monotone in the served set, so a containment of served sets is a containment of
-disclosed positions — which is the form both consumers read. -/
-
 /-! ## The log's side, at a run
 
-What a filed input has to match. `ServedLog.servedLog` asks for a log entry whose answer parses
+What a served input has to match. `ServedLog.servedLog` asks for a log entry whose answer parses
 to a signature whose randomiser the input carries; a logged, served request supplies all three,
 and the randomiser it supplies is the one the signer derived — which is
 `SigningFaithful.logFaithful_tail` read as a statement about the served set rather than about
@@ -115,49 +94,20 @@ theorem signInternal_randomizer (cache : QueryCache HashSpec) (sk : SecretKey)
     (@Scheme.signInternal Id Id.instMonad (replayQuery cache) sk framed).randomizer =
       HonestProbes.replayRandomizer cache sk framed := rfl
 
-/-! ## The run-level containment
-
-The handler that files does not exist yet, so the containment is stated at what such a handler
-has to guarantee rather than at a particular one: every input it serves was a query of the
-signer's own sub-run, made while that request's framing was in flight, at a cache the run's own
-extends. Those three are the handler's defining property — it files at queries, only while
-serving, and the cache only grows — and nothing else about it is used.
-
-**The step to be careful at is the randomiser's two readings.** The filed input carries the
-randomiser read at the *filing* cache; the log's entry carries the one read at the *final* one.
-They agree because the request's own `PRF_msg` entry is in the cache by the time its digest is
-asked for and persists — `CacheProvenance.sign_randomizer_cached`. Both sides spell the
-randomiser the same way, which is exactly why the step is easy to skip. -/
-
 /-! ## The log and the recorder's disclosing test
 
-`AnswerJoin`'s `hdisclosing` asks for an **iff** between `ServedLog.servedLog` — the log says the
-signer served this input — and `SplitWitness.disclosingKeep`, which is
-`CacheAvailability.SignerRandomised`: the *cache* says the signer randomised it. Only one
-direction of that is provable, and saying which is which is the point of stating it here.
+`ServedLog.servedLog` says the signer served this input; `SplitWitness.disclosingKeep` is
+`CacheAvailability.SignerRandomised`, which says the *cache* shows the signer randomised it. A
+logged request's answer is the signature the signer published, so the input the log names is
+built from the randomiser the signer derived; and the request's own `PRF_msg` entry is in the
+cache by `SigningFaithful.randomiserCached_tail`, which is what `SignerRandomised` asks for.
 
-**Left to right is log faithfulness and is proved below.** A logged request's answer is the
-signature the signer published, so the input the log names is built from the randomiser the
-signer derived; and the request's own `PRF_msg` entry is in the cache by
-`SigningFaithful.randomiserCached_tail`, which is what `SignerRandomised` asks for. Nothing in
-it does not already exist.
+The converse is not a fact about the log: `SignerRandomised` reads only the cache, so an
+adversary that knows `SK.prf` makes it hold by querying `Hashing.randomizerInput SK.prf PK.seed m`
+itself, with no request behind it. That direction is the randomiser defect's absence, and no
+amount of log faithfulness reaches it. -/
 
-**Right to left is the proxy fiction and is false as stated.** `SignerRandomised` reads only the
-cache, so an adversary that knows `SK.prf` makes it hold by querying
-`Hashing.randomizerInput SK.prf PK.seed m` itself, with no request behind it: the test holds and
-the log says nothing. That is exactly the gap the served-indexed repair exists to close, and it
-retires not by being proved but by the recorder's test *becoming* the carrier's served one —
-after which the iff is between two readings of the same set rather than between a set and a
-proxy for it. Until then the direction is the randomiser defect's absence, and no amount of log
-faithfulness reaches it.
-
-So a producer should take `hdisclosing` as `signerRandomised_of_servedLog` plus one named
-missing piece, rather than as a hypothesis nobody can discharge. -/
-
-/-- **The left half of the agreement: a logged served input passes the recorder's test.**
-
-The right half — that the recorder's test implies the log served it — is *false* while the test
-reads the cache, and retires when it reads the carrier's served set instead. -/
+/-- **A logged served input passes the recorder's disclosing test.** -/
 theorem signerRandomised_of_servedLog (adversary : Adversary)
     {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
     {result : (Outcome × Nat) × QueryCache HashSpec}

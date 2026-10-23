@@ -6,33 +6,23 @@ import SlhDsaSecurity.Proof.CarrierServedLog
 /-!
 # What the disclosing recording holds
 
-The served-agreement hypothesis says every entry of the **disclosing** recording is in the
-signed log. `CarrierRecordings` reads the target recording and not this one, so the first half
-has to be read here: an entry reaches the disclosing recording only by passing
-`CarriedWitness.disclosingKeep`, which is `HandlerCarrier.FilesLeft` — *there is a request in
-flight and the input is that request's message input.*
+The signed-log hypothesis says every entry of the **disclosing** recording is in the signed log.
+`CarrierRecordings` reads the target recording and not this one, so the disclosing one is read
+here: an entry reaches it only by passing `CarriedWitness.disclosingKeep`, which is
+`HandlerCarrier.FilesLeft` — *there is a request in flight and the input is that request's
+message input.*
 
 So every disclosing entry carries a **frame**, and its input is that frame's message input at
-some randomiser. That is what this file proves, at the carrier tail, with no hypothesis.
-
-**It is the shape half, and the other half is not here.** Knowing the entry names a frame that
-was in flight is not yet knowing that frame was *logged with a signature carrying that
-randomiser*, which is what `ServedLog.servedLog` asks. That second half is the carrier-to-log
-agreement — `ServedBridge.ServedAgree`'s `CarrierBelowLog` — and the route to it is named at the
-end of this file rather than guessed at here.
+some randomiser. The file carries this further, at the carrier tail with no hypothesis: the
+input is served by the carrier (`LeftServed`), and with the carrier-to-log invariants of
+`CarrierServedLog` it is in the signed log (`servedLog_leftRecord_carrierTail`).
 
 ## How it is proved
 
-As an invariant rather than a suffix. `CarrierRecordings.run_right_suffix` hands back, per
-entry, the state it was filed at, because its consumers need the *cache* in force there. Nothing
-here does: `FilesLeft` reads the framing alone, and the conclusion existentially quantifies the
-view, so what survives a step survives the run. That makes it a `RecordInvariant` client, and
-the brackets are free — `BracketedRun.Bracket` fixes the recordings outright.
-
-**A relation would have been the wrong choice here, and a predicate is right**, which is worth
-saying next to the opposite call made for `SplitCounted.Tracks`: that one compared a run's two
-ends, so it had to be a relation; this one is a property of one state that every step preserves,
-so a predicate composes by itself.
+As an invariant rather than a suffix. Nothing here needs the state an entry was filed at:
+`FilesLeft` reads the framing alone, and the conclusion existentially quantifies the view, so
+what survives a step survives the run. The brackets are free, since `BracketedRun.Bracket` fixes
+the recordings outright. A predicate on one state that every step preserves composes by itself.
 -/
 
 open OracleComp OracleSpec
@@ -90,16 +80,12 @@ theorem step_left_mem (rightKeep : Bytes → HandlerCarrier.State → Prop)
       · rw [hstate, HandlerCarrier.Served, HandlerCarrier.served_cacheAnswer]
         exact hnotice
 
-/-! ## The served form, which is what the containment consumes
+/-! ## The served form
 
-`leftFramed_carrierTail` says a disclosing entry *names* a frame. What
-`ServedBridge.CarrierBelowLog` consumes is stronger and in fact easier to carry: the entry's
-input is **served by the carrier**. The step that files it left also files it into the served
-set — `CarriedWitness.served_servingNotice_self` is exactly that — and the served set only grows
-afterwards, so the property survives. `step_left_mem` now reports it alongside the frame, the
-way `CarrierRecordings.step_right_mem` reports its entry's caching alongside its test.
-
-`leftFramed_carrierTail` stays, because it is the statement that needs no carrier at all. -/
+The entry's input is **served by the carrier**. The step that files it left also files it into
+the served set (`CarriedWitness.served_servingNotice_self` is exactly that) and the served set
+only grows afterwards, so the property survives. `step_left_mem` reports it alongside the frame,
+the way `CarrierRecordings.step_right_mem` reports its entry's caching alongside its test. -/
 
 /-- **Every disclosing entry is served by the carrier that holds it.** -/
 def LeftServed (state : CountedState) : Prop :=
@@ -170,13 +156,12 @@ theorem leftServed_carrierTail (rightKeep : Walk → Bytes → HandlerCarrier.St
       step_leftServed (keyAt walk) (rightKeep walk) queried state step hstep hinv)
     _ middle.2.2.2 final hfinal hsecond
 
-/-! ## And the served-agreement hypothesis itself
+/-! ## The disclosing recording is in the signed log
 
-Everything the containment needs is now in hand at the tail's final pre-projection carrier:
-the served set contains every disclosing entry (`leftServed_carrierTail`), and
-`CarrierServedLog` puts both of `ServedAgreement`'s invariants there. What is left is the
-decomposition and the three facts about the walk — the key the run generates, the good walk's
-separation, and the quiet start. -/
+The served set contains every disclosing entry (`leftServed_carrierTail`), and
+`CarrierServedLog` puts both of `ServedAgreement`'s invariants at the tail's final carrier. The
+theorem below is the decomposition with the three facts about the walk: the key the run
+generates, the good walk's separation, and the quiet start. -/
 
 set_option maxHeartbeats 2000000 in
 set_option linter.constructorNameAsVariable false in
@@ -226,39 +211,5 @@ theorem servedLog_leftRecord_carrierTail
     middle.2.2.1 final.2.1 hfiled hlogged _ rfl (fun _ _ hvalue => hvalue) entry.1
     (leftServed_carrierTail rightKeep adversary walk keys hkeys middle hmiddle _ final hlast
       entry hentry)
-
-/-! ## The ordering fact, from the invariant that was already there
-
-`hrightClass` says no target-recorded entry is in the signed log. On the cache route
-`¬ SplitWitness.LateDisclosure` supplies it, and that hypothesis is already available at the
-carrier — it is one of the three `hjoin` is handed. What was missing is the step between the
-two notions of disclosure: `LateDisclosure` is stated at `SplitWitness.disclosingKeep`, which
-reads the **cache**, and `hrightClass` is stated at `ServedLog.servedLog`, which reads the
-**log**.
-
-`ServedAgreement.LogFiled` is exactly that step, and `CarrierServedLog` already puts it at the
-tail's final carrier. A logged request carries its signature's randomiser and the `PRF_msg`
-entry it truncates, so a served input **is** signer-randomised at the final cache — which is
-`disclosingKeep` on the nose.
-
-**So the ordering fact needed no new invariant, only the one proved for the containment read in
-the other direction.** The containment used `LogFiled` to put the carrier's served set below the
-log; this uses it to put the log's inputs inside the cache's disclosure. Same lemma, both ways. -/
-
-/-! ## What is left, and where it lives
-
-`ServedLog.servedLog` asks more than a frame: it asks that the frame appear in the run's
-**signed log**, with an answer that parses, and with the parsed signature's randomiser equal to
-the one in the entry. Two things connect the frame to the log, and both already exist:
-
-* `CarriedWitness.served_servingNotice_self` — an input the carrier files left is in the
-  carrier's served set from that step on, which with `HandlerCarrier.Grows` reaches the tail's
-  final carrier;
-* `ServedBridge.ServedAgree`'s `CarrierBelowLog` — the carrier's served set is below the log's.
-
-So the remaining obligation is `Served → servedLog`, and it has no recorder in it. It is not
-proved here because the carrier the tail ends at is dropped by `BracketedRun.forgetCarrier`,
-so the statement has to be made before the projection, where `ServedAgreement`'s own run laws
-already live. -/
 
 end SlhDsaSecurity.CarrierLeftRecord

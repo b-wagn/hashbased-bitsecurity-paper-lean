@@ -4,8 +4,8 @@ import SlhDsaSecurity.Proof.GameBridge
 /-!
 # An accepted forgery in a warmed tail, read at the walk's own honest key
 
-`GameBridge.cases_of_replayed_accept` is the structural reduction, but it speaks about `Id`-level
-operations under `CacheReplay.replayQuery` of a single cache. `WarmedGame.tail` is a probabilistic
+`GameBridge` and `HypertreeDispatch.cases_of_accepted` are the structural reduction, but they
+speak about `Id`-level operations under `CacheReplay.replayQuery` of a single cache. `WarmedGame.tail` is a probabilistic
 run of the whole game. This file is the passage from one to the other: an accepted forgery in a
 warmed tail yields the three extraction cases, stated against *this* run's final cache and *this*
 walk's seeds.

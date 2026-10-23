@@ -7,9 +7,8 @@ import SlhDsaSecurity.Proof.HandlerCarrier
 `SplitPrefix.recorder` keeps two recordings beside a **cache**, and decides which recording an
 answer joins by testing the input against that cache. That is exactly what the disclosing test
 cannot be: an adversary that knows `SK.prf` makes any cache-readable "the signer served this"
-test true with no request behind it, which is why `AnswerJoin.hdisclosing`'s right-to-left
-direction is false. The test has to read the **carrier**, whose served set is written only by the
-signing oracle.
+test true with no request behind it. The test has to read the **carrier**, whose served set is
+written only by the signing oracle.
 
 So the state becomes a parameter. The recorder asks one thing of it and one thing only:
 
@@ -44,11 +43,11 @@ could only ever notice the queries the run itself drew; and the failure is not a
 but a silent one, because an input is installed once and is never fresh again, so a notice
 missed at a hit can never be taken later.
 
-A view that notices nothing takes `onQuery` to be the identity, and then
-`noticingRecorderOf_eq` says the recorder that notices **is** the one that does not. So this is
-a widening: `recorderOf` below is untouched, and everything proved about it stands.
+A view that notices nothing takes `onQuery` to be the identity, so the recorder that notices is
+`recorderOf` there. This is a widening: `recorderOf` below is untouched, and everything proved
+about it stands.
 
-Both laws are about the cache alone, which is what keeps `run_recorderOf_forget` true: whatever
+Both laws are about the cache alone, which is what keeps `recorderOf_forget_step` true: whatever
 else a view carries rides along and the forgetting never sees it. -/
 class CacheView (σ : Type) where
   /-- The cache the freshness test is read against. -/
@@ -187,8 +186,7 @@ theorem appendedOf_right_shape (leftKeep rightKeep : Bytes → σ → Prop) (inp
 
 open scoped Classical in
 /-- **An entry of the disclosing recording after a step is one that was there, or this step's
-own**, filed fresh and on the left test. The mirror of `appendedOf_right_mem`, which the
-carrier's served-agreement needs for the same reason the target's class needed that one. -/
+own**, filed fresh and on the left test. The mirror of `appendedOf_right_mem`. -/
 theorem appendedOf_left_mem (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
     (state : StateOf σ) (answer : HashOutput) (entry : Bytes × HashOutput)
     (hentry : entry ∈ (appendedOf leftKeep rightKeep input state answer).1) :
@@ -336,10 +334,10 @@ theorem cacheOf_update_of_ne (state : σ) (input probe : Bytes) (answer : HashOu
       CacheView.cacheOf state probe := by
   rw [CacheView.cache_update, QueryCache.cacheQuery_of_ne _ _ hne]
 
-/-! ## One step, read four ways
+/-! ## One step, read several ways
 
 Below this point nothing mentions `CacheView.update` again. A hash query does one of two things
-to the state, and these four lemmas are everything the inductions need to know about which. -/
+to the state, and these lemmas are everything the inductions need to know about which. -/
 
 open scoped Classical in
 /-- **A private sample leaves the state alone.** -/
@@ -421,12 +419,9 @@ theorem recorderOf_step_persists (leftKeep rightKeep : Bytes → σ → Prop) (i
     rw [cacheOf_update_of_ne state.1 input probe step.1 hne]
     exact hentry
 
-/-! ## The three facts about a whole run
+/-! ## Recordings only grow over a whole run
 
-These are `SplitPrefix.record_prefix`, `recorder_cache_value_persists`, `mem_record_of_cache`
-and `left_record_keep_final` with the cache replaced by the view. The parametric half of the
-join reaches only the last two of them; the rest of `SplitPrefix` stays where it is, about the
-same object by `recorderOf_cache`. -/
+This is `SplitPrefix`'s prefix fact with the cache replaced by the view. -/
 
 open scoped Classical in
 /-- **Both recordings only grow.** -/
@@ -453,26 +448,12 @@ theorem recordOf_prefix {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
           right_prefix_appendedOf leftKeep rightKeep input state step.1⟩
     exact ⟨hstepPrefix.1.trans hleft, hstepPrefix.2.trans hright⟩
 
-/-! ## What the disclosing recording's entries satisfy at the end
-
-**The filing test and the disclosure it records are two predicates, not one.** A test that is
-read at the state a query is made from can be a flag the signing oracle holds up while it
-serves — which is the only kind of disclosing test an adversary cannot forge, since a
-cache-readable one it can make true by holding `SK.prf`. Such a flag is *false again* by the
-end of the run, so it cannot also be the predicate the entries satisfy at the end.
-
-So `endKeep` is separate, and the two are joined by what a step does: filing an answer puts the
-input into whatever the end predicate reads, and no later step takes it out. At a cache-readable
-test the two collapse — `left_recordOf_keep_final` below is this lemma with `endKeep := leftKeep`
-and both laws read off the old monotonicity — so nothing that used the collapsed form moves. -/
-
 /-! ## The instrumentation is invisible, at any view
 
-`SplitPrefix.run_recorder_forget` at the cache, and the one place where the single law does the
-whole of the work: the cached branch leaves the view alone and the fresh branch installs, and
-the law says installing is what the shared oracle's own caching does. Anything else the view
-carries — a served set, a flag — is dropped by the forgetting and never seen. This is what a
-fused presentation over a carrier will owe, and it owes nothing more. -/
+`recorderOf_forget_step` is the one place where the single law does the whole of the work: the
+cached branch leaves the view alone and the fresh branch installs, and the law says installing is
+what the shared oracle's own caching does. Anything else the view carries (a served set, a flag)
+is dropped by the forgetting and never seen. -/
 
 open scoped Classical in
 /-- **One step of the recorder, with the recordings dropped, is one step of the shared
@@ -501,15 +482,6 @@ theorem recorderOf_forget_step (leftKeep rightKeep : Bytes → σ → Prop)
         Function.comp_def, CacheView.cache_update]
       rfl
 
-/-! ## What a target recording's entry says about the state it was filed from
-
-The mirror of the left recording's fact, and the one the ordering defect needs. An entry of the
-target recording came with a state at which the *right* test held — so, the tests being
-exclusive by priority, a state at which the left test did **not**. At a cache-readable left test
-that is a statement about what the cache held, which is why it has been hard to use: nothing
-reports the cache partway through a sub-run. At a flag it is a statement about the flag, and a
-query made under the flag is simply not one of these. -/
-
 /-! ## The recorder that notices every query
 
 `recorderOf` hands the view an answer only on a miss, because a miss is where an answer is
@@ -518,9 +490,8 @@ serving it — needs telling on a hit as well, and this is that recorder: the vi
 first, and then the step proceeds exactly as before.
 
 It is a wrapper and not a second design. At a view that notices nothing the two are the same
-query implementation, by `noticingRecorderOf_eq`, so nothing proved about `recorderOf` is
-duplicated or at risk; and the extra notice cannot disturb the recordings or the freshness
-test, because the law says it leaves the cache alone. -/
+query implementation, and the extra notice cannot disturb the recordings or the freshness test,
+because the law says it leaves the cache alone. -/
 
 open scoped Classical in
 /-- The recorder, with the view told about each hash query before it is answered. -/
@@ -546,14 +517,11 @@ theorem noticingRecorderOf_run_inr (leftKeep rightKeep : Bytes → σ → Prop) 
       ((recorderOf leftKeep rightKeep) (Sum.inr input)).run
         (CacheView.onQuery state.1 input, state.2) := rfl
 
-/-! ### The two step laws a potential charge reads
+/-! ### The two step laws of the recorder that notices
 
-`PotentialCharge.prob_fired_le` is already generic in the state and the implementation: it asks
-for a cached branch and a fresh branch in closed form and nothing else about the oracle. These
-are those two branches for the recorder that notices. The only difference from `recorderOf`'s
-is in the **cached** one — where that oracle returns the state untouched, this one returns the
-noticed state — so a charge stated against these two reads one extra parameter and is otherwise
-the argument already proved. -/
+These are the cached and the fresh branch of the recorder that notices, in closed form. The only
+difference from `recorderOf`'s is in the **cached** one: where that oracle returns the state
+untouched, this one returns the noticed state. -/
 
 open scoped Classical in
 theorem noticingRecorderOf_run_inr_some (leftKeep rightKeep : Bytes → σ → Prop) (input : Bytes)
@@ -585,9 +553,16 @@ theorem noticingRecorderOf_run_inr_none (leftKeep rightKeep : Bytes → σ → P
 
 /-! ### What its recordings satisfy at the end
 
-The filing test is read at the state the notice has already reached, which is the whole point:
-`hfile` is about `CacheView.onQuery view input`, so a view may make the test true *by* noticing
-and still answer for it. -/
+**The filing test and the disclosure it records are two predicates, not one.** A test that is
+read at the state a query is made from can be a flag the signing oracle holds up while it
+serves, which is the only kind of disclosing test an adversary cannot forge, since a
+cache-readable one it can make true by holding `SK.prf`. Such a flag is *false again* by the
+end of the run, so it cannot also be the predicate the entries satisfy at the end.
+
+So `endKeep` is separate, and the two are joined by what a step does: filing an answer puts the
+input into whatever the end predicate reads, and no later step takes it out. The filing test is
+read at the state the notice has already reached: `hfile` is about `CacheView.onQuery view
+input`, so a view may make the test true *by* noticing and still answer for it. -/
 
 open scoped Classical in
 /-- **Every entry of the disclosing recording satisfies the end predicate at the end of the

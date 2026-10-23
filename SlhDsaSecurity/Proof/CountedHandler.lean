@@ -4,23 +4,20 @@ import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.WriterState
 
 /-!
-# A handler that counts, and why the tail needs one
+# A handler that counts
 
-`FusedCoverage.fusedTail` gets its hash count from `countAllHashes` wrapped around the whole
-game. That works because the game is a single `OracleComp OracleWorld`. **A bracketed game is
-not one**: its adversary phase lives at `OracleWorld + SigningSpec` and is only assembled by
-`FusedGame.run_afterSeeds_split`, so there is no computation for `countAllHashes` to wrap.
+A bracketed game is not a single `OracleComp OracleWorld`: its adversary phase lives at
+`OracleWorld + SigningSpec`, so there is no computation for `countAllHashes` to wrap. Every hash
+query of every phase passes through the outer handler, so the count belongs in the handler's
+state. `withCount` puts it there, at `HandlerCarrier.State × (τ × Nat)` — the carrier stays
+first, which is the only thing `ServedAgreement.Files` looks at, so the interface survives the
+wrapping with `τ` widened and nothing else moved.
 
-Every hash query of every phase passes through the outer handler, so the count belongs in the
-handler's state. `withCount` puts it there, at `HandlerCarrier.State × (τ × Nat)` — the carrier
-stays first, which is the only thing `ServedAgreement.Files` looks at, so the interface survives
-the wrapping with `τ` widened and nothing else moved.
-
-**That the interface survives is a fact about it, not a coincidence.** `Files.queryStep` for a
-wrapped handler has to be rebuilt from the step facts of the handler underneath, and a run fact
-will not rebuild it — which is why `stepGrows` and `stepFraming` are fields. An interface that
-cannot be transported through a wrapper is under-specified, and trying to wrap it is how you
-find out.
+`withExtra` is the general wrapper (some extra component beside the handler's state, updated per
+query, never touching the carrier) and `withCount` is its instance. The interface transports
+through it (`files_withExtra`, `files_withCount`), and so does the projection law
+(`forgetsAlong_withExtra`, `forgetsAlong_withCount`). `romWithCount` is the shared oracle with a
+counter beside its cache, the handler a counted run forgets to.
 -/
 
 open OracleComp OracleSpec
@@ -69,16 +66,8 @@ theorem withCount_step
 
 The counter is one instance of a wrapper that carries **some** extra component beside the
 handler's own state and updates it per query, without ever reading or writing the carrier. The
-cost writer a counted computation threads is another. Both ask the interface the same question
-and get the same answer, so the transport is stated once here and the counter is its instance.
-
-`withCount` is unchanged — same name, same type, same definition — so nothing downstream moves;
-what changes is that its transport is now a corollary rather than eighty lines of its own.
-
-**Two instances is what makes this a fact rather than a guess.** A transport generalised with
-one instance is a prediction about the next one; with two in hand it is a statement about what
-the wrapper actually needs, which is: the carrier's half untouched and the handler's own half
-returned. -/
+transport needs only that the carrier's half is untouched and the handler's own half returned,
+so it is stated once here and `withCount` is its instance. -/
 
 /-- A handler with some extra component beside its state, updated per query. -/
 noncomputable def withExtra {ω : Type}
@@ -113,25 +102,6 @@ theorem withExtra_step {ω : Type}
   obtain ⟨inner, hinner, hpure⟩ := hstep
   rw [support_pure, Set.mem_singleton_iff] at hpure
   exact ⟨inner, hinner, by rw [hpure], by rw [hpure], by rw [hpure]⟩
-
-/-! ## The cost writer, as an extra
-
-A computation that counts its own queries threads a writer **inside** itself, and
-`WriterState.run_simulateQ_withAddCost` fuses that into the handler as `withAddCost`.
-`WriterState.toStateful` then moves the accumulator from the writer into the state — but it puts
-it **first**, and `ServedAgreement.Files` reads the carrier first. Same data, wrong association,
-and the interface cannot see through it.
-
-This is that reassociation, and it is all that stands between a cost-counted run and the
-transport above. It is stated at this one pairing rather than as a general relabelling because
-there is one instance of it: generalise when the second exists.
-
-What made it fight was not the content. `run_withAddCost_apply` is stated at the handler and
-this proof has a state in hand, so nothing rewrote until the same fact was named one level
-down, as `WriterState.run_withAddCost_run`.
-
-It is now `run_reencode` at one encoding, the induction having moved there once the flag turned
-out to need the same thing. -/
 
 /-! ## The step facts the wrapped handler needs
 
@@ -279,14 +249,6 @@ theorem files_withCount
     (hfiles : Files pk impl) : Files pk (withCount impl) :=
   files_withExtra pk hfiles fun queried count => count + hashCost queried
 
-/-! ## What a counted, flagged run still caches
-
-The charge reads a quantity recomputed from the carrier, and that is sound only because the
-run already asked everything the recomputation asks. `ServedAgreement.cached_queriesUnder` says
-so at a bare filing handler; this says it at the handler the charge actually runs under, which
-is that one inside a flag inside a cost writer. Nothing about the argument changes — the two
-wrappers are re-encodings and the interface transports through both. -/
-
 /-! ## And so does the projection law
 
 `ServingForget.ForgetsAlong` is the other thing a bracketed phase asks of its handler. Counting
@@ -295,9 +257,7 @@ carrier and the counter is not in it.
 
 **Stated at `withExtra`, not at the counter.** Nothing below reads the update, only that the
 wrapper puts the step underneath back unchanged — so the counter's projection law is the
-wrapper's, at `ω := Nat`. That matters because the counter is not the only extra the tail will
-carry: a *split* counter is the same wrapper at `ω := Counts`, and it inherits these three
-rather than repeating their inductions. -/
+wrapper's, at `ω := Nat`, and any other extra component inherits it. -/
 
 theorem withExtra_step_map {ω : Type}
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
@@ -350,36 +310,17 @@ theorem forgetsAlong_withCount {S' : Type} (π : HandlerCarrier.State × τ → 
       π (state.1, state.2.1)) (withCount impl) outer' :=
   forgetsAlong_withExtra π impl (fun queried count => count + hashCost queried) outer' hforget
 
-/-! ## The counter is `countAllHashes`
-
-The tail reads its hash total from the handler's counter, because a bracketed game is not one
-computation and there is nothing for `countAllHashes` to wrap. The count the rest of the
-development is stated at is `countAllHashes`'s, so the two have to be the same number, and this
-is where that is paid for: one induction, at any handler that forgets along anything.
-
-The statement carries the counter the run *started* at, because a handler's counter accumulates
-while `countAllHashes` begins at zero. That difference is the only one between them, and keeping
-it explicit is what lets the three stages of a bracketed tail add up.
--/
-
 /-! ## The shared oracle, counting
 
 The tail's middle stage is a fused phase, and `ServingForget.run_fuseServing_map` projects it to
-an unbracketed fused phase over whatever handler the outer one forgets to. For the tail that
-projection has to keep the **count** as well as the cache, because the count is what the middle
-stage contributes to the tail's value — so the handler on the far side is the shared oracle with
-a counter beside it, and this is it.
+an unbracketed fused phase over whatever handler the outer one forgets to. That projection has
+to keep the **count** as well as the cache, because the count is what the middle stage
+contributes to the tail's value — so the handler on the far side is the shared oracle with a
+counter beside it.
 
 It is a second counted handler rather than `withCount` again because the two states associate
 differently: `ServedAgreement.Files` needs the carrier first, so the carrier's counted state is
-`carrier × (recordings × count)`, while the shared oracle's is just `cache × count`. The
-definitions are the same three lines and the proofs are the same two inductions; what cannot be
-shared is the bracketing of the pair.
-
-**It looks like duplication and the next reader will want to merge them, so: do not.** Merging
-them means a reassociation lemma, and that lemma would have to be threaded through every call
-site of both. *Duplication a reader can see beats an abstraction every call site has to pay
-for* — six lines and two short inductions, against a rewrite in every use. -/
+`carrier × (recordings × count)`, while the shared oracle's is just `cache × count`. -/
 
 /-- The shared oracle with a hash counter beside its cache. -/
 noncomputable def romWithCount :
@@ -395,10 +336,9 @@ theorem romWithCount_run (queried : OracleWorld.Domain) (state : QueryCache Hash
           ProbComp (OracleWorld.Range queried × (QueryCache HashSpec × Nat))) := rfl
 
 set_option maxHeartbeats 1000000 in
-/-- **Its counter is `countAllHashes`'s count.** The same statement as
-`run_withCount_count`, at the other association, and carrying the counter the run started at for
-the same reason: the tail's three stages add up only because each equation says what it started
-from. -/
+/-- **Its counter is `countAllHashes`'s count.** The statement carries the counter the run
+started at, because a handler's counter accumulates while `countAllHashes` begins at zero; the
+tail's three stages add up only because each equation says what it started from. -/
 theorem run_romWithCount_count {α : Type} (computation : OracleComp OracleWorld α) :
     ∀ state : QueryCache HashSpec × Nat,
       (fun z : α × (QueryCache HashSpec × Nat) => ((z.1, z.2.2), z.2.1)) <$>

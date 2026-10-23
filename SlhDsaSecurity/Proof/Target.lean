@@ -1,111 +1,18 @@
 import SlhDsaSecurity.Proof.MainTheorem
 import SlhDsaSecurity.Proof.WalkDefects
-import SlhDsaSecurity.Proof.Assembly
-import SlhDsaSecurity.Proof.KeygenBudget
+import SlhDsaSecurity.Statement.Parameters
+import Mathlib.Topology.Instances.ENNReal.Lemmas
+import SlhDsaSecurity.Proof.HonestGrowth
 
 /-!
-# The target, and exactly what is still owed it
+# The walk and the game together
 
-This is the end of the proof written before the middle is finished: the theorem that concludes
-`Security.HasTotalSecurityBits .strong 127`, taking as hypotheses the things not yet proved and
-discharging everything that is. Its purpose is to make the list of remaining obligations a Lean
-statement rather than a recollection — if two of them cannot hold together, or if one is about
-to be proved in a shape that does not fit, that shows up here rather than at the join.
-
-Everything the walk owes is discharged. A walk whose seeds coincide costs one unit of
-`2 ^ -128` and one whose public key encodes an address prefix costs `2 ^ -165`, so the three
-charges that carried those as hypotheses may take them from the walk; `WalkDefects` proves both
-and `probEvent_le_of_good_walk` applies them together.
-
-The arithmetic is discharged too, and every number in it is concrete. `allowance` reads
-`Assembly.le_target_of_full`, whose content is the `Nat` line `(q - slack + extra) + q +
-defectUnits ≤ 2 * q`: key generation's `2 ^ subtreeHeight = 512` calls are the `slack`, the
-forgery's `259` claimed cells are the `extra`, and the `defectUnits` cover the small defects —
-the coverage tape at `2 ^ -141`, the input-format coincidence at `2 ^ -165`, the seed
-coincidence at `2 ^ -128`, and the answer half's own term. So what has to hold is
-`claims + defectUnits ≤ 512`. (The `1024` of a `759`-unit margin belongs to
-`le_target_of_counts` and `le_target_of_two_slacks`, which reserve on both halves; `allowance`
-does not call them.)
-
-**Two readings of the answer half's term, and the margin follows from which is taken.** The
-obligation *states* `1 / 2 ^ 126 + 1 / 2 ^ 141`, which is four units plus a sliver, so
-`defectUnits` is six and the margin is `247`. The half *proves*
-`q / 2 ^ 128 + 1 / 2 ^ 141` — `AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow` — and
-reaches the stated form by `le_add_right`. At what is proved, `defectUnits` is two and the
-margin is `251`. `defectsAt` takes the term as a parameter so that both readings are one
-statement, and `answerDefectProved` is the second one.
-
-**The `2 ^ -126` here is not the sharper concentration cap's**, which is a different quantity
-with no consumer. They are numerically equal, so no arithmetic can tell them apart and the
-distinction has to be carried in words: this one is the allowance `Obligations.AnswerChargedLate`
-states for the answer half, and the other is a bound in `ForsConcentrationSharper`. Calling this
-one "the load cap" is the confusion `MainTheorem`'s narrative had, and it is why nothing caught
-it.
-
-The `q` coefficient has no margin at all: the same `Nat` line is `2 * q` on the right and
-`q + q` on the left, so the two halves have one budget each and a third `q`-proportional term
-cannot be added. Constants can, up to the margin, which is why `allowanceAt` takes the claims
-numeral and the defect units as parameters.
-
-**What is still open is five propositions, not two obligations, and they are not five
-independent pieces of work.** The fused target takes an answer obligation and a shared one, and
-each decomposes. The answer side's three are `Served.WitnessCover`, `hleftBound` and
-`hdisclosing` — `hjoinNarrow` is *not* among them, because
-`AnswerCoverage.targetCovered_of_forgeryDisclosedCovered_narrow` discharges it from
-`WitnessCover`, its freshness side condition coming free from `GoodWalk` through
-`AnswerSide.not_possible_generatedKey` and `CoverageTail.walk_cache_fresh`. The shared side's two
-are the input half's bullet (`InputBullet.ClaimsCharged`) and the seed charge at `seedUnits`.
-
-**Two of the answer side's three are false where they are currently stated, and that is the
-honest shape of the remaining work.** All three read disclosure at
-`SplitWitness.disclosingKeep`, which is `CacheAvailability.SignerRandomised` — a test on the
-cache. `hdisclosing` asks it to be equivalent to the signing log, and
-`ServedBridge`'s right-to-left direction is false: an adversary holding `SK.prf` makes the cache
-test true with no request behind it. `hleftBound` caps that same recording by `signingLimit`,
-and the same adversary overruns the cap. They retire not by being proved but by the recorder's
-test becoming the carrier's served one, which is also what gives `WitnessCover` outright. So the
-count is **two charges and one presentation move**, and only the two charges are probability
-bounds anybody owes.
-
-The arithmetic side conditions are not among the open set. At `claims := 510` and
-`seedUnits := 251` both `259 + seedUnits ≤ claims` and `claims + 2 ≤ 2 ^ subtreeHeight` close by
-`omega` and `decide`, and the `inside ≠ outside` the split counter takes closes by `decide`.
-Counting the signature's hypotheses misstates what is unproved in both directions at once.
-
-**What may be charged as a constant, and what may not.** An event whose witness is a single
-object of the run — the forgery, its randomiser, its claims — is not thereby a constant. What
-decides it is whether a candidate witness can be *checked* against something the game publishes:
-a guess at a secret costs one unit only when a wrong guess cannot be told from a right one. A
-signature publishes `Hashing.truncate` of the oracle's answer at a seed-derived input, so `SK.prf`
-is checkable at one query per candidate; an authentication path publishes the hash of a secret the
-signature did not reveal, so that secret is checkable too. In both cases the adversary's chances
-are its queries and not its outputs, and a charge that counts the outputs is wrong by a factor of
-`q`.
-
-So the constants here are exactly the events nobody can check: the walk's own two coincidences,
-drawn before any adversary exists and never compared against anything, and the two tape bounds,
-which are concentration and not guessing. Every other charge in the development counts the
-queries — and that is what makes it safe, because a test *is* a query and pays for itself.
-
-The budget's own lower bound is discharged as well. `KeygenBudget.pow_le_of_budget` shows that a
-budget an adversary can be run under is at least the `2 ^ subtreeHeight` key generation spends,
-which is what makes `q - 2 ^ subtreeHeight` a count of calls rather than a truncation.
-
-What is left is three hypotheses, and the file states them in the shape their provers will state
-them:
-
-* `hsplit` — a win on a good walk is one of three events. The extraction reaches this as far as
-  `CanonicalSplit.cases_of_win_canonical`; what is missing is the provenance split that turns
-  its third branch into a contradiction with strong freshness.
-* `hanswer` — the answer half at the warmed tail, with the growth reserved and its two defects.
-* `hshared` — the input half and the randomiser defect against **one** budget. They share it
-  because their chances are disjoint classes of one record plus the signer's own calls, and the
-  per-request terms cancel inside that pathwise inequality rather than after a uniform bound.
-  It is stated on the *disjunction* rather than on the sum of the two probabilities, which is
-  what a union over the run's own queries proves: a query is one kind of hit or the other, so
-  the two events are covered by a single count, and asking for the sum would ask for a bound
-  the shared budget does not support.
--/
+This file fixes how the walk's own randomness enters the whole-game bound. The walk draws the
+seeds and the cell table before any adversary exists. A walk whose seeds coincide costs one unit
+of `2 ^ -128` and one whose public key encodes an address prefix costs `2 ^ -165`;
+`WalkDefects` proves both, `prob_bad_walk` adds them, and `GoodWalk` is the walk that avoids
+both. `pairedRun` and `pairedFused` play the game after a walk and keep the walk's value, and
+`pairedRun_eq_map_pairedFused` relates the two presentations. -/
 
 open OracleComp OracleSpec ENNReal
 
@@ -138,10 +45,10 @@ theorem prob_bad_walk :
 A charge whose secret is *in the walk* cannot be read at a fixed walk. Conditioning on the walk
 fixes `SK.prf` and the cell table, and an adversary may have been chosen knowing them — for the
 walk whose `SK.prf` is the constant it hardcodes, the event it is charged for happens with
-probability one. Every deferral in this development draws its secret after the run, and that is
+probability one. A deferral draws its secret after the run, and that is
 not available once the walk is a parameter.
 
-So the obligations that defer a secret are stated *here*, on the walk and the game taken
+So charges that defer a secret are stated *here*, on the walk and the game taken
 together, where the walk's own randomness is still in the measure. The answer side is unaffected
 and stays at a fixed walk: its charges are guesses at the tail's own fresh answers, which no
 choice of adversary can bias in advance. -/
@@ -154,14 +61,10 @@ noncomputable def pairedRun (adversary : Adversary) :
   let result ← tail adversary walk
   pure (walk, result)
 
-/-! ## The allowance
+/-! ## The small defects
 
-Six units of `2 ^ -128` against the four defects, and `claims` cells against the `512` that key
-generation's spend reserves. `allowanceOf` calls `Assembly.le_target_of_full`, which reserves on
-**one** half — the answer half is charged the whole `q` — so the budget is `2 ^ subtreeHeight`
-and not twice it, and `hclaims` is `claims + 6 ≤ 512`. At the live `claims = 259` the margin is
-`247`. (A `1024` belongs to `Assembly.le_target_of_counts`, which reserves on both halves and
-which `allowanceOf` does not call.) -/
+The walk's two coincidences cost `1 / 2 ^ 128` and `1 / 2 ^ 165`; `defectsAt` adds them to the
+answer half's own term. -/
 
 /-- The small defects, with the **answer half's own term a parameter**. The other two are the
 walk's, and the walk pays them whatever the answer half's bound turns out to be. -/
@@ -169,53 +72,21 @@ noncomputable def defectsAt (answerDefect : ℝ≥0∞) : ℝ≥0∞ :=
   answerDefect +
     ((1 : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 165 : Nat) : ℝ≥0∞))
 
-private theorem castPow (k : Nat) : ((2 ^ k : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by
-  push_cast; ring
-
-private theorem divPowEq (m j k : Nat) (hjk : j ≤ k) :
-    ((m : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ j =
-      ((m * 2 ^ (k - j) : Nat) : ℝ≥0∞) / (2 : ℝ≥0∞) ^ k := by
-  have hsplit : (2 : ℝ≥0∞) ^ k = (2 : ℝ≥0∞) ^ (k - j) * (2 : ℝ≥0∞) ^ j := by
-    rw [← pow_add]
-    congr 1
-    omega
-  have hnum : ((m * 2 ^ (k - j) : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ (k - j) * (m : ℝ≥0∞) := by
-    push_cast; ring
-  rw [hsplit, hnum, ENNReal.mul_div_mul_left _ _ (by positivity) (by simp)]
-
-/-! ## The target -/
-
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedGame.tail
   WarmedGame.warmedRun Scheme.keygenInternal Scheme.verify Scheme.sign
   Security.signingOracle Security.countQueries
 
-/-! ## The target at the line the shared half can actually meet
+/-! ## At a tail that carries more than the game's result
 
-`target_of_obligations` is the same statement with the shared half at one record's worth, which
-is what `q / 2 ^ 127` needs. `TargetColumn.seedEvent_empty_of_prfClass_charge` shows the seed
-clause cannot be charged at the `PRF_msg` part's count, so the shared half carries two records
-(`TargetColumn.expected_three_parts_le_two_budgets`), and the number that falls out is `126`.
-
-**The obligations are the same five**, in the same shapes, with one numeral changed in
-`hshared`. Which line a top stands on is therefore a question about `hshared` alone, and both
-tops are stated so that neither has to be rebuilt when the other's hypothesis lands. -/
-
-/-! ## The same, at a tail that carries more than the game's result
-
-One of the answer side's events is not a predicate of the game's result at all: late disclosure
-says which of the recorder's two recordings an entry was filed on, and a result of `tail` carries
-no recordings. So the target is restated here at an arbitrary tail that *refines* the game's —
-any `fused` whose results forget to `tail`'s — with the forgetting map a parameter and the one
+Some of the answer side's events are not predicates of the game's result: late disclosure says
+which of the recorder's two recordings an entry was filed on, and a result of `tail` carries no
+recordings. So the paired run is restated here at an arbitrary tail that *refines* the game's:
+any `fused` whose results forget to `tail`'s, with the forgetting map a parameter and the one
 equation it has to satisfy a hypothesis.
 
 Nothing about the presentation enters: the type is free, the map is free, and what makes the
-restatement sound is `hforget` alone, an equality of computations. The numbers are the same
-numbers, by `allowance`, and the walk's own two coincidences are paid inside the refined paired
-run exactly as they are inside the plain one.
-
-The events split the same way they always did, except that the answer side's now carries
-`¬ late` — the defect is *ruled out* there and *paid* on the shared side, instead of being
-assumed away on both. -/
+restatement sound is `hforget` alone, an equality of computations. The walk's own two
+coincidences are paid inside the refined paired run exactly as they are inside the plain one. -/
 
 /-- The walk and a refining tail played from it. -/
 noncomputable def pairedFused {γ : Type}
@@ -250,24 +121,5 @@ theorem pairedRun_eq_map_pairedFused {γ : Type} (adversary : Adversary)
   refine bind_congr fun walk => ?_
   rw [← hforget walk, map_eq_bind_pure_comp, map_eq_bind_pure_comp, bind_assoc, bind_assoc]
   exact bind_congr fun result => by rw [pure_bind]; rfl
-
-/-! ## The `127` socket: two columns, and no seed column at all
-
-The live route to `127` is not a cheaper seed clause but **no seed clause**: the forgery's
-digest input is in the record — the verifier queries it — and what keeps it out of the target
-recording is the filing rule, that the recorder files on a fresh draw and the signer had cached
-it first. If the target test can keep an entry the signer cached, the forgery is visible on
-exactly the runs the clause was invented for.
-
-**Disjointness cannot rescue a clause whose count is forced by its probability.**
-`Pr[seed] ≤ card record / 2 ^ 128` is a union bound, so its numerator is record-sized however
-disjoint the parts are — which is `TargetColumn.seedEvent_empty_of_prfClass_charge` read from
-the other side. So the clause's *existence* is the binding constraint, and this socket is stated
-for its absence rather than for a lower price.
-
-**The `Nat` line is `(q - 512 + 260) + q + 2 ≤ 2 * q`, i.e. `262 ≤ 512`, with 250 spare.** The
-`260` is the forgery's 259 claimed cells plus one unit for the format identity's overlap, which
-is what `TargetColumn.expected_three_parts_le_budget_unit` delivers; the `2` is the answer
-half's proved defect. Nothing is doubled anywhere. -/
 
 end SlhDsaSecurity.Target

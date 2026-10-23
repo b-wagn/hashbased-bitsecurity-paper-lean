@@ -5,20 +5,13 @@ import SlhDsaSecurity.Proof.SplitCounted
 # The split tail, sitting above the tail
 
 `SplitCounted` says what counts the counted handler admits and gives the split one. This is the
-tail at that handler: the same three stages, the same brackets, the same value — and the two
+tail at that handler: the same three stages, the same brackets, the same value, and the two
 slots carried out beside the value, where the two charges can read them.
 
 **It sits above `CarrierTail.carrierTail` rather than replacing it.** `map_splitCarrierTail`
-says the split tail's first component *is* the tail, so
-
-* an event of the tail is an event of the split tail through `Prod.fst`, by `probEvent_map` —
-  which is how the coverage charge arrives here without the tape factorisation being redone;
-* the structural charge is stated at the `outside` slot, the same proposition the cache side's
-  meeting point takes;
-* `splitCarrierTail_work` says the value's work count is the two slots added, so the budget
-  hypothesis that is already there *is* `hshare`.
-
-Nothing in `BracketedRun`, `CarrierTail` or anything read off them moves.
+says the split tail's first component *is* the tail, so an event of the tail is an event of the
+split tail through `Prod.fst`, and the tape factorisation does not have to be redone. Nothing in
+`BracketedRun`, `CarrierTail` or anything read off them moves.
 
 ## How the chain is built
 
@@ -26,7 +19,7 @@ Exactly as `CarrierTail.forget_carrierTail` is: each stage's transport written o
 then `bind_assoc` flattens both sides and `bind_congr` walks them together. The three transports
 are `ServingForget.bind_of_forgetsAlong` twice and `bind_of_fuseServing_conj` once, and the
 hypotheses they need are `SplitCounted.forgetsAlong_sumSlots` and the two bracket-commutation
-laws. No induction is added here; the inductions are the ones already in hand.
+laws. No induction is added here.
 -/
 
 open OracleComp OracleSpec
@@ -156,32 +149,5 @@ theorem map_splitCarrierTail (inClass : Bytes → Prop) {inside outside : QueryK
   refine bind_congr fun middle => ?_
   rw [split_last_stage_bind inClass hne rightKeep walk keys.1.2 middle.1 middle.2.2.2]
   simp only [bind_assoc, pure_bind]
-
-/-! ## The coverage charge, for free
-
-This is the claim the whole arrangement was for. The coverage charge was proved at
-`CarrierTail.carrierTail`, where the tape factorisation lives; here it is at the split tail, and
-the proof is the map and nothing else. No part of the factorisation is re-run, and no margin is
-spent — `probEvent_map` and `ClassExpectation.expected_map` are identities.
-
-Had the split been put *into* `BracketedRun.CountedState` instead, this charge would have had to
-be reproved at the widened tail. That is the cost the layering avoids, and this theorem is where
-it would have been paid. -/
-
-/-! ## `hshare`, discharged end to end
-
-The step bound reaches the tail by `RecordInvariant`'s two laws and nothing else. The phase
-law needs the brackets to preserve the relation, and they do for the reason they preserve
-everything else the recordings care about: `startServingOn` and `stopServingOn` rewrite the
-carrier's framing and return `state.2` untouched, and the relation reads only `state.2`. Both
-bracket obligations are therefore `exact hinv` after a `cases` on the request's frame.
-
-Then the three stages compose by `Tracks.trans`, which is `omega`, and at the tail's start the
-recordings are empty and the counter is zero — so the relation collapses to the bound.
-
-**This is what was assumed before.** `prob_splitCarrierTail_targetCovered_le` still takes its two
-record bounds as hypotheses, because those are caps on the *lengths* and belong to the
-factorisation; what is no longer assumed is the one `hshare` needs, that the target recording
-sits inside the inside slot. -/
 
 end SlhDsaSecurity.SplitTail

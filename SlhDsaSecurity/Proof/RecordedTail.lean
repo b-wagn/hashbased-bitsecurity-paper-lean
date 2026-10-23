@@ -4,21 +4,17 @@ import SlhDsaSecurity.Proof.WarmedSplit
 /-!
 # The warmed tail, carrying the adversary's record as a value
 
-`RandomiserProvenance.randomiserBad_source` hands back a record of the adversary's own hash
-inputs, bounded by `Outcome.counts.work`, but hands it back **existentially over the support**.
-That is not enough to charge: `∃ record, Multiset.card record ≤ work ∧ ∃ input ∈ record, …` is
-satisfied by a one-element multiset whenever the run charges anything, so as a predicate on the
-tail's result it is useless. The charge needs the record to be a *value of the computation whose
-probability is being bounded*, so that `RandomizerGate.prob_run_randomizerInput_le` — which reads
-the record off the run's output — can consume it.
+A charge on the adversary's own hash inputs needs the record to be a *value of the computation
+whose probability is being bounded*; an existentially quantified record over the support is
+useless, since a one-element multiset satisfies it whenever the run charges anything.
 
-`RecordedQueries` builds that presentation for the **stripped** game, which is what the input
-half runs. The randomiser defect is stated over `WarmedGame.afterSeeds`, the game with the real
-`Scheme.keygenInternal` and `Scheme.sign`, so the same presentation is built here at those. The
-construction is `RecordedQueries`' verbatim — recording in the writer that already carries the
-counters, at exactly the adversary's handler and the verifier's instrumentation — and so are the
-two facts about it: forgetting the record returns the game exactly, and the record's cardinality
-is the work the game charges.
+`RecordedQueries` builds that presentation for the **stripped** game. The randomiser defect is
+stated over `WarmedGame.afterSeeds`, the game with the real `Scheme.keygenInternal` and
+`Scheme.sign`, so the same presentation is built here at those. The construction is
+`RecordedQueries`' verbatim, recording in the writer that already carries the counters, at
+exactly the adversary's handler and the verifier's instrumentation, and so are the two facts
+about it: forgetting the record returns the game exactly, and the record's cardinality is the
+work the game charges.
 
 `tail_eq_map_recordedTail` is what the charges read: the warmed tail **is** the recorded tail
 with the record dropped, as an equality of computations, so a probability at the one is a

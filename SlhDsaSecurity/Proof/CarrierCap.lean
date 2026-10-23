@@ -4,32 +4,31 @@ import SlhDsaSecurity.Proof.CarrierRecord
 /-!
 # The disclosing cap at the carrier tail
 
-`CarrierFiles.leftRecord_length_le_cap` bounds the disclosing recording at `5 * 2 ^ 62`, which
-is the cap the load concentration needs, and it does so **structurally**: the carrier files on
-served requests, so the recording holds one entry per request by construction. What it is
-stated at is a serving phase run from an empty carrier. What the answer half needs is the same
-bound at `CarrierTail.carrierTail`, whose middle stage starts from the carrier key generation
-left behind and whose other two stages are not serving phases at all.
+`leftRecord_length_le_cap_carrierTail` bounds the disclosing recording of `CarrierTail.carrierTail`
+at `5 * 2 ^ 62`, the cap the load concentration needs, and it does so **structurally**: the
+carrier files on served requests, so the recording holds one entry per request by construction.
+The tail's middle stage starts from the carrier key generation left behind and its other two
+stages are not serving phases at all.
 
-**This file is the lift, and the shape of the lift is forced by where the recording can grow.**
+**The shape of the argument is forced by where the recording can grow.**
 `HandlerCarrier.FilesLeft` compares an input against the framing in flight, so with nothing in
-flight it is false — and then the notice is the identity, the left test never fires, and the
-disclosing recording cannot grow. `CarrierClearFraming` already says every stage of the tail is
-entered and left with nothing in flight. So key generation and verification contribute nothing
-to the recording, and the whole of it is the adversary's phase's.
+flight it is false, the notice is the identity, the left test never fires, and the disclosing
+recording cannot grow. `CarrierClearFraming` says every stage of the tail is entered and left
+with nothing in flight. So key generation and verification contribute nothing to the recording,
+and the whole of it is the adversary's phase's.
 
-Two invariants do the work, and neither is new as an argument:
+Two invariants do the work:
 
 * `Quiet` — nothing in flight and nothing served — is a `ServedAgreement.Files.invariant`, since
   the filing clause is discharged by the framing being clear rather than by anything about the
   carrier's history. It is what makes the middle stage's start as good as an empty carrier for
   the agreement, even though its cache is not empty.
-* `LeftFixed` is the same observation at the recording instead of the carrier, and it needs a
-  step law rather than a carrier invariant because the recording lives beside the carrier and
-  `Files.invariant` does not see it.
+* `leftFixed_step` is the same observation at the recording instead of the carrier, and it
+  needs a step law rather than a carrier invariant because the recording lives beside the
+  carrier and `Files.invariant` does not see it.
 
-**What is not here.** The length of the signing log is a budget fact and is taken as a
-hypothesis; nothing in this file bounds the adversary's signing queries.
+The length of the signing log is a budget fact and is taken as a hypothesis; nothing in this
+file bounds the adversary's signing queries.
 -/
 
 open OracleComp OracleSpec
@@ -331,14 +330,13 @@ theorem served_stopServingOn (state : CountedState) :
 
 /-! ## The agreement, from a carrier that is quiet rather than empty
 
-`CarrierFiles.agreesWithLog_carrierRun` reads the agreement at a phase started from
-`HandlerCarrier.empty`. The tail's middle stage is started from the carrier key generation left
-behind, whose cache is not empty — and nothing in the argument wanted an empty *cache*. What it
-wanted was an empty **served set**, which is what makes `ServedAgreement.CarrierLogged` hold at
-the start for the only reason it ever holds there: there is nothing served to be logged.
+The agreement is read at the tail's middle stage, which starts from the carrier key generation
+left behind, whose cache is not empty. Nothing in the argument wants an empty *cache*; it wants
+an empty **served set**, which is what makes `ServedAgreement.CarrierLogged` hold at the start
+for the only reason it ever holds there: there is nothing served to be logged.
 
-`ServedAgreement.carrierLogged_run_with` and `logFiled_run_with` are already general in the
-starting state, so this is their composition at a quiet start and not a new induction. -/
+`ServedAgreement.carrierLogged_run_with` and `logFiled_run_with` are general in the starting
+state, so this is their composition at a quiet start. -/
 
 theorem carrierLogged_of_quiet (sk : SecretKey) (warm : QueryCache HashSpec)
     (log : SigningLog) (carrier : HandlerCarrier.State) (hquiet : Quiet carrier) :
@@ -462,10 +460,7 @@ theorem leftRecord_length_le_cap_carrierTail
     middle.2.2.2.2.1.1 hnodupMiddle.2 hservedMiddle (by rw [hsigned]; exact hlimit)
 
 set_option maxHeartbeats 1000000 in
-/-- **The cap in the form a consumer wants it**: quantified over the support, which is what
-`SplitCarrierTail.leftRecord_le_of_carrierTail` carries to the split tail and what
-`answerBound_splitTail`'s `hleftBound` asks for, with `leftLength := 5 * 2 ^ 62` and `hcap` by
-`le_rfl`. -/
+/-- **The cap in the form a consumer wants it**: quantified over the support of the tail. -/
 theorem leftRecord_le_cap_carrierTail
     (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
     (adversary : Adversary) (walk : Walk)
@@ -481,18 +476,6 @@ theorem leftRecord_le_cap_carrierTail
   fun result hresult =>
     leftRecord_length_le_cap_carrierTail rightKeep adversary walk hpublic hkey result hresult
       (hlimit result hresult)
-
-/-! ## And the log's length is the budget's business
-
-The cap's one remaining hypothesis is the signing log's length, and it is not a carrier fact at
-all: `Security.HasTotalBudget` bounds the adversary's signing count almost surely, and
-`SigningFaithful.signed_length_le_signing_tail` says the outcome's log is no longer than that
-count. Both are already proved; what is left is to read them at the carrier tail, which is the
-same three maps the work count travels along and for the same reason — none of them touches the
-outcome.
-
-**The budget's two conjuncts are read the same way and differ only in the projection.**
-`WholeGameStructural.count_le_of_budget` takes the second; this takes the first. -/
 
 attribute [local irreducible] WarmedGame.afterSeeds
 

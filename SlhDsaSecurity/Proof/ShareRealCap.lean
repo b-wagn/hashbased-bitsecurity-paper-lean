@@ -3,16 +3,13 @@ import SlhDsaSecurity.Proof.KeygenCost
 import SlhDsaSecurity.Proof.WarmedCharges
 
 /-!
-# The cap changes nothing in the real game
+# The cap in the real game
 
-The shared games run the adversary capped at `L = q - (chains + 1) · 2 ^ subtreeHeight` weighted
-queries. That is a change to the computation, and it is paid for here, on the real side, where
-the budget lives: the flattened real handler reports the cap's weight in its own state — the
-adversary's work, plus one per served request — and on every path of the real game that weight
-is at most `L` (`cost_le_of_budget`), because the whole game's hash calls are at most `q`, key
-generation alone spends `(chains + 1) · 2 ^ subtreeHeight`, and each served request costs the
-signer two uncharged calls. So `CapComp.evalDist_capComp` applies and the capped real game has
-the law of the real game (`evalDist_realFlat_cap`).
+The shared games run the adversary capped at a number of weighted queries (`capAdv`). The
+flattened real handler reports the cap's weight in its own state (`reportsCost_real`): the
+adversary's work, plus one per served request (`realCost`). `answer_isSome` says the stripped
+signer answers exactly the framed requests, and `exists_recordedTail_of_linked` relates a point
+the linked run reaches to one the recorded tail reaches.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -84,7 +81,7 @@ theorem reportsCost_real (warm : QueryCache HashSpec) (sk : SecretKey) :
 noncomputable def capAdv (adversary : Adversary) (limit : Nat) : Adversary :=
   ⟨fun pk => CapComp.capComp ShareGame.weight ShareGame.fallbackForgery limit (adversary.main pk)⟩
 
-/-! ## The budget bounds the real phase's weight -/
+/-! ## The linked run and the recorded tail -/
 
 /-- A point the linked run reaches is one the recorded tail reaches, with its count beside it. -/
 theorem exists_recordedTail_of_linked (adversary : Adversary) (prfSeed publicSeed : Digest)

@@ -5,7 +5,7 @@ import SlhDsaSecurity.Proof.Hashing
 
 `ServingCarrier` reads a disclosed set off a handler's state, and `ServedDisclosure` states the
 notion the reading obeys. Neither can declare the *type*: `ServedDisclosure` is stated over
-`CacheAvailability`, which is above `LazyBudget`, which is above `OpenCache` — so the files that
+`CacheAvailability`, which is above `OpenCache` — so the files that
 state the notion sit above the handler that has to carry it. The type and the operations on it
 are therefore here, below all of them, and everything that needs the notion stays above.
 
@@ -131,20 +131,16 @@ simplification — asking only whether *some* request is in flight, since the bl
 needs no more than that — is false and unrecoverable. By the FIPS 205 format identity a message
 input at `m` is a `PRF_msg` input at `PK.root ‖ m`, so the signer's own randomiser query on a
 request framed `f` is a message input at a message one block *shorter* than `f`; comparing
-against `f` itself rejects it (`not_filesLeft_randomizerInput`), and comparing against nothing
+against `f` itself rejects it, and comparing against nothing
 accepts it. Accepting it would put two entries per request in the disclosing recording, which
 is past the Poisson coupling's **mean** and not merely past its proved tail, so the rare event
 becomes the typical one and no sharpening reaches it. It would also stop the served set being
 the image of the signing log.
 
-Of the two figures this used to quote, one is traceable and one is not. The mean load potential
-at the coupling's own rate is `2 ^ 63 · T₁₄(3)` with `T₁₄(3) = 461101962108` proved in
-`ForsConcentrationSharper.touchard_fourteen_three` and used as the centering in
-`ForsConcentration.centeredLoadSum_eq`, which is about `2 ^ 101.75`. The figure for the doubled
-recording was quoted as `2 ^ 105.17`; **no lemma records it**, and it is not what doubling gives
-— doubling the entries doubles the per-bin rate, and `2 ^ 63 · T₁₄(6)` is about `2 ^ 110.4`.
-The conclusion holds under either reading, since the mean crosses `2 ^ 103` already at rate about
-`3.34`; only the second number was invented, and it is left out rather than re-derived. -/
+The mean load potential at the coupling's own rate is `2 ^ 63 · T₁₄(3)`, about `2 ^ 101.75`
+(`ForsConcentration.centeredLoadSum_eq` uses `T₁₄(3) = 461101962108` as its centering).
+Doubling the recording doubles the per-bin rate, so the mean crosses `2 ^ 103` already at rate
+about `3.34`. -/
 def FilesLeft (pk : PublicKey) (state : State) (input : Bytes) : Prop :=
   ∃ framed : Bytes, state.framing = some framed ∧
     ∃ randomizer : Digest, input = Hashing.messageInput randomizer pk framed

@@ -4,24 +4,22 @@ import SlhDsaSecurity.Proof.CoverageCount
 /-!
 # The tape factorisation at the recorder that notices
 
-`TapeFactor.evalDist_splitTapeRun` factorises the two-recording run through two blocks drawn in
-advance, at `RecorderView.recorderOf`. The carrier's repair runs
-`RecorderView.noticingRecorderOf` instead — the same oracle at a state that has been told about
-the query, so that a filing test may read something a cache hit would otherwise hide. This file
-is that factorisation at the repaired recorder.
+`evalDist_noticingSplitTapeRun_cont` factorises the two-recording run through two blocks drawn
+in advance, with an arbitrary continuation on each side. The run is at
+`RecorderView.noticingRecorderOf`: the recorder run at a state that has been told about the
+query, so that a filing test may read something a cache hit would otherwise hide.
 
-**It is the same induction, and that is the finding.** `noticingRecorderOf` is *defined* as
-`recorderOf` run at the noticed carrier, so every step of the proof below is the corresponding
-step of `evalDist_splitTapeRun` with `cache` replaced by `CacheView.onQuery cache input`. The
-notice does not touch the cache (`RecorderView.cacheOf_onQuery`), so the freshness guard is
-unmoved; what moves is only *which state the two tests are read at*, and the tests were already
-arbitrary predicates of the state. Nothing about the repair makes the factorisation harder.
+**It is the cache-view recorder's induction at a noticed state.** `noticingRecorderOf` is
+*defined* as `recorderOf` run at the noticed carrier, so every step of the proof is the step of
+the plain tape factorisation with `cache` replaced by `CacheView.onQuery cache input`. The notice
+does not touch the cache (`RecorderView.cacheOf_onQuery`), so the freshness guard is unmoved;
+what moves is only which state the two tests are read at, and the tests are arbitrary predicates
+of the state.
 
-**What this does not change.** Not the rate, not what is summed, and not the block lengths: the
-statement is the same equality of laws, still unconditional in `leftLength` and `rightLength`,
-so everything downstream of it — the leave-one-out charge, the expectation form, the two cell
-correspondences — applies verbatim with `noticingSplitTapeRecorder` in place of
-`splitTapeRecorder`.
+The file has the recorder `noticingSplitTapeRecorder`, its step laws, the leave-one-out charge
+stated over an arbitrary run with the selection's causality as a hypothesis, the continuation
+forms of the factorisation and of the cell correspondences, and `blockRunOf`, the run with the
+two blocks it read kept beside its result.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -61,7 +59,7 @@ theorem noticingSplitTapeRecorder_run_inr (leftKeep rightKeep : Bytes → σ →
 
 `rightOf` and `leftOf` read the recordings, which the notice does not touch, so
 `rightOf (CacheView.onQuery state.1 input, state.2) = rightOf state` holds definitionally. That
-is why the three lemmas below are applications of the cache version rather than copies of it:
+is why the lemmas below are applications of the cache version rather than copies of it:
 each is a statement about the recordings, and the notice is invisible to them. -/
 
 open scoped Classical in
@@ -136,31 +134,6 @@ theorem noticingLeftOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
       exact leftOf_step leftKeep rightKeep (Sum.inr input)
         (CacheView.onQuery state.1 input, state.2) step hstep
 
-/-! ## The selection is still causal
-
-The one step of the cache version whose argument is not bookkeeping, at the repaired recorder.
-Its hard case is unchanged and for an unchanged reason: at the step that reads the cell the two
-runs genuinely diverge, and the induction does not have to go through, because the event has
-already come true there and `noticingRightOf_prefix` keeps it true.
-
-The notice is invisible to this argument. It changes the carrier, and the carrier is what the
-two tests read; what the selection reads is the *recording's length*, which the notice does not
-touch at all. -/
-
-/-! ## The recordings are the blocks, cell for cell
-
-Both correspondences, at the repaired recorder. As in the cache version they are claimed **only
-where the block still has a cell**: past that the recorder draws for itself and the two part
-company, which is what the two length hypotheses downstream exist to exclude. -/
-
-/-! ## The leave-one-out charge, at the repaired recorder
-
-The three lemmas the coverage charge is assembled from. Each is the cache version with its
-recorder swapped: none of them inducts over the computation, and the only recorder-specific
-thing any of them uses is `noticingProbEvent_length_set` — the causality of the selection, proved
-above. The rate, what is summed, and the per-cell factor are untouched, which is what keeps the
-margin downstream the same number it was. -/
-
 /-! ## The charge, with the run a parameter
 
 The three lemmas the coverage charge is assembled from use only four things about the run: that
@@ -169,11 +142,10 @@ see its value, that a recorded entry is the block cell it came from, and that th
 never fails. Only the second mentions the run at all, and it is the one a new presentation has
 to prove.
 
-So they are stated over an arbitrary `run`, with the selection's causality as a hypothesis. The
-repaired recorder's instances below supply it from `noticingProbEvent_length_set`; a bracketed
-three-stage run supplies it from its own and gets the rest free. **Stating the charge once means
-the rate and the index set are written once**, which is the same protection the
-blocks-drawn-at-the-top design gives: a second copy is a second place the margin could be spent.
+So they are stated over an arbitrary `run`, with the selection's causality as a hypothesis; a
+bracketed three-stage run supplies it from its own and gets the rest free. **Stating the charge
+once means the rate and the index set are written once**: a second copy is a second place the
+margin could be spent.
 -/
 
 /-- A run with the two blocks it read kept beside its result. -/
@@ -380,26 +352,13 @@ theorem prob_exists_hit_le_expected_of_causal {ρ : Type}
   exact mul_le_mul' (sum_prob_selected_le_expected_of run rightOfResult
     leftLength rightLength) le_rfl
 
-/-! ## The recordings are still invisible
-
-`CoverageCount.recorderOf_eq_rom` says an event about the result and the view's cache has the
-same probability under the recorded run as under the shared oracle's — the write-only bridge
-the structural term is read across. At the repaired recorder it is the same statement for the
-same reason, and the *notice does not move the right-hand side at all*: `cacheOf_onQuery` says
-noticing a query leaves the cache alone, so the oracle's run is started and continued at exactly
-the cache it was before. Only the carrier under the recording moves, and the event cannot see
-the carrier except through its cache. -/
-
-/-! ## The repaired recorder's instances, as applications -/
-
 /-! ## The factorisation with a continuation, which is what composes
 
-`evalDist_noticingSplitTapeRun` factorises **one** run. The carrier's tail is three runs, and
-the middle one contains a *nested* run — the signer's own queries, simulated through the same
-handler between two bracket points. Chaining the one-run statement does not work, and the reason
-is worth stating because it is what forces this generalisation: after a run has consumed part of
-a block, what is left is a block of a length the run itself chose, so the next stage cannot draw
-a fresh one and cannot be handed the remainder as data either.
+The carrier's tail is three runs, and the middle one contains a *nested* run: the signer's own
+queries, simulated through the same handler between two bracket points. A one-run factorisation
+cannot be chained: after a run has consumed part of a block, what is left is a block of a length
+the run itself chose, so the next stage cannot draw a fresh one and cannot be handed the
+remainder as data either.
 
 The fix is to make the continuation a parameter on both sides and to demand of it **exactly what
 the conclusion gives**: that it factorises against freshly drawn blocks, at every pair of
@@ -409,10 +368,9 @@ dropped block.
 
 **Blocks are drawn once, at the top.** That is not an optimisation. Three stages each drawing
 their own block would give the per-cell charge three index sets instead of one, and the counting
-step in `noticingSum_prob_selected_le_expected` would be summing over a different thing. Drawn
+step in `sum_prob_selected_le_expected_of` would be summing over a different thing. Drawn
 once and threaded, the index set stays `Fin rightLength` over one block and the rate stays the
-per-cell one. The design cannot spend the concentration margin, rather than being shown not to.
--/
+per-cell one. -/
 
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
@@ -530,13 +488,9 @@ theorem evalDist_noticingSplitTapeRun_cont (leftKeep rightKeep : Bytes → σ �
 
 /-! ## The selection's causality, with a continuation
 
-`noticingProbEvent_length_set` says a single run's selection of a target cell does not see that
-cell's value. The bracketed tail is three runs, and chaining the single-run statement hits the
-same obstruction the factorisation did: after the first stage the two sides are in different
-states, so the second stage's probability is not the same object on both sides.
-
-The repair is the same one, and that it is the same one is the point. The continuation is a
-parameter, and what is asked of it is **the conclusion's own shape** — that its selection does
+A run's selection of a target cell must not see that cell's value. The bracketed tail is three
+runs, and after the first stage the two sides are in different states, so the second stage's
+probability is not the same object on both sides. The continuation is a parameter, and what is asked of it is **the conclusion's own shape** — that its selection does
 not see the cell either — plus two facts that compose by themselves: it never fails, and it
 never shortens the target recording. The `pure` case is then the continuation's own causality
 rather than a termination, and the step that *reads* the cell is settled on both sides by the
@@ -546,7 +500,7 @@ recording already being long enough, exactly as before.
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **Once the recording is long enough the whole rest of the run keeps it so.** The
-continuation form of `noticingProbEvent_length_eq_one`: the run only grows the recording and the
+continuation form of the single-run statement: the run only grows the recording and the
 continuation only grows it further, and neither can fail. -/
 theorem probEvent_length_eq_one_cont (leftKeep rightKeep : Bytes → σ → Prop)
     {α γ : Type} (computation : OracleComp OracleWorld α)
@@ -573,21 +527,13 @@ theorem probEvent_length_eq_one_cont (leftKeep rightKeep : Bytes → σ → Prop
       (cache, tapes, (leftRecord, rightRecord ++ [entry])) z hz
     exact lt_of_lt_of_le (lt_of_lt_of_le hbound hprefix.length_le) (hgrow z w hafterMem)
 
-/-! ## The cell correspondence, with a continuation — and the invariant it retires
+/-! ## The cell correspondence, with a continuation
 
 The correspondence relates the **final** recording at offset `rightRecord.length + index` to the
-**starting** block at `index`. Chaining the single-run form across stages looks as though it
-needs a new invariant — that the block shortens by exactly as much as the recording grows —
-because otherwise a later stage's block index does not line up with the original one. That
-statement is true, obvious, and load-bearing, which is the most dangerous combination; and it is
-not needed.
-
-**The continuation form removes the need for it, because each layer speaks of its own offsets.**
-The hypothesis is the conclusion at the continuation's *own* starting recording and block, so no
-global index arithmetic ever appears: the outer layer relates the original offsets to the
-intermediate ones, the inner layer relates the intermediate ones to the final, and nothing has to
-count how many cells the first stage ate. That is the fifth time the continuation shape has paid,
-and the first time it has retired a lemma rather than enabled one.
+**starting** block at `index`. The hypothesis is the conclusion at the continuation's *own*
+starting recording and block, so no global index arithmetic ever appears: the outer layer
+relates the original offsets to the intermediate ones, the inner layer relates the intermediate
+ones to the final, and nothing has to count how many cells the first stage ate.
 -/
 
 /-- The unread remainder of the target block. -/

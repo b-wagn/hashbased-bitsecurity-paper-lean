@@ -18,9 +18,8 @@ Three choices make it fit.
 
 * **The node type carries its own singleton witness.** `Stakes` needs `inputOf` to take exactly
   one cell, and a bare `StructuralNode` with two children has no single cell at stake. So the
-  node is a structural node bundled with a proof that it has exactly one child —
-  `CanonicalGraph.singleton_children_of_sensitive` supplies that for every sensitive node, and
-  bundling it is where the single-unavailable-child hypothesis is spent rather than assumed.
+  node is a structural node bundled with a proof that it has exactly one child, which is where
+  the single-unavailable-child hypothesis is spent rather than assumed.
 * **`locate` needs no parser.** `CanonicalGraph.canonicalInput_eq_iff` already says the address
   determines the node and the payload determines the children's cells, so reading the node back
   is a choice from the (unique) preimage rather than a byte-level parse.
@@ -46,9 +45,8 @@ open CanonicalGraph SensitiveQuery
 
 `SensitiveQuery.Stakes` wants a node type on which `stake` is total and `inputOf` takes exactly
 one cell. A bare `StructuralNode` is neither: a node with two children has no single cell at
-stake. So the node type carries its own witness of having exactly one child — which
-`CanonicalGraph.singleton_children_of_sensitive` supplies for every sensitive node, and which is
-where the whole single-unavailable-child hypothesis is spent. -/
+stake. So the node type carries its own witness of having exactly one child, which is where the whole
+single-unavailable-child hypothesis is spent. -/
 
 /-- A structural node together with the single child a sensitive node has. -/
 structure SensitiveNode where
@@ -149,19 +147,6 @@ theorem not_unavailable_of_obtainable (state : State) {index : Node}
     (SensitiveQuery.not_unavailable_of_obtainable graph (unavailableAt revealed signedAt)
       (closed revealed signedAt) state hobtain)
 
-/-! ## The WOTS residue is outside what a run can compute
-
-The reduction of a hypertree fault leaves the forgery holding the chain value at a position
-strictly below the digit that key's honest message encodes. That cell is unavailable, so by the
-closure it is not obtainable either — a run holding it did not derive it, and the only other way
-is a query at a sensitive node. -/
-
-/-! ## The node a sensitive query is at
-
-Reading the corollary the other way: a node the signatures leave a child of unavailable has
-exactly one child, so it *is* a `SensitiveNode` and its canonical input is one of the charge's
-candidates. -/
-
 /-! ## The digit each hypertree key reveals
 
 Each WOTS key of the hypertree signs exactly one message, and that message is a function of the
@@ -224,8 +209,7 @@ position by position there are only two possibilities: the signing log selected 
 coverage event — or the cell is unavailable, and then by the closure it is not obtainable
 either, so the run reached it by a query at a sensitive node.
 
-Nothing here decides which; it is the honest statement of the fork, which is what the gap in
-`ForsLeafCharge`'s account was. -/
+Nothing here decides which; it is the honest statement of the fork. -/
 
 omit [HasQuery HashSpec Id] in
 /-- **An unsigned FORS secret is not obtainable.** -/
@@ -288,25 +272,17 @@ def wotsHashNode (key : WotsKey) (chain : Fin chains) (step : Fin (w - 1)) : Sen
     by by_cases hzero : step.val = 0 <;>
       simp [StructuralNode.children, wotsPosition, hzero]⟩
 
-/-! ### Why the honest phase cannot be filtered out on availability
+/-! ### The stake is one position lower than the probe
 
-**The stake is one position lower than the probe.** `wotsHashNode key chain step` sits at the
-chain step whose address is `step`, and its single child is `wotsPosition key chain step` — the
-cell that step *reads*, not the one it writes. So a probe at a chain step stakes the position
-being guessed, and the honest signer, walking a chain from its start up to the digit it reveals,
-stakes exactly the positions it is walking through and has not yet revealed.
-
-Every one of them is unavailable, by the lemma below. The honest signer's probes are therefore
-`ChargedProbe.Targets`, and **no test on availability can drop them from the charge's weight** —
-not the one `ChargedProbe.sum_targets_countP_le` already admits, and not any refinement of it.
-The way the honest phase is kept out of the half's budget is **stripping**, which removes its
-canonical probes before they reach the handler at all, as `ProbeContainment` does; filtering is
-not an alternative route to the same place.
+`wotsHashNode key chain step` sits at the chain step whose address is `step`, and its single
+child is `wotsPosition key chain step`, the cell that step *reads*, not the one it writes. So a
+probe at a chain step stakes the position being guessed, and the honest signer, walking a chain
+from its start up to the digit it reveals, stakes exactly the positions it is walking through
+and has not yet revealed. Every one of them is unavailable, so no test on availability can drop
+the honest phase's probes from a charge; they are kept out by stripping instead.
 
 The witness that the probes are really made is `WotsEntry.queriesUnder_chain`: every step of a
-chain consults its canonical input at the chain's own partial value. That the walk's length is
-the encoded digit — the same digit `honestRevealed` is defined as — is left unstated here,
-being the one part of the argument that is not in doubt. -/
+chain consults its canonical input at the chain's own partial value. -/
 
 /-- The FORS leaf node above a FORS secret, which always has exactly one child. -/
 def forsLeafNode (key : ForsKey) (index : Fin (forsTrees * 2 ^ forsHeight)) : SensitiveNode :=

@@ -4,25 +4,15 @@ import SlhDsaSecurity.Proof.Averaging
 /-!
 # A block of answers, read as a tape of parsed views
 
-`TapeFactor` hands the coverage charge two blocks of `List HashOutput`, drawn by
-`DigestTape.padding`, and takes the block predicate and the hit relation as parameters. The FORS
-machinery states everything about `ForsDisclosureTape.Tape n = Fin n → View` instead. This file
-is the one conversion between the two, and the two instances of those parameters that the game
-needs: the block's loads concentrate, and a fresh answer is rarely covered by a block whose
-loads are good.
-
-The conversion is done once, here, rather than at each of the places downstream that would
-otherwise each do it their own way.
+`TapeFactor` hands the coverage charge blocks of `List HashOutput`, drawn by `DigestTape.padding`,
+and takes the hit relation as a parameter. The FORS machinery states everything about
+`ForsDisclosureTape.Tape n = Fin n → View` instead. This file is the one conversion between the
+two, and the hit relation `BlockHit` the game needs: a fresh answer whose fourteen FORS leaves are
+all disclosed by the block.
 
 `DigestTape.viewTape_uniform` already says a uniform *word* parses to a uniform tape. What is
-missing is that `padding` draws a uniform word at all — it draws one answer at a time — and that
-is `evalDist_padding_eq_ofFn`, by splitting a uniform function type at its first coordinate.
-
-Nothing here needs `BlockDisclosures`. Its index split exists to make the disclosure set a
-function of a fixed range of one tape; with the two roles on two separately drawn blocks the
-disclosure set is a function of the whole of one of them, which is the same property held more
-simply. What is used is the concentration bound and the single-coordinate coverage rate, each of
-which is already stated at a tape of its own.
+missing is that `padding` draws a uniform word at all (it draws one answer at a time), and that is
+`evalDist_padding_eq_ofFn`, by splitting a uniform function type at its first coordinate.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -146,40 +136,14 @@ theorem evalDist_blockTape (length : Nat) :
         simp [blockTape, List.getD_eq_getElem?_getD]
     _ = _ := viewTape_uniform length
 
-/-! ## The two instances the game needs -/
+/-! ## The hit relation the game needs -/
 
 /-- An answer whose fourteen FORS leaves are all disclosed by the block. -/
 def BlockHit (length : Nat) (block : List HashOutput) (value : HashOutput) : Prop :=
   ForsCoverage.Covered (ForsDisclosureTape.disclosures (blockTape length block))
     (MessageDigest.parse value)
 
-/-! ## From the recording's own witnesses to the block's disclosures
-
-The game's coverage event is witnessed by entries of the *recording*; the charge reads the
-disclosures off the whole *block*, the part no query reached included. Taking the block is only
-ever an over-count — more disclosures make coverage likelier, so the charge is still an upper
-bound — and the step that makes it one is this: an entry of the recording is a cell of the
-block, so the leaf it supplies is a leaf the block discloses.
-
-What this needs of the run is `TapeFactor.leftOf_getElem?` and that the recording did not
-outrun its block. The second is a cap on the number of *disclosing* queries, which the signing
-limit gives; it is not a cap on the targets, and the charge is still an expectation in those. -/
-
 variable {σ : Type} [RecorderView.CacheView σ]
-
-/-! ## The coverage charge at the recorded run
-
-The charge is proved at `TapeFactor.blockRun`, which carries the two blocks beside the result.
-The game supplies a run that carries neither. `TapeFactor.evalDist_splitTapeRun` says the two are
-the same law, so the event and the expectation both move across, and what is left is to read the
-game's event — a target digest covered by the disclosing *recording* — as the charge's event, a
-block cell hit by the disclosing *block*. That is the two cell correspondences and
-`covered_of_recordCovers`.
-
-The two length hypotheses are caps on *counts*, not on charges. The disclosing one is the
-signing limit and is what the `2 ^ -141` is bought with; the target one is the query budget and
-buys nothing — it only says the run cannot read past its block, and the charge stays an
-expectation in the number of cells it did read. -/
 
 open scoped Classical in
 /-- Expectations move through a reshaping of the outcome. -/

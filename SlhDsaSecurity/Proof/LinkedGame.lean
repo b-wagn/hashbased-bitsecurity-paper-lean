@@ -5,7 +5,7 @@ import SlhDsaSecurity.Proof.RecordedPhase
 # The game as one computation and one handler
 
 With the keys handed in and the phase's charge and record moved inside the computation, the
-experiment's nesting can be undone. `linkedAfterSeeds` is the game written as a single
+experiment's nesting is undone. `linkedAfterSeeds` is the game written as a single
 computation over `OracleWorld + SigningSpec` — the adversary's own phase counted and recorded
 where it stands, the verifier lifted beside it with its own instrumentation intact — and
 `unchargedPhase` is the single handler that answers it.
@@ -26,7 +26,7 @@ Three things the shape is chosen to preserve, each of which would be a silent fa
 
 **On the lift, which is not as innocent as it looks.** There are at least three terms denoting
 "a world computation in the phase's spec" — the coercion as this file's elaborator synthesizes
-it, the coercion as `QueryImpl.simulateQ_add_liftComp_left` is stated at, and the left injection
+it, the coercion as VCVio's `QueryImpl.simulateQ_add_liftComp_left` is stated at, and the left injection
 written out by hand — and *no two of them are definitionally equal*. Checking that is one `rfl`,
 and it fails. So `liftWorld` pins the one the upstream lemma uses, by supplying the instance
 argument, and is the only place in this development that supplies it; everything else goes
@@ -106,9 +106,8 @@ def outcomeOf (result : ((Forgery × Multiplicative Tally) × (Bool × Tally)) �
 /-- **The game is that computation under that handler.** An equality of computations, so the
 outcome and the record come out as the same values they always did.
 
-`HonestLinked.recordedAfterSeedsWith_eq` is this proved once for **every** signer, which costs
-nothing because `RecordedPhase.run_phase_counted` and `run_unchargedPhase_lift` are already
-stated at an arbitrary one and the nesting never looked at which signer it was nesting. -/
+The nesting never looks at which signer it is nesting, since `RecordedPhase.run_phase_counted`
+and `run_unchargedPhase_lift` are stated at an arbitrary one. -/
 theorem recordedAfterSeedsAt_eq (adversary : Adversary) (keys : SecretKey × PublicKey)
     (warm : QueryCache HashSpec) :
     recordedAfterSeedsAt adversary keys warm =

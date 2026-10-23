@@ -11,24 +11,18 @@ import SlhDsaSecurity.Proof.CanonicalGraph.Address
 import SlhDsaSecurity.Proof.GameBridge
 
 /-!
-# The charges, at the walk's own cells
+# The walk's cache and cells, at the warmed tail
 
-With the game split into `WarmedGame.graphWalk` and `WarmedGame.tail`, each charge now applies
-to the tail with the cells the walk produced — which is the whole point of walking first. Two
-facts are needed to invoke one, and both are about the walk rather than the charge:
+With the game split into `WarmedGame.graphWalk` and `WarmedGame.tail`, the charges apply to the
+tail with the cells the walk produced. This file collects the facts about the walk's cache that
+they use:
 
-* the tail starts from the walk's cache, which carries the canonical entries of those cells
-  and nothing else (`CanonicalGraph.Programming.cacheFrom_empty_canonical`), so the
-  cleanliness hypothesis every charge takes is discharged;
-* the tail's cache growth is bounded by its own charged count, and that count is bounded by
-  `q` — which has to be *imported* from the unwarmed game, since `Security.HasTotalBudget`
-  speaks about `Security.runAll`. `count_le_of_budget_tail` is that import, and it goes
-  through `WarmedGame.evalDist_outcome`: the outcome's law is unchanged by warming, so a
-  property holding almost surely there holds on every supported tail here.
-
-`prob_deviatingCollision_tail_le` is the first charge in this form. It is the structural
-half of the answer side, now stated against *this run's* honest key rather than an arbitrary
-fixed one.
+* the walk's cache carries the canonical entries of its cells and nothing else
+  (`walk_cache_canonical`), so a canonical input is not a message input
+  (`not_messageInput_canonical`) and the cleanliness hypothesis every charge takes is
+  discharged;
+* the tail can only add to the walk's cache (`walk_cache_persists`), so the cells the tail's
+  final cache computes are the walk's own (`value_replay_eq_walk_cells`).
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -91,27 +85,6 @@ theorem not_messageInput_canonical (publicSeed : Digest) (cells : Cells) (pk : P
   rintro ⟨randomizer, message, hinput⟩
   rw [canonicalInput] at hinput
   exact HashSeparation.message_tweakable_ne hpublic (hbounds parent) hinput.symm
-
-/-! ## The blind cache at the walk
-
-The input half compares the run against the walk's cache with the same run against that cache
-*stripped* of its seed-bearing entries — the canonical inputs of the PRF nodes, which are the
-only places `SK.seed` appears in the clear. The two caches agree everywhere else, which is what
-makes the comparison exact rather than a hop: the probability of touching a stripped input is
-the same on both sides, and on the blind side the secret may be drawn after the run.
-
-Stripping is just dropping those nodes from the list the walk programs, so both caches are
-`cacheFrom` of the same cells and the same output table, over different node lists. -/
-
-/-! ## The blind cache does not know the secret
-
-The point of stripping the PRF nodes, rather than relabelling them with a dummy seed: what is
-left mentions `SK.seed` nowhere. A non-PRF node's canonical input reads only its own children,
-and the secret-seed cell is not among them, so the whole blind cache is the same table for
-every secret. That is what lets the secret be drawn *after* the blind run, which is what
-`SeedDeferral.prob_run_meets_honest_key_le` requires and what a dummy-seed relabelling could
-never give — there the dummy is itself a seed the adversary may hunt for, and the comparison
-returns the same quantity it was meant to bound. -/
 
 /-! ## The tail's replayed cells are the walk's cells
 

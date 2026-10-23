@@ -4,15 +4,18 @@ import SlhDsaSecurity.Proof.RecordedQueries
 import SlhDsaSecurity.Proof.ServedBridge
 import SlhDsaSecurity.Proof.SignerRandomiser
 import SlhDsaSecurity.Proof.StrippedGame
-import SlhDsaSecurity.Proof.ProbeContainment
+import SlhDsaSecurity.Proof.RedrawCell
+import SlhDsaSecurity.Proof.SharedJoin
+import SlhDsaSecurity.Proof.KeygenValue
+import SlhDsaSecurity.Proof.ChargedProbe
 
 /-!
 # The carrier's served set and the log's, at a run of the serving phase
 
-`ServingCarrier.AgreesWithLog` is the statement both sides of the composition need to be about
-one object: the carrier serves exactly the digest inputs the log names. `ServingPhase` made the
-brackets that can make it true — the framing is set across a signing step and clear everywhere
-else — and this file is the run-level proof.
+`ServingCarrier.AgreesWithLog` says that the carrier serves exactly the digest inputs the log
+names. `servingPhaseWith` is the serving phase over any signer: the framing is set across a
+signing step and clear everywhere else. This file is the run-level proof of the agreement, and
+`record_length_le_cap` feeds the cap on the disclosing recording.
 
 **The two directions are proved apart, because they rest on different things.** That the log is
 below the carrier rests on what the signer *asks*: its second query is its own digest input, made
@@ -35,26 +38,14 @@ variable (publicSeed : Digest)
 
 /-! ## What the agreement asks of a handler
 
-The chain below was written against one handler and then generalised twice: over the signer, and
-now over the handler itself. Both times the generalisation was a change of binders rather than a
-reproof, and both times for the same reason — every fact about the thing being generalised had
-already been pulled out as a named lemma while the chain was being written. **That is the
-argument for factoring the next one out too**: a chain that reaches into its parameter in six
-named places can be reparameterised; one that reaches in anywhere has to be reproved.
+The chain below reads its handler through six named facts, so it is parameterised over any
+handler satisfying them. The state is `HandlerCarrier.State × τ` for an arbitrary `τ`: the
+serving program carries a probe list and a counter beside its carrier, the recorder carries two
+recordings, and neither the chain nor these laws look at either. -/
 
-Six facts, and they are exactly the six the chain uses. The state is `HandlerCarrier.State × τ`
-for an arbitrary `τ`, which costs nothing and buys both instantiations: the serving program
-carries a probe list and a counter beside its carrier, the recorder carries two recordings, and
-neither the chain nor these laws look at either. -/
-
-/-- **A handler that files**: the six facts the agreement reads it through.
-
-**When a field pair supports both directions, state both.** `hashCached` and `runPersists`
-give *served implies queried* and *queried implies cached* alike; only the first was stated,
-because only the first had a consumer. The second was needed a year of work later by a
-different reader and was one theorem, not a new notion — but nothing marked it as available.
-The second consumer's direction is not predictable from the first's, so a consequence of the
-fields belongs here whether or not anything wants it yet. -/
+/-- **A handler that files**: the six facts the agreement reads it through. Both directions of
+"served implies queried" and "queried implies cached" are available from `hashCached` and
+`runPersists`. -/
 structure Files (pk : PublicKey) {τ : Type}
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp)) : Prop where
   /-- A hash query leaves its own input cached, the framing where it was, the carrier grown, and
@@ -126,25 +117,17 @@ def stopServingOn {τ : Type} (state : HandlerCarrier.State × τ) : HandlerCarr
 
 /-! ## The phase, over any signer
 
-`ServingPhase.servingPhase` fixes its signer at `Scheme.sign sk`. Everything the agreement
-proves about it uses the signer in exactly two places — the two queries it makes first, and
-which randomiser a query of digest shape can carry — so the phase is taken here over an
-arbitrary signer and those two places become hypotheses.
-
-**It is built beside the fixed one, not in its place.** `servingPhaseWith_sign` is the equality,
-by `rfl`, so every statement about `ServingPhase.servingPhase` stands and every reader of it is
-untouched; the stripped instance is a second instantiation rather than a replacement.
-
-The two hypotheses are what a signer has to supply, and nothing else is asked of it:
+Everything the agreement proves about the serving phase uses the signer in exactly two places,
+the two queries it makes first and which randomiser a query of digest shape can carry, so the
+phase is taken over an arbitrary signer and those two places become hypotheses:
 
 * `SignerShape` — it asks its randomiser and then its digest. This is what the filing argument
-  chains `ServingProgram.servingProgram_query_step` along.
+  chains along.
 * `SignerPins` — it is the lift of a hash-only computation in which the only query of a
   framing's digest shape carries the randomiser the cache replays. This is the half that needs
   the walk to be good, and it is where `ServedBridge.sign_messageShape_randomizer` enters.
 
-Both hold of `Scheme.sign sk` and both hold of `StrippedGame.strippedSign` at the walk's table,
-which is the whole content of the transport. -/
+Both hold of `Scheme.sign sk`: `signerShape_sign`, `signerPins_sign`. -/
 
 /-- The serving phase at an arbitrary signer. -/
 noncomputable def servingPhaseWith {τ : Type}
@@ -259,10 +242,8 @@ theorem served_of_signer (pk : PublicKey)
 
 /-! ## The step, at the phase
 
-Two facts about a step of `ServingPhase.servingPhase`, both read off the two shapes
-`ServingPhase.framing_clear_step` already takes the step apart into: the carrier only grows, and
-a signing request files its own digest input. Everything run-level below is these two under an
-induction. -/
+Two facts about a step of `servingPhaseWith`: the carrier only grows, and a signing request files
+its own digest input. Everything run-level below is these two under an induction. -/
 
 /-- **Dropping a pure tail does not change the state a run leaves.** The signing oracle's own
 sub-run is the signer followed by a log append, and the append is pure. -/
@@ -333,8 +314,8 @@ theorem servingPhaseWith_persists (pk : PublicKey)
       exact HandlerCarrier.grows_setFraming state.2.2.1 framed
 
 open scoped Classical in
-/-- **A step of the phase leaves the framing clear**, at any signer. `ServingPhase`'s own
-invariant, with the signer taken as a parameter — neither half of it looks at what the signer
+/-- **A step of the phase leaves the framing clear**, at any signer. The serving phase's own
+invariant at any signer — neither half of it looks at what the signer
 does: the bracket clears the framing whatever the sub-run did, and outside a request the handler
 never writes it. -/
 theorem framing_clear_step_with (pk : PublicKey)
@@ -393,20 +374,11 @@ theorem replayRandomizer_of_cached (cache : QueryCache HashSpec) (sk : SecretKey
 
 /-! ## The signature the signer publishes
 
-`ServedBridge.ServedAgree` names a served input by the randomiser in the **published
-signature**; the agreement above names it by the randomiser the **cache** replays. They are the
-same randomiser, and that they are is log faithfulness — at this presentation, which had no
-lemma for it.
-
-It is one lemma rather than a congruence, and the reason is worth seeing: the two readings pass
-through different objects. The signature is what the signing oracle returned and the log kept;
-the replay is what a later reader computes from a cache entry. Nothing but the run connects
-them.
-
-**The pure half is `randomizer_of_signInternalAt`**: the signer's result carries the randomiser
-it was given, whatever its queries answered, because the field is filled from the parameter.
-Everything else is the first query's answer being cached and persisting, which the query step
-already gives. -/
+`ServedLog.servedLog` names a served input by the randomiser in the **published signature**; the
+agreement names it by the randomiser the **cache** replays. They are the same randomiser, which
+is log faithfulness. The pure half is `randomizer_of_signInternalAt`: the signer's result carries
+the randomiser it was given, whatever its queries answered. Everything else is the first query's
+answer being cached and persisting, which the query step already gives. -/
 
 /-- **The signer's result carries the randomiser it was handed.** A fact about the shape of
 `signInternalAt`'s return, independent of what anything answered. -/
@@ -630,44 +602,29 @@ theorem logServed_subset_served (sk : SecretKey) (log : SigningLog)
 
 /-! ## The carrier is below the log, as far as the handler decides it
 
-The other direction asks what the carrier serves that the log does not, and the handler settles
-most of it by itself: it files only where `HandlerCarrier.FilesLeft` holds, and that test reads
-the framing, which is set only across a signing step and names that step's own request. So every
-served input has the shape of some logged request's digest input — with *some* randomiser.
+The other direction asks what the carrier serves that the log does not. The handler settles most
+of it by itself: it files only where `HandlerCarrier.FilesLeft` holds, and that test reads the
+framing, which is set only across a signing step and names that step's own request. So every
+served input has the shape of some logged request's digest input, with *some* randomiser.
 
-**That last word is not the handler's to settle**, and this section does not try to.
-`ServingCarrier.logServed` names one randomiser, the one the cache replays, and pinning the
-filed input to it is a statement about what the signer *asks*: of all the inputs of its
-framing's digest shape, it asks only its own digest's. That is
-`ServedBridge.sign_messageShape_randomizer`, stated along `CacheReplay.QueriesUnder` — the
-replay semantics — while what is filed here is a query of the handler's run. `served_queriesUnder`
-below crosses between the two readings, and `servedLog_sign` puts the shape and the crossing
-together; what is proved here is the half that needs neither.
-
-Keeping them apart is worth the two lemmas. The shape holds of every run of this handler and
-asks nothing of the signer; the randomiser holds only because the signer is the one being run.
-A single statement would have hidden which of the two any later change had broken. -/
+Which randomiser is not the handler's to settle: pinning the filed input to the one the cache
+replays is a statement about what the signer *asks*, namely
+`ServedBridge.sign_messageShape_randomizer`, stated along `CacheReplay.QueriesUnder`.
+`served_queriesUnder` crosses between the two readings and `servedLog_signer` puts the shape and
+the crossing together. -/
 
 /-! ## What the handler files is what the computation consults
 
-The residue of the last section is one word: the filed input names *some* randomiser, and
-`ServingCarrier.logServed` names the one the cache replays. Closing it means getting from "the
-handler filed this while running the signer" to "the signer consults this", which is the
-crossing `ServedBridge.sign_messageShape_randomizer` is stated on the far side of —
-`CacheReplay.QueriesUnder`, the replay path, against a run of `Scheme.sign` at a different
-instantiation of its monad.
+Closing the randomiser question means getting from "the handler filed this while running the
+signer" to "the signer consults this", which is the crossing
+`ServedBridge.sign_messageShape_randomizer` is stated on the far side of: `CacheReplay.QueriesUnder`,
+the replay path, against a run of `Scheme.sign` at a different instantiation of its monad.
 
 `StrippedGame.sign_lift` does the instantiation: signing in the game's monad is the lift of
-signing in the hash-only one. `served_queriesUnder` does the crossing, by the induction
-`ProbeContainment.strip_probes_queriesUnder` does for the probe list, at the served set and at
-this handler. The two differ in what they have to track — the record grows at every query, the
-served set only where the framing admits one — but the step is the same: the run's answer is
-cached and persists, so at any later cache the replayed answer is the one the run took, and the
-continuations agree.
-
-Read at a later cache, because that is the only cache at which they do agree: the handler draws
-its answers and the replay reads them back, so a cache that does not yet hold them replays
-something else. -/
+signing in the hash-only one. `served_queriesUnder` does the crossing by induction on the run:
+the run's answer is cached and persists, so at any later cache the replayed answer is the one the
+run took, and the continuations agree. It is read at a later cache because that is the only cache
+at which they do agree. -/
 
 /-- **An input a run files is one the computation consults**, read at any cache the run's own
 extends. -/
@@ -737,14 +694,11 @@ theorem served_queriesUnder_lift (pk : PublicKey)
 /-! ## The exact containment, at one request
 
 Two readings of a filed input, put together. The carrier says it has the shape of the framing in
-flight — that is the filing rule, and it needs no run. The run says the signer consults it — that
-is `served_queriesUnder_sign`. Only the second pins the randomiser, and only through
+flight — that is the filing rule, and it needs no run. The run says the signer consults it, by
+`served_queriesUnder`. Only the second pins the randomiser, and only through
 `ServedBridge.sign_messageShape_randomizer`: of all the inputs of its framing's digest shape the
-signer asks only its own digest's, the structural ones being separated by `HashSeparation` and
-the randomiser's by length.
-
-So the shape alone was never going to be enough, and neither was the run alone: the shape says
-*which framing*, the run says *which randomiser*. -/
+signer asks only its own digest's. The shape says *which framing*, the run says *which
+randomiser*. -/
 
 /-- **A run under a set framing serves nothing but that framing's shape.** -/
 theorem servedFramed_run {α : Type} (pk : PublicKey)
@@ -984,37 +938,24 @@ theorem carrierLogged_run_with (pk : PublicKey)
       (carrierLogged_step_with pk impl hfiles signer sk hpk hshape warm hpins queried state step hstep
         hclear hinv) z hrest
 
-/-! ## `ServingCarrier.AgreesWithLog`, at a run
-
-Both directions, at the carrier's own cache. Neither is the mirror of the other: one is about
-what the signer asks and the other about what the handler files, and they were proved in
-different shapes for that reason. Putting them together is the last line. -/
-
 /-! ## How long the disclosing recording is
 
-The recording the load concentration is capped by is a list of **fresh** queries passing the
-left test, and the left test the repair installs is the carrier's served set. So its length is
-bounded by the number of *distinct* served inputs, and the agreement above says exactly what
-those are: the image of the log under one map, one input per logged request that has a framing.
-Hence the recording is no longer than the signing count, and the cap it has to meet is
-`signingLimit`, not twice it.
+The disclosing recording is a list of **fresh** queries passing the carrier's served-set test, so
+its length is bounded by the number of *distinct* served inputs. The agreement says what those
+are: the image of the log under one map, one input per logged request that has a framing. Hence
+the recording is no longer than the signing count, and the cap it has to meet is `signingLimit`.
 
-**Freshness is what makes "distinct" the right word**, and it is the only place it is used here:
-a recorded query is not cached when it is recorded and is cached forever after, so no input is
-recorded twice. Nothing else about the recorder matters to the count.
+**Freshness is what makes "distinct" the right word**: a recorded query is not cached when it is
+recorded and is cached forever after, so no input is recorded twice.
 
-**The headroom is a factor of five over four and no more.** The concentration holds up to
-`5 * 2 ^ 62`; `signingLimit` is `2 ^ 64 = 4 * 2 ^ 62`, which fits, and `2 * signingLimit` is
-`2 ^ 65 = 8 * 2 ^ 62`, which does not — and not by a margin that sharpening could recover, since
-`2 ^ 65` is past the *mean* of the Poisson the coupling runs through, not merely past the proved
-tail. So an extra entry per served request would have to be excluded rather than paid for.
-
-It is excluded, by the filing test as it stands: a request's own `PRF_msg` query is
-`Hashing.randomizerInput` at the framing in flight, and
-`ServedBridge.randomizerInput_ne_messageInput` says that is never `Hashing.messageInput` at the
-same framing — the format identity inserts `PK.root` before the message, so the two differ in
-length. `HandlerCarrier.FilesLeft` compares against the framing in flight and nothing else, so
-it is false there. -/
+**The headroom is a factor of five over four.** The concentration holds up to `5 * 2 ^ 62`;
+`signingLimit` is `2 ^ 64 = 4 * 2 ^ 62`, which fits, and `2 * signingLimit` does not. So an extra
+entry per served request would have to be excluded rather than paid for. It is excluded by the
+filing test: a request's own `PRF_msg` query is `Hashing.randomizerInput` at the framing in
+flight, and `ServedBridge.randomizerInput_ne_messageInput` says that is never
+`Hashing.messageInput` at the same framing, since the format identity inserts `PK.root` before the
+message. `HandlerCarrier.FilesLeft` compares against the framing in flight and nothing else, so it
+is false there. -/
 
 /-- The digest input a logged entry serves, when it has a framing. -/
 def servedOf (sk : SecretKey) (cache : QueryCache HashSpec)
@@ -1062,8 +1003,7 @@ theorem record_length_le_log (sk : SecretKey) (log : SigningLog)
   simpa using hbound
 
 /-- **And therefore inside the concentration's cap.** `signingLimit` is `4 * 2 ^ 62` and the
-concentration holds to `5 * 2 ^ 62`, so the disclosing cap is met with a quarter to spare — and
-would be missed, with no way back, at twice the signing limit. -/
+concentration holds to `5 * 2 ^ 62`, so the disclosing cap is met with a quarter to spare. -/
 theorem record_length_le_cap (sk : SecretKey) (log : SigningLog)
     (carrier : HandlerCarrier.State)
     (hagree : ServingCarrier.AgreesWithLog sk log carrier)
@@ -1073,41 +1013,11 @@ theorem record_length_le_cap (sk : SecretKey) (log : SigningLog)
   le_trans (le_trans (record_length_le_log sk log carrier hagree record hnodup hserved) hlimit)
     (by norm_num [signingLimit])
 
-/-! ## The same two queries, under stripping
+/-! ## The coldness of a message-digest input
 
-The agreement is proved at a presentation whose signer is unstripped. The input half's
-containment is proved at a stripped one, and its honest-phase argument *turns on* stripping:
-`StrippedGame.strippedSign` answers canonical probes from the walk's table inside the
-computation, so they never reach the handler and the only probes that do are the randomiser's
-and the digest's. Moving the containment up to an unstripped signer would mean redoing that
-argument against probes that now arrive; moving the agreement down means checking one thing.
-
-**That one thing is here.** Stripping removes a query only where the walk's table answers it,
-and the two queries the agreement rests on are not of that kind: a randomiser input and a
-message input aim nowhere, so the table is silent at both and they reach the handler exactly as
-before. The coldness is taken as a hypothesis, in the shape `ProbeContainment` already threads
-it, because that is where the walk's `hpublic` and `hprf` are in hand.
-
-What this says is that the agreement's *proof* transports: the two-query shape it chains
-`servingProgram_query_step` along survives stripping unchanged, so `served_of_signer` and
-everything above it do too.
-
-**Currently unconsumed, and true.** The composition reads the containment at the *unstripped*
-signer, because its blindness step asks for the same computation at two tables and
-`StrippedGame.strippedSign` takes the whole table as its warm cache — so two tables differing
-anywhere give two different computations and the step could only hold at everything. With
-`Scheme.sign` it holds, because that signer reads no cache and depends on the table only through
-the key, whose coordinates `RedrawCell.open_seedAndRoot` covers. So the stripped instantiation
-below is kept rather than used, and what would consume it is a presentation that strips the
-signer against something smaller than the whole table. -/
-
-/-! ### And the coldness is the walk's own hypotheses
-
-The two conditions `strippedSign_shape` asks for are not new assumptions. The walk's table is
-keyed by canonical inputs, and a canonical input is a tweakable input at a structural address;
-the two the signer asks are a randomiser's and a message digest's, and `HashSeparation` keeps
-those apart from tweakable inputs under exactly the two coincidences a good walk excludes. So
-the hypotheses discharge from `hprf` and `hpublic`, which the containment already carries. -/
+A canonical input is a tweakable input at a structural address, and `HashSeparation` keeps a
+message-digest input apart from tweakable inputs under the one coincidence a good walk excludes.
+So the open cache is silent at it. -/
 
 /-- **And at a message-digest input**, the key being no coincidence. -/
 theorem openCache_messageInput_eq_none (publicSeed randomizer : Digest) (pk : PublicKey)
@@ -1120,17 +1030,6 @@ theorem openCache_messageInput_eq_none (publicSeed randomizer : Digest) (pk : Pu
     (available := available) table _
     (fun parent => Ne.symm
       (HashSeparation.message_tweakable_ne hpublic (withinBounds_structural parent)))
-
-/-! ## The two signers
-
-Both instantiations, side by side. `Scheme.sign` needs no table — nothing is stripped, so the
-pin holds at every cache — and the stripped signer needs the walk's own table, because the pin
-is read through `ProbeContainment.queriesUnder_strip` and that is where the cache has to extend
-what stripping answers from.
-
-Nothing here replaces `ServingPhase.servingPhase`: `servingPhaseWith_sign` says the phase at the
-first of these *is* that one, so both live and whoever switches does so when their own side is
-green. -/
 
 /-- **`Scheme.sign` asks its randomiser and then its digest.** -/
 theorem signerShape_sign (sk : SecretKey) : SignerShape sk (Scheme.sign sk) :=
@@ -1147,43 +1046,12 @@ theorem signerPins_sign (sk : SecretKey)
       ServedBridge.sign_messageShape_randomizer later sk request framed hframe hpublic randomizer
         hquery⟩
 
-/-! ## The two agreements
+/-! ## The log's two readings of a served input
 
-The unstripped one keeps its old name and shape, so its readers are untouched; the stripped one
-is the same theorem at the other signer, read at a cache extending the walk's table. -/
-
-/-! ## Where the agreement cannot be read, and why
-
-`TableTail.handlerRun` is the run the input half's containment is stated at, and it cannot carry
-this agreement. Not because of stripping — that transports, as above — but because of the two
-things the serving presentation supplies and that one does not.
-
-It runs `OpenCache.lazyProgram`, which caches and does not file, and
-`RecordedPhase.unchargedPhase`, which calls its signer through `liftM` with no bracket around
-it. So the framing is never set and nothing is ever filed: the carrier's served set is empty at
-every reachable state, whatever the adversary and however many requests are served.
-
-`not_served_lazyProgram_run` is that, proved rather than argued, because the consequence is
-sharp: `ServedBridge.ServedAgree` at such a run asserts in its `LogBelowCarrier` half that every
-logged request's digest input is served, and from an empty carrier that forces the log to serve
-nothing. The statement is not merely unproved there; it is false as soon as one framed request
-is signed.
-
-The repair is the one this file is built for — `servingPhaseWith` at the stripped signer, which
-files and brackets — and it is a change to the *presentation* the containment is read at, not to
-the containment. -/
-
-/-! ## `ServedBridge.ServedAgree`, which is the shape the join consumes
-
-Everything above names a served input by the randomiser the cache replays. `ServedLog.servedLog`
-names it by the randomiser in the **published signature**, and that is the shape the composition
-reads, because its consequences — `ServedBridge.disclosedAt_subset_disclosedByLog` and its
-converse — are what make the carrier's and the log's disclosure sets one `Finset`.
-
-The two readings meet at `LogFiled`'s own clauses, which is why there is no separate faithfulness
-induction: the invariant already carries the signature the log kept and the cache entry the
-replay reads, and says they agree. `Signature.fromBytes_toBytes` does the rest, since a parse of
-the bytes the signer published is the signature it published. -/
+`ServedLog.servedLog` names a served input by the randomiser in the published signature;
+`ServingCarrier.logServed` by the one the cache replays. The two readings meet at `LogFiled`'s
+own clauses: the invariant carries the signature the log kept and the cache entry the replay
+reads, and says they agree. `Signature.fromBytes_toBytes` does the rest. -/
 
 /-- **The log's two readings of a served input are one.** -/
 theorem servedLog_iff_logServed (sk : SecretKey) (pk : PublicKey) (hpk : sk.publicKey = pk)

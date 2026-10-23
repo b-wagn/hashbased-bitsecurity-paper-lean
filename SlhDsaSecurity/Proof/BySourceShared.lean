@@ -4,13 +4,10 @@ import SlhDsaSecurity.Proof.BySourceBridge
 /-!
 # The shared half, with the signer's calls free
 
-`ShareFinal.hshared` reads the budget in two places, and neither needs the signer's calls. The
-cap `L = q - (chains + 1) · 2 ^ subtreeHeight` is a cap on the adversary's own calls plus one per
-served request, and `ShareRealCap.cost_le_of_budget` pays for it out of the total count by
-noting that key generation spends its top tree and each served request costs the signer two
-calls. With the requests counted directly, the second half of that is not needed: a served
-request is a request, and requests are in the budget. So `cost_le_of_tail` reads the same cap
-off `BySourceBridge.TailBudget`, and the rest of the half is `ShareFinal`'s, line for line.
+The shared half's cap is a cap on the adversary's own calls plus one per served request, so it
+is read directly off the adversary's work and the requests; the signer's calls are never
+charged. This file holds the one counting fact that step uses: the number of served requests
+is at most the length of the signing log.
 -/
 
 open OracleComp OracleSpec ENNReal

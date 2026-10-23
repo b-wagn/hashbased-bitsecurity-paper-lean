@@ -3,16 +3,16 @@ import SlhDsaSecurity.Proof.ClassGrowth
 /-!
 # The per-class charge, paid per fresh entry
 
-`ClassExpectation.prob_bad_le_expected_cost` charges every in-class *query* of a run. That is
-the right count when every party's queries are in the budget, and the wrong one when the
-signer's are not: the honest signer asks millions of canonical inputs per request, all of them
-cache hits, and none of them can produce a bad answer, because a hit produces no answer at all.
+The charge counts the class's **fresh** entries rather than every in-class query. That is the
+right count when the signer's queries are not in the budget: the honest signer asks millions of
+canonical inputs per request, all of them cache hits, and none of them can produce a bad answer,
+because a hit produces no answer at all.
 
-What a bad answer actually needs is a **fresh** entry: an input the run installed. So this file
-charges the class's fresh entries instead — the inputs of the class that the final cache holds
-and the initial one did not. A hit leaves the count alone, exactly as a coin does, and a miss
-contributes its own rate plus the tail, which is the same induction as the per-query charge with
-the count replaced by the cache's own growth.
+What a bad answer actually needs is a fresh entry: an input the run installed. So the charge is
+against the inputs of the class that the final cache holds and the initial one did not
+(`freshMass`). A hit leaves the count alone, exactly as a coin does, and a miss contributes its
+own rate plus the tail, by an induction on the run with the count taken as the cache's own
+growth (`prob_bad_le_expected_fresh`).
 
 The growth is read as a sum over all inputs in `ℝ≥0∞`, so no finiteness is needed anywhere: an
 expectation of an infinite count is simply `⊤`, and the bound is then trivial.

@@ -30,27 +30,13 @@ it the charge is false outright — `Closed` and the section around it give the 
 breaks it, and `not_unavailable_of_obtainable` is what the condition buys.
 
 Availability is a predicate on the run's own state — in the experiment, the signing log — and
-is read at the state the query was made in, not at the end of the run. That is what separates
-this from a comparison against a region stripped in advance: the set of unavailable cells
-shrinks as signatures are issued, and a cell released mid-run may be queried freely
-afterwards, so a region fixed before the run charges events the run reaches honestly.
-`unavailable_mono` records that the region only shrinks, which is why over-approximating to the
-initial one keeps the event but destroys the bound.
+is read at the state the query was made in, not at the end of the run. The set of unavailable
+cells shrinks as signatures are issued, and a cell released mid-run may be queried freely
+afterwards, so a region fixed before the run would charge events the run reaches honestly.
 
-`prob_record_sensitive_le` is the charge: a run that records its candidate inputs with the
-states they were issued in, and whose law does not involve the table, ever issues a sensitive
-one with probability at most `limit / 2 ^ 128`, where `limit` bounds the number of records.
-`prob_probes_sensitive_le` states it against a run of the shared oracle instrumented to record
-its hash queries, with the bound supplied by a charged query count.
-
-The table is drawn after the run, so the run must not consult it. That is the whole hypothesis
-and it is exactly met when the cells a signature releases are drawn at the moment of release —
-a released cell is uniform in the view it is released into, so the signer may draw it fresh —
-leaving the never-released cells for the deferred table. A run against a cache programmed from
-the whole table beforehand does not meet it, and comparing the two is a separate obligation: it
-is an identical-until-bad step whose region shrinks as cells are released, which
-`BlindComparison.prob_touched_eq` does not cover, since that compares caches agreeing off a set
-fixed before the run.
+`prob_sensitive_le` is the per-candidate rate: a candidate input is sensitive at a state with
+probability at most `2 ^ -128` over a uniform table, so a table drawn after the run costs one
+unit of `2 ^ -128` per candidate it issued.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -217,23 +203,5 @@ theorem prob_sensitive_le (stakes : Stakes Node Index)
       have hsame : other = node := Option.some.inj (hother.symm.trans hlocate)
       subst hsame
       exact hpreimage ⟨table (stakes.stake other), hinput⟩
-
-/-! ## The charge
-
-The table is drawn after the run, which is what makes the union bound exact: each recorded
-candidate was fixed before its coordinate was drawn, so each costs `2 ^ -128` and the whole run
-costs one unit per record, with no loss to the earlier candidates having been answered. -/
-
-/-! ## The run that issues the candidates
-
-The abstract charge takes the candidates and the states they were issued in as data. A run of
-the shared oracle supplies both: the candidates are its hash queries, and the state they were
-issued in is the cache at that moment, which is what the run so far has determined. The
-counter makes the number of candidates an observable of the run, so the bound is a parameter
-rather than a syntactic property of the computation.
-
-The instrumented oracle is the shared oracle itself — it consults no table, which is why the
-table may be drawn after it. Establishing that for the *programmed* cache of the experiment is
-the remaining step, and it is the comparison this file does not do. -/
 
 end SlhDsaSecurity.SensitiveQuery

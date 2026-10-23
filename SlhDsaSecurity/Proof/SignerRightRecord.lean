@@ -6,13 +6,9 @@ import SlhDsaSecurity.Proof.CacheProvenance
 # What a signing sub-run can put in the target recording
 
 `LateProvenance.hrecord`'s last branch needs that a target-recorded input is not the signer's own
-digest query. The fact is true at the step the query is made from — `SignerDigestStep` proves
-that much — and what has stood between the two is **granularity**: provenance inducts over the
-phase, where one signing request is a single step, so the cache it can hand back is the one from
-*before* the request, while the recorder files at the query *inside* it, after the randomiser.
-Two lemmas can both hand back a state and still not be talking about the same step.
-
-This file closes the gap at the sub-run, where both are in hand and neither has to be matched.
+digest query. Provenance inducts over the phase, where one signing request is a single step, so
+the cache it can hand back is the one from *before* the request, while the recorder files at the
+query *inside* it, after the randomiser. This file works at the sub-run, where both are in hand.
 `Scheme.signInternal` is its randomiser query and then the rest, by
 `SignerRandomiser.signInternal_eq`; after that first step the randomiser's answer is in the
 cache, by `RecorderView.recorderOf_step_cache_self`; and `SplitPrefix.right_record_suffix`,
@@ -110,20 +106,14 @@ set_option maxHeartbeats 800000 in
 /-- **Every entry a signing sub-run files as a target comes with the randomiser entry already
 cached** — or is the `PRF_msg` input itself, which the narrowing removes.
 
-No ordering is established and no step is named. The first query installs the randomiser answer;
+The first query installs the randomiser answer;
 `right_record_suffix` on the rest hands back, for each entry it files, a cache extending the one
 that query left.
 
 **The conclusion also names what the rest of the signer queried**, because a cache and an answer
 are not usable together without knowing which entry the cache belongs to: the consumer has to
 complete a disclosure witness at the *same* frame, and the entry's shape is what ties the two.
-`probes_signInternalAt` reads that shape off the queries, at the cache the consumer names.
-
-Two further things the proof has in hand and does not return, so that the next reader does not
-have to rediscover them: the entry's own value in the final cache (`= some entry.2`, free from
-`right_record_suffix`), and the containment of the sub-run's start in the mid. The first would
-be worth returning if a consumer wanted it; the second is about an object the consumer cannot
-name. -/
+`probes_signInternalAt` reads that shape off the queries, at the cache the consumer names. -/
 theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
     (sk : SecretKey) (message : Bytes) (state : SplitState) (result : Signature × SplitState)
     (hresult : result ∈ support ((simulateQ (recorder leftKeep rightKeep)
@@ -190,15 +180,8 @@ theorem signInternal_right_record (leftKeep rightKeep : Bytes → QueryCache Has
 /-! ## At the request, which is where provenance names it
 
 `Scheme.sign` is the framing test and then `signInternal`, so a served request files exactly what
-its `signInternal` files and a rejected one files nothing. Stated here so that whoever mirrors
-the phase decomposition at the recorder can apply it at the step provenance already attributes.
-
-**The randomiser probe is named, not excluded by a syntactic class.** It is the one entry the
-first query can file, and the honest reason it is not a target is the frame it was made under
-— `HandlerCarrier.not_filesLeft_randomizerInput` — and not that its bytes happen to lie in a
-class the narrowing removes. A clause added to a class to keep one query out of a recording is a
-provenance fact wearing a syntactic disguise, and it works only while the syntax happens to
-separate the two. -/
+its `signInternal` files and a rejected one files nothing. These are stated at the request, which
+is the step provenance attributes. -/
 
 set_option maxHeartbeats 800000 in
 /-- **A rejected request files nothing**, because it makes no query. -/

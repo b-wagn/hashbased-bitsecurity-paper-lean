@@ -22,10 +22,9 @@ are.
   cardinality bound is one induction with an equality invariant. A global oracle that recorded
   only at inputs the warm table answers would make the honest phase invisible for free — it
   never asks at one — but bounding what such an oracle records needs the *stripped* game's own
-  total hash count, which `Security.HasTotalBudget` does not bound. That reintroduces the count
-  coupling between the stripped and the real game. The writer design avoids it because
-  `Outcome.counts` is what the stripping surgery leaves untouched: it counts the adversary's own
-  calls, the verifier's, and signing *requests*, never the signer's hashing.
+  total hash count, which couples the stripped and the real game. The writer design avoids it
+  because `Outcome.counts` is what the stripping surgery leaves untouched: it counts the adversary's
+  own calls, the verifier's, and signing *requests*, never the signer's hashing.
 
 * **`Multiset`, not `Finset`.** `Multiset Bytes` is an `AddCommMonoid`, which is what a writer
   needs. The `Add` instance `Finset` carries is pointwise addition of its elements, which would
@@ -34,10 +33,8 @@ are.
 
 Invisibility is the general fact that a simulation accumulating in one monoid is carried to one
 accumulating in another by any homomorphism between them — `run_simulateQ_map_writer`, stated
-for an arbitrary writer and handler, with the game-level statement an instance of it. It is not
-the handler-swap congruence of `StrippedGame.evalDist_countedRun_congr`: that holds two handlers
-at a fixed writer and concludes about laws, this holds one handler at two writers and concludes
-an equality of computations.
+for an arbitrary writer and handler, with the game-level statement an instance of it. It holds
+one handler at two writers and concludes an equality of computations.
 -/
 
 open OracleComp OracleSpec
@@ -53,10 +50,6 @@ another by any monoid homomorphism between them: whatever the richer writer reco
 one records its image, step for step. This is how an instrumentation is made invisible — the
 instrumented run, read through the projection that forgets the instrumentation, *is* the
 uninstrumented run, as an equality of computations.
-
-It is not the handler-swap congruence of `StrippedGame.evalDist_countedRun_congr`, which holds
-two handlers at a fixed writer and concludes about laws. Here the handlers are the same handler
-at two writers, and the conclusion is an equality.
 
 The homomorphism is taken as a bare function with its two laws, rather than as a bundled
 `MonoidHom`, so that it can be instantiated at a `Multiplicative` projection without instance

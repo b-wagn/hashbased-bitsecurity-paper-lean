@@ -2,20 +2,12 @@ import SlhDsaSecurity.Proof.BySourceAnswer
 import SlhDsaSecurity.Proof.BySourceShared
 
 /-!
-# `127` bits with every source counted but the signer
+# The answer half of the `127` bound
 
-The three terms of the `127` proof, each at `BySourceBridge.TailBudget`:
-
-* the answer half at `q / 2 ^ 128 + 2 ^ -126` (`answerBound`). The structural faults are charged
-  per fresh entry and the target record per entry, and together they are within the
-  adversary's work and the requests (`BySourceAnswer.fresh_add_right_le`), whatever the signer
-  asks;
-* the shared half at `(q - 512 + 259) / 2 ^ 128` (`BySourceShared.hshared`);
-* the walk's own two coincidences.
-
-They sum to at most `q / 2 ^ 127` exactly as at the total budget (`Target.allowanceAt`), and the
-framework's hypotheses at `Security.allButSigner` give the tail budget
-(`BySourceBridge.tailBudget_of`), so `HasLimitedSecurityBits .strong allButSigner 127`.
+`answerBound` is the answer half at `TailBudgetW`: at a good walk, the answer-side event outside
+the late event is within `q / 2 ^ 128 + 2 ^ -126`. The structural faults are charged per fresh
+entry and the target record per entry, and together they are within the adversary's work and
+the requests (`BySourceAnswer.fresh_add_right_le`), whatever the signer asks.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -167,11 +159,5 @@ theorem answerBound (q : Nat) (adversary : Adversary) (hbudget : TailBudgetW adv
         add_le_add (mul_le_mul' hsum le_rfl) le_rfl
     _ = (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 126 := by
         rw [div_eq_mul_one_div (q : ℝ≥0∞)]
-
-/-! ## The shared half, at the refined paired run -/
-
-/-! ## The win, as the three terms -/
-
-/-! ## `127`, every source counted but the signer -/
 
 end SlhDsaSecurity.BySourceTarget

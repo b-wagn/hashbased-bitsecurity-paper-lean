@@ -6,10 +6,9 @@ import SlhDsaSecurity.Proof.CanonicalGraph.Nodes
 
 `HashSeparation.WithinBounds` is the loose rectangle inside which a message input cannot be
 mistaken for a structural one: layer below `2 ^ 3`, tree below `2 ^ 54`, key pair below
-`2 ^ 9`, chain or height below `2 ^ 6`, hash or index below `2 ^ 16`. Three charges have been
-carrying it as a hypothesis — `WarmedCharges.prob_combinedBad_tail_le`,
-`not_messageInput_canonical`, `CoverageTail.prob_coverage_tail_le` — because it is about the
-scheme's parameters rather than about anything probabilistic.
+`2 ^ 9`, chain or height below `2 ^ 6`, hash or index below `2 ^ 16`. It is a fact about the
+scheme's parameters rather than about anything probabilistic, so `withinBounds_structural`
+supplies it wherever a message input has to be separated from a structural one.
 
 It holds, with room, and the reason is that the canonical nodes carry their own bounds: a
 `Tree` has `Fin layers` and `Fin (2 ^ (totalHeight - subtreeHeight))`, a key's leaf has

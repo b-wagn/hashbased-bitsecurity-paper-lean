@@ -1,24 +1,27 @@
 import SlhDsaSecurity.Proof.CarrierThin
 import SlhDsaSecurity.Proof.SuffixCausal
-import SlhDsaSecurity.Proof.CarrierSplit
+import SlhDsaSecurity.Proof.CarrierCover
+import SlhDsaSecurity.Proof.CoverageRouted
+import SlhDsaSecurity.Proof.BlockViews
+import SlhDsaSecurity.Proof.SplitCarrierTail
+import SlhDsaSecurity.Proof.CoverageTail
+import SlhDsaSecurity.Proof.AddressBounds
+import SlhDsaSecurity.Proof.CarrierLeftRecord
 import SlhDsaSecurity.Proof.CarrierCap
 
 /-!
 # The answer half at `127`: coverage with fired witnesses, charged at second order
 
-`AnswerCarrierBound.answerBound_carrier` bounds the answer half with two leftovers excluded, and
-one of them — `SplitWitness.SeedRandomised` — is a likely event. This file bounds it with only
-`Target127.late` excluded, which is the seed guess and the signer's coincidence.
+The forgery's coverage event names witnesses: digest inputs the signer served. A served input
+the adversary had asked first is in the target recording rather than the disclosing one, and such
+a witness is allowed here: it is a target entry that **fired**, its input signer-randomised at
+the end. `FiredCoveredRec` is the coverage event with those witnesses admitted;
+`prob_carrierTail_firedCovered_le` charges it at the carrier tail, and `join_carrierTail` shows
+that off `Target127.late` the answer half's event is a structural hit or fired coverage.
 
-**What changes in the join.** The forgery's coverage event names witnesses: digest inputs the
-signer served. The old join put every witness in the disclosing recording, and that needed the
-ordering defect excluded — a served input the adversary had asked first is in the target
-recording instead. Here such a witness is allowed: it is a target entry that **fired**, its input
-signer-randomised at the end. `FiredCoveredRec` is the coverage event with those witnesses
-admitted, and `FiredCoverage.prob_firedCovered_le` charges it at
-`2 ^ -126 + E[targets] · (2 ^ -129 + rightLength · 2 ^ -303)` — at any `rightLength ≤ 2 ^ 174` that
-is inside `2 ^ -126 + E[targets] / 2 ^ 128`, the old shape, with the old first-order term halved
-by the sharper load cap.
+`FiredCoverage.prob_firedCovered_le` charges the fired coverage at
+`2 ^ -126 + E[targets] · (2 ^ -129 + rightLength · 2 ^ -303)`, and at any `rightLength ≤ 2 ^ 174`
+that is inside `2 ^ -126 + E[targets] / 2 ^ 128` (`second_order_fits`).
 
 **What the run supplies.** The thinning bounds are `CarrierThin.thin1` and `thin2`, the suffix
 causality is `SuffixCausal.threeStageCausalGe`, and the cell correspondences are the three-stage
@@ -364,7 +367,7 @@ theorem join_carrierTail (adversary : Adversary) (walk : Walk)
     · exact ⟨(other, otherAnswer), hjIndex,
         signerRandomised_of_served adversary walk hwalk w hw other hserved, hnotLate⟩
 
-/-! ## The answer half's bound -/
+/-! ## The keep predicate's class -/
 
 theorem keep127_class (walk : Walk) (input : Bytes) (view : HandlerCarrier.State)
     (hkeep : keep127 walk input view) : CombinedCharge.IsMessageInput (keyAt walk) input :=
@@ -373,7 +376,7 @@ theorem keep127_class (walk : Walk) (input : Bytes) (view : HandlerCarrier.State
 /-- The two counter slots the split tail uses. -/
 theorem hash_ne_verification : QueryKind.hash ≠ QueryKind.verification := by decide
 
-/-! ## The target, from the shared half alone -/
+/-! ## The defects' arithmetic -/
 
 set_option exponentiation.threshold 1024 in
 theorem defects_le : Target.defectsAt ((1 : ℝ≥0∞) / 2 ^ 126) ≤

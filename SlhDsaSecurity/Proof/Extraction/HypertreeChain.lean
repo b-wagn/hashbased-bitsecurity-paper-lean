@@ -6,12 +6,11 @@ import SlhDsaSecurity.Proof.Correctness.Merkle
 
 A forged hypertree signature recovering the honest top root either contains a concrete
 structural fault at some layer — a layer collision, or a WOTS signature on a message
-differing from the honest input at that layer (which yields a chain preimage witness via
-`WotsPreimage.exists_preimage_witness`) — or the bottom layer's incoming message equals
+differing from the honest input at that layer (which yields a chain preimage witness) — or the bottom layer's incoming message equals
 the honest input threaded through every layer. Threaded to the full hypertree, the
 fault-free branch forces the recovered FORS public key to equal the honest one, handing
 the FORS coverage argument its input. No collision or one-wayness is assumed; every fault
-is a concrete witness whose ROM probability is charged in the adaptive assembly. -/
+is a concrete witness whose ROM probability is charged elsewhere in the proof. -/
 
 open OracleComp OracleSpec
 
@@ -165,7 +164,7 @@ theorem rootFromSignature_fault_or_signed (secretSeed publicSeed rootTarget : Di
     · exact Or.inr (Or.inr (Or.inr hfault))
 
 /-- The honest fold over `remaining + 1` layers reaches the top subtree root, independent
-of its incoming message. Mirrors `Correctness.Hypertree.rootFromSignature_signLayers`. -/
+of its incoming message. -/
 theorem honestFold_eq (secretSeed publicSeed : Digest) (remaining layer tree : Nat)
     (input : Digest) :
     honestFold secretSeed publicSeed (remaining + 1) layer tree input =

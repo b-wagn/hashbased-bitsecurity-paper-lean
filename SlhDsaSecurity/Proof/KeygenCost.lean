@@ -3,10 +3,12 @@ import SlhDsaSecurity.Proof.HonestGrowth
 /-!
 # Key generation spends at least `36 · 512` hash calls
 
-`HonestGrowth.pow_le_count_keygen` counts one call per leaf of the top subtree. Each leaf is a
-WOTS public key, which derives thirty-five secrets and compresses its endpoints, so a leaf costs
-at least thirty-six. The shared half needs the stronger count: it is what pays for verification
-(`VerifyBound.verifyLimit = 3929`) out of key generation's spend.
+Key generation makes one call per leaf of the top subtree at least, and each leaf is a WOTS
+public key, which derives thirty-five secrets and compresses its endpoints, so a leaf costs at
+least thirty-six (`count_wotsPublicKey_ge`). Hence a subtree of height `h` costs at least
+`36 · 2 ^ h` (`count_merkleNode_ge`) and key generation at least `36 · 2 ^ subtreeHeight`
+(`count_keygen_ge`). This is the room that pays for the verifier's calls out of key generation's
+spend.
 -/
 
 open OracleComp OracleSpec

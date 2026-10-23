@@ -6,13 +6,10 @@ import SlhDsaSecurity.Proof.BySourceBridge
 /-!
 # The answer half, with the signer's calls free
 
-`AnswerFired.answerBound127` pays for two things out of one budget: the structural faults, at
-one `2 ^ -128` per *query* of the split tail, and the coverage of the target record, at one
-`2 ^ -128` per entry. The per-query count is the whole run's, signer included, and that is the
-only place the half reads the signer's calls.
-
-Here the structural charge is paid per **fresh entry** instead (`FreshExpectation`), and the
-fresh entries are counted where they come from. `LateProvenance.provenance_recordedAfterSeeds`
+The answer half pays for two things out of one budget: the structural faults and the coverage
+of the target record. The structural charge is paid per **fresh entry** (`FreshExpectation`), so
+the signer's calls are free except where they install an entry, and the fresh entries are counted
+where they come from. `LateProvenance.provenance_recordedAfterSeeds`
 says an entry the run installed is the adversary's or the verifier's own query, key
 generation's, or a signing request's; `HonestProbes` says what each honest party asks: key
 generation only canonical inputs, which the walk already holds, and a request only canonical
@@ -23,8 +20,7 @@ and at most one digest per request:
 
   `fresh faults + target entries ≤ |record| + |requests| = work + requests`,
 
-which is inside the budget of `BySourceBridge.TailBudget`, with key generation's top tree to
-spare.
+which is inside the work budget, with key generation's top tree to spare.
 -/
 
 open OracleComp OracleSpec ENNReal

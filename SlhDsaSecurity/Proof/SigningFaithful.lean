@@ -36,9 +36,8 @@ entry and tells one unit of `.signing`, the hash half appends nothing and tells 
 **Which presentation the induction runs over.** The nested one: `WarmedGame.afterSeeds` as the
 game writes it, factored by `WarmedSplit.mem_support_counted_bind`, with
 `StrippedGame.countedRun` and `countedRun_bind` as the vehicle, and the two handler cases
-proved as separate lemmas stated at the *summand's* index and applied at the sum's — the shape
-`AdversaryQueries.work_le_count_adversary` already uses, and the only one that survives the
-semireducible gap between `(OracleWorld + SigningSpec).Range (Sum.inl t)` and
+proved as separate lemmas stated at the *summand's* index and applied at the sum's — the only
+shape that survives the semireducible gap between `(OracleWorld + SigningSpec).Range (Sum.inl t)` and
 `OracleWorld.Range t`. `LinkedGame`'s `recordedAfterSeedsAt_eq` is the tidier presentation, but
 it is about the *stripped* signer `StrippedGame.strippedSign` and reaches the game only through
 an equality of laws; a support membership in `WarmedGame.tail` would have to be transported
@@ -177,9 +176,8 @@ theorem faithfulFrom_signingOracle (sk : SecretKey) (request : Message) (log : S
 
 /-! ## The whole phase
 
-The induction is over the adversary's own computation, with the log and the cache generalized —
-the pattern `StrippedGame.evalDist_countedRun_congr` uses, read at the support rather than at
-the law. -/
+The induction is over the adversary's own computation, with the log and the cache generalized,
+read at the support. -/
 
 /-- **The adversary's phase leaves a faithful log.** -/
 theorem faithfulFrom_countedRun (sk : SecretKey) {α : Type}
@@ -323,9 +321,9 @@ theorem randomiserCachedFrom_countedRun (sk : SecretKey) {α : Type}
 
 /-! ## How long the log is
 
-`HasTotalBudget` caps the `.signing` counter, and what the answer side needs capped is the
-number of *signed messages*. The two are the same number up to an inequality, by the same
-induction: the signing half appends one entry and tells one unit of `.signing`, the hash half
+The answer side needs the number of *signed messages* capped by the `.signing` counter. The two
+are the same number up to an inequality, by the same induction: the signing half appends one
+entry and tells one unit of `.signing`, the hash half
 appends nothing and tells none. -/
 
 /-- A query of the adversary's own appends nothing to the log. -/

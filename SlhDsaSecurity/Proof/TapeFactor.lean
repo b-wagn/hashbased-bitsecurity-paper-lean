@@ -5,29 +5,20 @@ import SlhDsaSecurity.Proof.RecorderView
 /-!
 # The recording, read off a tape drawn in advance
 
-`DigestTape.prob_tape_event_le` carries a recorded run to a uniform tape by a union bound over
-the words the event is witnessed by, and that is where the coverage charge loses the per-run
-weight it needs: the bound `Pr[word ⊑ record] ≤ 2 ^ -128 · |word|` is all it keeps, and that is
-compatible with a run whose whole mass sits on bad words of one length. What is thrown away is
-the conditional uniformity of the recording *given its length*.
+A union bound over the words a recorded event is witnessed by loses the per-run weight the
+coverage charge needs: it is compatible with a run whose whole mass sits on bad words of one
+length. What it throws away is the conditional uniformity of the recording *given its length*.
 
 This file keeps it, by drawing the tape first. `tapeRecorder` is the recording oracle with its
 fresh class answers taken off a list fixed in advance instead of drawn on the spot, falling back
-to a draw when the list is spent — so no length hypothesis is needed anywhere and the
-factorisation is an identity rather than a bound.
+to a draw when the list is spent, so no length hypothesis is needed anywhere. `splitTapeRecorder`
+is the two-block form, with one block for the disclosing answers and one for the target answers.
 
-What makes this cheaper than a derandomisation of the game is what the identity is *for*. The
-leave-one-out charge resamples one tape coordinate and needs the disclosure set, the load
-condition and the selection of the coordinate all to survive the overwrite. Only the class
-answers have to come off a tape for that: the coins and the out-of-class answers may stay inline,
-because the selection has to be *causal*, not deterministic. So a single front block of class
-answers is all that is front-loaded here, and everything else keeps drawing where it did.
-
-The induction has one case that does any work. A coin, a cache hit and an out-of-class miss are
-all answer-irrelevant to the front block, so the block commutes past them
-(`DeferredSampling.evalDist_bind_comm`); a fresh class query splices one answer off the head of
-the block, which is `DigestTape.padding`'s own shape; and the spent remainder of the block is
-dropped at the end by `DeferredSampling.evalDist_bind_const_neverFails`.
+Only the class answers have to come off a tape: the coins and the out-of-class answers may stay
+inline, because the selection has to be *causal*, not deterministic. The file holds the two
+recorders, their step laws, the lemmas that move a block past an irrelevant draw and overwrite
+one cell of a block, and the correspondence between recorded entries and block cells.
+`NoticingTape` runs the induction over a computation at the noticing recorder.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -321,7 +312,7 @@ a failure, it would be two different recordings with the same law everywhere els
 The two lemmas below are that case, named. They are instances of the branch lemmas above with
 `rightKeep` **present** rather than absent, which is the whole point: a reader can see that the
 contested case was considered, and an edit that reversed either priority stops here instead of
-inside `evalDist_splitTapeRun`'s induction. -/
+inside the factorisation's induction. -/
 
 /-! ### The two blocks commute past an irrelevant draw -/
 
@@ -434,11 +425,10 @@ theorem splitTapeRecorder_step (leftKeep rightKeep : Bytes → σ → Prop)
 
 /-! ## Resampling one cell of the target block
 
-The charge on one cell is the leave-one-out step of `ForsLeaveOneOut.selected_local_hit_le`,
-moved to the run. Three things make it go through, and each is proved above rather than assumed:
+The charge on one cell is the leave-one-out step, moved to the run. Three things make it go through, and each is proved above rather than assumed:
 the disclosures sit on the *other* block, so overwriting a target cell cannot move them; the
 cell's own value is what the coverage test reads, so overwriting it replaces that value by a
-fresh one; and the selection does not see the cell, which is `probEvent_length_set`.
+fresh one; and the selection does not see the cell.
 
 What comes out is the per-cell factor the expectation form needs: the charge on cell `index` is
 the probability that the run *got that far*, times the rate — and summing those probabilities
@@ -528,7 +518,7 @@ theorem getElem?_of_prefix {β : Type} {short long : List β} (hprefix : short <
 
 /-! ## The disclosing recording is its own block, cell for cell
 
-The mirror of `rightOf_getElem?`, for the other head. The charge reads the disclosures off the
+The mirror of the target recording's correspondence, for the other head. The charge reads the disclosures off the
 whole left *block*, including the part no query reached; the game's event is witnessed by the
 left *recording*. They agree where the block still has a cell, which — the block being drawn as
 long as the signing limit allows — is everywhere the recording reaches. -/

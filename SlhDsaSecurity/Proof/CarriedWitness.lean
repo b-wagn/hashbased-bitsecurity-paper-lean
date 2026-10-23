@@ -3,38 +3,27 @@ import SlhDsaSecurity.Proof.RecorderView
 /-!
 # The recorder at the carrier, with the flag deciding and the served set remembering
 
-This is the instantiation the parameterisation was for. The disclosing test is
-`HandlerCarrier.FilesLeft` — a query made while the signing oracle holds its framing up, at an
-input of that request's own digest shape — and the predicate the recording's entries satisfy at
-the end is `HandlerCarrier.Served`, membership of the carrier's served multiset.
+The disclosing test is `HandlerCarrier.FilesLeft` — a query made while the signing oracle holds
+its framing up, at an input of that request's own digest shape — and the predicate the
+recording's entries satisfy at the end is `HandlerCarrier.Served`, membership of the carrier's
+served multiset.
 
 **The two are different predicates, and the reason is one sentence: a cache-readable test is
-monotone because it is forgeable.** `AnswerJoin.hdisclosing` asks
-for an iff between the signing log and a *cache-readable* disclosing test, and its right-to-left
-direction is false: an adversary holding `SK.prf` can put the `PRF_msg` entry a cache test looks
-for into the cache with no request behind it. A flag cannot be forged, because only the signing
-oracle sets it — but a flag is down again by the end of the run, so it cannot also be the thing
-an entry satisfies at the end. Splitting the roles is what lets the test be unforgeable and the
-record be readable at once, and `RecorderView.left_recordOf_endKeep_final` is where the split
-is paid for: filing puts the input into the served set, and no later step takes it out.
+monotone because it is forgeable.** An adversary holding `SK.prf` can put the `PRF_msg` entry a
+cache test looks for into the cache with no request behind it. A flag cannot be forged, because
+only the signing oracle sets it, but a flag is down again by the end of the run, so it cannot
+also be the thing an entry satisfies at the end. Splitting the roles lets the test be
+unforgeable and the record readable at once; `RecorderView.noticing_left_recordOf_endKeep_final`
+is where the split is paid for: filing puts the input into the served set, and no later step
+takes it out. The remaining link to the signing log is `ServingCarrier.AgreesWithLog`, a fact
+about the signing oracle rather than an assumption about the adversary.
 
-What remains on the log side is `ServingCarrier.AgreesWithLog` — the served set is the image of
-the signing log — which is a fact about the signing oracle rather than an assumption about the
-adversary, and is the log thread's. The false direction is gone, not relocated.
+**The notice files and the install caches.** `servingView` is a legal `CacheView` because the
+law constrains only the cache, and filing does not touch it.
 
-**The update files and caches in one step**, which is what `servingUpdate` is. It is a legal
-`CacheView` because the law constrains only the cache, and filing does not touch it; that the
-law is this weak is what makes the instantiation possible at all.
-
-**A test that reads a flag can only be instantiated at a presentation that sets the flag.** That
-is the other face of the rule above: `FilesLeft` is not merely unforgeable, it is *empty*
-wherever nothing frames. So the left test and the tail have to move together — a run that reads
-the flag over a computation with no bracket in it files nothing, and every question about what
-the recording holds answers itself for the wrong reason.
-
-Two gaps between this file and a carrier tail are recorded rather than papered over: the one at
-`servingUpdate` below, and that a bracketed run is not a `LateProbes.IsRecorderRun`, since
-brackets write the state between queries and no `OracleComp OracleWorld` can.
+**A test that reads a flag can only be instantiated at a presentation that sets the flag**:
+`FilesLeft` is *empty* wherever nothing frames, so the left test and the tail have to move
+together.
 -/
 
 open OracleComp OracleSpec
@@ -48,15 +37,11 @@ variable (pk : PublicKey)
 /-! ## The view
 
 **Filing is not installing.** The notice runs at every hash query, hit or miss; the install runs
-on a miss, as it always did. Tying them together was the gap recorded here earlier, and it was
-not a missing entry but a silent one: a served request whose digest input was already cached
-would go unfiled, and since an input is installed once and is never fresh again, it could never
-be filed later. The ordering defect would have been false by construction and the charge that
-bounds it would have looked discharged with its case defined away.
+on a miss. A served request whose digest input was already cached is therefore still filed: an
+input is installed once and is never fresh again, so it could not be filed later.
 
 Filing and caching still happen in the same step, which is what disclosure beginning exactly
-where the answer does means. What changed is that filing also happens in a step where nothing
-is cached, because the request was served all the same. -/
+where the answer does means. -/
 
 open scoped Classical in
 /-- Notice a query: file the input when the flag says the signer is serving it. -/
@@ -151,22 +136,5 @@ theorem mem_served_of_mem_leftRecord {α : Type} (rightKeep : Bytes → State �
     (fun input probe view answer _ hkeep =>
       served_cacheAnswer_iff view input probe answer hkeep)
     computation state result hmem hstart
-
-/-! ## What the flag rejects
-
-Both halves of the blindness, at the carrier's own test rather than at the cache. -/
-
-/-! ## What the target recording cannot hold
-
-`LateProvenance.SignerDigestFree` says that no target-recorded input is a served request's own
-digest input. At a cache-readable left test that is an ordering statement — the signer asks for
-its randomiser before its digest, so the entry is already there when the digest query is made —
-and nothing reports what the cache held partway through a sub-run, which is why it stands as a
-hypothesis.
-
-At the flag there is no ordering. A target-recorded entry comes with the state it was filed
-from, and at that state the right test held, hence the left test did not; and the left test is
-read off that state's own flag. So the entry cannot be a digest query made under a matching
-flag, for the state's reason rather than for the run's. -/
 
 end SlhDsaSecurity.CarriedWitness

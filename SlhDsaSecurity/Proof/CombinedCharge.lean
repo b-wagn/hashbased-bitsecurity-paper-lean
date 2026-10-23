@@ -9,24 +9,23 @@ import SlhDsaSecurity.Proof.HashSeparation
 
 Charging the structural and FORS avenues separately costs `2 ^ -128 + 2 ^ -129` per query,
 which together with the `2 ^ -128` of secret guessing exceeds the target rate `2 ^ -127`. The
-first-principles observation of `Proof/PerQueryBudget.lean` is that the two avenues are
-*mutually exclusive by input format*: a query whose bytes are an `H_msg` input is not a
-structural query, so its answer cannot hit the honest cell of a node — there is no node — and
-conversely a structural query's answer is never read as a message digest.
+two avenues are *mutually exclusive by input format*: a query whose bytes are an `H_msg` input
+is not a structural query, so its answer cannot hit the honest cell of a node, and conversely a
+structural query's answer is never read as a message digest.
 
-So the two clauses should be charged as one predicate, whose per-call probability is the
-**maximum** of the two rates rather than their sum:
+So the two clauses are charged as one predicate, whose per-call probability is the **maximum**
+of the two rates rather than their sum:
 
 * on a message-class input the structural clause is dead, leaving `2 ^ -129`;
 * on any other input the coverage clause is dead, leaving `2 ^ -128`.
 
-Hence `2 ^ -128` overall, and `GrowthCharge.prob_badWithin_le` then charges a whole run at
-`q / 2 ^ 128 = 2q / 2 ^ 129` — half the target, leaving exactly the other half for the
-secret-guessing avenue, which is the only one not of answer-side form.
+Hence `2 ^ -128` overall, half the target, leaving the other half for the secret-guessing
+avenue, which is the only one not of answer-side form.
 
-The separation hypothesis `hseparated` is discharged by `Proof/HashSeparation.lean`: an
-`H_msg` input can coincide with a structural one only if `PK.seed ‖ PK.root` encodes a valid
-address, which has probability at most `2 ^ -165` under actual key generation.
+The separation hypothesis is discharged by `HashSeparation`: an `H_msg` input can coincide with
+a structural one only if `PK.seed ‖ PK.root` encodes a valid address, which has probability at
+most `2 ^ -165` under actual key generation. `IsMessageInput` is the message class, and
+`separated_of_not_possible` is the deterministic half of the separation.
 -/
 
 open OracleComp OracleSpec ENNReal

@@ -8,54 +8,20 @@ import SlhDsaSecurity.Proof.MessageDigest
 /-!
 # The adaptively recorded digest tape
 
-Every FORS coverage bound in this development is proved about an *independent tape* of
-uniform digest views — `ForsLeaveOneOut.independent_tape_coverage_le` is the leave-one-out
-form, where each coordinate is charged against the disclosures of all the others.
-`FreshDigest.prob_tape_event_le` transports such a bound to the shared oracle, but only for a
-finite set of inputs *pinned in advance*. In the experiment no such set exists: the signing
-oracle's `H_msg` inputs depend on the messages the adversary chooses and on the randomizers
-it never sees, so the coordinates of the tape are selected adaptively during the run.
+The signing oracle's `H_msg` inputs depend on the messages the adversary chooses and on the
+randomizers it never sees, so the coordinates of a digest tape are selected adaptively during a
+run. This file supplies the instrumented random oracle for that.
 
-This file supplies the adaptive transport. The run is instrumented so that it records, in
-query order, the input and answer of every query that both misses the cache and whose input
-passes a test `keep` — in the experiment, "the input is in `H_msg` format". The recorded
-answers are the tape; the inputs ride along because the leave-one-out charge needs two
-coordinates to be *distinct*, and distinct inputs are what a game supplies
-(`recordCovered_of_witnesses`, `mem_record_of_cache`). The content of the file is that the
-recorded answers are distributed as a uniform tape:
+`recorder keep` is the shared random oracle that records, in query order, the input and answer
+of every query that both misses the cache and whose input passes a test `keep` (in the
+experiment, "the input is in `H_msg` format"). The recording is a write-only component of the
+state: it never influences an answer, so `mem_support_rom` carries every recorded run to a run
+of the plain oracle `KeygenUniform.rom`, and an installed answer persists verbatim along a
+recorded run (`recorder_cache_value_persists`). The inputs are recorded alongside the answers
+because the coverage charge needs two tape coordinates to be *distinct*.
 
-* `prob_prefix_le` is the lazy-sampling invariant — any *fixed* word of length `k` is a
-  prefix of the recorded list with probability at most `|HashOutput| ^ (-k)`. It is the
-  adaptive analogue of `GrowthCharge.prob_cache_values_le`, with the pinned coordinates
-  replaced by positions in the recording order, which is what removes the need to name the
-  inputs in advance.
-* `prob_tape_event_le` sums that over a set of words and pushes it through
-  `FreshDigest.viewAssignment_uniform`: any event about the recorded tape of parsed views is
-  no more likely than under a genuinely uniform tape.
-* `prob_recordCovered_le` composes with `ForsLeaveOneOut.independent_tape_coverage_le`. A run
-  that records at most `trials` answers ends holding a recorded digest whose fourteen FORS
-  leaves are all disclosed by the other recorded digests with probability at most
-  `1 / 2 ^ 141 + trials / 2 ^ 128` — one unit of `2 ^ -128` per recorded answer.
-* `prob_recordCovered_within_le` and `prob_romEvent_le` state that in the vocabulary the other
-  charges use: the tape length is supplied by `ClassCharge.GrowthAtMostOn keep`, since
-  `record_length_le_growth` shows each recorded answer consumes one unit of that class's
-  growth. So the rate is one unit of `2 ^ -128` per `keep`-class query, not per query.
-
-The recording is padded with independent uniform values up to the tape length, so a run that
-records fewer than `trials` answers still presents a full tape; coverage is monotone in the
-disclosures, so the padding can only enlarge the event being charged.
-
-`recorder_eq_rom` says the instrumentation is invisible: the recorded run and the plain run of
-`KeygenUniform.rom` agree on every event about the result and the final cache, so a bound
-proved here is a bound on the experiment.
-
-The transport is an inequality rather than a distributional identity, and deliberately so. The
-identity — `OracleComp.DeferredSampling.Factorizes`, the run equal in law to a front-drawn tape
-followed by a tape-consuming run — is true, but it is strictly more than the composition needs,
-since `ForsLeaveOneOut.independent_tape_coverage_le` is itself an inequality about a uniform
-tape. What the composition needs is the one-sided statement that no event is *more* likely on
-the recording than on a uniform tape, and that is what the prefix invariant delivers directly,
-by the same route `GrowthCharge.prob_cache_values_le` takes for a pinned set.
+`padding` draws independent uniform values to pad a short recording out to a full tape, and
+`viewTape_uniform` says a uniform word of answers has a uniform tape of parsed views.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -127,18 +93,9 @@ noncomputable def padding : Nat → ProbComp (List HashOutput)
       let rest ← padding n
       pure (value :: rest)
 
-/-! ## The instrumentation is invisible
-
-The recording is a write-only component of the state: it never influences an answer, so the
-instrumented run and the plain run of the shared oracle agree on every event that does not
-mention it. -/
-
-/-! ## The recording only grows -/
-
 /-- Every recorded run is a run: dropping the recording lands in the support of the plain run
-of the shared oracle. This is the support-level companion of `recorder_eq_rom`, and it is what
-lets a fact proved about the game — a budget, a cache shape — be used under the
-instrumentation. -/
+of the shared oracle. This lets a fact proved about the game, such as a budget or a cache
+shape, be used under the instrumentation. -/
 theorem mem_support_rom {α : Type} (keep : Bytes → Prop)
     (computation : OracleComp OracleWorld α) (state : RecordState) (result : α × RecordState)
     (hmem : result ∈ support ((simulateQ (recorder keep) computation).run state)) :
@@ -170,13 +127,7 @@ theorem mem_support_rom {α : Type} (keep : Bytes → Prop)
       rw [hshape]
       exact hinner
 
-/-! ## The recording is paid for by cache growth
-
-Each recorded answer is one cache miss at a `keep`-class input, so the recording is no longer
-than the run's growth *in that class*. This is what identifies the tape length with a budget
-the experiment already carries: `ClassCharge.GrowthAtMostOn` is the per-class observable the
-class-split charges are stated against, so the coverage term is charged at one unit per
-message-class query rather than per query. -/
+/-! ## Persistence of installed answers -/
 
 /-- An installed answer persists verbatim along a recorded run. -/
 theorem recorder_cache_value_persists {α : Type} (keep : Bytes → Prop)
@@ -225,19 +176,7 @@ theorem recorder_cache_value_persists {α : Type} (keep : Bytes → Prop)
         rw [hinner]
         exact hentry
 
-/-! ## The lazy-sampling invariant
-
-Any word fixed in advance is a prefix of what the run records with probability at most
-`|HashOutput| ^ (-length)`: each of its letters has to be matched by one fresh uniform
-answer. Nothing is assumed about *which* inputs the run queries — the coordinates are
-positions in the recording order, not inputs, which is what removes the need to pin a finite
-set of inputs in advance. -/
-
-/-! ## The recorded tape is uniform
-
-Summing the invariant over a set of words and pushing the result through the parser turns it
-into the statement the FORS results are phrased against: an event about the recorded tape of
-parsed views is no more likely than the same event under a genuinely uniform tape. -/
+/-! ## The padding and the view tape -/
 
 /-- The padding block has exactly the length it was asked for. -/
 theorem padding_length (trials : Nat) (pad : List HashOutput)
@@ -268,8 +207,7 @@ theorem padding_neverFails (trials : Nat) : Pr[⊥ | padding trials] = 0 := by
         padding remaining >>= fun rest => (pure (value :: rest) : ProbComp _) from rfl]
     simp
 
-/-- Coordinatewise, a uniform word of answers has a uniform tape of parsed views. This is
-`FreshDigest.viewAssignment_uniform` at the tape's own `Fin` index. -/
+/-- Coordinatewise, a uniform word of answers has a uniform tape of parsed views. -/
 theorem viewTape_uniform (trials : Nat) :
     𝒟[(fun word index => MessageDigest.parse (word index)) <$>
         ($ᵗ (Fin trials → HashOutput) : ProbComp (Fin trials → HashOutput))] =
@@ -299,25 +237,5 @@ theorem viewTape_uniform (trials : Nat) :
       regroup regroup.bijective
   rw [hmap, evalDist_map, hinner, ← evalDist_map]
   exact evalDist_map_fst_uniformSample_prod
-
-/-! ## The leave-one-out coverage event
-
-`ForsLeaveOneOut.independent_tape_coverage_le` charges, on a uniform tape, the event that some
-coordinate selected by a causal policy has its fourteen FORS leaves all disclosed by the other
-coordinates. Taking the constant policy — every coordinate selected — gives the event in its
-plainest form, and its expected number of selections is the tape length, so the charge is one
-unit of `2 ^ -128` per coordinate. -/
-
-/-! ## From the recording to the tape
-
-A recorded list is read as a tape of its own length. Because coverage is monotone in the
-disclosures, a covered recording stays covered inside any longer word extending it, so the
-record's coverage event is charged by the full tape's. -/
-
-/-! ## The bound on the run
-
-Putting the pieces together: the recording is a uniform tape, and a covered recording is a
-covered tape, so a run that records at most `trials` answers is covered with probability at
-most `1 / 2 ^ 141 + trials / 2 ^ 128`. -/
 
 end SlhDsaSecurity.DigestTape

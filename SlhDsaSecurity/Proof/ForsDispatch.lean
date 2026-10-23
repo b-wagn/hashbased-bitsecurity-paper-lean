@@ -19,16 +19,16 @@ shape is handed to the composition already proved for it.
 
 * the root compression goes to `ForsCharge.deviatingCollision_of_compressionCollision_canonical`;
 * a leaf goes to `ForsLeafCharge.deviatingCollision_of_leafCollision_canonical`;
-* a tree path has no charge yet, so this file supplies one. `MerkleCharge` proves the Merkle
-  counterpart but is not generic in the node shape, so `deviatingCollision_of_pathCollision`
+* a tree path is charged here. `MerkleCharge` proves the Merkle counterpart but is not generic in
+  the node shape, so `deviatingCollision_of_pathCollision`
   and `deviatingCollision_of_pathCollision_canonical` here follow it line for line with
   `Fors.nodeAddress` in place of `Merkle.nodeAddress` and the `forsTree` nodes in place of the
   `tree` nodes. Only the two arithmetic facts about `BinaryPath.canonicalPair` are shared
   verbatim — those are already generic in `nodes`.
 
-What is left to a caller is the same index bookkeeping the Merkle side leaves open — which
-canonical-graph node a given FORS index names is carried in hypotheses — together with the
-cache entries, which `CacheReplay` and `PathEntry` supply from the verifier's own run.
+The index bookkeeping (which canonical-graph node a given FORS index names) is carried in
+hypotheses, together with the cache entries, which `CacheReplay` and `PathEntry` supply from the
+verifier's own run.
 -/
 
 open OracleComp OracleSpec
@@ -393,9 +393,9 @@ theorem leafIndex_div_lt (indices : SlhDsaSecurity.Fors.Indices) (i : Fin forsTr
 Each shape to its own charge. The cache entries come from `CacheReplay`: the root compression
 is a prefix followed by one hash, so `CacheReplay.queriesUnder_compression` reaches it; a
 revealed leaf is a bare tweakable call, so `CacheReplay.queriesUnder_tweakable_self` does; and
-a tree path is a fold, which is what `PathEntry.pathInput_cached` is for — hence the path
-hypothesis below is phrased with `PathEntry.pathInput` and `PathEntry.pathCombine`, exactly as
-that lemma delivers it. -/
+a tree path is a fold, which is what `PathEntry.queriesUnder_pathInput` is for — hence the path
+hypothesis below is phrased with `PathEntry.pathInput` and `PathEntry.pathCombine`, as that
+lemma delivers it. -/
 
 omit [HasQuery HashSpec Id] in
 /-- **A FORS collision is a charged structural event.** -/

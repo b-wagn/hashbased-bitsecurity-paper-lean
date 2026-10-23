@@ -4,31 +4,19 @@ import SlhDsaSecurity.Proof.CoverageCount
 import SlhDsaSecurity.Proof.SplitWitness
 
 /-!
-# The randomiser defect, at a record the run returns
+# The recorded tail's provenance and the `PRF_msg` record event
 
-`RandomiserProvenance.randomiserBad_source` produces the record **existentially over the
-support**, which is one step short of what the charge consumes. As a predicate on the tail's
-result, `∃ record, Multiset.card record ≤ work ∧ ∃ input ∈ record, …` is satisfied by a
-one-element multiset as soon as the run charges anything, so bounding it bounds nothing.
-`RandomizerGate.prob_run_randomizerInput_le` reads the record off the run's own output, and that
-is the presentation `RecordedTail` supplies.
+The run's record is a value of `RecordedTail.recordedAfterSeeds`, not a witness. This file reads
+the provenance of a cache entry at that run, so the record is the run's own output:
 
-So the provenance is taken again over `RecordedTail.recordedAfterSeeds`, where the record is a
-value rather than a witness. Nothing in the argument changes — the same four closure lemmas
-attribute the entry to the same four phases — except that the adversary's phase is *already*
-the recording one, so `PhaseProvenance.exists_recorded_of_mem_countedRun` is not needed and the
-record the attribution returns is the run's own.
-
-`prob_randomiserBad_le_record` is the result: the defect's probability at the warmed tail is at
-most the probability, at the recorded tail, that the run's own record meets the `PRF_msg` class
-at the real seed — or that the digest overlap fires, carried as a disjunct and charged
-elsewhere.
-
-**What this does not do.** The charge that consumes the first disjunct draws the secret *after*
-the run. `walk.1.1.2.1` is `SK.prf`, and a walk fixes it before the adversary is run — see
-`RandomiserDeferral`, whose `mem_support_withPrf` shows every walk stays in the support at every
-value of that secret. So this file ends one step from the bound, and the step it is short of is
-not a lemma but the obligation's shape.
+* `provenance_recordedAfterSeeds` attributes every entry the game installed to one of its phases
+  and returns the record, with the forgery's digest input in it (`mem_verifierRecord`: the
+  verifier's first query is that input, so the recorded instrumentation already holds it);
+* `RecordMeetsPrfClass` is the event that the run's own record holds an input of the `PRF_msg`
+  class at the real seed, and `recordMeetsPrfClass_of_forgeryDigest` puts the forgery's digest
+  input in it when its randomiser is `SK.prf`;
+* `recordedPairedRun` is the paired run with the record kept, which the record-level events are
+  read at.
 -/
 
 open OracleComp OracleSpec
@@ -37,7 +25,7 @@ namespace SlhDsaSecurity.RandomiserRecord
 
 open Security CacheReplay RecordedQueries PhaseProvenance CacheProvenance RecordedTail
 
-/-! ## The verifier's instrumentation is invisible to the cache, here too -/
+/-! ## The verifier's instrumentation is invisible to the cache -/
 
 /-- The `Tally`-valued instrumentation adds bookkeeping to the value and nothing to the
 oracle. This is `WarmedSplit.mem_support_of_countQueries` at the recording writer. -/
@@ -70,11 +58,8 @@ theorem mem_support_of_countRecorded {α : Type} (cost : OracleWorld.Domain → 
 
 /-! ## The verifier's digest input is recorded
 
-`RandomiserProvenance.randomiserBad_source` carries the forgery's own digest input beside the
-record, as `forgeryDigestRecord`, and pays a unit for it. That unit is spurious here: the
-recorded presentation instruments the verifier as well as the adversary, so the verifier's first
-query — which is that very input — is already in the record. Proving the containment is what
-lets the `+ 1` go, and with it the term that put the shared side's arithmetic over.
+The recorded presentation instruments the verifier as well as the adversary, so the verifier's
+first query — the forgery's digest input — is in the record, and no extra unit is paid for it.
 
 The verifier's first query is the digest's, syntactically: `Scheme.verify` rejects on a bad
 frame or an unparseable signature without querying, and otherwise its first line is
@@ -131,18 +116,15 @@ theorem mem_verifierRecord (pk : PublicKey) (request : Message) (signature : Byt
 /-! ## The provenance, with the record returned
 
 Two things are returned beside the attribution. The `∀ probe` sits **inside** the existential,
-because the growth bound `RandomiserProvenance.growthAtMostOn_prfClass` consumes the provenance
-at one fixed key pair for every probe at once; and the forgery's digest input is named as a
-member of the record, which is what lets `RandomiserProvenance`'s `forgeryDigestRecord` and the
-unit it costs both disappear here. -/
+because a growth bound consumes the provenance at one fixed key pair for every probe at once;
+and the forgery's digest input is named as a member of the record. -/
 
 attribute [local irreducible] Scheme.keygenInternal Scheme.sign
 
 set_option linter.constructorNameAsVariable false in
 set_option maxHeartbeats 1000000 in
 /-- **Where an entry the recorded game installed came from**, with the record the run itself
-returns. The four cases are `RandomiserProvenance.provenance_afterSeeds`'s; what differs is that
-the record is the run's own value and that the forgery's digest input is in it. -/
+returns, and in which the forgery's digest input is a member. -/
 theorem provenance_recordedAfterSeeds (adversary : Adversary) (sds : Digest × Digest × Digest)
     (cache : QueryCache HashSpec)
     (result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec)
@@ -236,17 +218,13 @@ theorem provenance_recordedAfterSeeds (adversary : Adversary) (sds : Digest × D
 
 /-! ## The charged record, and what falls in it
 
-The charge is read against the run's own record as a `Finset`, with **nothing added**: the
-verifier's digest query is recorded by the same instrumentation as the adversary's, so the
-forgery's own digest input is already there and the extra unit
-`RandomiserProvenance.randomiserBad_source` pays for it is not needed here.
+The charge is read against the run's own record as a `Finset`, with nothing added: the
+verifier's digest query is recorded by the same instrumentation as the adversary's.
 
-`RecordMeetsPrfClass` is what the charge bounds, and it is stated as its own event rather than
-as a step inside the randomiser defect's reduction. That matters: the *answer* side also hands
-in a `PRF_msg`-class input of this record — the forgery's digest input, when its randomiser is
-`SK.prf` — and that case is **not** subsumed by `ReplayGate.RandomiserBad`, which additionally
-requires that no signing request framed to the message. A request framed as `PK.root ‖ m` is
-legal, so the two cases are genuinely different and only the record-level event covers both. -/
+`RecordMeetsPrfClass` is stated as its own event rather than as a step inside a randomiser
+defect's reduction, because the answer side also hands in a `PRF_msg`-class input of this
+record — the forgery's digest input, when its randomiser is `SK.prf` — and a signing request
+framed as `PK.root ‖ m` is legal, so a defect that excludes such requests would not cover it. -/
 
 /-- The record the charge is read against: the run's own, as a `Finset`. -/
 noncomputable def chargedRecord
@@ -254,7 +232,7 @@ noncomputable def chargedRecord
   Multiset.toFinset result.1.1.2
 
 /-- **The charge's event**: the run's own record holds an input of the `PRF_msg` class at the
-real seed. This is what the deferral pays for, and the randomiser defect is only one way in. -/
+real seed. -/
 def RecordMeetsPrfClass (prfSeed : Digest)
     (result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec) : Prop :=
   ∃ input ∈ chargedRecord result, RandomizerGate.PrfClass prfSeed input
@@ -291,30 +269,14 @@ theorem recordMeetsPrfClass_of_forgeryDigest (adversary : Adversary)
   exact RandomiserProvenance.mem_forgeryDigestRecord _ result.1.1.1.forgery framed parsed
     hframe hparsed
 
-/-! ## The randomiser defect lands in the charged record
-
-The same attribution as `RandomiserProvenance.randomiserBad_source`, read at the recorded tail.
-Key generation cannot have made the query, the signer only for a request the event excludes or
-as its own digest query — the coincidence `SignerHitsSeed`, charged without any deferral — and
-the verifier only as the forgery's digest query, which is in the record. The growth bound comes
-back beside the dichotomy, at the same record, which is what makes this charge and the signer's
-partition rather than merely add. -/
-
-/-! ## The reduction, as a probability -/
-
 /-! ## The paired run, recorded
 
-`SharedJoin` states its four charges on `Target.pairedRun`'s value, and three of them read only
-the trace. The randomiser's does not. `RecordMeetsPrfClass` reads the **record**, and the record
-is not a function of the trace: the cache keeps neither multiplicity nor caller, so two runs with
-the same outcome and the same final cache can have different records. A `recordPrf : Pair → Prop`
-in the join's sense therefore cannot be this event, and an existential over records — the only
-thing the trace supports — is the near-vacuous predicate the join's own header rules out.
-
-So the join has to be read at a presentation that carries the record, and this is it, together
-with the transfer. Nothing is paid for the change: `RecordedTail.tail_eq_map_recordedTail` is an
-equality of computations, so the paired run **is** the recorded paired run with the record
-dropped, and every event about the trace keeps its probability exactly. -/
+`RecordMeetsPrfClass` reads the **record**, which is not a function of the trace: the cache keeps
+neither multiplicity nor caller, so two runs with the same outcome and the same final cache can
+have different records. So events about the record are read at a presentation that carries it.
+Nothing is paid for the change: `RecordedTail.tail_eq_map_recordedTail` is an equality of
+computations, so the paired run **is** the recorded paired run with the record dropped, and every
+event about the trace keeps its probability exactly. -/
 
 /-- The paired run, with the record kept. -/
 noncomputable def recordedPairedRun (adversary : Adversary) :
@@ -331,28 +293,5 @@ def forgetRecord
     (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) ×
       ((Outcome × Nat) × QueryCache HashSpec) :=
   (pair.1, ((pair.2.1.1.1, pair.2.1.2), pair.2.2))
-
-/-! ## The answer side's residue, folded in — and the fourth party that blocks it
-
-`SplitWitness.SeedRandomised prfSeed pk cache` is "the cache holds a message input that is also a
-`PRF_msg` input at the real seed". **As stated it is not a `2 ^ -128` event**, and the reason is
-the `PRF_msg`/`H_msg` format overlap a third time. The signer's *randomiser* query for a request
-framed as `PK.root ‖ M` is made at `Hashing.randomizerInput SK.prf PK.seed (PK.root ‖ M)`, and
-that byte string **is** `Hashing.messageInput SK.prf pk M` — a message input whose randomiser is
-`SK.prf`. The frame is legal whenever `PK.root`'s leading byte is zero, which
-`FramingClosure.prepend_digest_exists_frame` supplies, so an adversary that asks for one such
-signature makes `SeedRandomised` hold outright. Its cost is the `2 ^ -8` the root's byte charges
-and nothing else.
-
-That fourth party is in neither of the two things the shared side charges. The signer's own
-queries are **not** recorded — `RecordedQueries`' handler records the adversary's and the
-verifier's — and `RandomiserProvenance.SignerHitsSeed` additionally asks that the *answer*
-truncate to the seed, which this case says nothing about.
-
-So the fold holds off that case and not on it, and `SignerRandomiserInput` is what names it. Off
-it, the three parties are exactly the ones the randomiser defect's own provenance walks, and the
-reduction is a corollary. The lemma is stated at `RandomizerGate.PrfClass` alone rather than at
-`SeedRandomised`, which is stronger and is what both consumers need: a cached input of the class
-is charged, whether or not it also parses as a message input. -/
 
 end SlhDsaSecurity.RandomiserRecord

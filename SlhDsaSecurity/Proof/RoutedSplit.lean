@@ -7,43 +7,36 @@ import SlhDsaSecurity.Proof.ServedLog
 /-!
 # The win's branches, at the two predicates the target names
 
-`Target.target_of_obligations` is written, and it names three predicates on one value: the
-walk's seeds and cells, the counted outcome, and the final cache. Everything the charges prove
-has to arrive in that shape, so the shape is fixed here first and the extraction is routed into
-it — not the other way round. A predicate cut to fit a charge and adapted at the join is how a
-mismatch hides until the last step.
-
-`AnswerBad` and `InputBad` are therefore stated as the target reads them, as functions of that
-one value alone:
+The target's predicates are stated on one value: the walk's seeds and cells, the counted
+outcome, and the final cache. Everything the charges prove has to arrive in that shape, so the
+shape is fixed here first and the extraction is routed into it. `AnswerBad` and `InputBad` are
+stated as functions of that one value alone:
 
 * `AnswerBad` is the answer side: a deviating structural collision at the walk's own cells, or
-  the forgery's message digest being covered by the other message-class digests. Both are
-  charged against the growth the tail is allowed — the collision by `WarmedCharges`, the
-  coverage by `CoverageTail.prob_coverage_tail_le`.
+  the forgery's message digest being covered by the other message-class digests.
 * `InputBad` is the input side: some entry of the record of claims the forgery itself
   determines is a sensitive candidate. The record is `ClaimedProbes.claimedCandidatesOf`, whose
-  length is the constant `259`, and that constant is what the target's `q - 512 + 259` pays for.
+  length is the constant `259`.
 
 `cases_of_win_routed` takes `CanonicalSplit.cases_of_win_canonical`'s first two branches there,
 and `cases_of_canonical` takes the third as far as routing can take it.
 
 **The third branch crosses the line between the two halves**, which is why it is a fork over
-both rather than a residue of one. The forgery holds the honest FORS secret at each of the
-fourteen positions its digest selects, and each position is either undisclosed — so the secret
-it claims is a sensitive entry of the record, which is `InputBad` — or disclosed. If all
-fourteen are disclosed, `CoverageRouted.forgeryDisclosedCovered_or_only_self` forks again: the
-forgery's digest is covered by the digests that actually disclose, which is `AnswerBad`, or the
-forgery's own input is the only one disclosing them. The fork is taken only once the forgery's
-own input is known not to be disclosing: one that is sends the win to the replay case, where it
-belongs, and keeps it out of the coverage charge, which counts targets outside that class. The witnesses are kept at the disclosing
-class rather than weakened to the message class, because only a digest the signer randomised
-reveals anything, and the signing limit caps those while nothing caps the others.
+both. The forgery holds the honest FORS secret at each of the fourteen positions its digest
+selects, and each position is either undisclosed — so the secret it claims is a sensitive entry
+of the record, which is `InputBad` — or disclosed. If all fourteen are disclosed,
+`CoverageRouted.forgeryDisclosedCovered_or_only_self` forks again: the forgery's digest is
+covered by the digests that actually disclose, which is `AnswerBad`, or the forgery's own input
+is the only one disclosing them. The fork is taken only once the forgery's own input is known not
+to be disclosing: one that is sends the win to the replay case, which keeps it out of the
+coverage charge, which counts targets outside that class. The witnesses are kept at the
+disclosing class rather than weakened to the message class, because only a digest the signer
+randomised reveals anything, and the signing limit caps those while nothing caps the others.
 
-That last case is `ReplayForgery`, and it is named rather than assumed away. It is the forgery
-that is the signer's own signature on a message whose digest only the forgery's own query
-selects — so its randomiser is the signer's, which is what the provenance argument needs and
-what strong freshness contradicts. Nothing here decides it; `cases_of_win_three` is the split
-with that one case left standing.
+That last case is `ReplayForgery`: the forgery that is the signer's own signature on a message
+whose digest only the forgery's own query selects, so its randomiser is the signer's, which
+strong freshness contradicts. `cases_of_win_three` is the split with that one case left
+standing.
 
 The coverage event is stated at a cache entry, and `cached_digest` supplies it: the verifier's
 first call is the message digest, so the entry is in the run's own final cache and holds what
@@ -356,11 +349,10 @@ theorem cases_of_win_routed (adversary : Adversary)
   · exact Or.inr (Or.inr ⟨message, parsed, hframe, hparsed, hcanonical⟩)
 
 omit [HasQuery HashSpec Id] in
-/-- **A win is the answer side, the input side, or a replay.** This is the split the target's
-`hsplit` is one step from: what the provenance argument owes is the third case alone, where the
+/-- **A win is the answer side, the input side, or a replay.** In the third case the
 forgery is the signer's own signature and the only digest disclosing its positions is the one
-the forgery itself reads — so the randomiser it carries is the signer's, and strong freshness
-is what that contradicts. -/
+the forgery itself reads, so the randomiser it carries is the signer's, which strong freshness
+contradicts. -/
 theorem cases_of_win_three (adversary : Adversary)
     {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
     (hwalk : walk ∈ support WarmedGame.graphWalk)

@@ -3,17 +3,13 @@ import SlhDsaSecurity.Statement.Security
 import SlhDsaSecurity.Proof.VerificationBudget
 
 /-!
-# Cache growth is dominated by the total hash count
+# The total hash count
 
-`GrowthCharge.prob_hitWithin_le` charges a run against its observable cache growth, while
-the all-queries-counted experiment bounds the *total* number of hash calls. Repeated calls
-are charged but do not grow the cache, so the count always dominates the growth; this file
-proves that inequality, which is what lets the charge consume the experiment's budget.
-
-`countAllHashes` only adds bookkeeping to the returned value: it issues exactly the queries
-of the underlying computation, in the same order, so the cache evolves identically and the
-count is the number of hash queries made. Each new cache entry is created by a hash query,
-hence `growth ≤ count`.
+`countAllHashes` only adds bookkeeping to the returned value: it issues exactly the queries of
+the underlying computation, in the same order, so the cache evolves identically and the count is
+the number of hash queries made. This file states its step laws (`countAllHashes_pure`,
+`countAllHashes_query_bind`, `countAllHashes_query`) and that the count is additive over
+sequencing (`countAllHashes_bind`).
 -/
 
 open OracleComp OracleSpec

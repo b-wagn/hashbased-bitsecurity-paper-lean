@@ -8,7 +8,7 @@ import SlhDsaSecurity.Proof.SplitCharged
 `GraphStakes.claimedCandidates` records one candidate per cell the forgery claims, and for the
 hypertree's WOTS values it needs to know *which* chain position each claimed value sits at. That
 position is the digit the message that layer signs encodes on that chain, and
-`WotsResidueReduction.forgedAt` now names that message, so the position is a function of the
+`WotsResidueReduction.forgedAt` names that message, so the position is a function of the
 forgery.
 
 One mismatch has to be absorbed. A digit lands in `Fin w`, while a chain-step node is indexed by
@@ -23,11 +23,7 @@ the budget is for. What would be unsound is a record that misses the real claim,
 direction the clamp cannot go.
 
 Keeping the record indexed by every layer and chain, rather than only by the chain the residue
-names, is what keeps its length a constant: `GraphStakes.claimedCount` is `259`, and what the
-honest phase's spend allows is `506` — `Target.allowanceOf`'s `hclaims : claims + 6 ≤ 512`,
-reserving on one half. (Earlier notes here said `1020`; no lemma records that figure, and the
-nearest one, `Assembly.le_target_of_counts`, allows `2 * slack = 1024` by reserving on both
-halves and is unconsumed.)
+names, keeps its length a constant.
 -/
 
 open OracleComp OracleSpec

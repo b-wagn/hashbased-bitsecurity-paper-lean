@@ -2,30 +2,19 @@ import SlhDsaSecurity.Proof.StrippedGame
 import SlhDsaSecurity.Proof.WarmedSplit
 
 /-!
-# The charged work never exceeds the total hash count
+# The adversary's charged work and the counted run
 
-The input half will charge the adversary's and the verifier's own queries, and the cap it needs
-on how many there are has to come from `Security.HasTotalBudget` — which bounds
-`Security.countAllHashes`, the total number of hash calls anywhere in the game. What the game's
-own counters report is something else: `Outcome.counts.work` is the adversary's direct calls
-plus the verifier's, charged inside the run rather than around it. This file proves the
-inequality between them.
+The game's own counters report something other than the total hash count: `Outcome.counts.work`
+is the adversary's direct calls plus the verifier's, charged inside the run rather than around
+it. Key generation and the signer hash without being charged, which is what makes the honest
+phase free, and a signing *request* is charged on the `.signing` counter, which `Counts.work`
+does not read. `Counts.single .signing 1` has `work = 0`, so the signing charge never collides
+with the work budget.
 
-It is an inequality and not an equality, for two reasons, and both are the point of the
-accounting rather than slack to be removed. Key generation and the signer hash without being
-charged — that is what makes the honest phase free — and a signing *request* is charged on the
-`.signing` counter, which `Counts.work` does not read. So `work` is a lower bound on the total,
-never an upper one.
-
-**No hypothesis is needed.** The worry that the signing charge might collide with the work
-budget does not arise: `Counts.single .signing 1` has `work = 0`, so a request contributes
-nothing to the side being bounded, while the signer's hash calls contribute to the side bounding
-it. The two counters measure disjoint things and the comparison is unconditional.
-
-The proof is three inductions joined by the phase split. The adversary's phase compares the
-writer its handler accumulates against the calls the whole phase makes, where the signing
-oracle's sub-runs are exactly the gap. The verifier's phase compares an outer `countQueries`
-against the same total, and there the two agree. Key generation charges nothing at all.
+This file holds the arithmetic of `Counts.work` (`work_add`, `work_single_*`), the factoring of
+a counted run at a sequencing point that keeps both counts (`mem_support_counted_bind_count`),
+the adversary's own charged oracle `adversaryImpl`, and `servedCount`, the number of requests
+the signer served, read off the signing log.
 -/
 
 open OracleComp OracleSpec
@@ -102,17 +91,11 @@ theorem run_adversaryImpl (queried : OracleWorld.Domain) (log : SigningLog) :
     StrippedGame.run_liftM_state, StateT.run_monadLift, map_eq_bind_pure_comp, bind_assoc,
     pure_bind, Function.comp_def, mul_one]
 
-/-! ## The verifier's charges -/
-
-/-! ## The charged work of the whole game -/
-
 /-! ## What the signer spends
 
 A request whose context is too long is refused before any query; a request that is served is
-charged **two** hashes — its randomiser's and its message digest's — and both calls are the
-signer's, so the work budget never sees either. So every served request leaves two more units of
-the total count unspent, on top of what key generation left; `two_le_count_sign` is that fact and
-the statements below carry `2 * servedCount` because of it. The log says how many were served,
+charged **two** hashes, its randomiser's and its message digest's, and both calls are the
+signer's, so the work budget never sees either. The log says how many requests were served,
 since the answer it records is `some` exactly when the frame was. -/
 
 /-- The number of requests the signer served, read off the log it left. -/

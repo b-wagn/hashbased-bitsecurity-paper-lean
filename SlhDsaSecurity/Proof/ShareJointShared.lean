@@ -5,13 +5,12 @@ import SlhDsaSecurity.Proof.BySourceShared
 /-!
 # The shared half on accepted forgeries
 
-`BySourceShared.hshared` at the adversary's own work. The event carries an accepted forgery, and
-the chain is the same three links with the jointly capped games in place of the old ones:
+`hshared` is the shared half at the adversary's own work. The event carries an accepted forgery,
+and the chain has three links, with the jointly capped games:
 
 * the real event with an accepted forgery is at most as likely in the jointly capped real game
   (`JointBudget.probEvent_realFlat_le`, at `limit = q - 569`);
-* that is at most the lenient flag, and so the blind flag (`SetupBound`, the coupling of
-  `ShareJointCouple` read through the event lemmas);
+* that is at most the lenient flag, and so the blind flag (`SetupBound`);
 * the blind flag is at most the charged entries over `2 ^ 128`, at most `q - 569 + 330 + 231 =
   q - 8` of them (`ShareJointBound.charged_blindRun_shareCompJ`).
 -/

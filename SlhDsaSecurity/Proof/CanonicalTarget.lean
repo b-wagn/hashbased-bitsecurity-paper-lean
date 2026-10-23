@@ -4,8 +4,8 @@ import SlhDsaSecurity.Proof.FreshHitBound
 /-!
 # The canonical target of a structural query
 
-`FreshHitBound.prob_hit_le` charges a run against an optional target chosen for each byte
-input. This file supplies the target that the structural extraction produces: a query whose
+`FreshHitBound.Hit` is the event that a query's answer matches an optional target chosen for
+each byte input. This file supplies the target that the structural extraction produces: a query whose
 bytes parse as a canonical graph input at some parent node is charged against *that node's
 own canonical cell value*, and only when the child values carried by the query deviate from
 the honest ones.

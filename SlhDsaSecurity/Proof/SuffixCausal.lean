@@ -3,16 +3,16 @@ import SlhDsaSecurity.Proof.FusedTape
 /-!
 # Reaching a target cell does not read any cell at or after it
 
-`NoticingTape.probEvent_length_set_cont` and its fused and three-stage forms say that whether a
-run reaches target cell `index` does not move when cell `index` itself is overwritten. The
-second-order coverage charge (`FiredCoverage.prob_firedCovered_le`) needs the same for every
-cell at or after `index`: the pair charge redraws the *later* of two cells while holding the
-selection of the earlier one, and the later cell is read only after the earlier was reached.
+Whether a run reaches target cell `index` does not move when any cell `cell ≥ index` of the
+target tape is overwritten (`probEvent_length_setGe_cont`, with its fused and three-stage forms
+`probEvent_length_setGe_fused` and `probEvent_length_setGe_threeStage`). The second-order
+coverage charge (`FiredCoverage.prob_firedCovered_le`) needs this: the pair charge redraws the
+*later* of two cells while holding the selection of the earlier one, and the later cell is read
+only after the earlier was reached.
 
-The proofs are the originals with the overwritten cell made a second parameter. The one case
-that changes is the step that consumes the head of the block: at `index = 0` the run has reached
-its cell whatever the head is, and at `index = i + 1` the overwritten cell is past the head too,
-so both drop by one together.
+The one case worth noting is the step that consumes the head of the block: at `index = 0` the
+run has reached its cell whatever the head is, and at `index = i + 1` the overwritten cell is
+past the head too, so both drop by one together.
 -/
 
 open OracleComp OracleSpec ENNReal

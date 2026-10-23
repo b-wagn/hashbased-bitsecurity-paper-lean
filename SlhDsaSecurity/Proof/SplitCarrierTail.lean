@@ -8,20 +8,16 @@ import SlhDsaSecurity.Proof.SplitTail
 
 `CarrierTail.carrierTail` keeps one counter in its handler's state. The answer half's two
 charges need two: the structural clause is paid by the queries *outside* the target class and
-the coverage clause by those inside, and the two must be read off **one** run or the budget is
-spent twice. `SplitCounted.withSplit` is that counter at the handler; this file is the same
-three-stage tail under it, and the projection that reads the tail as a run of the shared oracle
-with `Security.countQueries (ClassGrowth.splitCost …)` wrapped around the computation.
+the coverage clause by those inside, and the two must be read off **one** run. This file is the
+same three-stage tail with `SplitCounted.withSplit` as the handler's counter, and the projection
+that reads `SplitTail.splitCarrierTail` as a run of the shared oracle with
+`Security.countQueries (ClassGrowth.splitCost …)` wrapped around the computation.
 
-**Nothing here is a new argument.** Every statement is `CarrierTail`'s with `Nat` replaced by
-`Counts` and `hashCost` by `splitCost`, and every proof is the same proof: the counter is an
-extra component of the handler's state, `CountedHandler.withExtra` carries it, and the brackets
-write the framing and nothing else. The one place the two counters meet —
-`SplitCounted.run_withSplit_withCount` — is already proved, so this tail and the counted one are
-the same run read two ways, and a charge taken at either may be read at the other.
-
-What the file is *for* is the last theorem: the structural charge at the split tail, stated at
-the `outside` slot, in the shape `CoverageCount.prob_bad_or_coverage_le_of_charges` takes.
+Every statement is `CarrierTail`'s with `Nat` replaced by `Counts` and `hashCost` by `splitCost`,
+and every proof is the same proof: the counter is an extra component of the handler's state,
+`CountedHandler.withExtra` carries it, and the brackets write the framing and nothing else.
+`SplitCounted.run_withSplit_withCount` relates this tail to the counted one, so they are the
+same run read two ways. The last theorem, `forget_splitCarrierTail`, is the file's output.
 -/
 
 open OracleComp OracleSpec
@@ -34,9 +30,8 @@ open CarrierTail ClassGrowth SplitCounted
 /-! ## The shared oracle, counting into two slots
 
 `CountedHandler.romWithCount` is the shared oracle with a counter beside its cache; this is the
-same with a pair of slots. It is a separate definition for the reason `romWithCount` is one: the
-carrier's state associates the other way, and merging the two would cost a reassociation at
-every call site. -/
+same with a pair of slots. It is a separate definition because the carrier's state associates
+the other way, and merging the two would cost a reassociation at every call site. -/
 
 /-- The shared oracle with a two-slot hash counter beside its cache. -/
 noncomputable def romWithSplit (inClass : Bytes → Prop) (inside outside : QueryKind) :
@@ -54,9 +49,8 @@ theorem romWithSplit_run (inClass : Bytes → Prop) (inside outside : QueryKind)
 
 set_option maxHeartbeats 1000000 in
 /-- **Its slots are `countQueries (splitCost …)`'s count.** `CountedHandler.run_romWithCount_count`
-with the pair in place of the number; the counter the run started at is carried for the same
-reason, that the tail's three stages add up only when each equation says what it started
-from. -/
+with the pair in place of the number; the counter the run started at is carried so that the
+tail's three stages add up. -/
 theorem run_romWithSplit_count (inClass : Bytes → Prop) (inside outside : QueryKind)
     {α : Type} (computation : OracleComp OracleWorld α) :
     ∀ state : QueryCache HashSpec × Counts,
@@ -89,13 +83,8 @@ theorem run_romWithSplit_count (inClass : Bytes → Prop) (inside outside : Quer
 
 /-! ## The tail is `SplitTail.splitCarrierTail`
 
-**There is only one split tail and it is not this file's.** An earlier draft of this file built
-its own, with the slots carried inside the value instead of beside it; `SplitTail` had already
-built the same three stages at the same handler with the same brackets, and `hshare` and the
-coverage charge are proved there. Two shapes for one object is the failure a guessed count
-produces, so this file keeps none of its own: everything below is stated at
-`SplitTail.splitCarrierTail`, and what survived the retargeting is what was never about the
-tail — the shared oracle with two slots, and the laws the *handler* satisfies. -/
+Everything below is stated at `SplitTail.splitCarrierTail`: the shared oracle with two slots,
+and the laws the *handler* satisfies. -/
 
 /-- The handler's state, with two slots where the tail's has one. -/
 abbrev SplitCountedState : Type :=
@@ -238,18 +227,17 @@ theorem rom_last_stage_bind (inClass : Bytes → Prop) (inside outside : QueryKi
 
 `SplitTail.splitCarrierTail` is three stages over the same computation as a run of the shared
 oracle with the two slots, so the composition is a composition. `run_romWithSplit_recorded` puts
-the oracle's side at the split handler — the slots move from `countQueries`, wrapped around the
-computation, into the handler's own state, which is where the tail keeps them — and after that
-the two sides differ only in the handler. -/
+the oracle's side at the split handler (the slots move from `countQueries`, wrapped around the
+computation, into the handler's own state), and after that the two sides differ only in the
+handler. -/
 
 attribute [local irreducible] RecordedTail.recordedAfterSeeds Scheme.keygenInternal
   Scheme.verify Scheme.sign Security.countQueries
 
 set_option maxHeartbeats 1000000 in
 /-- **The split-counted shared oracle's slots are `countQueries (splitCost …)`'s**, at the run
-the tail is compared against. `CarrierTail.recordedTail_eq_counted` at the pair, and the same
-one-line reason: the run starts at an empty counter, so the counter it started from adds
-nothing. -/
+the tail is compared against. `CarrierTail.recordedTail_eq_counted` at the pair: the run starts
+at an empty counter, so the counter it started from adds nothing. -/
 theorem run_romWithSplit_recorded (inClass : Bytes → Prop) (inside outside : QueryKind)
     (adversary : Adversary) (walk : Walk) :
     (fun z : (Outcome × Multiset Bytes) × (QueryCache HashSpec × Counts) =>
@@ -292,89 +280,5 @@ theorem forget_splitCarrierTail (inClass : Bytes → Prop) (inside outside : Que
   simp only [bind_assoc, pure_bind]
   refine bind_congr fun final => ?_
   rfl
-
-/-! ## The structural charge, at the outside slot
-
-This is what the file is for. The answer half's two charges meet at the expected value of one
-slot each, and this is the outside one: `ClassExpectation.prob_bad_le_expected_cost` at
-`splitCost`'s complementary slot, the same proposition
-`ClassExpectation.prob_bad_le_expected_outside` reads at a one-stage run of the shared oracle.
-
-**Nothing is re-argued at the tail.** `forget_splitCarrierTail` says the tail *is* that run once
-its recordings are dropped, `GrowthCharge.Bad` reads only the cache, and the slot is read off
-the value — so both sides of the charge transport along one map, the event by `probEvent_map`
-and the count by `ClassExpectation.expected_map`. The bracketing, the notice and the filing are
-invisible to this charge, and that is the point of having proved the projection first.
-
-The class is left free. Nothing here reads it beyond `hbadClass`, so narrowing the target class
-does not touch this charge.
-
-**And the two slots are not asked to be distinct.** `ClassExpectation.prob_bad_le_expected_outside`
-needs `inside ≠ outside` because it crosses from the plainly counted run to the split one and
-the crossing adds the slots; this charge never leaves the split run, so it needs only that the
-outside slot is charged for an out-of-class query, which `splitCost_outside` gives whatever the
-other slot is. The distinctness is needed where the two counts are added — the budget is where a
-shared slot would be paid for twice — and in `SplitTail.map_splitCarrierTail`, which adds them.
-Not here. -/
-
-/-! ## And so at the run the answer half's bound is owed at
-
-`AnswerCarrier.answerCarrierRun` is `AnswerShape.forgetRecord` over the tail, so it is one
-further map from the split tail. Composed with `SplitTail.map_splitCarrierTail` that is a single
-map out of the split run, which is what `hsplit` — stated at `answerCarrierRun` — travels along
-by `probEvent_map`, with no new argument at either end. -/
-
-/-! ## Where the two charges meet, at the canonical tail
-
-Both charges are now proved at the same run — the structural one above, the coverage one at
-`SplitTail.prob_splitCarrierTail_targetCovered_le` — and `SplitTail.splitCarrierTail_share` says
-their counts sit inside the tail's own work count with nothing assumed. So the composition is
-`CoverageCount.prob_bad_or_coverage_le_of_two_charges` and the only thing left to supply is a
-bound on that work count, which is what a budget *is*. -/
-
-/-! ## The budget, at the split tail
-
-`answerBound_splitTail` leaves exactly one thing that is not a charge: a bound on the tail's own
-work count. That is what a budget is, and it is already proved at the game's tail, so this is a
-transport and not an argument — three maps, each of which exists, and the count survives all
-three because none of them touches it.
-
-Written with `Set.mem_image_of_mem` against the *function* rather than with a membership
-unfolded at the run, for the reason `AnswerCarrier.map_answerCarrierRun_eq_tail` is: the three
-stages must never be unfolded, and a `rfl` comparing terms built over them is where that goes
-wrong. -/
-
-/-! ## The disclosing cap, carried
-
-`answerBound_splitTail`'s `hleftBound` is the disclosing recording's length, and it is the one
-input to the answer half that no run in the chain discharges for itself — `AnswerCoverage`
-carries it as a hypothesis from end to end. What is settled is *where it comes from*:
-`CarrierFiles.leftRecord_length_le_cap`, which bounds it at `5 * 2 ^ 62` because **the carrier
-files on served requests rather than on a cache coincidence**, so the recording holds one entry
-per request by construction.
-
-**That is a structural bound and not a `q`-proportional one, and the difference is not
-cosmetic.** Read as a cache test the statement is false: `SplitWitness.disclosingKeep` fires on
-a coincidence, so an adversary that hardcodes a `prfSeed` the walk happens to use manufactures
-one disclosing entry per *pair* of queries and passes any `q`-proportional cap once
-`q > 2 ^ 65`. `Target.GoodWalk` excludes two seed coincidences and not that one, and the
-statement is universally quantified over the support, so a single such walk refutes it. The
-repair is the carrier, not a bigger constant.
-
-This file owes none of that. What it owes is the last map: the cap is stated at the tail, and
-`answerBound_splitTail` wants it at the split tail, which is `Prod.fst` away. -/
-
-/-! ## The composition, with a residue excluded
-
-`CarrierSplit.hsplit_splitCarrierTail` sends the charged event to **three** clauses, not two:
-the structural charge, the coverage charge, and a residue — `SplitWitness.SeedRandomised`, the
-narrowing's leftover, which the answer half does not pay for and the shared side does. So the
-bound this file can take is on the charged event with the residue **excluded**, and that is not
-a weakening of convenience: a two-clause split is unavailable, for the reason
-`answerBoundSeed_of_charges`' docstring gives about the seed conjunct — the exceptional runs are
-in the support and `hsplit` is pathwise.
-
-Excluding it costs nothing here and is where it has to be paid: conjoined to the event, charged
-on the shared side, exactly as the earlier leftover was. -/
 
 end SlhDsaSecurity.SplitCarrierTail

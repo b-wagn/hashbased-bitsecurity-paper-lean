@@ -4,7 +4,7 @@ import SlhDsaSecurity.Proof.HashSeparation
 import SlhDsaSecurity.Proof.GrowthCharge
 
 /-!
-# The gate the disclosed set opens, and what it costs
+# The `PRF_msg` class
 
 `CacheAvailability.signedAt` counts a digest as disclosing only when the cache also holds the
 `PRF_msg` entry the signer would have made for that message. That closes the hole where an
@@ -13,24 +13,15 @@ own — but it opens a gate, because `Hashing.randomizerInput prf seed message` 
 `prf ‖ seed ‖ message` and carries `SK.prf` in the clear. A run that queries there manufactures
 the entry.
 
-That query is a guess at `SK.prf` and is charged as one. `SecretGuessCharge` already bounds, at
-one unit of `2 ^ -128` per queried input, the probability that a run meets a secret drawn after
-it, and key generation's sampling supplies the deferral. `prfGuess` is the reading that makes
-the instantiation go through: the seed a `PRF_msg` input carries, recovered from its first
-block, which the format determines because `bytesBE n` is injective.
+That query is a guess at `SK.prf` and is charged as one, at one unit of `2 ^ -128` per queried
+input, against a secret drawn after the run. This file defines the class (`PrfClass`), the seed
+a `PRF_msg` input carries (`prfGuess`, recovered from its first block, which the format
+determines because `bytesBE n` is injective), and the facts about it that the charge uses.
 
-**The budget does not move, because the two events live on disjoint classes.** A canonical input
-is `PK.seed ‖ address ‖ payload` and a `PRF_msg` input is `SK.prf ‖ PK.seed ‖ message`; their
-first blocks are the two seeds, so unless the seeds coincide no input is both, and the two class
-counts add to at most the record's size. The coincidence `SK.prf = PK.seed` is itself one unit
-of `2 ^ -128`, which is one of the five the assembly's allowance already carries against a
-margin of seven hundred and sixty.
-
-That sharing is what the input half has to be instantiated against: it must be charged on the
-record's **canonical** part rather than on the whole record, since the whole record is what the
-two classes together fill. Nothing is lost by the narrowing — a sensitive candidate is the
-canonical input of its node — but it is a change at the point of use rather than a restatement
-of the charge, so `card_add_card_le` is what the two instantiations have to be read against.
+**The class does not meet the canonical one.** A canonical input is `PK.seed ‖ address ‖
+payload` and a `PRF_msg` input is `SK.prf ‖ PK.seed ‖ message`; their first blocks are the two
+seeds, so unless the seeds coincide no input is both (`canonicalInput_ne_randomizerInput`). The
+coincidence `SK.prf = PK.seed` is itself one unit of `2 ^ -128`.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -65,8 +56,6 @@ theorem prfGuess_randomizerInput (prf seed : Digest) (message : Bytes) :
   rw [prfGuess, dif_pos hformat]
   obtain ⟨other, payload, hspec⟩ := hformat.choose_spec
   exact (randomizerInput_prf_inj hspec).symm
-
-/-! ## The charge -/
 
 /-! ## The two classes do not meet -/
 
@@ -111,12 +100,8 @@ The gate is about an input the adversary writes; its neighbour is about an answe
 receives. A served request's randomiser is the truncation of a fresh answer at a `PRF_msg`
 input, and if that truncation is the seed itself then the signer's own digest query becomes a
 `PRF_msg` input at the real seed — which is how a disclosure can be manufactured with no request
-behind it.
-
-A fresh answer truncates to a fixed digest with probability `2 ^ -128`, and only inputs of the
-class can fire the event, so the charge is one unit per *in-class* fresh query rather than per
-fresh query. That is `ClassCharge.prob_badWithinClasses_le` with the outside rate zero; the
-total growth would be far too coarse. -/
+behind it. A fresh answer truncates to a fixed digest with probability `2 ^ -128`, and only
+inputs of the class can fire the event. -/
 
 /-- The inputs whose first block is a given seed. -/
 def PrfClass (prfSeed : Digest) (input : Bytes) : Prop :=

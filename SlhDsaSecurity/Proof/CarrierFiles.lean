@@ -6,25 +6,22 @@ import SlhDsaSecurity.Proof.CountedHandler
 /-!
 # The recorder that notices, as a handler the agreement can read
 
-`ServedAgreement.Files` is what the carrier/log agreement asks of a handler: six facts, and
-exactly the six it uses. `ServedAgreement.files_servingProgram` is one instance. This is the
-other, and it is the one the ordering term's tail needs — the recorder that notices, at the
-carrier's own view, so that the run keeps two recordings *and* files on the framing.
+`ServedAgreement.Files` is what the carrier/log agreement asks of a handler. This file shows
+that the tail's recorder — the recorder that notices, at the carrier's own view, so that the run
+keeps two recordings *and* files on the framing — provides it (`files_carrierRecorder`), and that
+it forgets to the shared oracle (`forgetsAlong_carrierRecorder`), the law a bracketed phase reads
+its handler through. `countedCarrierRecorder` is the same handler with a counter beside the
+carrier, and both laws survive the wrapping.
 
-**The notice is what makes the fourth fact true, and it is the whole repair.** A recorder that
-installed an answer only on a miss could not file a served request whose digest input was
-already cached, and `Files.queryStep`'s last conjunct — the framing admitted it, so it is served
-— would be false exactly at the case the served notion exists for.
-`RecorderView.noticingRecorderOf` runs `CacheView.onQuery` on both branches, and at the carrier
-that is `CarriedWitness.servingNotice`, which files when the flag is up. So the conjunct holds
-on a hit for the same reason as on a miss, which is what "filing is not installing" means in
-one sentence.
+**The notice is what makes the `Files.queryStep` conjunct true.** A recorder that installed an
+answer only on a miss could not file a served request whose digest input was already cached, and
+that conjunct — the framing admitted it, so it is served — would be false exactly at the case the
+served notion exists for. `RecorderView.noticingRecorderOf` runs `CacheView.onQuery` on both
+branches, and at the carrier that is `CarriedWitness.servingNotice`, which files when the flag is
+up. So the conjunct holds on a hit for the same reason as on a miss.
 
-Nothing here is new mathematics: every step fact is one of `CarriedWitness`'s notice lemmas or
-`HandlerCarrier`'s growth lemmas, and the three run facts are the inductions that carry them.
-What the file buys is that the agreement, and therefore the disclosing cap, now apply at a
-recorder run — which they could not at `ServingProgram.servingProgram`, whose state has no
-recordings in it.
+Every step fact is one of `CarriedWitness`'s notice lemmas or `HandlerCarrier`'s growth lemmas,
+and the run facts are the inductions that carry them.
 -/
 
 open OracleComp OracleSpec
@@ -295,9 +292,9 @@ theorem queryStep (rightKeep : Bytes → State → Prop) {α : Type} (input : By
 
 /-! ## The instance -/
 
-/-- **The recorder that notices files.** The six facts the agreement reads a handler through,
-at the handler the ordering term's tail runs. With this, `ServedAgreement.agreesWithLogAt_run_with`
-and `ServedAgreement.record_length_le_cap` apply to a recorder run. -/
+/-- **The recorder that notices files.** The facts the agreement reads a handler through, at the
+handler the tail runs. With this, `ServedAgreement.record_length_le_cap` applies to a recorder
+run. -/
 theorem files_carrierRecorder (rightKeep : Bytes → State → Prop) :
     Files pk (@noticingRecorderOf State (servingView pk) (disclosingKeep pk) rightKeep) where
   queryStep := fun input next state result hresult =>
@@ -312,15 +309,6 @@ theorem files_carrierRecorder (rightKeep : Bytes → State → Prop) :
   hashServed := fun input state step hstep probe hserved =>
     step_served pk rightKeep input state step hstep probe hserved
 
-/-! ## What it buys
-
-The two statements the carrier route rests on, at a run of the serving phase over this handler.
-The agreement is the one that needed the generalisation; the cap follows from it and two facts
-about the recording that are the recorder's own — that it holds each input once, and that every
-input it holds is served at the end. Both are true for reasons the repair did not disturb:
-the recording still grows only on a *fresh* query, because the notice changes the carrier and
-not `appendedOf`'s guard, while the served set now grows on hits as well. -/
-
 /-! ## What the handler forgets to
 
 `ServingForget.run_fuseServing_map` asks one thing of the handler underneath a bracketed phase:
@@ -329,8 +317,8 @@ that it commute with the projection the brackets leave alone. For the carrier th
 oracle does, because the notice is bound to leave the cache alone and the recordings ride along
 where the projection does not look.
 
-With it, the three equations a carrier tail owes stop being inductions: they are
-`run_fuseServing_map` at this `ForgetsAlong`, which is `ServingForget`'s whole point. -/
+With it, the equations a carrier tail owes are `run_fuseServing_map` at this `ForgetsAlong`
+rather than inductions. -/
 
 open scoped Classical in
 /-- **One step of the recorder that notices forgets to one step of the shared oracle.** -/
@@ -384,8 +372,8 @@ theorem forgetsAlong_carrierRecorder (rightKeep : Bytes → State → Prop) :
 /-! ## The tail's handler
 
 The recorder that notices, counting. The counter goes beside the carrier rather than around the
-computation because a bracketed game is not one computation — `CountedHandler` says why — and
-both laws the tail reads the handler through survive the wrapping, because neither looks at the
+computation because a bracketed game is not one computation (see `CountedHandler`), and both
+laws the tail reads the handler through survive the wrapping, because neither looks at the
 counter. -/
 
 /-- The handler a carrier tail runs under. -/

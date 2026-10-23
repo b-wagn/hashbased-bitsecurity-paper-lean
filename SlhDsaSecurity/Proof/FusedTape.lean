@@ -4,17 +4,17 @@ import SlhDsaSecurity.Proof.PhaseFusion
 /-!
 # The tape factorisation at the fused handler
 
-`NoticingTape.evalDist_noticingSplitTapeRun_cont` factorises a run of the repaired recorder
+`NoticingTape.evalDist_noticingSplitTapeRun_cont` factorises a run of the noticing recorder
 with an arbitrary continuation. This file is the same statement for
 `PhaseFusion.fuseServing` — the handler the adversary's phase runs under, which takes a signing
 request in one step with a bracket on either side.
 
-**There is no second induction over `OracleWorld` here, and that is what the keystone bought.**
+**There is no second induction over `OracleWorld` here.**
 `PhaseFusion.fuse` runs `simulateQ outer` on *both* branches — the inner handler lifts a query,
 world or signing, into an `OracleComp OracleWorld` and the outer handler simulates it. So every
 case of the induction below is one nested run followed by the rest of the phase, which is
-exactly the keystone's shape: the nested run is discharged by it, and its hypothesis is this
-induction's own hypothesis at the tail.
+exactly the shape of `NoticingTape.evalDist_noticingSplitTapeRun_cont`: the nested run is
+discharged by it, and its hypothesis is this induction's own hypothesis at the tail.
 
 **The brackets act on the carrier alone**, and that is a choice rather than an accident. A
 bracket stated at the whole handler state would need a hypothesis saying it leaves the two
@@ -132,7 +132,7 @@ theorem evalDist_fusedSplitTapeRun_cont (leftKeep rightKeep : Bytes → σ → P
 
 /-! ## The three stages, factorised through one pair of blocks
 
-The shape `BracketedRun.IsBracketedRecorderRun` describes: key generation under the handler, the
+The bracketed shape: key generation under the handler, the
 adversary's phase fused and bracketed, verification under the handler again. Three runs, and the
 blocks are drawn **once, before the first of them**.
 
@@ -313,15 +313,11 @@ theorem fusedRightOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
       exact noticingRightOf_prefix leftKeep rightKeep _
         (onCarrierTape (before request) state.2.2) z hz
 
-/-! ## The selection's causality at the fused handler
+/-! ## Overwriting a target cell
 
-The third member of the family, and the same shape as the first two: every case is one nested
-run followed by the rest of the phase, so every case is one application of
-`NoticingTape.probEvent_length_set_cont` with this induction's own hypothesis at the tail.
-
-The brackets are again invisible. `setRightTape` and `onCarrierTape` touch different components
-of the state, so the two commute definitionally and the bracketed case needs nothing said about
-it.
+`setRightTape` overwrites one cell of the target block, as used by `SuffixCausal`'s causality
+lemmas. It and `onCarrierTape` touch different components of the state, so the two commute
+definitionally and the bracketed case needs nothing said about it.
 -/
 
 /-- Overwrite one cell of the target block, leaving everything else alone. -/
@@ -329,13 +325,10 @@ def setRightTape (cell : Nat) (value : HashOutput) (state : SplitTapeState σ) :
     SplitTapeState σ :=
   (state.1, (state.2.1.1, state.2.1.2.set cell value), state.2.2)
 
-/-! ## The three stages, and the selection's causality across all three
+/-! ## The three stages, as a tape-reading run
 
-The last application-level step of the family. Three nested applications again, in the same
-order and for the same reason: each layer's hypothesis is the next layer's conclusion. The
-innermost one is `rfl`, because the final `pure` reads its state through `forgetViewTape` and
-that drops the blocks — overwriting a cell of a block the answer no longer mentions cannot
-change the answer.
+The final `pure` reads its state through `forgetViewTape`, which drops the blocks, so
+overwriting a cell of a block the answer no longer mentions cannot change the answer.
 -/
 
 /-- The tape-reading three-stage run, named so the charge can be stated at it. -/
@@ -365,9 +358,8 @@ noncomputable def threeStageTapeRun (leftKeep rightKeep : Bytes → σ → Prop)
 
 /-! ## The cell correspondence at the fused handler, and across the three stages
 
-Two more applications of the continuation form, in the order the other families went. No
-invariant appears in either, for the reason the continuation form was given: each layer quotes
-its own recording and its own block.
+Two applications of the continuation form. No invariant appears in either: each layer quotes its
+own recording and its own block.
 -/
 
 set_option maxHeartbeats 2000000 in
@@ -533,7 +525,7 @@ file, so a side-parameterised version would have to swap the branch cases rather
 abstract them. Three mirrored lemmas is the honest cost. -/
 
 open scoped Classical in
-/-- **The target recording only grows under the fused run.** -/
+/-- **The disclosing recording only grows under the fused run.** -/
 theorem fusedLeftOf_prefix (leftKeep rightKeep : Bytes → σ → Prop)
     (inner : QueryImpl (OracleWorld + SigningSpec)
       (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
@@ -725,8 +717,8 @@ theorem threeStageLeftOf_getElem? (leftKeep rightKeep : Bytes → σ → Prop)
 
 /-! ## The three-stage run's plumbing, for the charge above it
 
-`evalDist_threeStage` is the law; these four give it the shape
-`NoticingBlocks.prob_noticingTargetCovered_le`'s proof reads a law in. The reshape is
+`evalDist_threeStage` is the law; these give it the shape the coverage charge reads a law in. The
+reshape is
 `Prod.snd` rather than a forgetting map, because the three-stage tape run already yields the
 cache and the two recordings — `forgetViewTape` did that inside it.
 -/

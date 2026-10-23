@@ -4,18 +4,15 @@ import SlhDsaSecurity.Proof.CanonicalSignature
 /-!
 # What the signing log says the signer served
 
-`ServedDisclosure` is abstract in whatever carries the served requests. For the extraction the
-carrier is the game's own outcome: the log is part of it, and a log entry carries everything the
-disclosed set needs — the request's framing and, in the signature it returned, the randomiser
-the signer derived. So the extraction needs no presentation to be built first; only the input
-half's charge, which reads the notion at the handler's state, waits on one.
+The carrier of the served requests is the game's own outcome: the log is part of it, and a log
+entry carries everything the disclosed set needs — the request's framing and, in the signature
+it returned, the randomiser the signer derived.
 
 A served request is named by its **digest input**, not by its framing. That is what makes the
 notion say what it should: an adversary that picks its own randomiser for a message the signer
-signed names a different input, and names nothing the signer served. It is also what closes the
-replay branch — `entry_of_servedLog` reads the log entry back out of the input, pinning both the
-randomiser and the framing through `Hashing.messageInput_injective`, with no collision bound
-anywhere.
+signed names a different input, and names nothing the signer served. It also lets
+`entry_of_servedLog` read the log entry back out of the input, pinning both the randomiser and
+the framing through `Hashing.messageInput_injective`, with no collision bound anywhere.
 -/
 
 open OracleComp OracleSpec
@@ -56,9 +53,7 @@ theorem entry_of_servedLog (pk : PublicKey)
   exact ⟨entry, hentry, bytes, parsed, hframe, hanswer, hparsed, hrandomizer.symm⟩
 
 open scoped Classical in
-/-- The FORS positions the log's served requests disclose. Written out rather than taken from
-`ServedDisclosure.servedAt`, which it agrees with, so that it unfolds at the same depth as the
-notion it replaces. -/
+/-- The FORS positions the log's served requests disclose, read off the log. -/
 noncomputable def disclosedByLog (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec) (key : CanonicalGraph.ForsKey) :
     Finset (Fin (forsTrees * 2 ^ forsHeight)) :=

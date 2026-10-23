@@ -3,13 +3,13 @@ import SlhDsaSecurity.Proof.SplitWitness
 /-!
 # The cover lemma for the recorder that notices
 
-`SplitWitness.Served.mem_recordOf_of_cache_reaches` is stated for `RecorderView.recorderOf`. The
-carrier runs under `RecorderView.noticingRecorderOf`, and a run of the second is not a run of the
-first, so the lemma has to be taken again here. This file is that, and the three run-level facts
-it needs on the way.
+The cover lemma (a query whose answer the run ends holding is in one of the two recordings) is
+stated here for `RecorderView.noticingRecorderOf`, the recorder the carrier runs under, together
+with the three run-level facts it needs on the way. A run of the noticing recorder is not a run
+of the plain `RecorderView.recorderOf`, so the plain lemma does not apply.
 
 **Every step is a plain step at the noticed view**, which is the one thing worth saying up front:
-`noticingRecorderOf_step_inr` turns a step of the noticing recorder into a step of `recorderOf`
+`step_inr` turns a step of the noticing recorder into a step of `recorderOf`
 at `CacheView.onQuery state.1 input`, so all four step facts come from the plain ones with no new
 case analysis. Only the run-level facts need their own induction, and only because the induction
 threads a state.
@@ -20,9 +20,7 @@ state — and it is why `reaches` has to survive `onQuery` as well as `update`. 
 `honQuery`, and for a view whose notice touches only what the tests ignore it is as free as
 `hupdate` is.
 
-This is the single-run statement of the composition the carrier tail needs. It is stated and
-proved before any induction over a bracketed phase, because that is where the conditions have to
-be right.
+This is the single-run statement of the composition the carrier tail needs.
 -/
 
 open OracleComp OracleSpec
@@ -150,7 +148,7 @@ theorem reaches_run {α : Type} (leftKeep rightKeep : Bytes → σ → Prop) (re
 set_option maxHeartbeats 1000000 in
 open scoped Classical in
 /-- **A query whose answer the run ends holding is recorded on one side or the other.**
-`SplitWitness.Served.mem_recordOf_of_cache_reaches` for the recorder that notices.
+The cover lemma for the recorder that notices.
 
 The cover is consulted exactly once, at the noticed view the input is *answered* at. `reaches`
 is threaded to get there, which is why it has to survive both of the view's moves. -/

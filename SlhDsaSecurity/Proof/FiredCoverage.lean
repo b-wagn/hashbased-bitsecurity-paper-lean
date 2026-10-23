@@ -5,14 +5,13 @@ import SlhDsaSecurity.Proof.ForsConcentrationSharper
 /-!
 # Coverage when a served target may also disclose
 
-`BlockViews.prob_targetCovered_le` charges a target digest covered by the **disclosing block**.
-The game's coverage event is wider in exactly one way: a digest the adversary queried *before*
-the signer asked for it is filed as a target, and if a later signature serves it, it discloses
-too. Ruling that out costs one unit of `2 ^ -128` per message-class query — the ordering
-defect — and the ledger has no unit to spare for it, because the same query is already a coverage
-target and a guess at `SK.prf`.
+The game's coverage event is wider than a target digest covered by the **disclosing block**
+alone: a digest the adversary queried *before* the signer asked for it is filed as a target, and
+if a later signature serves it, it discloses too. Ruling that out would cost one unit of
+`2 ^ -128` per message-class query, and the ledger has no unit to spare for it, because the same
+query is already a coverage target and a guess at `SK.prf`.
 
-This file charges the wider event instead. A target cell `t` is covered by the disclosing block
+This file charges the wider event. A target cell `t` is covered by the disclosing block
 together with the target cells that **fired**: cells whose input a later signature served. The
 charge is
 

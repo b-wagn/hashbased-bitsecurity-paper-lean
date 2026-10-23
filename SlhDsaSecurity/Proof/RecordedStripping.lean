@@ -3,29 +3,17 @@ import SlhDsaSecurity.Proof.RecordedTail
 /-!
 # Stripping the honest phase, with the record kept
 
-`StrippedGame.evalDist_run_strippedAfterSeeds` says that answering key generation and the signer
-from the walk's table changes nothing about the law of the run. The input half needs that fact
-one presentation along, at the game that **records** the adversary's and the verifier's own
-inputs, because the containment the half's weight is paid from is a statement about that record
-and the honest phase has to be stripped for it to hold: unstripped, the signer's canonical
-probes reach the handler, aim at cells, and are recorded by nobody.
+`evalDist_run_recordedAfterSeeds` says that answering key generation and the signer from the
+walk's table changes nothing about the law of the run of the game that **records** the
+adversary's and the verifier's own inputs. The congruence argument never reads the writer the
+phase carries, so it is stated over an arbitrary monoid (`writerRun`,
+`evalDist_writerRun_congr`), and the recorded game's stripping is then three steps: key
+generation agrees because its probes are the table's, the two signing oracles agree because the
+stripped signer's run is the signer's (`evalDist_writerRun_signingOracle`), and the phase's law
+follows by the congruence.
 
-Nothing here is new as an argument. The counted run's congruence is generic in the writer the
-phase carries, so it is restated over an arbitrary monoid — `writerRun` and
-`evalDist_writerRun_congr` — and the recorded game's stripping is then the same three steps as
-the counted game's: key generation agrees because its probes are the table's, the two signing
-oracles agree because the stripped signer's run is the signer's, and the phase's law follows by
-the congruence.
-
-**It is an equality, not a bound.** Every step of the input half's transport is, and a bound
-appearing in one of them would mean a step was not the equality it is taken for.
-
-**Nothing uses this file at present.** It was written for the input half's containment, which
-charged the half against the record's canonical part; that count turned out to be slack —
-`RoutedSplit.InputBad` is an existential over the forgery's claims and quantifies over no probe
-of the run — so the half no longer strips at all. What would use it again is a split that moved
-the run's own sensitive queries into the input bullet: that version needs the honest phase
-stripped, and this is the law that keeps the record while stripping it.
+**It is an equality, not a bound.** Every step of the transport is, and a bound appearing in one
+of them would mean a step was not the equality it is taken for.
 -/
 
 open OracleComp OracleSpec
@@ -55,13 +43,7 @@ theorem writerRun_bind {ω : Type} [Monoid ω] {α β : Type}
     simulateQ_map, StateT.run_map]
 
 /-- **A handler may be replaced by one with the same law**, at every cache carrying the warm
-table.
-
-**This is `StrippedGame.evalDist_countedRun_congr` with the writer freed** — the same argument,
-which never reads the writer it carries, so the counted game's law and the recorded game's are
-one proof and not two. It lives here rather than beside the counted one only because the input
-half is mid-transport and that file is depended on by three other results; whoever consolidates
-later should read the two as a single statement. -/
+table. The argument never reads the writer the phase carries. -/
 theorem evalDist_writerRun_congr {ω : Type} [Monoid ω] (warm : QueryCache HashSpec)
     (impl impl' : QueryImpl (OracleWorld + SigningSpec)
       (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))

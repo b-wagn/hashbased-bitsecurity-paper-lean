@@ -5,10 +5,9 @@ import SlhDsaSecurity.Proof.Averaging
 /-!
 # The game with its honest cells fixed first
 
-Every charge in this development bounds an event against a *fixed* table of honest cells:
-`StructuralTerm.prob_deviatingCollision_le` takes `cells` as a parameter, and must, because
-the alternative — a cell drawn after the colliding query — would need a union bound over all
-`2 ^ 26`-odd cells and lose far more than the budget allows.
+Every charge bounds an event against a *fixed* table of honest cells, because the alternative (a
+cell drawn after the colliding query) would need a union bound over all `2 ^ 26`-odd cells and
+lose far more than the budget allows.
 
 In the experiment the cells are not fixed: they are whatever key generation and signing
 happen to query. The repair is `Presample.worldWarmup`, which walks the whole canonical graph
@@ -21,9 +20,9 @@ followed by everything else — and records the resulting game, `warmedRun`, tog
 one fact that transfers the target to it: the winning event is an event about the outcome
 alone, and the outcome's law is unchanged.
 
-What is gained is that `warmedRun`'s value carries the seeds and the cells, so the two halves
-of `MainTheorem` may speak about *this run's* honest key rather than an arbitrary fixed one.
-What is paid is nothing: `Presample.evalDist_counted_warmed` is an equality.
+What is gained is that `warmedRun`'s value carries the seeds and the cells, so statements may
+speak about *this run's* honest key rather than an arbitrary fixed one. What is paid is nothing:
+`Presample.evalDist_counted_warmed` is an equality.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -132,12 +131,9 @@ theorem probEvent_warmed (adversary : Adversary) (event : Outcome × Nat → Pro
 The charges apply to what happens *after* the graph is walked, with the cells held fixed and
 the cache already carrying them. So the run is split in two: `graphWalk`, which draws the
 seeds and evaluates the canonical graph, and `tail`, which plays the counted game from the
-cache the walk left.
-
-`probEvent_le_of_tail` is then the only shape the halves need: a bound that holds after every
-walk holds for the run. The averaging is `Averaging.probEvent_bind_pair_le`; nothing else about
-the walk is used, which is the point — its output is an arbitrary fixed cell table from here
-on. -/
+cache the walk left. A bound that holds after every walk holds for the run, by
+`Averaging.probEvent_bind_pair_le`; nothing else about the walk is used, since its output is an
+arbitrary fixed cell table from here on. -/
 
 /-- The seeds and the canonical graph's evaluation, with the cache they leave. -/
 noncomputable def graphWalk :

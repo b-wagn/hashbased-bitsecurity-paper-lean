@@ -17,12 +17,11 @@ the moment it is made, by the answer the signer has just drawn, and so is taken 
 rather than the right. Nothing else is left, and the adversary's and the verifier's queries are
 recorded by construction.
 
-The provenance itself is `RandomiserProvenance.provenance_afterSeeds`'s argument at the recorded
-game: the run is split at its three sequencing points and the entry attributed to the first
-phase whose cache holds it. What differs is the record. There the record is produced by an
-existence proof beside the run; here it is the one the run's own value carries, which is the one
-`SharedJoin.recordOf` reads and the one `RecordedTail.card_eq_work` counts — so the containment
-lands in the part the join names rather than in a multiset that merely has the same size.
+The provenance is taken at the recorded game: the run is split at its three sequencing points
+and the entry attributed to the first phase whose cache holds it. The record is the one the run's
+own value carries, which is the one `SharedJoin.recordOf` reads and the one
+`RecordedTail.card_eq_work` counts — so the containment lands in the part the join names rather
+than in a multiset that merely has the same size.
 -/
 
 open OracleComp OracleSpec
@@ -189,38 +188,20 @@ theorem provenance_recordedAfterSeeds (adversary : Adversary) (sds : Digest × D
   · exact Or.inr (Or.inl (queriesUnder_keygenInternal_of_fresh sds.1 sds.2.1 sds.2.2 cache
       keyCache result.2 (sk, pk) hkeys hkeyGrow probe hfresh hkeyFresh))
 
-/-! ## The containment, with one branch named
+/-! ## The containment
 
-Three of provenance's four parties are settled here. The adversary's and the verifier's queries
-are the record. Key generation's are canonical, and a canonical input is not a message input
-once the key is no coincidence. The signer asks at canonical inputs, at its request's own
-`PRF_msg` input — which the narrowing excludes — and at its request's own digest input.
-
-That last one is the branch left standing, and it is left standing for a reason worth stating
-exactly, because getting it wrong is what made the first version of the hypothesis false.
+The adversary's and the verifier's queries are the record. Key generation's are canonical, and a
+canonical input is not a message input once the key is no coincidence. The signer asks at
+canonical inputs, at its request's own `PRF_msg` input — which the narrowing excludes — and at its
+request's own digest input.
 
 **Replay is faithful to a run only at the run's final cache.** That is the invariant inside
-`CacheReplay.cached_of_queriesUnder` — each query's answer is in the final cache, so replaying
-there reproduces the continuations the run took — and it is why provenance is stated at
-`result.2`. At any *intermediate* cache the replay diverges, since a miss replays to `default`.
-That divergence is not an aside: it is the whole of the counterexample in
-`ObligationShapes`, where the replayed randomiser of a message that was never signed is the
-fixed constant `truncate default`, which an adversary can compute and query.
-
-So the three settled cases are settled because they read the **input alone** — "not
-message-class" and "in the `PRF_msg` class at the real seed" are predicates on bytes, and a
-replay-at-the-final-cache statement settles them with the cache never entering. The digest case
-is the one that reads the **state**, and it has to be read at the step the query was made at.
-`SignerDigestStep.signerRandomised_digest` is that fact about the run, and it costs two
-unfoldings rather than an induction, because `Scheme.signInternal`'s randomiser and digest
-queries are adjacent and the second's input is built from the first's answer.
-
-What is still missing is the bridge between them: provenance names the party that installed an
-entry, `SplitPrefix.right_record_witness` names the cache the recorder filed it at, and nothing
-yet says these are the same step. They are — an input is installed exactly once, and both
-lemmas speak of that occasion — but neither hands back an object the other can be matched
-against. That is the same discipline `ProbeContainment.claimsOf_carrier` keeps on the input
-half: entries and the state they are read at, instantiated at one object. -/
+`CacheReplay.cached_of_queriesUnder`: each query's answer is in the final cache, so replaying
+there reproduces the continuations the run took. At an *intermediate* cache the replay diverges,
+since a miss replays to `default`. So the cases that read the **input alone** — "not
+message-class" and "in the `PRF_msg` class at the real seed" are predicates on bytes — are
+settled by replay at the final cache. The digest case reads the **state**, and is read at the
+step the query was made at, from the signer's own sub-run. -/
 
 set_option maxHeartbeats 1000000 in
 /-- **Every target-recorded input is a query the record holds**, with no hypothesis.

@@ -18,7 +18,7 @@ queries. The bracket mismatch resolves through the same re-encoding at no cost, 
 `HandlerCarrier.State × τ` and touch only the carrier, so at the re-encoded state they are a
 view-level map in the first component — which is what the tape layer asks of a bracket.
 
-`BracketedRun.IsBracketedRecorderRun` is untouched. This is a transport, not a change of shape.
+`CarrierTail.handlerAt` itself is untouched. This is a transport, not a change of shape.
 -/
 
 open OracleComp OracleSpec

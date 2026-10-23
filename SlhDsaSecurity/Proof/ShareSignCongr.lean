@@ -9,10 +9,10 @@ assembles is a function of the cells available once its digest is served, at the
 table's own signed cells reveal (`cellSig_congr`). Two tables that agree there assemble the same
 signature, whatever their other cells — the secret seed included.
 
-The climb is `RedrawCell.signLayers_congr` with its availability at `ShareCells.revealedOf`:
-the climb visits only keys of the hypertree, where the digit `revealedOf` reads is the one the
-climb's own message encodes, so the same induction goes through with the invariant stated
-against the table's cells.
+The climb is `signLayers_congr_cells`, with availability read at `ShareCells.revealedOf`: the
+climb visits only keys of the hypertree, where the digit `revealedOf` reads is the one the
+climb's own message encodes, so the induction goes through with the invariant stated against the
+table's cells.
 -/
 
 open OracleComp OracleSpec

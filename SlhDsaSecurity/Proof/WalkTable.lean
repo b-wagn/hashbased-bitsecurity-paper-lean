@@ -4,36 +4,29 @@ import SlhDsaSecurity.Proof.ReplayGate
 /-!
 # The walk, as a drawn table
 
-`Obligations.SharedCharged` is stated at `Target.pairedRun`, the walk and the game together,
-because the secrets both halves defer — the cell table and `SK.prf` — are the walk's own and
-cannot be read once the walk is a parameter. The charges, on the other hand, are proved about a
-run that draws its table itself: `RedrawCell.prob_game_sensitive_le` begins
-`cells ← $ᵗ Cells; pad ← $ᵗ Padding`, with the table still in the measure when the record is
-read.
-
-This file joins the two. The walk *is* a uniform draw of a cells-and-padding pair:
-`CanonicalGraph.Programming.warmup_seed_uniform` says so, and `walkOfTable` is the walk that
-pair determines — its secret seed is the table's own `secretSeed` cell, its cells are the
-table's cells, and its cache is the canonical entries of them. `evalDist_pairedRun` is the whole
-of what the shape change costs: one equality of laws, after which the walk's randomness is a
-`$ᵗ (Cells × Padding)` the charge can consume.
+The walk is a uniform draw of a cells-and-padding pair:
+`CanonicalGraph.Programming.warmup_seed_uniform` says so, and `walkOfTable` is the walk that pair determines. Its secret seed is the table's own
+`secretSeed` cell, its cells are the table's cells, and its cache is the canonical entries of
+them. `evalDist_graphWalk` is the whole of what the shape change costs: one equality of laws
+`𝒟[graphWalk] = 𝒟[tableWalk]`, after which the walk's randomness is a `$ᵗ (Cells × Padding)` a
+charge that draws its table itself can consume.
 
 Two things the presentation has to get right, each of which would be a silent failure.
 
 * **The seed is recovered, not re-drawn.** The walk's value carries the secret seed, and the
   table's law does not. What makes them the same presentation is that on the walk's own support
-  the seed is the `secretSeed` cell — the traversal never overwrites it — so the value may be
-  read off the table rather than carried beside it. `evalDist_bind_congr_support` is the one
-  step where that support fact is used, and it is used in one direction only.
+  the seed is the `secretSeed` cell (`secretSeed_of_mem_support`), because the traversal never
+  overwrites it, so the value may be read off the table rather than carried beside it.
+  `evalDist_bind_congr_support` is the one step where that support fact is used, and it is used
+  in one direction only.
 * **The seeds are drawn in the other order.** `WarmedGame.seeds` draws the secret seed first;
   the table's law wants it drawn last, after the public seed its canonical inputs mention. The
   two orders agree because the draws are independent, which is `evalDist_bind_comm` twice and
   nothing else.
 
 `mem_support_graphWalk_walkOfTable` is what keeps the rest of the development usable here. Every
-per-walk fact — the budget's bound on the record, the walk's own cache being clean — is stated
-for a walk in `support graphWalk`, and a drawn table names such a walk, so none of them has to
-be restated at the new shape.
+per-walk fact is stated for a walk in `support graphWalk`, and a drawn table names such a walk,
+so none of them has to be restated at the new shape.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -180,39 +173,5 @@ theorem evalDist_graphWalk : 𝒟[graphWalk] = 𝒟[tableWalk] := by
         refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ fun prfSeed => ?_
         refine OracleComp.DeferredSampling.evalDist_bind_congr_left _ _ _ fun publicSeed => ?_
         exact evalDist_warmup_table prfSeed publicSeed
-
-/-! ## The walk and the game together
-
-The obligation is stated at `Target.pairedRun`, so the law above is read there: the game that
-follows is a function of the walk alone, so replacing the walk's law replaces the pair's. -/
-
-/-! ## What the obligation reduces to
-
-The two seeds the table does not carry are drawn first and averaged over, so what is left to
-prove is a bound at a fixed pair of them with the table still in the measure — which is the
-shape the charge is stated in. The secret seed is *not* among the two: it is the table's own
-cell, and fixing it is exactly what the obligation may not do. -/
-
-/-! ## The charge's own pairing
-
-`RedrawCell.prob_game_sensitive_le` reads its run as `(result, cells)`: the result first, the
-cells beside it, and the **padding dropped**. `tableRun` reads it as `(walk, result)`, and the
-walk's cache is a function of the cells *and* the padding — so the walk is not recoverable from
-the charge's pairing, and the reindexing between the two is not the identity rearrangement it
-looks like.
-
-What makes it one is a property of the event rather than of the pairing: the obligation's event
-never reads the walk's cache. `Target.GoodWalk` reads the seeds and the cells;
-`RoutedSplit.Trace` — what both `InputBad` and `RandomiserBad` are stated at — is built from
-the walk's *value* and the tail's result, and has no component for the walk's cache at all. So
-`CacheBlind` holds for it by `Iff.rfl`, and that is the hypothesis the reindexing takes rather
-than a fact it assumes. An event that did read the walk's cache would not cross this step, and
-would fail here rather than silently. -/
-
-/-! ## The shared obligation at the charge's pairing
-
-The obligation's own event crosses, and what is left to prove is a bound on `SharedReduced` at
-each pair of seeds — one statement about a drawn table, the run it determines, and the forgery
-that run returns. -/
 
 end SlhDsaSecurity.WalkTable

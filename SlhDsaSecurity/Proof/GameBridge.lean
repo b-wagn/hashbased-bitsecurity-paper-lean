@@ -9,8 +9,7 @@ import SlhDsaSecurity.Proof.HypertreeDispatch
 # From the game's run to the extraction's `Id` statements
 
 The extraction chain states everything with `(m := Id)` under the development's
-`[HasQuery HashSpec Id]` variable; the game runs in `OracleComp`. Two facts bridge them, and
-both already existed.
+`[HasQuery HashSpec Id]` variable; the game runs in `OracleComp`. Two facts bridge them.
 
 * `VerifierNaturality` and `Correctness.Naturality` give the naturality of every scheme
   operation: simulating it through any `impl` agreeing with the ambient `query` yields the same

@@ -5,20 +5,19 @@ import SlhDsaSecurity.Proof.RandomiserRecord
 import SlhDsaSecurity.Proof.AnswerShape
 
 /-!
-# The tail the ordering term reads, at the carrier
+# The tail at the carrier
 
-`FusedCoverage.fusedTail` is the game under `SplitPrefix.recorder`, in one run, because the game
-is one computation. This is the same tail at the carrier: the game under the recorder that
-notices, counting, with the adversary's phase fused and bracketed so that the signing oracle can
-raise and lower a framing around its own sub-run.
+`FusedCoverage.fusedTail` is the game under `SplitPrefix.recorder`, in one run. `carrierTail` is
+the same tail at the carrier: the game under the recorder that notices, counting, with the
+adversary's phase fused and bracketed so that the signing oracle can raise and lower a framing
+around its own sub-run. This file also proves that it forgets to the game's own tail
+(`forgetFused_carrierTail`).
 
 **Three stages, and the shape is forced by the recording.** `PhaseFusion.fuse`'s `inl` branch
 runs the inner handler before the outer one, and the inner handler here records and charges. Key
 generation lifted into the fused computation would have its queries charged to the adversary's
 record and counted as its work, so key generation and verification run under the handler
-directly and only the adversary's phase is fused. `BracketedRun.IsBracketedRecorderRun` is that
-shape, and `isBracketedRecorderRun` below is this tail at it — by `rfl`, because the tail was
-written to the predicate rather than fitted to it afterwards.
+directly and only the adversary's phase is fused.
 
 **What differs from `FusedCoverage.fusedTail`, and what does not.** The value is the same:
 `Outcome`, the adversary-and-verifier record beside it, and the total hash count — read from the
@@ -90,20 +89,15 @@ theorem bracket_stopServingOn :
       (τ := (DigestTape.Record × DigestTape.Record) × Nat)) :=
   fun _ => ⟨rfl, rfl⟩
 
-/-! ## And it is a bracketed recorder run
-
-By `rfl`: the tail was written to the predicate. -/
-
 /-! ## What one stage forgets to
 
-The tail's first and third stages run under the handler directly, and this is what each of them
+The tail's first and third stages run under the handler directly, and each of them
 projects to: the same computation under the shared oracle, counted by `countAllHashes`, with the
 handler's counter carried in from where the previous stage left it.
 
-That the starting counter appears on the right is the whole reason `run_withCount_count` was
-stated with it rather than at zero. The first stage starts at zero, the second where the first
-stopped, the third where the second did — and the three add up only because each equation says
-what it started from. -/
+The starting counter appears on the right because the first stage starts at zero, the second
+where the first stopped, the third where the second did; the three add up only because each
+equation says what it started from. -/
 
 /-! ## The middle stage's projection keeps the count
 
@@ -187,7 +181,7 @@ theorem middle_forget {α : Type} (rightKeep : Walk → Bytes → HandlerCarrier
 
 /-! ## The assembly
 
-Both sides are now runs of a counted handler over the same three stages, which is what makes the
+Both sides are runs of a counted handler over the same three stages, which is what makes the
 composition a composition. `recordedTail_eq_counted` puts the recorded tail at
 `CountedHandler.romWithCount` — the count moves from `countAllHashes`, wrapped around the
 computation, into the handler's own state, which is where the carrier tail keeps it. After that
@@ -195,9 +189,8 @@ the two sides differ only in the handler, and the three stages are matched by th
 already proved. -/
 
 set_option maxHeartbeats 1000000 in
-/-- **The recorded game splits at its three sequencing points**, under any handler. This is
-`FusedGame.run_afterSeeds_split` at the game that keeps the record, and like it the split is the
-definition read out: `simulateQ` distributes over the `do` block's binds and `StateT.run`
+/-- **The recorded game splits at its three sequencing points**, under any handler. The split is
+the definition read out: `simulateQ` distributes over the `do` block's binds and `StateT.run`
 distributes over those. -/
 theorem run_recordedAfterSeeds_split {S : Type}
     (outer : QueryImpl OracleWorld (StateT S ProbComp)) (adversary : Adversary)
@@ -293,8 +286,7 @@ theorem last_stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State �
 The composition is a chain of binds on both sides, and the stage laws are maps. Writing each of
 them as a bind once is what lets the chain be normalised in one step instead of driven by hand:
 with everything a bind, `bind_assoc` flattens both sides to the same shape and `bind_congr`
-walks them together. The previous pass tried to drive `map_bind` and lost, because the same
-rewrite matches on either side and the first match wins. -/
+walks them together. -/
 
 theorem first_stage_bind (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
     {α : Type} (computation : OracleComp OracleWorld α) :
@@ -360,9 +352,9 @@ theorem forget_carrierTail (rightKeep : Walk → Bytes → HandlerCarrier.State 
   rfl
 
 set_option maxHeartbeats 1000000 in
-/-- **And so at the paired run**, which is both conjuncts of what `LateProbes` asks. As at the
-plain recorder, forgetting is an equality of computations and not merely of distributions — the
-brackets and the filing change the recordings and nothing the projection keeps. -/
+/-- **And so at the paired run**, which is both conjuncts of `LateProbes.ForgetsTo`. Forgetting
+is an equality of computations and not merely of distributions — the brackets and the filing
+change the recordings and nothing the projection keeps. -/
 theorem forgetsTo (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
     (adversary : Adversary) :
     LateProbes.ForgetsTo (carrierTail rightKeep) adversary := by
@@ -380,13 +372,11 @@ theorem forgetsTo (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
 
 /-! ## What the target reads
 
-`FinalAssembly.forgetFused_map` is the one equation the target asks of a refining tail: that its
-results forget to the game's. At the carrier tail it is `forget_carrierTail` followed by the
-recorded tail's own forgetting, which is why it is three lines — the work was done when the two
-sides were put at the same counted handler. -/
+The one equation asked of a refining tail is that its results forget to the game's. At the
+carrier tail it is `forget_carrierTail` followed by the recorded tail's own forgetting; the
+work was done when the two sides were put at the same counted handler. -/
 
-/-- **The carrier tail forgets to the game's tail.** The `FinalAssembly.forgetFused_map`
-analogue, and an equality of computations like it. -/
+/-- **The carrier tail forgets to the game's tail**, as an equality of computations. -/
 theorem forgetFused_carrierTail (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
     (adversary : Adversary) (walk : Walk) :
     FinalAssembly.forgetFused <$> carrierTail rightKeep adversary walk =
@@ -394,35 +384,5 @@ theorem forgetFused_carrierTail (rightKeep : Walk → Bytes → HandlerCarrier.S
   rw [RecordedTail.tail_eq_map_recordedTail, ← forget_carrierTail rightKeep adversary walk,
     Functor.map_map]
   rfl
-
-/-! ## What the answer side has to restate, and what it does not
-
-`AnswerShape.map_fusedTail` reads `forgetRecord <$> FusedCoverage.fusedTail` as
-`AnswerJoin.answerRecordedRun` — the *same computation* up to a map, because both are the
-recorder at `SplitWitness.disclosingKeep`, a test on the cache. **The carrier tail has no such
-reading, and the reason is the repair itself.** Its disclosing test is
-`CarriedWitness.disclosingKeep`, which is `HandlerCarrier.FilesLeft`: a comparison against the
-frame in flight. The two tests disagree by construction — that disagreement is what lets the
-carrier file a served request and refuse the signer's own randomiser probe, which the cache test
-can do neither of — so the two runs record different things and no map carries one to the other.
-
-So the analogue of `map_fusedTail` is not an equation between the carrier tail and a run that
-already exists. What survives of it is the part that never mentioned the run: the obligation's
-event factors through `AnswerShape.forgetRecord` at the carrier tail exactly as it does at the
-fused one, so a bound proved at `forgetRecord <$> carrierTail` discharges the obligation at
-`carrierTail`. That is `answerChargedLate_carrier_of_bound`, and it is the whole of the
-presentation move. What is left for the answer side is to restate its bound at that run, which
-is a change of recorder and not a change of argument. -/
-
-/-! ## The same move at the defect the target instantiates, and at the bound the side proves
-
-Two edits that mirror the cache side's exactly, landed here rather than in `AnswerShape` because
-this is where the carrier's presentation move lives.
-
-`FinalAssembly.lateOrSeed` is `LateProbes.Ordering ∨ AnswerCoverage.ForgerySeedRandomised`, so the
-obligation's `¬ late` is the answer side's two conjuncts by `not_or`; and the answer side proves
-`q / 2 ^ 128 + 1 / 2 ^ 141`, which is `Target.answerDefectProved`, not the six-unit allowance.
-Taking the tighter bound and the wider defect is what lets the carrier route discharge the
-obligation the assembly actually reads, with the four freed units of `2 ^ -128` staying freed. -/
 
 end SlhDsaSecurity.CarrierTail

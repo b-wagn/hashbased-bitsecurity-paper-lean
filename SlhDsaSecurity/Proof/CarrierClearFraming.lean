@@ -4,29 +4,14 @@ import SlhDsaSecurity.Proof.RecordInvariant
 /-!
 # No request in flight, stage by stage
 
-`SplitWitness.Served.NarrowTargetAt` reads the target's demand at the views a run can be at, and
-`AnswerCarrier.narrowTargetAt_clear` makes that demand free — with no hypothesis and no charge —
-at views whose framing is clear. What is owed in exchange is not a probability bound but a
-statement about the run: that the views the recorder is run at have no request in flight.
+The views the carrier recorder is run at must have no request in flight. `Clear` is that
+invariant on a counted state. It holds at the tail's start, is kept by every handler step and by
+a whole run under the handler, and is restored by the closing bracket, so the adversary's phase
+is entered clear and left clear. `clear_stages` collects the three stages of the tail.
 
-`SplitWitness.mem_records_of_covered_narrow_at` reads it at one place and one place only: the
-state its run **starts** from, since `reaches` then propagates by surviving a cache update, which
-`AnswerCarrier.clearFraming_cacheAnswer` is. So the question is per stage, and it is the stage's
-starting carrier.
-
-**Two stages have it outright and one has it at its own boundaries.** The tail starts at
-`CarrierTail.startAt`, which has nothing in flight; a run under the handler leaves the framing
-where it found it, so key generation ends where it began and verification is entered clear. The
-adversary's phase is entered clear and left clear, and is clear at each of its own steps, because
-the closing bracket writes `none` regardless of what it is handed.
-
-**And one region does not have it, by construction: a signing sub-run.** The opening bracket's
-whole job is to raise the framing, so the views inside a sub-run carry the request the sub-run is
-serving. There is no weaker invariant that covers them, and there should not be — that framing is
-what `HandlerCarrier.FilesLeft` matches against, and it is what
-`AnswerCarrier.not_carrierRightKeep_randomizerInput` and `CarrierRecord.not_carrierRightKeep_digest`
-use to refute the two probes a sub-run makes. The region where the clear framing fails is exactly
-the region whose own filings are already accounted for.
+One region does not have it, by construction: a signing sub-run. The opening bracket's whole job
+is to raise the framing, so the views inside a sub-run carry the request the sub-run is serving.
+The statements here never read that region.
 -/
 
 open OracleComp OracleSpec

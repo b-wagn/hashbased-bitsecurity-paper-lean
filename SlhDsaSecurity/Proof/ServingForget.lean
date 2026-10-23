@@ -4,41 +4,25 @@ import SlhDsaSecurity.Proof.WarmedGame
 /-!
 # What the brackets are invisible to
 
-The carrier tail the ordering term needs runs the game under a handler that **files** and under
-a signing oracle that raises and lowers a **framing**. Both are new, and the first question every
-consumer asks is what they change. The answer is: the recordings and the carrier, and nothing
-else. This file is that answer, stated once and generically, so that the equations such a tail
-owes are instances of one lemma rather than three inductions.
+The carrier tail runs the game under a handler that **files** and under a signing oracle that
+raises and lowers a **framing**. The question every consumer asks is what these change. The
+answer is the recordings and the carrier, and nothing else. This file states that once and
+generically, so that the equations such a tail owes are instances of one lemma.
 
 **It has to be a projection law, because the brackets are not invisible to the handler.** A
-filing test that reads the framing is exactly a test whose answer the brackets change — that is
-what they are for. What is invisible is everything a projection keeps. Give a map `π` out of the
-outer state that the brackets leave alone and that the handler's own runs commute with, and the
-bracketed phase **is** the unbracketed one through `π`.
+filing test that reads the framing is exactly a test whose answer the brackets change. What is
+invisible is everything a projection keeps. Given a map `π` out of the outer state that the
+brackets leave alone and that the handler's own runs commute with (`ForgetsAlong`), the
+bracketed phase **is** the unbracketed one through `π` (`run_fuseServing_map`).
 
 For the carrier that map is "take the cache": the handler's runs commute with it because the
 recorder answers exactly as the shared oracle does, and the brackets leave it alone because they
 write only the framing. So the game's forgery, its log, its counts and its cache come out
-unchanged, while the recordings — which `π` drops — are free to differ. They must: the left
-recording is the thing the brackets exist to change.
+unchanged, while the recordings, which `π` drops, are free to differ.
 
-**The three statements it serves.** At `π` = "forget the recordings" this is what
-`LateProbes.ForgetsTo` asks for; at `π` = "forget the record as well" it is the
-`FinalAssembly.forgetFused_map` analogue; at the answer side's own projection it is
-`AnswerShape.map_fusedTail`'s. One induction serves all three, and a reader who wants to know
-what a bracket costs reads one statement rather than hunting three.
-
-`run_servingAfterSeeds_map` is the `FusedGame.run_afterSeeds_fused` analogue with real brackets:
-the whole game, phase bracketed, projecting to the game as it was. Key generation and
-verification run under the handler directly and so need the same commuting law; the phase needs
-it through the fusion, which is `run_fuseServing_map`.
-
-**What this file does not say.** Nothing here claims a bracketed run is a
-`LateProbes.IsRecorderRun`. It is not, and cannot be made one: that predicate demands the tail
-be `simulateQ (recorder …) computation` for a `computation : OracleComp OracleWorld _`, and such
-a computation can only sample or query — it has no way to carry a frame. The brackets write the
-state *between* queries. What is proved here is that this is the only thing they do, which is
-what makes the generalisation of that predicate safe rather than hopeful.
+A second form, `run_fuseServing_conj`, lets `π` carry each bracket to a bracket on the other
+side instead of collapsing it. `bind_of_forgetsAlong` and `bind_of_fuseServing_conj` restate the
+transports in bind form, so that stages chain by `bind_congr`.
 -/
 
 open OracleComp OracleSpec
@@ -130,10 +114,9 @@ theorem run_fuseServing_map (π : S → S')
 /-! ## The same, with the brackets transported rather than killed
 
 `run_fuseServing_map` is for a `π` that cannot see a bracket, so its right-hand side is the
-**unbracketed** fusion. A `π` that is a re-encoding keeps the brackets; what it does to them is
-to re-encode them too. So the conjugation law below asks `π` to *carry* each bracket to a
-bracket on the other side, rather than to collapse it, and concludes at `fuseServing` on both
-sides. `run_fuseServing_map` is the case where both target brackets are the identity.
+**unbracketed** fusion. The conjugation law below asks `π` to *carry* each bracket to a bracket
+on the other side, rather than to collapse it, and concludes at `fuseServing` on both sides.
+`run_fuseServing_map` is the case where both target brackets are the identity.
 -/
 
 set_option maxHeartbeats 1000000 in

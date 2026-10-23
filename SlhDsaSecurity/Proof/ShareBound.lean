@@ -6,24 +6,21 @@ import SlhDsaSecurity.Proof.Target127
 /-!
 # The blind game's bound
 
-The flag of the blind game is a union of guesses, each charged `2 ^ -128`, against a record no
-longer than `limit + 3929 + 259`:
+The flag of the blind game is a union of guesses, each charged `2 ^ -128`, against the entries
+of the record that a charge pays for (`charged`); `blind_bound_of` bounds the flag by `bound`
+over `2 ^ 128` for any game whose blind runs keep the charged entries within `bound`.
 
-* **the record's length** (`length_shareComp`): the capped adversary files at most `limit`
-  entries (`CapComp.cost_capComp_le`, with `ShareFlag.reportsCost`), the verifier at most
-  `3929` (`VerifyBound.isQueryBoundP_verify`), and the claims at most `259`;
 * **the cell guesses**: an entry that is a sensitive probe guesses a cell the blind run has not
-  read, `BlindCharge.prob_sensitive_le` with the facts of `ShareBlindFacts`;
+  read, `BlindCharge.prob_sensitive_le` with the facts of `ShareBlindFacts` (`sens_le`);
 * **the `SK.prf` guesses**: the blind run never reads `SK.prf`, so it may be drawn after the
-  run, and an entry not prefixed by the public seed guesses it at most once.
+  run, and an entry not prefixed by the public seed guesses it at most once (`prf_le`).
 
 The claims file nothing once the flag is up, so the charge is taken at the blind handler's
 filing form (`ShareBlindFacts.filing`), which files them whatever the flag: its flag has the blind
-game's law (`probEvent_flagGame_eq`) and its record bounds the same way
-(`length_filing_shareComp`).
+game's law (`probEvent_flagGame_eq`).
 
 An entry locating a node is prefixed by the public seed, so the two kinds of guess are counted
-against disjoint parts of the record and add to at most its length.
+against disjoint parts of the record and add to at most its length (`charged_le_length`).
 -/
 
 open OracleComp OracleSpec ENNReal

@@ -25,8 +25,7 @@ exactly because the law says nothing about the outer total, which it does change
 `Security.countAllHashes` it would be claiming something false.
 
 What it buys beyond unblocking the move: the key is now `⟨sds.1, sds.2.1, ⟨sds.2.2, root⟩⟩`,
-whose only table coordinates are the secret seed and the honest root — the two
-`RedrawCell.seedAndRoot` names, which is the hypothesis the charge takes.
+whose only table coordinates are the secret seed and the honest root.
 -/
 
 open OracleComp OracleSpec
@@ -41,12 +40,8 @@ noncomputable def honestKeys (sds : Digest × Digest × Digest)
   @Scheme.keygenInternal Id _
     (replayQuery (HonestProbes.warmCache sds.2.2 sds.1 outputs)) sds.1 sds.2.1 sds.2.2
 
-/-- The recorded game with its keys handed in rather than generated.
-
-The signer is fixed at the stripped one here. `HonestLinked.recordedAfterSeedsWith` is this
-definition with the signer a parameter, and this one is that at the stripped signer by `rfl`;
-`HonestLinked.run_recordedAfterSeeds` is the keys-by-value law at the honest signer, which is
-the one the charge's `htouched` can be met at. -/
+/-- The recorded game with its keys handed in rather than generated. The signer is the stripped
+one. -/
 noncomputable def recordedAfterSeedsAt (adversary : Adversary)
     (keys : SecretKey × PublicKey) (warm : QueryCache HashSpec) :
     OracleComp OracleWorld (Outcome × Multiset Bytes) := do

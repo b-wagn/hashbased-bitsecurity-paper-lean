@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.CoverageTail
-import SlhDsaSecurity.Proof.LazyBudget
+import SlhDsaSecurity.Proof.OpenCache
+import SlhDsaSecurity.Proof.RecordedBudget
 
 /-!
 # Availability, read off the cache
@@ -13,8 +14,7 @@ quite different reasons.
 **The WOTS half does not depend on the run at all.** Each WOTS key of the hypertree signs
 exactly one message — the honest node one layer below it — so the digit a signature on that key
 discloses is a function of the seeds, not of which messages were requested.
-`GraphStakes.honestRevealed` is that digit, and `HonestMessage.signLayers_wots` is what pins it
-to the signer. Treating a chain as revealed up to that digit before any signature is issued is
+`GraphStakes.honestRevealed` is that digit. Treating a chain as revealed up to that digit before any signature is issued is
 an over-approximation of availability, and the residue reduction is unaffected: it leaves the
 forgery holding a value *strictly below* that digit, which is unavailable either way.
 
@@ -71,11 +71,9 @@ The gate this creates is that the adversary can make such an entry by querying a
 PRF seed, and it is not a canonical input, so neither of the charges here meets it: it belongs
 to the `PRF_msg` class at the real seed and is charged on a class of its own.
 
-**That charge is not taken here, and the shape is the reason.** A guess at `SK.prf` cannot be
-charged at a fixed walk at all — the walk fixes the secret and an adversary may carry it as a
-constant — and it is not one unit either, since one signing request makes the seed checkable at
-one candidate per query. It is taken at `Target.pairedRun`, where the seed is still random, as
-`ObligationShapes.sharedChargedLate_of_parts`' `seedUnits`. -/
+**That charge is not taken here.** A guess at `SK.prf` cannot be charged at a fixed walk at all —
+the walk fixes the secret and an adversary may carry it as a constant — so it is taken at
+`Target.pairedRun`, where the seed is still random. -/
 
 /-- A message input whose randomiser is the one the signer derives for that message, with the
 derivation's own query in the cache. -/
@@ -106,6 +104,6 @@ variable [HasQuery HashSpec Id]
 The growth `signedAt` is monotone along is the growth a run of the lazy handler performs: a hash
 query either reads the cache, leaving it alone, or writes an input the cache had no entry at. -/
 
-open OpenCache LazyBudget
+open OpenCache
 
 end SlhDsaSecurity.CacheAvailability

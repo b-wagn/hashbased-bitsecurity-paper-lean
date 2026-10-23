@@ -105,16 +105,4 @@ theorem honestRevealed_eq (secretSeed publicSeed expectedInput : Digest)
     honestMessage_eq_revealedAt secretSeed publicSeed expectedInput layer tree leaf i key
       hlayer htree hleaf]
 
-/-! ## The signer's own threading
-
-Tying the revealed digit to the *fault*'s threading is not enough, and the slack is fatal in
-both directions: a digit larger than the signer's makes availability too generous, so a forgery
-could rest on a cell declared available and fall outside the charged event; a digit smaller than
-the signer's makes it too mean, so a query at a cell the signer really did disclose counts as
-sensitive and the rate is simply false. So the digit has to be the signer's exactly.
-
-It is. The honest signer's `step`-th layer signs the message the extraction threads at that
-step, with the key at the coordinates the accumulators name — `Correctness.Merkle` supplies the
-one fact the induction needs, that an honest subtree's recovered root is its honest node. -/
-
 end SlhDsaSecurity.HonestMessage

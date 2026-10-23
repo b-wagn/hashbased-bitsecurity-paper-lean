@@ -12,8 +12,8 @@ held at the state the notice had already reached. `RecorderView.appendedOf_right
 of the recorder, `CountedHandler.withCount_step` carries it through the counter, and
 `RecordInvariant` carries it through runs and brackets.
 
-Both invariants read only the cache and the recordings, so `RecordInvariant.bracket_invariant`
-discharges their bracket condition rather than asking for it.
+Both invariants read only the cache and the recordings, so their bracket conditions are
+discharged here (`recordClass_bracket`, `recordCached_bracket`) rather than asked for.
 -/
 
 open OracleComp OracleSpec
@@ -75,8 +75,7 @@ theorem step_right_mem (rightKeep : Bytes → HandlerCarrier.State → Prop)
 open scoped Classical in
 /-- **The target recording after a step, as a list**, with the appended entry's freshness and
 the test it passed. The shape reading of the step, which an invariant about multiplicity needs
-and membership cannot give — and the test besides, because the witness lemma built on this one
-has to say what the entry was filed for. -/
+and membership cannot give, together with the test the entry passed. -/
 theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
     (queried : OracleWorld.Domain) (state : CountedState)
     (step : OracleWorld.Range queried × CountedState)
@@ -110,12 +109,6 @@ theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
         exact hfresh
       · rw [← hvalue]
         exact (files_countedCarrierRecorder pk rightKeep).hashCached input state step hstep
-
-/-! ## And the state each filed entry was filed at
-
-`SplitPrefix.right_record_suffix` at the carrier. An invariant says what is true of the whole
-recording; this says, of each entry, the state it was filed at — which is what a provenance
-argument needs and an invariant cannot give. -/
 
 /-! ## The two invariants -/
 
