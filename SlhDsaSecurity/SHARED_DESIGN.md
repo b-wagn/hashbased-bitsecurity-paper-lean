@@ -45,7 +45,27 @@ The answer half is closed; this is the only thing left between the repository an
 
 ## Status
 
-* `VerifyBound.isQueryBoundP_verify` — done.
-* Keygen lower bound `36 · 512` — to do (`HonestGrowth.pow_le_count_merkleNode` strengthened at the
-  leaf).
-* Everything else — to do.
+Done: `SlhDsaSecurity.ShareFinal.hasTotalSecurityBits_strong_127 :
+HasTotalSecurityBits .strong 127`, axioms `propext, Classical.choice, Quot.sound`.
+
+| Step | Where |
+| --- | --- |
+| Verifier makes at most `3929` hash calls | `VerifyBound` |
+| Key generation spends at least `36 · 512`; the budget pays for it | `KeygenCost`, `ShareFinal.keygen_le_of_budget` |
+| The cap and its transparency on the real side | `CapComp`, `ShareRealCap` |
+| One computation, lenient and blind handlers, one sticky flag | `ShareGame` (availability read off the table: `ShareCells`) |
+| Identical until the flag | `ShareUntilBad` |
+| Flag witnessed by the record; record length is the cap's weight | `ShareFlag` |
+| Stall-and-redraw charge at any spec and state | `BlindCharge` |
+| The blind step reads only released cells | `ShareBlindFacts`, `ShareSignCongr` |
+| Blind flag `≤ (L + 3929 + 259) / 2^128` | `ShareBound.blind_bound` |
+| Real game flattened to one handler per phase | `SharePresent` |
+| Real and lenient games coupled | `ShareCouple`, `ShareInv`, `ShareWhole` |
+| The real event raises the lenient flag | `ShareClaims`, `ShareEvent` |
+| Averaging and the statement | `ShareFinal` |
+
+Design changes made along the way: the signer's digest input is filed (so its coincidence is one
+more record guess), assembly answers only at a drawn digest (so every step of the blind handler is
+blind, not only those the computation makes), and availability uses the table's own signed cells
+rather than the replayed `honestRevealed` (which is defined at keys outside the hypertree, where
+blindness would need every replayed lookup to miss).

@@ -291,6 +291,7 @@ import SlhDsaSecurity.Proof.ShareInv
 import SlhDsaSecurity.Proof.ShareWhole
 import SlhDsaSecurity.Proof.ShareClaims
 import SlhDsaSecurity.Proof.ShareEvent
+import SlhDsaSecurity.Proof.ShareFinal
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18863,3 +18864,45 @@ info: 'SlhDsaSecurity.ShareEvent.flag_of_inputBad' depends on axioms: [propext, 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareEvent.flag_of_inputBad
+
+/--
+info: 'SlhDsaSecurity.ShareFinal.setup_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFinal.setup_bound
+
+/--
+info: 'SlhDsaSecurity.ShareFinal.keygen_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFinal.keygen_le_of_budget
+
+/--
+info: 'SlhDsaSecurity.ShareFinal.goodWalk_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFinal.goodWalk_iff
+
+/--
+info: 'SlhDsaSecurity.ShareFinal.walk_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFinal.walk_bound
+
+/--
+info: 'SlhDsaSecurity.ShareFinal.ex_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFinal.ex_comm
+
+/--
+info: 'SlhDsaSecurity.ShareFinal.hshared' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFinal.hshared
+
+/--
+info: 'SlhDsaSecurity.ShareFinal.hasTotalSecurityBits_strong_127' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFinal.hasTotalSecurityBits_strong_127
