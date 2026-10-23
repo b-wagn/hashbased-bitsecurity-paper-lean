@@ -122,9 +122,8 @@ theorem warmed_bound (q : Nat) (adversary : Adversary) (hbudget : TailBudgetW ad
             ((6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
         add_le_add le_rfl (add_le_add le_rfl hdefects)
     _ = ((q - 8 + q + 6 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-        rw [ENNReal.div_add_div_same, ENNReal.div_add_div_same]
-        push_cast
-        ring
+        rw [ENNReal.div_add_div_same, ENNReal.div_add_div_same, ← Nat.cast_add, ← Nat.cast_add]
+        congr 2
     _ ≤ ((2 * q : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
         ENNReal.div_le_div_right (Nat.cast_le.mpr (by omega)) _
     _ = (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
