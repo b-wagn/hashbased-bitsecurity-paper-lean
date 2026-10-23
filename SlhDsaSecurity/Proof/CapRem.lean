@@ -266,4 +266,30 @@ theorem evalDist_capCompOpt (impl : QueryImpl spec (StateT S ProbComp)) (weight 
       have h3 := hcost t state step hstep
       omega
 
+/-- **A capped run that did not fire is a run of the uncapped computation.** -/
+theorem mem_support_of_capCompOpt_some (impl : QueryImpl spec (StateT S ProbComp))
+    (weight : ι → Nat) :
+    ∀ (oa : OracleComp spec α) (limit : Nat) (state : S) (value : α) (final : S),
+      (some value, final) ∈ support ((simulateQ impl (capCompOpt weight limit oa)).run state) →
+        (value, final) ∈ support ((simulateQ impl oa).run state) := by
+  intro oa
+  induction oa using OracleComp.inductionOn with
+  | pure value =>
+    intro limit state v final hz
+    rw [capCompOpt_pure, simulateQ_pure, StateT.run_pure, support_pure,
+      Set.mem_singleton_iff] at hz
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff]
+    cases hz
+    rfl
+  | query_bind t next ih =>
+    intro limit state v final hz
+    rw [capCompOpt_query_bind] at hz
+    split_ifs at hz with hweight
+    · rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+      obtain ⟨step, hstep, hrest⟩ := hz
+      rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
+      exact ⟨step, hstep, ih step.1 (limit - weight t) step.2 v final hrest⟩
+    · rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+      cases hz
+
 end SlhDsaSecurity.CapRem

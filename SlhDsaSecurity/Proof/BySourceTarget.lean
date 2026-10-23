@@ -34,7 +34,7 @@ set_option maxHeartbeats 4000000 in
 set_option linter.constructorNameAsVariable false in
 open scoped Classical in
 /-- **The answer half at `127`, the signer's calls free.** -/
-theorem answerBound (q : Nat) (adversary : Adversary) (hbudget : TailBudget adversary q)
+theorem answerBound (q : Nat) (adversary : Adversary) (hbudget : TailBudgetW adversary q)
     (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
     Pr[fun result => RoutedSplit.AnswerBad ((walk.1, (FinalAssembly.forgetFused result).1),
           (FinalAssembly.forgetFused result).2) ∧ ¬ Target127.late (walk, result) |
@@ -212,7 +212,7 @@ theorem warmed_le (q : Nat) (adversary : Adversary) (hbudget : TailBudget advers
       fun walk hwalk => ?_
     by_cases hgood : GoodWalk walk
     · exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
-        (answerBound q adversary hbudget walk hwalk hgood)
+        (answerBound q adversary hbudget.toW walk hwalk hgood)
     · rw [show (fun result => GoodWalk walk ∧
         AnswerBad ((walk.1, (FinalAssembly.forgetFused result).1), (FinalAssembly.forgetFused result).2) ∧
           ¬ Target127.late (walk, result)) = fun _ => False from by funext _; simp [hgood]]
