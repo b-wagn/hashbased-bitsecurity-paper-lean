@@ -23,6 +23,9 @@ namespace SlhDsaSecurity.ShareJointShared
 open Security CanonicalGraph WarmedGame WalkTable TableTail RecordedQueries RecordedPhase
   SharePresent ShareGame BySourceBridge
 
+attribute [local irreducible] WarmedGame.afterSeeds Scheme.verify Scheme.keygenInternal
+  Security.countQueries
+
 /-- **The per-setup link**: at a good setup, the real event with an accepted forgery in the
 jointly capped real game is at most the blind flag of the jointly capped game. -/
 def SetupBound (adversary : Adversary) (limit : Nat) : Prop :=
@@ -60,7 +63,8 @@ theorem walk_bound {adversary : Adversary} {q : Nat} (hbudget : TailBudgetW adve
         r.1.1.2.1 = true))) ?_
     · exact probEvent_mono fun r _ h => ⟨h, h.2⟩
     · rw [TouchedKeys.keysOf_eq]
-      exact le_trans (hsetup _ hgood) (probEvent_mono fun z _ hz => ⟨hgood, hz⟩)
+      exact le_trans (hsetup (ShareFinal.setupOf prfSeed publicSeed table) hgood)
+        (probEvent_mono fun z _ hz => ⟨hgood, hz⟩)
   · refine le_trans (le_of_eq (probEvent_eq_zero fun result _ hevent =>
       hgood ((ShareFinal.goodWalk_iff prfSeed publicSeed table).mp hevent.1))) (by simp)
 
@@ -107,7 +111,7 @@ theorem hshared (q : Nat) (adversary : Adversary) (hbudget : TailBudgetW adversa
               ShareBound.flagRun (ShareJoint.shareCompJ adversary (q - 569))
                 (ShareFinal.setupOf prfSeed publicSeed table)] :=
         ex_mono _ fun prfSeed => ex_mono _ fun publicSeed => ex_mono _ fun table =>
-          walk_bound hsetup prfSeed publicSeed table
+          walk_bound hbudget hsetup prfSeed publicSeed table
     _ = ex ($ᵗ Digest : ProbComp Digest) fun publicSeed => ex ($ᵗ Digest : ProbComp Digest)
           fun prfSeed => ex ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding)) fun table =>
             Pr[fun z => (ShareFinal.setupOf prfSeed publicSeed table).Good ∧ z.2.2 = true |

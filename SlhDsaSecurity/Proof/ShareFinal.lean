@@ -47,8 +47,11 @@ theorem setup_bound (setup : Setup) (hgood : setup.Good) (adversary : Adversary)
     | true => simp [claimsStep, hflag]
     | false =>
       rcases hevent with hbad | hlate | hlate
-      · exact flag_of_inputBad setup hgood adversary limit real hreal stateV hinv hflag hcache hlog
-          hver hbad
+      · simp only [SharePresent.realFlat, mem_support_bind_iff, support_pure,
+          Set.mem_singleton_iff] at hreal
+        obtain ⟨zs, -, w, hw, hrealEq⟩ := hreal
+        exact flag_of_inputBad setup real zs.2 w (by rw [hrealEq]; exact hw)
+          (by rw [hrealEq]) stateV hinv hflag hcache hlog hver hbad
       · have := flag_of_prfHit setup real stateV hinv hadv hver hlate
         rw [hflag] at this
         cases this

@@ -125,11 +125,13 @@ def Guess (setup : Setup) (served : List HashOutput) (probe : Bytes) : Prop :=
 noncomputable def openAt (setup : Setup) (served : List HashOutput) : QueryCache HashSpec :=
   OpenCache.openCache setup.publicSeed (available setup served) setup.table
 
-/-- The cache the claims are read off: the oracle's entries, and the open table. -/
+/-- The cache the claims are read off: the open table, and then the oracle's entries. The open
+table comes first, as it does in the blind router (`route false`): an input the oracle cached
+while it was closed and that has since opened reads as the table answers it now. -/
 noncomputable def visible (setup : Setup) (state : St) : QueryCache HashSpec := fun input =>
-  match state.cache input with
+  match openAt setup state.served input with
   | some value => some value
-  | none => openAt setup state.served input
+  | none => state.cache input
 
 /-! ## Answering a hash query -/
 

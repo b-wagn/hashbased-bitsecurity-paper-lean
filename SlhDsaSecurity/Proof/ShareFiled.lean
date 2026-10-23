@@ -4,13 +4,21 @@ import SlhDsaSecurity.Proof.VerificationBudget
 /-!
 # The blind verifier's probes are filed
 
-On a blind run that never raises the flag, the oracle cache only ever receives inputs off the
-walk's warm cache: a canonical input the open table lacks is a sensitive probe
-(`ShareUntilBad.sens_of_closed`), and a sensitive probe raises the flag. So the cache and the
-open table never disagree (`ColdCache`), and every answer the run takes is the one `visible`
-replays at its end. Replaying a hash computation at the final visible cache therefore consults
-only inputs the run filed, each at the digests served when the run began
-(`probes_filed`, and at the verifier `verify_probes_filed`).
+`visible` reads the open table first and the oracle's cache after it, in the order the blind
+router (`route false`) answers. Along a run of world queries the served digests do not move, so
+the open table does not either; the cache only grows, and an input the open table lacks stays
+lacked. So every answer a blind world step takes is the one `visible` gives at the end of the run,
+and replaying a hash computation at the final visible cache consults only inputs the run filed,
+each at the digests served when the run began. This holds at any step that routes a hash input
+blindly and files it (`RoutesBlind`), whatever else the state carries:
+
+* at the flag-free blind step `ShareBlindFacts.blindStep` (`blind_probes_filed`, and at the
+  verifier `blind_verify_probes_filed`);
+* at the flagged blind handler, from any flag (`probes_filed`, `verify_probes_filed_any`) — world
+  steps never read the flag.
+
+No cold cache is needed for this. The cold cache (`ColdCache`) is the separate fact that a blind
+run that ends with the flag down never cached an input of the walk's warm cache.
 -/
 
 open OracleComp OracleSpec
@@ -204,7 +212,246 @@ theorem coldCache_run (setup : Setup) {α : Type} (computation : OracleComp Shar
   · rw [hflag] at hraised; cases hraised
   · exact hcold'
 
-/-! ## One blind world hash step -/
+/-! ## A step that routes blindly and files -/
+
+/-- **The visible cache grows** from one state to the next: every visible entry stays. -/
+def Grows (setup : Setup) (old new : St) : Prop :=
+  ∀ input value, visible setup old input = some value → visible setup new input = some value
+
+theorem Grows.refl (setup : Setup) (state : St) : Grows setup state state := fun _ _ h => h
+
+theorem Grows.trans {setup : Setup} {first second third : St} (h1 : Grows setup first second)
+    (h2 : Grows setup second third) : Grows setup first third :=
+  fun x v h => h2 x v (h1 x v h)
+
+/-- **A hash handler that routes blindly and files**, read through a projection to the game's
+state: each step answers as the blind router does and files the input at the served digests. -/
+def RoutesBlind (setup : Setup) {σ : Type} (π : σ → St)
+    (impl : QueryImpl HashSpec (StateT σ ProbComp)) : Prop :=
+  ∀ input state z, z ∈ support ((impl input).run state) →
+    ∃ routed ∈ support (route false setup (π state) input), z.1 = routed.1 ∧
+      π z.2 = { routed.2 with record := (π state).record ++ [(input, (π state).served)] }
+
+/-- **One blind routed step, filed**: the digests stay, the input is filed at them, the visible
+cache grows, and it answers the input as the step did. -/
+theorem routed_step (setup : Setup) (state : St) (input : Bytes) (routed : HashOutput × St)
+    (hrouted : routed ∈ support (route false setup state input)) :
+    let next : St := { routed.2 with record := state.record ++ [(input, state.served)] }
+    next.served = state.served ∧ next.record = state.record ++ [(input, state.served)] ∧
+      Grows setup state next ∧ visible setup next input = some routed.1 := by
+  intro next
+  obtain ⟨hserved, -, -⟩ := ShareFlag.route_mem_support false setup state input routed hrouted
+  have hserved' : next.served = state.served := hserved
+  refine ⟨hserved', rfl, ?_, ?_⟩
+  · intro x v hx
+    unfold visible at hx ⊢
+    rw [hserved']
+    cases hopen : openAt setup state.served x with
+    | some answer =>
+      rw [hopen] at hx
+      exact hx
+    | none =>
+      rw [hopen] at hx
+      simp only at hx ⊢
+      show routed.2.cache x = some v
+      rcases route_false_cases setup state input routed hrouted with
+        ⟨-, h⟩ | ⟨-, -, h⟩ | ⟨-, hcached, h⟩
+      · rw [h]; exact hx
+      · rw [h]; exact hx
+      · rw [h]
+        by_cases hxi : x = input
+        · subst hxi
+          rw [hcached] at hx
+          cases hx
+        · simpa [QueryCache.cacheQuery_of_ne _ _ hxi] using hx
+  · unfold visible
+    rw [hserved']
+    rcases route_false_cases setup state input routed hrouted with
+      ⟨hopen, -⟩ | ⟨hopen, hcached, h⟩ | ⟨hopen, -, h⟩
+    · rw [hopen]
+    · rw [hopen]
+      show routed.2.cache input = some routed.1
+      rw [h]; exact hcached
+    · rw [hopen]
+      show routed.2.cache input = some routed.1
+      rw [h]; exact QueryCache.cacheQuery_self _ _ _
+
+/-- **One step of a handler that routes blindly and files.** -/
+theorem hash_step (setup : Setup) {σ : Type} (π : σ → St)
+    (impl : QueryImpl HashSpec (StateT σ ProbComp)) (himpl : RoutesBlind setup π impl)
+    (input : Bytes) (state : σ) (step : HashOutput × σ)
+    (hstep : step ∈ support ((impl input).run state)) :
+    (π step.2).served = (π state).served ∧
+      (π step.2).record = (π state).record ++ [(input, (π state).served)] ∧
+        Grows setup (π state) (π step.2) ∧ visible setup (π step.2) input = some step.1 := by
+  obtain ⟨routed, hrouted, hanswer, hnext⟩ := himpl input state step hstep
+  rw [hnext, hanswer]
+  exact routed_step setup (π state) input routed hrouted
+
+/-- **Along a run of a handler that routes blindly and files**: the digests stay, the record only
+grows, and the visible cache grows. -/
+theorem hash_run (setup : Setup) {σ : Type} (π : σ → St)
+    (impl : QueryImpl HashSpec (StateT σ ProbComp)) (himpl : RoutesBlind setup π impl)
+    {α : Type} (computation : OracleComp HashSpec α) :
+    ∀ (state : σ), ∀ z ∈ support ((simulateQ impl computation).run state),
+      (π z.2).served = (π state).served ∧ (π state).record <+: (π z.2).record ∧
+        Grows setup (π state) (π z.2) := by
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro state z hz
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+    subst hz
+    exact ⟨rfl, List.prefix_refl _, Grows.refl _ _⟩
+  | query_bind input next ih =>
+    intro state z hz
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
+    obtain ⟨step, hstep, hrest⟩ := hz
+    obtain ⟨hserved, hrecord, hgrows, -⟩ := hash_step setup π impl himpl input state step hstep
+    obtain ⟨hserved', hprefix', hgrows'⟩ := ih step.1 step.2 z hrest
+    refine ⟨hserved'.trans hserved, ?_, hgrows.trans hgrows'⟩
+    exact (List.prefix_append _ _).trans (hrecord ▸ hprefix')
+
+/-- **Every probe a replay at the final visible cache consults was filed at the starting
+digests**, along a run of a handler that routes blindly and files. -/
+theorem probe_filed (setup : Setup) {σ : Type} (π : σ → St)
+    (impl : QueryImpl HashSpec (StateT σ ProbComp)) (himpl : RoutesBlind setup π impl)
+    {α : Type} (computation : OracleComp HashSpec α) (probe : Bytes) (final : St)
+    (hquery : CacheReplay.QueriesUnder (visible setup final) computation probe) :
+    ∀ (state : σ), ∀ z ∈ support ((simulateQ impl computation).run state), π z.2 = final →
+      (probe, (π state).served) ∈ final.record := by
+  induction hquery with
+  | head input next =>
+    intro state z hmem hfinal
+    rw [simulateQ_bind, show simulateQ impl (query (spec := HashSpec) input) =
+        impl input from by simp, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    obtain ⟨-, hrecord, -, -⟩ := hash_step setup π impl himpl input state step hstep
+    obtain ⟨-, hprefix, -⟩ := hash_run setup π impl himpl (next step.1) step.2 z hrest
+    rw [← hfinal]
+    refine hprefix.subset ?_
+    rw [hrecord]
+    exact List.mem_append_right _ (List.mem_singleton_self _)
+  | tail input probe next _ ih =>
+    intro state z hmem hfinal
+    rw [simulateQ_bind, show simulateQ impl (query (spec := HashSpec) input) =
+        impl input from by simp, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    obtain ⟨hserved, -, -, hvisible⟩ := hash_step setup π impl himpl input state step hstep
+    obtain ⟨-, -, hgrows⟩ := hash_run setup π impl himpl (next step.1) step.2 z hrest
+    have hreplay : CacheReplay.replay (visible setup final) input = step.1 := by
+      rw [← hfinal]
+      simp [CacheReplay.replay, hgrows input step.1 hvisible]
+    rw [← hserved]
+    exact ih step.2 z (by rw [hreplay]; exact hrest) hfinal
+
+/-- **A world run of a lifted hash computation** at a handler whose hash steps route blindly and
+file keeps the digests, and every probe a replay of the computation at the final visible cache
+consults is filed in the record at the starting digests. -/
+theorem probes_filed_of (setup : Setup) {σ : Type} (π : σ → St)
+    (coin : QueryImpl unifSpec (StateT σ ProbComp))
+    (impl : QueryImpl HashSpec (StateT σ ProbComp)) (himpl : RoutesBlind setup π impl)
+    {α : Type} (computation : OracleComp HashSpec α) (state : σ) (z : α × σ)
+    (hz : z ∈ support ((simulateQ (coin + impl)
+      (OracleComp.liftComp computation OracleWorld)).run state)) :
+    (π z.2).served = (π state).served ∧
+      ∀ probe, CacheReplay.QueriesUnder (visible setup (π z.2)) computation probe →
+        (probe, (π state).served) ∈ (π z.2).record := by
+  rw [QueryImpl.simulateQ_add_liftComp_right] at hz
+  exact ⟨(hash_run setup π impl himpl computation state z hz).1, fun probe hprobe =>
+    probe_filed setup π impl himpl computation probe _ hprobe state z hz rfl⟩
+
+/-! ## At the flag-free blind step -/
+
+/-- **The flag-free blind step, read at the verifier's oracles.** -/
+noncomputable def blindWorldImpl (setup : Setup) : QueryImpl OracleWorld (StateT St ProbComp) :=
+  QueryImpl.compose (ShareBlindFacts.blindStep setup) fun world =>
+    (query (spec := ShareSpec) (worldQuery world) : OracleComp ShareSpec (OracleWorld.Range world))
+
+theorem blindWorldImpl_run (setup : Setup) (world : OracleWorld.Domain) (state : St) :
+    ((blindWorldImpl setup) world).run state =
+      ((ShareBlindFacts.blindStep setup) (worldQuery world)).run state := by
+  simp only [blindWorldImpl, QueryImpl.apply_compose, HasQuery.instOfMonadLift_query]
+  erw [simulateQ_spec_query]
+  rfl
+
+theorem blindStep_verifyShare_run (setup : Setup) (pk : PublicKey) (forgery : Forgery)
+    (state : St) :
+    (simulateQ (ShareBlindFacts.blindStep setup) (verifyShare pk forgery)).run state =
+      (simulateQ (blindWorldImpl setup)
+        (Scheme.verify (m := OracleComp OracleWorld) pk forgery.message forgery.signature)).run
+          state := by
+  rw [verifyShare, ← QueryImpl.simulateQ_compose]
+  rfl
+
+/-- The flag-free blind step at a hash input. -/
+noncomputable def blindHashImpl (setup : Setup) : QueryImpl HashSpec (StateT St ProbComp) :=
+  fun input => blindWorldImpl setup (Sum.inr input)
+
+/-- The flag-free blind step at a coin. -/
+noncomputable def blindCoinImpl (setup : Setup) : QueryImpl unifSpec (StateT St ProbComp) :=
+  fun coin => blindWorldImpl setup (Sum.inl coin)
+
+theorem blindWorldImpl_eq_add (setup : Setup) :
+    blindWorldImpl setup = blindCoinImpl setup + blindHashImpl setup := by
+  funext queried
+  rcases queried with coin | input <;> rfl
+
+theorem blindHashImpl_run (setup : Setup) (input : Bytes) (state : St) :
+    (blindHashImpl setup input).run state = (do
+      let step ← route false setup state input
+      pure (step.1, { step.2 with record := state.record ++ [(input, state.served)] })) := by
+  show ((blindWorldImpl setup) (Sum.inr input)).run state = _
+  rw [blindWorldImpl_run]
+  rfl
+
+theorem routesBlind_blindHashImpl (setup : Setup) :
+    RoutesBlind setup id (blindHashImpl setup) := by
+  intro input state z hz
+  rw [blindHashImpl_run, mem_support_bind_iff] at hz
+  obtain ⟨routed, hrouted, hz⟩ := hz
+  rw [support_pure, Set.mem_singleton_iff] at hz
+  subst hz
+  exact ⟨routed, hrouted, rfl, rfl⟩
+
+/-- **At the flag-free blind step**: a world run of a lifted hash computation keeps the digests,
+and every probe a replay of the computation at the final visible cache consults is filed in the
+record at the starting digests. -/
+theorem blind_probes_filed (setup : Setup) {α : Type} (computation : OracleComp HashSpec α)
+    (p : St) (z : α × St)
+    (hz : z ∈ support ((simulateQ (blindWorldImpl setup)
+      (OracleComp.liftComp computation OracleWorld)).run p)) :
+    z.2.served = p.served ∧
+      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2) computation probe →
+        (probe, p.served) ∈ z.2.record := by
+  rw [blindWorldImpl_eq_add] at hz
+  exact probes_filed_of setup id (blindCoinImpl setup) (blindHashImpl setup)
+    (routesBlind_blindHashImpl setup) computation p z hz
+
+/-- **At the flag-free blind step's verifier**, run on the world. -/
+theorem blind_verify_probes_filed (setup : Setup) (pk : PublicKey) (request : Message)
+    (wire : Bytes) (p : St) (z : Bool × St)
+    (hz : z ∈ support ((simulateQ (blindWorldImpl setup)
+      (Scheme.verify (m := OracleComp OracleWorld) pk request wire)).run p)) :
+    z.2.served = p.served ∧
+      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2)
+          (Scheme.verify (m := OracleComp HashSpec) pk request wire) probe →
+        (probe, p.served) ∈ z.2.record := by
+  rw [VerificationBudget.verify_lift] at hz
+  exact blind_probes_filed setup _ p z hz
+
+/-- **At the flag-free blind step's verifier step** (`ShareGame.verifyShare`). -/
+theorem blind_verifyShare_probes_filed (setup : Setup) (pk : PublicKey) (forgery : Forgery)
+    (p : St) (z : Bool × St)
+    (hz : z ∈ support ((simulateQ (ShareBlindFacts.blindStep setup)
+      (verifyShare pk forgery)).run p)) :
+    z.2.served = p.served ∧
+      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2)
+          (Scheme.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature) probe →
+        (probe, p.served) ∈ z.2.record := by
+  rw [blindStep_verifyShare_run] at hz
+  exact blind_verify_probes_filed setup pk forgery.message forgery.signature p z hz
+
+/-! ## At the flagged blind handler, from any flag -/
 
 theorem worldImpl_run (lenient : Bool) (setup : Setup) (world : OracleWorld.Domain)
     (p : St × Bool) :
@@ -237,204 +484,63 @@ theorem hashImpl_run (setup : Setup) (input : Bytes) (p : St × Bool) :
   rw [worldImpl_run]
   rfl
 
-/-- **The visible cache grows** from one state to the next: every visible entry stays. -/
-def Grows (setup : Setup) (old new : St) : Prop :=
-  ∀ input value, visible setup old input = some value → visible setup new input = some value
-
-theorem Grows.refl (setup : Setup) (state : St) : Grows setup state state := fun _ _ h => h
-
-theorem Grows.trans {setup : Setup} {first second third : St} (h1 : Grows setup first second)
-    (h2 : Grows setup second third) : Grows setup first third :=
-  fun x v h => h2 x v (h1 x v h)
-
-/-- **One blind hash step that leaves the flag down**: the flag was down, the digests stay, the
-input is filed at them, the cache stays cold, the visible cache grows and answers the input as the
-step did. -/
-theorem hash_step (setup : Setup) (input : Bytes) (p : St × Bool) (hcold : ColdCache setup p.1)
-    (step : HashOutput × (St × Bool)) (hstep : step ∈ support ((hashImpl setup input).run p))
-    (hflag : step.2.2 = false) :
-    p.2 = false ∧ step.2.1.served = p.1.served ∧
-      step.2.1.record = p.1.record ++ [(input, p.1.served)] ∧ ColdCache setup step.2.1 ∧
-        Grows setup p.1 step.2.1 ∧ visible setup step.2.1 input = some step.1 := by
+theorem routesBlind_hashImpl (setup : Setup) :
+    RoutesBlind setup Prod.fst (hashImpl setup) := by
   classical
-  obtain ⟨inner, flag⟩ := p
-  rw [hashImpl_run, mem_support_bind_iff] at hstep
-  obtain ⟨routed, hrouted, hz⟩ := hstep
+  intro input state z hz
+  rw [hashImpl_run, mem_support_bind_iff] at hz
+  obtain ⟨routed, hrouted, hz⟩ := hz
   rw [support_pure, Set.mem_singleton_iff] at hz
   subst hz
-  simp only [Bool.or_eq_false_iff, decide_eq_false_iff_not, not_or] at hflag
-  obtain ⟨hserved, -, -⟩ := ShareFlag.route_mem_support false setup inner input routed hrouted
-  refine ⟨hflag.1, hserved, rfl,
-    coldCache_route setup inner input (fun h => hflag.2.2 (Or.inl h)) hcold routed hrouted, ?_, ?_⟩
-  · intro x v hx
-    unfold visible at hx ⊢
-    simp only [hserved]
-    rcases route_false_cases setup inner input routed hrouted with
-      ⟨-, h⟩ | ⟨-, -, h⟩ | ⟨hopen, hcached, h⟩
-    · rw [h]; exact hx
-    · rw [h]; exact hx
-    · rw [h]
-      by_cases hxi : x = input
-      · subst hxi
-        rw [hcached, hopen] at hx
-        cases hx
-      · simpa [QueryCache.cacheQuery_of_ne _ _ hxi] using hx
-  · unfold visible
-    simp only [hserved]
-    rcases route_false_cases setup inner input routed hrouted with
-      ⟨hopen, h⟩ | ⟨-, hcached, h⟩ | ⟨-, -, h⟩
-    · rw [h]
-      have hwarm := ShareUntilBad.openAt_le_warm setup inner.served input routed.1 hopen
-      have hnone : inner.cache input = none := by
-        by_contra hne
-        rw [hcold input hne] at hwarm
-        cases hwarm
-      simp [hnone, hopen]
-    · rw [h]; simp [hcached]
-    · rw [h]; simp [QueryCache.cacheQuery_self]
+  exact ⟨routed, hrouted, rfl, rfl⟩
 
-/-- A blind hash step that ends with the flag down began with it down. -/
-theorem hash_flag_down (setup : Setup) (input : Bytes) (p : St × Bool)
-    (step : HashOutput × (St × Bool)) (hstep : step ∈ support ((hashImpl setup input).run p))
-    (hflag : step.2.2 = false) : p.2 = false := by
-  obtain ⟨inner, flag⟩ := p
-  rw [hashImpl_run, mem_support_bind_iff] at hstep
-  obtain ⟨routed, -, hz⟩ := hstep
-  rw [support_pure, Set.mem_singleton_iff] at hz
-  subst hz
-  simp only [Bool.or_eq_false_iff] at hflag
-  exact hflag.1
-
-/-- A blind hash run that ends with the flag down began with it down. -/
-theorem run_flag_down {α : Type} (setup : Setup) (computation : OracleComp HashSpec α) :
-    ∀ (p : St × Bool), ∀ z ∈ support ((simulateQ (hashImpl setup) computation).run p),
-      z.2.2 = false → p.2 = false := by
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro p z hz hflag
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-    subst hz
-    exact hflag
-  | query_bind input next ih =>
-    intro p z hz hflag
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
-    obtain ⟨step, hstep, hrest⟩ := hz
-    exact hash_flag_down setup input p step hstep (ih step.1 step.2 z hrest hflag)
-
-/-- **Along a blind hash run that ends with the flag down**: the digests stay, the record only
-grows, the cache stays cold, and the visible cache grows. -/
-theorem hash_run {α : Type} (setup : Setup) (computation : OracleComp HashSpec α) :
-    ∀ (p : St × Bool), ColdCache setup p.1 →
-      ∀ z ∈ support ((simulateQ (hashImpl setup) computation).run p), z.2.2 = false →
-        z.2.1.served = p.1.served ∧ p.1.record <+: z.2.1.record ∧
-          ColdCache setup z.2.1 ∧ Grows setup p.1 z.2.1 := by
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro p hcold z hz hflag
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-    subst hz
-    exact ⟨rfl, List.prefix_refl _, hcold, Grows.refl _ _⟩
-  | query_bind input next ih =>
-    intro p hcold z hz hflag
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
-    obtain ⟨step, hstep, hrest⟩ := hz
-    have hstepFlag := run_flag_down setup (next step.1) step.2 z hrest hflag
-    obtain ⟨-, hserved, hrecord, hcold', hgrows, -⟩ :=
-      hash_step setup input p hcold step hstep hstepFlag
-    obtain ⟨hserved', hprefix', hcold'', hgrows'⟩ := ih step.1 step.2 hcold' z hrest hflag
-    refine ⟨hserved'.trans hserved, ?_, hcold'', hgrows.trans hgrows'⟩
-    exact (List.prefix_append _ _).trans (hrecord ▸ hprefix')
-
-/-! ## The filed probes -/
-
-/-- **Every probe a replay at the final visible cache consults was filed at the starting
-digests**, along a blind hash run that ends with the flag down. -/
-theorem probe_filed {α : Type} (setup : Setup) (computation : OracleComp HashSpec α)
-    (probe : Bytes) (final : St)
-    (hquery : CacheReplay.QueriesUnder (visible setup final) computation probe) :
-    ∀ (p : St × Bool), ColdCache setup p.1 → ∀ (result : α),
-      (result, (final, false)) ∈ support ((simulateQ (hashImpl setup) computation).run p) →
-        (probe, p.1.served) ∈ final.record := by
-  induction hquery with
-  | head input next =>
-    intro p hcold result hmem
-    rw [simulateQ_bind, show simulateQ (hashImpl setup) (query (spec := HashSpec) input) =
-        hashImpl setup input from by simp, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    have hstepFlag := run_flag_down setup (next step.1) step.2 _ hrest rfl
-    obtain ⟨-, -, hrecord, hcold', -, -⟩ := hash_step setup input p hcold step hstep hstepFlag
-    obtain ⟨-, hprefix, -, -⟩ := hash_run setup (next step.1) step.2 hcold' _ hrest rfl
-    refine hprefix.subset ?_
-    rw [hrecord]
-    exact List.mem_append_right _ (List.mem_singleton_self _)
-  | tail input probe next _ ih =>
-    intro p hcold result hmem
-    rw [simulateQ_bind, show simulateQ (hashImpl setup) (query (spec := HashSpec) input) =
-        hashImpl setup input from by simp, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    have hstepFlag := run_flag_down setup (next step.1) step.2 _ hrest rfl
-    obtain ⟨-, hserved, -, hcold', -, hvisible⟩ :=
-      hash_step setup input p hcold step hstep hstepFlag
-    obtain ⟨-, -, -, hgrows⟩ := hash_run setup (next step.1) step.2 hcold' _ hrest rfl
-    have hreplay : CacheReplay.replay (visible setup final) input = step.1 := by
-      simp [CacheReplay.replay, hgrows input step.1 hvisible]
-    rw [← hserved]
-    exact ih step.2 hcold' result (by rw [hreplay]; exact hrest)
-
-/-- **A blind world run of a lifted hash computation that ends with the flag down** keeps the
-digests, and every probe a replay of the computation at the final visible cache consults is
-filed in the record at the starting digests. -/
+/-- **A blind world run of a lifted hash computation**, from any flag, keeps the digests, and
+every probe a replay of the computation at the final visible cache consults is filed in the
+record at the starting digests. -/
 theorem probes_filed {α : Type} (setup : Setup) (computation : OracleComp HashSpec α)
-    (p : St × Bool) (hcold : ColdCache setup p.1) (z : α × (St × Bool))
+    (p : St × Bool) (z : α × (St × Bool))
     (hz : z ∈ support ((simulateQ (ShareBound.worldImpl false setup)
-      (OracleComp.liftComp computation OracleWorld)).run p))
-    (hflag : z.2.2 = false) :
+      (OracleComp.liftComp computation OracleWorld)).run p)) :
     z.2.1.served = p.1.served ∧
       ∀ probe, CacheReplay.QueriesUnder (visible setup z.2.1) computation probe →
         (probe, p.1.served) ∈ z.2.1.record := by
-  rw [worldImpl_eq_add, QueryImpl.simulateQ_add_liftComp_right] at hz
-  obtain ⟨result, final, flag⟩ := z
-  simp only at hflag
-  subst hflag
-  refine ⟨(hash_run setup computation p hcold _ hz rfl).1, fun probe hprobe => ?_⟩
-  exact probe_filed setup computation probe final hprobe p hcold result hz
+  rw [worldImpl_eq_add] at hz
+  exact probes_filed_of setup Prod.fst (coinImpl setup) (hashImpl setup)
+    (routesBlind_hashImpl setup) computation p z hz
 
 /-- **At the verifier, as a hash computation lifted to the world.** -/
 theorem verify_probes_filed_lift (setup : Setup) (pk : PublicKey) (request : Message)
-    (wire : Bytes) (p : St × Bool) (hcold : ColdCache setup p.1) (z : Bool × (St × Bool))
+    (wire : Bytes) (p : St × Bool) (z : Bool × (St × Bool))
     (hz : z ∈ support ((simulateQ (ShareBound.worldImpl false setup)
       (OracleComp.liftComp (Scheme.verify (m := OracleComp HashSpec) pk request wire)
-        OracleWorld)).run p))
-    (hflag : z.2.2 = false) :
+        OracleWorld)).run p)) :
     z.2.1.served = p.1.served ∧
       ∀ probe, CacheReplay.QueriesUnder (visible setup z.2.1)
           (Scheme.verify (m := OracleComp HashSpec) pk request wire) probe →
         (probe, p.1.served) ∈ z.2.1.record :=
-  probes_filed setup _ p hcold z hz hflag
+  probes_filed setup _ p z hz
 
-/-- **At the verifier, run on the world** as the share game runs it. -/
-theorem verify_probes_filed (setup : Setup) (pk : PublicKey) (request : Message)
-    (wire : Bytes) (p : St × Bool) (hcold : ColdCache setup p.1) (z : Bool × (St × Bool))
-    (hz : z ∈ support ((simulateQ (ShareBound.worldImpl false setup)
-      (Scheme.verify (m := OracleComp OracleWorld) pk request wire)).run p))
-    (hflag : z.2.2 = false) :
-    z.2.1.served = p.1.served ∧
-      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2.1)
+/-- **At the verifier, run on the world** as the share game runs it, from any flag. -/
+theorem verify_probes_filed_any (setup : Setup) (pk : PublicKey) (request : Message)
+    (wire : Bytes) (p : St × Bool) (w : Bool × (St × Bool))
+    (hw : w ∈ support ((simulateQ (ShareBound.worldImpl false setup)
+      (Scheme.verify (m := OracleComp OracleWorld) pk request wire)).run p)) :
+    w.2.1.served = p.1.served ∧
+      ∀ probe, CacheReplay.QueriesUnder (visible setup w.2.1)
           (Scheme.verify (m := OracleComp HashSpec) pk request wire) probe →
-        (probe, p.1.served) ∈ z.2.1.record := by
-  rw [VerificationBudget.verify_lift] at hz
-  exact probes_filed setup _ p hcold z hz hflag
+        (probe, p.1.served) ∈ w.2.1.record := by
+  rw [VerificationBudget.verify_lift] at hw
+  exact probes_filed setup _ p w hw
 
-/-- **At the share game's verifier step** (`ShareGame.verifyShare`). -/
+/-- **At the share game's verifier step** (`ShareGame.verifyShare`), from any flag. -/
 theorem verifyShare_probes_filed (setup : Setup) (pk : PublicKey) (forgery : Forgery)
-    (p : St × Bool) (hcold : ColdCache setup p.1) (z : Bool × (St × Bool))
-    (hz : z ∈ support ((simulateQ (handler false setup) (verifyShare pk forgery)).run p))
-    (hflag : z.2.2 = false) :
+    (p : St × Bool) (z : Bool × (St × Bool))
+    (hz : z ∈ support ((simulateQ (handler false setup) (verifyShare pk forgery)).run p)) :
     z.2.1.served = p.1.served ∧
       ∀ probe, CacheReplay.QueriesUnder (visible setup z.2.1)
           (Scheme.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature) probe →
         (probe, p.1.served) ∈ z.2.1.record := by
   rw [ShareBound.verifyShare_run] at hz
-  exact verify_probes_filed setup pk forgery.message forgery.signature p hcold z hz hflag
+  exact verify_probes_filed_any setup pk forgery.message forgery.signature p z hz
 
 end SlhDsaSecurity.ShareFiled

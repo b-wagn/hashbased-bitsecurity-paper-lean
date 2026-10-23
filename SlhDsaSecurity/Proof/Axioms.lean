@@ -260,6 +260,10 @@ import SlhDsaSecurity.Proof.ShareJoint
 import SlhDsaSecurity.Proof.VerifierTally
 import SlhDsaSecurity.Proof.WorkTarget
 import SlhDsaSecurity.Proof.JointBudget
+import SlhDsaSecurity.Proof.ShareJointCouple
+import SlhDsaSecurity.Proof.ShareJointBound
+import SlhDsaSecurity.Proof.ShareJointShared
+import SlhDsaSecurity.Proof.WorkFinal
 
 /--
 info: 'SlhDsaSecurity.Checksum.checksum_le' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -17180,18 +17184,6 @@ info: 'SlhDsaSecurity.ShareFiled.hash_step' depends on axioms: [propext, Classic
 #print axioms SlhDsaSecurity.ShareFiled.hash_step
 
 /--
-info: 'SlhDsaSecurity.ShareFiled.hash_flag_down' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ShareFiled.hash_flag_down
-
-/--
-info: 'SlhDsaSecurity.ShareFiled.run_flag_down' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ShareFiled.run_flag_down
-
-/--
 info: 'SlhDsaSecurity.ShareFiled.hash_run' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -17214,12 +17206,6 @@ info: 'SlhDsaSecurity.ShareFiled.verify_probes_filed_lift' depends on axioms: [p
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareFiled.verify_probes_filed_lift
-
-/--
-info: 'SlhDsaSecurity.ShareFiled.verify_probes_filed' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ShareFiled.verify_probes_filed
 
 /--
 info: 'SlhDsaSecurity.ShareFiled.verifyShare_probes_filed' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -17418,3 +17404,183 @@ info: 'SlhDsaSecurity.JointBudget.probEvent_realFlat_le' depends on axioms: [pro
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.JointBudget.probEvent_realFlat_le
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.routed_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.routed_step
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.probes_filed_of' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.probes_filed_of
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.blindWorldImpl_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.blindWorldImpl_run
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.blindStep_verifyShare_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.blindStep_verifyShare_run
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.blindWorldImpl_eq_add' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.blindWorldImpl_eq_add
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.blindHashImpl_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.blindHashImpl_run
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.routesBlind_blindHashImpl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.routesBlind_blindHashImpl
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.blind_probes_filed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.blind_probes_filed
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.blind_verify_probes_filed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.blind_verify_probes_filed
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.blind_verifyShare_probes_filed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.blind_verifyShare_probes_filed
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.routesBlind_hashImpl' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.routesBlind_hashImpl
+
+/--
+info: 'SlhDsaSecurity.ShareFiled.verify_probes_filed_any' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFiled.verify_probes_filed_any
+
+/--
+info: 'SlhDsaSecurity.ShareJointCouple.toShare_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointCouple.toShare_run
+
+/--
+info: 'SlhDsaSecurity.ShareJointCouple.lenient_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointCouple.lenient_eq
+
+/--
+info: 'SlhDsaSecurity.ShareJointCouple.couple_whole' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointCouple.couple_whole
+
+/--
+info: 'SlhDsaSecurity.ShareJointBound.charged_append_single' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointBound.charged_append_single
+
+/--
+info: 'SlhDsaSecurity.ShareJointBound.charged_append_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointBound.charged_append_le
+
+/--
+info: 'SlhDsaSecurity.ShareJointBound.record_world_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointBound.record_world_step
+
+/--
+info: 'SlhDsaSecurity.ShareJointBound.reportsCost_charged' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointBound.reportsCost_charged
+
+/--
+info: 'SlhDsaSecurity.ShareJointBound.length_unfiled_claims_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointBound.length_unfiled_claims_le
+
+/--
+info: 'SlhDsaSecurity.ShareJointBound.charged_filing_shareCompJ' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointBound.charged_filing_shareCompJ
+
+/--
+info: 'SlhDsaSecurity.ShareJointBound.charged_blindRun_shareCompJ' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointBound.charged_blindRun_shareCompJ
+
+/--
+info: 'SlhDsaSecurity.ShareJointShared.walk_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointShared.walk_bound
+
+/--
+info: 'SlhDsaSecurity.ShareJointShared.hshared' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareJointShared.hshared
+
+/--
+info: 'SlhDsaSecurity.WorkFinal.setupBound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WorkFinal.setupBound
+
+/--
+info: 'SlhDsaSecurity.WorkFinal.verifierFiles' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WorkFinal.verifierFiles
+
+/--
+info: 'SlhDsaSecurity.WorkFinal.hsharedFused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WorkFinal.hsharedFused
+
+/--
+info: 'SlhDsaSecurity.WorkFinal.map_fst_runAll' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WorkFinal.map_fst_runAll
+
+/--
+info: 'SlhDsaSecurity.WorkFinal.advantage_eq_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WorkFinal.advantage_eq_zero
+
+/--
+info: 'SlhDsaSecurity.WorkFinal.hasLimitedSecurityBits_strong_work' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.WorkFinal.hasLimitedSecurityBits_strong_work

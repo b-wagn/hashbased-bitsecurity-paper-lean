@@ -36,9 +36,9 @@ lazily sampled random oracle.
 
 - **Strong unforgeability, 127 bits:** `Pr[win] ≤ q / 2^127` for every adversary whose work is
   at most `q ≥ 1` with probability one, where the game is an `Xmss.SecurityGame` counting hash
-  calls by source (`sign`, `hash`, `keygen`, `signer`, `verifier`) and the counting mode is
-  `Z = {sign, hash, keygen, verifier}`: signing requests, the adversary's own hash calls, key
-  generation's and final verification's — every source but the signer's own hash calls
+  calls by source (`sign`, `hash`, `keygen`, `signer`, `verifier`) and the counting mode is the
+  adversary's own work, `Z = {sign, hash, verifier}`: its signing requests, its own hash calls,
+  and the verification of its forgery. Key generation's and the signer's hash calls are free
   ([`SecurityBySource.lean`](SlhDsaSecurity/Statement/SecurityBySource.lean),
   [`StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean)).
   The framework has no signing limit and SLH-DSA's security fails without one (past `2^64`
@@ -54,10 +54,12 @@ adversary has not been given: an unrevealed cell of the key, or `SK.prf`). The a
 (`ShareRealCap`), couples the real game with a lenient presentation of it (`ShareWhole`,
 `ShareEvent`), moves to a blind game identical until a sticky flag (`ShareUntilBad`), and charges
 the flag one `2^-128` per recorded guess by stalling and redrawing each unrevealed cell
-(`BlindCharge`, `ShareBound`). `BySourceTarget` assembles the bound. With the signer's calls free,
-the answer half charges structural faults per *fresh cache entry* rather than per
-query (`FreshExpectation`): the signer's millions of canonical queries are cache hits, and its
-only fresh entries are its `PRF_msg` and digest inputs, one digest per request.
+(`BlindCharge`, `ShareBound`). `BySourceTarget` assembles the bound. With key generation's and the signer's
+calls free, the answer half charges structural faults per *fresh cache entry* rather than per
+query (`FreshExpectation`), and the shared half caps the adversary and the verifier jointly
+(`ShareJoint`): the verifier is charged at its own count, the forgery's claims cost only where
+the verifier does not already query them (`ClaimsQueried`, at most 231), and the 239 verifier
+queries the charge never pays for (`VerifyFree`) cover the rest. `WorkFinal` assembles the bound.
 
 ## Code
 
