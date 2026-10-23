@@ -107,7 +107,7 @@ theorem node_avoids_root (secretSeed seed : Digest) (address : Address)
       omega
 
 noncomputable abbrev rom : QueryImpl OracleWorld (StateT (QueryCache HashSpec) ProbComp) :=
-  XmssSecurity.RandomOracleModel.impl Bytes HashOutput
+  Xmss.RandomOracleModel.impl Bytes HashOutput
 
 /-- No call to a missing input leaves that cache entry missing. Uniform coins are harmless. -/
 theorem cache_none_of_zero_query_bound {α : Type}
@@ -133,7 +133,7 @@ theorem cache_none_of_zero_query_bound {α : Type}
         rcases queried with uniform | queried
         · have hcache : middleCache = initialCache := by
             symm
-            simpa [rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hquery
+            simpa [rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hquery
           exact hcache ▸ hnone
         · change (output, middleCache) ∈ support ((randomOracle queried).run initialCache) at hquery
           have hne' : target ≠ queried := fun heq => hne (heq ▸ rfl)

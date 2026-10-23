@@ -1,4 +1,7 @@
 import SlhDsaSecurity.Proof.Axioms
+import SlhDsaSecurity.Statement.Theorems.Correctness
+import SlhDsaSecurity.Statement.Theorems.StrongUnforgeability
+import SlhDsaSecurity.Statement.Theorems.Unforgeability
 
 /-!
 # The soundness invariant, checked by walking the environment

@@ -99,34 +99,34 @@ def publicPair (keys : SecretKey × PublicKey) : Digest × Digest :=
   (keys.2.seed, keys.2.root)
 
 theorem keygenInternal_publicPair_uniform (secretSeed prfSeed seed : Digest) :
-    𝒟[publicPair <$> XmssSecurity.RandomOracleModel.run
+    𝒟[publicPair <$> Xmss.RandomOracleModel.run
       (Scheme.keygenInternal secretSeed prfSeed seed :
         OracleComp OracleWorld (SecretKey × PublicKey))] =
       𝒟[(fun root => (seed, root)) <$> ($ᵗ Digest : ProbComp Digest)] := by
-  have hmap : publicPair <$> XmssSecurity.RandomOracleModel.run
+  have hmap : publicPair <$> Xmss.RandomOracleModel.run
       (Scheme.keygenInternal secretSeed prfSeed seed :
         OracleComp OracleWorld (SecretKey × PublicKey)) =
       (fun root => (seed, root)) <$>
         (simulateQ rom (Merkle.node secretSeed seed (Hypertree.address (layers - 1) 0)
           subtreeHeight 0 : OracleComp OracleWorld Digest)).run' ∅ := by
-    simp [XmssSecurity.RandomOracleModel.run, Scheme.keygenInternal, publicPair,
+    simp [Xmss.RandomOracleModel.run, Scheme.keygenInternal, publicPair,
       StateT.run'_eq, Functor.map_map, rom]
   rw [hmap, evalDist_map, top_root_uniform, ← evalDist_map]
 
 theorem keygen_run :
-    XmssSecurity.RandomOracleModel.run
+    Xmss.RandomOracleModel.run
       (Scheme.keygen : OracleComp OracleWorld (SecretKey × PublicKey)) = (do
         let secretSeed ← $ᵗ Digest
         let prfSeed ← $ᵗ Digest
         let seed ← $ᵗ Digest
-        XmssSecurity.RandomOracleModel.run
+        Xmss.RandomOracleModel.run
           (Scheme.keygenInternal secretSeed prfSeed seed :
             OracleComp OracleWorld (SecretKey × PublicKey))) := by
   have hsample : (simulateQ (fun i => query (spec := unifSpec) i) ($ᵗ Digest) :
       OracleComp OracleWorld Digest) = liftM ($ᵗ Digest : ProbComp Digest) := rfl
-  unfold XmssSecurity.RandomOracleModel.run Scheme.keygen
+  unfold Xmss.RandomOracleModel.run Scheme.keygen
   simp_rw [hsample, simulateQ_bind]
-  unfold XmssSecurity.RandomOracleModel.impl
+  unfold Xmss.RandomOracleModel.impl
   rw [roSim.run'_liftM_bind]
   apply bind_congr
   intro secretSeed
@@ -139,7 +139,7 @@ attribute [local irreducible] Scheme.keygenInternal
 
 /-- Public seed and public root are independent uniform 16-byte strings in the actual keygen. -/
 theorem publicPair_uniform :
-    𝒟[publicPair <$> XmssSecurity.RandomOracleModel.run
+    𝒟[publicPair <$> Xmss.RandomOracleModel.run
       (Scheme.keygen : OracleComp OracleWorld (SecretKey × PublicKey))] =
       𝒟[($ᵗ (Digest × Digest) : ProbComp (Digest × Digest))] := by
   rw [keygen_run]
@@ -150,7 +150,7 @@ theorem publicPair_uniform :
   intro prfSeed _
   have hinner : 𝒟[(do
       let seed ← $ᵗ Digest
-      publicPair <$> XmssSecurity.RandomOracleModel.run
+      publicPair <$> Xmss.RandomOracleModel.run
         (Scheme.keygenInternal secretSeed prfSeed seed :
           OracleComp OracleWorld (SecretKey × PublicKey)))] =
       𝒟[(do
@@ -164,7 +164,7 @@ theorem publicPair_uniform :
 /-- The byte-format overlap bound now applies to actual key generation, with no key-law premise. -/
 theorem keygen_prob_possible_le :
     Pr[fun keys => HashSeparation.Possible (publicPair keys) |
-      XmssSecurity.RandomOracleModel.run
+      Xmss.RandomOracleModel.run
         (Scheme.keygen : OracleComp OracleWorld (SecretKey × PublicKey))] ≤
       1 / ((2 ^ 165 : Nat) : ℝ≥0∞) := by
   rw [show (fun keys => HashSeparation.Possible (publicPair keys)) =

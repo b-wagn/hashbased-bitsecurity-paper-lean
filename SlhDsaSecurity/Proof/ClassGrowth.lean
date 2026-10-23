@@ -176,7 +176,7 @@ theorem growthOn_le_count (inClass : Bytes → Prop) (cost : OracleWorld.Domain 
     · -- A uniform coin leaves the cache alone, so whatever it costs is slack.
       have hform : (answer, middleCache) ∈
           Set.range (fun value : OracleWorld.Range (Sum.inl coin) => (value, initialCache)) := by
-        simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hquery
+        simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hquery
       obtain ⟨value, hvalue⟩ := hform
       rw [show middleCache = initialCache from (Prod.ext_iff.mp hvalue).2.symm] at hgrowth
       rw [hfinal, hcount]

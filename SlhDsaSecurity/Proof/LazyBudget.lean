@@ -162,7 +162,7 @@ theorem lazyProgram_step_mem_rom (publicSeed : Digest)
     obtain ⟨value, -, hpure⟩ := hz
     rw [support_pure, Set.mem_singleton_iff] at hpure
     rw [show z.1 = value from by rw [hpure], show z.2 = state from by rw [hpure]]
-    simp only [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl,
+    simp only [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl,
       QueryImpl.liftTarget, QueryImpl.add_apply_inl, HasQuery.toQueryImpl]
     simp
     exact Set.mem_range_self (f := fun a => (a, state.1.cache)) value

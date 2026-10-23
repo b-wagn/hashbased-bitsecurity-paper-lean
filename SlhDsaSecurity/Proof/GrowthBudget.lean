@@ -173,10 +173,10 @@ theorem growth_le_count {α : Type} (computation : OracleComp OracleWorld α)
     · -- A uniform coin costs nothing and leaves the cache alone.
       have hcache : middleCache = initialCache := by
         symm
-        simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hquery
+        simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hquery
       subst hcache
       rw [hfinal, hcount]
-      simpa [hashCost, XmssSecurity.RandomOracleModel.hashCost] using hgrowth
+      simpa [hashCost, Xmss.RandomOracleModel.hashCost] using hgrowth
     · -- A hash call costs one and installs at most one entry.
       have hcost : hashCost (Sum.inr input) = 1 := rfl
       rw [hfinal, hcount, hcost]

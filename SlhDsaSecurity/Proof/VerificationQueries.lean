@@ -1,6 +1,6 @@
 import SlhDsaSecurity.Statement.Scheme
 import SlhDsaSecurity.Proof.Checksum
-import XmssSecurity.Proof.Generic.ExactQueryCount
+import Xmss.Proof.Generic.ExactQueryCount
 import VCVio.OracleComp.SimSemantics.StateT.Basic
 
 /-! Oracle-call accounting for the concrete SLH-DSA verifier. -/
@@ -12,7 +12,7 @@ set_option maxRecDepth 2000
 
 namespace SlhDsaSecurity.VerificationQueries
 
-open XmssSecurity.Generic (ExactQueryCount)
+open Xmss.Generic (ExactQueryCount)
 
 /-- The generic XMSS lemma carries an unused `Code` instance; this version does not. -/
 theorem exact_bind {computation : OracleComp spec α} {count : Nat}

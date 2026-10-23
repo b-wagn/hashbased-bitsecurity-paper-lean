@@ -53,7 +53,7 @@ theorem pow_le_count_of_mem_support (adversary : Adversary) {outcome : Outcome �
   have hinstrumented : outcome ∈
       support (Prod.fst <$> WholeGameStructural.instrumentedRun adversary) := by
     rw [support_map]
-    unfold runAll XmssSecurity.RandomOracleModel.run at hmem
+    unfold runAll Xmss.RandomOracleModel.run at hmem
     rw [StateT.run'_eq, support_map] at hmem
     exact hmem
   rw [← Averaging.support_eq_of_evalDist_eq (evalDist_outcome adversary), warmedRun_eq,

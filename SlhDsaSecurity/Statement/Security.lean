@@ -44,7 +44,7 @@ def Counts.work (counts : Counts) : Nat := counts .hash + counts .verification
 abbrev CountedRun := AddWriterT Counts (StateT SigningLog (OracleComp OracleWorld))
 
 def hashCost : OracleWorld.Domain → Nat :=
-  XmssSecurity.RandomOracleModel.hashCost Bytes HashOutput
+  Xmss.RandomOracleModel.hashCost Bytes HashOutput
 
 def countQueries {α : Type} (cost : OracleWorld.Domain → Counts)
     (computation : OracleComp OracleWorld α) : OracleComp OracleWorld (α × Counts) :=
@@ -84,7 +84,7 @@ noncomputable def experiment (adversary : Adversary) : OracleComp OracleWorld Ou
 
 /-- All parties share one consistent oracle, initially empty. -/
 noncomputable def run (adversary : Adversary) : ProbComp Outcome :=
-  XmssSecurity.RandomOracleModel.run (experiment adversary)
+  Xmss.RandomOracleModel.run (experiment adversary)
 
 inductive Notion where
   | strong | standard
@@ -128,7 +128,7 @@ def countAllHashes {α : Type} (computation : OracleComp OracleWorld α) :
 
 /-- The same experiment, instrumented with the total hash count. -/
 noncomputable def runAll (adversary : Adversary) : ProbComp (Outcome × Nat) :=
-  XmssSecurity.RandomOracleModel.run (countAllHashes (experiment adversary))
+  Xmss.RandomOracleModel.run (countAllHashes (experiment adversary))
 
 /-- At most `2 ^ 64` signing requests and at most `q` hash calls in total, jointly with
 probability one. Key-generation and signing hashes are charged here. -/

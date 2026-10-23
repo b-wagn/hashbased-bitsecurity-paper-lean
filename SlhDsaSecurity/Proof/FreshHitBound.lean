@@ -126,7 +126,7 @@ theorem prob_hit_le {α : Type} (computation : OracleComp OracleWorld α)
           step.2 = initialCache := by
         intro step hstep
         have hform : ∃ coinValue, (coinValue, initialCache) = step := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hstep
         obtain ⟨coinValue, rfl⟩ := hform
         rfl
       calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *

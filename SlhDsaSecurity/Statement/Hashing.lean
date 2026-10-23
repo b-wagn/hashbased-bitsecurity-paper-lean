@@ -1,5 +1,5 @@
 import SlhDsaSecurity.Statement.Address
-import XmssSecurity.Statement.RandomOracleModel
+import Xmss.Statement.RandomOracleModel
 
 /-!
 # One shared ideal hash for the SHAKE byte formats
@@ -13,8 +13,8 @@ open OracleComp OracleSpec
 
 namespace SlhDsaSecurity
 
-abbrev HashSpec := XmssSecurity.RandomOracleModel.HashSpec Bytes HashOutput
-abbrev OracleWorld := XmssSecurity.RandomOracleModel.World Bytes HashOutput
+abbrev HashSpec := Xmss.RandomOracleModel.HashSpec Bytes HashOutput
+abbrev OracleWorld := Xmss.RandomOracleModel.World Bytes HashOutput
 
 namespace Hashing
 

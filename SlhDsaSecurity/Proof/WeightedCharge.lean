@@ -139,7 +139,7 @@ theorem prob_badWeighted_le {α : Type} (computation : OracleComp OracleWorld α
           step.2 = initialCache := by
         intro step hstep
         have hform : ∃ coinValue, (coinValue, initialCache) = step := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hstep
         obtain ⟨coinValue, rfl⟩ := hform
         rfl
       calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *
@@ -341,7 +341,7 @@ theorem weightedGrowth_le_count (weight : Bytes → Nat) {α : Type}
     · have hcache : middleCache = initialCache := by
         symm
         have hform : ∃ coinValue, (coinValue, initialCache) = (answer, middleCache) := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl]
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl]
             using hquery
         obtain ⟨coinValue, hpair⟩ := hform
         exact congrArg Prod.snd hpair
@@ -453,7 +453,7 @@ theorem jointGrowth_le_count (weight : Bytes → Nat) {α : Type}
     · have hcache : middleCache = initialCache := by
         symm
         have hform : ∃ coinValue, (coinValue, initialCache) = (answer, middleCache) := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl]
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl]
             using hquery
         obtain ⟨coinValue, hpair⟩ := hform
         exact congrArg Prod.snd hpair

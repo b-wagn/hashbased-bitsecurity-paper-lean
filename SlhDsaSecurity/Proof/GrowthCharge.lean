@@ -53,7 +53,7 @@ theorem cache_mono {α : Type} (computation : OracleComp OracleWorld α)
       rcases queried with coin | queried
       · have hcache : middleCache = initialCache := by
           symm
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hquery
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hquery
         exact hcache ▸ hpresent
       · change (output, middleCache) ∈ support ((randomOracle queried).run initialCache) at hquery
         cases hqueried : initialCache queried with
@@ -102,7 +102,7 @@ theorem cache_value_persists {α : Type} (computation : OracleComp OracleWorld �
       rcases queried with coin | queried
       · have hcache : middleCache = initialCache := by
           symm
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hquery
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hquery
         exact hcache ▸ hentry
       · change (answer, middleCache) ∈ support ((randomOracle queried).run initialCache) at hquery
         cases hqueried : initialCache queried with
@@ -165,7 +165,7 @@ theorem prob_cache_value_le {α : Type} (computation : OracleComp OracleWorld α
           step.2 = cache := by
         intro step hstep
         have hform : ∃ coinValue, (coinValue, cache) = step := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hstep
         obtain ⟨coinValue, rfl⟩ := hform
         rfl
       calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run cache] *
@@ -305,7 +305,7 @@ theorem prob_cache_values_le {α : Type} (computation : OracleComp OracleWorld �
           step.2 = cache := by
         intro step hstep
         have hform : ∃ coinValue, (coinValue, cache) = step := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hstep
         obtain ⟨coinValue, rfl⟩ := hform
         rfl
       calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run cache] *
@@ -596,7 +596,7 @@ theorem prob_badWithin_le {α : Type} (computation : OracleComp OracleWorld α)
           step.2 = initialCache := by
         intro step hstep
         have hform : ∃ coinValue, (coinValue, initialCache) = step := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hstep
         obtain ⟨coinValue, rfl⟩ := hform
         rfl
       calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *
@@ -726,7 +726,7 @@ theorem prob_hitWithin_le {α : Type} (computation : OracleComp OracleWorld α)
           step.2 = initialCache := by
         intro step hstep
         have hform : ∃ coinValue, (coinValue, initialCache) = step := by
-          simpa [KeygenUniform.rom, XmssSecurity.RandomOracleModel.impl, unifFwdImpl] using hstep
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hstep
         obtain ⟨coinValue, rfl⟩ := hform
         rfl
       calc ∑' step, Pr[= step | (KeygenUniform.rom (Sum.inl coin)).run initialCache] *

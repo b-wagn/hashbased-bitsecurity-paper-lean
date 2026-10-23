@@ -66,9 +66,9 @@ theorem reportsCost_real (warm : QueryCache HashSpec) (sk : SecretKey) :
     obtain ⟨w, -, rfl⟩ := exists_of_mem_support_map _ _ _ hz
     rcases world with coin | input
     · simp [realCost, phaseCost, ShareGame.weight, AdversaryQueries.work_add,
-        AdversaryQueries.work_single_hash, hashCost, XmssSecurity.RandomOracleModel.hashCost]
+        AdversaryQueries.work_single_hash, hashCost, Xmss.RandomOracleModel.hashCost]
     · simp [realCost, phaseCost, ShareGame.weight, AdversaryQueries.work_add,
-        AdversaryQueries.work_single_hash, hashCost, XmssSecurity.RandomOracleModel.hashCost]
+        AdversaryQueries.work_single_hash, hashCost, Xmss.RandomOracleModel.hashCost]
       omega
   · rw [realImpl_request_run] at hz
     obtain ⟨w, hw, rfl⟩ := exists_of_mem_support_map _ _ _ hz

@@ -1,38 +1,21 @@
 import SlhDsaSecurity.Proof.Correctness.Scheme
 import SlhDsaSecurity.Proof.Correctness.Naturality
+import SlhDsaSecurity.Statement.CorrectnessGame
 
 /-!
 # Correctness with one shared lazy random oracle
 
-The experiment runs the actual key generator, signer, and byte-facing verifier. All three
-share the same cache; the three key-generation seeds are private independent uniform samples.
-Invalid contexts produce `none`; every valid context produces `some true` with probability one.
+`CorrectnessGame.experiment` runs the actual key generator, signer, and byte-facing verifier. All
+three share the same cache; the three key-generation seeds are private independent uniform
+samples. Invalid contexts produce `none`; every valid context produces `some true` with
+probability one.
 -/
 
 open OracleComp OracleSpec
 
 namespace SlhDsaSecurity.Correctness.SharedROM
 
-section Algorithms
-
-variable {m : Type → Type} [Monad m] [HasQuery HashSpec m]
-
-/-- Keep framing rejection distinct from a signature that fails verification. -/
-def signAndVerify (keys : SecretKey × PublicKey) (request : Message) : m (Option Bool) := do
-  match ← SlhDsaSecurity.Scheme.sign keys.1 request with
-  | none => return none
-  | some signature => return some (← SlhDsaSecurity.Scheme.verify keys.2 request signature)
-
-def roundTrip (secretSeed prfSeed publicSeed : Digest) (request : Message) : m (Option Bool) := do
-  let keys ← SlhDsaSecurity.Scheme.keygenInternal secretSeed prfSeed publicSeed
-  signAndVerify keys request
-
-end Algorithms
-
-/-- Use actual randomized key generation, including its three private uniform samples. -/
-noncomputable def experiment (request : Message) : OracleComp OracleWorld (Option Bool) := do
-  let keys ← SlhDsaSecurity.Scheme.keygen
-  signAndVerify keys request
+open CorrectnessGame
 
 theorem roundTrip_fixed [HasQuery HashSpec Id]
     (secretSeed prfSeed publicSeed : Digest) (request : Message) :
@@ -102,7 +85,7 @@ theorem roundTrip_lift (secretSeed prfSeed publicSeed : Digest) (request : Messa
     (fun _ => rfl) secretSeed prfSeed publicSeed request).symm
 
 theorem experiment_run (request : Message) (cache : QueryCache HashSpec) :
-    (simulateQ (XmssSecurity.RandomOracleModel.impl Bytes HashOutput) (experiment request)).run' cache =
+    (simulateQ (Xmss.RandomOracleModel.impl Bytes HashOutput) (experiment request)).run' cache =
       (do
         let secretSeed ← ($ᵗ Digest : ProbComp Digest)
         let prfSeed ← ($ᵗ Digest : ProbComp Digest)
@@ -110,19 +93,19 @@ theorem experiment_run (request : Message) (cache : QueryCache HashSpec) :
         (simulateQ randomOracle
           (roundTrip secretSeed prfSeed publicSeed request : OracleComp HashSpec (Option Bool))).run' cache) := by
   simp only [experiment, SlhDsaSecurity.Scheme.keygen, bind_assoc]
-  change (simulateQ (XmssSecurity.RandomOracleModel.impl Bytes HashOutput)
+  change (simulateQ (Xmss.RandomOracleModel.impl Bytes HashOutput)
     (do
       let secretSeed ← liftM ($ᵗ Digest : ProbComp Digest)
       let prfSeed ← liftM ($ᵗ Digest : ProbComp Digest)
       let publicSeed ← liftM ($ᵗ Digest : ProbComp Digest)
       roundTrip secretSeed prfSeed publicSeed request)).run' cache = _
-  simp only [XmssSecurity.RandomOracleModel.impl, simulateQ_bind,
+  simp only [Xmss.RandomOracleModel.impl, simulateQ_bind,
     roSim.run'_liftM_bind, roundTrip_lift, QueryImpl.simulateQ_add_liftComp_right]
 
 /-- Actual private seed generation and all honest algorithms use the same shared oracle. -/
 theorem experiment_probability_one (request : Message) (cache : QueryCache HashSpec) :
     Pr[fun result => result = request.frame.map (fun _ => true) |
-      (simulateQ (XmssSecurity.RandomOracleModel.impl Bytes HashOutput)
+      (simulateQ (Xmss.RandomOracleModel.impl Bytes HashOutput)
         (experiment request)).run' cache] = 1 := by
   rw [experiment_run]
   simp_rw [probEvent_bind_eq_tsum, roundTrip_probability_one, mul_one,
@@ -132,15 +115,15 @@ theorem experiment_probability_one (request : Message) (cache : QueryCache HashS
 theorem valid_context_probability_one (request : Message)
     (hcontext : request.context.length ≤ 255) :
     Pr[fun result => result = some true |
-      XmssSecurity.RandomOracleModel.run (experiment request)] = 1 := by
-  simpa only [XmssSecurity.RandomOracleModel.run, Message.frame, if_pos hcontext, Option.map_some] using
+      Xmss.RandomOracleModel.run (experiment request)] = 1 := by
+  simpa only [Xmss.RandomOracleModel.run, Message.frame, if_pos hcontext, Option.map_some] using
     experiment_probability_one request ∅
 
 theorem invalid_context_probability_one (request : Message)
     (hcontext : 255 < request.context.length) :
     Pr[fun result => result = none |
-      XmssSecurity.RandomOracleModel.run (experiment request)] = 1 := by
-  simpa only [XmssSecurity.RandomOracleModel.run, Message.frame, if_neg (by omega : ¬ request.context.length ≤ 255), Option.map_none] using
+      Xmss.RandomOracleModel.run (experiment request)] = 1 := by
+  simpa only [Xmss.RandomOracleModel.run, Message.frame, if_neg (by omega : ¬ request.context.length ≤ 255), Option.map_none] using
     experiment_probability_one request ∅
 
 end SlhDsaSecurity.Correctness.SharedROM

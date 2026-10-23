@@ -12,14 +12,11 @@ import SlhDsaSecurity.Proof.WriterState
 import SlhDsaSecurity.Proof.ClassExpectation
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.ClassGrowth
-import SlhDsaSecurity.Proof.SensitiveExpectation
 import SlhDsaSecurity.Proof.CacheAvailability
 import SlhDsaSecurity.Proof.SplitRouted
 import SlhDsaSecurity.Proof.CoverageRouted
 import SlhDsaSecurity.Proof.CanonicalSignature
-import SlhDsaSecurity.Proof.SensitiveWarm
 import SlhDsaSecurity.Proof.LazyBudget
-import SlhDsaSecurity.Proof.WarmProbes
 import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.ChargedProbe
 import SlhDsaSecurity.Proof.RedrawCell
@@ -50,7 +47,6 @@ import SlhDsaSecurity.Proof.ForsBranch
 import SlhDsaSecurity.Proof.WarmedSplit
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.CachedRun
-import SlhDsaSecurity.Proof.Parameters
 import SlhDsaSecurity.Proof.Checksum
 import SlhDsaSecurity.Proof.ForsCoverage
 import SlhDsaSecurity.Proof.ForsMoments
@@ -59,7 +55,6 @@ import SlhDsaSecurity.Proof.Hashing
 import SlhDsaSecurity.Proof.HashSeparation
 import SlhDsaSecurity.Proof.Security
 import SlhDsaSecurity.Proof.SignatureCanonical
-import SlhDsaSecurity.Proof.PartialDigest
 import SlhDsaSecurity.Proof.ForsConcentrationOccupancy
 import SlhDsaSecurity.Proof.VerificationQueries
 import SlhDsaSecurity.Proof.KeygenUniform
@@ -71,12 +66,9 @@ import SlhDsaSecurity.Proof.Correctness.Scheme
 import SlhDsaSecurity.Proof.ForsPrefixCapacity
 import SlhDsaSecurity.Proof.ForsConcentrationExtended
 import SlhDsaSecurity.Proof.Correctness.SharedROM
-import SlhDsaSecurity.Proof.BlindKey
 import SlhDsaSecurity.Proof.ForsDisclosureTape
-import SlhDsaSecurity.Proof.ForsDisclosurePrefix
 import SlhDsaSecurity.Proof.ForsLeaveOneOut
 import SlhDsaSecurity.Proof.ForsConcentrationSharper
-import SlhDsaSecurity.Proof.ROMPresampling
 import SlhDsaSecurity.Proof.CanonicalGraph.Correspondence
 import SlhDsaSecurity.Proof.CanonicalGraph.Parsing
 import SlhDsaSecurity.Proof.CanonicalGraph.Separation
@@ -98,13 +90,11 @@ import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.WholeGameStructural
 import SlhDsaSecurity.Proof.ForsCoverageTerm
 import SlhDsaSecurity.Proof.Assembly
-import SlhDsaSecurity.Proof.PerQueryBudget
 import SlhDsaSecurity.Proof.CombinedCharge
 import SlhDsaSecurity.Proof.SecretGuessCharge
 import SlhDsaSecurity.Proof.ClassCharge
 import SlhDsaSecurity.Proof.SeedDeferral
 import SlhDsaSecurity.Proof.QueryCached
-import SlhDsaSecurity.Proof.ClassBudget
 import SlhDsaSecurity.Proof.CacheReplay
 import SlhDsaSecurity.Proof.MerkleCharge
 import SlhDsaSecurity.Proof.ForsCharge
@@ -114,7 +104,6 @@ import SlhDsaSecurity.Proof.CanonicalCells
 import SlhDsaSecurity.Proof.PathEntry
 import SlhDsaSecurity.Proof.WotsEntry
 import SlhDsaSecurity.Proof.HypertreeDispatch
-import SlhDsaSecurity.Proof.InputCoupling
 import SlhDsaSecurity.Proof.ForsDispatch
 import SlhDsaSecurity.Proof.BlindComparison
 import SlhDsaSecurity.Proof.TrackedQueries
@@ -123,10 +112,7 @@ import SlhDsaSecurity.Proof.Presample
 import SlhDsaSecurity.Proof.GameBridge
 import SlhDsaSecurity.Proof.MainTheorem
 import SlhDsaSecurity.Proof.CollisionToDeviating
-import SlhDsaSecurity.Proof.DigestInputDistinct
 import SlhDsaSecurity.Proof.FramingClosure
-import SlhDsaSecurity.Proof.SharedOracleArithmetic
-import SlhDsaSecurity.Proof.EligibilityCertificate.Coefficients
 import SlhDsaSecurity.Proof.KeygenValue
 import SlhDsaSecurity.Proof.RecordedPhase
 import SlhDsaSecurity.Proof.LinkedGame
@@ -140,7 +126,6 @@ import SlhDsaSecurity.Proof.Correctness.Merkle
 import SlhDsaSecurity.Proof.Correctness.Naturality
 import SlhDsaSecurity.Proof.Correctness.Wots
 import SlhDsaSecurity.Proof.Correctness.BinaryPath
-import SlhDsaSecurity.Proof.EligibilityCertificate.Arithmetic
 import SlhDsaSecurity.Proof.Extraction.BinaryPath
 import SlhDsaSecurity.Proof.ForsConcentrationPoisson
 import SlhDsaSecurity.Proof.Signature
@@ -150,13 +135,11 @@ import SlhDsaSecurity.Proof.MessageDigest
 import SlhDsaSecurity.Proof.VerifierNaturality
 import SlhDsaSecurity.Proof.AnswerSide
 import SlhDsaSecurity.Proof.SigningFaithful
-import SlhDsaSecurity.Proof.BlockDisclosures
 import SlhDsaSecurity.Proof.SplitPrefix
 import SlhDsaSecurity.Proof.RandomiserProvenance
 import SlhDsaSecurity.Proof.PhaseProvenance
 import SlhDsaSecurity.Proof.CacheProvenance
 import SlhDsaSecurity.Proof.SplitWitness
-import SlhDsaSecurity.Proof.RandomiserDeferral
 import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.LateCharge
 import SlhDsaSecurity.Proof.TapeFactor
@@ -167,14 +150,11 @@ import SlhDsaSecurity.Proof.TableTail
 import SlhDsaSecurity.Proof.BlockViews
 import SlhDsaSecurity.Proof.SharedJoin
 import SlhDsaSecurity.Proof.CoverageCount
-import SlhDsaSecurity.Proof.HandlerComparison
 import SlhDsaSecurity.Proof.SignerRandomiser
-import SlhDsaSecurity.Proof.OffClassBlind
 import SlhDsaSecurity.Proof.RandomiserRecord
 import SlhDsaSecurity.Proof.AnswerCoverage
 import SlhDsaSecurity.Proof.ServedDisclosure
 import SlhDsaSecurity.Proof.ServedLog
-import SlhDsaSecurity.Proof.SplitRecorder
 import SlhDsaSecurity.Proof.ServingCarrier
 import SlhDsaSecurity.Proof.AnswerJoin
 import SlhDsaSecurity.Proof.PhaseFusion
@@ -200,13 +180,11 @@ import SlhDsaSecurity.Proof.CarriedWitness
 import SlhDsaSecurity.Proof.SignerDigestStep
 import SlhDsaSecurity.Proof.SignerRightRecord
 import SlhDsaSecurity.Proof.PhaseRightRecord
-import SlhDsaSecurity.Proof.ServedRandomised
 import SlhDsaSecurity.Proof.RecordInvariant
 import SlhDsaSecurity.Proof.CarrierRecordings
 import SlhDsaSecurity.Proof.CarrierTailRecordings
 import SlhDsaSecurity.Proof.CarrierSignRecord
 import SlhDsaSecurity.Proof.CarrierPhaseRecord
-import SlhDsaSecurity.Proof.ObligationShapes
 import SlhDsaSecurity.Proof.CarrierRecord
 import SlhDsaSecurity.Proof.AnswerShape
 import SlhDsaSecurity.Proof.HandlerFacts
@@ -216,29 +194,19 @@ import SlhDsaSecurity.Proof.HonestTail
 import SlhDsaSecurity.Proof.ServingForget
 import SlhDsaSecurity.Proof.BracketedRun
 import SlhDsaSecurity.Proof.CarrierTail
-import SlhDsaSecurity.Proof.NoticingBlockViews
 import SlhDsaSecurity.Proof.AnswerCarrier
 import SlhDsaSecurity.Proof.HandlerStall
 import SlhDsaSecurity.Proof.HandlerCharge
 import SlhDsaSecurity.Proof.HandlerLenient
 import SlhDsaSecurity.Proof.ServingTable
-import SlhDsaSecurity.Proof.ChargedHalf
 import SlhDsaSecurity.Proof.CarrierFiles
 import SlhDsaSecurity.Proof.CountedHandler
-import SlhDsaSecurity.Proof.CarrierAvailability
 import SlhDsaSecurity.Proof.NoticingTape
-import SlhDsaSecurity.Proof.NoticingCoverage
 import SlhDsaSecurity.Proof.NoticingBlocks
 import SlhDsaSecurity.Proof.FusedTape
-import SlhDsaSecurity.Proof.BracketedOrdering
 import SlhDsaSecurity.Proof.CarrierClearFraming
 import SlhDsaSecurity.Proof.OrderingCompose
-import SlhDsaSecurity.Proof.CarrierCharge
-import SlhDsaSecurity.Proof.ViewRate
-import SlhDsaSecurity.Proof.CarrierOrdering
 import SlhDsaSecurity.Proof.CarrierCoverage
-import SlhDsaSecurity.Proof.CarrierShared
-import SlhDsaSecurity.Proof.CarrierDemand
 import SlhDsaSecurity.Proof.NoticingCover
 import SlhDsaSecurity.Proof.FusedCover
 import SlhDsaSecurity.Proof.SplitCounted
@@ -246,24 +214,11 @@ import SlhDsaSecurity.Proof.SplitTail
 import SlhDsaSecurity.Proof.SplitCarrierTail
 import SlhDsaSecurity.Proof.CarrierCover
 import SlhDsaSecurity.Proof.CarrierJoin
-import SlhDsaSecurity.Proof.RecordPrfCharge
-import SlhDsaSecurity.Proof.RecordColumn
-import SlhDsaSecurity.Proof.TargetColumn
 import SlhDsaSecurity.Proof.CarrierSplit
-import SlhDsaSecurity.Proof.RecordSlot
 import SlhDsaSecurity.Proof.CarrierCap
 import SlhDsaSecurity.Proof.CarrierLeftRecord
 import SlhDsaSecurity.Proof.AnswerCarrierBound
-import SlhDsaSecurity.Proof.SharedOracleScaling
-import SlhDsaSecurity.Proof.HandlerEvent
 import SlhDsaSecurity.Proof.CarrierServedLog
-import SlhDsaSecurity.Proof.LedgerThird
-import SlhDsaSecurity.Proof.SeedFlag
-import SlhDsaSecurity.Proof.PrfClassCount
-import SlhDsaSecurity.Proof.SplitSeedView
-import SlhDsaSecurity.Proof.ForgetsOn
-import SlhDsaSecurity.Proof.GuessingBar
-import SlhDsaSecurity.Proof.ServingCounted
 import SlhDsaSecurity.Proof.Target127
 import SlhDsaSecurity.Proof.FiredCoverage
 import SlhDsaSecurity.Proof.SuffixCausal
@@ -293,11 +248,6 @@ import SlhDsaSecurity.Proof.ShareClaims
 import SlhDsaSecurity.Proof.ShareEvent
 import SlhDsaSecurity.Proof.ShareFinal
 
-/--
-info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.parameters_consistent
 
 /--
 info: 'SlhDsaSecurity.Checksum.checksum_le' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -491,11 +441,6 @@ info: 'SlhDsaSecurity.Signature.toBytes_fromBytes' depends on axioms: [propext, 
 #guard_msgs in
 #print axioms SlhDsaSecurity.Signature.toBytes_fromBytes
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.coverage_le_256' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.coverage_le_256
 
 /--
 info: 'SlhDsaSecurity.ForsConcentration.uniform_load_tail_of_le' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -587,11 +532,6 @@ info: 'SlhDsaSecurity.Correctness.SharedROM.experiment_probability_one' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.Correctness.SharedROM.experiment_probability_one
 
-/--
-info: 'SlhDsaSecurity.BlindKey.mixture_hit_le_expected' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlindKey.mixture_hit_le_expected
 
 /--
 info: 'SlhDsaSecurity.ForsDisclosureTape.bad_load_probability' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -599,11 +539,6 @@ info: 'SlhDsaSecurity.ForsDisclosureTape.bad_load_probability' depends on axioms
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsDisclosureTape.bad_load_probability
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.bad_prefix_probability' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.bad_prefix_probability
 
 /--
 info: 'SlhDsaSecurity.ForsLeaveOneOut.independent_tape_mixture_coverage_le' depends on axioms: [propext,
@@ -621,21 +556,7 @@ info: 'SlhDsaSecurity.ForsLeaveOneOut.independent_tape_coverage_le_sharper' depe
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsLeaveOneOut.independent_tape_coverage_le_sharper
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.evalDist_security_after_preparation' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.evalDist_security_after_preparation
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.security_budget_after_preparation' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.security_budget_after_preparation
 
 /--
 info: 'SlhDsaSecurity.CanonicalGraph.value_unique' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -711,25 +632,8 @@ info: 'SlhDsaSecurity.FramingClosure.prepend_digest_exists_frame' depends on axi
 #guard_msgs in
 #print axioms SlhDsaSecurity.FramingClosure.prepend_digest_exists_frame
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.proposed_bound_exceeds_target' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.proposed_bound_exceeds_target
 
-/--
-info: 'SlhDsaSecurity.EligibilityCertificate.count_gt' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.EligibilityCertificate.count_gt
 
-/--
-info: 'SlhDsaSecurity.EligibilityCertificate.coeff_eq_digit' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.EligibilityCertificate.coeff_eq_digit
 
 /--
 info: 'SlhDsaSecurity.Extraction.Fors.root_eq_canonical_or_collision' depends on axioms: [propext,
@@ -971,17 +875,7 @@ info: 'SlhDsaSecurity.CollisionToDeviating.exists_deviating_child' depends on ax
 #guard_msgs in
 #print axioms SlhDsaSecurity.CollisionToDeviating.exists_deviating_child
 
-/--
-info: 'SlhDsaSecurity.DigestInputDistinct.messageInput_injective_of_frame' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.DigestInputDistinct.messageInput_injective_of_frame
 
-/--
-info: 'SlhDsaSecurity.DigestInputDistinct.separated_messageInput' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.DigestInputDistinct.separated_messageInput
 
 /--
 info: 'SlhDsaSecurity.GrowthCharge.cache_value_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -1045,41 +939,11 @@ info: 'SlhDsaSecurity.FreshDigest.prob_tape_event_le' depends on axioms: [propex
 #guard_msgs in
 #print axioms SlhDsaSecurity.FreshDigest.prob_tape_event_le
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.union_exceeds_target' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.union_exceeds_target
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.split_within_target' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.split_within_target
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.union_exceeds_target_of_128' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.union_exceeds_target_of_128
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.union_within_target_of_256' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.union_within_target_of_256
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.classRate_le_target' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.classRate_le_target
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.total_le_target' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.total_le_target
 
 /--
 info: 'SlhDsaSecurity.CombinedCharge.prob_combinedBad_le' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -1195,11 +1059,6 @@ info: 'SlhDsaSecurity.Assembly.cap_defect_within_slack' depends on axioms: [prop
 #guard_msgs in
 #print axioms SlhDsaSecurity.Assembly.cap_defect_within_slack
 
-/--
-info: 'SlhDsaSecurity.ClassBudget.growthOn_le_count' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ClassBudget.growthOn_le_count
 
 /--
 info: 'SlhDsaSecurity.CollisionToDeviating.deviatingCollision_of_single_child' depends on axioms: [propext, Quot.sound]
@@ -1429,73 +1288,16 @@ info: 'SlhDsaSecurity.HypertreeDispatch.queriesUnder_rootFromSignature_tail' dep
 #guard_msgs in
 #print axioms SlhDsaSecurity.HypertreeDispatch.queriesUnder_rootFromSignature_tail
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.probEvent_seedDerived_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.probEvent_seedDerived_le
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.real_step_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.real_step_eq
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.evalDist_blind_step' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.evalDist_blind_step
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.tvDist_step_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.tvDist_step_le
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.step_eq_of_uncharged' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.step_eq_of_uncharged
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.real_bad_monotone' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.real_bad_monotone
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.advantage_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.advantage_le
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.chargedStep_of_probEvent_bad_step_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.chargedStep_of_probEvent_bad_step_le
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.probEvent_bad_step_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.probEvent_bad_step_le
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.probEvent_bad_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.probEvent_bad_le
 
-/--
-info: 'SlhDsaSecurity.InputCoupling.advantage_le_two_mul' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.InputCoupling.advantage_le_two_mul
 
 /--
 info: 'SlhDsaSecurity.ForsDispatch.deviatingCollision_of_pair' depends on axioms: [propext, Quot.sound]
@@ -4227,47 +4029,12 @@ info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.RecordedBudget.work_add_pow_le_of_budget_stripped
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_strip' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_strip
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_adversary' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_adversary
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_countQueries' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_countQueries
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_strippedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_strippedAfterSeeds
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.exists_mem_warmProbes' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.exists_mem_warmProbes
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_add_pow_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_add_pow_le_of_budget
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.length_warmProbes_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.length_warmProbes_le_of_budget
 
 /--
 info: 'SlhDsaSecurity.ClaimedProbes.length_claimedCandidatesOf' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -4275,29 +4042,9 @@ info: 'SlhDsaSecurity.ClaimedProbes.length_claimedCandidatesOf' depends on axiom
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClaimedProbes.length_claimedCandidatesOf
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.length_claimedEntries' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.length_claimedEntries
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.length_record_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.length_record_le_of_budget
 
-/--
-info: 'SlhDsaSecurity.SensitiveWarm.canonical_of_sensitive' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SensitiveWarm.canonical_of_sensitive
 
-/--
-info: 'SlhDsaSecurity.SensitiveWarm.warmCache_ne_none_of_sensitive' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SensitiveWarm.warmCache_ne_none_of_sensitive
 
 /--
 info: 'SlhDsaSecurity.StalledRun.expectation_frozen' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -4915,25 +4662,8 @@ info: 'SlhDsaSecurity.ClassGrowth.growthOn_le_classCount' depends on axioms: [pr
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassGrowth.growthOn_le_classCount
 
-/--
-info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_expected_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_expected_le
 
-/--
-info: 'SlhDsaSecurity.SensitiveExpectation.expected_length_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SensitiveExpectation.expected_length_le
 
-/--
-info: 'SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SensitiveExpectation.prob_run_sensitive_le'
 
 /--
 info: 'SlhDsaSecurity.OpenCache.reading_step_congr' depends on axioms: [propext]
@@ -5431,29 +5161,9 @@ info: 'SlhDsaSecurity.BlindComparison.tagged_neverFails' depends on axioms: [pro
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlindComparison.tagged_neverFails
 
-/--
-info: 'SlhDsaSecurity.BlindKey.coordinate_probability' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlindKey.coordinate_probability
 
-/--
-info: 'SlhDsaSecurity.BlindKey.expectedGuesses_add_cost_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlindKey.expectedGuesses_add_cost_le
 
-/--
-info: 'SlhDsaSecurity.BlindKey.expectedGuesses_le_of_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlindKey.expectedGuesses_le_of_cap
 
-/--
-info: 'SlhDsaSecurity.BlindKey.hit_probability_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlindKey.hit_probability_le
 
 /--
 info: 'SlhDsaSecurity.CacheAvailability.Persists.refl' does not depend on any axioms
@@ -5897,17 +5607,7 @@ info: 'SlhDsaSecurity.Checksum.messageDigit_injective' depends on axioms: [prope
 #guard_msgs in
 #print axioms SlhDsaSecurity.Checksum.messageDigit_injective
 
-/--
-info: 'SlhDsaSecurity.ClassBudget.countClass_pure' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ClassBudget.countClass_pure
 
-/--
-info: 'SlhDsaSecurity.ClassBudget.countClass_query_bind' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ClassBudget.countClass_query_bind
 
 /--
 info: 'SlhDsaSecurity.ClassCharge.GrowthAtMostOn.cacheQuery' depends on axioms: [propext, Quot.sound]
@@ -6245,11 +5945,6 @@ info: 'SlhDsaSecurity.Correctness.xor_add_even' depends on axioms: [propext, Cla
 #guard_msgs in
 #print axioms SlhDsaSecurity.Correctness.xor_add_even
 
-/--
-info: 'SlhDsaSecurity.DigestInputDistinct.messageInput_ne_of_request_ne' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.DigestInputDistinct.messageInput_ne_of_request_ne
 
 /--
 info: 'SlhDsaSecurity.DigestTape.answers_append' depends on axioms: [propext]
@@ -6311,29 +6006,9 @@ info: 'SlhDsaSecurity.DigestTape.recorder_cache_value_persists' depends on axiom
 #guard_msgs in
 #print axioms SlhDsaSecurity.DigestTape.recorder_cache_value_persists
 
-/--
-info: 'SlhDsaSecurity.EligibilityCertificate.coeff_le_eval_one' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.EligibilityCertificate.coeff_le_eval_one
 
-/--
-info: 'SlhDsaSecurity.EligibilityCertificate.count_value' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.EligibilityCertificate.count_value
 
-/--
-info: 'SlhDsaSecurity.EligibilityCertificate.fastPow_eq' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.EligibilityCertificate.fastPow_eq
 
-/--
-info: 'SlhDsaSecurity.EligibilityCertificate.pow2_eq' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.EligibilityCertificate.pow2_eq
 
 /--
 info: 'SlhDsaSecurity.Extraction.BinaryPath.canonical_step' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -6577,67 +6252,14 @@ info: 'SlhDsaSecurity.ForsCoverageTerm.prob_coveredAnswer_le_sharper' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.ForsCoverageTerm.prob_coveredAnswer_le_sharper
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.coordinate_injective' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.coordinate_injective
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.evalDist_groupLeaves_uniform' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.evalDist_groupLeaves_uniform
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.evalDist_joinedTape_uniform' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.evalDist_joinedTape_uniform
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.evalDist_uniform_pair' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.evalDist_uniform_pair
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.fixed_assignment_prefix_cap' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.fixed_assignment_prefix_cap
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.groupLeaves_covered_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.groupLeaves_covered_iff
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.prefix_tape_uniform_measure' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.prefix_tape_uniform_measure
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.uniform_pi_measure' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.uniform_pi_measure
 
-/--
-info: 'SlhDsaSecurity.ForsDisclosurePrefix.wordLoads_eq_card' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForsDisclosurePrefix.wordLoads_eq_card
 
 /--
 info: 'SlhDsaSecurity.ForsDisclosureTape.bad_load_probability_sharper' depends on axioms: [propext,
@@ -7193,61 +6815,14 @@ info: 'SlhDsaSecurity.MessageDigest.split_injective' depends on axioms: [propext
 #guard_msgs in
 #print axioms SlhDsaSecurity.MessageDigest.split_injective
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.coverage_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.coverage_le
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.coverage_singleton_le_256' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.coverage_singleton_le_256
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.covered_card_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.covered_card_le
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.evalDist_restrict_parse_append_uniform' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.evalDist_restrict_parse_append_uniform
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.restrict_parse_append' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.restrict_parse_append
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.split_bijective' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.split_bijective
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.split_injective' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.split_injective
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.truncate_append' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.truncate_append
 
-/--
-info: 'SlhDsaSecurity.PartialDigest.uniform_coverage_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PartialDigest.uniform_coverage_le
 
 /--
 info: 'SlhDsaSecurity.PathEntry.replayFold_eq_value' depends on axioms: [propext, Quot.sound]
@@ -7255,41 +6830,11 @@ info: 'SlhDsaSecurity.PathEntry.replayFold_eq_value' depends on axioms: [propext
 #guard_msgs in
 #print axioms SlhDsaSecurity.PathEntry.replayFold_eq_value
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.classRate_structural' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.classRate_structural
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.dearest_within_target' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.dearest_within_target
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.seedGuessRate_128' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.seedGuessRate_128
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.seedGuessRate_256' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.seedGuessRate_256
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.union_bound_is_weaker' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.union_bound_is_weaker
 
-/--
-info: 'SlhDsaSecurity.PerQueryBudget.union_rate_eq' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PerQueryBudget.union_rate_eq
 
 /--
 info: 'SlhDsaSecurity.Presample.cacheQuery_comm' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -7309,43 +6854,11 @@ info: 'SlhDsaSecurity.QueryCached.step_cached' depends on axioms: [propext, Clas
 #guard_msgs in
 #print axioms SlhDsaSecurity.QueryCached.step_cached
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.cacheQuery_comm' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.cacheQuery_comm
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.evalDist_presample_computation' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.evalDist_presample_computation
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.evalDist_presample_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.evalDist_presample_fresh
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.evalDist_presample_query' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.evalDist_presample_query
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.property_after_preparation' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.property_after_preparation
 
-/--
-info: 'SlhDsaSecurity.ROMPresampling.run'_query_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ROMPresampling.run'_query_bind
 
 /--
 info: 'SlhDsaSecurity.RecordedBudget.work_add_pow_add_served_le_of_budget_recorded' depends on axioms: [propext,
@@ -7423,59 +6936,13 @@ info: 'SlhDsaSecurity.SeedDeferral.seed_query_comm_transcript' depends on axioms
 #guard_msgs in
 #print axioms SlhDsaSecurity.SeedDeferral.seed_query_comm_transcript
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.admissible_checksum_tail' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.admissible_checksum_tail
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.baseline_setup_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.baseline_setup_cap
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.continuation_certificate' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.continuation_certificate
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.eligible_key_failure' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.eligible_key_failure
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.maximum_frame_length' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.maximum_frame_length
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.occupied_mean_certificate' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.occupied_mean_certificate
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.signing_allowance' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.signing_allowance
 
-/--
-info: 'SlhDsaSecurity.SharedOracleArithmetic.total_work_cap' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.total_work_cap
 
 /--
 info: 'SlhDsaSecurity.Signature.card' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -7865,89 +7332,19 @@ info: 'SlhDsaSecurity.VerifierNaturality.wots_simulate' depends on axioms: [prop
 #guard_msgs in
 #print axioms SlhDsaSecurity.VerifierNaturality.wots_simulate
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.lazyProgram_hash_probes' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.lazyProgram_hash_probes
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.length_warmProbes' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.length_warmProbes
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.mem_warmProbes' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.mem_warmProbes
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_adversaryImpl' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_adversaryImpl
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_append' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_append
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_cold_query_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_cold_query_bind
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_hash_cold' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_hash_cold
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_hash_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_hash_le
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_singleton_cold' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_singleton_cold
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_singleton_le' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_singleton_le
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_step_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_step_le
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_strippedKeygen' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_strippedKeygen
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_strippedSign' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_strippedSign
 
-/--
-info: 'SlhDsaSecurity.WarmProbes.warmCount_strippedSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.WarmProbes.warmCount_strippedSigningOracle
 
 /--
 info: 'SlhDsaSecurity.WeightedCharge.WeightedGrowthAtMost.add_of_cacheQuery' depends on axioms: [propext,
@@ -8459,63 +7856,14 @@ info: 'SlhDsaSecurity.RedrawCell.signLayers_congr' depends on axioms: [propext, 
 #guard_msgs in
 #print axioms SlhDsaSecurity.RedrawCell.signLayers_congr
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.evalDist_leftTape_uniform' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.evalDist_leftTape_uniform
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.block_bad_load_probability' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.block_bad_load_probability
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_card_le_loads' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_card_le_loads
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_update_self' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.blockDisclosuresExcept_update_self
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.block_coverage_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.block_coverage_le
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.uses_le_of_declines_block' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.uses_le_of_declines_block
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.expectedUses_le_trials' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.expectedUses_le_trials
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.block_coverage_le_trials' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.block_coverage_le_trials
 
-/--
-info: 'SlhDsaSecurity.BlockDisclosures.splitBlocks_fst' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BlockDisclosures.splitBlocks_fst
 
 /--
 info: 'SlhDsaSecurity.GraphStakes.honestMessage_zero' depends on axioms: [propext]
@@ -9083,61 +8431,14 @@ info: 'SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late' depends o
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitWitness.mem_records_of_covered_of_not_late
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.withPrf_prf' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.withPrf_prf
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.mem_support_withPrf' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.mem_support_withPrf
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.goodWalk_withPrf' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.goodWalk_withPrf
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.graphWalk_expand' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.graphWalk_expand
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.evalDist_graphWalk_late' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.evalDist_graphWalk_late
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.evalDist_resample_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.evalDist_resample_prf
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_bind_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_bind_le
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_le_of_prfTail' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_le_of_prfTail
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.prob_record_meets_prfClass_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.prob_record_meets_prfClass_le
 
 /--
 info: 'SlhDsaSecurity.RecordedTail.map_recordedAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -10039,41 +9340,11 @@ info: 'SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected' depends o
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.prob_signerHitsSeed_tail_le_expected
 
-/--
-info: 'SlhDsaSecurity.HandlerComparison.run_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerComparison.run_neverFails
 
-/--
-info: 'SlhDsaSecurity.HandlerComparison.bad_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerComparison.bad_persists
 
-/--
-info: 'SlhDsaSecurity.HandlerComparison.prob_bad_one' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_one
 
-/--
-info: 'SlhDsaSecurity.HandlerComparison.evalDist_bind_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerComparison.evalDist_bind_congr
 
-/--
-info: 'SlhDsaSecurity.HandlerComparison.prob_bad_one_of_step' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_one_of_step
 
-/--
-info: 'SlhDsaSecurity.HandlerComparison.prob_bad_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerComparison.prob_bad_eq
 
 /--
 info: 'SlhDsaSecurity.SignerRandomiser.signInternal_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -10087,23 +9358,8 @@ info: 'SlhDsaSecurity.SignerRandomiser.probes_signInternalAt' depends on axioms:
 #guard_msgs in
 #print axioms SlhDsaSecurity.SignerRandomiser.probes_signInternalAt
 
-/--
-info: 'SlhDsaSecurity.OffClassBlind.run_eq_graft' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.OffClassBlind.run_eq_graft
 
-/--
-info: 'SlhDsaSecurity.OffClassBlind.asksOff_signInternalAt' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.OffClassBlind.asksOff_signInternalAt
 
-/--
-info: 'SlhDsaSecurity.OffClassBlind.run_signInternalAt_eq_graft' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.OffClassBlind.run_signInternalAt_eq_graft
 
 /--
 info: 'SlhDsaSecurity.RandomiserRecord.mem_record_head' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -10147,13 +9403,6 @@ info: 'SlhDsaSecurity.RandomiserRecord.randomiserBad_dichotomy' depends on axiom
 #guard_msgs in
 #print axioms SlhDsaSecurity.RandomiserRecord.randomiserBad_dichotomy
 
-/--
-info: 'SlhDsaSecurity.RandomiserDeferral.probEvent_pairedRun_prf_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RandomiserDeferral.probEvent_pairedRun_prf_le
 
 /--
 info: 'SlhDsaSecurity.SignerRandomiser.not_prfClass_of_probes_signInternalAt' depends on axioms: [propext,
@@ -10353,49 +9602,11 @@ info: 'SlhDsaSecurity.AnswerCarrier.mem_support_tail_of_answerCarrierRun' depend
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrier.mem_support_tail_of_answerCarrierRun
 
-/--
-info: 'SlhDsaSecurity.NoticingBlockViews.evalDist_noticingRecordedRun_eq' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingBlockViews.evalDist_noticingRecordedRun_eq
 
-/--
-info: 'SlhDsaSecurity.NoticingBlockViews.mem_support_noticingBlockRun' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingBlockViews.mem_support_noticingBlockRun
 
-/--
-info: 'SlhDsaSecurity.NoticingBlockViews.noticingBlockRun_tail_neverFails' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingBlockViews.noticingBlockRun_tail_neverFails
 
-/--
-info: 'SlhDsaSecurity.NoticingBlockViews.prob_noticingTargetCovered_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingBlockViews.prob_noticingTargetCovered_le
 
-/--
-info: 'SlhDsaSecurity.NoticingBlockViews.prob_leftBlock' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingBlockViews.prob_leftBlock
 
-/--
-info: 'SlhDsaSecurity.NoticingBlockViews.tsum_probOutput_map' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingBlockViews.tsum_probOutput_map
 
 /--
 info: 'SlhDsaSecurity.CarrierTail.answerChargedAt_carrier_of_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -10761,65 +9972,15 @@ info: 'SlhDsaSecurity.ServedLog.mem_disclosedByLog' depends on axioms: [propext,
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedLog.mem_disclosedByLog
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.countRecorded_fst' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.countRecorded_fst
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.bind_countRecorded' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.bind_countRecorded
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_map' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_map
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_forget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.run_splitAdversaryImpl_forget
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.run_splitSigningOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.run_splitSigningOracle
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_map' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_map
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.map_splitAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.map_splitAfterSeeds
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.tail_eq_map_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.tail_eq_map_splitTail
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.probEvent_tail_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.probEvent_tail_eq
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.mem_signerRecord_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.mem_signerRecord_randomizer
 
 /--
 info: 'SlhDsaSecurity.ServingCarrier.disclosedAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -11139,23 +10300,8 @@ info: 'SlhDsaSecurity.ServedBridge.signerRandomised_of_servedLog' depends on axi
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServedBridge.signerRandomised_of_servedLog
 
-/--
-info: 'SlhDsaSecurity.OffClassBlind.graft_of_agree' depends on axioms: [Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.OffClassBlind.graft_of_agree
 
-/--
-info: 'SlhDsaSecurity.OffClassBlind.graft_cacheQuery_base' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.OffClassBlind.graft_cacheQuery_base
 
-/--
-info: 'SlhDsaSecurity.OffClassBlind.agree_cacheQuery' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.OffClassBlind.agree_cacheQuery
 
 /--
 info: 'SlhDsaSecurity.RandomiserProvenance.prob_signerHitsSeed_tail_le_of_growth' depends on axioms: [propext,
@@ -11185,35 +10331,10 @@ info: 'SlhDsaSecurity.ServingCarrier.mem_disclosedAt_of_grows' depends on axioms
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingCarrier.mem_disclosedAt_of_grows
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.forgetBoth_one' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.forgetBoth_one
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.forgetBoth_mul' depends on axioms: [Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.forgetBoth_mul
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.narrow_one' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.narrow_one
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.narrow_mul' depends on axioms: [Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.narrow_mul
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.forget_narrow' depends on axioms: [Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.forget_narrow
 
 /--
 info: 'SlhDsaSecurity.ChargedProbe.aiming_dedup_eq_card' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -11905,17 +11026,7 @@ info: 'SlhDsaSecurity.LateProvenance.hrecord' depends on axioms: [propext, Class
 #guard_msgs in
 #print axioms SlhDsaSecurity.LateProvenance.hrecord
 
-/--
-info: 'SlhDsaSecurity.ServedRandomised.signerRandomised_of_served' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedRandomised.signerRandomised_of_served
 
-/--
-info: 'SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem' depends on axioms: [propext, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServedRandomised.signerRandomised_of_served_mem
 
 /--
 info: 'SlhDsaSecurity.RecordInvariant.run_invariant' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -12159,37 +11270,10 @@ info: 'SlhDsaSecurity.SharedAssembly.sharedCharged_of_parts' depends on axioms: 
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedAssembly.sharedCharged_of_parts
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_narrow' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.run_splitSigningOracle_narrow
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.narrow_splitAfterSeeds' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.narrow_splitAfterSeeds
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.recordedTail_eq_map_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.recordedTail_eq_map_splitTail
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.mem_support_recordedTail_of_split' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.mem_support_recordedTail_of_split
 
-/--
-info: 'SlhDsaSecurity.SplitRecorder.card_eq_work_split' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitRecorder.card_eq_work_split
 
 /--
 info: 'SlhDsaSecurity.ServingProgram.lazyAnswer_cases' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -12649,23 +11733,8 @@ info: 'SlhDsaSecurity.LateProvenance.verify_right_record' depends on axioms: [pr
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.closed_disclosedByLog
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.seedRandomised_of_signer_query' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.seedRandomised_of_signer_query
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.cover_of_served_or_narrow' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.cover_of_served_or_narrow
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts
 
 /-- info: 'SlhDsaSecurity.ProbeContainment.claimsOf_carrier' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -12717,11 +11786,6 @@ info: 'SlhDsaSecurity.FinalAssembly.forgetFused_map' depends on axioms: [propext
 #guard_msgs in
 #print axioms SlhDsaSecurity.FinalAssembly.forgetFused_map
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves
 
 /--
 info: 'SlhDsaSecurity.AnswerShape.forgetFused_eq' does not depend on any axioms
@@ -12755,17 +11819,7 @@ info: 'SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerShape.answerChargedLate_of_recordedBound
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.targetKeep_default' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.targetKeep_default
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.messageInput_default_eq_replay' does not depend on any axioms
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.messageInput_default_eq_replay
 
 /--
 info: 'SlhDsaSecurity.ProbeContainment.sensitiveOffSeed_of_sensitive_sets' depends on axioms: [propext,
@@ -13341,9 +12395,6 @@ info: 'SlhDsaSecurity.Target.allowanceOf' depends on axioms: [propext, Classical
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.allowanceOf
 
-/-- info: 'SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate' does not depend on any axioms -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.publishedRandomizer_eq_truncate
 
 /--
 info: 'SlhDsaSecurity.ServedAgreement.files_servingProgram' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -14045,35 +13096,9 @@ info: 'SlhDsaSecurity.FinalAssembly.target_of_producers_proved' depends on axiom
 #guard_msgs in
 #print axioms SlhDsaSecurity.FinalAssembly.target_of_producers_proved
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves_proved' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.target_of_answer_and_leaves_proved
 
-/--
-info: 'SlhDsaSecurity.CarrierAvailability.availableAt_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierAvailability.availableAt_mono
 
-/--
-info: 'SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le
 
-/--
-info: 'SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le_canonical' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierAvailability.prob_game_sensitive_carrier_le_canonical
 
 /--
 info: 'SlhDsaSecurity.ForsConcentration.independent_integrable_add_power' depends on axioms: [propext,
@@ -14265,29 +13290,11 @@ info: 'SlhDsaSecurity.ForsConcentration.poisson_integral_centered_power' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.HandlerCharge.value_mem_support
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.seed_of_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.seed_of_mem_support
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.touched_seededLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.touched_seededLinked
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.facts_lenientImpl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.facts_lenientImpl
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.facts_strictImpl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.facts_strictImpl
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.lenient_pair' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.lenient_pair
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.prob_charged_seededLinked' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.prob_charged_seededLinked
 
 /--
 info: 'SlhDsaSecurity.TapeFactor.splitRecorder_contested_left' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -14405,21 +13412,9 @@ info: 'SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.cells_of_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.cells_of_mem_support
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.carrier_of_mem_claimsOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.carrier_of_mem_claimsOf
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.length_claimsOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.length_claimsOf
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.prob_claimed_strict_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.prob_claimed_strict_le
 
 /-- info: 'SlhDsaSecurity.ServingTable.unionCache_of_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -14437,21 +13432,7 @@ info: 'SlhDsaSecurity.NoticingTape.noticingProb_exists_hit_le_expected' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedAssembly.expected_parts_le_budget_at
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_at' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_at
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_recorder' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_recorder
 
 /-- info: 'SlhDsaSecurity.ServedAgreement.cached_queriesUnder' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -14533,99 +13514,17 @@ info: 'SlhDsaSecurity.NoticingBlocks.prob_noticingTargetCovered_le' depends on a
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoticingBlocks.prob_noticingTargetCovered_le
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.mem_support_rom_of_noticingRecorderOf' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.mem_support_rom_of_noticingRecorderOf
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_count' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_count
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.mem_support_noticingRecorder_countAllHashes' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.mem_support_noticingRecorder_countAllHashes
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.noticingInside_le_of_budget' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.noticingInside_le_of_budget
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_budget' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.noticingRightRecord_length_le_budget
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.expectedCount_noticingRecorder_eq_rom' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.expectedCount_noticingRecorder_eq_rom
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticing' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticing
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.noticingRecordedRun_splitCost_eq_map' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.noticingRecordedRun_splitCost_eq_map
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.probEvent_splitCost_noticingRecorded' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.probEvent_splitCost_noticingRecorded
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected_recorded' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.prob_noticingCoverage_le_expected_recorded
 
-/--
-info: 'SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticingRecorded' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.NoticingCoverage.prob_bad_or_coverage_le_of_join_noticingRecorded
 
 /--
 info: 'SlhDsaSecurity.CarrierFiles.servedAgree_carrierRun' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -14829,25 +13728,8 @@ info: 'SlhDsaSecurity.FusedTape.probEvent_length_set_fused' depends on axioms: [
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierRecord.hrecord
 
-/--
-info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass
 
-/-- info: 'SlhDsaSecurity.BracketedOrdering.prob_ordering_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BracketedOrdering.prob_ordering_le
 
-/--
-info: 'SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.BracketedOrdering.probes_le_recordMessageClass_carrierTail
 
 /-- info: 'SlhDsaSecurity.RecordInvariant.phase_invariant_of_after' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -15019,81 +13901,23 @@ info: 'SlhDsaSecurity.CountedView.forgetsAlong_counted' depends on axioms: [prop
 #guard_msgs in
 #print axioms SlhDsaSecurity.OrderingCompose.gauge_run
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.run_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.run_inl
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.run_inl_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.run_inl_mass
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.run_inr_cached' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.run_inr_cached
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.run_inr_fresh' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.run_inr_fresh
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.run_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.run_mass
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.neutral_of_bracket' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.neutral_of_bracket
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.gaugeAt_stepAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.gaugeAt_stepAt
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.prob_fired_le_threeStage
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.chargedRightKeep_left' does not depend on any axioms -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.chargedRightKeep_left
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep' does not depend on any axioms -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.not_disclosing_of_chargedRightKeep
 
-/-- info: 'SlhDsaSecurity.ViewRate.gauge_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ViewRate.gauge_stepOf
 
-/-- info: 'SlhDsaSecurity.ViewRate.potential_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ViewRate.potential_stepOf
 
-/-- info: 'SlhDsaSecurity.ViewRate.step_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ViewRate.step_bound
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.step_bound_charged' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.step_bound_charged
 
-/-- info: 'SlhDsaSecurity.CarrierOrdering.prob_ordering_perWalk' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierOrdering.prob_ordering_perWalk
 
-/-- info: 'SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail
 
-/-- info: 'SlhDsaSecurity.CarrierOrdering.chargedKeepAt_carrierRightKeep' depends on axioms: [propext] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierOrdering.chargedKeepAt_carrierRightKeep
 
-/--
-info: 'SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail'' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierOrdering.prob_ordering_le_carrierTail'
 
 /--
 info: 'SlhDsaSecurity.ServingForget.run_fuseServing_step_conj' depends on axioms: [propext, Quot.sound]
@@ -15137,17 +13961,8 @@ info: 'SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage' depends on axio
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCoverage.carrierTail_eq_threeStage
 
-/-- info: 'SlhDsaSecurity.CarrierShared.prob_seed_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierShared.prob_seed_le
 
-/-- info: 'SlhDsaSecurity.CarrierShared.sharedChargedLate_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierShared.sharedChargedLate_at
 
-/-- info: 'SlhDsaSecurity.CarrierShared.sharedChargedLate_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierShared.sharedChargedLate_clear
 
 /--
 info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends on axioms: [propext,
@@ -15157,41 +13972,17 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.cache_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.cache_noticeAt
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.records_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.records_noticeAt
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.forgetCarrier_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.forgetCarrier_noticeAt
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.fired_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.fired_noticeAt
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.potentialAt_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.potentialAt_noticeAt
 
-/-- info: 'SlhDsaSecurity.CarrierCharge.gaugeAt_noticeAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierCharge.gaugeAt_noticeAt
 
 /-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierClearFraming.clear_step
 
-/-- info: 'SlhDsaSecurity.ViewRate.cacheOf_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ViewRate.cacheOf_stepOf
 
-/-- info: 'SlhDsaSecurity.ViewRate.right_stepOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ViewRate.right_stepOf
 
 /-- info: 'SlhDsaSecurity.CarrierClearFraming.clear_startAt' does not depend on any axioms -/
 #guard_msgs in
@@ -15213,17 +14004,8 @@ info: 'SlhDsaSecurity.CarrierCoverage.prob_carrierTail_targetCovered_le' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.OrderingCompose.neutral_id
 
-/-- info: 'SlhDsaSecurity.CarrierDemand.prfClass_of_inFlight_coincidence' does not depend on any axioms -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierDemand.prfClass_of_inFlight_coincidence
 
-/-- info: 'SlhDsaSecurity.CarrierDemand.filesLeft_or_not_filesRandomiser' depends on axioms: [propext] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierDemand.filesLeft_or_not_filesRandomiser
 
-/-- info: 'SlhDsaSecurity.CarrierDemand.cover_inFlight' depends on axioms: [propext] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.CarrierDemand.cover_inFlight
 
 /-- info: 'SlhDsaSecurity.CountedHandler.run_toStateful_withFlag_withAddCost' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
@@ -15349,13 +14131,7 @@ info: 'SlhDsaSecurity.SplitCounted.run_splitCarrierRecorder_counted' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCounted.sumSlots_stopServingOn
 
-/-- info: 'SlhDsaSecurity.ObligationShapes.randomiser_eq_of_forgerySeed' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.randomiser_eq_of_forgerySeed
 
-/-- info: 'SlhDsaSecurity.ObligationShapes.randomiserBad_of_forgerySeed' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.randomiserBad_of_forgerySeed
 
 /-- info: 'SlhDsaSecurity.SplitCounted.rightRecord_length_le_inside' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -15597,17 +14373,11 @@ info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundSeed_splitTail' depends on axi
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCover.cover_answerCarrierRun
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.verifier_subrun' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.verifier_subrun
 
 /-- info: 'SlhDsaSecurity.CountedHandler.cached_queriesUnder_counted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CountedHandler.cached_queriesUnder_counted
 
-/-- info: 'SlhDsaSecurity.ChargedHalf.cached_forsQueries' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ChargedHalf.cached_forsQueries
 
 /--
 info: 'SlhDsaSecurity.SplitCarrierTail.count_le_of_budget_splitTail' depends on axioms: [propext,
@@ -15629,13 +14399,6 @@ info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_budget_splitTail' depen
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedAssembly.prob_forgerySeed_le_record
 
-/--
-info: 'SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ObligationShapes.sharedChargedLate_of_parts_record
 
 /-- info: 'SlhDsaSecurity.CarrierJoin.targetCovered_of_forgeryCoveredBy' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
@@ -15661,25 +14424,8 @@ info: 'SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.SplitCarrierTail.rightRecord_le_of_carrierTail
 
-/-- info: 'SlhDsaSecurity.RecordPrfCharge.prob_prfClass_single_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordPrfCharge.prob_prfClass_single_le
 
-/--
-info: 'SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind
 
-/--
-info: 'SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind_le_work' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordPrfCharge.prob_recordMeetsPrfClass_blind_le_work
 
 /-- info: 'SlhDsaSecurity.CarrierSplit.narrow_of_not_seedRandomised' depends on axioms: [propext] -/
 #guard_msgs in
@@ -15713,37 +14459,15 @@ info: 'SlhDsaSecurity.CarrierSplit.exists_carrierTail_of_answerCarrierRun' depen
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierSplit.hsplit_splitCarrierTail
 
-/-- info: 'SlhDsaSecurity.RecordColumn.recordMeetsPrfClass_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordColumn.recordMeetsPrfClass_iff
 
-/-- info: 'SlhDsaSecurity.RecordColumn.card_three_parts_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordColumn.card_three_parts_le_record
 
-/--
-info: 'SlhDsaSecurity.RecordColumn.sharedChargedLate_of_parts_record_at' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordColumn.sharedChargedLate_of_parts_record_at
 
-/-- info: 'SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf' depends on axioms: [propext] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordColumn.prfClass_messageInput_prf
 
 /-- info: 'SlhDsaSecurity.AnswerCarrier.hsplit_of_join_extra' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrier.hsplit_of_join_extra
 
-/-- info: 'SlhDsaSecurity.RecordSlot.prob_two_targets_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordSlot.prob_two_targets_le
 
-/-- info: 'SlhDsaSecurity.RecordSlot.prob_one_target_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordSlot.prob_one_target_eq
 
 /--
 info: 'SlhDsaSecurity.CarrierCap.quiet_startAt' does not depend on any axioms
@@ -15867,25 +14591,9 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail' depends on axiom
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierCap.leftRecord_le_cap_carrierTail
 
-/-- info: 'SlhDsaSecurity.TargetColumn.hordering_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.hordering_fusedTail
 
-/-- info: 'SlhDsaSecurity.TargetColumn.sharedChargedLate_fusedTail' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.sharedChargedLate_fusedTail
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves_proved' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves_proved
 
-/-- info: 'SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.target_of_answer_and_leaves
 
 /-- info: 'SlhDsaSecurity.RecorderView.appendedOf_left_mem' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -15971,41 +14679,11 @@ info: 'SlhDsaSecurity.CarrierCap.leftRecord_le_cap_of_walk' depends on axioms: [
 #guard_msgs in
 #print axioms SlhDsaSecurity.ServingTable.expected_honest_serving
 
-/--
-info: 'SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordSlot.recordMessageClass_eq_record_of_all
 
-/-- info: 'SlhDsaSecurity.RecordSlot.isMessageInput_messageInput' does not depend on any axioms -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordSlot.isMessageInput_messageInput
 
-/-- info: 'SlhDsaSecurity.RecordSlot.two_targets_disjoint' does not depend on any axioms -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.RecordSlot.two_targets_disjoint
 
-/-- info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_records' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_two_records
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.recordPrfClass_eq_zero_of_not_recordMeets' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.recordPrfClass_eq_zero_of_not_recordMeets
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_record_of_not_recordMeets
 
 /--
 info: 'SlhDsaSecurity.SplitCarrierTail.answerBoundExtra_splitTail' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -16027,29 +14705,11 @@ info: 'SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier' depends on axioms:
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerCarrierBound.answerBound_carrier
 
-/-- info: 'SlhDsaSecurity.SharedOracleScaling.target_eq_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleScaling.target_eq_127
 
-/-- info: 'SlhDsaSecurity.SharedOracleScaling.holds_at_two_pow_81' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleScaling.holds_at_two_pow_81
 
-/-- info: 'SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleScaling.fails_at_two_pow_100
 
-/-- info: 'SlhDsaSecurity.TargetColumn.card_aiming_add_prf_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.card_aiming_add_prf_le_record
 
-/-- info: 'SlhDsaSecurity.TargetColumn.card_parts_weighed_le_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.card_parts_weighed_le_record
 
-/-- info: 'SlhDsaSecurity.TargetColumn.sharedChargedLate_weighed_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.sharedChargedLate_weighed_at
 
 /-- info: 'SlhDsaSecurity.CarrierServedLog.carrierLogged_of_served_zero' depends on axioms: [propext] -/
 #guard_msgs in
@@ -16089,9 +14749,6 @@ info: 'SlhDsaSecurity.SharedJoin.card_recordAiming_le_budget' depends on axioms:
 #guard_msgs in
 #print axioms SlhDsaSecurity.SharedJoin.card_recordAiming_le_budget
 
-/-- info: 'SlhDsaSecurity.TargetColumn.card_prf_le_indicator_record' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.card_prf_le_indicator_record
 
 /-- info: 'SlhDsaSecurity.CarrierServedLog.carrierLogged_phase' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -16137,37 +14794,11 @@ info: 'SlhDsaSecurity.CarrierServedLog.carrierBelowLog_of_invariants' depends on
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.weight_le_recordAim_serving
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets_at' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets_at
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_two_budgets
 
-/-- info: 'SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.prob_sharedBad_le_doubled
 
-/-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerEvent.prob_event_zero
 
-/-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_zero_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerEvent.prob_event_zero_of_step
 
-/-- info: 'SlhDsaSecurity.HandlerEvent.prob_event_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.HandlerEvent.prob_event_eq
 
 /--
 info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_le_probEvent' depends on axioms: [propext,
@@ -16177,77 +14808,17 @@ info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_le_probEvent' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassExpectation.expected_indicator_le_probEvent
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.probEvent_eq_zero_of_self_charge' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.probEvent_eq_zero_of_self_charge
 
-/-- info: 'SlhDsaSecurity.TargetColumn.expected_le_of_self_charge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.expected_le_of_self_charge
 
-/-- info: 'SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.record_fits_claims_at_pow
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.le_target_of_full_third' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.le_target_of_full_third
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.q_squared_third_not_fits' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.q_squared_third_not_fits
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.q_squared_third_fits_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.q_squared_third_fits_iff
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.expected_le_mul_probEvent' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.expected_le_mul_probEvent
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.claims_spare' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.claims_spare
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.claims_spare_exact' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.claims_spare_exact
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.q_squared_fits_at_threshold' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.q_squared_fits_at_threshold
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.q_squared_not_fits_above_threshold' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.q_squared_not_fits_above_threshold
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.allowance_hypothesis_at_saturation
 
 /-- info: 'SlhDsaSecurity.CarrierLeftRecord.leftServed_start' depends on axioms: [propext] -/
 #guard_msgs in
@@ -16277,45 +14848,12 @@ info: 'SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail' depend
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierLeftRecord.servedLog_leftRecord_carrierTail
 
-/-- info: 'SlhDsaSecurity.SeedFlag.record_le_of_mul' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SeedFlag.record_le_of_mul
 
-/-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_sticky' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SeedFlag.recordFlag_sticky
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.prf_column_within_one_unit' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.prf_column_within_one_unit
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit
 
-/--
-info: 'SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin' depends on axioms: [propext]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.LedgerThird.claims_spare_with_prf_unit_margin
 
-/--
-info: 'SlhDsaSecurity.PrfClassCount.prob_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PrfClassCount.prob_prfClass_le
 
-/--
-info: 'SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PrfClassCount.expected_card_filter_prfClass_le
 
 /-- info: 'SlhDsaSecurity.ClassExpectation.expected_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -16333,13 +14871,7 @@ info: 'SlhDsaSecurity.ClassExpectation.expected_indicator_eq_probEvent' depends 
 #guard_msgs in
 #print axioms SlhDsaSecurity.ClassExpectation.expected_card_filter_le
 
-/-- info: 'SlhDsaSecurity.TargetColumn.expected_card_prfClass_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.expected_card_prfClass_le
 
-/-- info: 'SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.expected_card_prfClass_lt_one
 
 /-- info: 'SlhDsaSecurity.GraphStakes.not_available_wotsHashNode_child' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
@@ -16379,21 +14911,8 @@ info: 'SlhDsaSecurity.Target.allowanceWithPrfUnit_margin' depends on axioms: [pr
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.allowanceWithPrfUnit_margin
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.seedEvent_empty_of_prfClass_charge
 
-/-- info: 'SlhDsaSecurity.TargetColumn.filed_nowhere_at_inflight_randomizer' depends on axioms: [propext, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.filed_nowhere_at_inflight_randomizer
 
-/-- info: 'SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SharedOracleArithmetic.leak_term_le_target
 
 /--
 info: 'SlhDsaSecurity.Assembly.le_target_doubled' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -16431,13 +14950,6 @@ info: 'SlhDsaSecurity.Target.allowanceDoubled_margin' depends on axioms: [propex
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.allowanceDoubled_margin
 
-/--
-info: 'SlhDsaSecurity.PrfClassCount.expected_card_multiset_filter_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.PrfClassCount.expected_card_multiset_filter_le
 
 /--
 info: 'SlhDsaSecurity.MainTheorem.totalSecurityBits_of_bound_at' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -16451,53 +14963,16 @@ info: 'SlhDsaSecurity.Target.target_of_obligations_doubled' depends on axioms: [
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.target_of_obligations_doubled
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.framing_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.framing_splitUpdate
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.fromTable_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.fromTable_splitUpdate
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.cacheOf_splitUpdate
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.framing_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.framing_splitOf
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.served_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.served_splitOf
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_clear' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_clear
 
-/--
-info: 'SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_framing' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.splitCacheOf_splitOf_of_framing
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.countedSplitRecorder_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.countedSplitRecorder_run
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.recordFlag_splitFusedOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.recordFlag_splitFusedOf
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.noticingRecorderOf_step_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.noticingRecorderOf_step_mass
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.countedSplitRecorder_mass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.countedSplitRecorder_mass
 
 /-- info: 'SlhDsaSecurity.ProbeContainment.length_appended' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs in
@@ -16535,13 +15010,6 @@ info: 'SlhDsaSecurity.ProbeContainment.length_recordedSigningOracle' depends on 
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.card_record_le_probes
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le
 
 /-- info: 'SlhDsaSecurity.ChargedProbe.lazyProgram_step_inr_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -16555,17 +15023,8 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.length_eq_count
 
-/-- info: 'SlhDsaSecurity.SeedFlag.writer_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SeedFlag.writer_step_inl
 
-/-- info: 'SlhDsaSecurity.SeedFlag.recordFlag_step_inl' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SeedFlag.recordFlag_step_inl
 
-/-- info: 'SlhDsaSecurity.ForgetsOn.forgetsLawOn_of_step' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ForgetsOn.forgetsLawOn_of_step
 
 /-- info: 'SlhDsaSecurity.ProbeContainment.length_appended_eq_hashCost' does not depend on any axioms -/
 #guard_msgs in
@@ -16575,71 +15034,18 @@ info: 'SlhDsaSecurity.TargetColumn.card_three_parts_le_two_of_record_le' depends
 #guard_msgs in
 #print axioms SlhDsaSecurity.ProbeContainment.counts_hashCost
 
-/--
-info: 'SlhDsaSecurity.GuessingBar.two_stakes_eq_target' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.GuessingBar.two_stakes_eq_target
 
-/--
-info: 'SlhDsaSecurity.GuessingBar.within_target_of_stakes' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.GuessingBar.within_target_of_stakes
 
-/--
-info: 'SlhDsaSecurity.GuessingBar.one_stake_is_half' depends on axioms: [propext, Classical.choice, Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.GuessingBar.one_stake_is_half
 
-/-- info: 'SlhDsaSecurity.ServingCounted.withCount_servingUncounted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.ServingCounted.withCount_servingUncounted
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.splitOf_servingNotice' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.splitOf_servingNotice
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.splitUpdate_splitOf
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.viewed_splitOf_of_framing' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.viewed_splitOf_of_framing
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.cacheOf_splitView' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.cacheOf_splitView
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.update_splitView' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.update_splitView
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.cacheOf_servingView' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.cacheOf_servingView
 
-/-- info: 'SlhDsaSecurity.SplitSeedView.update_servingView' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs in
-#print axioms SlhDsaSecurity.SplitSeedView.update_servingView
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit_at' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit_at
 
-/--
-info: 'SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit' depends on axioms: [propext,
- Classical.choice,
- Quot.sound]
--/
-#guard_msgs in
-#print axioms SlhDsaSecurity.TargetColumn.expected_three_parts_le_budget_unit
 
 /--
 info: 'SlhDsaSecurity.Target.unitColumn_line' depends on axioms: [propext, Quot.sound]

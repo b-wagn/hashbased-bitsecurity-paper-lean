@@ -1,4 +1,8 @@
+import SlhDsaSecurity.Statement.Theorems.Correctness
+import SlhDsaSecurity.Statement.Theorems.StrongUnforgeability
+import SlhDsaSecurity.Statement.Theorems.Unforgeability
 import SlhDsaSecurity.Proof.Axioms
 import SlhDsaSecurity.Proof.AxiomWalk
 
-/-! Concrete SLH-DSA-128s experiment and preparatory proofs. The 127-bit bound is not proved yet. -/
+/-! SLH-DSA-SHAKE-128s: correctness, and 127 bits of strong and standard unforgeability with every
+hash call counted. The main theorems are in `SlhDsaSecurity/Statement/Theorems/`. -/

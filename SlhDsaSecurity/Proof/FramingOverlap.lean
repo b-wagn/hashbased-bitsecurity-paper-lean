@@ -80,7 +80,7 @@ theorem uniform_zero_probability :
 /-- The framing restriction has probability exactly 1/256 under actual key generation. -/
 theorem keygen_zero_probability :
     Pr[fun keys : SecretKey × PublicKey => firstByte keys.2.root = 0 |
-      XmssSecurity.RandomOracleModel.run
+      Xmss.RandomOracleModel.run
         (Scheme.keygen : OracleComp OracleWorld (SecretKey × PublicKey))] = 1 / 256 := by
   rw [show (fun keys : SecretKey × PublicKey => firstByte keys.2.root = 0) =
     (fun pair : Digest × Digest => firstByte pair.2 = 0) ∘ KeygenUniform.publicPair from rfl,

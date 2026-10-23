@@ -39,12 +39,12 @@ theorem fst_map_countAllHashes {α : Type} (computation : OracleComp OracleWorld
 
 theorem fst_map_runAll (adversary : Adversary) :
     Prod.fst <$> runAll adversary = run adversary := by
-  have hkey : simulateQ (XmssSecurity.RandomOracleModel.impl Bytes HashOutput)
+  have hkey : simulateQ (Xmss.RandomOracleModel.impl Bytes HashOutput)
       (experiment adversary) =
-      Prod.fst <$> simulateQ (XmssSecurity.RandomOracleModel.impl Bytes HashOutput)
+      Prod.fst <$> simulateQ (Xmss.RandomOracleModel.impl Bytes HashOutput)
         (countAllHashes (experiment adversary)) := by
     rw [← simulateQ_map, fst_map_countAllHashes]
-  unfold runAll run XmssSecurity.RandomOracleModel.run
+  unfold runAll run Xmss.RandomOracleModel.run
   rw [hkey]
   simp [StateT.run'_eq, StateT.run_map, Functor.map_map]
 

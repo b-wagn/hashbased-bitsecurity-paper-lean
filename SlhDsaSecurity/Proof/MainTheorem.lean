@@ -72,7 +72,7 @@ either way. `probEvent_runAll` is that, and it is what lets the three obligation
 theorem probEvent_runAll (adversary : Adversary) (event : Outcome × Nat → Prop) :
     Pr[event | runAll adversary] =
       Pr[fun result => event result.1 | WholeGameStructural.instrumentedRun adversary] := by
-  rw [runAll, XmssSecurity.RandomOracleModel.run, WholeGameStructural.instrumentedRun,
+  rw [runAll, Xmss.RandomOracleModel.run, WholeGameStructural.instrumentedRun,
     show (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run' ∅ =
       Prod.fst <$> (simulateQ KeygenUniform.rom (countAllHashes (experiment adversary))).run ∅
       from rfl, probEvent_map]

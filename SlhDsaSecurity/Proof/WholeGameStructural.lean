@@ -43,7 +43,7 @@ theorem mem_support_runAll_of_mem_support {adversary : Adversary}
     {result : (Outcome × Nat) × QueryCache HashSpec}
     (hmem : result ∈ support (instrumentedRun adversary)) :
     result.1 ∈ support (runAll adversary) := by
-  unfold runAll XmssSecurity.RandomOracleModel.run
+  unfold runAll Xmss.RandomOracleModel.run
   rw [StateT.run'_eq, support_map]
   exact ⟨result, hmem, rfl⟩
 
