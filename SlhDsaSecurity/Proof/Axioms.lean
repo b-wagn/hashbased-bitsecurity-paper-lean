@@ -287,6 +287,7 @@ import SlhDsaSecurity.Proof.ShareBound
 import SlhDsaSecurity.Proof.SharePresent
 import SlhDsaSecurity.Proof.ShareRealCap
 import SlhDsaSecurity.Proof.ShareCouple
+import SlhDsaSecurity.Proof.ShareInv
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18595,3 +18596,93 @@ info: 'SlhDsaSecurity.ShareCouple.couple_adv' depends on axioms: [propext, Class
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareCouple.couple_adv
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.worldImpl_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.worldImpl_run
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.couple_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.couple_verify
+
+/--
+info: 'SlhDsaSecurity.ShareInv.Extends.refl' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.Extends.refl
+
+/--
+info: 'SlhDsaSecurity.ShareInv.Extends.trans' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.Extends.trans
+
+/--
+info: 'SlhDsaSecurity.ShareInv.Extends.realView' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.Extends.realView
+
+/--
+info: 'SlhDsaSecurity.ShareInv.route_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.route_spec
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_start' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_start
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_of_quietStep' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_of_quietStep
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_world' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_world
+
+/--
+info: 'SlhDsaSecurity.ShareInv.prfs_of_realView' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.prfs_of_realView
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_sign_framed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_sign_framed
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_sign_unframed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_sign_unframed
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_adv' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_adv
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_verify
+
+/--
+info: 'SlhDsaSecurity.ShareInv.inv_claims' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareInv.inv_claims

@@ -379,4 +379,72 @@ theorem couple_adv (setup : Setup) (hgood : setup.Good) (queried : (OracleWorld 
         obtain ⟨entry, hentry, hx⟩ := hrel.record x hx
         exact ⟨entry, List.mem_append_left _ hentry, hx⟩
 
+/-! ## One verifier step, coupled -/
+
+theorem worldImpl_run (lenient : Bool) (setup : Setup) (world : OracleWorld.Domain)
+    (p : St × Bool) :
+    ((ShareBound.worldImpl lenient setup) world).run p =
+      ((handler lenient setup) (worldQuery world)).run p := by
+  simp only [ShareBound.worldImpl, QueryImpl.apply_compose, HasQuery.instOfMonadLift_query]
+  erw [simulateQ_spec_query]
+  rfl
+
+/-- **The coupling's invariant at the verifier**: the cache is still the view, the lenient log
+and digests are those the adversary's phase left, what that phase recorded is still filed, and
+every input the verifier records is filed at those digests. -/
+structure RelV (setup : Setup) (log : SigningLog) (served : List HashOutput)
+    (adversaryRecord : Multiset Bytes) (real : SharePresent.VerifyState) (lenient : St × Bool) :
+    Prop where
+  cache : real.2 = realView setup lenient.1
+  logEq : lenient.1.log = log
+  servedEq : lenient.1.served = served
+  adversary : ∀ input ∈ adversaryRecord, ∃ entry ∈ lenient.1.record, entry.1 = input
+  verifier : ∀ input ∈ (Multiplicative.toAdd real.1).2,
+    ∃ entry ∈ lenient.1.record, entry.1 = input ∧ entry.2 = served
+
+set_option maxHeartbeats 1000000 in
+/-- **One verifier step, coupled.** -/
+theorem couple_verify (setup : Setup) (log : SigningLog) (served : List HashOutput)
+    (adversaryRecord : Multiset Bytes) (queried : OracleWorld.Domain)
+    (real : SharePresent.VerifyState) (lenient : St × Bool)
+    (hrel : RelV setup log served adversaryRecord real lenient) :
+    RelTriple ((SharePresent.realWorldImpl queried).run real)
+      ((ShareBound.worldImpl true setup queried).run lenient)
+      (fun p q => p.1 = q.1 ∧ RelV setup log served adversaryRecord p.2 q.2) := by
+  classical
+  obtain ⟨lstate, flag⟩ := lenient
+  rcases queried with coin | input
+  · rw [SharePresent.realWorldImpl_run, worldImpl_run, DigestTape.rom_run_inl]
+    simp only [map_bind, map_pure]
+    show RelTriple _ (($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _) >>= fun value =>
+      (pure (value, (lstate, flag)) : ProbComp _)) _
+    refine relTriple_bind relTriple_uniformSample_refl fun a b hab => ?_
+    cases hab
+    refine relTriple_pure_pure ⟨rfl, hrel.cache, hrel.logEq, hrel.servedEq, hrel.adversary,
+      fun x hx => ?_⟩
+    simp only [toAdd_mul, toAdd_ofAdd, Prod.snd_add, RecordedQueries.verifierCost,
+      RecordedQueries.recordOf, add_zero] at hx
+    exact hrel.verifier x hx
+  · rw [SharePresent.realWorldImpl_run, worldImpl_run]
+    simp only [worldQuery]
+    erw [handler_hash_run]
+    rw [hrel.cache, map_eq_bind_pure_comp]
+    refine relTriple_bind (couple_hash setup lstate input) fun a b hab => ?_
+    obtain ⟨hout, hcache, hserved, hrecord, hlog⟩ := hab
+    refine relTriple_pure_pure ⟨hout, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa [realView_with_record] using hcache
+    · simpa [hlog] using hrel.logEq
+    · simpa [hserved] using hrel.servedEq
+    · intro x hx
+      obtain ⟨entry, hentry, hx⟩ := hrel.adversary x hx
+      exact ⟨entry, List.mem_append_left _ hentry, hx⟩
+    · intro x hx
+      simp only [toAdd_mul, toAdd_ofAdd, Prod.snd_add, RecordedQueries.verifierCost,
+        RecordedQueries.recordOf, Multiset.mem_add, Multiset.mem_singleton] at hx
+      rcases hx with hold | rfl
+      · obtain ⟨entry, hentry, hx, hsnap⟩ := hrel.verifier x hold
+        exact ⟨entry, List.mem_append_left _ hentry, hx, hsnap⟩
+      · exact ⟨(x, lstate.served), List.mem_append_right _ (List.mem_singleton_self _), rfl,
+          hrel.servedEq⟩
+
 end SlhDsaSecurity.ShareCouple
