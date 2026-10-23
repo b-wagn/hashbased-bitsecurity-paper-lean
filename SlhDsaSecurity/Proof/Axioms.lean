@@ -269,6 +269,8 @@ import SlhDsaSecurity.Proof.FiredCoverage
 import SlhDsaSecurity.Proof.SuffixCausal
 import SlhDsaSecurity.Proof.TapeWatch
 import SlhDsaSecurity.Proof.SignedWatch
+import SlhDsaSecurity.Proof.TapeRunFacts
+import SlhDsaSecurity.Proof.CarrierThin
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -17065,3 +17067,179 @@ info: 'SlhDsaSecurity.SignedWatch.watchPair_onCarrierTape' depends on axioms: [p
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.SignedWatch.watchPair_onCarrierTape
+
+/--
+info: 'SlhDsaSecurity.TapeRunFacts.run_cache_persists' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeRunFacts.run_cache_persists
+
+/--
+info: 'SlhDsaSecurity.TapeRunFacts.step_kept' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeRunFacts.step_kept
+
+/--
+info: 'SlhDsaSecurity.TapeRunFacts.run_right_suffix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeRunFacts.run_right_suffix
+
+/--
+info: 'SlhDsaSecurity.TapeRunFacts.mem_support_padding_of_length' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeRunFacts.mem_support_padding_of_length
+
+/--
+info: 'SlhDsaSecurity.TapeRunFacts.mem_support_threeStageHandlerRun_of_tape' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeRunFacts.mem_support_threeStageHandlerRun_of_tape
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.msgOf_messageInput' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.msgOf_messageInput
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.prfClass_targetOf' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.prfClass_targetOf
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.signerRandomised_iff' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.signerRandomised_iff
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.prob_hitsOf_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.prob_hitsOf_le
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.keygen_stage' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.keygen_stage
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.keyAt_seed' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.keyAt_seed
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.simulateQ_hashQuery' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.simulateQ_hashQuery
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.kept_framing' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.kept_framing
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.sign_new_cached' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.sign_new_cached
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.sign_stage' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.sign_stage
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.adversary_step_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.adversary_step_shape
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.signing_step_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.signing_step_shape
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.signerHitsSeed_mono' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.signerHitsSeed_mono
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.late2_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.late2_mono
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.toAdd_mul_record' depends on axioms: [Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.toAdd_mul_record
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.cacheOf_startServingOn' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.cacheOf_startServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.cacheOf_stopServingOn' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.cacheOf_stopServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.fused_step_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.fused_step_neverFails
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.sign_none_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.sign_none_run
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.startServingOn_none' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.startServingOn_none
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.framing_startServingOn' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.framing_startServingOn
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.fused_step_grows' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.fused_step_grows
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.late2_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.late2_step
+
+/--
+info: 'SlhDsaSecurity.CarrierThin.inv2_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CarrierThin.inv2_step
