@@ -141,19 +141,10 @@ theorem realView_eq_visible (setup : Setup) (p : St × Bool) (hinv : Inv setup p
   cases hwarm : setup.warm input with
   | some answer =>
     rw [realView_of_warm setup p.1 input answer hwarm]
-    have hcacheNone : p.1.cache input = none := by
-      cases hc : p.1.cache input with
-      | none => rfl
-      | some v =>
-        have := (hinv.cacheOff input v hc).1
-        rw [hwarm] at this
-        cases this
-    rw [hcacheNone]
     cases hopen : openAt setup p.1.served input with
     | some b =>
       have := ShareUntilBad.openAt_le_warm setup p.1.served input b hopen
       rw [hwarm] at this
-      simp only
       exact this
     | none =>
       exact absurd (Or.inl (ShareUntilBad.sens_of_closed setup p.1.served input answer hwarm hopen))
@@ -163,15 +154,12 @@ theorem realView_eq_visible (setup : Setup) (p : St × Bool) (hinv : Inv setup p
     have hprf : ¬ IsPrfInput setup input := fun h =>
       hnot (Or.inr (ShareUntilBad.prfClass_of_isPrfInput setup input h))
     rw [if_neg hprf]
-    cases hc : p.1.cache input with
-    | some v => rfl
-    | none =>
-      cases hopen : openAt setup p.1.served input with
-      | none => rfl
-      | some b =>
-        have := ShareUntilBad.openAt_le_warm setup p.1.served input b hopen
-        rw [hwarm] at this
-        cases this
+    cases hopen : openAt setup p.1.served input with
+    | none => rfl
+    | some b =>
+      have := ShareUntilBad.openAt_le_warm setup p.1.served input b hopen
+      rw [hwarm] at this
+      cases this
 
 /-! ## The verifier's probes are in its record -/
 
@@ -356,12 +344,17 @@ theorem keyOf_realPair (setup : Setup)
 
 set_option maxHeartbeats 2000000 in
 open scoped Classical in
-/-- **A sensitive claim of the real game raises the lenient flag at the claims.** -/
-theorem flag_of_inputBad (setup : Setup) (hgood : setup.Good) (adversary : Adversary) (limit : Nat)
+/-- **A sensitive claim of the real game raises the lenient flag at the claims.** The real output
+is assembled from a phase state `zs` and a verifier run `w` from the phase's cache; the phase
+itself is not read, so the verifier run need not be capped. -/
+theorem flag_of_inputBad (setup : Setup)
     (real : (((Forgery × Multiplicative RecordedQueries.Tally) × (Bool × RecordedQueries.Tally)) ×
       SigningLog) × QueryCache HashSpec)
-    (hreal : real ∈ support (SharePresent.realFlat (ShareRealCap.capAdv adversary limit)
-      (setup.sk, setup.pk) setup.warm))
+    (zs : SharePresent.RealState) (w : Bool × SharePresent.VerifyState)
+    (hw : w ∈ support ((simulateQ SharePresent.realWorldImpl
+      (Scheme.verify (m := OracleComp OracleWorld) setup.pk real.1.1.1.1.message
+        real.1.1.1.1.signature)).run (1, zs.2.2)))
+    (hreal : real = ((((real.1.1.1.1, zs.1), (w.1, Multiplicative.toAdd w.2.1)), zs.2.1), w.2.2))
     (p : St × Bool) (hinv : Inv setup p) (hflag : p.2 = false)
     (hcache : real.2 = realView setup p.1) (hlog : real.1.2 = p.1.log)
     (hver : ∀ input ∈ real.1.1.2.2.2, ∃ entry ∈ p.1.record, entry.1 = input ∧ entry.2 = p.1.served)
@@ -372,41 +365,49 @@ theorem flag_of_inputBad (setup : Setup) (hgood : setup.Good) (adversary : Adver
   have hkey := keyOf_realPair setup real p hcache
   rw [hkey] at hcand hsens
   -- The real run's verifier, and its probes.
-  simp only [SharePresent.realFlat, mem_support_bind_iff, support_pure,
-    Set.mem_singleton_iff] at hreal
-  obtain ⟨z, -, w, hw, hrealEq⟩ := hreal
-  subst hrealEq
-  have hframe' : z.1.message.frame = some message := hframe
-  have hparsed' : Signature.fromBytes? z.1.signature = some parsed := hparsed
+  have hwCache : real.2 = w.2.2 := congrArg Prod.snd hreal
+  have hwTally : real.1.1.2.2 = Multiplicative.toAdd w.2.1 :=
+    congrArg (fun r => r.1.1.2.2) hreal
+  have hcacheW : w.2.2 = realView setup p.1 := hwCache.symm.trans hcache
+  rw [hwTally] at hver
+  have hcand' : candidate ∈ @ClaimedProbes.claimedCandidatesOf (CacheReplay.replayQuery w.2.2)
+      setup.publicSeed w.2.2 setup.pk message parsed := by
+    rw [← hwCache]
+    exact hcand
+  have hframe' : real.1.1.1.1.message.frame = some message := hframe
+  have hparsed' : Signature.fromBytes? real.1.1.1.1.signature = some parsed := hparsed
   have hagree : ∀ probe, CacheReplay.QueriesUnder w.2.2
-      (Scheme.verify (m := OracleComp HashSpec) setup.pk z.1.message z.1.signature) probe →
+      (Scheme.verify (m := OracleComp HashSpec) setup.pk real.1.1.1.1.message
+        real.1.1.1.1.signature) probe →
         w.2.2 probe = visible setup p.1 probe := by
     intro probe hprobe
-    have hrec := verify_probes_recorded setup.pk z.1.message z.1.signature z.2.2.2 w hw probe hprobe
+    have hrec := verify_probes_recorded setup.pk real.1.1.1.1.message real.1.1.1.1.signature
+      zs.2.2 w hw probe hprobe
     obtain ⟨entry, hentry, hx, hsnap⟩ := hver probe hrec
-    rw [show w.2.2 = realView setup p.1 from hcache]
+    rw [hcacheW]
     exact realView_eq_visible setup p hinv hflag probe ⟨entry, hentry, hx, hsnap⟩
-  have hclaims : claimsOf setup p.1 z.1 =
+  have hclaims : claimsOf setup p.1 real.1.1.1.1 =
       @ClaimedProbes.claimedCandidatesOf (CacheReplay.replayQuery w.2.2) setup.publicSeed w.2.2
         setup.pk message parsed := by
     unfold claimsOf
     rw [hframe', hparsed']
     exact (ShareClaims.claimedCandidatesOf_congr setup.publicSeed w.2.2 (visible setup p.1)
-      setup.pk z.1.message z.1.signature message parsed hframe' hparsed' rfl hagree).symm
+      setup.pk real.1.1.1.1.message real.1.1.1.1.signature message parsed hframe' hparsed' rfl
+      hagree).symm
   have hguess : Guess setup p.1.served candidate := by
     left
     obtain ⟨node, hunavailable, hinput⟩ := hsens
     refine ⟨node, fun havailable => hunavailable ?_, hinput⟩
     refine available_mono _ _ _ _ (fun key chain => ?_) (fun key => ?_) _ havailable
-    · show @GraphStakes.honestRevealed (CacheReplay.replayQuery w.2.2)
+    · show @GraphStakes.honestRevealed (CacheReplay.replayQuery real.2)
           (setup.table.1 Node.secretSeed) setup.publicSeed key chain ≤ _
-      rw [show w.2.2 = realView setup p.1 from hcache, realView_eq_unionCache]
+      rw [hcache, realView_eq_unionCache]
       exact honestRevealed_le_revealedOf setup.publicSeed setup.table _ key chain
     · exact disclosed_subset setup p hinv _ hlog hcache key
   show (p.2 || decide (¬ setup.Good ∨
-    ∃ candidate ∈ claimsOf setup p.1 z.1, Guess setup p.1.served candidate)) = true
+    ∃ candidate ∈ claimsOf setup p.1 real.1.1.1.1, Guess setup p.1.served candidate)) = true
   rw [hclaims]
   simp only [Bool.or_eq_true, decide_eq_true_eq]
-  exact Or.inr (Or.inr ⟨candidate, hcand, hguess⟩)
+  exact Or.inr (Or.inr ⟨candidate, hcand', hguess⟩)
 
 end SlhDsaSecurity.ShareEvent
