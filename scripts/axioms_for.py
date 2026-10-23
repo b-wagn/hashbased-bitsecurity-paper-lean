@@ -1,8 +1,8 @@
 """Append kernel-generated, #guard_msgs-guarded #print axioms entries for the public theorems
-of the given Lean files to SLH-DSA-128s/Proof/Axioms.lean, and add the module imports.
+of the given Lean files to SLH-DSA-SHAKE-128s/Proof/Axioms.lean, and add the module imports.
 
 Usage (from the repo root, after building the modules):
-    python3 scripts/axioms_for.py SLH-DSA-128s/Proof/Foo.lean [...]
+    python3 scripts/axioms_for.py SLH-DSA-SHAKE-128s/Proof/Foo.lean [...]
 
 The expected text of each guard is what `lake env lean` prints for the `#print axioms` line,
 never written by hand.
@@ -10,7 +10,7 @@ never written by hand.
 import os, re, subprocess, sys, tempfile
 
 DECL = re.compile(r"^(?:@\[[^\]]*\]\s*)?(?:protected\s+|nonrec\s+)?(?:theorem|lemma)\s+([^\s:({\[]+)")
-AX = "SLH-DSA-128s/Proof/Axioms.lean"
+AX = "SLH-DSA-SHAKE-128s/Proof/Axioms.lean"
 
 
 def names(path):
