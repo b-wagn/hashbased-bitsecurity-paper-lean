@@ -37,9 +37,8 @@ theorem openAt_le_warm (setup : Setup) (served : List HashOutput) (input : Bytes
 
 /-- The revealed digits never exceed the last chain position. -/
 theorem revealed_le (setup : Setup) (key : WotsKey) (chain : Fin chains) :
-    @GraphStakes.honestRevealed (CacheReplay.replayQuery setup.warm) setup.secretSeed
-      setup.publicSeed key chain ≤ w - 1 :=
-  @GraphStakes.honestRevealed_le (CacheReplay.replayQuery setup.warm) _ _ key chain
+    ShareCells.revealedOf setup.table.1 key chain ≤ w - 1 :=
+  ShareCells.revealedOf_le setup.table.1 key chain
 
 /-- **A canonical entry the open table lacks is a sensitive probe.** -/
 theorem sens_of_closed (setup : Setup) (served : List HashOutput) (input : Bytes)
@@ -201,8 +200,11 @@ theorem mono (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
       simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
       rw [hz]
     | some pair =>
-      simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
-      rw [hz]
+      obtain ⟨randomizer, digest⟩ := pair
+      simp only [handler, StateT.run] at hz
+      split_ifs at hz <;>
+      · rw [support_pure, Set.mem_singleton_iff] at hz
+        rw [hz]
   · simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
     rw [hz]
     simp

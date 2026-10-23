@@ -3,6 +3,7 @@ import SlhDsaSecurity.Proof.CapComp
 import SlhDsaSecurity.Proof.ClaimedProbes
 import SlhDsaSecurity.Proof.OpenCache
 import SlhDsaSecurity.Proof.KeygenValue
+import SlhDsaSecurity.Proof.ShareCells
 
 /-!
 # The shared half's two games
@@ -10,7 +11,9 @@ import SlhDsaSecurity.Proof.KeygenValue
 One computation, two handlers. The computation `shareComp` is the adversary's phase — capped —
 with each signing request split into a **draw** (the randomiser and the digest) and an
 **assemble** (the signature, read off the table), then verification, then one **claims** query
-that probes the forgery's claimed cells.
+that probes the forgery's claimed cells. Assembly answers only at a digest already drawn, which
+is every digest the computation hands it; the guard is there so that a step reads only released
+cells whatever query it is asked, which is the form the charge takes its blindness in.
 
 The two handlers differ in exactly two places:
 
@@ -99,10 +102,10 @@ noncomputable def disclosed (served : List HashOutput) (key : ForsKey) :
       ∃ tree : Fin forsTrees,
         GraphStakes.forsIndex (MessageDigest.forsIndices digest) tree = index
 
-/-- **The cells available once these digests are served.** -/
+/-- **The cells available once these digests are served**, at the digits the table's own
+signed cells reveal. -/
 noncomputable def available (setup : Setup) (served : List HashOutput) : Node → Prop :=
-  Available (@GraphStakes.honestRevealed (CacheReplay.replayQuery setup.warm)
-    setup.secretSeed setup.publicSeed) (disclosed served)
+  Available (ShareCells.revealedOf setup.table.1) (disclosed served)
 
 /-- **A sensitive probe**: the canonical input of a node with an unavailable child, carrying
 that child's true cell. -/
@@ -254,9 +257,11 @@ noncomputable def handler (lenient : Bool) (setup : Setup) :
         match drawn with
         | none => pure (none, ({ state.1 with log := state.1.log ++ [⟨request, none⟩] }, state.2))
         | some (randomizer, digest) =>
-            let bytes := (ShareSigner.cellSig setup.warm setup.sk randomizer digest).toBytes
-            pure (some bytes,
-              ({ state.1 with log := state.1.log ++ [⟨request, some bytes⟩] }, state.2))
+            if digest ∈ state.1.served then
+              let bytes := (ShareSigner.cellSig setup.warm setup.sk randomizer digest).toBytes
+              pure (some bytes,
+                ({ state.1 with log := state.1.log ++ [⟨request, some bytes⟩] }, state.2))
+            else pure (none, ({ state.1 with log := state.1.log ++ [⟨request, none⟩] }, state.2))
     | Sum.inr forgery =>
         let candidates := claimsOf setup state.1 forgery
         pure ((), ({ state.1 with

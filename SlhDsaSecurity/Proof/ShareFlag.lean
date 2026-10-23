@@ -126,9 +126,12 @@ theorem step_shape (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
       rw [hz]
       exact ⟨[], by simp [filed], List.prefix_refl _, fun h => Or.inl h⟩
     | some pair =>
-      simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
-      rw [hz]
-      exact ⟨[], by simp [filed], List.prefix_refl _, fun h => Or.inl h⟩
+      obtain ⟨randomizer, digest⟩ := pair
+      simp only [handler, StateT.run] at hz
+      split_ifs at hz <;>
+      · rw [support_pure, Set.mem_singleton_iff] at hz
+        rw [hz]
+        exact ⟨[], by simp [filed], List.prefix_refl _, fun h => Or.inl h⟩
   · simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
     rw [hz]
     refine ⟨claimsOf setup inner forgery, by simp [filed], List.prefix_refl _, fun h => ?_⟩
@@ -218,9 +221,12 @@ theorem length_step (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain
       subst hz
       rfl
     | some pair =>
-      simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
-      subst hz
-      rfl
+      obtain ⟨randomizer, digest⟩ := pair
+      simp only [handler, StateT.run] at hz
+      split_ifs at hz <;>
+      · rw [support_pure, Set.mem_singleton_iff] at hz
+        subst hz
+        rfl
   · simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
     subst hz
     simp [added]

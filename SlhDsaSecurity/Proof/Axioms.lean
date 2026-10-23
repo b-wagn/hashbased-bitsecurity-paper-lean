@@ -280,6 +280,8 @@ import SlhDsaSecurity.Proof.ShareGame
 import SlhDsaSecurity.Proof.ShareUntilBad
 import SlhDsaSecurity.Proof.ShareFlag
 import SlhDsaSecurity.Proof.BlindCharge
+import SlhDsaSecurity.Proof.ShareCells
+import SlhDsaSecurity.Proof.ShareSignCongr
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18052,3 +18054,51 @@ info: 'SlhDsaSecurity.BlindCharge.prob_sensitive_le' depends on axioms: [propext
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BlindCharge.prob_sensitive_le
+
+/--
+info: 'SlhDsaSecurity.ShareCells.revealedOf_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCells.revealedOf_le
+
+/--
+info: 'SlhDsaSecurity.ShareCells.alwaysAvailable_messageNode' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCells.alwaysAvailable_messageNode
+
+/--
+info: 'SlhDsaSecurity.ShareCells.revealedOf_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCells.revealedOf_congr
+
+/--
+info: 'SlhDsaSecurity.ShareSignCongr.warm_eq_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSignCongr.warm_eq_unionCache
+
+/--
+info: 'SlhDsaSecurity.ShareSignCongr.revealedOf_succ' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSignCongr.revealedOf_succ
+
+/--
+info: 'SlhDsaSecurity.ShareSignCongr.revealedOf_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSignCongr.revealedOf_zero
+
+/--
+info: 'SlhDsaSecurity.ShareSignCongr.signLayers_congr_cells' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSignCongr.signLayers_congr_cells
+
+/--
+info: 'SlhDsaSecurity.ShareSignCongr.cellSig_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSignCongr.cellSig_congr
