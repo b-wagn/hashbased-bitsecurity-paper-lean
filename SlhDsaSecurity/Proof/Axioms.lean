@@ -284,6 +284,7 @@ import SlhDsaSecurity.Proof.ShareCells
 import SlhDsaSecurity.Proof.ShareSignCongr
 import SlhDsaSecurity.Proof.ShareBlindFacts
 import SlhDsaSecurity.Proof.ShareBound
+import SlhDsaSecurity.Proof.SharePresent
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18340,3 +18341,87 @@ info: 'SlhDsaSecurity.ShareBound.blind_bound' depends on axioms: [propext, Class
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareBound.blind_bound
+
+/--
+info: 'SlhDsaSecurity.SharePresent.probEvent_recordedTail_linked' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.probEvent_recordedTail_linked
+
+/--
+info: 'SlhDsaSecurity.SharePresent.realImpl_world_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.realImpl_world_run
+
+/--
+info: 'SlhDsaSecurity.SharePresent.realImpl_request_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.realImpl_request_run
+
+/--
+info: 'SlhDsaSecurity.SharePresent.run_ofLift_world' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.run_ofLift_world
+
+/--
+info: 'SlhDsaSecurity.SharePresent.rom_run_ofLift_world' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.rom_run_ofLift_world
+
+/--
+info: 'SlhDsaSecurity.SharePresent.run_unchargedSigner' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.run_unchargedSigner
+
+/--
+info: 'SlhDsaSecurity.SharePresent.rom_run_unchargedSigner' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.rom_run_unchargedSigner
+
+/--
+info: 'SlhDsaSecurity.SharePresent.run_addCost_query_bind' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.run_addCost_query_bind
+
+/--
+info: 'SlhDsaSecurity.SharePresent.run_flat' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.run_flat
+
+/--
+info: 'SlhDsaSecurity.SharePresent.realWorldImpl_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.realWorldImpl_run
+
+/--
+info: 'SlhDsaSecurity.SharePresent.run_flatVerify' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.run_flatVerify
+
+/--
+info: 'SlhDsaSecurity.SharePresent.rom_phase_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.rom_phase_eq
+
+/--
+info: 'SlhDsaSecurity.SharePresent.rom_verify_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.rom_verify_eq
+
+/--
+info: 'SlhDsaSecurity.SharePresent.linkedRun_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SharePresent.linkedRun_eq
