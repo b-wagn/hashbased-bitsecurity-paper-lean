@@ -271,6 +271,7 @@ import SlhDsaSecurity.Proof.TapeWatch
 import SlhDsaSecurity.Proof.SignedWatch
 import SlhDsaSecurity.Proof.TapeRunFacts
 import SlhDsaSecurity.Proof.CarrierThin
+import SlhDsaSecurity.Proof.AnswerFired
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -17479,3 +17480,93 @@ info: 'SlhDsaSecurity.CarrierThin.thin2' depends on axioms: [propext, Classical.
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CarrierThin.thin2
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.unit128_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.unit128_eq
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.unit128_sq_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.unit128_sq_eq
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.second_order_fits' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.second_order_fits
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.cellView_of_getElem?' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.cellView_of_getElem?
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.prob_carrierTail_firedCovered_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.prob_carrierTail_firedCovered_le
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.servedLog_logged' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.servedLog_logged
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.late_of_served_prfClass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.late_of_served_prfClass
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.signerRandomised_of_served' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.signerRandomised_of_served
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.cover_keep127' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.cover_keep127
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.join_carrierTail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.join_carrierTail
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.keep127_class' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.keep127_class
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.hash_ne_verification' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.hash_ne_verification
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.answerBound127' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.answerBound127
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.defects_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.defects_le
+
+/--
+info: 'SlhDsaSecurity.AnswerFired.target_of_shared' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.AnswerFired.target_of_shared

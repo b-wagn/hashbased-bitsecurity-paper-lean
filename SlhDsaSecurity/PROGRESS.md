@@ -5448,3 +5448,42 @@ causality (`hcausal`, cells at or after an index do not decide whether it is rea
 sharper load cap `2 ^ 102`; the pair rate is `prob_helpedBy_le` (two uniform views at one instance
 cover each other with probability `≤ 2 ^ -177`). At `rightLength ≤ 2 ^ 128` the fired cells cost
 under `2 ^ -175` per expected target, inside the half unit the sharper cap frees.
+
+## The answer half at `127` is closed; the target rests on the shared half alone
+
+**`AnswerFired.target_of_shared`**: `HasTotalSecurityBits .strong 127` from one hypothesis,
+`hshared` — `Pr[GoodWalk ∧ (InputBad ∨ Late) | recordedPairedRun] ≤ (q - 512 + 259) / 2 ^ 128`.
+The answer half is `AnswerFired.answerBound127`, `q / 2 ^ 128 + 2 ^ -126` with only
+`Target127.late` excluded, at the carrier tail with right keep `CarrierThin.keep127`
+(the carrier's keep less the `PRF_msg` class at the real seed). `defectUnits = 6`, `265 ≤ 512`.
+
+How it closed, in four pieces:
+
+* **The thinning is a compensated supermartingale** (`SignedWatch.expect_run_signed_le`): a
+  watched value `V` and a bound `C` that jumps when the cell is reached, with
+  `E[V'] + C ≤ V + E[C']` per step; telescoped, `E[V_end] ≤ E[C_end]`, which is
+  "reach and fire" below `2 ^ -128 · Pr[reach]`. A plain supermartingale cannot say this, because
+  before the cell is reached there is nothing to watch.
+* **The invariant that makes the filing step cheap** (`CarrierThin.Inv2`, `Inv3`): every
+  signer-randomised input is cached, or `late` has begun. The adversary keeps it because caching a
+  `PRF_msg` input at the seed *is* a seed guess; a signing request because it caches its own
+  `PRF_msg` input together with the digest input that answer randomises — or its digest input lands
+  on a `PRF_msg` input, the signer's coincidence; verification tracks its guesses through the cache
+  (`NewPrf`), since the state does not carry its record.
+* **The join** (`AnswerFired.join_carrierTail`): a served witness is either disclosing-recorded or a
+  target entry that fired; the forgery's digest cannot be disclosing; anything in the `PRF_msg`
+  class is `late` (forgery: `recordMeetsPrfClass_of_forgeryDigest`; witness: the signer's
+  coincidence through `servedLog_logged`).
+* **The charge** (`prob_carrierTail_firedCovered_le`): `FiredCoverage.prob_firedCovered_le` at the
+  carrier tape run, `2 ^ -126 + E[len] (2 ^ -129 + q 2 ^ -303)`, inside `2 ^ -126 + E[len] / 2 ^ 128`
+  for `q ≤ 2 ^ 174` (and `q ≥ 2 ^ 128` is trivial).
+
+**A harness trap worth a memory note**: any file whose statements mention `WarmedGame.tail` must
+declare `attribute [local irreducible] ... Scheme.keygenInternal ...` as `AnswerSide` does; without
+it, applying a lemma whose hypothesis is `x ∈ support (tail ..)` makes the elaborator evaluate key
+generation's Merkle tree (10^5 unfoldings of `Merkle.node`), a minute of `whnf` per application.
+
+**What is left** is `hshared`, and it needs one game blind to `SK.prf` and to the unavailable
+cells at once, with the adversary's budget enforced structurally — an adversary that detects the
+blind game's inconsistency after `late` may exceed its real-game budget, so the blind game's counts
+are only bounded after capping the adversary at `q`.
