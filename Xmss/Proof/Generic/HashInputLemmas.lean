@@ -1,0 +1,299 @@
+import Xmss.Proof.Generic.IdealStatement
+import Xmss.Proof.Generic.StatementLemmas
+import Xmss.Proof.Generic.Code
+import Mathlib.Tactic.NormNum
+
+open OracleSpec
+
+namespace Xmss.Generic
+
+variable [Code]
+
+def hashDomainTag : HashDomain → Nat
+  | .chain .. => 1
+  | .leaf .. => 2
+  | .merkle .. => 3
+  | .encoding .. => 4
+
+omit [Code] in
+@[simp]
+theorem length_bytesLE (byteCount : Nat) (value : BitVec (8 * byteCount)) :
+    (bytesLE byteCount value).length = byteCount := by
+  simp [bytesLE]
+
+omit [Code] in
+theorem bytesLE_injective (byteCount : Nat) : Function.Injective (bytesLE byteCount) := by
+  intro left right heq
+  have hbytes :
+      (fun index : Fin byteCount => UInt8.ofBitVec (left.extractLsb' (8 * index.val) 8)) =
+        (fun index : Fin byteCount => UInt8.ofBitVec (right.extractLsb' (8 * index.val) 8)) :=
+    List.ofFn_injective heq
+  apply BitVec.eq_of_getLsbD_eq
+  intro bit hbit
+  let byte : Fin byteCount := ⟨bit / 8, by omega⟩
+  have hbyte := congrFun hbytes byte
+  have hbyteBits := congrArg UInt8.toBitVec hbyte
+  have hlocal := congrArg (fun value => value.getLsbD (bit % 8)) hbyteBits
+  have hmod : bit % 8 < 8 := Nat.mod_lt bit (by omega)
+  have hposition : 8 * (bit / 8) + bit % 8 = bit := by
+    omega
+  simpa [byte, BitVec.getLsbD_extractLsb', hmod, hposition] using hlocal
+
+omit [Code] in
+@[simp]
+theorem length_fieldBytes (fields : TweakFields) : (fieldBytes fields).length = 9 := by
+  simp [fieldBytes]
+
+omit [Code] in
+theorem fieldBytes_injective : Function.Injective fieldBytes := by
+  intro left right heq
+  simp only [fieldBytes] at heq
+  obtain ⟨hfront, hleafIndexBytes⟩ := List.append_inj heq (by simp)
+  obtain ⟨htagBytes, hpositionBytes⟩ := List.append_inj hfront (by simp)
+  have htag : left.tag = right.tag := bytesLE_injective 1 htagBytes
+  have hposition : left.position = right.position := bytesLE_injective 4 hpositionBytes
+  have hleafIndex : left.leafIndex = right.leafIndex := bytesLE_injective 4 hleafIndexBytes
+  cases left
+  cases right
+  simp_all
+
+@[simp]
+theorem hashDomainFields_tag (domain : HashDomain) :
+    (hashDomainFields domain).tag = BitVec.ofNat 8 (hashDomainTag domain) := by
+  cases domain <;> rfl
+
+omit [Code] in
+private theorem ofNat32_eq_of_lt {left right : Nat}
+    (hleft : left < 2 ^ 32) (hright : right < 2 ^ 32)
+    (heq : BitVec.ofNat 32 left = BitVec.ofNat 32 right) : left = right := by
+  have := congrArg BitVec.toNat heq
+  norm_num at hleft hright this ⊢
+  omega
+
+omit [Code] in
+private theorem ofNat8_eq_of_lt {left right : Nat}
+    (hleft : left < 2 ^ 8) (hright : right < 2 ^ 8)
+    (heq : BitVec.ofNat 8 left = BitVec.ofNat 8 right) : left = right := by
+  have := congrArg BitVec.toNat heq
+  norm_num at hleft hright this ⊢
+  omega
+
+private theorem hashDomainTag_lt_8 (domain : HashDomain) : hashDomainTag domain < 2 ^ 8 := by
+  cases domain <;> norm_num [hashDomainTag]
+
+omit [Code] in
+private theorem leafIndex_lt_32 (leafIndex : LeafIndex) : leafIndex.val < 2 ^ 32 := by
+  change leafIndex.val < lifetime
+  exact leafIndex.isLt
+
+private theorem chainPosition_lt_32 (chain : ChainIndex) (step : ChainStep) :
+    chainLength * chain.val + step.val < 2 ^ 32 := by
+  have hchain := chain.isLt
+  have hstep := step.isLt
+  have hsmall := Code.numChains_lt
+  norm_num [chainLength, winternitzBits] at hchain hstep hsmall ⊢
+  omega
+
+omit [Code] in
+private theorem merkleLevel_lt_32 (level : MerkleLevel) : level.val + 1 < 2 ^ 32 := by
+  have hlevel := level.isLt
+  norm_num [treeHeight] at hlevel ⊢
+  omega
+
+omit [Code] in
+private theorem merkleNode_lt_32 (node : MerkleNode) : node.val < 2 ^ 32 := by
+  change node.val < lifetime
+  exact node.isLt
+
+theorem hashDomainFields_injective : Function.Injective hashDomainFields := by
+  intro left right heq
+  have htagBits := congrArg TweakFields.tag heq
+  rw [hashDomainFields_tag, hashDomainFields_tag] at htagBits
+  have htag := ofNat8_eq_of_lt (hashDomainTag_lt_8 left) (hashDomainTag_lt_8 right) htagBits
+  cases left <;> cases right <;> simp [hashDomainTag] at htag
+  all_goals simp only [hashDomainFields, tweakFields] at heq
+  · rename_i leftLeafIndex leftChain leftStep rightLeafIndex rightChain rightStep
+    have hposition := congrArg TweakFields.position heq
+    have hleafIndex := congrArg TweakFields.leafIndex heq
+    have hpositionNat := ofNat32_eq_of_lt
+      (chainPosition_lt_32 leftChain leftStep) (chainPosition_lt_32 rightChain rightStep) hposition
+    have hleafIndexNat := ofNat32_eq_of_lt (leafIndex_lt_32 leftLeafIndex) (leafIndex_lt_32 rightLeafIndex) hleafIndex
+    have hleftChain := leftChain.isLt
+    have hrightChain := rightChain.isLt
+    have hleftStep := leftStep.isLt
+    have hrightStep := rightStep.isLt
+    have hsmall := Code.numChains_lt
+    norm_num [chainLength, winternitzBits] at hpositionNat hleftChain hrightChain hleftStep hrightStep
+    congr
+    · exact Fin.ext hleafIndexNat
+    · apply Fin.ext
+      omega
+    · apply Fin.ext
+      omega
+  · rename_i leftLeafIndex rightLeafIndex
+    have hleafIndex := congrArg TweakFields.leafIndex heq
+    exact congrArg HashDomain.leaf
+      (Fin.ext (ofNat32_eq_of_lt (leafIndex_lt_32 leftLeafIndex) (leafIndex_lt_32 rightLeafIndex) hleafIndex))
+  · rename_i leftLevel leftNode rightLevel rightNode
+    have hposition := congrArg TweakFields.position heq
+    have hnode := congrArg TweakFields.leafIndex heq
+    have hlevelNat := ofNat32_eq_of_lt
+      (merkleLevel_lt_32 leftLevel) (merkleLevel_lt_32 rightLevel) hposition
+    have hnodeNat := ofNat32_eq_of_lt (merkleNode_lt_32 leftNode) (merkleNode_lt_32 rightNode) hnode
+    congr
+    · exact Fin.ext (by omega)
+    · exact Fin.ext hnodeNat
+  · rename_i leftLeafIndex rightLeafIndex
+    have hleafIndex := congrArg TweakFields.leafIndex heq
+    exact congrArg HashDomain.encoding
+      (Fin.ext (ofNat32_eq_of_lt (leafIndex_lt_32 leftLeafIndex) (leafIndex_lt_32 rightLeafIndex) hleafIndex))
+
+theorem tweakBytes_injective : Function.Injective tweakBytes :=
+  fieldBytes_injective.comp hashDomainFields_injective
+
+theorem domain_eq_of_tweakableHashInput_eq (parameter : PublicParameter)
+    {leftDomain rightDomain : HashDomain} {leftMessage rightMessage : HashInput}
+    (heq : tweakableHashInput parameter leftDomain leftMessage =
+      tweakableHashInput parameter rightDomain rightMessage) :
+    leftDomain = rightDomain := by
+  apply tweakBytes_injective
+  have heq' :
+      tweakBytes leftDomain ++ (bytesLE 16 parameter ++ leftMessage) =
+        tweakBytes rightDomain ++ (bytesLE 16 parameter ++ rightMessage) := by
+    simpa [tweakableHashInput, List.append_assoc] using heq
+  exact (List.append_inj heq' (by simp [tweakBytes])).1
+
+theorem payload_eq_of_tweakableHashInput_eq (parameter : PublicParameter)
+    (domain : HashDomain) {left right : HashInput}
+    (heq : tweakableHashInput parameter domain left =
+      tweakableHashInput parameter domain right) :
+    left = right := by
+  exact List.append_right_injective
+    (tweakBytes domain ++ bytesLE 16 parameter) heq
+
+open Hashing Wots Merkle Verify Keygen Signing
+
+omit [Code] in
+theorem Hashing.digestBytes_injective : Function.Injective digestBytes :=
+  bytesLE_injective 16
+
+omit [Code] in
+theorem Hashing.messageBytes_injective : Function.Injective messageBytes :=
+  bytesLE_injective 32
+
+omit [Code] in
+theorem Hashing.randomnessBytes_injective : Function.Injective randomnessBytes :=
+  bytesLE_injective 16
+
+omit [Code] in
+private theorem Hashing.flatMap_injective_of_eq_length {α β : Type}
+    (encode : α → List β) (hinjective : Function.Injective encode)
+    (encodedLength : Nat) (hlength : ∀ value, (encode value).length = encodedLength)
+    {left right : List α} (hsameLength : left.length = right.length)
+    (heq : left.flatMap encode = right.flatMap encode) : left = right := by
+  induction left generalizing right with
+  | nil =>
+      cases right with
+      | nil => rfl
+      | cons => simp at hsameLength
+  | cons head tail ih =>
+      cases right with
+      | nil => simp at hsameLength
+      | cons rightHead rightTail =>
+          simp only [List.flatMap_cons] at heq
+          obtain ⟨hhead, htail⟩ := List.append_inj heq (by simp [hlength])
+          congr
+          · exact hinjective hhead
+          · apply ih
+            · simpa using Nat.succ.inj hsameLength
+            · exact htail
+
+omit [Code] in
+theorem Hashing.encodingPayload_injective :
+    Function.Injective fun input : Message × Randomness => encodingPayload input.1 input.2 := by
+  rintro ⟨leftMessage, leftRandomness⟩ ⟨rightMessage, rightRandomness⟩ heq
+  obtain ⟨hmessage, hrandomness⟩ := List.append_inj heq (by simp)
+  exact Prod.ext (messageBytes_injective hmessage) (randomnessBytes_injective hrandomness)
+
+theorem Hashing.leafPayload_injective : Function.Injective leafPayload := by
+  intro left right heq
+  apply List.ofFn_injective
+  exact flatMap_injective_of_eq_length digestBytes digestBytes_injective 16
+    (fun value => by simp [digestBytes]) (by simp) heq
+
+omit [Code] in
+theorem Hashing.nodePayload_injective :
+    Function.Injective fun input : Digest × Digest => nodePayload input.1 input.2 := by
+  rintro ⟨leftFirst, leftSecond⟩ ⟨rightFirst, rightSecond⟩ heq
+  obtain ⟨hfirst, hsecond⟩ := List.append_inj heq (by simp)
+  exact Prod.ext (digestBytes_injective hfirst) (digestBytes_injective hsecond)
+
+namespace CacheView
+
+omit [Code] in
+theorem digestAt_eq_of_cache_eq_some {cache : QueryCache HashSpec} {input : HashInput}
+    {output : Digest} (hcache : cache input = some output) :
+    digestAt cache input = output := by
+  simp [digestAt, hcache]
+
+@[simp]
+theorem chainStep_eq (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (chain : ChainIndex) (position : Nat) (value : Digest)
+    (hposition : position < chainLength - 1) :
+    chainStep cache parameter leafIndex chain position value =
+      digestAt cache (chainInput parameter leafIndex chain ⟨position, hposition⟩ value) := by
+  simp [chainStep, hposition]
+
+@[simp]
+theorem nodeHash_eq (cache : QueryCache HashSpec) (parameter : PublicParameter)
+    (leafIndex : LeafIndex) (level : Nat) (left right : Digest)
+    (hlevel : level < treeHeight) :
+    nodeHash cache parameter leafIndex level left right =
+      digestAt cache (nodeInput parameter leafIndex ⟨level, hlevel⟩ left right) := by
+  simp [nodeHash, hlevel]
+
+theorem encodingInput_injective (parameter : PublicParameter) (leafIndex : LeafIndex) :
+    Function.Injective (encodingInput parameter leafIndex) := by
+  intro left right heq
+  apply Hashing.encodingPayload_injective
+  exact payload_eq_of_tweakableHashInput_eq parameter (.encoding leafIndex) heq
+
+/-- Serialized encoding inputs are separated by leaf index as well as by message and randomness. -/
+theorem encodingInput_eq_iff (parameter : PublicParameter)
+    (leftLeafIndex rightLeafIndex : LeafIndex) (left right : Message × Randomness) :
+    encodingInput parameter leftLeafIndex left =
+        encodingInput parameter rightLeafIndex right ↔
+      leftLeafIndex = rightLeafIndex ∧ left = right := by
+  constructor
+  · intro heq
+    have hdomain : HashDomain.encoding leftLeafIndex = .encoding rightLeafIndex :=
+      domain_eq_of_tweakableHashInput_eq parameter heq
+    have hleafIndex : leftLeafIndex = rightLeafIndex := HashDomain.encoding.inj hdomain
+    subst rightLeafIndex
+    exact ⟨rfl, encodingInput_injective parameter leftLeafIndex heq⟩
+  · rintro ⟨rfl, rfl⟩
+    rfl
+
+theorem leafIndex_eq_of_encodingInput_eq (parameter : PublicParameter)
+    {leftLeafIndex rightLeafIndex : LeafIndex} {left right : Message × Randomness}
+    (heq : encodingInput parameter leftLeafIndex left =
+      encodingInput parameter rightLeafIndex right) :
+    leftLeafIndex = rightLeafIndex :=
+  (encodingInput_eq_iff parameter leftLeafIndex rightLeafIndex left right).mp heq |>.1
+
+theorem chainInput_injective (parameter : PublicParameter) (leafIndex : LeafIndex)
+    (chain : ChainIndex) (position : ChainStep) :
+    Function.Injective (chainInput parameter leafIndex chain position) := by
+  intro left right heq
+  apply Hashing.digestBytes_injective
+  exact payload_eq_of_tweakableHashInput_eq parameter (.chain leafIndex chain position) heq
+
+theorem leafInput_injective (parameter : PublicParameter) (leafIndex : LeafIndex) :
+    Function.Injective (leafInput parameter leafIndex) := by
+  intro left right heq
+  apply Hashing.leafPayload_injective
+  exact payload_eq_of_tweakableHashInput_eq parameter (.leaf leafIndex) heq
+
+end CacheView
+
+end Xmss.Generic

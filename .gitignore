@@ -1,2 +1,5 @@
 /.lake/
 .claude/worktrees/
+
+# Build logs
+*.log
