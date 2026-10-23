@@ -247,74 +247,75 @@ theorem countP_located_add_le (publicSeed : Digest) (entries : List (Bytes × Li
 /-! ## The two games at a public seed -/
 
 /-- The blind run at a setup, flag carried. -/
-noncomputable def flagRun (adversary : Adversary) (limit : Nat) (setup : Setup) :
+noncomputable def flagRun (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) (setup : Setup) :
     ProbComp ((Forgery × Bool) × (St × Bool)) :=
-  (simulateQ (handler false setup) (shareComp adversary limit setup.pk)).run (St.start, false)
+  (simulateQ (handler false setup) (comp setup.pk)).run (St.start, false)
 
 /-- The blind run at a setup, flag dropped. -/
-noncomputable def blindRun (adversary : Adversary) (limit : Nat) (setup : Setup) :
+noncomputable def blindRun (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) (setup : Setup) :
     ProbComp ((Forgery × Bool) × St) :=
-  (simulateQ (blindStep setup) (shareComp adversary limit setup.pk)).run St.start
+  (simulateQ (blindStep setup) (comp setup.pk)).run St.start
 
-theorem map_flagRun (adversary : Adversary) (limit : Nat) (setup : Setup) :
-    (fun z => (z.1, z.2.1)) <$> flagRun adversary limit setup = blindRun adversary limit setup :=
+theorem map_flagRun (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) (setup : Setup) :
+    (fun z => (z.1, z.2.1)) <$> flagRun comp setup = blindRun comp setup :=
   map_run_handler setup _ St.start false
 
-theorem blindRun_prf (adversary : Adversary) (limit : Nat) (publicSeed prf prf' : Digest)
+theorem blindRun_prf (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) (publicSeed prf prf' : Digest)
     (table : Cells × Padding) :
-    blindRun adversary limit ⟨prf, publicSeed, table⟩ =
-      blindRun adversary limit ⟨prf', publicSeed, table⟩ := by
+    blindRun comp ⟨prf, publicSeed, table⟩ =
+      blindRun comp ⟨prf', publicSeed, table⟩ := by
   show (simulateQ (blindStep (setupOf publicSeed table.1 (prf, table.2)))
-      (shareComp adversary limit (setupOf publicSeed table.1 (prf, table.2)).pk)).run St.start =
+      (comp (setupOf publicSeed table.1 (prf, table.2)).pk)).run St.start =
     (simulateQ (blindStep (setupOf publicSeed table.1 (prf', table.2)))
-      (shareComp adversary limit (setupOf publicSeed table.1 (prf', table.2)).pk)).run St.start
+      (comp (setupOf publicSeed table.1 (prf', table.2)).pk)).run St.start
   rw [blindStep_prf publicSeed table.1 prf prf' table.2, pk_prf publicSeed table.1 prf prf' table.2]
 
 theorem length_blindRun (adversary : Adversary) (limit : Nat) (setup : Setup)
-    (z : (Forgery × Bool) × St) (hz : z ∈ support (blindRun adversary limit setup)) :
+    (z : (Forgery × Bool) × St)
+    (hz : z ∈ support (blindRun (shareComp adversary limit) setup)) :
     z.2.record.length ≤ limit + 3929 + 259 := by
   rw [← map_flagRun, support_map] at hz
   obtain ⟨w, hw, rfl⟩ := hz
   exact length_shareComp false setup adversary limit setup.pk false w hw
 
 /-- **The blind game at a public seed**: `SK.prf` and the table drawn, the run beside them. -/
-noncomputable def flagGame (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
+noncomputable def flagGame (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
     ProbComp (Setup × ((Forgery × Bool) × (St × Bool))) := do
   let prf ← ($ᵗ Digest : ProbComp Digest)
   let table ← ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding))
-  let z ← flagRun adversary limit ⟨prf, publicSeed, table⟩
+  let z ← flagRun comp ⟨prf, publicSeed, table⟩
   pure (⟨prf, publicSeed, table⟩, z)
 
 /-- The same, flag dropped. -/
-noncomputable def blindGame (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
+noncomputable def blindGame (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
     ProbComp (Setup × ((Forgery × Bool) × St)) := do
   let prf ← ($ᵗ Digest : ProbComp Digest)
   let table ← ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding))
-  let z ← blindRun adversary limit ⟨prf, publicSeed, table⟩
+  let z ← blindRun comp ⟨prf, publicSeed, table⟩
   pure (⟨prf, publicSeed, table⟩, z)
 
-theorem map_flagGame (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
-    (fun w => (w.1, (w.2.1, w.2.2.1))) <$> flagGame publicSeed adversary limit =
-      blindGame publicSeed adversary limit := by
+theorem map_flagGame (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
+    (fun w => (w.1, (w.2.1, w.2.2.1))) <$> flagGame publicSeed comp =
+      blindGame publicSeed comp := by
   simp only [flagGame, blindGame, map_bind, map_pure, ← map_flagRun, bind_map_left]
 
 /-- The blind run at a drawn table, `SK.prf` fixed at a default. -/
-noncomputable def tableGame (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
+noncomputable def tableGame (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
     ProbComp ((Cells × Padding) × ((Forgery × Bool) × St)) := do
   let table ← ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding))
-  let z ← blindRun adversary limit ⟨default, publicSeed, table⟩
+  let z ← blindRun comp ⟨default, publicSeed, table⟩
   pure (table, z)
 
 /-! ## The flag is a union of guesses -/
 
 /-- **Off a bad walk, the flag is a guess the record holds**: a sensitive probe, or a probe not
 prefixed by the public seed that is in the `PRF_msg` class at `SK.prf`. -/
-theorem flag_le (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
-    Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed adversary limit] ≤
+theorem flag_le (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
+    Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed comp] ≤
       Pr[fun w => (∃ entry ∈ w.2.2.record, Sens w.1 entry.2 entry.1) ∨
           (∃ entry ∈ w.2.2.record, ¬ Target127.SeedPrefixed publicSeed entry.1 ∧
             RandomizerGate.PrfClass w.1.prf entry.1) |
-        blindGame publicSeed adversary limit] := by
+        blindGame publicSeed comp] := by
   rw [← map_flagGame, probEvent_map]
   refine probEvent_mono fun w hw hevent => ?_
   obtain ⟨hgood, hflag⟩ := hevent
@@ -340,29 +341,29 @@ def stall : (queried : ShareSpec.Domain) → ShareSpec.Range queried
 
 set_option maxHeartbeats 1000000 in
 /-- **The cell guesses cost one unit per locating entry.** -/
-theorem sens_le (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
+theorem sens_le (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
     Pr[fun w => ∃ entry ∈ w.2.2.record, Sens w.1 entry.2 entry.1 |
-        blindGame publicSeed adversary limit] ≤
-      BlindCharge.ex (tableGame publicSeed adversary limit) (fun tz =>
+        blindGame publicSeed comp] ≤
+      BlindCharge.ex (tableGame publicSeed comp) (fun tz =>
         ((tz.2.2.record.countP fun entry =>
           ((GraphStakes.stakes publicSeed).locate entry.1).isSome : Nat) : ℝ≥0∞)) /
         ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   have hmarginal : Pr[fun w => ∃ entry ∈ w.2.2.record, Sens w.1 entry.2 entry.1 |
-        blindGame publicSeed adversary limit] =
+        blindGame publicSeed comp] =
       Pr[fun tz => ∃ entry ∈ tz.2.2.record, Sens ⟨default, publicSeed, tz.1⟩ entry.2 entry.1 |
-        tableGame publicSeed adversary limit] := by
+        tableGame publicSeed comp] := by
     unfold blindGame
     refine probEvent_bind_const _ _ _ _ fun prf => ?_
     unfold tableGame
-    simp only [blindRun_prf adversary limit publicSeed prf default]
+    simp only [blindRun_prf comp publicSeed prf default]
     rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
     refine tsum_congr fun table => ?_
     congr 1
     rw [bind_pure_comp, bind_pure_comp, probEvent_map, probEvent_map]
     rfl
-  have hexperiment : tableGame publicSeed adversary limit =
+  have hexperiment : tableGame publicSeed comp =
       (fun w => ((w.2.1, w.2.2), w.1)) <$> BlindCharge.experiment ($ᵗ Padding : ProbComp Padding)
-        (fun cells pad => blindRun adversary limit (setupOf publicSeed cells (default, pad))) := by
+        (fun cells pad => blindRun comp (setupOf publicSeed cells (default, pad))) := by
     unfold tableGame BlindCharge.experiment
     rw [BlockViews.uniformSample_prod_eq_bind]
     simp only [bind_assoc, pure_bind, map_bind, map_pure]
@@ -371,7 +372,7 @@ theorem sens_le (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
   exact BlindCharge.prob_sensitive_le (GraphStakes.stakes publicSeed) St.record St.served
     ($ᵗ Padding : ProbComp Padding)
     (fun cells pad => blindStep (setupOf publicSeed cells (default, pad)))
-    (fun cells pad => shareComp adversary limit (setupOf publicSeed cells (default, pad)).pk)
+    (fun cells pad => comp (setupOf publicSeed cells (default, pad)).pk)
     St.start rfl (fun cells pad served node => ¬ available (setupOf publicSeed cells (default, pad))
       served node) stall (fun index => ¬ AlwaysAvailable index)
     (fun cells pad served index hunavailable =>
@@ -387,8 +388,8 @@ theorem sens_le (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
       rw [available_congr publicSeed cells other (default, pad)
         (agree_alwaysAvailable index hindex cells other hagree)])
     (fun index hindex cells other pad hagree => by
-      show shareComp adversary limit (setupOf publicSeed cells (default, pad)).pk =
-        shareComp adversary limit (setupOf publicSeed other (default, pad)).pk
+      show comp (setupOf publicSeed cells (default, pad)).pk =
+        comp (setupOf publicSeed other (default, pad)).pk
       rw [pk_congr publicSeed index hindex cells other (default, pad) hagree])
 
 /-! ## The `SK.prf` guesses -/
@@ -420,29 +421,29 @@ theorem prob_prf_list_le (publicSeed : Digest) (entries : List (Bytes × List Ha
 
 open scoped Classical in
 /-- **The `SK.prf` guesses cost one unit per entry not prefixed by the public seed.** -/
-theorem prf_le (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
+theorem prf_le (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
     Pr[fun w => ∃ entry ∈ w.2.2.record, ¬ Target127.SeedPrefixed publicSeed entry.1 ∧
           RandomizerGate.PrfClass w.1.prf entry.1 |
-        blindGame publicSeed adversary limit] ≤
-      BlindCharge.ex (tableGame publicSeed adversary limit) (fun tz =>
+        blindGame publicSeed comp] ≤
+      BlindCharge.ex (tableGame publicSeed comp) (fun tz =>
         ((tz.2.2.record.countP fun entry =>
           decide (¬ Target127.SeedPrefixed publicSeed entry.1) : Nat) : ℝ≥0∞)) /
         ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
-  have hlaw : 𝒟[blindGame publicSeed adversary limit] =
-      𝒟[tableGame publicSeed adversary limit >>= fun tz =>
+  have hlaw : 𝒟[blindGame publicSeed comp] =
+      𝒟[tableGame publicSeed comp >>= fun tz =>
         ($ᵗ Digest : ProbComp Digest) >>= fun prf =>
           (pure (⟨prf, publicSeed, tz.1⟩, tz.2) : ProbComp (Setup × ((Forgery × Bool) × St)))] := by
     unfold blindGame tableGame
-    simp only [blindRun_prf adversary limit publicSeed _ default]
+    simp only [blindRun_prf comp publicSeed _ default]
     have hshape : ∀ prf : Digest,
         (do
           let table ← ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding))
-          let z ← blindRun adversary limit ⟨default, publicSeed, table⟩
+          let z ← blindRun comp ⟨default, publicSeed, table⟩
           (pure (⟨prf, publicSeed, table⟩, z) : ProbComp (Setup × ((Forgery × Bool) × St)))) =
         (do
           let table ← ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding))
-          let z ← blindRun adversary limit ⟨default, publicSeed, table⟩
+          let z ← blindRun comp ⟨default, publicSeed, table⟩
           pure (table, z)) >>= fun tz =>
             (pure (⟨prf, publicSeed, tz.1⟩, tz.2) : ProbComp (Setup × ((Forgery × Bool) × St))) := by
       intro prf
@@ -457,24 +458,50 @@ theorem prf_le (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
 
 /-! ## The bound -/
 
+open scoped Classical in
+/-- **The entries a charge pays for**: those locating a node, and those not prefixed by the
+public seed. -/
+noncomputable def charged (publicSeed : Digest) (record : List (Bytes × List HashOutput)) : Nat :=
+  record.countP (fun entry => ((GraphStakes.stakes publicSeed).locate entry.1).isSome) +
+    record.countP (fun entry => decide (¬ Target127.SeedPrefixed publicSeed entry.1))
+
+theorem charged_le_length (publicSeed : Digest) (record : List (Bytes × List HashOutput)) :
+    charged publicSeed record ≤ record.length := by
+  classical
+  unfold charged
+  convert countP_located_add_le publicSeed record
+
 set_option maxRecDepth 100000 in
 set_option linter.constructorNameAsVariable false in
-/-- **The blind game's flag, off a bad walk, is at most `(limit + 3929 + 259) / 2 ^ 128`.** -/
-theorem blind_bound (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
-    Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed adversary limit] ≤
-      ((limit + 3929 + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
+/-- **The blind game's flag, off a bad walk, is at most the charged entries over `2 ^ 128`**,
+for any game whose blind runs keep the charged entries within `bound`. -/
+theorem blind_bound_of (publicSeed : Digest)
+    (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) (bound : Nat)
+    (hbound : ∀ setup : Setup, ∀ z ∈ support (blindRun comp setup),
+      charged publicSeed z.2.record ≤ bound) :
+    Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed comp] ≤
+      (bound : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
   classical
-  refine le_trans (flag_le publicSeed adversary limit) ?_
+  refine le_trans (flag_le publicSeed comp) ?_
   refine le_trans (probEvent_or_le _ _ _) ?_
-  refine le_trans (add_le_add (sens_le publicSeed adversary limit)
-    (prf_le publicSeed adversary limit)) ?_
+  refine le_trans (add_le_add (sens_le publicSeed comp)
+    (prf_le publicSeed comp)) ?_
   rw [ENNReal.div_add_div_same, ex_add]
   refine ENNReal.div_le_div_right ?_ _
   refine le_trans (ex_mono_support _ fun tz htz => ?_) (ex_const_le _ _)
   rw [← Nat.cast_add]
-  refine Nat.cast_le.mpr ((countP_located_add_le publicSeed _).trans ?_)
+  refine Nat.cast_le.mpr ?_
   simp only [tableGame, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at htz
   obtain ⟨table, -, z, hz, rfl⟩ := htz
-  exact length_blindRun adversary limit _ z hz
+  have h := hbound _ z hz
+  unfold charged at h
+  convert h
+
+/-- **The blind game's flag, off a bad walk, is at most `(limit + 3929 + 259) / 2 ^ 128`.** -/
+theorem blind_bound (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
+    Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed (shareComp adversary limit)] ≤
+      ((limit + 3929 + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
+  blind_bound_of publicSeed (shareComp adversary limit) _ fun setup z hz =>
+    (charged_le_length publicSeed _).trans (length_blindRun adversary limit setup z hz)
 
 end SlhDsaSecurity.ShareBound

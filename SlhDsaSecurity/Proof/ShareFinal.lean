@@ -35,7 +35,7 @@ theorem setup_bound (setup : Setup) (hgood : setup.Good) (adversary : Adversary)
         (StrippedGame.strippedSign setup.warm setup.sk)) (adversary.main setup.pk)).run
           (1, [], setup.warm)), ShareRealCap.realCost z.2 ≤ limit) :
     Pr[RealEvent setup | SharePresent.realFlat adversary (setup.sk, setup.pk) setup.warm] ≤
-      Pr[fun z => z.2.2 = true | ShareBound.flagRun adversary limit setup] := by
+      Pr[fun z => z.2.2 = true | ShareBound.flagRun (shareComp adversary limit) setup] := by
   rw [← probEvent_congr' (fun _ _ => Iff.rfl)
     (ShareRealCap.evalDist_realFlat_cap adversary (setup.sk, setup.pk) setup.warm limit hbound)]
   refine le_trans (probEvent_le_of_relTriple_imp (Q := fun lenient => lenient.2.2 = true)

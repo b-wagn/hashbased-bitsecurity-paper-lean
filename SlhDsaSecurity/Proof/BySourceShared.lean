@@ -90,7 +90,7 @@ theorem walk_bound {adversary : Adversary} {q : Nat} (hbudget : TailBudget adver
           Target127.Late (WalkTable.walkOfTable prfSeed publicSeed table, result)) |
       RecordedTail.recordedTail adversary (WalkTable.walkOfTable prfSeed publicSeed table)] ≤
       Pr[fun z => (ShareFinal.setupOf prfSeed publicSeed table).Good ∧ z.2.2 = true |
-        ShareBound.flagRun adversary (ShareFinal.capLimit q)
+        ShareBound.flagRun (ShareGame.shareComp adversary (ShareFinal.capLimit q))
           (ShareFinal.setupOf prfSeed publicSeed table)] := by
   classical
   by_cases hgood : (ShareFinal.setupOf prfSeed publicSeed table).Good
@@ -146,19 +146,19 @@ theorem hshared (q : Nat) (adversary : Adversary) (hbudget : TailBudget adversar
     _ ≤ ex ($ᵗ Digest : ProbComp Digest) fun prfSeed => ex ($ᵗ Digest : ProbComp Digest)
           fun publicSeed => ex ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding)) fun table =>
             Pr[fun z => (ShareFinal.setupOf prfSeed publicSeed table).Good ∧ z.2.2 = true |
-              ShareBound.flagRun adversary (ShareFinal.capLimit q)
+              ShareBound.flagRun (ShareGame.shareComp adversary (ShareFinal.capLimit q))
                 (ShareFinal.setupOf prfSeed publicSeed table)] :=
         ex_mono _ fun prfSeed => ex_mono _ fun publicSeed => ex_mono _ fun table =>
           walk_bound hbudget prfSeed publicSeed table
     _ = ex ($ᵗ Digest : ProbComp Digest) fun publicSeed => ex ($ᵗ Digest : ProbComp Digest)
           fun prfSeed => ex ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding)) fun table =>
             Pr[fun z => (ShareFinal.setupOf prfSeed publicSeed table).Good ∧ z.2.2 = true |
-              ShareBound.flagRun adversary (ShareFinal.capLimit q)
+              ShareBound.flagRun (ShareGame.shareComp adversary (ShareFinal.capLimit q))
                 (ShareFinal.setupOf prfSeed publicSeed table)] :=
         ShareFinal.ex_comm _ _ _
     _ = ex ($ᵗ Digest : ProbComp Digest) fun publicSeed =>
           Pr[fun w => w.1.Good ∧ w.2.2.2 = true |
-            ShareBound.flagGame publicSeed adversary (ShareFinal.capLimit q)] := by
+            ShareBound.flagGame publicSeed (ShareGame.shareComp adversary (ShareFinal.capLimit q))] := by
         refine ex_congr _ fun publicSeed => ?_
         rw [ShareBound.flagGame, probEvent_eq_ex_bind]
         refine ex_congr _ fun prfSeed => ?_

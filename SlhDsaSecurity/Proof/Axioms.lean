@@ -16666,3 +16666,15 @@ info: 'SlhDsaSecurity.BySourceTarget.hasLimitedSecurityBits_standard_127' depend
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BySourceTarget.hasLimitedSecurityBits_standard_127
+
+/--
+info: 'SlhDsaSecurity.ShareBound.charged_le_length' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.charged_le_length
+
+/--
+info: 'SlhDsaSecurity.ShareBound.blind_bound_of' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.blind_bound_of
