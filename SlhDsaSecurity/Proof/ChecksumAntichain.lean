@@ -33,12 +33,6 @@ theorem messageDigit_injective : Function.Injective messageDigit := by
   simpa only [BitVec.getLsbD_extractLsb', show winternitzBits = 4 from rfl,
     decide_eq_true hoffsetBit, Bool.true_and, hoffset] using hlocalBit
 
-theorem encode_injective : Function.Injective encode := by
-  intro left right h
-  apply messageDigit_injective
-  funext i
-  simpa only [encode_messageDigit] using congrFun h (Fin.castAdd checksumDigits i)
-
 theorem checksum_eq_digits (csum : Nat) (hcsum : csum < w ^ checksumDigits) :
     csum = w ^ 2 * (checksumDigit csum ⟨0, by decide⟩).val +
       w * (checksumDigit csum ⟨1, by decide⟩).val +

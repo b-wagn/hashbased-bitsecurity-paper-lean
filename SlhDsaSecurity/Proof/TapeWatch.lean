@@ -82,23 +82,6 @@ noncomputable def watchValue (target : Bytes) (hits : HashOutput → Prop)
   | none => Pr[hits | ($ᵗ HashOutput : ProbComp HashOutput)]
 
 open scoped Classical in
-/-- The watched event at a state bounds by the watched value. -/
-theorem indicator_le_watchValue (target : Bytes) (hits : HashOutput → Prop)
-    (state : SplitTapeState σ) :
-    (if (∃ answer, CacheView.cacheOf state.1 target = some answer ∧ hits answer) ∧
-        target ∉ state.2.2.1.map Prod.fst ∧ target ∉ state.2.2.2.map Prod.fst then 1 else 0) ≤
-      watchValue target hits state := by
-  classical
-  unfold watchValue
-  cases hcache : CacheView.cacheOf state.1 target with
-  | none =>
-    simp only [reduceCtorEq, false_and, exists_false, if_false]
-    exact zero_le
-  | some answer =>
-    simp only [Option.some.injEq, exists_eq_left']
-    exact le_rfl
-
-open scoped Classical in
 /-- **A step that does not query the input leaves its watched value alone**, pathwise. -/
 theorem watchValue_step_ne (leftKeep rightKeep : Bytes → σ → Prop) (target : Bytes)
     (hits : HashOutput → Prop) (input : Bytes) (hne : input ≠ target)
@@ -301,58 +284,6 @@ theorem watchValue_onCarrierTape (target : Bytes) (hits : HashOutput → Prop) (
   simp only [watchValue, onCarrierTape, hf]
 
 variable {ω : Type} [Monoid ω]
-
-/-- **No fused step raises the watched value in expectation.** -/
-theorem watchValue_fused_step_le (leftKeep rightKeep : Bytes → σ → Prop) (target : Bytes)
-    (hits : HashOutput → Prop)
-    (inner : QueryImpl (OracleWorld + Security.SigningSpec)
-      (WriterT ω (StateT Security.SigningLog (OracleComp OracleWorld))))
-    (before : Message → σ → σ) (afterMap : σ → σ)
-    (hbefore : ∀ (request : Message) (carrier : σ),
-      CacheView.cacheOf (before request carrier) = CacheView.cacheOf carrier)
-    (hafter : ∀ carrier : σ, CacheView.cacheOf (afterMap carrier) = CacheView.cacheOf carrier)
-    (queried : (OracleWorld + Security.SigningSpec).Domain)
-    (state : ω × Security.SigningLog × SplitTapeState σ) :
-    ∑' z, Pr[= z | ((fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
-        (fun request => onCarrierTape (before request)) (onCarrierTape afterMap))
-        queried).run state] * watchValue target hits z.2.2.2 ≤
-      watchValue target hits state.2.2 := by
-  rcases queried with world | request
-  · rw [FusedTape.fuseServing_run_inl]
-    refine expect_run_bind_le _ (watchValue target hits)
-      (fun queried state => watchValue_step_le leftKeep rightKeep target hits queried state)
-      _ state.2.2 _ (fun w : (OracleWorld + Security.SigningSpec).Range (Sum.inl world) × ω ×
-        Security.SigningLog × SplitTapeState σ => watchValue target hits w.2.2.2) fun z => ?_
-    rw [FiredCoverage.tsum_probOutput_pure]
-  · rw [FusedTape.fuseServing_run_inr]
-    refine le_trans (expect_run_bind_le _ (watchValue target hits)
-      (fun queried state => watchValue_step_le leftKeep rightKeep target hits queried state)
-      _ (onCarrierTape (before request) state.2.2) _
-      (fun w : (OracleWorld + Security.SigningSpec).Range (Sum.inr request) × ω ×
-        Security.SigningLog × SplitTapeState σ => watchValue target hits w.2.2.2)
-      fun z => ?_) (le_of_eq ?_)
-    · rw [FiredCoverage.tsum_probOutput_pure, watchValue_onCarrierTape _ _ _ hafter]
-    · exact watchValue_onCarrierTape _ _ _ (hbefore request) _
-
-/-- **And no fused run raises it.** -/
-theorem watchValue_fused_run_le (leftKeep rightKeep : Bytes → σ → Prop) (target : Bytes)
-    (hits : HashOutput → Prop)
-    (inner : QueryImpl (OracleWorld + Security.SigningSpec)
-      (WriterT ω (StateT Security.SigningLog (OracleComp OracleWorld))))
-    (before : Message → σ → σ) (afterMap : σ → σ)
-    (hbefore : ∀ (request : Message) (carrier : σ),
-      CacheView.cacheOf (before request carrier) = CacheView.cacheOf carrier)
-    (hafter : ∀ carrier : σ, CacheView.cacheOf (afterMap carrier) = CacheView.cacheOf carrier)
-    {α : Type} (phase : OracleComp (OracleWorld + Security.SigningSpec) α)
-    (state : ω × Security.SigningLog × SplitTapeState σ) :
-    ∑' z, Pr[= z | (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
-        (fun request => onCarrierTape (before request)) (onCarrierTape afterMap)) phase).run
-        state] * watchValue target hits z.2.2.2 ≤
-      watchValue target hits state.2.2 :=
-  expect_run_le _ (fun state : ω × Security.SigningLog × SplitTapeState σ =>
-      watchValue target hits state.2.2)
-    (fun queried state => watchValue_fused_step_le leftKeep rightKeep target hits inner before
-      afterMap hbefore hafter queried state) phase state
 
 /-! ## A tape run is a run of the shared oracle
 

@@ -95,13 +95,6 @@ theorem FreeBounds.bind {computation : OracleComp HashSpec α} {next : α → Or
   rw [simulateQ_bind]
   exact AddWriterT.queryBoundedBelowBy_bind (h m impl) (fun value => hnext value m impl)
 
-theorem FreeBounds.mono {computation : OracleComp HashSpec α} {lower lower' : Nat}
-    (h : FreeBounds publicSeed computation lower) (hlower : lower' ≤ lower) :
-    FreeBounds publicSeed computation lower' := by
-  unfold FreeBounds at h ⊢
-  intro m _ _ _ _ impl
-  exact AddWriterT.queryBoundedBelowBy_mono (h m impl) hlower
-
 theorem FreeBounds.map {computation : OracleComp HashSpec α} {lower : Nat}
     (h : FreeBounds publicSeed computation lower) (f : α → β) :
     FreeBounds publicSeed (f <$> computation) lower := by
@@ -275,48 +268,7 @@ theorem FreeBounds.simulated {m : Type → Type} [Monad m] [LawfulMonad m]
   unfold FreeBounds at h
   exact h (OracleComp HashSpec) (QueryImpl.ofLift HashSpec (OracleComp HashSpec)) result hfree
 
-theorem verify_free_simulated {m : Type → Type} [Monad m] [LawfulMonad m]
-    [MonadLiftT m SetM] [LawfulMonadLiftT m SetM]
-    {σ : Type} (impl : QueryImpl HashSpec (StateT σ m)) (initial : σ)
-    (pk : PublicKey) (request : Message) (wire : Bytes) (message : Bytes) (signature : Signature)
-    (hframe : request.frame = some message) (hparse : Signature.fromBytes? wire = some signature)
-    (result : Bool × Multiplicative Nat)
-    (hresult : result ∈ support ((simulateQ impl
-      (freeCounted pk.seed (Scheme.verify pk request wire : OracleComp HashSpec Bool))).run'
-        initial)) :
-    239 ≤ Multiplicative.toAdd result.2 :=
-  (verify_free pk request wire message signature hframe hparse).simulated impl initial result
-    hresult
-
 /-! ## The `OracleWorld` verifier under the game's random oracle -/
-
-/-- The free-query cost on the game's world: uniform draws cost nothing. -/
-noncomputable def worldFreeCost (publicSeed : Digest) : OracleWorld.Domain → Nat
-  | .inl _ => 0
-  | .inr input => freeCost publicSeed input
-
-/-- Count the free hash queries of a world computation. -/
-noncomputable def countFree (publicSeed : Digest) (computation : OracleComp OracleWorld α) :
-    OracleComp OracleWorld (α × Nat) :=
-  (fun result => (result.1, Multiplicative.toAdd result.2)) <$>
-    (simulateQ (addCostOracle (worldFreeCost publicSeed)) computation).run
-
-theorem countFree_pure (value : α) :
-    countFree publicSeed (pure value : OracleComp OracleWorld α) = pure (value, 0) := rfl
-
-theorem countFree_bind (first : OracleComp OracleWorld α) (next : α → OracleComp OracleWorld β) :
-    countFree publicSeed (first >>= next) = (do
-      let left ← countFree publicSeed first
-      let right ← countFree publicSeed (next left.1)
-      return (right.1, left.2 + right.2)) := by
-  simp [countFree, simulateQ_bind, WriterT.run_bind, bind_assoc, map_eq_bind_pure_comp]
-
-theorem countFree_query (input : OracleWorld.Domain) :
-    countFree publicSeed (liftM (OracleWorld.query input)) = (do
-      let output ← liftM (OracleWorld.query input)
-      return (output, worldFreeCost publicSeed input)) := by
-  simp [countFree, addCostOracle, QueryImpl.withAddCost, QueryImpl.withCost,
-    map_eq_bind_pure_comp]
 
 theorem freeCounted_pure (value : α) :
     freeCounted publicSeed (pure value : OracleComp HashSpec α) =
@@ -331,40 +283,5 @@ theorem freeCounted_query_bind (input : HashSpec.Domain)
         (freeCost publicSeed input + Multiplicative.toAdd result.2))) := by
   simp [freeCounted, simulateQ_bind, QueryImpl.withAddCost, QueryImpl.withCost, WriterT.run_bind,
     bind_assoc, map_eq_bind_pure_comp]
-
-theorem countFree_lift (computation : OracleComp HashSpec α) :
-    countFree publicSeed (OracleComp.liftComp computation OracleWorld) =
-      OracleComp.liftComp ((fun result => (result.1, Multiplicative.toAdd result.2)) <$>
-        freeCounted publicSeed computation) OracleWorld := by
-  induction computation using OracleComp.inductionOn with
-  | pure value => simp [countFree_pure, freeCounted_pure]
-  | query_bind input next ih =>
-    simp only [OracleComp.liftComp_bind, OracleComp.liftComp_query, countFree_bind]
-    change (do
-      let left ← countFree publicSeed (liftM (OracleWorld.query (.inr input)))
-      let right ← countFree publicSeed (OracleComp.liftComp (next left.1) OracleWorld)
-      return (right.1, left.2 + right.2)) = _
-    rw [countFree_query]
-    simp only [ih, bind_assoc, pure_bind, freeCounted_query_bind]
-    simp [map_eq_bind_pure_comp, worldFreeCost, bind_assoc]
-    rfl
-
-/-- **The game's verifier, under the shared random oracle from any cache, makes at least `239`
-free queries on a parsed signature.** -/
-theorem verify_free_rom (pk : PublicKey) (request : Message) (wire : Bytes)
-    (message : Bytes) (signature : Signature)
-    (hframe : request.frame = some message) (hparse : Signature.fromBytes? wire = some signature)
-    (cache : QueryCache HashSpec) (result : Bool × Nat)
-    (hresult : result ∈ support
-      ((simulateQ (Xmss.RandomOracleModel.impl Bytes HashOutput)
-        (countFree pk.seed (Scheme.verify pk request wire : OracleComp OracleWorld Bool))).run'
-          cache)) :
-    239 ≤ result.2 := by
-  rw [VerificationBudget.verify_lift, countFree_lift] at hresult
-  rw [Xmss.RandomOracleModel.impl, QueryImpl.simulateQ_add_liftComp_right,
-    simulateQ_map, StateT.run'_map', support_map, Set.mem_image] at hresult
-  obtain ⟨trace, htrace, rfl⟩ := hresult
-  exact (verify_free pk request wire message signature hframe hparse).simulated
-    randomOracle cache trace htrace
 
 end SlhDsaSecurity.VerifyFree

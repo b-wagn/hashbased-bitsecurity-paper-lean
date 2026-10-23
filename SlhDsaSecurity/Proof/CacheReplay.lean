@@ -1,4 +1,4 @@
-import SlhDsaSecurity.Proof.QueryCached
+import SlhDsaSecurity.Proof.GrowthCharge
 
 /-!
 # Replaying a run against its own final cache

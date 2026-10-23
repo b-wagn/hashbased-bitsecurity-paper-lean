@@ -71,29 +71,6 @@ attribute [local irreducible] WarmedGame.afterSeeds Scheme.verify Scheme.keygenI
 
 set_option linter.constructorNameAsVariable false
 
-/-- The recorded run the two recorder hypotheses are read at: the game's own tail computation,
-recorded.
-
-**This is the shape the producers state at, and that is why it is this one.** Every lemma in
-`SplitWitness` takes `computation : OracleComp OracleWorld (Outcome × Nat)` and
-`SplitWitness.LateDisclosure`'s domain is `(Outcome × Nat) × SplitState`, so a charge proved
-there plugs in with no adapter. The charge *consuming* these hypotheses reads the split-counted
-run instead, and the two are bridged inside the proof by
-`CoverageCount.mem_support_recorder_countAllHashes` — on this side, once, rather than at each
-producer.
-
-It takes no counter slots, which is the point: nothing a producer writes has to mention them,
-so the presentation may renumber them freely. -/
-noncomputable def answerRecordedRun (adversary : Adversary)
-    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
-    ProbComp ((Outcome × Nat) × SplitPrefix.SplitState) :=
-  BlockViews.recordedRun
-    (SplitWitness.disclosingKeep walk.1.1.2.1
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-    (SplitWitness.targetKeep walk.1.1.2.1
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-    (countAllHashes (afterSeeds adversary walk.1.1)) walk.2
-
 /-! ## The same join, in the shape the restated target asks for
 
 The target moved: the answer half is now read at `FusedCoverage.fusedTail` with the ordering
@@ -135,70 +112,6 @@ makes the secret testable one candidate per query.
 The bound is unchanged to the digit, including the `2 ^ -126` this side still does not spend; it
 is stated so that the restated `Obligations.AnswerChargedLate` consumes it without an adapter. -/
 
-set_option maxHeartbeats 1000000 in
-/-- **The answer half's bound with both unpayable clauses conjoined.** No probability hypothesis
-at a fixed walk survives: the ordering defect and the narrowed leftover are both conjuncts, and
-both complements are the shared half's. -/
-theorem answerRecordedBound_narrow_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
-    (hjoinNarrow : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (BlockViews.recordedRun
-        (SplitWitness.disclosingKeep walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (SplitWitness.targetKeep walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-        (countQueries (ClassGrowth.splitCost (CombinedCharge.IsMessageInput
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-          inside outside) (afterSeeds adversary walk.1.1)) walk.2),
-        SplitWitness.CoveredAtKeep walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1) →
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2.1) →
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            ((result.1.1, result.1.2 inside + result.1.2 outside), result.2) →
-          BlockViews.TargetCovered result)
-    (hleftBound : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (answerRecordedRun adversary walk),
-        result.2.2.1.length ≤ signingLimit)
-    (hdisclosing : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (answerRecordedRun adversary walk), ∀ input : Bytes,
-        ServedLog.servedLog
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) input ↔
-          SplitWitness.disclosingKeep walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            input result.2.1) :
-    ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      ∀ walk ∈ support graphWalk, GoodWalk walk →
-        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-            AnswerBad ((walk.1, result.1), result.2.1) ∧
-              ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-                (result.1, result.2.1) ∧
-              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-          answerRecordedRun adversary walk] ≤
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞) := by
-  classical
-  intro q adversary _ hbudget walk hwalk hgood
-  refine le_trans (prob_answerBad_good_le_of_caps_recorded_narrow adversary q hne hbudget hwalk
-    hgood.2 signingLimit ForsLeaveOneOut.signingLimit_le_tapeBound
-    (hjoinNarrow adversary walk hwalk hgood)
-    (fun result hmem => hleftBound adversary walk hwalk hgood _
-      (CoverageCount.mem_support_recorder_countAllHashes _ _ _ hne
-        (afterSeeds adversary walk.1.1) (walk.2, [], []) result hmem))
-    (hdisclosing adversary walk hwalk hgood)) ?_
-  rw [show ((2 ^ 141 : Nat) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 141 from by push_cast; ring]
-
 /-! ## The bound with the narrowed class a parameter, and the retirement it makes an `exact`
 
 The answer half's leftover is one conjunct of `SplitWitness.narrowClass`, and its retirement is
@@ -225,24 +138,5 @@ there is no `le_trans` in that direction. Taking `leftLength` free, with the con
 as the side condition, lets the carrier's own lemma land by `exact`, and `signingLimit` with
 `ForsLeaveOneOut.signingLimit_le_tapeBound` is still available for a caller that has the log
 length instead. -/
-
-/-- The recorded run at a target class left free. At `SplitWitness.narrowClass` it is
-`answerRecordedRun`, definitionally. -/
-noncomputable def answerRecordedRunAt (narrow : Bytes → Prop) (adversary : Adversary)
-    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
-    ProbComp ((Outcome × Nat) × SplitPrefix.SplitState) :=
-  BlockViews.recordedRun
-    (SplitWitness.disclosingKeep walk.1.1.2.1
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-    (SplitWitness.Served.targetKeep (fun probe _ => narrow probe) (SplitWitness.disclosingKeep walk.1.1.2.1
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
-    (countAllHashes (afterSeeds adversary walk.1.1)) walk.2
-
-/-- **At the class the game uses today, it is the run the obligation is read at.** -/
-theorem answerRecordedRunAt_narrowClass (adversary : Adversary)
-    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
-    answerRecordedRunAt (SplitWitness.narrowClass walk.1.1.2.1
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-      adversary walk = answerRecordedRun adversary walk := rfl
 
 end SlhDsaSecurity.AnswerJoin

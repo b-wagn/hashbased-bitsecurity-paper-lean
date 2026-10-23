@@ -1,6 +1,8 @@
 import SlhDsaSecurity.Proof.CarrierTail
 import SlhDsaSecurity.Proof.CountedView
-import SlhDsaSecurity.Proof.NoticingBlocks
+import SlhDsaSecurity.Proof.NoticingTape
+import SlhDsaSecurity.Proof.FusedTape
+import SlhDsaSecurity.Proof.BlockViews
 
 /-!
 # The carrier tail is a three-stage recorder run, and so it pays the coverage charge
@@ -91,7 +93,6 @@ theorem carrierTail_eq_threeStage
   refine bind_congr fun final => ?_
   rfl
 
-
 /-! ## The charge at the carrier tail
 
 **Both definitions stay reducible, and testing that was the first thing to do.** Trap one says
@@ -106,37 +107,5 @@ The type arguments are supplied rather than inferred, for the usual reason: six 
 under a three-stage run is the seventh member of the family that reports `timeout` and names
 neither the metavariable nor the cause.
 -/
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **The coverage charge at the carrier tail.** One unit of `2 ^ -141` for the disclosing
-block's concentration, and one unit of `2 ^ -128` per *expected* target recorded. -/
-theorem prob_carrierTail_targetCovered_le
-    (rightKeep : BracketedRun.Walk → Bytes → HandlerCarrier.State → Prop)
-    (adversary : Adversary) (walk : BracketedRun.Walk)
-    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
-    (hleftBound : ∀ result ∈ support (carrierTail rightKeep adversary walk),
-      result.2.2.1.length ≤ leftLength)
-    (hrightBound : ∀ result ∈ support (carrierTail rightKeep adversary walk),
-      result.2.2.2.length ≤ rightLength) :
-    Pr[fun result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState =>
-        BlockViews.TargetCovered result | carrierTail rightKeep adversary walk] ≤
-      (1 : ℝ≥0∞) / 2 ^ 141 +
-        (∑' result, Pr[= result | carrierTail rightKeep adversary walk] *
-          ((result.2.2.2.length : Nat) : ℝ≥0∞)) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [carrierTail_eq_threeStage rightKeep adversary walk] at hleftBound hrightBound ⊢
-  exact @NoticingBlocks.prob_threeStageTargetCovered_le Counted (countedView (keyAt walk))
-    (liftTest (disclosingKeep (keyAt walk))) (liftTest (rightKeep walk))
-    (Multiplicative RecordedQueries.Tally) _ (SecretKey × PublicKey) Forgery
-    (Bool × RecordedQueries.Tally) ((Outcome × Multiset Bytes) × Nat)
-    (fun keys => recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1))
-    ServedAgreement.startServingOn ServedAgreement.stopServingOn
-    (Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2)
-    (fun keys => adversary.main keys.2)
-    (fun keys forgery => countRecorded verifierCost
-      (Scheme.verify keys.2 forgery.message forgery.signature))
-    tailValue (startAt walk.2, 0) leftLength rightLength hcap hleftBound hrightBound
-
 
 end SlhDsaSecurity.CarrierCoverage

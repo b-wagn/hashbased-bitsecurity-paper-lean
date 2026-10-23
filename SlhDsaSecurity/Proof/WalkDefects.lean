@@ -121,21 +121,6 @@ theorem prob_prf_eq_publicSeed_walk :
   rw [hpure] at hevent
   exact hevent
 
-/-- **The hypothesis retired.** A bound that holds after every walk whose seeds differ holds for
-the warmed run, at the cost of the one unit the coincidence costs. -/
-theorem probEvent_le_of_tail_of_seeds_ne (adversary : Adversary)
-    (event : (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) ×
-      QueryCache HashSpec → Prop) (bound : ℝ≥0∞)
-    (htail : ∀ walk ∈ support graphWalk, walk.1.1.2.1 ≠ walk.1.1.2.2 →
-      Pr[fun result => event ((walk.1, result.1), result.2) | tail adversary walk] ≤ bound) :
-    Pr[event | warmedRun adversary] ≤ bound + 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [warmedRun_eq, probEvent_map]
-  refine le_trans (probEvent_bind_pair_split_le graphWalk (tail adversary)
-    (fun walk result => event ((walk.1, result.1), result.2))
-    (fun walk => walk.1.1.2.1 = walk.1.1.2.2) bound htail) ?_
-  exact add_le_add le_rfl prob_prf_eq_publicSeed_walk
-
 /-! ## The public root is one of the walk's cells
 
 The public key is the public seed and the top subtree's root, and that root is the graph's own
@@ -231,22 +216,5 @@ theorem prob_possible_walk :
   rw [← probEvent_congr' (fun _ _ => Iff.rfl) (outputs_coordinate_uniform topNode),
     probEvent_map]
   rfl
-
-/-- **The hypothesis retired.** A bound that holds after every walk whose public key is no
-coincidence holds for the warmed run, at the cost of the coincidence. -/
-theorem probEvent_le_of_tail_of_separated (adversary : Adversary)
-    (event : (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) ×
-      QueryCache HashSpec → Prop) (bound : ℝ≥0∞)
-    (htail : ∀ walk ∈ support graphWalk,
-      ¬ HashSeparation.Possible (walk.1.1.2.2, walk.1.2 (.structural topNode)) →
-      Pr[fun result => event ((walk.1, result.1), result.2) | tail adversary walk] ≤ bound) :
-    Pr[event | warmedRun adversary] ≤ bound + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [warmedRun_eq, probEvent_map]
-  refine le_trans (probEvent_bind_pair_split_le graphWalk (tail adversary)
-    (fun walk result => event ((walk.1, result.1), result.2))
-    (fun walk => HashSeparation.Possible (walk.1.1.2.2, walk.1.2 (.structural topNode)))
-    bound htail) ?_
-  exact add_le_add le_rfl prob_possible_walk
 
 end SlhDsaSecurity.WalkDefects

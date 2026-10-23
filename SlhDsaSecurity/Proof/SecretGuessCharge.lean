@@ -41,38 +41,6 @@ theorem prob_single_guess (guess : Digest) :
   rw [probEvent_eq_eq_probOutput]
   simp [probOutput_uniformSample, Digest, n]
 
-open scoped Classical in
-/-- **The input-side charge.** A run that has queried the inputs in `inputs` has staked at most
-`inputs.card` guesses at the secret, so against an independently sampled uniform secret it
-succeeds with probability at most `inputs.card / 2 ^ 128`. -/
-theorem prob_secret_guessed_le (inputs : Finset Bytes) (guessOf : Bytes → Digest) :
-    Pr[fun secret : Digest => ∃ input ∈ inputs, guessOf input = secret |
-      ($ᵗ Digest : ProbComp Digest)] ≤
-      inputs.card / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  refine le_trans (probEvent_exists_finset_le_sum inputs _ _) ?_
-  calc ∑ input ∈ inputs,
-        Pr[fun secret : Digest => guessOf input = secret |
-          ($ᵗ Digest : ProbComp Digest)]
-      = ∑ _input ∈ inputs, 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-        Finset.sum_congr rfl fun input _ => prob_single_guess (guessOf input)
-    _ = inputs.card * (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
-        rw [Finset.sum_const, nsmul_eq_mul]
-    _ ≤ inputs.card / ((2 ^ 128 : Nat) : ℝ≥0∞) := le_of_eq (by rw [mul_one_div])
-
-/-- Both secrets at once: a run staking `inputs.card` guesses at each of `SK.seed` and
-`SK.prf` is charged `inputs.card / 2 ^ 128` for either, since a given input is read in only
-one of the two formats and so guesses only one of them. -/
-theorem prob_either_secret_guessed_le (inputs : Finset Bytes) (guessOf : Bytes → Digest)
-    (isSeedFormat : Bytes → Prop) [DecidablePred isSeedFormat] :
-    Pr[fun secret : Digest =>
-        ∃ input ∈ inputs.filter isSeedFormat, guessOf input = secret |
-      ($ᵗ Digest : ProbComp Digest)] ≤
-      inputs.card / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  refine le_trans (prob_secret_guessed_le (inputs.filter isSeedFormat) guessOf) ?_
-  exact ENNReal.div_le_div_right (Nat.cast_le.mpr (Finset.card_filter_le _ _)) _
-
 /-! ## The form the coupling must deliver
 
 `prob_secret_guessed_le` fixes the guessed inputs and then samples the secret. In the
@@ -96,42 +64,5 @@ That the two land on the same statement from opposite directions is the useful f
 the *blind* side of the coupling, and neither connects it to the real experiment, which
 confirms that the gap is not in the key-guessing accounting — that is finished twice over —
 but solely in the rewriting that makes the real transcript key-independent. -/
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- A run that has queried at most `limit` inputs guesses a secret drawn afterwards with
-probability at most `limit / 2 ^ 128`. -/
-theorem prob_run_guesses_secret_le {α : Type}
-    (run : ProbComp (α × Finset Bytes)) (guessOf : Bytes → Digest) (limit : Nat)
-    (hlimit : ∀ result ∈ support run, (result.2).card ≤ limit) :
-    Pr[fun pair : (α × Finset Bytes) × Digest =>
-        ∃ input ∈ pair.1.2, guessOf input = pair.2 |
-      (do
-        let result ← run
-        let secret ← ($ᵗ Digest : ProbComp Digest)
-        pure (result, secret))] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [probEvent_bind_eq_tsum]
-  calc ∑' result, Pr[= result | run] *
-        Pr[fun pair : (α × Finset Bytes) × Digest =>
-            ∃ input ∈ pair.1.2, guessOf input = pair.2 |
-          (do
-            let secret ← ($ᵗ Digest : ProbComp Digest)
-            pure (result, secret))]
-      ≤ ∑' result, Pr[= result | run] * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) := by
-        refine ENNReal.tsum_le_tsum fun result => ?_
-        by_cases hmem : result ∈ support run
-        · refine mul_le_mul' le_rfl ?_
-          rw [bind_pure_comp, probEvent_map]
-          refine le_trans (prob_secret_guessed_le (result.2) guessOf) ?_
-          exact ENNReal.div_le_div_right (Nat.cast_le.mpr (hlimit result hmem)) _
-        · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
-          simp
-    _ = (∑' result, Pr[= result | run]) * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
-        ENNReal.tsum_mul_right
-    _ ≤ 1 * (limit / ((2 ^ 128 : Nat) : ℝ≥0∞)) :=
-        mul_le_mul' tsum_probOutput_le_one le_rfl
-    _ = _ := one_mul _
 
 end SlhDsaSecurity.SecretGuessCharge

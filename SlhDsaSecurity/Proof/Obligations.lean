@@ -26,26 +26,6 @@ namespace SlhDsaSecurity.Obligations
 
 open Security WarmedGame RoutedSplit ReplayGate Target
 
-/-- The answer half at the warmed tail. -/
-def AnswerCharged : Prop :=
-  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    ∀ walk ∈ support graphWalk, GoodWalk walk →
-      Pr[fun result => AnswerBad ((walk.1, result.1), result.2) | tail adversary walk] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
-
-/-- The input half, read at the walk and the game together. It defers a secret the walk carries
-— the cell table — so it cannot be read at a fixed walk, where that secret is already
-determined. The ordering defect is paid inside it, against the same record.
-
-Until the served-disclosure rewrite the shared side also carried the randomiser defect. That
-charge is gone: the replay branch closes outright by strong freshness, so no branch reaches it. -/
-def SharedCharged : Prop :=
-  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    Pr[fun pair => GoodWalk pair.1 ∧ InputBad ((pair.1.1, pair.2.1), pair.2.2) |
-      Target.pairedRun adversary] ≤
-      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
-
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedGame.tail
   WarmedGame.warmedRun Scheme.keygenInternal Scheme.verify Scheme.sign
   Security.signingOracle Security.countQueries
@@ -67,52 +47,5 @@ The defect is a predicate of the recorder's recordings, which a result of `tail`
 so both obligations are stated at a refining tail — and at *an arbitrary one*, because nothing
 below this file can name the presentation. The instantiation is an application, made where the
 presentation is defined. -/
-
-/-- The answer half at a refining tail, with its defect term a **parameter**.
-
-The term is a parameter because the half's stated allowance and the half's proved bound are not
-the same quantity: `AnswerSide.prob_answerBad_good_le_of_caps_recorded_narrow` concludes
-`q / 2 ^ 128 + 1 / 2 ^ 141`, and the `2 ^ -126` beside it is added by a weakening. Reading the
-obligation at what is proved is four units of `2 ^ -128` cheaper, and the two readings are this
-definition at two arguments rather than two definitions. -/
-def AnswerChargedAt {γ : Type} (answerDefect : ℝ≥0∞)
-    (fused : Adversary →
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
-    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
-    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
-      Prop) : Prop :=
-  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    ∀ walk ∈ support graphWalk, GoodWalk walk →
-      Pr[fun result : γ => AnswerBad ((walk.1, (forget result).1), (forget result).2) ∧
-          ¬ late (walk, result) | fused adversary walk] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefect
-
-/-- The answer half at a refining tail, with late disclosure ruled out rather than assumed. -/
-def AnswerChargedLate {γ : Type}
-    (fused : Adversary →
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
-    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
-    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
-      Prop) : Prop :=
-  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    ∀ walk ∈ support graphWalk, GoodWalk walk →
-      Pr[fun result : γ => AnswerBad ((walk.1, (forget result).1), (forget result).2) ∧
-          ¬ late (walk, result) | fused adversary walk] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
-
-/-- The input half and the ordering defect, paid together at the refined paired run. Their
-counts are the two parts of one record, so one budget carries both. -/
-def SharedChargedLate {γ : Type} (claims : Nat)
-    (fused : Adversary →
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
-    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
-    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
-      Prop) : Prop :=
-  ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-    Pr[fun pair => GoodWalk pair.1 ∧
-        (InputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
-      Target.pairedFused (fused adversary)] ≤
-      ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
 
 end SlhDsaSecurity.Obligations

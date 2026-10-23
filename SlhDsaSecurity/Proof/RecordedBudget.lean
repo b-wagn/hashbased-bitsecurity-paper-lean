@@ -41,18 +41,6 @@ theorem map_countAllHashes {α : Type} (computation : OracleComp OracleWorld α)
       rw [Functor.map_map]
       exact ih answer)
 
-/-- Every supported uncounted run has a supported counted counterpart. -/
-theorem mem_support_countAllHashes {α : Type} (computation : OracleComp OracleWorld α)
-    (cache : QueryCache HashSpec) (result : α × QueryCache HashSpec)
-    (hmem : result ∈ support ((simulateQ KeygenUniform.rom computation).run cache)) :
-    ∃ count : Nat, ((result.1, count), result.2) ∈
-      support ((simulateQ KeygenUniform.rom (countAllHashes computation)).run cache) := by
-  rw [← map_countAllHashes computation, simulateQ_map, StateT.run_map, support_map] at hmem
-  obtain ⟨inner, hinner, heq⟩ := hmem
-  refine ⟨inner.1.2, ?_⟩
-  rw [show result.1 = inner.1.1 from by rw [← heq], show result.2 = inner.2 from by rw [← heq]]
-  exact hinner
-
 attribute [local irreducible] WarmedGame.afterSeeds StrippedGame.strippedAfterSeeds
   RecordedQueries.recordedAfterSeeds Scheme.verify Scheme.keygenInternal Security.countQueries
 

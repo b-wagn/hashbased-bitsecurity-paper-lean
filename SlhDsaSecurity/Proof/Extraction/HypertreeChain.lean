@@ -164,19 +164,6 @@ theorem rootFromSignature_fault_or_signed (secretSeed publicSeed rootTarget : Di
       · exact Or.inr (Or.inl hcollision)
     · exact Or.inr (Or.inr (Or.inr hfault))
 
-/-- The chain, read only for the bottom message. -/
-theorem rootFromSignature_fault_or_canonical (secretSeed publicSeed rootTarget : Digest)
-    (remaining layer tree : Nat) (leaf : SlhDsaSecurity.Hypertree.LeafIndex)
-    (message expectedInput : Digest) (signatures : Fin remaining → XmssSignature)
-    (htop : SlhDsaSecurity.Hypertree.rootFromSignature (m := Id) publicSeed remaining
-        signatures layer tree leaf message = rootTarget)
-    (hexp : honestFold secretSeed publicSeed remaining layer tree expectedInput = rootTarget) :
-    message = expectedInput ∨
-      HypertreeFault secretSeed publicSeed remaining signatures layer tree leaf message
-        expectedInput :=
-  (rootFromSignature_fault_or_signed secretSeed publicSeed rootTarget remaining layer tree leaf
-    message expectedInput signatures htop hexp).imp And.left id
-
 /-- The honest fold over `remaining + 1` layers reaches the top subtree root, independent
 of its incoming message. Mirrors `Correctness.Hypertree.rootFromSignature_signLayers`. -/
 theorem honestFold_eq (secretSeed publicSeed : Digest) (remaining layer tree : Nat)

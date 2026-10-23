@@ -74,41 +74,6 @@ every hypothesis: the node at position `p + 1` has the node at position `p` as i
 child's honest cell is the chain value at `p` by
 `CanonicalGraph.value_wotsPosition`. -/
 
-/-- **A WOTS chain collision is charged, unconditionally.** -/
-theorem deviatingCollision_of_chainCollision_canonical {α : Type}
-    (secretSeed publicSeed : Digest) (cache : QueryCache HashSpec) (key : WotsKey)
-    (chainIndex : Fin chains) (position : Fin w) (hposition : position.val < w - 1)
-    (actual : Digest)
-    (hcollision : @Wots.ChainCollision (CacheReplay.replayQuery cache) publicSeed
-      { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } 0 actual
-      (@Hashing.derive Id _ (CacheReplay.replayQuery cache) publicSeed secretSeed
-        (SlhDsaSecurity.Wots.secretAddress key.address chainIndex)) position.val)
-    (result : α × QueryCache HashSpec) (output : HashOutput)
-    (hcache : result.2 = cache)
-    (hentry : cache (Hashing.tweakableInput publicSeed
-      (StructuralNode.wotsHash key chainIndex ⟨position.val, hposition⟩).address
-      (bytesBE n (@SlhDsaSecurity.Wots.chain Id _ (CacheReplay.replayQuery cache) publicSeed
-        { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } 0 position.val
-        actual))) = some output) :
-    StructuralTerm.DeviatingCollision publicSeed
-      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) result := by
-  have hchildren : (StructuralNode.wotsHash key chainIndex ⟨position.val, hposition⟩).children =
-      [.structural (wotsPosition key chainIndex position)] := by
-    unfold wotsPosition
-    split <;> simp_all [StructuralNode.children]
-  refine deviatingCollision_of_chainCollision publicSeed
-    (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) cache
-    (.wotsHash key chainIndex ⟨position.val, hposition⟩)
-    (.structural (wotsPosition key chainIndex position))
-    { key.address with chainOrHeight := BitVec.ofNat 32 chainIndex.val } 0 position.val
-    actual _ hchildren ?_ ?_ ?_ hcollision result output hcache hentry
-  · simp [StructuralNode.address]
-  · exact @value_wotsPosition (CacheReplay.replayQuery cache) secretSeed publicSeed
-      key chainIndex position
-  · rw [CanonicalCells.parentCell_tweakable cache secretSeed publicSeed, hchildren,
-      CollisionToDeviating.childBytes_single,
-      @value_wotsPosition (CacheReplay.replayQuery cache) secretSeed publicSeed]
-
 /-! ## The fifth shape: WOTS public-key compression
 
 `LayerCollision` offers three ways for a layer to fault, and the middle one is a collision at

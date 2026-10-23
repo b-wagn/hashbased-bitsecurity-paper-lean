@@ -91,24 +91,4 @@ theorem value_eq_fold (combine : Nat → Nat → α → α → α)
 
 def pairBytes (pair : Digest × Digest) : Bytes := bytesBE n pair.1 ++ bytesBE n pair.2
 
-theorem pairBytes_injective : Function.Injective pairBytes := by
-  intro left right heq
-  obtain ⟨hl, hr⟩ := List.append_inj heq (by simp [length_bytesBE])
-  exact Prod.ext (bytesBE_injective n hl) (bytesBE_injective n hr)
-
-/-- Distinct child pairs give distinct full byte-oracle inputs, with the same
-public seed and address. No collision resistance is assumed. -/
-theorem collision_inputs [HasQuery HashSpec Id]
-    (publicSeed : Digest) (address : Address) (left right : Digest × Digest)
-    (hne : left ≠ right)
-    (houtput : Hashing.tweakable (m := Id) publicSeed address (pairBytes left) =
-      Hashing.tweakable (m := Id) publicSeed address (pairBytes right)) :
-    Hashing.tweakableInput publicSeed address (pairBytes left) ≠
-      Hashing.tweakableInput publicSeed address (pairBytes right) ∧
-    Hashing.shortHash (m := Id) (Hashing.tweakableInput publicSeed address (pairBytes left)) =
-      Hashing.shortHash (m := Id) (Hashing.tweakableInput publicSeed address (pairBytes right)) := by
-  refine ⟨?_, houtput⟩
-  intro heq
-  exact hne (pairBytes_injective (Hashing.tweakableInput_injective heq).2.2)
-
 end SlhDsaSecurity.Extraction.BinaryPath

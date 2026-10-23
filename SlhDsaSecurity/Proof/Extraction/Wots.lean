@@ -48,22 +48,6 @@ theorem chain_eq_or_collision (publicSeed : Digest) (address : Address)
         simpa only [ChainCollision, SlhDsaSecurity.Wots.chain, bind, Nat.add_assoc,
           Nat.add_comm 1 offset, next] using hcollision
 
-/-- At a collision step the full byte inputs are distinct and their short
-answers coincide. The address remains the actual chain-step address. -/
-theorem chain_collision_inputs (publicSeed : Digest) (address : Address)
-    (start : Nat) (actual canonical : Digest) (offset : Nat)
-    (hcollision : ChainCollision publicSeed address start actual canonical offset) :
-    let actualValue := SlhDsaSecurity.Wots.chain (m := Id) publicSeed address start offset actual
-    let canonicalValue := SlhDsaSecurity.Wots.chain (m := Id) publicSeed address start offset canonical
-    let stepAddress := { address with hashOrIndex := BitVec.ofNat 32 (start + offset) }
-    Hashing.tweakableInput publicSeed stepAddress (bytesBE n actualValue) ≠
-      Hashing.tweakableInput publicSeed stepAddress (bytesBE n canonicalValue) ∧
-    Hashing.shortHash (m := Id) (Hashing.tweakableInput publicSeed stepAddress (bytesBE n actualValue)) =
-      Hashing.shortHash (m := Id) (Hashing.tweakableInput publicSeed stepAddress (bytesBE n canonicalValue)) := by
-  refine ⟨?_, hcollision.2⟩
-  intro heq
-  exact hcollision.1 (bytesBE_injective n (Hashing.tweakableInput_injective heq).2.2)
-
 omit [HasQuery HashSpec Id] in
 theorem digestArrayBytes_injective (size : Nat) :
     Function.Injective (digestArrayBytes (size := size)) := by

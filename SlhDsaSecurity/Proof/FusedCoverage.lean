@@ -34,34 +34,6 @@ open Security SplitPrefix
 
 /-! ## Dropping the recordings -/
 
-set_option maxHeartbeats 800000 in
-/-- **The recorder is the shared oracle with two recordings alongside.** Dropping them returns
-the shared oracle's run, as an equality of computations. -/
-theorem run_recorder_forget (leftKeep rightKeep : Bytes → QueryCache HashSpec → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ state : SplitState,
-      (fun z : α × SplitState => (z.1, z.2.1)) <$>
-          (simulateQ (recorder leftKeep rightKeep) computation).run state =
-        (simulateQ KeygenUniform.rom computation).run state.1 := by
-  classical
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state
-    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
-  | query_bind queried next ih =>
-    intro state
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, simulateQ_bind,
-      simulateQ_spec_query, StateT.run_bind, map_bind]
-    rcases queried with coin | input
-    · rw [recorder_run_inl, DigestTape.rom_run_inl, bind_assoc, bind_assoc]
-      refine bind_congr fun value => ?_
-      rw [pure_bind, pure_bind]
-      exact ih value state
-    · rw [recorder_run_inr, DigestTape.rom_run_inr, bind_assoc]
-      refine bind_congr fun step => ?_
-      rw [pure_bind]
-      exact ih step.1 (step.2, appended leftKeep rightKeep input state step.1)
-
 /-! ## The tail -/
 
 /-- The two tests the answer side's join names, at a walk. -/
@@ -84,31 +56,5 @@ noncomputable def fusedTail : LateProbes.FusedTail :=
     (simulateQ (recorder (leftKeepAt walk) (rightKeepAt walk))
       (countAllHashes (RecordedTail.recordedAfterSeeds adversary walk.1.1))).run
         (walk.2, [], [])
-
-/-- **It is a recorder run at the walk's own cache and key.** -/
-theorem isRecorderRun (adversary : Adversary) :
-    LateProbes.IsRecorderRun fusedTail adversary :=
-  fun walk _ => ⟨countAllHashes (RecordedTail.recordedAfterSeeds adversary walk.1.1), rfl⟩
-
-/-- **Forgetting its recordings leaves the recorded tail**, as an equality of computations. -/
-theorem forget_fusedTail (adversary : Adversary)
-    (walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) :
-    (fun z : (((Outcome × Multiset Bytes) × Nat) × SplitState) => (z.1, z.2.1)) <$>
-        fusedTail adversary walk =
-      RecordedTail.recordedTail adversary walk := by
-  rw [fusedTail, RecordedTail.recordedTail,
-    run_recorder_forget (leftKeepAt walk) (rightKeepAt walk) _ (walk.2, [], [])]
-
-/-- **And so at the paired run**, which is both conjuncts of what `LateProbes` asks. -/
-theorem forgetsTo (adversary : Adversary) : LateProbes.ForgetsTo fusedTail adversary := by
-  have hmap : LateProbes.forgetRecordings <$> LateProbes.pairedOf fusedTail adversary =
-      RandomiserRecord.recordedPairedRun adversary := by
-    rw [LateProbes.pairedOf, RandomiserRecord.recordedPairedRun, map_eq_bind_pure_comp,
-      bind_assoc]
-    refine bind_congr fun walk => ?_
-    rw [← forget_fusedTail adversary walk, map_eq_bind_pure_comp, bind_assoc, bind_assoc]
-    refine bind_congr fun result => ?_
-    simp [Function.comp_def, LateProbes.forgetRecordings]
-  exact ⟨fun pair => by rw [hmap], by rw [hmap]⟩
 
 end SlhDsaSecurity.FusedCoverage

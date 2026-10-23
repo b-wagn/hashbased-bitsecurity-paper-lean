@@ -79,20 +79,4 @@ theorem queriesUnder_pathInput {height : Nat} (cache : QueryCache HashSpec)
     replayFold_eq_value cache publicSeed addressOf index leaf siblings height step.val
       (le_of_lt step.isLt)] at hquery
 
-/-- **The step at any height leaves its input cached.** This is the hypothesis
-`MerkleCharge.deviatingCollision_of_pathCollision` takes as `hentry`, with the running value
-in the form the collision names it. -/
-theorem pathInput_cached {height : Nat} (cache initialCache : QueryCache HashSpec)
-    (publicSeed : Digest) (addressOf : Nat → Nat → Address) (index : Nat) (leaf : Digest)
-    (siblings : Nat → Digest) (step : Fin height) (result : Digest)
-    (hmem : (result, cache) ∈ support ((simulateQ randomOracle
-      ((List.finRange height).foldlM (m := OracleComp HashSpec)
-        (fun value j => Hashing.shortHash
-          (pathInput publicSeed addressOf index siblings value j)) leaf)).run initialCache)) :
-    cache (pathInput publicSeed addressOf index siblings
-      (BinaryPath.value (pathCombine cache publicSeed addressOf) index leaf siblings step.val)
-      step) ≠ none :=
-  cached_of_queriesUnder _ initialCache cache result _
-    (queriesUnder_pathInput cache publicSeed addressOf index leaf siblings step) hmem
-
 end SlhDsaSecurity.PathEntry

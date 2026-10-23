@@ -64,15 +64,4 @@ theorem split_bijective : Function.Bijective split := by
     Fintype.card_prod, Fintype.card_fun, Fintype.card_fin, card_bitVec,
     totalHeight, forsHeight, forsTrees]
 
-/-- Joint uniformity, including independence of the instance and all fourteen indices. -/
-theorem evalDist_parse_uniform :
-    𝒟[parse <$> ($ᵗ HashOutput : ProbComp HashOutput)] = 𝒟[($ᵗ View : ProbComp View)] := by
-  have hmap : parse <$> ($ᵗ HashOutput : ProbComp HashOutput) =
-      Prod.fst <$> (split <$> ($ᵗ HashOutput : ProbComp HashOutput)) := by
-    simp [Functor.map_map, split]
-  have hsplit := evalDist_map_bijective_uniform_cross (α := HashOutput)
-    (β := View × (BitVec 2 × BitVec 7)) split split_bijective
-  rw [hmap, evalDist_map, hsplit, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
-
 end SlhDsaSecurity.MessageDigest

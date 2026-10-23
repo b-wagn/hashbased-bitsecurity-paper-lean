@@ -258,59 +258,11 @@ theorem provenance_phase_subset (sk : SecretKey) {α : Type}
         · exact signerMade_of_fresh_step sk request log cache laterCache outer houter hgrow
             probe hfresh hpresentOuter
 
-/-- The same read at the phase's own final cache. -/
-theorem provenance_phase (sk : SecretKey) {α : Type}
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (log : SigningLog) (cache : QueryCache HashSpec)
-    (result : ((α × Multiplicative Tally) × SigningLog) × QueryCache HashSpec)
-    (hresult : result ∈ support (recordedRun
-      (simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk)) computation)
-      log cache))
-    (probe : Bytes) (hfresh : cache probe = none) (hpresent : result.2 probe ≠ none) :
-    PhaseSource sk (Multiplicative.toAdd result.1.1.2).2 result.1.2 result.2 probe :=
-  provenance_phase_subset sk computation log cache result hresult result.2 (fun _ _ h => h)
-    probe hfresh hpresent
-
 /-! ## Recording costs nothing
 
 The game's own phase is the recorded phase read through `forget`, as an equality of
 computations, so a supported result of the game's phase is the image of a supported result of
 the recorded one — same value, same log, same cache, and a record besides. That is how a
 statement proved at the recording handler is used on the game. -/
-
-/-- **A result of the game's phase carries a record.** -/
-theorem exists_recorded_of_mem_countedRun (sk : SecretKey) {α : Type}
-    (computation : OracleComp (OracleWorld + SigningSpec) α) (log : SigningLog)
-    (cache : QueryCache HashSpec)
-    (result : ((α × Multiplicative Counts) × SigningLog) × QueryCache HashSpec)
-    (hresult : result ∈ support (StrippedGame.countedRun
-      (simulateQ (AdversaryQueries.adversaryImpl + Security.signingOracle sk) computation)
-      log cache)) :
-    ∃ recorded : ((α × Multiplicative Tally) × SigningLog) × QueryCache HashSpec,
-      recorded ∈ support (recordedRun
-        (simulateQ (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk)) computation)
-        log cache) ∧
-      recorded.1.1.1 = result.1.1.1 ∧ recorded.1.2 = result.1.2 ∧ recorded.2 = result.2 ∧
-      forget recorded.1.1.2 = result.1.1.2 := by
-  rw [StrippedGame.countedRun,
-    show ((WriterT.run (simulateQ
-        (AdversaryQueries.adversaryImpl + Security.signingOracle sk) computation)).run log) =
-      (fun step : (α × Multiplicative Tally) × SigningLog =>
-          ((step.1.1, forget step.1.2), step.2)) <$>
-        ((WriterT.run (simulateQ
-          (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk))
-          computation)).run log) from by
-      rw [run_simulateQ_map_writer forget forget_one forget_mul
-        (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign sk))
-        (AdversaryQueries.adversaryImpl + Security.signingOracle sk)
-        (fun t => by
-          rcases t with world | request
-          · exact run_adversaryImpl_map world
-          · exact run_signingOracle_map (Scheme.sign sk) request) computation]
-      exact stateT_map_apply _ _ log,
-    simulateQ_map, StateT.run_map, support_map] at hresult
-  obtain ⟨recorded, hrecorded, himage⟩ := hresult
-  exact ⟨recorded, hrecorded, by rw [← himage], by rw [← himage], by rw [← himage],
-    by rw [← himage]⟩
 
 end SlhDsaSecurity.PhaseProvenance

@@ -1,4 +1,14 @@
-import SlhDsaSecurity.Proof.InputBullet
+import SlhDsaSecurity.Proof.LateProvenance
+import SlhDsaSecurity.Proof.ProbeContainment
+import SlhDsaSecurity.Proof.RecordedStripping
+import SlhDsaSecurity.Proof.RecordedWalkTable
+import SlhDsaSecurity.Proof.TableTail
+import SlhDsaSecurity.Proof.ServedBridge
+import SlhDsaSecurity.Proof.TouchedKeys
+import SlhDsaSecurity.Proof.CanonicalGraph.Separation
+import SlhDsaSecurity.Proof.ServingCarrier
+import SlhDsaSecurity.Proof.ChargedProbe
+import SlhDsaSecurity.Proof.RedrawCell
 import SlhDsaSecurity.Proof.CarrierTail
 import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.Obligations
@@ -51,7 +61,7 @@ open OracleComp OracleSpec ENNReal
 
 namespace SlhDsaSecurity.Target127
 
-open Security WarmedGame Target ClassExpectation SharedJoin RandomiserRecord LateProbes
+open Security WarmedGame Target SharedJoin RandomiserRecord LateProbes
 
 /-! ## The seed guess and the record part that pays for it -/
 
@@ -74,11 +84,6 @@ def Late (pair : RecordedPair) : Prop := PrfHit pair ∨ SignerHit pair
 /-- **The defect at the split pair**, read through the recordings' forgetting. -/
 def late (pair : SplitPair) : Prop := Late (forgetRecordings pair)
 
-open scoped Classical in
-/-- **The record's `PRF_msg` candidates**: its entries not prefixed by `PK.seed`. -/
-noncomputable def recordPrfCandidates (pair : RecordedPair) : Multiset Bytes :=
-  (recordOf pair).filter fun input => ¬ SeedPrefixed pair.1.1.1.2.2 input
-
 /-- A `PRF_msg` input at `prf` is prefixed by `prf`. -/
 theorem seedPrefixed_of_prfClass {prf : Digest} {input : Bytes}
     (hprf : RandomizerGate.PrfClass prf input) : SeedPrefixed prf input := by
@@ -94,51 +99,6 @@ theorem eq_of_seedPrefixed {left right : Digest} {input : Bytes}
   simp only [List.take_left' (length_bytesBE n left), List.take_left' (length_bytesBE n right)]
     at htake
   exact bytesBE_injective n htake
-
-/-- **An aiming probe is prefixed by `PK.seed`**: it is a tweakable input at the public seed. -/
-theorem seedPrefixed_of_aimsSomewhere {publicSeed : Digest} {input : Bytes}
-    (haims : RedrawCell.AimsSomewhere publicSeed input) : SeedPrefixed publicSeed input := by
-  classical
-  rw [RedrawCell.AimsSomewhere, GraphStakes.locate] at haims
-  split at haims
-  · rename_i hsome
-    obtain ⟨node, cell, rfl⟩ := hsome
-    exact ⟨node.parent.address.toBytes ++ bytesBE n cell,
-      by simp [GraphStakes.inputOf, Hashing.tweakableInput, List.append_assoc]⟩
-  · exact absurd rfl haims
-
-open scoped Classical in
-/-- **The two shared parts fit in one record.** Aiming probes are `PK.seed`-prefixed and the
-candidates are not, so they are disjoint filters of the record. -/
-theorem card_aiming_add_candidates_le_record (pair : RecordedPair) :
-    Multiset.card (recordAiming pair) + Multiset.card (recordPrfCandidates pair) ≤
-      Multiset.card (recordOf pair) := by
-  classical
-  have haim : recordAiming pair ≤
-      (recordOf pair).filter fun input => SeedPrefixed pair.1.1.1.2.2 input := by
-    rw [recordAiming]
-    exact Multiset.monotone_filter_right _ fun input haims =>
-      seedPrefixed_of_aimsSomewhere haims
-  have hsplit := Multiset.filter_add_not (fun input => SeedPrefixed pair.1.1.1.2.2 input)
-    (recordOf pair)
-  calc Multiset.card (recordAiming pair) + Multiset.card (recordPrfCandidates pair)
-      ≤ Multiset.card ((recordOf pair).filter fun input => SeedPrefixed pair.1.1.1.2.2 input) +
-          Multiset.card (recordPrfCandidates pair) :=
-        Nat.add_le_add_right (Multiset.card_le_card haim) _
-    _ = Multiset.card (recordOf pair) := by
-        rw [recordPrfCandidates, ← Multiset.card_add, hsplit]
-
-/-- **On a good walk a seed guess is a candidate.** The walk's `SK.prf` differs from its
-`PK.seed`, so an input carrying the first is not prefixed by the second. -/
-theorem exists_candidate_of_prfHit (pair : RecordedPair) (hgood : GoodWalk pair.1)
-    (hhit : PrfHit pair) :
-    ∃ input ∈ recordPrfCandidates pair, RandomizerGate.PrfClass pair.1.1.1.2.1 input := by
-  classical
-  obtain ⟨input, hinput, hprf⟩ := hhit
-  refine ⟨input, ?_, hprf⟩
-  rw [recordPrfCandidates, Multiset.mem_filter]
-  refine ⟨Multiset.mem_toFinset.mp hinput, fun hseed => hgood.1 ?_⟩
-  exact eq_of_seedPrefixed (seedPrefixed_of_prfClass hprf) hseed
 
 /-! ## The target -/
 

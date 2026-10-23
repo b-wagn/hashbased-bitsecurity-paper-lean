@@ -75,16 +75,6 @@ theorem queriesUnder_of_fresh_subset {α : Type} (computation : OracleComp HashS
         simp [replay, hlater input step.1 hfinal]]
       exact ih step.1 step.2 result hrest hstepfresh
 
-/-- The same read at the run's own final cache. -/
-theorem queriesUnder_of_fresh {α : Type} (computation : OracleComp HashSpec α)
-    (initialCache finalCache : QueryCache HashSpec) (result : α)
-    (hmem : (result, finalCache) ∈
-      support ((simulateQ randomOracle computation).run initialCache))
-    (probe : Bytes) (hfresh : initialCache probe = none) (hpresent : finalCache probe ≠ none) :
-    QueriesUnder finalCache computation probe :=
-  queriesUnder_of_fresh_subset computation initialCache finalCache finalCache result hmem
-    (fun _ _ h => h) probe hfresh hpresent
-
 /-- **The same, for a hash-only computation lifted into the game's world.** Key generation, the
 signer and the verifier are all of this shape, so this is the form provenance uses on them. -/
 theorem queriesUnder_of_fresh_liftM {α : Type} (computation : OracleComp HashSpec α)
@@ -249,86 +239,6 @@ decides **which FORS positions the signature opens**. A disclosure claim read of
 needs both entries present, not merely the returned bytes: `CacheReplay.replay` answers `default`
 at an absent input, so an equation between replayed signatures says nothing about what the cache
 holds, and `CacheAvailability.signedAt` is a statement about what the cache holds. -/
-
-/-- The randomiser a replayed signer derives is the one `HonestProbes.replayRandomizer` names. -/
-theorem simulateQ_replay_randomizer (cache : QueryCache HashSpec) (sk : SecretKey)
-    (framed : Bytes) :
-    simulateQ (replay cache)
-        (Hashing.randomizer (m := OracleComp HashSpec) sk.prf sk.publicKey.seed framed) =
-      HonestProbes.replayRandomizer cache sk framed := by
-  simp only [Hashing.randomizer, Hashing.shortHash, Hashing.hash, simulateQ_map,
-    simulateQ_spec_query, HonestProbes.replayRandomizer]
-  rfl
-
-/-- **A served request consults its own digest input**, at the randomiser the cache replays. -/
-theorem queriesUnder_sign_digest (cache : QueryCache HashSpec) (sk : SecretKey)
-    (request : Message) (framed : Bytes) (hframe : request.frame = some framed) :
-    QueriesUnder cache (Scheme.sign (m := OracleComp HashSpec) sk request)
-      (Hashing.messageInput (HonestProbes.replayRandomizer cache sk framed) sk.publicKey
-        framed) := by
-  rw [Scheme.sign, hframe]
-  refine queriesUnder_bind cache _ _ _ ?_
-  rw [Scheme.signInternal]
-  refine queriesUnder_bind_right cache
-    (Hashing.randomizer (m := OracleComp HashSpec) sk.prf sk.publicKey.seed framed) _ _ ?_
-  rw [simulateQ_replay_randomizer]
-  exact queriesUnder_hash cache _ _
-
-/-- **And leaves its answer in the cache**, read at any cache extending the one it left.
-
-Stated at `laterCache` on both sides, which matters: the randomiser the digest input is built
-from is itself read off the cache, so the input named here is the later cache's and not the
-sub-run's. The two agree because the randomiser's own entry persists, which is
-`sign_randomizer_cached`. -/
-theorem sign_digest_answer (sk : SecretKey) (request : Message) (framed : Bytes)
-    (hframe : request.frame = some framed)
-    (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
-    (hmem : (answer, finalCache) ∈ support ((simulateQ KeygenUniform.rom
-      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run initialCache))
-    (hlater : ∀ (input : Bytes) (output : HashOutput),
-      finalCache input = some output → laterCache input = some output) :
-    ∃ digest : HashOutput,
-      finalCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
-          sk.publicKey framed) = some digest ∧
-        laterCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
-          sk.publicKey framed) = some digest := by
-  rw [StrippedGame.sign_lift, StrippedGame.run_liftComp] at hmem
-  have hrandomiser : HonestProbes.replayRandomizer laterCache sk framed =
-      HonestProbes.replayRandomizer finalCache sk framed := by
-    have hcached := cached_of_queriesUnder (Scheme.sign (m := OracleComp HashSpec) sk request)
-      initialCache finalCache answer _
-      (queriesUnder_sign_randomizer finalCache sk request framed hframe) hmem
-    cases hentry : finalCache (Hashing.randomizerInput sk.prf sk.publicKey.seed framed) with
-    | none => exact absurd hentry hcached
-    | some output =>
-      rw [HonestProbes.replayRandomizer, HonestProbes.replayRandomizer]
-      simp [replay, hentry, hlater _ output hentry]
-  rw [hrandomiser]
-  have hcached := cached_of_queriesUnder (Scheme.sign (m := OracleComp HashSpec) sk request)
-    initialCache finalCache answer _
-    (queriesUnder_sign_digest finalCache sk request framed hframe) hmem
-  cases hentry : finalCache (Hashing.messageInput
-      (HonestProbes.replayRandomizer finalCache sk framed) sk.publicKey framed) with
-  | none => exact absurd hentry hcached
-  | some digest =>
-    exact ⟨digest, rfl, hlater _ digest hentry⟩
-
-/-- **The digest query's entry is there**, which is the presence-only reading of
-`sign_digest_answer`. -/
-theorem sign_digest_cached (sk : SecretKey) (request : Message) (framed : Bytes)
-    (hframe : request.frame = some framed)
-    (initialCache finalCache laterCache : QueryCache HashSpec) (answer : Option Bytes)
-    (hmem : (answer, finalCache) ∈ support ((simulateQ KeygenUniform.rom
-      (Scheme.sign sk request : OracleComp OracleWorld (Option Bytes))).run initialCache))
-    (hlater : ∀ (input : Bytes) (output : HashOutput),
-      finalCache input = some output → laterCache input = some output) :
-    laterCache (Hashing.messageInput (HonestProbes.replayRandomizer laterCache sk framed)
-      sk.publicKey framed) ≠ none := by
-  obtain ⟨digest, -, hvalue⟩ :=
-    sign_digest_answer sk request framed hframe initialCache finalCache laterCache answer
-      hmem hlater
-  rw [hvalue]
-  exact Option.some_ne_none digest
 
 /-! ## One query of the game's own world
 

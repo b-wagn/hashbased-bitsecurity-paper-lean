@@ -112,5 +112,4 @@ theorem count_keygen_ge (secretSeed prfSeed publicSeed : Digest)
   simp only at hnode
   omega
 
-
 end SlhDsaSecurity.KeygenCost

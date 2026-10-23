@@ -2,7 +2,12 @@ import SlhDsaSecurity.Proof.WarmedGame
 import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.CombinedCharge
-import SlhDsaSecurity.Proof.TrackedQueries
+import SlhDsaSecurity.Proof.GrowthCharge
+import SlhDsaSecurity.Proof.CacheReplay
+import SlhDsaSecurity.Proof.CanonicalGraph.Programming
+import SlhDsaSecurity.Proof.GraphFreshSampling
+import SlhDsaSecurity.Proof.SecretGuessCharge
+import SlhDsaSecurity.Proof.CanonicalGraph.Address
 import SlhDsaSecurity.Proof.GameBridge
 
 /-!
@@ -52,21 +57,6 @@ theorem mem_support_warmedRun {adversary : Adversary}
     simp only [support_bind, support_pure, Set.mem_iUnion, Set.mem_singleton_iff, exists_prop]
     exact ⟨walk, hwalk, result, hresult, rfl⟩, rfl⟩
 
-/-- **The budget bounds the tail's count.** -/
-theorem count_le_of_budget_tail {adversary : Adversary} {q : Nat}
-    (hbudget : HasTotalBudget adversary q)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk)
-    {result : (Outcome × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (tail adversary walk)) : result.1.2 ≤ q := by
-  have houtcome : result.1 ∈ support ((fun pair => pair.1.2) <$> warmedRun adversary) := by
-    rw [support_map]
-    exact ⟨_, mem_support_warmedRun hwalk hresult, rfl⟩
-  rw [Averaging.support_eq_of_evalDist_eq (evalDist_outcome adversary), support_map] at houtcome
-  obtain ⟨inner, hinner, houter⟩ := houtcome
-  rw [← houter]
-  exact WholeGameStructural.count_le_of_budget hbudget hinner
-
 /-- The walk's cache carries canonical entries and nothing else. -/
 theorem walk_cache_canonical
     {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
@@ -102,22 +92,6 @@ theorem not_messageInput_canonical (publicSeed : Digest) (cells : Cells) (pk : P
   rw [canonicalInput] at hinput
   exact HashSeparation.message_tweakable_ne hpublic (hbounds parent) hinput.symm
 
-/-- **The walk's cache is clean for the combined answer-side predicate.** -/
-theorem cleanBad_walk_cache (pk : PublicKey)
-    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
-    (hbounds : ∀ parent : StructuralNode, HashSeparation.WithinBounds parent.address)
-    (revealed : ForsCoverage.Disclosures)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk) :
-    GrowthCharge.CleanBad
-      (CombinedCharge.CombinedBad walk.1.1.2.2 pk walk.1.2 revealed) walk.2 := by
-  intro input output hentry
-  obtain ⟨parent, rfl⟩ := walk_cache_canonical hwalk input (by rw [hentry]; simp)
-  rintro (hstructural | ⟨hmessage, -⟩)
-  · exact CanonicalTarget.clean_of_canonical_cache walk.1.1.2.2 walk.1.2 walk.2
-      (walk_cache_canonical hwalk) _ output hentry hstructural
-  · exact not_messageInput_canonical walk.1.1.2.2 walk.1.2 pk hpublic hbounds parent hmessage
-
 /-! ## The blind cache at the walk
 
 The input half compares the run against the walk's cache with the same run against that cache
@@ -129,44 +103,6 @@ the same on both sides, and on the blind side the secret may be drawn after the 
 Stripping is just dropping those nodes from the list the walk programs, so both caches are
 `cacheFrom` of the same cells and the same output table, over different node lists. -/
 
-open scoped Classical in
-/-- The walk's node list with the seed-bearing nodes removed. -/
-noncomputable def blindOrder : List StructuralNode :=
-  Programming.order.filter (fun parent => decide (¬ BlindComparison.IsPrfNode parent))
-
-open scoped Classical in
-theorem mem_blindOrder (parent : StructuralNode) :
-    parent ∈ blindOrder ↔ ¬ BlindComparison.IsPrfNode parent := by
-  rw [blindOrder, List.mem_filter, decide_eq_true_eq]
-  exact ⟨fun h => h.2, fun h => ⟨Programming.mem_order parent, h⟩⟩
-
-/-- The walk's cache with its seed-bearing entries removed. -/
-noncomputable def blindCache (publicSeed : Digest) (cells : Cells)
-    (outputs : Programming.Outputs) : QueryCache HashSpec :=
-  Programming.cacheFrom publicSeed cells outputs blindOrder ∅
-
-/-- **The walk's cache and its blind twin agree off the inputs carrying the secret.** -/
-theorem agreeOff_blindCache (publicSeed : Digest) (cells : Cells)
-    (outputs : Programming.Outputs) :
-    BlindComparison.AgreeOff
-      (TrackedQueries.SeedInputOf (TrackedQueries.prfInput publicSeed)
-        (cells CanonicalGraph.Node.secretSeed))
-      (Programming.cacheFrom publicSeed cells outputs Programming.order ∅)
-      (blindCache publicSeed cells outputs) :=
-  TrackedQueries.agreeOff_prfInputs publicSeed cells outputs Programming.order blindOrder
-    Programming.mem_order mem_blindOrder
-
-/-- The blind cache really is blind: it holds nothing at an input carrying the secret. -/
-theorem blindCache_seedInput_none (publicSeed : Digest) (cells : Cells)
-    (outputs : Programming.Outputs) (node : StructuralNode)
-    (hprf : BlindComparison.IsPrfNode node) :
-    blindCache publicSeed cells outputs
-      (TrackedQueries.prfInput publicSeed (cells CanonicalGraph.Node.secretSeed) node) = none := by
-  classical
-  rw [blindCache, ← TrackedQueries.canonicalInput_eq_prfInput publicSeed cells hprf,
-    Programming.cacheFrom_lookup, if_neg (fun hmem => (mem_blindOrder node).mp hmem hprf)]
-  rfl
-
 /-! ## The blind cache does not know the secret
 
 The point of stripping the PRF nodes, rather than relabelling them with a dummy seed: what is
@@ -176,45 +112,6 @@ every secret. That is what lets the secret be drawn *after* the blind run, which
 `SeedDeferral.prob_run_meets_honest_key_le` requires and what a dummy-seed relabelling could
 never give — there the dummy is itself a seed the adversary may hunt for, and the comparison
 returns the same quantity it was meant to bound. -/
-
-/-- A non-PRF node's canonical input does not read the secret-seed cell. -/
-theorem canonicalInput_of_not_prf (publicSeed : Digest) (cells cells' : Cells)
-    (hstructural : ∀ parent : StructuralNode,
-      cells (CanonicalGraph.Node.structural parent) = cells' (.structural parent))
-    {parent : StructuralNode} (hprf : ¬ BlindComparison.IsPrfNode parent) :
-    canonicalInput publicSeed cells parent = canonicalInput publicSeed cells' parent := by
-  rw [canonicalInput, canonicalInput, CanonicalGraph.childBytes, CanonicalGraph.childBytes]
-  refine congrArg _ (congrArg _ (List.map_congr_left fun child hchild => ?_))
-  cases child with
-  | secretSeed => exact absurd hchild hprf
-  | structural inner => rw [hstructural inner]
-
-/-- **The blind cache is the same table for every secret.** -/
-theorem blindCache_indep_of_secret (publicSeed : Digest) (outputs : Programming.Outputs)
-    (secret secret' : Digest) :
-    blindCache publicSeed (Programming.cellsOfOutputs secret outputs) outputs =
-      blindCache publicSeed (Programming.cellsOfOutputs secret' outputs) outputs := by
-  have hstructural : ∀ parent : StructuralNode,
-      Programming.cellsOfOutputs secret outputs (CanonicalGraph.Node.structural parent) =
-        Programming.cellsOfOutputs secret' outputs (.structural parent) := fun _ => rfl
-  rw [blindCache, blindCache]
-  suffices hgeneral : ∀ (parents : List StructuralNode),
-      (∀ parent ∈ parents, ¬ BlindComparison.IsPrfNode parent) →
-      ∀ cache : QueryCache HashSpec,
-        Programming.cacheFrom publicSeed (Programming.cellsOfOutputs secret outputs) outputs
-            parents cache =
-          Programming.cacheFrom publicSeed (Programming.cellsOfOutputs secret' outputs) outputs
-            parents cache from
-    hgeneral blindOrder (fun parent hparent => (mem_blindOrder parent).mp hparent) ∅
-  intro parents
-  induction parents with
-  | nil => intro _ cache; rfl
-  | cons current parents ih =>
-    intro hnone cache
-    rw [Programming.cacheFrom, Programming.cacheFrom,
-      canonicalInput_of_not_prf publicSeed _ _ hstructural
-        (hnone current (List.mem_cons_self ..))]
-    exact ih (fun parent hparent => hnone parent (List.mem_cons_of_mem _ hparent)) _
 
 /-! ## The tail's replayed cells are the walk's cells
 

@@ -1,4 +1,5 @@
-import SlhDsaSecurity.Proof.DrawnTable
+import SlhDsaSecurity.Proof.SensitiveQuery
+import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 
 /-!
 # A run that reads only part of the table is blind to the rest
@@ -79,49 +80,11 @@ theorem evalDist_run_congr_of_step {ι : Type} {spec : OracleSpec ι} {σ Table 
     simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
     exact evalDist_bind_congr (hstep t s left right hagree) fun p => ih p.1 p.2
 
-/-- The same for any event about the run's result and final state. -/
-theorem probEvent_run_congr_of_step {ι : Type} {spec : OracleSpec ι} {σ Table : Type}
-    (impl : Table → QueryImpl spec (StateT σ ProbComp)) (Agree : Table → Table → Prop)
-    (hstep : ∀ (t : spec.Domain) (s : σ) (left right : Table), Agree left right →
-      𝒟[(impl left t).run s] = 𝒟[(impl right t).run s])
-    {γ : Type} (oa : OracleComp spec γ) (left right : Table) (hagree : Agree left right)
-    (s : σ) (event : γ × σ → Prop) :
-    Pr[event | (simulateQ (impl left) oa).run s] =
-      Pr[event | (simulateQ (impl right) oa).run s] :=
-  probEvent_congr' (fun _ _ => Iff.rfl)
-    (evalDist_run_congr_of_step impl Agree hstep oa left right hagree s)
-
 /-! ## The charge against a run that reads only the available cells
 
 When the two parts of the table are given separately there is nothing to lift: the run is a
 computation in which the sensitive cells do not occur, so they may be drawn after it. -/
 
 variable {Node Index State : Type} [Fintype Index] [DecidableEq Index]
-
-open scoped Classical in
-/-- **A run that reads only the available cells is charged one unit per probe.** The available
-cells are drawn independently and the run may read them freely; the cells it is charged
-against are drawn afterwards, which is what makes every probe cost exactly `2 ^ -128`. -/
-theorem prob_blind_run_sensitive_le {Known γ : Type} (stakes : Stakes Node Index)
-    (unavailable : State → Index → Prop) (known : ProbComp Known) (run : Known → ProbComp γ)
-    (record : γ → List (Bytes × State)) (limit : Nat)
-    (hlimit : ∀ available ∈ support known, ∀ result ∈ support (run available),
-      (record result).length ≤ limit) :
-    Pr[fun pair : γ × (Index → Cell) =>
-        ∃ entry ∈ record pair.1, Sensitive stakes unavailable pair.2 entry.2 entry.1 |
-      (do
-        let available ← known
-        let result ← run available
-        let table ← ($ᵗ (Index → Cell) : ProbComp (Index → Cell))
-        pure (result, table))] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  refine le_trans (le_of_eq (probEvent_congr' (fun _ _ => Iff.rfl) ?_))
-    (prob_record_sensitive_le stakes unavailable (known >>= run) record limit ?_)
-  · rw [bind_assoc]
-  · intro result hmem
-    rw [mem_support_bind_iff] at hmem
-    obtain ⟨available, hknown, hrun⟩ := hmem
-    exact hlimit available hknown result hrun
 
 end SlhDsaSecurity.TableBlind

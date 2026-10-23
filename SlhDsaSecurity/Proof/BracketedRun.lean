@@ -58,62 +58,11 @@ carrier's served set and framing go, and so does the count, which the value carr
 def forgetCarrier (state : CountedState) : SplitPrefix.SplitState :=
   (state.1.cache, state.2.1)
 
-theorem forgetCarrier_of_bracket {f : CountedState → CountedState} (hf : Bracket f)
-    (state : CountedState) : forgetCarrier (f state) = forgetCarrier state := by
-  rw [forgetCarrier, forgetCarrier, (hf state).1, (hf state).2]
-
-/-- **A bracketed recorder run.** Key generation under the handler, the adversary's phase fused
-and bracketed, verification under the handler again, read through the projection. -/
-def IsBracketedRecorderRun
-    (handler : Walk → QueryImpl OracleWorld (StateT CountedState ProbComp))
-    (fused : LateProbes.FusedTail) (adversary : Adversary) : Prop :=
-  ∀ walk ∈ support WarmedGame.graphWalk,
-    ∃ (β α γ : Type) (first : OracleComp OracleWorld β)
-      (phase : β → OracleComp (OracleWorld + SigningSpec) α)
-      (inner : β → QueryImpl (OracleWorld + SigningSpec)
-        (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
-      (last : β → α → OracleComp OracleWorld γ)
-      (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
-      (start : CountedState)
-      (value : β → α → ω → SigningLog → γ → CountedState → (Outcome × Multiset Bytes) × Nat),
-      forgetCarrier start = (walk.2, [], []) ∧
-        (∀ request : Message, Bracket (before request)) ∧ Bracket after ∧
-        fused adversary walk =
-          (simulateQ (handler walk) first).run start >>= fun keys =>
-            (simulateQ (fuseServing (handler walk) (inner keys.1) before after)
-                (phase keys.1)).run ((1 : ω), [], keys.2) >>= fun middle =>
-              (simulateQ (handler walk) (last keys.1 middle.1)).run middle.2.2.2 >>=
-                fun final =>
-                (pure (value keys.1 middle.1 middle.2.1 middle.2.2.1 final.1 final.2,
-                  forgetCarrier final.2) :
-                  ProbComp (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState))
-
 /-! ## The predicate's own payoff
 
 The projection law applies to the fused stage as soon as the handler forgets along the same map,
 and that is the whole of what the widening costs. This is `ServingForget.run_fuseServing_map`
 at `π` = take-the-cache, and the only reason it needs no extra hypothesis is that `Bracket` was
 defined to be what it asks for. -/
-
-/-- **The fused stage of a bracketed run forgets to an unbracketed one.** -/
-theorem run_bracketed_map {α : Type}
-    (handler : QueryImpl OracleWorld (StateT CountedState ProbComp))
-    (inner : QueryImpl (OracleWorld + SigningSpec)
-      (WriterT ω (StateT SigningLog (OracleComp OracleWorld))))
-    (before : Message → CountedState → CountedState) (after : CountedState → CountedState)
-    (hbefore : ∀ request : Message, Bracket (before request)) (hafter : Bracket after)
-    (outer' : QueryImpl OracleWorld (StateT (QueryCache HashSpec) ProbComp))
-    (hforget : ServingForget.ForgetsAlong (fun state : CountedState => state.1.cache) handler
-      outer')
-    (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (accumulated : ω) (log : SigningLog) (start : CountedState) :
-    (fun step : α × (ω × SigningLog × CountedState) =>
-        (step.1, (step.2.1, step.2.2.1, step.2.2.2.1.cache))) <$>
-      (simulateQ (fuseServing handler inner before after) computation).run
-        (accumulated, log, start) =
-      (simulateQ (fuse outer' inner) computation).run (accumulated, log, start.1.cache) :=
-  ServingForget.run_fuseServing_map (fun state : CountedState => state.1.cache) handler outer'
-    inner before after (fun request state => (hbefore request state).1)
-    (fun state => (hafter state).1) hforget computation accumulated log start
 
 end SlhDsaSecurity.BracketedRun

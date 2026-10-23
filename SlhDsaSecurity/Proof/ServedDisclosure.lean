@@ -39,47 +39,7 @@ open CanonicalGraph
 
 variable {State : Type}
 
-open scoped Classical in
-/-- The FORS positions a state's served requests disclose: the positions their digests select,
-at the instances their digests name. `served` is the state's own record of which digest inputs
-the signer has served or is serving; the cache supplies the digest each one drew. -/
-noncomputable def servedAt (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (state : State) (key : ForsKey) :
-    Finset (Fin (forsTrees * 2 ^ forsHeight)) :=
-  Finset.univ.filter fun index =>
-    ∃ (input : Bytes) (answer : HashOutput), served state input ∧
-      cacheOf state input = some answer ∧ SplitCharged.forsKeyOfDigest answer = key ∧
-      ∃ tree : Fin forsTrees,
-        GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree = index
-
-theorem mem_servedAt (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (state : State) (key : ForsKey)
-    (index : Fin (forsTrees * 2 ^ forsHeight)) :
-    index ∈ servedAt served cacheOf state key ↔
-      ∃ (input : Bytes) (answer : HashOutput), served state input ∧
-        cacheOf state input = some answer ∧ SplitCharged.forsKeyOfDigest answer = key ∧
-        ∃ tree : Fin forsTrees,
-          GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree = index := by
-  classical
-  rw [servedAt, Finset.mem_filter]
-  exact ⟨fun hmem => hmem.2, fun hwitness => ⟨Finset.mem_univ _, hwitness⟩⟩
-
 /-! ## The first property: it only grows -/
-
-/-- **Disclosure only grows along a run.** A request stays served — in flight becomes logged —
-and an entry never changes, so a position once disclosed stays disclosed. -/
-theorem servedAt_mono (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (left right : State)
-    (hserved : ∀ input : Bytes, served left input → served right input)
-    (hpersist : ∀ (input : Bytes) (answer : HashOutput),
-      cacheOf left input = some answer → cacheOf right input = some answer)
-    (key : ForsKey) : servedAt served cacheOf left key ⊆ servedAt served cacheOf right key := by
-  classical
-  intro index hindex
-  obtain ⟨input, answer, hinput, hcache, hkey, tree, htree⟩ :=
-    (mem_servedAt served cacheOf left key index).mp hindex
-  exact (mem_servedAt served cacheOf right key index).mpr
-    ⟨input, answer, hserved input hinput, hpersist input answer hcache, hkey, tree, htree⟩
 
 /-- **Availability is monotone in the disclosed set**, whatever that set is read from. The
 disclosed set enters only at the `forsPrf` leaves, so this is the whole of it. -/
@@ -100,31 +60,12 @@ theorem available_mono_signed (revealed : WotsKey → Fin chains → Nat)
     | forsTree key height index => exact True.intro
     | forsRoots key => exact True.intro
 
-/-- **Availability only grows with it.** This is the shape the input half's charge asks of a
-disclosure notion: what one state makes available, a later one still does. -/
-theorem available_mono (revealed : WotsKey → Fin chains → Nat) (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (left right : State)
-    (hserved : ∀ input : Bytes, served left input → served right input)
-    (hpersist : ∀ (input : Bytes) (answer : HashOutput),
-      cacheOf left input = some answer → cacheOf right input = some answer)
-    (node : Node) (havailable : Available revealed (servedAt served cacheOf left) node) :
-    Available revealed (servedAt served cacheOf right) node :=
-  available_mono_signed revealed
-    (fun key => servedAt_mono served cacheOf left right hserved hpersist key) node havailable
-
 /-! ## The second property: it is closed under the graph
 
 This one costs nothing, and it is worth saying why rather than citing it: `GraphStakes.closed`
 is proved for an arbitrary disclosed set, because availability of a parent is decided by its
 children and the disclosed set enters only at the `forsPrf` leaves. So any notion whatever has
 it, and swapping the proxy for the log cannot lose it. -/
-
-/-- **Availability is closed under the structure, for this notion.** -/
-theorem closed (revealed : WotsKey → Fin chains → Nat) (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) :
-    SensitiveQuery.Closed GraphStakes.graph
-      (GraphStakes.unavailableAt revealed (servedAt served cacheOf)) :=
-  GraphStakes.closed revealed (servedAt served cacheOf)
 
 /-! ## Availability, read off what was served
 
@@ -134,48 +75,5 @@ hypertree key signs one message that is a function of the key and the seeds alon
 it discloses is fixed before the adversary runs and owes the signing log nothing. -/
 
 variable [HasQuery HashSpec Id]
-
-/-- **The cells a state's served requests make available**: the chain values the honest digit
-covers, and the FORS secrets the digests of served requests select. -/
-noncomputable def availableServed (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (secretSeed publicSeed : Digest) (state : State) :
-    Node → Prop :=
-  Available (GraphStakes.honestRevealed secretSeed publicSeed) (servedAt served cacheOf state)
-
-/-- **A released cell stays released.** -/
-theorem availableServed_mono (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (secretSeed publicSeed : Digest)
-    (left right : State)
-    (hserved : ∀ input : Bytes, served left input → served right input)
-    (hpersist : ∀ (input : Bytes) (answer : HashOutput),
-      cacheOf left input = some answer → cacheOf right input = some answer)
-    (node : Node)
-    (havailable : availableServed served cacheOf secretSeed publicSeed left node) :
-    availableServed served cacheOf secretSeed publicSeed right node :=
-  available_mono_signed (GraphStakes.honestRevealed secretSeed publicSeed)
-    (fun key => servedAt_mono served cacheOf left right hserved hpersist key) node havailable
-
-/-- **Availability is closed under the structure.** -/
-theorem availableServed_closed (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (secretSeed publicSeed : Digest) (state : State)
-    (parent : StructuralNode)
-    (hchildren : ∀ child ∈ parent.children,
-      availableServed served cacheOf secretSeed publicSeed state child) :
-    availableServed served cacheOf secretSeed publicSeed state (.structural parent) :=
-  available_of_children_available _ _ hchildren
-
-/-- A revealed digit never exceeds `w - 1`, which is all the rate asks of it. -/
-theorem availableServed_revealed_le (secretSeed publicSeed : Digest) :
-    ∀ (key : WotsKey) (chain : Fin chains),
-      GraphStakes.honestRevealed secretSeed publicSeed key chain ≤ w - 1 :=
-  GraphStakes.honestRevealed_le secretSeed publicSeed
-
-/-- Availability at this notion is the one the stakes structure is stated against. -/
-theorem unavailableServed_eq (served : State → Bytes → Prop)
-    (cacheOf : State → QueryCache HashSpec) (secretSeed publicSeed : Digest) (state : State)
-    (index : Node) :
-    GraphStakes.unavailableAt (GraphStakes.honestRevealed secretSeed publicSeed)
-        (servedAt served cacheOf) state index ↔
-      ¬ availableServed served cacheOf secretSeed publicSeed state index := Iff.rfl
 
 end SlhDsaSecurity.ServedDisclosure

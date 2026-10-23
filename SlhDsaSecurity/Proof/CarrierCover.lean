@@ -302,52 +302,10 @@ theorem cover_carrierRightKeep (walk : Walk) (probe : Bytes) (view : HandlerCarr
   · exact Or.inr ⟨⟨hclass,
       not_filesRandomiser_of_not_prfClass walk.1.1.2.1 (keyAt walk) view probe hprf⟩, hleft⟩
 
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **The cover at the carrier tail, with nothing assumed.** -/
-theorem cover_carrierTail_narrow (adversary : Adversary) (walk : Walk)
-    (result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState)
-    (hresult : result ∈ support
-      (carrierTail AnswerCarrier.carrierRightKeep adversary walk))
-    (input : Bytes) (answer : HashOutput)
-    (hclass : CombinedCharge.IsMessageInput (keyAt walk) input)
-    (hprf : ¬ RandomizerGate.PrfClass walk.1.1.2.1 input)
-    (hfresh : walk.2 input = none)
-    (hfinal : result.2.1 input = some answer) :
-    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 :=
-  cover_carrierTail AnswerCarrier.carrierRightKeep
-    (fun probe => CombinedCharge.IsMessageInput (keyAt walk) probe ∧
-      ¬ RandomizerGate.PrfClass walk.1.1.2.1 probe) adversary walk
-    (fun probe view hc _ => cover_carrierRightKeep walk probe view hc.1 hc.2)
-    result hresult input answer ⟨hclass, hprf⟩ hfresh hfinal
-
 /-! ## And at the run the answer side names
 
 `AnswerCarrier.answerCarrierRun` is `AnswerShape.forgetRecord` over the tail, and that map
 **drops the record from the value and keeps the whole recorder state** — the same fact that let
 `hcoverage` transport free. So the cover arrives here by `support_map` and nothing else. -/
-
-set_option maxHeartbeats 4000000 in
-set_option linter.constructorNameAsVariable false in
-open scoped Classical in
-/-- **The cover at `answerCarrierRun`.** -/
-theorem cover_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (result : (Outcome × Nat) × SplitPrefix.SplitState)
-    (hresult : result ∈ support
-      (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk))
-    (input : Bytes) (answer : HashOutput)
-    (hclass : CombinedCharge.IsMessageInput (keyAt walk) input)
-    (hprf : ¬ RandomizerGate.PrfClass walk.1.1.2.1 input)
-    (hfresh : walk.2 input = none)
-    (hfinal : result.2.1 input = some answer) :
-    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 := by
-  classical
-  rw [AnswerCarrier.answerCarrierRun, support_map] at hresult
-  obtain ⟨rich, hrich, hshape⟩ := hresult
-  have hstate : rich.2 = result.2 := by rw [← hshape]; rfl
-  refine (cover_carrierTail_narrow adversary walk rich hrich input answer hclass hprf hfresh
-    ?_).imp (fun h => by rwa [hstate] at h) (fun h => by rwa [hstate] at h)
-  rw [hstate]
-  exact hfinal
 
 end SlhDsaSecurity.CarrierCover

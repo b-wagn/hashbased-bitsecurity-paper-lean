@@ -1,7 +1,11 @@
 import SlhDsaSecurity.Proof.ForsDispatch
 import SlhDsaSecurity.Proof.Extraction.HypertreeChain
 import SlhDsaSecurity.Proof.SignatureCanonical
-import SlhDsaSecurity.Proof.Correctness.Scheme
+import SlhDsaSecurity.Statement.Scheme
+import SlhDsaSecurity.Proof.Signature
+import SlhDsaSecurity.Proof.Correctness.Fors
+import SlhDsaSecurity.Statement.Hypertree
+import SlhDsaSecurity.Proof.Correctness.Merkle
 import SlhDsaSecurity.Statement.Security
 
 /-!

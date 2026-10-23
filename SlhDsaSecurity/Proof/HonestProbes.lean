@@ -696,15 +696,6 @@ theorem xor_one_lt (position level : Nat) (hlevel : 0 < level)
   · have hxor : Nat.xor position 1 = position - 1 := Nat.xor_one_of_odd hodd
     omega
 
-theorem fors_secret_replay (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
-    (address : Address) (index : Nat) :
-    (simulateQ (replay cache)
-        (Fors.secret (m := OracleComp HashSpec) secretSeed publicSeed address index)
-      : Id Digest) =
-      @Fors.secret Id _ (replayQuery cache) secretSeed publicSeed address index :=
-  @Correctness.Naturality.fors_secret_simulate Id _ _ (replay cache) (replayQuery cache)
-    (fun _ => rfl) secretSeed publicSeed address index
-
 theorem fors_node_replay (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
     (address : Address) (height index : Nat) :
     (simulateQ (replay cache)
@@ -1335,28 +1326,6 @@ theorem signLayers_tail (cache : QueryCache HashSpec) (secretSeed publicSeed : D
   rw [@Correctness.Merkle.publicKeyFromSignature_sign (replayQuery cache) message
     secretSeed publicSeed (Hypertree.address layer tree) leaf]
 
-/-- **The WOTS half of the layer the signer is standing in**, cell by cell. -/
-theorem signLayers_head_wots_cell (cache : QueryCache HashSpec)
-    (secretSeed publicSeed : Digest) (remaining : Nat) (tree : Tree)
-    (leaf : Fin (2 ^ subtreeHeight)) (message : Digest) (chain : Fin chains) :
-    (@Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed (remaining + 1)
-        tree.layer.val tree.tree.val leaf message 0).wots chain =
-      replayCells cache secretSeed publicSeed
-        (.structural (wotsPosition ⟨tree, leaf⟩ chain (Checksum.encode message chain))) := by
-  rw [signLayers_head]
-  exact merkle_sign_wots_cell cache message secretSeed publicSeed tree leaf chain
-
-/-- **The authentication half of that layer**, cell by cell. -/
-theorem signLayers_head_authentication_cell (cache : QueryCache HashSpec)
-    (secretSeed publicSeed : Digest) (remaining : Nat) (tree : Tree)
-    (leaf : Fin (2 ^ subtreeHeight)) (message : Digest) (level : Fin subtreeHeight) :
-    (@Hypertree.signLayers Id _ (replayQuery cache) secretSeed publicSeed (remaining + 1)
-        tree.layer.val tree.tree.val leaf message 0).authentication level =
-      replayCells cache secretSeed publicSeed
-        (.structural (merkleAuthNode tree leaf level)) := by
-  rw [signLayers_head]
-  exact merkle_sign_authentication_cell cache message secretSeed publicSeed tree leaf level
-
 /-- An honest XMSS path step, as a path fold over the subtree's honest nodes. -/
 theorem merkle_combine_eq (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
     (tree : Tree) (leaf : Fin (2 ^ subtreeHeight)) (signature : XmssSignature)
@@ -1488,9 +1457,6 @@ def forsKeyOf (digest : HashOutput) : ForsKey :=
   ⟨⟨(MessageDigest.treeIndex digest).toNat, (MessageDigest.treeIndex digest).isLt⟩,
     ⟨(MessageDigest.leafIndex digest).toNat, (MessageDigest.leafIndex digest).isLt⟩⟩
 
-theorem forsAddress_eq (digest : HashOutput) :
-    Scheme.forsAddress digest = (forsKeyOf digest).address := rfl
-
 /-- The two message-dependent inputs signing consults that are not graph coordinates: the
 randomizer's and the message digest's. -/
 def MessageProbe (cache : QueryCache HashSpec) (sk : SecretKey) (message : Bytes)
@@ -1603,20 +1569,6 @@ theorem keygenInternal_probes_cached (publicSeed secretSeed prfSeed : Digest)
     (probes_keygenInternal (warmCache publicSeed secretSeed outputs) secretSeed prfSeed
       publicSeed probe hprobe)
 
-/-- **Every input signing consults is in the walk's cache, or is one of its two
-message-dependent inputs.** Those two are the randomizer's and the message digest's; the walk
-cannot have installed them, since they depend on the message the adversary chose. -/
-theorem signInternal_probes_cached (sk : SecretKey) (outputs : Programming.Outputs)
-    (message probe : Bytes)
-    (hprobe : QueriesUnder (warmCache sk.publicKey.seed sk.seed outputs)
-      (Scheme.signInternal (m := OracleComp HashSpec) sk message) probe) :
-    warmCache sk.publicKey.seed sk.seed outputs probe ≠ none ∨
-      MessageProbe (warmCache sk.publicKey.seed sk.seed outputs) sk message probe := by
-  rcases probes_signInternal (warmCache sk.publicKey.seed sk.seed outputs) sk message probe
-    hprobe with hcanonical | hmessage
-  · exact Or.inl (warmCache_ne_none sk.publicKey.seed sk.seed outputs probe hcanonical)
-  · exact Or.inr hmessage
-
 /-- **Key generation, run from the walk's cache, is a pure computation.** It returns the keys
 the cache already determines and leaves the cache exactly as it found it. -/
 theorem run_keygenInternal_eq_pure (publicSeed secretSeed prfSeed : Digest)
@@ -1646,14 +1598,6 @@ theorem keygenInternal_lift (secretSeed prfSeed publicSeed : Digest) :
   (Correctness.Naturality.keygenInternal_simulate
     (fun input => query (spec := HashSpec) input : QueryImpl HashSpec (OracleComp OracleWorld))
     (fun _ => rfl) secretSeed prfSeed publicSeed).symm
-
-theorem signInternal_lift (sk : SecretKey) (message : Bytes) :
-    (Scheme.signInternal (m := OracleComp OracleWorld) sk message) =
-      OracleComp.liftComp (Scheme.signInternal (m := OracleComp HashSpec) sk message)
-        OracleWorld :=
-  (Correctness.Naturality.signInternal_simulate
-    (fun input => query (spec := HashSpec) input : QueryImpl HashSpec (OracleComp OracleWorld))
-    (fun _ => rfl) sk message).symm
 
 /-- **Key generation in the game's monad, run from the walk's cache, is a pure computation.** -/
 theorem run_keygenInternal_world_eq_pure (publicSeed secretSeed prfSeed : Digest)

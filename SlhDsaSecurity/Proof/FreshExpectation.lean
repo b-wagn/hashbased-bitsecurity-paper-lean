@@ -1,4 +1,4 @@
-import SlhDsaSecurity.Proof.ClassExpectation
+import SlhDsaSecurity.Proof.ClassGrowth
 
 /-!
 # The per-class charge, paid per fresh entry

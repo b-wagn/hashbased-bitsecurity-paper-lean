@@ -71,10 +71,6 @@ def StructuralNode.children : StructuralNode → List Node
       List.ofFn fun tree : Fin forsTrees =>
         .structural (.forsTree key ⟨forsHeight, by omega⟩ ⟨tree.val, by simp [tree.isLt]⟩)
 
-def Node.children : Node → List Node
-  | .secretSeed => []
-  | .structural node => node.children
-
 theorem StructuralNode.child_rank_lt (parent : StructuralNode) (child : Node)
     (hchild : child ∈ parent.children) : child.rank < parent.rank := by
   cases parent with
@@ -111,11 +107,5 @@ theorem StructuralNode.child_rank_lt (parent : StructuralNode) (child : Node)
       simp only [StructuralNode.children, List.mem_ofFn] at hchild
       obtain ⟨tree, rfl⟩ := hchild
       simp [Node.rank, StructuralNode.rank, forsHeight]
-
-theorem Node.child_rank_lt (parent child : Node) (hchild : child ∈ parent.children) :
-    child.rank < parent.rank := by
-  cases parent with
-  | secretSeed => simp [Node.children] at hchild
-  | structural parent => exact parent.child_rank_lt child hchild
 
 end SlhDsaSecurity.CanonicalGraph

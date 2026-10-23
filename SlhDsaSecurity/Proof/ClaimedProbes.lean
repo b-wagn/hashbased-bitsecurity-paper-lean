@@ -103,7 +103,6 @@ theorem sensitive_forgedClaim (publicSeed : Digest) {State : Type}
     table (Node.structural (wotsPosition key chain position))) ?_)
   exact (Fin.val_injective hclamp).symm
 
-
 /-! ## The record, read off the run
 
 Everything `GraphStakes.claimedCandidates` needs is a function of the forgery and of the cache
@@ -131,11 +130,5 @@ def claimedCandidatesOf (publicSeed : Digest) (cache : QueryCache HashSpec) (pk 
       (MessageDigest.treeIndex (VerifierProbes.digestOf cache pk message parsed)).toNat
       (MessageDigest.leafIndex (VerifierProbes.digestOf cache pk message parsed)).toFin
       (VerifierProbes.forsKeyOf cache pk message parsed))
-
-/-- **The record's length is still the constant.** -/
-theorem length_claimedCandidatesOf (publicSeed : Digest) (cache : QueryCache HashSpec)
-    (pk : PublicKey) (message : Bytes) (parsed : Signature) :
-    (claimedCandidatesOf publicSeed cache pk message parsed).length = 259 := by
-  rw [claimedCandidatesOf, GraphStakes.length_claimedCandidates, GraphStakes.claimedCount]
 
 end SlhDsaSecurity.ClaimedProbes

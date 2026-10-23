@@ -52,14 +52,6 @@ theorem romWithSplit_run (inClass : Bytes → Prop) (inside outside : QueryKind)
         (pure (step.1, (step.2, state.2 + splitCost inClass inside outside queried)) :
           ProbComp (OracleWorld.Range queried × (QueryCache HashSpec × Counts))) := rfl
 
-theorem romWithSplit_step_map (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (queried : OracleWorld.Domain) (state : QueryCache HashSpec × Counts) :
-    (fun z : OracleWorld.Range queried × (QueryCache HashSpec × Counts) => (z.1, z.2.1)) <$>
-        (romWithSplit inClass inside outside queried).run state =
-      (KeygenUniform.rom queried).run state.1 := by
-  rw [romWithSplit_run, map_eq_bind_pure_comp, bind_assoc]
-  simp
-
 set_option maxHeartbeats 1000000 in
 /-- **Its slots are `countQueries (splitCost …)`'s count.** `CountedHandler.run_romWithCount_count`
 with the pair in place of the number; the counter the run started at is carried for the same
@@ -95,47 +87,6 @@ theorem run_romWithSplit_count (inClass : Bytes → Prop) (inside outside : Quer
         result.2)
     rw [add_assoc]
 
-set_option maxHeartbeats 1000000 in
-/-- **A split-counted handler's slots are `countQueries (splitCost …)`'s count.**
-`CountedHandler.run_withCount_count` at the pair. -/
-theorem run_withSplit_count {τ : Type} (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (outer' : QueryImpl OracleWorld (StateT (QueryCache HashSpec) ProbComp))
-    (hforget : ServingForget.ForgetsAlong
-      (fun state : HandlerCarrier.State × τ => state.1.cache) impl outer')
-    {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ state : HandlerCarrier.State × (τ × Counts),
-      (fun z : α × (HandlerCarrier.State × (τ × Counts)) => ((z.1, z.2.2.2), z.2.1.cache)) <$>
-          (simulateQ (withSplit inClass inside outside impl) computation).run state =
-        (fun r : (α × Counts) × QueryCache HashSpec => ((r.1.1, state.2.2 + r.1.2), r.2)) <$>
-          (simulateQ outer'
-            (countQueries (splitCost inClass inside outside) computation)).run state.1.cache := by
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state
-    rw [simulateQ_pure, StateT.run_pure, map_pure, VerificationBudget.countQueries_pure,
-      simulateQ_pure, StateT.run_pure, map_pure, add_zero]
-  | query_bind queried next ih =>
-    intro state
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind, withSplit_run,
-      bind_assoc, WarmedSplit.countQueries_query_bind, simulateQ_bind, simulateQ_spec_query,
-      StateT.run_bind, map_bind,
-      ← CountedHandler.forgetsAlong_step (fun s : HandlerCarrier.State × τ => s.1.cache) impl
-        outer' hforget queried (state.1, state.2.1), bind_map_left]
-    refine bind_congr fun inner => ?_
-    rw [pure_bind, ih inner.1
-        (inner.2.1, (inner.2.2, state.2.2 + splitCost inClass inside outside queried)),
-      simulateQ_map, StateT.run_map, Functor.map_map]
-    refine congrArg (fun f => f <$> (simulateQ outer'
-      (countQueries (splitCost inClass inside outside) (next inner.1))).run inner.2.1.cache)
-      (funext fun result => ?_)
-    show ((result.1.1, state.2.2 + splitCost inClass inside outside queried + result.1.2),
-        result.2) =
-      ((result.1.1, state.2.2 + (splitCost inClass inside outside queried + result.1.2)),
-        result.2)
-    rw [add_assoc]
-
-
 /-! ## The tail is `SplitTail.splitCarrierTail`
 
 **There is only one split tail and it is not this file's.** An earlier draft of this file built
@@ -151,21 +102,6 @@ abbrev SplitCountedState : Type :=
   HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts)
 
 /-! ## The stages project, exactly as they do at one counter -/
-
-theorem rom_stage_forget (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
-    {α : Type} (computation : OracleComp OracleWorld α) (state : SplitCountedState) :
-    (fun z : α × SplitCountedState => ((z.1, z.2.2.2), z.2.1.cache)) <$>
-        (simulateQ (SplitTail.splitHandlerAt inClass inside outside rightKeep walk) computation).run
-          state =
-      (fun r : (α × Counts) × QueryCache HashSpec => ((r.1.1, state.2.2 + r.1.2), r.2)) <$>
-        (simulateQ KeygenUniform.rom
-          (countQueries (splitCost inClass inside outside) computation)).run state.1.cache :=
-  run_withSplit_count inClass inside outside
-    (@noticingRecorderOf HandlerCarrier.State (servingView (keyAt walk))
-      (disclosingKeep (keyAt walk)) (rightKeep walk))
-    KeygenUniform.rom (CarrierFiles.forgetsAlong_carrierRecorder (keyAt walk) (rightKeep walk))
-    computation state
 
 theorem splitHandlerAt_step_forget (inClass : Bytes → Prop) (inside outside : QueryKind)
     (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
@@ -381,63 +317,12 @@ other slot is. The distinctness is needed where the two counts are added — the
 shared slot would be paid for twice — and in `SplitTail.map_splitCarrierTail`, which adds them.
 Not here. -/
 
-open scoped Classical in
-/-- **The structural charge at the split tail, at the outside slot.** -/
-theorem prob_bad_splitCarrierTail_le (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (bad : Bytes → HashOutput → Prop)
-    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
-      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ENNReal))
-    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk) (hclean : GrowthCharge.CleanBad bad walk.2) :
-    Pr[fun result : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-        GrowthCharge.Bad bad (result.1.1, result.1.2.1) |
-        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk] ≤
-      ClassExpectation.expected
-          (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk)
-          (fun result => result.2 outside) / ((2 ^ 128 : Nat) : ENNReal) := by
-  classical
-  have hmap := forget_splitCarrierTail inClass inside outside rightKeep adversary walk
-  have hprob :
-      Pr[fun result : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-          GrowthCharge.Bad bad (result.1.1, result.1.2.1) |
-          SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk] =
-      Pr[GrowthCharge.Bad bad |
-        (simulateQ KeygenUniform.rom (countQueries (splitCost inClass inside outside)
-          (RecordedTail.recordedAfterSeeds adversary walk.1.1))).run walk.2] := by
-    rw [← hmap, probEvent_map]
-    rfl
-  have hcount : ClassExpectation.expected
-      ((simulateQ KeygenUniform.rom (countQueries (splitCost inClass inside outside)
-        (RecordedTail.recordedAfterSeeds adversary walk.1.1))).run walk.2)
-        (fun result => result.1.2 outside) =
-      ClassExpectation.expected
-        (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk)
-        (fun result => result.2 outside) := by
-    rw [← hmap, ClassExpectation.expected_map]
-  rw [hprob, ← hcount, ← mul_one_div]
-  exact ClassExpectation.prob_bad_le_expected_cost (fun input => ¬ inClass input) bad _
-    (splitCost inClass inside outside) outside
-    (fun input hmember => by rw [splitCost_outside inClass inside outside input hmember])
-    hrate hbadClass (RecordedTail.recordedAfterSeeds adversary walk.1.1) walk.2 hclean
-
 /-! ## And so at the run the answer half's bound is owed at
 
 `AnswerCarrier.answerCarrierRun` is `AnswerShape.forgetRecord` over the tail, so it is one
 further map from the split tail. Composed with `SplitTail.map_splitCarrierTail` that is a single
 map out of the split run, which is what `hsplit` — stated at `answerCarrierRun` — travels along
 by `probEvent_map`, with no new argument at either end. -/
-
-theorem map_splitCarrierTail_eq_answerCarrierRun (inClass : Bytes → Prop)
-    {inside outside : QueryKind} (hne : inside ≠ outside)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk) :
-    (fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-        AnswerShape.forgetRecord z.1) <$>
-        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk =
-      AnswerCarrier.answerCarrierRun rightKeep adversary walk := by
-  rw [AnswerCarrier.answerCarrierRun,
-    ← SplitTail.map_splitCarrierTail inClass hne rightKeep adversary walk, Functor.map_map]
 
 /-! ## Where the two charges meet, at the canonical tail
 
@@ -446,107 +331,6 @@ Both charges are now proved at the same run — the structural one above, the co
 their counts sit inside the tail's own work count with nothing assumed. So the composition is
 `CoverageCount.prob_bad_or_coverage_le_of_two_charges` and the only thing left to supply is a
 bound on that work count, which is what a budget *is*. -/
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **The answer half's two charges, met at the split tail.** -/
-theorem answerBound_splitTail (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (hne : inside ≠ outside) (bad : Bytes → HashOutput → Prop)
-    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
-      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ENNReal))
-    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk) (hclean : GrowthCharge.CleanBad bad walk.2)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input)
-    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
-    (hleftBound : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.1.length ≤ leftLength)
-    (hrightBound : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.2.length ≤ rightLength)
-    (budget : Nat)
-    (hwork : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.1.2 ≤ budget) :
-    Pr[fun result : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-        GrowthCharge.Bad bad (result.1.1, result.1.2.1) ∨
-          BlockViews.TargetCovered result.1 |
-        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk] ≤
-      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
-        (1 : ENNReal) / 2 ^ 141 := by
-  classical
-  refine CoverageCount.prob_bad_or_coverage_le_of_two_charges
-    (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk) _ _
-    ((1 : ENNReal) / 2 ^ 141) (fun result => result.2 outside)
-    (fun result => result.1.2.2.2.length) budget
-    (prob_bad_splitCarrierTail_le inClass bad hrate hbadClass rightKeep adversary walk hclean)
-    (SplitTail.prob_splitCarrierTail_targetCovered_le inClass hne rightKeep adversary walk
-      leftLength rightLength hcap hleftBound hrightBound) ?_
-  intro result hresult
-  have hshare := SplitTail.splitCarrierTail_share inClass inside outside rightKeep adversary
-    walk hrightClass result hresult
-  have hbudget := hwork result hresult
-  omega
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **The answer half's bound at the split tail, with the narrowing's leftover excluded.** The
-`AnswerCarrier.answerBoundSeed_of_charges` analogue at the canonical object: same three lines,
-and `hsplit` may be taken at `AnswerCarrier.answerCarrierRun` and carried here by
-`map_splitCarrierTail_eq_answerCarrierRun`, because the event factors through
-`AnswerShape.forgetRecord`. -/
-theorem answerBoundSeed_splitTail (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (hne : inside ≠ outside) (bad : Bytes → HashOutput → Prop)
-    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
-      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ENNReal))
-    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk) (hclean : GrowthCharge.CleanBad bad walk.2)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input)
-    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
-    (hleftBound : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.1.length ≤ leftLength)
-    (hrightBound : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.2.length ≤ rightLength)
-    (budget : Nat)
-    (hwork : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.1.2 ≤ budget)
-    (hsplit : ∀ result ∈ support
-        (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord result.1).1),
-            (AnswerShape.forgetRecord result.1).2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            ((AnswerShape.forgetRecord result.1).1,
-              (AnswerShape.forgetRecord result.1).2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (AnswerShape.forgetRecord result.1) →
-        GrowthCharge.Bad bad (result.1.1, result.1.2.1) ∨
-          BlockViews.TargetCovered result.1) :
-    Pr[fun result : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-        RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord result.1).1),
-            (AnswerShape.forgetRecord result.1).2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            ((AnswerShape.forgetRecord result.1).1,
-              (AnswerShape.forgetRecord result.1).2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (AnswerShape.forgetRecord result.1) |
-        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk] ≤
-      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
-        (1 : ENNReal) / 2 ^ 141 :=
-  le_trans (probEvent_mono hsplit)
-    (answerBound_splitTail inClass hne bad hrate hbadClass rightKeep adversary walk hclean
-      hrightClass leftLength rightLength hcap hleftBound hrightBound budget hwork)
-
 
 /-! ## The budget, at the split tail
 
@@ -580,37 +364,6 @@ repair is the carrier, not a bigger constant.
 This file owes none of that. What it owes is the last map: the cap is stated at the tail, and
 `answerBound_splitTail` wants it at the split tail, which is `Prod.fst` away. -/
 
-theorem leftRecord_le_of_carrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (hne : inside ≠ outside) (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    (adversary : Adversary) (walk : Walk) (leftLength : Nat)
-    (hleft : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
-      result.2.2.1.length ≤ leftLength) :
-    ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.1.length ≤ leftLength := by
-  intro result hresult
-  refine hleft result.1 ?_
-  rw [← SplitTail.map_splitCarrierTail inClass hne rightKeep adversary walk, support_map]
-  exact Set.mem_image_of_mem Prod.fst hresult
-
-/-- **And the target recording the same way**, for a consumer that would rather bound it at the
-tail than through the budget. `rightRecord_le_of_budget_splitTail` is the other route and
-neither needs the other. -/
-theorem rightRecord_le_of_carrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (hne : inside ≠ outside) (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    (adversary : Adversary) (walk : Walk) (rightLength : Nat)
-    (hright : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
-      result.2.2.2.length ≤ rightLength) :
-    ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.2.length ≤ rightLength := by
-  intro result hresult
-  refine hright result.1 ?_
-  rw [← SplitTail.map_splitCarrierTail inClass hne rightKeep adversary walk, support_map]
-  exact Set.mem_image_of_mem Prod.fst hresult
-
-
-
 /-! ## The composition, with a residue excluded
 
 `CarrierSplit.hsplit_splitCarrierTail` sends the charged event to **three** clauses, not two:
@@ -623,51 +376,5 @@ in the support and `hsplit` is pathwise.
 
 Excluding it costs nothing here and is where it has to be paid: conjoined to the event, charged
 on the shared side, exactly as the earlier leftover was. -/
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **The answer half's bound at the split tail, with a residue excluded from the event.** -/
-theorem answerBoundExtra_splitTail (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (hne : inside ≠ outside) (bad : Bytes → HashOutput → Prop)
-    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
-      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ENNReal))
-    (hbadClass : ∀ input answer, bad input answer → ¬ inClass input)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk) (hclean : GrowthCharge.CleanBad bad walk.2)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input)
-    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
-    (hleftBound : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.1.length ≤ leftLength)
-    (hrightBound : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.2.length ≤ rightLength)
-    (budget : Nat)
-    (hwork : ∀ result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.1.2 ≤ budget)
-    (charged extra : (Outcome × Nat) × SplitPrefix.SplitState → Prop)
-    (hsplit : ∀ z ∈ support
-        (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk),
-      charged (AnswerShape.forgetRecord z.1) →
-        GrowthCharge.Bad bad ((AnswerShape.forgetRecord z.1).1,
-            (AnswerShape.forgetRecord z.1).2.1) ∨
-          BlockViews.TargetCovered (AnswerShape.forgetRecord z.1) ∨
-            extra (AnswerShape.forgetRecord z.1)) :
-    Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-        charged (AnswerShape.forgetRecord z.1) ∧ ¬ extra (AnswerShape.forgetRecord z.1) |
-        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk] ≤
-      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
-        (1 : ENNReal) / 2 ^ 141 := by
-  classical
-  refine le_trans (probEvent_mono (fun z hz hevent => ?_))
-    (answerBound_splitTail inClass hne bad hrate hbadClass rightKeep adversary walk hclean
-      hrightClass leftLength rightLength hcap hleftBound hrightBound budget hwork)
-  rcases hsplit z hz hevent.1 with hstructural | hcoverage | hresidue
-  · exact Or.inl hstructural
-  · exact Or.inr hcoverage
-  · exact absurd hresidue hevent.2
-
 
 end SlhDsaSecurity.SplitCarrierTail

@@ -459,5 +459,4 @@ theorem deviatingCollision_or_canonical_of_verified {α : Type} (secretSeed : Di
       exact cached_fors_leaf_probe cache initialCache pk request signature message parsed
         verified hframe hparsed hmem i)
 
-
 end SlhDsaSecurity.VerifierProbes

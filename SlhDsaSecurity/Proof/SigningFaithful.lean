@@ -584,17 +584,4 @@ theorem cases_of_win_charged (adversary : Adversary)
   ReplayGate.cases_of_win_charged adversary hwalk hresult
     (logFaithful_tail adversary hresult) hwin
 
-/-- **The same split, weakened with the randomiser defect as a third event.** -/
-theorem cases_of_win_charged_three (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support WarmedGame.graphWalk)
-    {result : (Outcome × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (WarmedGame.tail adversary walk))
-    (hwin : Wins .strong result.1.1) :
-    RoutedSplit.AnswerBad ((walk.1, result.1), result.2) ∨
-      RoutedSplit.InputBad ((walk.1, result.1), result.2) ∨
-        ReplayGate.RandomiserBad ((walk.1, result.1), result.2) :=
-  ReplayGate.cases_of_win_charged_three adversary hwalk hresult
-    (logFaithful_tail adversary hresult) hwin
-
 end SlhDsaSecurity.SigningFaithful

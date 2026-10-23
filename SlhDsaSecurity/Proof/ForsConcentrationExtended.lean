@@ -57,45 +57,4 @@ theorem poisson_count_tail_extended_half :
   simpa only [measureReal_def, ENNReal.toReal_div, ENNReal.toReal_one,
     ENNReal.toReal_ofNat] using htail
 
-set_option exponentiation.threshold 1024 in
-set_option maxRecDepth 10000 in
-/-- Load concentration for exactly 5*2^62 independent uniform instance selections.
-No assumption of independence between occupancy bins is made. -/
-theorem uniform_load_tail_extended :
-    uniformLoads (2 ^ 63) (5 * 2 ^ 62) {loads | (2 ^ 103 : ℝ) ≤ loadPotential loads} ≤
-      (1 : ENNReal) / 2 ^ 141 := by
-  have hup : ∀ {a b : Fin (2 ^ 63) → Nat}, a ≤ b →
-      (2 ^ 103 : ℝ) ≤ loadPotential a → (2 ^ 103 : ℝ) ≤ loadPotential b := by
-    intro a b hab ha
-    refine ha.trans (Finset.sum_le_sum (fun i _ => ?_))
-    exact pow_le_pow_left₀ (Nat.cast_nonneg _) (Nat.cast_le.mpr (hab i)) 14
-  have hcouple := uniformLoads_mul_poisson_tail_le (2 ^ 63) (5 * 2 ^ 62)
-    {loads | (2 ^ 103 : ℝ) ≤ loadPotential loads} hup
-  have hhalf := mul_le_mul_right poisson_count_tail_extended_half
-    (uniformLoads (2 ^ 63) (5 * 2 ^ 62) {loads | (2 ^ 103 : ℝ) ≤ loadPotential loads})
-  have hbound := hhalf.trans (hcouple.trans poisson_load_tail)
-  apply (ENNReal.toReal_le_toReal (by finiteness) (by finiteness)).mp
-  have hreal := ENNReal.toReal_mono (by finiteness) hbound
-  norm_num only [ENNReal.toReal_mul, ENNReal.toReal_div, ENNReal.toReal_pow,
-    ENNReal.toReal_ofNat, ENNReal.toReal_one] at hreal ⊢
-  linarith
-
-/-- The natural-number load condition used by the FORS coverage bound, for any
-fixed number of independent uniform requests within the extended tape size. -/
-theorem uniform_load_tail_extended_of_le (requests : Nat) (hrequests : requests ≤ 5 * 2 ^ 62) :
-    uniformLoads (2 ^ 63) requests {loads | 2 ^ 103 < ∑ i, loads i ^ 14} ≤
-      (1 : ENNReal) / 2 ^ 141 := by
-  have hup : ∀ {a b : Fin (2 ^ 63) → Nat}, a ≤ b →
-      (2 ^ 103 : ℝ) ≤ loadPotential a → (2 ^ 103 : ℝ) ≤ loadPotential b := by
-    intro a b hab ha
-    refine ha.trans (Finset.sum_le_sum (fun i _ => ?_))
-    exact pow_le_pow_left₀ (Nat.cast_nonneg _) (Nat.cast_le.mpr (hab i)) 14
-  have hsub : {loads : Fin (2 ^ 63) → Nat | 2 ^ 103 < ∑ i, loads i ^ 14} ⊆
-      {loads | (2 ^ 103 : ℝ) ≤ loadPotential loads} := by
-    intro loads hloads
-    change (2 ^ 103 : ℝ) ≤ ∑ i, (loads i : ℝ) ^ 14
-    exact_mod_cast Nat.le_of_lt hloads
-  exact (measure_mono hsub).trans
-    ((uniformLoads_monotone (2 ^ 63) _ hup hrequests).trans uniform_load_tail_extended)
-
 end SlhDsaSecurity.ForsConcentration

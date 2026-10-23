@@ -1,5 +1,6 @@
-import SlhDsaSecurity.Proof.CarrierJoin
 import SlhDsaSecurity.Proof.CarrierCover
+import SlhDsaSecurity.Proof.CoverageRouted
+import SlhDsaSecurity.Proof.BlockViews
 import SlhDsaSecurity.Proof.SplitCarrierTail
 import SlhDsaSecurity.Proof.CoverageTail
 import SlhDsaSecurity.Proof.AddressBounds
@@ -61,46 +62,6 @@ namespace SlhDsaSecurity.CarrierSplit
 
 open Security RecorderView CarriedWitness BracketedRun CarrierTail CoverageRouted
 
-/-- **The narrowed class, from the cache-wide leftover.** -/
-theorem narrow_of_not_seedRandomised (walk : Walk) (cache : QueryCache HashSpec)
-    (hseed : ¬ SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) cache)
-    (input : Bytes) (hclass : CombinedCharge.IsMessageInput (keyAt walk) input)
-    (hpresent : cache input ≠ none) :
-    CombinedCharge.IsMessageInput (keyAt walk) input ∧
-      ¬ RandomizerGate.PrfClass walk.1.1.2.1 input :=
-  SplitWitness.not_prfClass_of_not_seedRandomised walk.1.1.2.1 (keyAt walk) cache hseed input
-    hpresent hclass
-
-set_option maxHeartbeats 1000000 in
-/-- **`TargetCovered` at the carrier tail, with the cover discharged.** -/
-theorem targetCovered_carrierTail_narrow (adversary : Adversary) (walk : Walk)
-    (result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState)
-    (hresult : result ∈ support
-      (carrierTail AnswerCarrier.carrierRightKeep adversary walk))
-    (hseed : ¬ SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
-    (hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
-      walk.2 input = none)
-    (value : Outcome × Nat)
-    (hleftClass : ∀ entry ∈ result.2.2.1,
-      ServedLog.servedLog (keyAt walk) (value, result.2.1) entry.1)
-    (hrightClass : ∀ entry ∈ result.2.2.2,
-      ¬ ServedLog.servedLog (keyAt walk) (value, result.2.1) entry.1)
-    (hvalue : value.1 = result.1.1.1)
-    (hcovered : ForgeryCoveredBy (ServedLog.servedLog (keyAt walk) (value, result.2.1))
-      (keyAt walk) (value, result.2.1)) :
-    BlockViews.TargetCovered (σ := QueryCache HashSpec) result :=
-  CarrierJoin.targetCovered_carrierTail AnswerCarrier.carrierRightKeep
-    (fun input => CombinedCharge.IsMessageInput (keyAt walk) input ∧
-      ¬ RandomizerGate.PrfClass walk.1.1.2.1 input)
-    (ServedLog.servedLog (keyAt walk) (value, result.2.1)) adversary walk
-    (fun probe view hclass _ => CarrierCover.cover_carrierRightKeep walk probe view hclass.1
-      hclass.2)
-    result hresult (fun input hclass => hfreshWalk input hclass.1) hleftClass hrightClass
-    (fun input hclass hpresent =>
-      narrow_of_not_seedRandomised walk result.2.1 hseed input hclass hpresent)
-    (ServedLog.isMessageInput_of_servedLog (keyAt walk) (value, result.2.1))
-    value hvalue hcovered
-
 /-! ## `hjoin` at the answer side's run
 
 `AnswerCarrier.answerCarrierRun` is `AnswerShape.forgetRecord` over the tail, and that map keeps
@@ -111,122 +72,8 @@ and the third by the recording-class hypotheses, which is **deferral and not eli
 `¬ LateDisclosure` is what supplies `hrightClass` on the cache route. `GoodWalk` is genuinely
 unused by this join. -/
 
-set_option maxHeartbeats 4000000 in
-set_option linter.constructorNameAsVariable false in
-/-- **A supported result of the answer side's run is one of the tail's**, with the recorder
-state and the forgery carried across. The only place this file unfolds `answerCarrierRun`:
-`AnswerCarrier`'s own note says everything after `map_answerCarrierRun_eq_tail` must treat the
-run as opaque, or the unifier walks into `carrierTail` at every membership, and that is exactly
-what it did here before this lemma existed. -/
-theorem exists_carrierTail_of_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (result : (Outcome × Nat) × SplitPrefix.SplitState)
-    (hresult : result ∈ support
-      (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk)) :
-    ∃ rich ∈ support (carrierTail AnswerCarrier.carrierRightKeep adversary walk),
-      rich.2 = result.2 ∧ result.1.1 = rich.1.1.1 := by
-  rw [AnswerCarrier.answerCarrierRun, support_map] at hresult
-  obtain ⟨rich, hrich, hshape⟩ := hresult
-  exact ⟨rich, hrich, by rw [← hshape]; rfl, by rw [← hshape]; rfl⟩
-
 attribute [local irreducible] AnswerCarrier.answerCarrierRun
 
-set_option maxHeartbeats 1000000 in
-set_option linter.constructorNameAsVariable false in
-/-- **`hjoin`, at `answerCarrierRun`.** -/
-theorem hjoin_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (hwalk : walk ∈ support WarmedGame.graphWalk) :
-    ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      Target.GoodWalk walk →
-        ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1 (keyAt walk)
-            (result.1, result.2.1) →
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1 (keyAt walk) result →
-            ForgeryDisclosedCovered (keyAt walk) (result.1, result.2.1) →
-              BlockViews.TargetCovered result ∨
-                SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1 := by
-  intro result hresult hgood _ hlate hcovered
-  have hfreshWalk : ∀ input : Bytes, CombinedCharge.IsMessageInput (keyAt walk) input →
-      walk.2 input = none :=
-    fun input hclass => CoverageTail.walk_cache_fresh (keyAt walk)
-      (AnswerSide.not_possible_generatedKey hwalk hgood.2) withinBounds_structural hwalk input
-      hclass
-  by_cases hseedAt : SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1
-  · exact Or.inr hseedAt
-  refine Or.inl ?_
-  obtain ⟨rich, hrich, hstate, hfst⟩ :=
-    exists_carrierTail_of_answerCarrierRun adversary walk result hresult
-  have hvalue : (rich.1.1.1, result.1.2) = result.1 := by rw [← hfst]
-  have hleftAt : ∀ entry ∈ result.2.2.1,
-      ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1 := by
-    have hleft := CarrierLeftRecord.servedLog_leftRecord_carrierTail
-      AnswerCarrier.carrierRightKeep adversary walk hwalk hgood.2 rich hrich result.1.2
-    rw [hvalue, hstate] at hleft
-    exact hleft
-  have hrightAt : ∀ entry ∈ result.2.2.2,
-      ¬ ServedLog.servedLog (keyAt walk) (result.1, result.2.1) entry.1 := by
-    have hright := CarrierLeftRecord.not_servedLog_rightRecord_carrierTail
-      AnswerCarrier.carrierRightKeep adversary walk hwalk rich hrich result.1.2
-      (by
-        intro hl
-        obtain ⟨entry, hentry, hdisc⟩ := hl
-        exact hlate ⟨entry, by rw [← hstate]; exact hentry, by rw [← hstate]; exact hdisc⟩)
-    rw [hvalue, hstate] at hright
-    exact hright
-  have hcov : BlockViews.TargetCovered (σ := QueryCache HashSpec) rich :=
-    targetCovered_carrierTail_narrow adversary walk rich hrich (by rw [hstate]; exact hseedAt)
-      hfreshWalk result.1 (by rw [hstate]; exact hleftAt) (by rw [hstate]; exact hrightAt) hfst
-      (by rw [hstate]; exact hcovered)
-  rw [BlockViews.TargetCovered, hstate] at hcov
-  exact hcov
-
 /-! ## And `hsplit`, carried to the tail where the charges meet -/
-
-set_option maxHeartbeats 1000000 in
-set_option linter.constructorNameAsVariable false in
-/-- **`hsplit` at `answerCarrierRun`**, with everything discharged but the leftover the
-conclusion carries. -/
-theorem hsplit_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
-    ∀ result ∈ support
-        (AnswerCarrier.answerCarrierRun AnswerCarrier.carrierRightKeep adversary walk),
-      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1 (keyAt walk)
-            (result.1, result.2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1 (keyAt walk) result →
-        GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
-            (result.1, result.2.1) ∨
-          BlockViews.TargetCovered result ∨
-            SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1 :=
-  AnswerCarrier.hsplit_of_join_extra AnswerCarrier.carrierRightKeep adversary walk hwalk hgood
-    (fun result => SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk) result.2.1)
-    (hjoin_answerCarrierRun adversary walk hwalk)
-
-set_option maxHeartbeats 1000000 in
-set_option linter.constructorNameAsVariable false in
-/-- **And at the split tail**, which is where both charges meet. One `support_map` along
-`SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun`; no argument changes at either
-end. -/
-theorem hsplit_splitCarrierTail (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (hne : inside ≠ outside) (adversary : Adversary) (walk : Walk)
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
-    ∀ z ∈ support (SplitTail.splitCarrierTail inClass inside outside
-        AnswerCarrier.carrierRightKeep adversary walk),
-      RoutedSplit.AnswerBad ((walk.1, (AnswerShape.forgetRecord z.1).1),
-            (AnswerShape.forgetRecord z.1).2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1 (keyAt walk)
-            ((AnswerShape.forgetRecord z.1).1, (AnswerShape.forgetRecord z.1).2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1 (keyAt walk)
-            (AnswerShape.forgetRecord z.1) →
-        GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
-            ((AnswerShape.forgetRecord z.1).1, (AnswerShape.forgetRecord z.1).2.1) ∨
-          BlockViews.TargetCovered (AnswerShape.forgetRecord z.1) ∨
-            SplitWitness.SeedRandomised walk.1.1.2.1 (keyAt walk)
-              (AnswerShape.forgetRecord z.1).2.1 := by
-  intro z hz
-  refine hsplit_answerCarrierRun adversary walk hwalk hgood
-    (AnswerShape.forgetRecord z.1) ?_
-  rw [← SplitCarrierTail.map_splitCarrierTail_eq_answerCarrierRun inClass hne
-    AnswerCarrier.carrierRightKeep adversary walk, support_map]
-  exact ⟨z, hz, rfl⟩
 
 end SlhDsaSecurity.CarrierSplit

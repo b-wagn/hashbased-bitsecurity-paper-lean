@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CanonicalGraph.Evaluation
 import SlhDsaSecurity.Proof.Correctness.Fors
-import SlhDsaSecurity.Proof.Correctness.Hypertree
+import SlhDsaSecurity.Statement.Hypertree
+import SlhDsaSecurity.Proof.Correctness.Merkle
 
 /-! Honest signatures disclose canonical cells; messages only select their positions. -/
 
@@ -41,10 +42,6 @@ theorem wots_sign_cells (message secretSeed publicSeed : Digest) (key : WotsKey)
   funext chain
   exact (value_wotsPosition _ _ _ _ _).symm
 
-theorem wots_publicKey_cell (secretSeed publicSeed : Digest) (key : WotsKey) :
-    Wots.publicKey (m := Id) secretSeed publicSeed key.address =
-      value secretSeed publicSeed (.structural (.wotsPk key)) := rfl
-
 theorem fors_secret_cell (secretSeed publicSeed : Digest) (key : ForsKey)
     (index : Fin (forsTrees * 2 ^ forsHeight)) :
     Fors.secret (m := Id) secretSeed publicSeed key.address index.val =
@@ -62,13 +59,5 @@ theorem fors_publicKey_cell (indices : Fors.Indices) (secretSeed publicSeed : Di
 theorem keygen_root_cell (secretSeed prfSeed publicSeed : Digest) :
     (Scheme.keygenInternal (m := Id) secretSeed prfSeed publicSeed).2.root =
       value secretSeed publicSeed (.structural topRoot) := rfl
-
-theorem hypertree_root_cell (message secretSeed publicSeed : Digest)
-    (tree : Hypertree.TreeIndex) (leaf : Hypertree.LeafIndex) :
-    Hypertree.rootFromSignature (m := Id) publicSeed layers
-        (Hypertree.sign (m := Id) message secretSeed publicSeed tree leaf)
-        0 tree.toNat leaf message =
-      value secretSeed publicSeed (.structural topRoot) :=
-  Correctness.Hypertree.rootFromSignature_sign _ _ _ _ _
 
 end SlhDsaSecurity.CanonicalGraph

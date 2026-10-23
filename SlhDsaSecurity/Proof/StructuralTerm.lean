@@ -46,37 +46,4 @@ def DeviatingCollision {α : Type} (publicSeed : Digest) (cells : Cells) :
     result.2 (canonicalInput publicSeed candidates parent) = some output ∧
     Hashing.truncate output = cells (.structural parent)
 
-/-- A cache built only from honest canonical queries is clean for the canonical target, so
-the charge applies to it. -/
-theorem prob_hitWithin_canonicalTarget_le {α : Type} (computation : OracleComp OracleWorld α)
-    (publicSeed : Digest) (cells : Cells) (limit : Nat) (initialCache : QueryCache HashSpec)
-    (hcanonical : ∀ input, initialCache input ≠ none →
-      ∃ parent : StructuralNode, input = canonicalInput publicSeed cells parent) :
-    Pr[GrowthCharge.HitWithin (CanonicalTarget.canonicalTarget publicSeed cells)
-        initialCache limit |
-      (simulateQ KeygenUniform.rom computation).run initialCache] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-  GrowthCharge.prob_hitWithin_le computation
-    (CanonicalTarget.canonicalTarget publicSeed cells) limit initialCache
-    (CanonicalTarget.clean_of_canonical_cache publicSeed cells initialCache hcanonical)
-
-/-- **The structural term.** Started from a cache of honest canonical queries, a charged
-phase produces a deviating structural collision within a growth budget of `limit` with
-probability at most `limit / 2 ^ 128`. -/
-theorem prob_deviatingCollision_le {α : Type} (computation : OracleComp OracleWorld α)
-    (publicSeed : Digest) (cells : Cells) (limit : Nat) (initialCache : QueryCache HashSpec)
-    (hcanonical : ∀ input, initialCache input ≠ none →
-      ∃ parent : StructuralNode, input = canonicalInput publicSeed cells parent) :
-    Pr[fun result : α × QueryCache HashSpec =>
-        DeviatingCollision publicSeed cells result ∧
-          GrowthCharge.GrowthAtMost initialCache result.2 limit |
-      (simulateQ KeygenUniform.rom computation).run initialCache] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  refine le_trans (probEvent_mono ?_)
-    (prob_hitWithin_canonicalTarget_le computation publicSeed cells limit initialCache hcanonical)
-  intro result _ hevent
-  obtain ⟨⟨candidates, parent, output, hdeviates, hentry, hcollision⟩, hgrowth⟩ := hevent
-  exact ⟨CanonicalTarget.hit_of_deviating_collision publicSeed cells candidates parent
-    result output hdeviates hentry hcollision, hgrowth⟩
-
 end SlhDsaSecurity.StructuralTerm

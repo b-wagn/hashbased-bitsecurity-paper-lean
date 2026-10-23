@@ -1,5 +1,4 @@
 import SlhDsaSecurity.Proof.Axioms
-import SlhDsaSecurity.Statement.Theorems.Correctness
 import SlhDsaSecurity.Statement.Theorems.StrongUnforgeability
 
 /-!

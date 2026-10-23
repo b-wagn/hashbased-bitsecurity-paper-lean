@@ -2,7 +2,7 @@ import SlhDsaSecurity.Proof.Target
 import SlhDsaSecurity.Proof.RandomizerGate
 import SlhDsaSecurity.Proof.WarmedCharges
 import SlhDsaSecurity.Proof.StrippedGame
-import SlhDsaSecurity.Proof.VerifierFormat
+import SlhDsaSecurity.Proof.HonestProbes
 
 /-!
 # Where a `PRF_msg` entry can have come from
@@ -59,109 +59,12 @@ stripped computation's probes are among the original's. That is what lets `Hones
 characterisations be read off the game's own honest phase rather than off the scheme in
 isolation. -/
 
-/-- **A stripped computation consults only what the original does.** -/
-theorem queriesUnder_of_strip {α : Type} (cache current : QueryCache HashSpec)
-    (hsub : StrippedGame.Extends cache current) :
-    ∀ (computation : OracleComp HashSpec α) (probe : Bytes),
-      CacheReplay.QueriesUnder current
-          (simulateQ (StripCached.stripImpl cache) computation) probe →
-        CacheReplay.QueriesUnder current computation probe := by
-  intro computation
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro probe hprobe
-    rw [simulateQ_pure] at hprobe
-    exact absurd hprobe (by rintro ⟨⟩)
-  | query_bind input next ih =>
-    intro probe hprobe
-    have hstripped : simulateQ (StripCached.stripImpl cache)
-        (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) =
-        StripCached.stripImpl cache input := by simp
-    rw [simulateQ_bind, hstripped] at hprobe
-    cases hcache : cache input with
-    | some value =>
-      rw [show StripCached.stripImpl cache input = (pure value : OracleComp HashSpec HashOutput)
-          from by simp [StripCached.stripImpl, hcache], pure_bind] at hprobe
-      refine CacheReplay.QueriesUnder.tail input probe next ?_
-      rw [show CacheReplay.replay current input = value from by
-        simp [CacheReplay.replay, hsub input value hcache]]
-      exact ih value probe hprobe
-    | none =>
-      rw [show StripCached.stripImpl cache input =
-          (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) from by
-        simp [StripCached.stripImpl, hcache]] at hprobe
-      rcases HonestProbes.queriesUnder_query_bind_cases hprobe with rfl | htail
-      · exact CacheReplay.QueriesUnder.head _ next
-      · exact CacheReplay.QueriesUnder.tail input probe next (ih _ probe htail)
-
 /-! ## What the honest phase's `PRF_msg` queries are
 
 With the stripping out of the way, `HonestProbes` settles both honest parties. Key generation
 consults canonical inputs only, and a canonical input opens with `PK.seed`. The signer consults
 canonical inputs and the two its own framing names — its randomiser's, which is at *that
 request's* message, and its digest's, which is a `PRF_msg` input only at its own randomiser. -/
-
-/-- **Key generation makes no `PRF_msg` query at a foreign seed.** -/
-theorem keygen_probe_ne_randomizerInput (warm current : QueryCache HashSpec)
-    (hsub : StrippedGame.Extends warm current) (sds : Digest × Digest × Digest)
-    (prfSeed seed : Digest) (message : Bytes) (hne : prfSeed ≠ sds.2.2)
-    (hprobe : CacheReplay.QueriesUnder current (StrippedGame.strippedKeygenHash warm sds)
-      (Hashing.randomizerInput prfSeed seed message)) : False := by
-  obtain ⟨parent, hparent⟩ :=
-    HonestProbes.probes_keygenInternal current sds.1 sds.2.1 sds.2.2 _
-      (queriesUnder_of_strip warm current hsub _ _ hprobe)
-  exact HashSeparation.randomizer_tweakable_ne hne hparent
-
-/-- **A `PRF_msg` query of the signer's is one its own request names.** -/
-theorem sign_probe_messageProbe (warm current : QueryCache HashSpec)
-    (hsub : StrippedGame.Extends warm current) (sk : SecretKey) (request : Message)
-    (prfSeed seed : Digest) (message : Bytes) (hne : prfSeed ≠ sk.publicKey.seed)
-    (hprobe : CacheReplay.QueriesUnder current (StrippedGame.strippedSignHash warm sk request)
-      (Hashing.randomizerInput prfSeed seed message)) :
-    ∃ framed : Bytes, request.frame = some framed ∧
-      HonestProbes.MessageProbe current sk framed
-        (Hashing.randomizerInput prfSeed seed message) := by
-  have htransfer := queriesUnder_of_strip warm current hsub _ _ hprobe
-  cases hframe : request.frame with
-  | none =>
-    exact absurd
-      (HonestProbes.probes_sign_none current sk request hframe (fun _ => False) _ htransfer) id
-  | some framed =>
-    refine ⟨framed, rfl, ?_⟩
-    rcases HonestProbes.probes_sign current sk request framed hframe _ htransfer with
-      ⟨parent, hparent⟩ | hmessage
-    · exact absurd hparent.symm (RandomizerGate.canonicalInput_ne_randomizerInput
-        sk.publicKey.seed prfSeed seed _ parent message hne)
-    · exact hmessage
-
-/-- **The honest phase makes this `PRF_msg` query only as a digest query.** Key generation
-cannot make it at all; the signer can only make it for a request that framed to this message,
-which is excluded, or as the digest query its framing names — and that one is a `PRF_msg` input
-only through the format overlap, with its own randomiser read as the seed. -/
-theorem honest_probe_randomizerInput (warm current : QueryCache HashSpec)
-    (hsub : StrippedGame.Extends warm current) (sk : SecretKey)
-    (hne : sk.prf ≠ sk.publicKey.seed) (message : Bytes)
-    (hprobe :
-      (∃ sds : Digest × Digest × Digest, sds.2.2 = sk.publicKey.seed ∧
-        CacheReplay.QueriesUnder current (StrippedGame.strippedKeygenHash warm sds)
-          (Hashing.randomizerInput sk.prf sk.publicKey.seed message)) ∨
-      (∃ request : Message, request.frame ≠ some message ∧
-        CacheReplay.QueriesUnder current (StrippedGame.strippedSignHash warm sk request)
-          (Hashing.randomizerInput sk.prf sk.publicKey.seed message))) :
-    ∃ (randomizer : Digest) (framed : Bytes),
-      Hashing.randomizerInput sk.prf sk.publicKey.seed message =
-        Hashing.messageInput randomizer sk.publicKey framed := by
-  rcases hprobe with ⟨sds, hseed, hkeygen⟩ | ⟨request, hrequest, hsign⟩
-  · exact absurd hkeygen fun hquery =>
-      keygen_probe_ne_randomizerInput warm current hsub sds sk.prf sk.publicKey.seed message
-        (hseed ▸ hne) hquery
-  · obtain ⟨framed, hframe, hmessage⟩ :=
-      sign_probe_messageProbe warm current hsub sk request sk.prf sk.publicKey.seed message hne
-        hsign
-    rcases hmessage with hrandomizer | hdigest
-    · obtain ⟨-, -, hequal⟩ := Hashing.randomizerInput_injective hrandomizer
-      exact absurd (hequal ▸ hframe) hrequest
-    · exact ⟨_, framed, hdigest⟩
 
 /-! ## The class, as a deferral consumes it
 
@@ -170,28 +73,5 @@ input that carries a secret, and it asks for the class in a particular shape: in
 a node, with the index readable off the bytes and the input injective in the secret. For the
 `PRF_msg` class the node is the pair the format carries beside the seed, and both conditions are
 the format's own injectivity. -/
-
-/-- The seed and message a `PRF_msg` input carries beside `SK.prf`. -/
-noncomputable def randomizerIndex (input : Bytes) : Option (Digest × Bytes) :=
-  open scoped Classical in
-  if h : ∃ node : Digest × Bytes, ∃ prf : Digest,
-    input = Hashing.randomizerInput prf node.1 node.2 then some h.choose else none
-
-/-- **The index is readable off the bytes.** -/
-theorem randomizerIndex_input (prf seed : Digest) (message : Bytes) :
-    randomizerIndex (Hashing.randomizerInput prf seed message) = some (seed, message) := by
-  classical
-  have hexists : ∃ node : Digest × Bytes, ∃ other : Digest,
-      Hashing.randomizerInput prf seed message =
-        Hashing.randomizerInput other node.1 node.2 := ⟨(seed, message), prf, rfl⟩
-  rw [randomizerIndex, dif_pos hexists]
-  obtain ⟨other, hother⟩ := hexists.choose_spec
-  obtain ⟨-, hseed, hmessage⟩ := Hashing.randomizerInput_injective hother
-  exact congrArg some (Prod.ext hseed.symm hmessage.symm)
-
-/-- **A `PRF_msg` input determines the seed it carries.** -/
-theorem randomizerInput_injective_prf (node : Digest × Bytes) :
-    Function.Injective fun prf : Digest => Hashing.randomizerInput prf node.1 node.2 :=
-  fun _ _ hequal => RandomizerGate.randomizerInput_prf_inj hequal
 
 end SlhDsaSecurity.RandomiserCharge

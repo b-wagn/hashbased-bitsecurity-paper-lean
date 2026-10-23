@@ -84,18 +84,6 @@ theorem served_run_of_clear (rightKeep : Walk → Bytes → HandlerCarrier.State
   (clearWith_run rightKeep walk state.1.served computation state result hresult
     ⟨hclear, rfl⟩).2
 
-/-- **And a carrier that served nothing before the stage serves nothing after it**, which is
-the front end read the same way. -/
-theorem carrierLogged_run_of_clear (sk : SecretKey) (warm : QueryCache HashSpec)
-    (log : SigningLog) (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
-    {α : Type} (computation : OracleComp OracleWorld α)
-    (state : CountedState) (result : α × CountedState)
-    (hresult : result ∈ support ((simulateQ (handlerAt rightKeep walk) computation).run state))
-    (hquiet : CarrierCap.Quiet state.1) :
-    ServedAgreement.CarrierLogged sk warm log result.2.1 :=
-  carrierLogged_of_served_zero sk warm log result.2.1
-    (CarrierCap.quiet_run rightKeep walk computation state result hresult hquiet).2
-
 /-! ## The middle stage, applied
 
 The hypotheses `ServedAgreement.carrierLogged_run_with` asks for are about the **signer**, and

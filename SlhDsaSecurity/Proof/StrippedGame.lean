@@ -172,18 +172,6 @@ noncomputable def strippedSigningOracle (warm : QueryCache HashSpec) (sk : Secre
     QueryImpl SigningSpec CountedRun :=
   signingOracleWith (strippedSign warm sk)
 
-/-- **Replacing the signer changes nothing** as long as the two signers have the same run. -/
-theorem run_signingOracleWith_congr
-    (signer signer' : Message → OracleComp OracleWorld (Option Bytes)) (request : Message)
-    (log : SigningLog) (current : QueryCache HashSpec)
-    (hagree : (simulateQ KeygenUniform.rom (signer request)).run current =
-      (simulateQ KeygenUniform.rom (signer' request)).run current) :
-    (simulateQ KeygenUniform.rom ((signingOracleWith signer request).run.run log)).run current =
-      (simulateQ KeygenUniform.rom
-        ((signingOracleWith signer' request).run.run log)).run current := by
-  rw [run_signingOracleWith, run_signingOracleWith, simulateQ_bind, simulateQ_bind,
-    StateT.run_bind, StateT.run_bind, hagree]
-
 /-! ## Replacing a handler inside the adversary's run
 
 The adversary's phase simulates its own computation against the pair of handlers, and only the
@@ -207,35 +195,6 @@ theorem countedRun_bind {α β : Type} (x : CountedRun α) (next : α → Counte
   simp only [countedRun, WriterT.run_bind, StateT.run_bind, StateT.run_map, simulateQ_bind,
     simulateQ_map, StateT.run_map]
 
-/-- **A handler may be replaced by one with the same law**, at every cache carrying the warm
-table. -/
-theorem evalDist_countedRun_congr (warm : QueryCache HashSpec)
-    (impl impl' : QueryImpl (OracleWorld + SigningSpec) CountedRun)
-    (hagree : ∀ (t : (OracleWorld + SigningSpec).Domain) (log : SigningLog)
-      (current : QueryCache HashSpec), Extends warm current →
-      𝒟[countedRun (impl t) log current] = 𝒟[countedRun (impl' t) log current])
-    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α) :
-    ∀ (log : SigningLog) (current : QueryCache HashSpec), Extends warm current →
-      𝒟[countedRun (simulateQ impl computation) log current] =
-        𝒟[countedRun (simulateQ impl' computation) log current] := by
-  induction computation using OracleComp.inductionOn with
-  | pure value => intro _ _ _; rfl
-  | query_bind t next ih =>
-    intro log current hsub
-    rw [simulateQ_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_spec_query,
-      countedRun_bind, countedRun_bind]
-    have hmid : 𝒟[countedRun (impl t) log current >>= fun outer =>
-          (fun inner => (((inner.1.1.1, outer.1.1.2 * inner.1.1.2), inner.1.2), inner.2)) <$>
-            countedRun (simulateQ impl (next outer.1.1.1)) outer.1.2 outer.2] =
-        𝒟[countedRun (impl t) log current >>= fun outer =>
-          (fun inner => (((inner.1.1.1, outer.1.1.2 * inner.1.1.2), inner.1.2), inner.2)) <$>
-            countedRun (simulateQ impl' (next outer.1.1.1)) outer.1.2 outer.2] :=
-      evalDist_bind_congr (fun outer houter => by
-        rw [evalDist_map, evalDist_map, ih outer.1.1.1 outer.1.2 outer.2
-          (extends_of_mem_support ((WriterT.run (impl t)).run log) warm current hsub outer
-            houter)])
-    rw [hmid, evalDist_bind, evalDist_bind, hagree t log current hsub]
-
 /-! ## The experiment with its honest phase stripped -/
 
 /-- `WarmedGame.afterSeeds` with key generation and the signer answered from the warm table.
@@ -257,45 +216,6 @@ noncomputable def strippedAfterSeeds (adversary : Adversary) (sds : Digest × Di
     verified := verified
     counts := Multiplicative.toAdd adversaryCounts + verifierCounts }
 
-/-- The two signing oracles answer alike at every cache carrying the warm table. -/
-theorem evalDist_countedRun_signingOracle (warm : QueryCache HashSpec) (sk : SecretKey)
-    (t : (OracleWorld + SigningSpec).Domain) (log : SigningLog)
-    (current : QueryCache HashSpec) (hsub : Extends warm current) :
-    𝒟[countedRun
-        (((QueryImpl.ofLift OracleWorld (StateT SigningLog (OracleComp OracleWorld))).withAddCost
-          (fun input => Counts.single .hash (hashCost input)) + Security.signingOracle sk) t)
-        log current] =
-      𝒟[countedRun
-        (((QueryImpl.ofLift OracleWorld (StateT SigningLog (OracleComp OracleWorld))).withAddCost
-          (fun input => Counts.single .hash (hashCost input)) +
-            strippedSigningOracle warm sk) t) log current] := by
-  rcases t with world | request
-  · rfl
-  · exact congrArg _ (run_signingOracleWith_congr (Scheme.sign sk) (strippedSign warm sk) request
-      log current (run_strippedSign warm sk request current hsub).symm)
-
-set_option maxHeartbeats 1000000 in
-/-- **Stripping the honest phase changes nothing about the law of the run.** -/
-theorem evalDist_run_strippedAfterSeeds (adversary : Adversary)
-    (sds : Digest × Digest × Digest) (warm current : QueryCache HashSpec)
-    (hsub : Extends warm current) :
-    𝒟[(simulateQ KeygenUniform.rom (strippedAfterSeeds adversary sds warm)).run current] =
-      𝒟[(simulateQ KeygenUniform.rom (WarmedGame.afterSeeds adversary sds)).run current] := by
-  unfold strippedAfterSeeds WarmedGame.afterSeeds
-  rw [simulateQ_bind, simulateQ_bind, StateT.run_bind, StateT.run_bind,
-    run_strippedKeygen warm sds current hsub]
-  refine evalDist_bind_congr ?_
-  rintro ⟨⟨sk, pk⟩, cache⟩ hstep
-  have hcache : Extends warm cache :=
-    extends_of_mem_support _ warm current hsub ((sk, pk), cache) hstep
-  rw [simulateQ_bind, simulateQ_bind, StateT.run_bind, StateT.run_bind, evalDist_bind,
-    evalDist_bind]
-  refine congrArg (fun head => head >>= _) ?_
-  exact evalDist_countedRun_congr warm _ _
-    (fun t log inner hinner =>
-      (evalDist_countedRun_signingOracle warm sk t log inner hinner).symm)
-    (adversary.main pk) [] cache hcache
-
 attribute [local irreducible] WarmedGame.afterSeeds strippedAfterSeeds
 
 /-! ## What the surgery was for
@@ -305,52 +225,5 @@ table holds an entry at every canonical input, the stripped honest parties never
 so in particular never consult a sensitive one, whatever region of the table the input half
 chooses to strip. That is the single reason the earlier, PRF-only version of the comparison
 said nothing: the honest parties walked straight through the region themselves. -/
-
-/-- The hash-only computation stripped key generation performs. -/
-noncomputable def strippedKeygenHash (warm : QueryCache HashSpec)
-    (sds : Digest × Digest × Digest) : OracleComp HashSpec (SecretKey × PublicKey) :=
-  simulateQ (StripCached.stripImpl warm)
-    (Scheme.keygenInternal (m := OracleComp HashSpec) sds.1 sds.2.1 sds.2.2)
-
-/-- The hash-only computation the stripped signer performs. -/
-noncomputable def strippedSignHash (warm : QueryCache HashSpec) (sk : SecretKey)
-    (request : Message) : OracleComp HashSpec (Option Bytes) :=
-  simulateQ (StripCached.stripImpl warm) (Scheme.sign (m := OracleComp HashSpec) sk request)
-
-theorem strippedKeygen_eq (warm : QueryCache HashSpec) (sds : Digest × Digest × Digest) :
-    strippedKeygen warm sds =
-      OracleComp.liftComp (strippedKeygenHash warm sds) OracleWorld := rfl
-
-theorem strippedSign_eq (warm : QueryCache HashSpec) (sk : SecretKey) (request : Message) :
-    strippedSign warm sk request =
-      OracleComp.liftComp (strippedSignHash warm sk request) OracleWorld := rfl
-
-/-- **The stripped honest phase never asks at an input the warm table answers.** -/
-theorem honest_probes_not_in_warm_cache (warm current : QueryCache HashSpec) (probe : Bytes)
-    (hprobe : (∃ sds : Digest × Digest × Digest,
-        QueriesUnder current (strippedKeygenHash warm sds) probe) ∨
-      (∃ (sk : SecretKey) (request : Message),
-        QueriesUnder current (strippedSignHash warm sk request) probe)) :
-    warm probe = none := by
-  rcases hprobe with ⟨sds, hkeygen⟩ | ⟨sk, request, hsign⟩
-  · exact StripCached.queriesUnder_strip_none _ warm current probe hkeygen
-  · exact StripCached.queriesUnder_strip_none _ warm current probe hsign
-
-/-- **At the walk's own table, the stripped honest phase never consults a canonical input.** -/
-theorem honest_probes_not_canonical (publicSeed secretSeed : Digest)
-    (outputs : CanonicalGraph.Programming.Outputs) (current : QueryCache HashSpec)
-    (probe : Bytes)
-    (hprobe : (∃ sds : Digest × Digest × Digest,
-        QueriesUnder current
-          (strippedKeygenHash (HonestProbes.warmCache publicSeed secretSeed outputs) sds) probe) ∨
-      (∃ (sk : SecretKey) (request : Message),
-        QueriesUnder current
-          (strippedSignHash (HonestProbes.warmCache publicSeed secretSeed outputs) sk request)
-          probe)) :
-    ¬ HonestProbes.Canonical publicSeed
-      (HonestProbes.replayCells (HonestProbes.warmCache publicSeed secretSeed outputs)
-        secretSeed publicSeed) probe := fun hcanonical =>
-  HonestProbes.warmCache_ne_none publicSeed secretSeed outputs probe hcanonical
-    (honest_probes_not_in_warm_cache _ current probe hprobe)
 
 end SlhDsaSecurity.StrippedGame

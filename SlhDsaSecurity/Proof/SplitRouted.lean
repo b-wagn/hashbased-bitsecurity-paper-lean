@@ -67,14 +67,6 @@ selects. Both names unfold to the same tweakable hash of the same fourteen canon
 
 variable [HasQuery HashSpec Id]
 
-omit [HasQuery HashSpec Id] in
-/-- **The honest FORS public key is the graph's `forsRoots` cell.** -/
-theorem honestForsKey_eq_value (secretSeed publicSeed : Digest) (cache : QueryCache HashSpec)
-    (key : ForsKey) :
-    SplitCharged.honestForsKey secretSeed publicSeed cache key.address =
-      @value (CacheReplay.replayQuery cache) secretSeed publicSeed
-        (.structural (.forsRoots key)) := rfl
-
 /-- **At the bottom layer the honest message is that cell.** -/
 theorem honestMessage_zero (secretSeed publicSeed : Digest) (key : WotsKey)
     (hlayer : key.tree.layer.val = 0) :

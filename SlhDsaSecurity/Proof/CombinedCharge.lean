@@ -1,4 +1,6 @@
-import SlhDsaSecurity.Proof.ForsCoverageTerm
+import SlhDsaSecurity.Proof.GrowthCharge
+import SlhDsaSecurity.Proof.ForsCoverage
+import SlhDsaSecurity.Proof.MessageDigest
 import SlhDsaSecurity.Proof.CanonicalTarget
 import SlhDsaSecurity.Proof.HashSeparation
 
@@ -49,79 +51,6 @@ charged. -/
 def IsMessageInput (pk : PublicKey) (input : Bytes) : Prop :=
   ∃ (randomizer : Digest) (message : Bytes),
     input = Hashing.messageInput randomizer pk message
-
-/-- The combined answer-side bad event: the answer either hits the honest cell of the node its
-own input names, or parses to a digest already covered — the latter only on message inputs. -/
-def CombinedBad (publicSeed : Digest) (pk : PublicKey) (cells : Cells)
-    (revealed : ForsCoverage.Disclosures) : Bytes → HashOutput → Prop :=
-  fun input answer =>
-    CanonicalTarget.canonicalTarget publicSeed cells input = some (Hashing.truncate answer) ∨
-      (IsMessageInput pk input ∧ ForsCoverage.Covered revealed (MessageDigest.parse answer))
-
-open scoped Classical in
-/-- **The combined per-call rate is the maximum, not the sum.** On a message input the
-structural clause is dead by separation, and on any other input the coverage clause is dead by
-construction, so a single fresh answer is bad with probability at most `2 ^ -128`. -/
-theorem prob_combinedBad_le (publicSeed : Digest) (pk : PublicKey) (cells : Cells)
-    (revealed : ForsCoverage.Disclosures) (loads : ForsCoverage.Instance → Nat)
-    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
-    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102)
-    (hseparated : ∀ input, IsMessageInput pk input →
-      CanonicalTarget.canonicalTarget publicSeed cells input = none)
-    (input : Bytes) :
-    Pr[fun answer : HashOutput => CombinedBad publicSeed pk cells revealed input answer |
-      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  by_cases hmessage : IsMessageInput pk input
-  · -- Message class: the structural clause cannot fire, so only coverage is charged.
-    have hdead : ∀ answer : HashOutput,
-        CombinedBad publicSeed pk cells revealed input answer →
-          ForsCoverage.Covered revealed (MessageDigest.parse answer) := by
-      intro answer hbad
-      rcases hbad with hstructural | ⟨_, hcovered⟩
-      · rw [hseparated input hmessage] at hstructural
-        exact absurd hstructural (by simp)
-      · exact hcovered
-    refine le_trans (probEvent_mono (fun answer _ hbad => hdead answer hbad)) ?_
-    refine le_trans
-      (ForsCoverageTerm.prob_coveredAnswer_le_sharper revealed loads hload hmoment input) ?_
-    -- `2 ^ -129 ≤ 2 ^ -128`.
-    apply ENNReal.div_le_div_left
-    exact_mod_cast Nat.pow_le_pow_right (by norm_num) (by norm_num)
-  · -- Otherwise the coverage clause cannot fire, so only the structural target is charged.
-    have hdead : ∀ answer : HashOutput,
-        CombinedBad publicSeed pk cells revealed input answer →
-          CanonicalTarget.canonicalTarget publicSeed cells input =
-            some (Hashing.truncate answer) := by
-      intro answer hbad
-      rcases hbad with hstructural | ⟨hmsg, _⟩
-      · exact hstructural
-      · exact absurd hmsg hmessage
-    refine le_trans (probEvent_mono (fun answer _ hbad => (hdead answer hbad).symm)) ?_
-    exact FreshHitBound.prob_target_match_le
-      (CanonicalTarget.canonicalTarget publicSeed cells input)
-
-/-- **The answer-side half of the target.** A run whose cache grows by at most `limit`
-produces a combined answer-side bad event with probability at most `limit / 2 ^ 128`, i.e.
-`2 · limit / 2 ^ 129` — exactly half the target rate, charging the structural and FORS
-avenues together rather than separately. -/
-theorem prob_combinedBad_within_le {α : Type} (computation : OracleComp OracleWorld α)
-    (publicSeed : Digest) (pk : PublicKey) (cells : Cells)
-    (revealed : ForsCoverage.Disclosures)
-    (loads : ForsCoverage.Instance → Nat)
-    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
-    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102)
-    (hseparated : ∀ input, IsMessageInput pk input →
-      CanonicalTarget.canonicalTarget publicSeed cells input = none)
-    (limit : Nat) (initialCache : QueryCache HashSpec)
-    (hclean : GrowthCharge.CleanBad (CombinedBad publicSeed pk cells revealed) initialCache) :
-    Pr[GrowthCharge.BadWithin (CombinedBad publicSeed pk cells revealed) initialCache limit |
-      (simulateQ KeygenUniform.rom computation).run initialCache] ≤
-      limit / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  refine le_of_le_of_eq
-    (GrowthCharge.prob_badWithin_le computation (CombinedBad publicSeed pk cells revealed)
-      (1 / ((2 ^ 128 : Nat) : ℝ≥0∞)) limit initialCache
-      (prob_combinedBad_le publicSeed pk cells revealed loads hload hmoment hseparated) hclean) ?_
-  rw [mul_one_div]
 
 /-! ## Discharging the separation hypothesis
 

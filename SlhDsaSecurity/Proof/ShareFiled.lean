@@ -29,14 +29,6 @@ open Security CanonicalGraph ShareGame
 
 /-! ## The cold cache -/
 
-/-- **The oracle cache is cold**: it holds no input of the walk's warm cache. -/
-def ColdCache (setup : Setup) (state : St) : Prop :=
-  ∀ input, state.cache input ≠ none → setup.warm input = none
-
-theorem coldCache_start (setup : Setup) : ColdCache setup St.start := by
-  intro input h
-  exact absurd rfl h
-
 /-- What a blind routed query does to the cache: nothing, or it caches an input the open table
 lacks and the cache did not hold. -/
 theorem route_false_cases (setup : Setup) (state : St) (input : Bytes) (z : HashOutput × St)
@@ -65,152 +57,6 @@ theorem route_false_cases (setup : Setup) (state : St) (input : Bytes) (z : Hash
       simp only [hcached, mem_support_bind_iff, support_pure, Set.mem_singleton_iff] at hz
       obtain ⟨value, -, rfl⟩ := hz
       exact Or.inr (Or.inr ⟨rfl, rfl, rfl⟩)
-
-/-- **A blind routed query that is no sensitive probe keeps the cache cold.** -/
-theorem coldCache_route (setup : Setup) (state : St) (input : Bytes)
-    (hsens : ¬ Sens setup state.served input) (hcold : ColdCache setup state)
-    (z : HashOutput × St) (hz : z ∈ support (route false setup state input)) :
-    ColdCache setup z.2 := by
-  rcases route_false_cases setup state input z hz with ⟨-, h⟩ | ⟨-, -, h⟩ | ⟨hopen, -, h⟩
-  · rw [h]; exact hcold
-  · rw [h]; exact hcold
-  · intro other hother
-    rw [h] at hother
-    by_cases hx : other = input
-    · subst hx
-      cases hwarm : setup.warm other with
-      | none => rfl
-      | some answer =>
-        exact absurd (ShareUntilBad.sens_of_closed setup state.served other answer hwarm hopen)
-          hsens
-    · exact hcold other (by simpa [QueryCache.cacheQuery_of_ne _ _ hx] using hother)
-
-theorem prfAt_cache (state : St) (frame : Bytes) (z : HashOutput × St)
-    (hz : z ∈ support (prfAt state frame)) : z.2.cache = state.cache ∧ z.2.served = state.served := by
-  unfold prfAt at hz
-  split at hz
-  · rw [support_pure, Set.mem_singleton_iff] at hz
-    rw [hz]
-    exact ⟨rfl, rfl⟩
-  · rw [mem_support_bind_iff] at hz
-    obtain ⟨value, -, hz⟩ := hz
-    rw [support_pure, Set.mem_singleton_iff] at hz
-    rw [hz]
-    exact ⟨rfl, rfl⟩
-
-theorem coldCache_of_cache_eq {setup : Setup} {state state' : St}
-    (h : state'.cache = state.cache) (hcold : ColdCache setup state) : ColdCache setup state' := by
-  intro input hinput
-  rw [h] at hinput
-  exact hcold input hinput
-
-open scoped Classical in
-/-- **Every blind step that leaves the flag down keeps the cache cold.** -/
-theorem coldCache_step (setup : Setup) (queried : ShareSpec.Domain) (state : St × Bool)
-    (hcold : ColdCache setup state.1) (z : ShareSpec.Range queried × (St × Bool))
-    (hz : z ∈ support (((handler false setup) queried).run state)) (hflag : z.2.2 = false) :
-    ColdCache setup z.2.1 := by
-  classical
-  obtain ⟨inner, flag⟩ := state
-  rcases queried with ((world | request) | ⟨request, drawn⟩) | forgery
-  · rcases world with coin | input
-    · simp only [handler, StateT.run, mem_support_bind_iff, support_pure,
-        Set.mem_singleton_iff] at hz
-      obtain ⟨value, -, rfl⟩ := hz
-      exact hcold
-    · simp only [handler, StateT.run, mem_support_bind_iff, support_pure,
-        Set.mem_singleton_iff] at hz
-      obtain ⟨step, hstep, rfl⟩ := hz
-      simp only [Bool.or_eq_false_iff, decide_eq_false_iff_not, not_or] at hflag
-      exact coldCache_route setup inner input (fun h => hflag.2.2 (Or.inl h)) hcold step hstep
-  · cases hframe : request.frame with
-    | none =>
-      simp only [handler, StateT.run, hframe, support_pure, Set.mem_singleton_iff] at hz
-      rw [hz]
-      exact hcold
-    | some framed =>
-      simp only [handler, StateT.run, hframe, mem_support_bind_iff, support_pure,
-        Set.mem_singleton_iff] at hz
-      obtain ⟨seed, hseed, digest, hdigest, rfl⟩ := hz
-      simp only [Bool.or_eq_false_iff, decide_eq_false_iff_not, not_or] at hflag
-      obtain ⟨hseedCache, hseedServed⟩ := prfAt_cache inner framed seed hseed
-      exact coldCache_route setup seed.2 _ (by rw [hseedServed]; exact fun h => hflag.2.2 (Or.inl h))
-        (coldCache_of_cache_eq hseedCache hcold) digest hdigest
-  · cases drawn with
-    | none =>
-      simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
-      rw [hz]
-      exact hcold
-    | some pair =>
-      obtain ⟨randomizer, digest⟩ := pair
-      simp only [handler, StateT.run] at hz
-      split_ifs at hz <;>
-      · rw [support_pure, Set.mem_singleton_iff] at hz
-        rw [hz]
-        exact hcold
-  · simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
-    rw [hz]
-    exact hcold
-
-/-- **The flag is sticky**: a step from a raised flag keeps it raised. -/
-theorem flag_sticky (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
-    (state : St × Bool) (hflag : state.2 = true) (z : ShareSpec.Range queried × (St × Bool))
-    (hz : z ∈ support (((handler lenient setup) queried).run state)) : z.2.2 = true := by
-  classical
-  obtain ⟨inner, flag⟩ := state
-  simp only at hflag
-  subst hflag
-  rcases queried with ((world | request) | ⟨request, drawn⟩) | forgery
-  · rcases world with coin | input
-    · simp only [handler, StateT.run, mem_support_bind_iff, support_pure,
-        Set.mem_singleton_iff] at hz
-      obtain ⟨value, -, rfl⟩ := hz
-      rfl
-    · simp only [handler, StateT.run, mem_support_bind_iff, support_pure,
-        Set.mem_singleton_iff] at hz
-      obtain ⟨step, -, rfl⟩ := hz
-      simp
-  · cases hframe : request.frame with
-    | none =>
-      simp only [handler, StateT.run, hframe, support_pure, Set.mem_singleton_iff] at hz
-      rw [hz]
-    | some framed =>
-      simp only [handler, StateT.run, hframe, mem_support_bind_iff, support_pure,
-        Set.mem_singleton_iff] at hz
-      obtain ⟨seed, -, digest, -, rfl⟩ := hz
-      simp
-  · cases drawn with
-    | none =>
-      simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
-      rw [hz]
-    | some pair =>
-      obtain ⟨randomizer, digest⟩ := pair
-      simp only [handler, StateT.run] at hz
-      split_ifs at hz <;>
-      · rw [support_pure, Set.mem_singleton_iff] at hz
-        rw [hz]
-  · simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
-    rw [hz]
-    simp
-
-/-- **A blind run that ends with the flag down ends with a cold cache**, from a cold start. -/
-theorem coldCache_run (setup : Setup) {α : Type} (computation : OracleComp ShareSpec α)
-    (state : St × Bool) (hcold : ColdCache setup state.1)
-    (z : α × (St × Bool))
-    (hz : z ∈ support ((simulateQ (handler false setup) computation).run state))
-    (hflag : z.2.2 = false) : ColdCache setup z.2.1 := by
-  have key := SignedWatch.run_invariant (handler false setup)
-    (fun state : St × Bool => state.2 = true ∨ ColdCache setup state.1)
-    (fun queried state hstate step hstep => by
-      rcases hstate with hraised | hcold
-      · exact Or.inl (flag_sticky false setup queried state hraised step hstep)
-      · cases hstepFlag : step.2.2 with
-        | true => exact Or.inl rfl
-        | false => exact Or.inr (coldCache_step setup queried state hcold step hstep hstepFlag))
-    computation state (Or.inr hcold) z hz
-  rcases key with hraised | hcold'
-  · rw [hflag] at hraised; cases hraised
-  · exact hcold'
 
 /-! ## A step that routes blindly and files -/
 
@@ -362,95 +208,6 @@ theorem probes_filed_of (setup : Setup) {σ : Type} (π : σ → St)
 
 /-! ## At the flag-free blind step -/
 
-/-- **The flag-free blind step, read at the verifier's oracles.** -/
-noncomputable def blindWorldImpl (setup : Setup) : QueryImpl OracleWorld (StateT St ProbComp) :=
-  QueryImpl.compose (ShareBlindFacts.blindStep setup) fun world =>
-    (query (spec := ShareSpec) (worldQuery world) : OracleComp ShareSpec (OracleWorld.Range world))
-
-theorem blindWorldImpl_run (setup : Setup) (world : OracleWorld.Domain) (state : St) :
-    ((blindWorldImpl setup) world).run state =
-      ((ShareBlindFacts.blindStep setup) (worldQuery world)).run state := by
-  simp only [blindWorldImpl, QueryImpl.apply_compose, HasQuery.instOfMonadLift_query]
-  erw [simulateQ_spec_query]
-  rfl
-
-theorem blindStep_verifyShare_run (setup : Setup) (pk : PublicKey) (forgery : Forgery)
-    (state : St) :
-    (simulateQ (ShareBlindFacts.blindStep setup) (verifyShare pk forgery)).run state =
-      (simulateQ (blindWorldImpl setup)
-        (Scheme.verify (m := OracleComp OracleWorld) pk forgery.message forgery.signature)).run
-          state := by
-  rw [verifyShare, ← QueryImpl.simulateQ_compose]
-  rfl
-
-/-- The flag-free blind step at a hash input. -/
-noncomputable def blindHashImpl (setup : Setup) : QueryImpl HashSpec (StateT St ProbComp) :=
-  fun input => blindWorldImpl setup (Sum.inr input)
-
-/-- The flag-free blind step at a coin. -/
-noncomputable def blindCoinImpl (setup : Setup) : QueryImpl unifSpec (StateT St ProbComp) :=
-  fun coin => blindWorldImpl setup (Sum.inl coin)
-
-theorem blindWorldImpl_eq_add (setup : Setup) :
-    blindWorldImpl setup = blindCoinImpl setup + blindHashImpl setup := by
-  funext queried
-  rcases queried with coin | input <;> rfl
-
-theorem blindHashImpl_run (setup : Setup) (input : Bytes) (state : St) :
-    (blindHashImpl setup input).run state = (do
-      let step ← route false setup state input
-      pure (step.1, { step.2 with record := state.record ++ [(input, state.served)] })) := by
-  show ((blindWorldImpl setup) (Sum.inr input)).run state = _
-  rw [blindWorldImpl_run]
-  rfl
-
-theorem routesBlind_blindHashImpl (setup : Setup) :
-    RoutesBlind setup id (blindHashImpl setup) := by
-  intro input state z hz
-  rw [blindHashImpl_run, mem_support_bind_iff] at hz
-  obtain ⟨routed, hrouted, hz⟩ := hz
-  rw [support_pure, Set.mem_singleton_iff] at hz
-  subst hz
-  exact ⟨routed, hrouted, rfl, rfl⟩
-
-/-- **At the flag-free blind step**: a world run of a lifted hash computation keeps the digests,
-and every probe a replay of the computation at the final visible cache consults is filed in the
-record at the starting digests. -/
-theorem blind_probes_filed (setup : Setup) {α : Type} (computation : OracleComp HashSpec α)
-    (p : St) (z : α × St)
-    (hz : z ∈ support ((simulateQ (blindWorldImpl setup)
-      (OracleComp.liftComp computation OracleWorld)).run p)) :
-    z.2.served = p.served ∧
-      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2) computation probe →
-        (probe, p.served) ∈ z.2.record := by
-  rw [blindWorldImpl_eq_add] at hz
-  exact probes_filed_of setup id (blindCoinImpl setup) (blindHashImpl setup)
-    (routesBlind_blindHashImpl setup) computation p z hz
-
-/-- **At the flag-free blind step's verifier**, run on the world. -/
-theorem blind_verify_probes_filed (setup : Setup) (pk : PublicKey) (request : Message)
-    (wire : Bytes) (p : St) (z : Bool × St)
-    (hz : z ∈ support ((simulateQ (blindWorldImpl setup)
-      (Scheme.verify (m := OracleComp OracleWorld) pk request wire)).run p)) :
-    z.2.served = p.served ∧
-      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2)
-          (Scheme.verify (m := OracleComp HashSpec) pk request wire) probe →
-        (probe, p.served) ∈ z.2.record := by
-  rw [VerificationBudget.verify_lift] at hz
-  exact blind_probes_filed setup _ p z hz
-
-/-- **At the flag-free blind step's verifier step** (`ShareGame.verifyShare`). -/
-theorem blind_verifyShare_probes_filed (setup : Setup) (pk : PublicKey) (forgery : Forgery)
-    (p : St) (z : Bool × St)
-    (hz : z ∈ support ((simulateQ (ShareBlindFacts.blindStep setup)
-      (verifyShare pk forgery)).run p)) :
-    z.2.served = p.served ∧
-      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2)
-          (Scheme.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature) probe →
-        (probe, p.served) ∈ z.2.record := by
-  rw [blindStep_verifyShare_run] at hz
-  exact blind_verify_probes_filed setup pk forgery.message forgery.signature p z hz
-
 /-! ## At the flagged blind handler, from any flag -/
 
 theorem worldImpl_run (lenient : Bool) (setup : Setup) (world : OracleWorld.Domain)
@@ -508,18 +265,6 @@ theorem probes_filed {α : Type} (setup : Setup) (computation : OracleComp HashS
   exact probes_filed_of setup Prod.fst (coinImpl setup) (hashImpl setup)
     (routesBlind_hashImpl setup) computation p z hz
 
-/-- **At the verifier, as a hash computation lifted to the world.** -/
-theorem verify_probes_filed_lift (setup : Setup) (pk : PublicKey) (request : Message)
-    (wire : Bytes) (p : St × Bool) (z : Bool × (St × Bool))
-    (hz : z ∈ support ((simulateQ (ShareBound.worldImpl false setup)
-      (OracleComp.liftComp (Scheme.verify (m := OracleComp HashSpec) pk request wire)
-        OracleWorld)).run p)) :
-    z.2.1.served = p.1.served ∧
-      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2.1)
-          (Scheme.verify (m := OracleComp HashSpec) pk request wire) probe →
-        (probe, p.1.served) ∈ z.2.1.record :=
-  probes_filed setup _ p z hz
-
 /-- **At the verifier, run on the world** as the share game runs it, from any flag. -/
 theorem verify_probes_filed_any (setup : Setup) (pk : PublicKey) (request : Message)
     (wire : Bytes) (p : St × Bool) (w : Bool × (St × Bool))
@@ -531,16 +276,5 @@ theorem verify_probes_filed_any (setup : Setup) (pk : PublicKey) (request : Mess
         (probe, p.1.served) ∈ w.2.1.record := by
   rw [VerificationBudget.verify_lift] at hw
   exact probes_filed setup _ p w hw
-
-/-- **At the share game's verifier step** (`ShareGame.verifyShare`), from any flag. -/
-theorem verifyShare_probes_filed (setup : Setup) (pk : PublicKey) (forgery : Forgery)
-    (p : St × Bool) (z : Bool × (St × Bool))
-    (hz : z ∈ support ((simulateQ (handler false setup) (verifyShare pk forgery)).run p)) :
-    z.2.1.served = p.1.served ∧
-      ∀ probe, CacheReplay.QueriesUnder (visible setup z.2.1)
-          (Scheme.verify (m := OracleComp HashSpec) pk forgery.message forgery.signature) probe →
-        (probe, p.1.served) ∈ z.2.1.record := by
-  rw [ShareBound.verifyShare_run] at hz
-  exact verify_probes_filed_any setup pk forgery.message forgery.signature p z hz
 
 end SlhDsaSecurity.ShareFiled

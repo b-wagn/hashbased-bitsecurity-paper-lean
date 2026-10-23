@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.CarrierThin
 import SlhDsaSecurity.Proof.SuffixCausal
-import SlhDsaSecurity.Proof.AnswerCarrierBound
+import SlhDsaSecurity.Proof.CarrierSplit
+import SlhDsaSecurity.Proof.CarrierCap
 
 /-!
 # The answer half at `127`: coverage with fired witnesses, charged at second order
@@ -35,8 +36,6 @@ open Security DigestTape TapeFactor NoticingTape RecorderView PhaseFusion FusedT
   CarrierThin
 
 /-! ## Units -/
-
-theorem unit128_eq : unit128 = 1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := rfl
 
 theorem unit128_sq_eq : unit128 * unit128 = 1 / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
   unfold unit128

@@ -106,17 +106,6 @@ noncomputable def fuseServing (outer : QueryImpl OracleWorld (StateT S ProbComp)
           (before request state.2.2)
         pure (step.1.1.1, (state.1 * step.1.1.2, step.1.2, after step.2))
 
-/-- **The bracket is the only difference.** With both maps the identity, the serving handler is
-the fused one — so nothing about the presentation depends on what is set, and a proof that the
-game is unchanged by the bookkeeping is a proof about `before` and `after` alone. -/
-theorem fuseServing_id (outer : QueryImpl OracleWorld (StateT S ProbComp))
-    (inner : QueryImpl (OracleWorld + SigningSpec)
-      (WriterT ω (StateT SigningLog (OracleComp OracleWorld)))) :
-    fuseServing outer inner (fun _ state => state) (fun state => state) = fuse outer inner := by
-  funext queried state
-  rcases queried with world | request <;> rfl
-
-
 /-! ## The phase, as the game writes it
 
 `run_fuse` read from the other side. The game's phase starts its writer at `1`, so the

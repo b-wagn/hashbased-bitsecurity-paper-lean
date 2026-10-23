@@ -40,10 +40,6 @@ open Security CanonicalGraph CacheReplay Extraction VerifierProbes SplitCharged 
 def secretKeyOf (x : Trace) : SecretKey :=
   ⟨x.1.1.1.1, x.1.1.1.2.1, keyOf x⟩
 
-theorem secretKeyOf_publicKey (x : Trace) : (secretKeyOf x).publicKey = keyOf x := rfl
-
-theorem keyOf_seed (x : Trace) : (keyOf x).seed = x.1.1.1.2.2 := rfl
-
 /-! ## What the log says
 
 `LogFaithful` says each entry of the signing log carries the answer the signer computes for its
@@ -115,14 +111,6 @@ theorem not_wins_of_replay {x : Trace} (hfaithful : LogFaithful x)
 With the replay case closed, a win on a good walk is one of two events, and the log's
 faithfulness is the only thing the split still asks of the game. -/
 
-/-- **The randomiser defect.** The cache holds the `PRF_msg` entry for a framing no signing
-request produced — an entry whose input carries `SK.prf` in the clear, so the run that made it
-guessed the secret seed. -/
-def RandomiserBad (x : Trace) : Prop :=
-  ∃ (message : Bytes) (answer : HashOutput),
-    x.2 (Hashing.randomizerInput x.1.1.1.2.1 (keyOf x).seed message) = some answer ∧
-      ¬ ∃ entry ∈ x.1.2.1.signed, entry.1.frame = some message
-
 attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedGame.tail
   WarmedGame.warmedRun Scheme.keygenInternal Scheme.verify Scheme.sign
   Security.signingOracle Security.countQueries
@@ -142,20 +130,5 @@ theorem cases_of_win_charged (adversary : Adversary)
   · exact Or.inl hanswer
   · exact Or.inr hinput
   · exact absurd hwin (not_wins_of_replay hfaithful hreplay)
-
-/-- **The same split, weakened with the randomiser defect as a third event.** The defect is
-never taken; the shape is the one the randomiser charge is stated against. -/
-theorem cases_of_win_charged_three (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support WarmedGame.graphWalk)
-    {result : (Outcome × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (WarmedGame.tail adversary walk))
-    (hfaithful : LogFaithful ((walk.1, result.1), result.2))
-    (hwin : Wins .strong result.1.1) :
-    AnswerBad ((walk.1, result.1), result.2) ∨ InputBad ((walk.1, result.1), result.2) ∨
-      RandomiserBad ((walk.1, result.1), result.2) := by
-  rcases cases_of_win_charged adversary hwalk hresult hfaithful hwin with hanswer | hinput
-  · exact Or.inl hanswer
-  · exact Or.inr (Or.inl hinput)
 
 end SlhDsaSecurity.ReplayGate

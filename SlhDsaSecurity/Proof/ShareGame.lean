@@ -240,17 +240,6 @@ def unfiled (record : List (Bytes × List HashOutput)) (served : List HashOutput
     (candidates : List Bytes) : List Bytes :=
   candidates.filter fun candidate => decide ((candidate, served) ∉ record)
 
-/-- **The unfiled candidates are counted by the candidates not already filed.** -/
-theorem length_unfiled (record : List (Bytes × List HashOutput)) (served : List HashOutput)
-    (candidates : List Bytes) :
-    (unfiled record served candidates).length =
-      candidates.countP fun candidate => decide ((candidate, served) ∉ record) :=
-  List.countP_eq_length_filter.symm
-
-theorem length_unfiled_le (record : List (Bytes × List HashOutput)) (served : List HashOutput)
-    (candidates : List Bytes) : (unfiled record served candidates).length ≤ candidates.length :=
-  List.length_filter_le _ _
-
 /-- A candidate is unfiled exactly when it is claimed and not already filed. -/
 theorem mem_unfiled {record : List (Bytes × List HashOutput)} {served : List HashOutput}
     {candidates : List Bytes} {candidate : Bytes} :

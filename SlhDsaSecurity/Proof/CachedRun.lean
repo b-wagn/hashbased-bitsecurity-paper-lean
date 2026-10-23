@@ -59,15 +59,4 @@ theorem run_eq_pure_of_cached {α : Type} (computation : OracleComp HashSpec α)
           = value from by simp [replay, hvalue]]
       rfl
 
-/-- The same, read as the two facts it is used for: the value is the replay, and the cache is
-unchanged. -/
-theorem eq_of_mem_support_of_cached {α : Type} (computation : OracleComp HashSpec α)
-    (cache : QueryCache HashSpec) (result : α × QueryCache HashSpec)
-    (hcached : ∀ probe, QueriesUnder cache computation probe → cache probe ≠ none)
-    (hmem : result ∈ support ((simulateQ randomOracle computation).run cache)) :
-    result.1 = (simulateQ (replay cache) computation : Id α) ∧ result.2 = cache := by
-  rw [run_eq_pure_of_cached computation cache hcached, support_pure,
-    Set.mem_singleton_iff] at hmem
-  exact ⟨congrArg Prod.fst hmem, congrArg Prod.snd hmem⟩
-
 end SlhDsaSecurity.CachedRun

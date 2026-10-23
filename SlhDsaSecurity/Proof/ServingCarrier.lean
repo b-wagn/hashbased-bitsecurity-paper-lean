@@ -55,50 +55,12 @@ export HandlerCarrier (Served cacheOf Grows setFraming clearFraming file cacheAn
   grows_of_framing grows_setFraming grows_clearFraming grows_file grows_cacheAnswer
   FilesLeft not_filesLeft_of_clear framed_of_filesLeft)
 
-/-- The positions a carrier's served requests disclose. -/
-noncomputable abbrev disclosedAt (state : Carrier) (key : ForsKey) :
-    Finset (Fin (forsTrees * 2 ^ forsHeight)) :=
-  ServedDisclosure.servedAt Served cacheOf state key
-
-/-- **Disclosure only grows.** This is `ServedDisclosure.servedAt_mono` at the carrier. -/
-theorem disclosedAt_mono {left right : Carrier} (hgrow : Grows left right) (key : ForsKey) :
-    disclosedAt left key ⊆ disclosedAt right key :=
-  ServedDisclosure.servedAt_mono Served cacheOf left right hgrow.2 hgrow.1 key
-
-/-- **The framing is invisible to disclosure.** It decides what the recorder files, never what
-is disclosed, so the charge that stalls on the disclosed set is untouched by it. -/
-theorem servedAt_setFraming (state : Carrier) (framed : Bytes) (key : ForsKey) :
-    disclosedAt (setFraming state framed) key = disclosedAt state key := rfl
-
-theorem servedAt_clearFraming (state : Carrier) (key : ForsKey) :
-    disclosedAt (clearFraming state) key = disclosedAt state key := rfl
-
 /-! ## The ordering, by construction
 
 The step that draws a digest files its input and caches its answer together. From then on the
 positions that digest selects are disclosed, and nothing later can take them away. This is what
 `RedrawCell.signInternal_congr`'s `hsigned` was asking for and what the cache proxy was standing
 in for. -/
-
-/-- **A filed digest discloses its own positions, from the step that drew it.** -/
-theorem mem_disclosedAt_file_cacheAnswer (state : Carrier) (input : Bytes)
-    (answer : HashOutput) (hfresh : state.cache input = none)
-    (tree : Fin forsTrees) :
-    GraphStakes.forsIndex (MessageDigest.forsIndices answer) tree ∈
-      disclosedAt (file (cacheAnswer state input answer) input)
-        (SplitCharged.forsKeyOfDigest answer) := by
-  classical
-  refine (ServedDisclosure.mem_servedAt Served cacheOf _ _ _).mpr ⟨input, answer, ?_, ?_, rfl,
-    tree, rfl⟩
-  · exact Multiset.mem_cons_self _ _
-  · show (state.cache.cacheQuery input answer) input = some answer
-    exact QueryCache.cacheQuery_self state.cache input answer
-
-/-- **And it stays disclosed.** -/
-theorem mem_disclosedAt_of_grows {left right : Carrier} (hgrow : Grows left right)
-    (key : ForsKey) {index : Fin (forsTrees * 2 ^ forsHeight)}
-    (hindex : index ∈ disclosedAt left key) : index ∈ disclosedAt right key :=
-  disclosedAt_mono hgrow key hindex
 
 /-! ## The carrier and the trace must agree
 
@@ -120,20 +82,5 @@ def logServed (sk : SecretKey) (cache : QueryCache HashSpec) (signed : SigningLo
 /-- **What a run must leave true**: the carrier served exactly what the log names. -/
 def AgreesWithLog (sk : SecretKey) (signed : SigningLog) (state : Carrier) : Prop :=
   ∀ input : Bytes, Served state input ↔ logServed sk state.cache signed input
-
-/-- **Under agreement the two readings of disclosure are one `Finset`.** This is what lets the
-entries and the event be instantiated at the same object. -/
-theorem disclosedAt_eq_logDisclosed (sk : SecretKey) (signed : SigningLog) (state : Carrier)
-    (hagree : AgreesWithLog sk signed state) (key : ForsKey) :
-    disclosedAt state key =
-      ServedDisclosure.servedAt (fun cache => logServed sk cache signed) id state.cache key := by
-  classical
-  refine Finset.ext fun index => ?_
-  rw [ServedDisclosure.mem_servedAt, ServedDisclosure.mem_servedAt]
-  constructor
-  · rintro ⟨input, answer, hserved, hcache, hkey, tree, htree⟩
-    exact ⟨input, answer, (hagree input).mp hserved, hcache, hkey, tree, htree⟩
-  · rintro ⟨input, answer, hlog, hcache, hkey, tree, htree⟩
-    exact ⟨input, answer, (hagree input).mpr hlog, hcache, hkey, tree, htree⟩
 
 end SlhDsaSecurity.ServingCarrier

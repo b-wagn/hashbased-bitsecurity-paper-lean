@@ -156,21 +156,6 @@ theorem mem_served_of_mem_leftRecord {α : Type} (rightKeep : Bytes → State �
 
 Both halves of the blindness, at the carrier's own test rather than at the cache. -/
 
-/-- **Nothing the adversary asks is filed**, because its queries run with the flag down. -/
-theorem not_disclosingKeep_of_clear (state : State) (hclear : state.framing = none)
-    (input : Bytes) : ¬ disclosingKeep pk input state :=
-  not_filesLeft_of_clear pk state hclear input
-
-/-- **The signer's own randomiser query is not filed either**, because the flag is matched
-against the request in flight and `PRF_msg` at that frame is a message input at a shorter
-message. See the warning at `HandlerCarrier.FilesLeft`: a test that only asked whether some
-request was in flight would take this query, and the disclosing cap would be lost past the
-coupling's mean rather than past its tail. -/
-theorem not_disclosingKeep_randomizerInput (state : State) (prfSeed : Digest) (framed : Bytes)
-    (hframing : state.framing = some framed) :
-    ¬ disclosingKeep pk (Hashing.randomizerInput prfSeed pk.seed framed) state :=
-  not_filesLeft_randomizerInput pk state prfSeed framed hframing
-
 /-! ## What the target recording cannot hold
 
 `LateProvenance.SignerDigestFree` says that no target-recorded input is a served request's own
@@ -183,33 +168,5 @@ At the flag there is no ordering. A target-recorded entry comes with the state i
 from, and at that state the right test held, hence the left test did not; and the left test is
 read off that state's own flag. So the entry cannot be a digest query made under a matching
 flag, for the state's reason rather than for the run's. -/
-
-open scoped Classical in
-/-- **A target-recorded input is not the digest input of whatever request was in flight when it
-was queried.** The whole content is the flag at that state: no ordering to establish, and no
-entry of the cache consulted. This is `SignerDigestFree` with the step it is really about named,
-and it is the form a bracketed run discharges. -/
-theorem not_inflight_digest_of_mem_rightRecord {α : Type} (rightKeep : Bytes → State → Prop)
-    (hexclusive : ∀ (input : Bytes) (view : State),
-      rightKeep input view → ¬ disclosingKeep pk input view)
-    (computation : OracleComp OracleWorld α) (state : StateOf State)
-    (result : α × StateOf State)
-    (hmem : result ∈ support ((simulateQ
-      (@recorderOf State (servingView pk) (disclosingKeep pk) rightKeep) computation).run state))
-    (hstart : state.2.2 = []) :
-    ∀ entry ∈ result.2.2.2, ∃ mid : State,
-      (∀ (probe : Bytes) (value : HashOutput),
-        cacheOf mid probe = some value → cacheOf result.2.1 probe = some value) ∧
-        cacheOf mid entry.1 = none ∧
-          ∀ framed : Bytes, mid.framing = some framed →
-            ∀ randomizer : Digest, entry.1 ≠ Hashing.messageInput randomizer pk framed := by
-  classical
-  intro entry hentry
-  rcases @right_recordOf_witness State (servingView pk) α (disclosingKeep pk) rightKeep
-    computation state result hmem entry hentry with hold | ⟨mid, hpersist, hfresh, hright⟩
-  · rw [hstart] at hold
-    simp at hold
-  · refine ⟨mid, hpersist, hfresh, fun framed hframing randomizer hshape => ?_⟩
-    exact hexclusive entry.1 mid hright ⟨framed, hframing, randomizer, hshape⟩
 
 end SlhDsaSecurity.CarriedWitness

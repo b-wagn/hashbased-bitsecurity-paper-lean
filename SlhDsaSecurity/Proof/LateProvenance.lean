@@ -222,49 +222,6 @@ lemmas speak of that occasion — but neither hands back an object the other can
 against. That is the same discipline `ProbeContainment.claimsOf_carrier` keeps on the input
 half: entries and the state they are read at, instantiated at one object. -/
 
-/-- The secret key the walk's seeds generate, read from the run's own cache. -/
-noncomputable def secretKeyOf (pair : LateProbes.SplitPair) : SecretKey :=
-  (@Scheme.keygenInternal Id Id.instMonad (replayQuery pair.2.2.1)
-    pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2).1
-
-/-- **The branch provenance leaves**: no target-recorded input is a served request's own digest
-input.
-
-**The guard is not decoration, and its absence made the earlier version false.**
-`HonestProbes.replayRandomizer` reads the randomiser off the final cache through
-`CacheReplay.replay`, which answers a miss with `default`. Without the guard the statement
-therefore says something about `messageInput (truncate default) pk m` for every `m`, including
-messages never signed — a byte string the adversary can compute and query, and
-`ObligationShapes.targetKeep_default` shows the target test takes it. A one-query adversary
-refuted it. The guard says the final cache really does hold the request's `PRF_msg` answer, so
-the replayed randomiser is the signer's own and not a fabricated constant; it is supplied where
-this is used, from `PhaseProvenance.SignerMade`'s second conjunct, which carries exactly that
-from where the sub-run was in hand.
-
-What remains is true for the reason the old docstring gave — such a query is signer-randomised
-when it is made, so the left test takes it — and what is still missing to prove it is named in
-the section note above: the cache in force at a step inside a sub-run. Guarded, its only
-counterexample is the ordering defect itself, which is what `LateProbes.Ordering` charges.
-
-**The escape from that, now proved twice, is worth stating as a rule: when two lemmas cannot be
-matched at a step, look for one that quantifies over the states instead of naming one.**
-`SplitPrefix.right_record_suffix` hands back, for each entry a run files, *some* cache between
-the run's start and its end; applied one bind into the signer — after the query that installs
-the randomiser — it settles every later entry without naming the step any of them was filed at,
-which is `SignerRightRecord.signInternal_right_record`. The same move is what
-`CacheProvenance.queriesUnder_of_fresh_subset` makes when it quantifies the later cache rather
-than fixing it at the sub-run's own, and what `ServedAgreement.servedAgree_run` makes when it
-asks for the carrier's cache to be *contained* in the run's rather than equal to it at a named
-moment. Matching states is the thing to avoid, not the thing to do carefully. -/
-def SignerDigestFree (adversary : Adversary) : Prop :=
-  ∀ pair ∈ support (LateProbes.pairedOf FusedCoverage.fusedTail adversary),
-    ∀ entry ∈ pair.2.2.2.2, ∀ framed : Bytes,
-      pair.2.2.1 (Hashing.randomizerInput (secretKeyOf pair).prf
-          (secretKeyOf pair).publicKey.seed framed) ≠ none →
-        entry.1 ≠ Hashing.messageInput
-          (HonestProbes.replayRandomizer pair.2.2.1 (secretKeyOf pair) framed)
-          (secretKeyOf pair).publicKey framed
-
 set_option maxHeartbeats 1000000 in
 /-- **Every target-recorded input is a query the record holds**, with no hypothesis.
 
@@ -384,15 +341,5 @@ theorem hrecord (adversary : Adversary) :
     rw [show result.1.1.2 = (Multiplicative.toAdd phase.1.2).2 + verified.2.2 from by
       rw [houtcome]]
     exact Multiset.mem_add.mpr (Or.inr hrec)
-
-/-- **The same, as the hypothesis-carrying form the obligations still name.** The hypothesis is
-ignored: `hrecord` proves the conclusion outright. Kept so that the consumer switch is a
-deliberate one-line change rather than something buried here. -/
-theorem hrecord_of_signerDigestFree (adversary : Adversary)
-    (_hsigner : SignerDigestFree adversary) :
-    ∀ pair ∈ support (LateProbes.pairedOf FusedCoverage.fusedTail adversary),
-      Target.GoodWalk pair.1 → ∀ entry ∈ pair.2.2.2.2,
-        entry.1 ∈ SharedJoin.recordOf (LateProbes.forgetRecordings pair) :=
-  hrecord adversary
 
 end SlhDsaSecurity.LateProvenance

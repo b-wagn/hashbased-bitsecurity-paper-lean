@@ -150,17 +150,6 @@ theorem available_of_alwaysAvailable (hrevealed : ∀ key chain, revealed key ch
     | forsTree key height index => exact True.intro
     | forsRoots key => exact True.intro
 
-/-- **A sensitive node has exactly one child.** So its canonical input puts exactly one cell at
-stake, and a query matching it costs a single `2 ^ -128`. -/
-theorem singleton_children_of_sensitive (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
-    {parent : StructuralNode} (hsensitive : Sensitive revealed signed parent) :
-    ∃ child : Node, parent.children = [child] := by
-  rcases children_alwaysAvailable_or_singleton parent with halways | hsingle
-  · obtain ⟨child, hchild, hunavailable⟩ := hsensitive
-    exact absurd (available_of_alwaysAvailable revealed signed hrevealed (halways child hchild))
-      hunavailable
-  · exact hsingle
-
 /-! ## What a hypertree fault leaves unavailable
 
 The reduction of a hypertree fault ends with the forgery holding the chain value at some
@@ -185,14 +174,6 @@ theorem not_available_wotsPosition (key : WotsKey) (chain : Fin chains) (positio
   · rename_i hzero
     show ¬ revealed key chain ≤ position.val - 1 + 1
     omega
-
-/-- So the node whose cell it is, is sensitive — provided it is reached as a child, which is
-how the chain's own canonical inputs present it. -/
-theorem sensitive_of_child_wotsPosition (key : WotsKey) (chain : Fin chains) (position : Fin w)
-    (hbelow : position.val < revealed key chain) {parent : StructuralNode}
-    (hchild : Node.structural (wotsPosition key chain position) ∈ parent.children) :
-    Sensitive revealed signed parent :=
-  ⟨_, hchild, not_available_wotsPosition revealed signed key chain position hbelow⟩
 
 /-! ## Availability is closed under the structure
 
@@ -237,16 +218,5 @@ theorem available_of_children_available {parent : StructuralNode}
       : Available revealed signed .secretSeed).elim
   | forsTree key height index => exact True.intro
   | forsRoots key => exact True.intro
-
-/-- The contrapositive, which is the form the charge consumes: a protected cell is reached
-only through a sensitive query. -/
-theorem sensitive_of_not_available {parent : StructuralNode}
-    (hunavailable : ¬ Available revealed signed (.structural parent)) :
-    Sensitive revealed signed parent := by
-  by_contra hsensitive
-  rw [Sensitive] at hsensitive
-  push_neg at hsensitive
-  exact hunavailable (available_of_children_available revealed signed
-    fun child hchild => hsensitive child hchild)
 
 end SlhDsaSecurity.CanonicalGraph

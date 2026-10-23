@@ -57,38 +57,4 @@ theorem fresh_coverage (revealed : Disclosures) :
       Fintype.card_fin, totalHeight, forsHeight, forsTrees]
   rw [hcard]
 
-/-- The same exact count for the standard parser applied to a fresh shared-oracle answer.
-This does not assert freshness for an adaptively selected or previously queried input. -/
-theorem fresh_digest_coverage (revealed : Disclosures) :
-    Pr[fun output => Covered revealed (MessageDigest.parse output) |
-        ($ᵗ HashOutput : ProbComp HashOutput)] =
-      ((∑ index : Instance, ∏ tree : Tree, (revealed index tree).card : Nat) : ℝ≥0∞) /
-        ((2 ^ 231 : Nat) : ℝ≥0∞) := by
-  rw [show (fun output => Covered revealed (MessageDigest.parse output)) =
-    Covered revealed ∘ MessageDigest.parse from rfl, ← probEvent_map]
-  rw [probEvent_congr' (fun _ _ => Iff.rfl) MessageDigest.evalDist_parse_uniform]
-  exact fresh_coverage revealed
-
-/-- A deterministic sufficient condition on all disclosures. Each tree reveals at most
-one new leaf per use of its FORS instance. The load bound itself is not assumed as security. -/
-theorem fresh_coverage_le_of_loads (revealed : Disclosures) (loads : Instance → Nat)
-    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
-    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 103) :
-    Pr[Covered revealed | ($ᵗ View : ProbComp View)] ≤
-      1 / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  have hcount : (∑ index : Instance, ∏ tree : Tree, (revealed index tree).card) ≤ 2 ^ 103 := by
-    apply le_trans (Finset.sum_le_sum fun index _ => ?_) hmoment
-    calc
-      _ ≤ ∏ _ : Tree, loads index := Finset.prod_le_prod' (fun tree _ => hload index tree)
-      _ = loads index ^ 14 := by
-        rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
-        rfl
-  rw [fresh_coverage]
-  calc
-    _ ≤ ((2 ^ 103 : Nat) : ℝ≥0∞) / ((2 ^ 231 : Nat) : ℝ≥0∞) := by
-      exact ENNReal.div_le_div_right (Nat.cast_le.mpr hcount) _
-    _ = _ := by
-      apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
-      norm_num
-
 end SlhDsaSecurity.ForsCoverage

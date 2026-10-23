@@ -35,52 +35,12 @@ noncomputable def capComp (weight : ι → Nat) (fallback : α) :
         liftM (spec.query t) >>= fun answer => rest answer (remaining - weight t)
       else pure fallback) oa limit
 
-theorem capComp_pure (weight : ι → Nat) (fallback : α) (limit : Nat) (value : α) :
-    capComp weight fallback limit (pure value : OracleComp spec α) = pure value := rfl
-
-theorem capComp_query_bind (weight : ι → Nat) (fallback : α) (limit : Nat) (t : ι)
-    (next : spec.Range t → OracleComp spec α) :
-    capComp weight fallback limit (liftM (spec.query t) >>= next) =
-      if weight t ≤ limit then
-        liftM (spec.query t) >>= fun answer => capComp weight fallback (limit - weight t)
-          (next answer)
-      else pure fallback := rfl
-
 variable {S : Type}
 
 /-- A handler whose state reports the weighted cost, query by query. -/
 def ReportsCost (impl : QueryImpl spec (StateT S ProbComp)) (weight : ι → Nat)
     (cost : S → Nat) : Prop :=
   ∀ (t : ι) (state : S), ∀ z ∈ support ((impl t).run state), cost z.2 = cost state + weight t
-
-/-- **The capped run's weighted cost is at most the limit, at any handler.** -/
-theorem cost_capComp_le (impl : QueryImpl spec (StateT S ProbComp)) (weight : ι → Nat)
-    (cost : S → Nat) (hcost : ReportsCost impl weight cost) (fallback : α) :
-    ∀ (oa : OracleComp spec α) (limit : Nat) (state : S),
-      ∀ z ∈ support ((simulateQ impl (capComp weight fallback limit oa)).run state),
-        cost z.2 ≤ cost state + limit := by
-  intro oa
-  induction oa using OracleComp.inductionOn with
-  | pure value =>
-    intro limit state z hz
-    rw [capComp_pure, simulateQ_pure, StateT.run_pure, support_pure,
-      Set.mem_singleton_iff] at hz
-    rw [hz]
-    dsimp only
-    omega
-  | query_bind t next ih =>
-    intro limit state z hz
-    rw [capComp_query_bind] at hz
-    split_ifs at hz with hweight
-    · rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
-      obtain ⟨step, hstep, hrest⟩ := hz
-      have := ih step.1 (limit - weight t) step.2 z hrest
-      have hstepCost := hcost t state step hstep
-      omega
-    · rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-      rw [hz]
-      dsimp only
-      omega
 
 /-- The cost only grows along a run. -/
 theorem cost_run_ge (impl : QueryImpl spec (StateT S ProbComp)) (weight : ι → Nat)
@@ -135,40 +95,5 @@ theorem evalDist_bind_congr_support {β γ : Type} (oa : ProbComp β) (f g : β 
   · rw [show Pr[= x | f a] = Pr[= x | g a] from by
       rw [probOutput_def, probOutput_def, h a hmem]]
   · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
-
-/-- **Where the uncapped run stays within the limit, capping changes nothing.** -/
-theorem evalDist_capComp (impl : QueryImpl spec (StateT S ProbComp)) (weight : ι → Nat)
-    (cost : S → Nat) (hcost : ReportsCost impl weight cost)
-    (hfail : ∀ (t : ι) (state : S), Pr[⊥ | (impl t).run state] = 0) (fallback : α) :
-    ∀ (oa : OracleComp spec α) (limit : Nat) (state : S),
-      (∀ z ∈ support ((simulateQ impl oa).run state), cost z.2 ≤ cost state + limit) →
-        𝒟[(simulateQ impl (capComp weight fallback limit oa)).run state] =
-          𝒟[(simulateQ impl oa).run state] := by
-  intro oa
-  induction oa using OracleComp.inductionOn with
-  | pure value => intro limit state _; rfl
-  | query_bind t next ih =>
-    intro limit state hbound
-    rw [capComp_query_bind]
-    split_ifs with hweight
-    · simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-      refine evalDist_bind_congr_support _ _ _ fun step hstep => ?_
-      · refine ih step.1 (limit - weight t) step.2 fun z hz => ?_
-        have hwhole : z ∈ support ((simulateQ impl (liftM (spec.query t) >>= next)).run state) := by
-          rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
-          exact ⟨step, hstep, hz⟩
-        have := hbound z hwhole
-        have hstepCost := hcost t state step hstep
-        omega
-    · exfalso
-      obtain ⟨step, hstep⟩ := exists_mem_support _ (hfail t state)
-      obtain ⟨z, hz⟩ := exists_mem_support _ (run_neverFails impl hfail (next step.1) step.2)
-      have hwhole : z ∈ support ((simulateQ impl (liftM (spec.query t) >>= next)).run state) := by
-        rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
-        exact ⟨step, hstep, hz⟩
-      have h1 := hbound z hwhole
-      have h2 := cost_run_ge impl weight cost hcost (next step.1) step.2 z hz
-      have h3 := hcost t state step hstep
-      omega
 
 end SlhDsaSecurity.CapComp

@@ -86,43 +86,4 @@ theorem loads_probability {requests : Nat} (event : (Instance → Nat) → Prop)
     Measure.map_apply Measurable.of_discrete MeasurableSet.of_discrete]
   rfl
 
-/-- The bad-load bound now applies directly to VCVio's independent full-view tape. -/
-theorem bad_load_probability (requests : Nat) (hrequests : requests ≤ 5 * 2 ^ 62) :
-    Pr[fun tape => 2 ^ 103 < ∑ i, loads tape i ^ 14 |
-      ($ᵗ Tape requests : ProbComp (Tape requests))] ≤ (1 : ℝ≥0∞) / 2 ^ 141 := by
-  rw [loads_probability (fun counts => 2 ^ 103 < ∑ i, counts i ^ 14)]
-  exact ForsConcentration.uniform_load_tail_extended_of_le requests hrequests
-
-def disclosuresExcept {requests : Nat} (excluded : Fin requests) (tape : Tape requests) :
-    ForsCoverage.Disclosures :=
-  fun i tree => (Finset.univ.filter (fun j => j ≠ excluded ∧ (tape j).1 = i)).image
-    (fun j => (tape j).2 tree)
-
-theorem disclosuresExcept_subset {requests : Nat} (excluded : Fin requests)
-    (tape : Tape requests) (i : Instance) (tree : Tree) :
-    disclosuresExcept excluded tape i tree ⊆ disclosures tape i tree := by
-  apply Finset.image_subset_image
-  intro j hj
-  simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hj ⊢
-  exact hj.2
-
-theorem disclosuresExcept_card_le_loads {requests : Nat} (excluded : Fin requests)
-    (tape : Tape requests) (i : Instance) (tree : Tree) :
-    (disclosuresExcept excluded tape i tree).card ≤ loads tape i :=
-  (Finset.card_le_card (disclosuresExcept_subset excluded tape i tree)).trans
-    (disclosures_card_le_loads tape i tree)
-
-theorem disclosuresExcept_update_self {requests : Nat} (excluded : Fin requests)
-    (tape : Tape requests) (value : View) :
-    disclosuresExcept excluded (Function.update tape excluded value) =
-      disclosuresExcept excluded tape := by
-  funext i tree
-  ext leaf
-  simp only [disclosuresExcept, Finset.mem_image, Finset.mem_filter, Finset.mem_univ, true_and]
-  constructor <;> rintro ⟨j, ⟨hne, hi⟩, hleaf⟩ <;> refine ⟨j, ⟨hne, ?_⟩, ?_⟩
-  · simpa only [Function.update_of_ne hne] using hi
-  · simpa only [Function.update_of_ne hne] using hleaf
-  · simpa only [Function.update_of_ne hne] using hi
-  · simpa only [Function.update_of_ne hne] using hleaf
-
 end SlhDsaSecurity.ForsDisclosureTape

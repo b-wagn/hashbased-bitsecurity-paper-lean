@@ -314,9 +314,6 @@ theorem faithful_verifierCost : Faithful verifierCost := fun queried => by
   rw [verifierCost, AdversaryQueries.work_single_verification]
   exact card_recordOf queried
 
-theorem card_toAdd_one : Multiset.card (Multiplicative.toAdd (1 : Multiplicative Tally)).2 = 0 :=
-  rfl
-
 theorem run_writer_bind {ω : Type} [Monoid ω] {α β : Type}
     (x : WriterT ω (StateT SigningLog (OracleComp OracleWorld)) α)
     (next : α → WriterT ω (StateT SigningLog (OracleComp OracleWorld)) β) (log : SigningLog) :

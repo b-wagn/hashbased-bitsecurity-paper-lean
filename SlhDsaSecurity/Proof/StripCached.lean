@@ -99,31 +99,4 @@ theorem run_simulateQ_strip {α : Type} (computation : OracleComp HashSpec α)
         · rw [QueryCache.cacheQuery_of_ne _ _ heq]
           exact hsub key value hkey
 
-/-- **The stripped computation asks only what the cache cannot answer.** -/
-theorem queriesUnder_strip_none {α : Type} (computation : OracleComp HashSpec α)
-    (cache current : QueryCache HashSpec) (probe : Bytes)
-    (hprobe : QueriesUnder current (simulateQ (stripImpl cache) computation) probe) :
-    cache probe = none := by
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    rw [simulateQ_pure] at hprobe
-    exact absurd hprobe (by rintro ⟨⟩)
-  | query_bind input next ih =>
-    have hstripped : simulateQ (stripImpl cache)
-        (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) =
-        stripImpl cache input := by simp
-    rw [simulateQ_bind, hstripped] at hprobe
-    cases hcache : cache input with
-    | some value =>
-      rw [show stripImpl cache input = (pure value : OracleComp HashSpec HashOutput) from by
-          simp [stripImpl, hcache], pure_bind] at hprobe
-      exact ih value hprobe
-    | none =>
-      rw [show stripImpl cache input =
-          (liftM (OracleSpec.query input) : OracleComp HashSpec HashOutput) from by
-        simp [stripImpl, hcache]] at hprobe
-      rcases HonestProbes.queriesUnder_query_bind_cases hprobe with rfl | htail
-      · exact hcache
-      · exact ih _ htail
-
 end SlhDsaSecurity.StripCached

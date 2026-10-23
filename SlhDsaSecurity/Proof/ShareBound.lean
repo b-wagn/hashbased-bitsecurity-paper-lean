@@ -48,66 +48,6 @@ theorem verifyShare_run (lenient : Bool) (setup : Setup) (pk : PublicKey) (forge
   rw [verifyShare, ← QueryImpl.simulateQ_compose]
   rfl
 
-theorem length_world_step (lenient : Bool) (setup : Setup) (queried : OracleWorld.Domain)
-    (p : St × Bool) (z : OracleWorld.Range queried × (St × Bool))
-    (hz : z ∈ support (((worldImpl lenient setup) queried).run p)) :
-    z.2.1.record.length = p.1.record.length + if VerifyBound.IsHash queried then 1 else 0 := by
-  rcases queried with coin | input
-  · simp only [worldImpl, QueryImpl.apply_compose, worldQuery] at hz
-    have := length_step lenient setup (Sum.inl (Sum.inl (Sum.inl (Sum.inl coin)))) p z
-      (by simp at hz; exact hz)
-    simpa [added, VerifyBound.IsHash] using this
-  · simp only [worldImpl, QueryImpl.apply_compose, worldQuery] at hz
-    have := length_step lenient setup (Sum.inl (Sum.inl (Sum.inl (Sum.inr input)))) p z
-      (by simp at hz; exact hz)
-    simpa [added, VerifyBound.IsHash] using this
-
-/-- **A run with at most `n` hash calls files at most `n` entries.** -/
-theorem length_world_run (lenient : Bool) (setup : Setup) {β : Type}
-    (oa : OracleComp OracleWorld β) :
-    ∀ (n : Nat), IsQueryBoundP oa VerifyBound.IsHash n → ∀ (p : St × Bool),
-      ∀ z ∈ support ((simulateQ (worldImpl lenient setup) oa).run p),
-        z.2.1.record.length ≤ p.1.record.length + n := by
-  induction oa using OracleComp.inductionOn with
-  | pure value =>
-    intro n _ p z hz
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-    rw [hz]
-    exact Nat.le_add_right _ _
-  | query_bind t next ih =>
-    intro n hbound p z hz
-    rw [isQueryBoundP_def, isQueryBound_query_bind_iff] at hbound
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hz
-    obtain ⟨step, hstep, hrest⟩ := hz
-    have hfirst := length_world_step lenient setup t p step hstep
-    have hrestBound := ih step.1 _ (hbound.2 step.1) step.2 z hrest
-    by_cases hhash : VerifyBound.IsHash t
-    · have hpos : 0 < n := hbound.1.resolve_left (not_not.mpr hhash)
-      rw [if_pos hhash] at hfirst hrestBound
-      omega
-    · rw [if_neg hhash] at hfirst hrestBound
-      omega
-
-/-- The claims file at most `259` entries. -/
-theorem length_claimsOf_le (setup : Setup) (state : St) (forgery : Forgery) :
-    (claimsOf setup state forgery).length ≤ 259 := by
-  unfold claimsOf
-  split
-  · rw [@ClaimedProbes.length_claimedCandidatesOf (CacheReplay.replayQuery (visible setup state))]
-  · simp
-
-/-- **The claims step files at most `259` entries**: the candidates not already filed, and none
-once the flag is up. -/
-theorem length_claims_le (lenient : Bool) (setup : Setup) (forgery : Forgery) (p : St × Bool)
-    (z : Unit × (St × Bool))
-    (hz : z ∈ support (((handler lenient setup) (Sum.inr forgery)).run p)) :
-    z.2.1.record.length ≤ p.1.record.length + 259 := by
-  have hstep := length_step lenient setup (Sum.inr forgery) p z hz
-  have hclaims := length_claimsOf_le setup p.1 forgery
-  have hunfiled := length_unfiled_le p.1.record p.1.served (claimsOf setup p.1 forgery)
-  simp only [added] at hstep
-  split_ifs at hstep <;> omega
-
 /-- A world query, at a handler that is the game's away from the claims. -/
 theorem simulateQ_inl_query (impl : QueryImpl ShareSpec (StateT (St × Bool) ProbComp))
     (lenient : Bool) (setup : Setup)
@@ -143,66 +83,6 @@ theorem compose_world_of (impl : QueryImpl ShareSpec (StateT (St × Bool) ProbCo
         OracleComp ShareSpec (OracleWorld.Range world))) = worldImpl lenient setup := by
   funext world
   exact simulateQ_inl_query impl lenient setup hinl _
-
-set_option maxHeartbeats 1000000 in
-/-- **The record never holds more than `limit + 3929 + 259` entries**, at any handler that is
-the game's away from the claims and whose claims file at most `259` entries. -/
-theorem length_shareComp_of (impl : QueryImpl ShareSpec (StateT (St × Bool) ProbComp))
-    (lenient : Bool) (setup : Setup)
-    (hinl : ∀ queried, impl (Sum.inl queried) = handler lenient setup (Sum.inl queried))
-    (hclaims : ∀ (forgery : Forgery) (p : St × Bool) (z : Unit × (St × Bool)),
-      z ∈ support ((impl (Sum.inr forgery)).run p) →
-        z.2.1.record.length ≤ p.1.record.length + 259)
-    (adversary : Adversary) (limit : Nat) (pk : PublicKey) (flag : Bool) :
-    ∀ z ∈ support ((simulateQ impl (shareComp adversary limit pk)).run (St.start, flag)),
-      z.2.1.record.length ≤ limit + 3929 + 259 := by
-  intro z hz
-  unfold shareComp at hz
-  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
-  obtain ⟨afterAdversary, hadversary, hz⟩ := hz
-  rw [← QueryImpl.simulateQ_compose, compose_splitter_of impl lenient setup hinl] at hadversary
-  have hcap := CapComp.cost_capComp_le (advImpl lenient setup) weight
-    (fun state : St × Bool => state.1.record.length) (reportsCost lenient setup)
-    fallbackForgery (adversary.main pk) limit (St.start, flag) afterAdversary hadversary
-  simp only [St.start, List.length_nil, Nat.zero_add] at hcap
-  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
-  obtain ⟨afterVerify, hverify, hz⟩ := hz
-  rw [verifyShare, ← QueryImpl.simulateQ_compose, compose_world_of impl lenient setup hinl]
-    at hverify
-  have hverifyBound := length_world_run lenient setup _ VerifyBound.verifyLimit
-    (VerifyBound.isQueryBoundP_verify pk afterAdversary.1.message afterAdversary.1.signature)
-    afterAdversary.2 afterVerify hverify
-  rw [VerifyBound.verifyLimit_eq] at hverifyBound
-  rw [simulateQ_bind, StateT.run_bind, mem_support_bind_iff] at hz
-  obtain ⟨afterClaims, hclaimsRun, hz⟩ := hz
-  have hclaimsStep := hclaims afterAdversary.1 afterVerify.2 afterClaims
-    (by simp at hclaimsRun; exact hclaimsRun)
-  rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-  rw [hz]
-  dsimp only
-  omega
-
-/-- **The record never holds more than `limit + 3929 + 259` entries.** -/
-theorem length_shareComp (lenient : Bool) (setup : Setup) (adversary : Adversary) (limit : Nat)
-    (pk : PublicKey) (flag : Bool) :
-    ∀ z ∈ support ((simulateQ (handler lenient setup) (shareComp adversary limit pk)).run
-        (St.start, flag)),
-      z.2.1.record.length ≤ limit + 3929 + 259 :=
-  length_shareComp_of (handler lenient setup) lenient setup (fun _ => rfl)
-    (length_claims_le lenient setup) adversary limit pk flag
-
-/-- **The filing handler's record is no longer.** -/
-theorem length_filing_shareComp (setup : Setup) (adversary : Adversary) (limit : Nat)
-    (pk : PublicKey) (flag : Bool) :
-    ∀ z ∈ support ((simulateQ (filing setup) (shareComp adversary limit pk)).run
-        (St.start, flag)),
-      z.2.1.record.length ≤ limit + 3929 + 259 :=
-  length_shareComp_of (filing setup) false setup (filing_inl setup)
-    (fun forgery p z hz => by
-      rw [filing_run, support_map] at hz
-      obtain ⟨w, hw, rfl⟩ := hz
-      exact length_claims_le false setup forgery (p.1, false) w hw)
-    adversary limit pk flag
 
 /-! ## The blind step never reads `SK.prf` -/
 
@@ -353,14 +233,6 @@ theorem blindRun_prf (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool
     (simulateQ (blindStep (setupOf publicSeed table.1 (prf', table.2)))
       (comp (setupOf publicSeed table.1 (prf', table.2)).pk)).run St.start
   rw [blindStep_prf publicSeed table.1 prf prf' table.2, pk_prf publicSeed table.1 prf prf' table.2]
-
-theorem length_blindRun (adversary : Adversary) (limit : Nat) (setup : Setup)
-    (z : (Forgery × Bool) × St)
-    (hz : z ∈ support (blindRun (shareComp adversary limit) setup)) :
-    z.2.record.length ≤ limit + 3929 + 259 := by
-  rw [← map_filingRun, support_map] at hz
-  obtain ⟨w, hw, rfl⟩ := hz
-  exact length_filing_shareComp setup adversary limit setup.pk false w hw
 
 /-- **The blind game at a public seed**: `SK.prf` and the table drawn, the run beside them. -/
 noncomputable def flagGame (publicSeed : Digest) (comp : PublicKey → OracleComp ShareSpec (Forgery × Bool)) :
@@ -613,12 +485,5 @@ theorem blind_bound_of (publicSeed : Digest)
   have h := hbound _ rfl z hz
   unfold charged at h
   convert h
-
-/-- **The blind game's flag, off a bad walk, is at most `(limit + 3929 + 259) / 2 ^ 128`.** -/
-theorem blind_bound (publicSeed : Digest) (adversary : Adversary) (limit : Nat) :
-    Pr[fun w => w.1.Good ∧ w.2.2.2 = true | flagGame publicSeed (shareComp adversary limit)] ≤
-      ((limit + 3929 + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-  blind_bound_of publicSeed (shareComp adversary limit) _ fun setup _ z hz =>
-    (charged_le_length publicSeed _).trans (length_blindRun adversary limit setup z hz)
 
 end SlhDsaSecurity.ShareBound

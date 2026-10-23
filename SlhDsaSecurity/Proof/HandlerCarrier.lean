@@ -42,11 +42,6 @@ structure State where
   served : Multiset Bytes
   framing : Option Bytes
 
-/-- The state a run starts from: nothing cached, nothing served, nothing in flight. -/
-def empty : State := { cache := ∅, served := 0, framing := none }
-
-@[simp] theorem cache_empty : empty.cache = ∅ := rfl
-
 /-- The digest inputs a state has served. -/
 def Served (state : State) (input : Bytes) : Prop := input ∈ state.served
 
@@ -88,37 +83,14 @@ def file (state : State) (input : Bytes) : State :=
 def cacheAnswer (state : State) (input : Bytes) (answer : HashOutput) : State :=
   { state with cache := state.cache.cacheQuery input answer }
 
-@[simp] theorem cache_cacheAnswer (state : State) (input : Bytes) (answer : HashOutput) :
-    (cacheAnswer state input answer).cache = state.cache.cacheQuery input answer := rfl
-
-@[simp] theorem cache_file (state : State) (input : Bytes) :
-    (file state input).cache = state.cache := rfl
-
-@[simp] theorem cache_setFraming (state : State) (framed : Bytes) :
-    (setFraming state framed).cache = state.cache := rfl
-
-@[simp] theorem cache_clearFraming (state : State) : (clearFraming state).cache = state.cache :=
-  rfl
-
 @[simp] theorem framing_cacheAnswer (state : State) (input : Bytes) (answer : HashOutput) :
     (cacheAnswer state input answer).framing = state.framing := rfl
 
 @[simp] theorem framing_file (state : State) (input : Bytes) :
     (file state input).framing = state.framing := rfl
 
-@[simp] theorem framing_clearFraming (state : State) : (clearFraming state).framing = none := rfl
-
-@[simp] theorem framing_setFraming (state : State) (framed : Bytes) :
-    (setFraming state framed).framing = some framed := rfl
-
 @[simp] theorem served_cacheAnswer (state : State) (input : Bytes) (answer : HashOutput) :
     (cacheAnswer state input answer).served = state.served := rfl
-
-@[simp] theorem served_setFraming (state : State) (framed : Bytes) :
-    (setFraming state framed).served = state.served := rfl
-
-@[simp] theorem served_clearFraming (state : State) :
-    (clearFraming state).served = state.served := rfl
 
 /-- **Any change of framing is growth.** The relation does not constrain the component, so the
 completing step — which takes a request out of flight — is growth like every other. -/
@@ -176,24 +148,6 @@ The conclusion holds under either reading, since the mean crosses `2 ^ 103` alre
 def FilesLeft (pk : PublicKey) (state : State) (input : Bytes) : Prop :=
   ∃ framed : Bytes, state.framing = some framed ∧
     ∃ randomizer : Digest, input = Hashing.messageInput randomizer pk framed
-
-/-- **The signer's own randomiser query is not filed**, and the framing match is the whole
-reason. `PRF_msg` at the in-flight frame is a message input at a message one block shorter, so
-it fails a test that compares against that frame. -/
-theorem not_filesLeft_randomizerInput (pk : PublicKey) (state : State) (prfSeed : Digest)
-    (framed : Bytes) (hframing : state.framing = some framed) :
-    ¬ FilesLeft pk state (Hashing.randomizerInput prfSeed pk.seed framed) := by
-  rintro ⟨inflight, hinflight, randomizer, hinput⟩
-  rw [hframing] at hinflight
-  rw [Option.some.inj hinflight] at hinput
-  rw [show Hashing.messageInput randomizer pk inflight =
-      Hashing.randomizerInput randomizer pk.seed (bytesBE n pk.root ++ inflight) from by
-    simp only [Hashing.randomizerInput, Hashing.messageInput, List.append_assoc]] at hinput
-  obtain ⟨-, -, hmessage⟩ := Hashing.randomizerInput_injective hinput
-  have hlength := congrArg List.length hmessage
-  simp only [List.length_append, length_bytesBE] at hlength
-  simp only [n] at hlength
-  omega
 
 /-- **Nothing is filed when nothing is being served.** The adversary's own queries run with the
 framing clear, so the test is false at every one of them whatever they ask. -/

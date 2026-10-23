@@ -118,24 +118,6 @@ theorem verify_eq_pure_of_parse (hparse : Signature.fromBytes? wire = none) :
   | none => simp only [Scheme.verify, hframe]
   | some message => simp only [Scheme.verify, hframe, hparse]
 
-/-- **An unframed request makes no query.** -/
-theorem count_eq_zero_of_frame (hframe : request.frame = none) (w : Bool × VerifyState)
-    (hw : w ∈ support ((simulateQ realWorldImpl
-      (Scheme.verify (m := OracleComp OracleWorld) pk request wire)).run (1, cache))) :
-    (Multiplicative.toAdd w.2.1).1 .verification = 0 := by
-  rw [state_of_verify_pure pk request wire cache w
-    (verify_eq_pure_of_frame pk request wire hframe) hw]
-  rfl
-
-/-- **An unparsed signature makes no query.** -/
-theorem count_eq_zero_of_parse (hparse : Signature.fromBytes? wire = none) (w : Bool × VerifyState)
-    (hw : w ∈ support ((simulateQ realWorldImpl
-      (Scheme.verify (m := OracleComp OracleWorld) pk request wire)).run (1, cache))) :
-    (Multiplicative.toAdd w.2.1).1 .verification = 0 := by
-  rw [state_of_verify_pure pk request wire cache w
-    (verify_eq_pure_of_parse pk request wire hparse) hw]
-  rfl
-
 /-! ## The free queries -/
 
 /-- The free queries of a tally's record. -/

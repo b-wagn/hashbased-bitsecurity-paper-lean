@@ -1,6 +1,7 @@
 import SlhDsaSecurity.Proof.RecordedTail
 import SlhDsaSecurity.Proof.RandomiserProvenance
-import SlhDsaSecurity.Proof.AnswerCoverage
+import SlhDsaSecurity.Proof.CoverageCount
+import SlhDsaSecurity.Proof.SplitWitness
 
 /-!
 # The randomiser defect, at a record the run returns
@@ -252,15 +253,6 @@ noncomputable def chargedRecord
     (result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec) : Finset Bytes :=
   Multiset.toFinset result.1.1.2
 
-/-- **The charged record is no longer than the work the run charges.** No `+ 1`: the verifier's
-digest query is recorded like every other. -/
-theorem card_chargedRecord_le (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
-    {result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (RecordedTail.recordedTail adversary walk)) :
-    (chargedRecord result).card ≤ result.1.1.1.counts.work :=
-  RecordedTail.card_toFinset_le_count adversary hresult
-
 /-- **The charge's event**: the run's own record holds an input of the `PRF_msg` class at the
 real seed. This is what the deferral pays for, and the randomiser defect is only one way in. -/
 def RecordMeetsPrfClass (prfSeed : Digest)
@@ -299,30 +291,6 @@ theorem recordMeetsPrfClass_of_forgeryDigest (adversary : Adversary)
   exact RandomiserProvenance.mem_forgeryDigestRecord _ result.1.1.1.forgery framed parsed
     hframe hparsed
 
-set_option maxHeartbeats 1000000 in
-/-- **The answer side's leftover enters here, and nowhere else is needed.**
-`AnswerCoverage.ForgerySeedRandomised` says the forgery's published randomiser is `SK.prf`,
-which is exactly `hclass` above at the forgery's own digest input — so the leftover implies the
-record-level event, with no side condition about the signing log and no unit of its own.
-
-This is why `RecordMeetsPrfClass` was factored out of the randomiser defect's reduction rather
-than left inside it. `ReplayGate.RandomiserBad` additionally asks that nothing was signed at the
-frame, and `PK.root ‖ m` is a legal frame, so the containment into *that* event needs a
-hypothesis this one does not. The charge already has its slot: `SharedJoin`'s `hrecord` at
-`qp`, inside `qc + qp + qm + qs ≤ q - 2 ^ subtreeHeight`, counted by `card_chargedRecord_le`
-with no `+ 1`. -/
-theorem recordMeetsPrfClass_of_forgerySeedRandomised (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
-    {result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (RecordedTail.recordedTail adversary walk))
-    (hseed : AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-      (RoutedSplit.keyOf ((walk.1, (result.1.1.1, result.1.2)), result.2))
-      ((result.1.1.1, result.1.2), result.2)) :
-    RecordMeetsPrfClass walk.1.1.2.1 result := by
-  obtain ⟨framed, parsed, hframe, hparsed, hclass⟩ := hseed
-  exact recordMeetsPrfClass_of_forgeryDigest adversary hresult framed parsed hframe hparsed
-    hclass
-
 /-! ## The randomiser defect lands in the charged record
 
 The same attribution as `RandomiserProvenance.randomiserBad_source`, read at the recorded tail.
@@ -332,110 +300,7 @@ the verifier only as the forgery's digest query, which is in the record. The gro
 back beside the dichotomy, at the same record, which is what makes this charge and the signer's
 partition rather than merely add. -/
 
-open scoped Classical in
-set_option maxHeartbeats 1000000 in
-/-- **The randomiser defect is a `PRF_msg` input of the run's own record, or the signer's
-coincidence** — with the class's growth bounded at the same record. -/
-theorem randomiserBad_source_record (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    {result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (RecordedTail.recordedTail adversary walk))
-    (hbad : ReplayGate.RandomiserBad ((walk.1, (result.1.1.1, result.1.2)), result.2)) :
-    ClassCharge.GrowthAtMostOn (RandomizerGate.PrfClass walk.1.1.2.1) walk.2 result.2
-        ((chargedRecord result |>.filter (RandomizerGate.PrfClass walk.1.1.2.1)).card +
-          2 * AdversaryQueries.servedCount result.1.1.1.signed) ∧
-      (RecordMeetsPrfClass walk.1.1.2.1 result ∨
-        RandomiserProvenance.SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2
-          result.1.1.1.signed) := by
-  classical
-  obtain ⟨message, answer, hentry, hunsigned⟩ := hbad
-  set pk := RoutedSplit.keyOf ((walk.1, (result.1.1.1, result.1.2)), result.2) with hpk
-  have hseed : pk.seed = walk.1.1.2.2 := by
-    rw [hpk]
-    exact (GameBridge.keygen_publicKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2).1
-  have hne : walk.1.1.2.1 ≠ pk.seed := by rw [hseed]; exact hgood.1
-  have hplain : ((result.1.1.1, result.1.2), result.2) ∈
-      support (WarmedGame.tail adversary walk) :=
-    RecordedTail.mem_support_tail_of_recorded adversary hresult
-  have hrun : result ∈ support ((simulateQ KeygenUniform.rom
-      (countAllHashes (RecordedTail.recordedAfterSeeds adversary walk.1.1))).run walk.2) := by
-    rw [RecordedTail.recordedTail] at hresult
-    exact hresult
-  obtain ⟨keys, hkeys, hforgery, hprovenance⟩ :=
-    provenance_recordedAfterSeeds adversary walk.1.1 walk.2 result hrun
-  have hsource := hprovenance (Hashing.randomizerInput walk.1.1.2.1 pk.seed message)
-    (RandomiserCharge.walk_cache_prf_fresh hwalk hgood pk.seed message)
-    (by rw [hentry]; exact Option.some_ne_none answer)
-  have hkey : keys.2 = pk := by rw [hpk, RoutedSplit.keyOf, SplitCharged.generatedKey, hkeys]
-  have hsecret : keys.1 = ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ := by
-    rw [hkeys, SigningFaithful.keygen_secretKey, hpk, RoutedSplit.keyOf]
-  have hserved : ∀ entry ∈ result.1.1.1.signed, ∀ framed : Bytes,
-      entry.1.frame = some framed → entry.2.isSome := by
-    intro entry hentryMem framed hframe
-    rw [SigningFaithful.logFaithful_tail adversary hplain entry hentryMem framed hframe]
-    rfl
-  refine ⟨?_, ?_⟩
-  · exact RandomiserProvenance.growthAtMostOn_prfClass walk.1.1 walk.2
-      ((result.1.1.1, result.1.2), result.2) keys result.1.1.2 hkeys hprovenance hforgery
-      hgood.1 hserved
-  rcases hsource with hmem | hkeygen | ⟨entry, hentryMem, hsign⟩ | hverify
-  · exact Or.inl ⟨_, Multiset.mem_toFinset.mpr hmem, pk.seed, message, rfl⟩
-  · exact absurd hkeygen fun hquery =>
-      RandomiserProvenance.keygen_not_randomizerInput result.2 walk.1.1.1 walk.1.1.2.1
-        walk.1.1.2.2 walk.1.1.2.1 pk.seed message hgood.1 hquery
-  · rw [hsecret] at hsign
-    obtain ⟨framed, hframe, hmessage⟩ :=
-      RandomiserProvenance.sign_messageProbe result.2 ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ entry.1
-        walk.1.1.2.1 pk.seed message hne hsign.1
-    rcases hmessage with hrandomizer | hdigest
-    · obtain ⟨-, -, hequal⟩ := Hashing.randomizerInput_injective hrandomizer
-      exact absurd ⟨entry, hentryMem, hequal ▸ hframe⟩ hunsigned
-    · refine Or.inr ⟨entry, hentryMem, framed, ?_⟩
-      rw [← hseed]
-      have hcached : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) ≠ none :=
-        hsign.2 framed hframe
-      cases hvalue : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) with
-      | none => exact absurd hvalue hcached
-      | some cached =>
-        refine ⟨cached, hframe, rfl, ?_⟩
-        have hreplay : HonestProbes.replayRandomizer result.2
-            ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ framed = Hashing.truncate cached := by
-          rw [HonestProbes.replayRandomizer,
-            show CacheReplay.replay result.2
-              (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) = cached from by
-              simp [CacheReplay.replay, hvalue]]
-        rw [← hreplay]
-        exact RandomizerGate.messageInput_eq_randomizerInput_iff _ walk.1.1.2.1 pk.seed pk
-          framed message hdigest.symm
-  · obtain ⟨framed, parsed, hframe, hparsed, hdigest⟩ :=
-      VerifierFormat.verify_probe_randomizerInput result.2 keys.2
-        result.1.1.1.forgery.message result.1.1.1.forgery.signature walk.1.1.2.1 pk.seed message
-        (by rw [hkey]; exact hne) hverify rfl
-    refine Or.inl ⟨Hashing.messageInput parsed.randomizer keys.2 framed,
-      Multiset.mem_toFinset.mpr (hforgery _
-        (RandomiserProvenance.mem_forgeryDigestRecord keys.2 result.1.1.1.forgery framed parsed
-          hframe hparsed)), pk.seed, message, hdigest.symm⟩
-
 /-! ## The reduction, as a probability -/
-
-open scoped Classical in
-set_option maxHeartbeats 1000000 in
-/-- **The randomiser defect, reduced to the charged record and the signer's coincidence.** -/
-theorem prob_randomiserBad_le_record (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
-    Pr[fun result => ReplayGate.RandomiserBad ((walk.1, result.1), result.2) |
-        WarmedGame.tail adversary walk] ≤
-      Pr[fun result => RecordMeetsPrfClass walk.1.1.2.1 result ∨
-          RandomiserProvenance.SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2
-            result.1.1.1.signed |
-        RecordedTail.recordedTail adversary walk] := by
-  classical
-  rw [RecordedTail.probEvent_tail_eq]
-  exact probEvent_mono fun result hresult hbad =>
-    (randomiserBad_source_record adversary hwalk hgood hresult hbad).2
-
 
 /-! ## The paired run, recorded
 
@@ -467,42 +332,6 @@ def forgetRecord
       ((Outcome × Nat) × QueryCache HashSpec) :=
   (pair.1, ((pair.2.1.1.1, pair.2.1.2), pair.2.2))
 
-/-- **The paired run is the recorded paired run with the record dropped.** -/
-theorem pairedRun_eq_map (adversary : Adversary) :
-    Target.pairedRun adversary = forgetRecord <$> recordedPairedRun adversary := by
-  rw [Target.pairedRun, recordedPairedRun, map_eq_bind_pure_comp, bind_assoc]
-  refine bind_congr fun walk => ?_
-  rw [RecordedTail.tail_eq_map_recordedTail, map_eq_bind_pure_comp, bind_assoc, bind_assoc]
-  simp [Function.comp_def, forgetRecord]
-
-/-- **So any event at the paired run may be read at the recorded one**, at no cost. -/
-theorem probEvent_pairedRun_eq (adversary : Adversary)
-    (event : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) → Prop) :
-    Pr[event | Target.pairedRun adversary] =
-      Pr[fun pair => event (forgetRecord pair) | recordedPairedRun adversary] := by
-  rw [pairedRun_eq_map, probEvent_map]
-  rfl
-
-/-- **The randomiser defect's dichotomy at the recorded paired run.** This is the reduction the
-join's `hrandomiser` asks for, with the record a value of the run rather than a witness. -/
-theorem randomiserBad_dichotomy (adversary : Adversary)
-    (pair : (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) ×
-      (((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec))
-    (hpair : pair ∈ support (recordedPairedRun adversary))
-    (hgood : Target.GoodWalk pair.1)
-    (hbad : ReplayGate.RandomiserBad ((pair.1.1, (pair.2.1.1.1, pair.2.1.2)), pair.2.2)) :
-    RecordMeetsPrfClass pair.1.1.1.2.1 pair.2 ∨
-      RandomiserProvenance.SignerHitsSeed pair.1.1.1.2.1 pair.1.1.1.2.2 pair.2.2
-        pair.2.1.1.1.signed := by
-  classical
-  obtain ⟨walk, hwalk, result, hresult, hvalue⟩ : ∃ walk ∈ support WarmedGame.graphWalk,
-      ∃ result ∈ support (RecordedTail.recordedTail adversary walk), (walk, result) = pair := by
-    simpa [recordedPairedRun, eq_comm] using hpair
-  subst hvalue
-  exact (randomiserBad_source_record adversary hwalk hgood hresult hbad).2
-
-
 /-! ## The answer side's residue, folded in — and the fourth party that blocks it
 
 `SplitWitness.SeedRandomised prfSeed pk cache` is "the cache holds a message input that is also a
@@ -525,86 +354,5 @@ it, the three parties are exactly the ones the randomiser defect's own provenanc
 reduction is a corollary. The lemma is stated at `RandomizerGate.PrfClass` alone rather than at
 `SeedRandomised`, which is stronger and is what both consumers need: a cached input of the class
 is charged, whether or not it also parses as a message input. -/
-
-/-- A cached input the **signer's own randomiser query** made: the `PRF_msg` input of a request
-the log names. The one source of a cached `PRF_msg`-class input that neither the record nor the
-signer's coincidence covers. -/
-def SignerRandomiserInput (prfSeed publicSeed : Digest) (signed : SigningLog) (input : Bytes) :
-    Prop :=
-  ∃ entry ∈ signed, ∃ framed : Bytes, entry.1.frame = some framed ∧
-    input = Hashing.randomizerInput prfSeed publicSeed framed
-
-open scoped Classical in
-set_option maxHeartbeats 1000000 in
-/-- **A cached `PRF_msg`-class input the signer did not make is in the charged record, or the
-signer's randomiser hit the seed.** This is the fold the answer side asks for, with the fourth
-party excluded by hypothesis rather than overlooked. -/
-theorem recordMeetsPrfClass_of_cached (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    {result : ((Outcome × Multiset Bytes) × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (RecordedTail.recordedTail adversary walk))
-    (input : Bytes) (hpresent : result.2 input ≠ none)
-    (hclass : RandomizerGate.PrfClass walk.1.1.2.1 input)
-    (hnotSigner :
-      ¬ SignerRandomiserInput walk.1.1.2.1 walk.1.1.2.2 result.1.1.1.signed input) :
-    RecordMeetsPrfClass walk.1.1.2.1 result ∨
-      RandomiserProvenance.SignerHitsSeed walk.1.1.2.1 walk.1.1.2.2 result.2
-        result.1.1.1.signed := by
-  classical
-  obtain ⟨seed, payload, rfl⟩ := hclass
-  set pk := RoutedSplit.keyOf ((walk.1, (result.1.1.1, result.1.2)), result.2) with hpk
-  have hseed : pk.seed = walk.1.1.2.2 := by
-    rw [hpk]
-    exact (GameBridge.keygen_publicKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 result.2).1
-  have hne : walk.1.1.2.1 ≠ pk.seed := by rw [hseed]; exact hgood.1
-  have hrun : result ∈ support ((simulateQ KeygenUniform.rom
-      (countAllHashes (RecordedTail.recordedAfterSeeds adversary walk.1.1))).run walk.2) := by
-    rw [RecordedTail.recordedTail] at hresult
-    exact hresult
-  obtain ⟨keys, hkeys, hforgery, hprovenance⟩ :=
-    provenance_recordedAfterSeeds adversary walk.1.1 walk.2 result hrun
-  have hsource := hprovenance (Hashing.randomizerInput walk.1.1.2.1 seed payload)
-    (RandomiserCharge.walk_cache_prf_fresh hwalk hgood seed payload) hpresent
-  have hkey : keys.2 = pk := by rw [hpk, RoutedSplit.keyOf, SplitCharged.generatedKey, hkeys]
-  have hsecret : keys.1 = ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ := by
-    rw [hkeys, SigningFaithful.keygen_secretKey, hpk, RoutedSplit.keyOf]
-  rcases hsource with hmem | hkeygen | ⟨entry, hentryMem, hsign⟩ | hverify
-  · exact Or.inl ⟨_, Multiset.mem_toFinset.mpr hmem, seed, payload, rfl⟩
-  · exact absurd hkeygen fun hquery =>
-      RandomiserProvenance.keygen_not_randomizerInput result.2 walk.1.1.1 walk.1.1.2.1
-        walk.1.1.2.2 walk.1.1.2.1 seed payload hgood.1 hquery
-  · rw [hsecret] at hsign
-    obtain ⟨framed, hframe, hmessage⟩ :=
-      RandomiserProvenance.sign_messageProbe result.2 ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ entry.1
-        walk.1.1.2.1 seed payload hne hsign.1
-    rcases hmessage with hrandomizer | hdigest
-    · -- The signer's own randomiser query: the case the hypothesis excludes.
-      exact absurd ⟨entry, hentryMem, framed, hframe, by rw [hrandomizer, hseed]⟩ hnotSigner
-    · refine Or.inr ⟨entry, hentryMem, framed, ?_⟩
-      rw [← hseed]
-      have hcached : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) ≠ none :=
-        hsign.2 framed hframe
-      cases hvalue : result.2 (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) with
-      | none => exact absurd hvalue hcached
-      | some cached =>
-        refine ⟨cached, hframe, rfl, ?_⟩
-        have hreplay : HonestProbes.replayRandomizer result.2
-            ⟨walk.1.1.1, walk.1.1.2.1, pk⟩ framed = Hashing.truncate cached := by
-          rw [HonestProbes.replayRandomizer,
-            show CacheReplay.replay result.2
-              (Hashing.randomizerInput walk.1.1.2.1 pk.seed framed) = cached from by
-              simp [CacheReplay.replay, hvalue]]
-        rw [← hreplay]
-        exact RandomizerGate.messageInput_eq_randomizerInput_iff _ walk.1.1.2.1 seed pk
-          framed payload hdigest.symm
-  · obtain ⟨framed, parsed, hframe, hparsed, hdigest⟩ :=
-      VerifierFormat.verify_probe_randomizerInput result.2 keys.2
-        result.1.1.1.forgery.message result.1.1.1.forgery.signature walk.1.1.2.1 seed payload
-        (by rw [hkey, hseed]; exact hgood.1) hverify rfl
-    exact Or.inl ⟨Hashing.messageInput parsed.randomizer keys.2 framed,
-      Multiset.mem_toFinset.mpr (hforgery _
-        (RandomiserProvenance.mem_forgeryDigestRecord keys.2 result.1.1.1.forgery framed parsed
-          hframe hparsed)), seed, payload, hdigest.symm⟩
 
 end SlhDsaSecurity.RandomiserRecord

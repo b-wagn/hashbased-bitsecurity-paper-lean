@@ -1,4 +1,8 @@
-import SlhDsaSecurity.Proof.LateRate
+import SlhDsaSecurity.Proof.ClassGrowth
+import SlhDsaSecurity.Proof.SplitWitness
+import SlhDsaSecurity.Proof.RandomizerGate
+import SlhDsaSecurity.Statement.Hashing
+import SlhDsaSecurity.Proof.KeygenUniform
 import SlhDsaSecurity.Proof.SharedJoin
 
 /-!
@@ -53,91 +57,17 @@ open OracleComp OracleSpec ENNReal
 
 namespace SlhDsaSecurity.LateProbes
 
-open Security SplitPrefix SplitWitness LateRate ClassExpectation
+open Security SplitPrefix SplitWitness
 
 /-! ## The probe list -/
 
-/-- The probes a recording presents: its inputs, as a multiset of the list, so that the count
-the charge is stated at survives the conversion. -/
-def probesOf (record : List (Bytes × HashOutput)) : Multiset Bytes := ↑(record.map Prod.fst)
-
-@[simp] theorem card_probesOf (record : List (Bytes × HashOutput)) :
-    Multiset.card (probesOf record) = record.length := by
-  rw [probesOf, Multiset.coe_card, List.length_map]
-
-theorem mem_probesOf {record : List (Bytes × HashOutput)} {input : Bytes}
-    (hmem : input ∈ probesOf record) : ∃ entry ∈ record, entry.1 = input := by
-  rw [probesOf, Multiset.mem_coe] at hmem
-  obtain ⟨entry, hentry, hinput⟩ := List.mem_map.mp hmem
-  exact ⟨entry, hentry, hinput⟩
-
 /-! ## The containment, against whatever part the join names -/
-
-/-- **The probes sit inside a part**, given that each recorded input is in it. The recording
-holds no input twice, so the containment of multisets is the containment of their elements and
-no multiplicity is lost on the way. -/
-theorem probesOf_le (part : Multiset Bytes) (record : List (Bytes × HashOutput))
-    (hnodup : (record.map Prod.fst).Nodup)
-    (hmem : ∀ entry ∈ record, entry.1 ∈ part) : probesOf record ≤ part := by
-  classical
-  refine (Multiset.le_iff_subset (by rw [probesOf]; exact hnodup)).mpr fun input hinput => ?_
-  obtain ⟨entry, hentry, hinput⟩ := mem_probesOf hinput
-  rw [← hinput]
-  exact hmem entry hentry
-
-/-- **Every target-recorded input is of the message class at the key the tests name.** This is
-the half of the containment the recorder settles: the right test keeps the message class, and
-what it keeps is what the recording holds. -/
-theorem messageClass_of_record (prfSeed : Digest) (pk : PublicKey) {α : Type}
-    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec)
-    (result : α × SplitState)
-    (hmem : result ∈ support ((simulateQ (recorder (disclosingKeep prfSeed pk)
-      (targetKeep prfSeed pk)) computation).run (cache, [], []))) :
-    ∀ entry ∈ result.2.2.2, CombinedCharge.IsMessageInput pk entry.1 :=
-  right_record_class (disclosingKeep prfSeed pk) (targetKeep prfSeed pk)
-    (CombinedCharge.IsMessageInput pk)
-    (fun input inner hkeep => targetKeep_class prfSeed pk input inner hkeep)
-    computation (cache, [], []) result hmem (by simp)
-
-/-- **The probes sit inside the join's message-class part.** The key is the walk's, as the part
-names it; the class is the recorder's, by `messageClass_of_record`; and `hrecord` is the
-provenance step. -/
-theorem probesOf_le_recordMessageClass (adversary : Adversary)
-    {pair : SharedJoin.RecordedPair}
-    (hpair : pair ∈ support (RandomiserRecord.recordedPairedRun adversary))
-    (hgood : Target.GoodWalk pair.1) (record : List (Bytes × HashOutput))
-    (hnodup : (record.map Prod.fst).Nodup)
-    (hclass : ∀ entry ∈ record, CombinedCharge.IsMessageInput
-      (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2) entry.1)
-    (hrecord : ∀ entry ∈ record, entry.1 ∈ SharedJoin.recordOf pair) :
-    probesOf record ≤ SharedJoin.recordMessageClass pair :=
-  probesOf_le _ record hnodup fun entry hentry =>
-    SharedJoin.mem_recordMessageClass adversary hpair hgood (hrecord entry hentry)
-      (hclass entry hentry)
 
 /-! ## The charge, at the probe count
 
 `prob_lateDisclosure_le` already bounds the defect by the recording's length over `2 ^ 128`.
 The join reads that length as the cardinality of the probe list and the rate as a division, and
 takes a constant term besides, which here is zero. -/
-
-set_option maxHeartbeats 1000000 in
-/-- **The ordering defect, at the probe count the join reads.** -/
-theorem prob_lateDisclosure_le_probes (prfSeed : Digest) (pk : PublicKey) {α : Type}
-    (computation : OracleComp OracleWorld α) (cache : QueryCache HashSpec) :
-    Pr[fun result : α × SplitState => LateDisclosure prfSeed pk result |
-        (simulateQ (recorder (disclosingKeep prfSeed pk) (targetKeep prfSeed pk))
-          computation).run (cache, [], [])] ≤
-      (expected ((simulateQ (recorder (disclosingKeep prfSeed pk) (targetKeep prfSeed pk))
-            computation).run (cache, [], []))
-          (fun result => Multiset.card (probesOf result.2.2.2)) + 0) /
-        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [add_zero, show (fun result : α × SplitState => Multiset.card (probesOf result.2.2.2)) =
-    (fun result : α × SplitState => result.2.2.2.length) from by
-      funext result; exact card_probesOf result.2.2.2]
-  refine le_of_le_of_eq (prob_lateDisclosure_le prfSeed pk computation cache) ?_
-  rw [rate, mul_one_div]
 
 /-! ## The pair the ordering term is read at
 
@@ -177,34 +107,6 @@ def forgetRecordings (pair : SplitPair) : SharedJoin.RecordedPair :=
 `SharedJoin`'s own decompositions are stated at the recorded tail. These are the same three
 statements with the tail a parameter, which is all their proofs ever used. -/
 
-theorem probEvent_pairedOf (fused : FusedTail) (adversary : Adversary)
-    (event : SplitPair → Prop) :
-    Pr[event | pairedOf fused adversary] =
-      ∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-        Pr[fun result => event (walk, result) | fused adversary walk] :=
-  PairedAverage.probEvent_pairedWith (fused adversary) event
-
-open scoped Classical in
-theorem expected_pairedOf (fused : FusedTail) (adversary : Adversary)
-    (count : SplitPair → Nat) :
-    expected (pairedOf fused adversary) count =
-      ∑' walk, Pr[= walk | WarmedGame.graphWalk] *
-        expected (fused adversary walk) (fun result => count (walk, result)) :=
-  PairedAverage.expected_pairedWith (fused adversary) count
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **A charge proved walk by walk is a charge on the paired run.** -/
-theorem prob_le_expected_of_perWalk (fused : FusedTail) (adversary : Adversary)
-    (event : SplitPair → Prop) (count : SplitPair → Nat) (extra : ℝ≥0∞)
-    (hwalkwise : ∀ walk ∈ support WarmedGame.graphWalk,
-      Pr[fun result => event (walk, result) | fused adversary walk] ≤
-        (expected (fused adversary walk) (fun result => count (walk, result)) + extra) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Pr[event | pairedOf fused adversary] ≤
-      (expected (pairedOf fused adversary) count + extra) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-  PairedAverage.prob_le_expected_of_perWalk (fused adversary) event count extra hwalkwise
-
 /-! ## What the forgetting map buys
 
 One equation — forgetting the recordings returns the recorded paired run — carries every event
@@ -237,71 +139,11 @@ theorem probEvent_forget {fused : FusedTail} {adversary : Adversary}
   rw [hmap, probEvent_eq_tsum_ite, probEvent_eq_tsum_ite]
   exact tsum_congr fun pair => by rw [hforget.1 pair]
 
-open scoped Classical in
-/-- **And every count.** -/
-theorem expected_forget {fused : FusedTail} {adversary : Adversary}
-    (hforget : ForgetsTo fused adversary) (count : SharedJoin.RecordedPair → Nat) :
-    expected (pairedOf fused adversary) (fun pair => count (forgetRecordings pair)) =
-      expected (RandomiserRecord.recordedPairedRun adversary) count := by
-  classical
-  haveI : DecidableEq SharedJoin.RecordedPair := Classical.decEq _
-  have hmap : expected (pairedOf fused adversary) (fun pair => count (forgetRecordings pair)) =
-      expected (forgetRecordings <$> pairedOf fused adversary) count :=
-    (expected_map (pairedOf fused adversary) forgetRecordings count).symm
-  rw [hmap, expected, expected]
-  exact tsum_congr fun pair => by rw [hforget.1 pair]
-
-/-- **And every supported pair forgets to a supported one.** -/
-theorem mem_support_forget {fused : FusedTail} {adversary : Adversary}
-    (hforget : ForgetsTo fused adversary) {pair : SplitPair}
-    (hpair : pair ∈ support (pairedOf fused adversary)) :
-    forgetRecordings pair ∈ support (RandomiserRecord.recordedPairedRun adversary) := by
-  refine hforget.2 ?_
-  rw [support_map]
-  exact ⟨pair, hpair, rfl⟩
-
 /-! ## The ordering term, restated
 
 The event and the probe list are both functions of the split pair. The probes are empty off a
 good walk, which is what makes the containment unconditional: the charge is only ever read
 against the event, and the event carries `GoodWalk`. -/
-
-/-- The key the tests and the part both name: the walk's. -/
-abbrev keyOfPair (pair : SplitPair) : PublicKey :=
-  SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2
-
-/-- **The ordering defect at the split pair.** -/
-def Ordering (pair : SplitPair) : Prop :=
-  LateDisclosure pair.1.1.1.2.1 (keyOfPair pair) pair.2
-
-open scoped Classical in
-/-- **The probes the ordering term is charged at**: the target recording's inputs on a good
-walk, and nothing off one. -/
-noncomputable def probes (pair : SplitPair) : Multiset Bytes :=
-  if Target.GoodWalk pair.1 then probesOf pair.2.2.2.2 else 0
-
-theorem card_probes_of_good {pair : SplitPair} (hgood : Target.GoodWalk pair.1) :
-    Multiset.card (probes pair) = pair.2.2.2.2.length := by
-  classical
-  rw [probes, if_pos hgood, card_probesOf]
-
-/-- **The containment, off a good walk**, where the probe list is empty. -/
-theorem probes_le_of_not_good {pair : SplitPair} (hgood : ¬ Target.GoodWalk pair.1)
-    (part : Multiset Bytes) : probes pair ≤ part := by
-  classical
-  rw [probes, if_neg hgood]
-  exact zero_le
-
-/-- The recorder run a fused tail has to be, at the walk's own cache and the walk's own key. -/
-def IsRecorderRun (fused : FusedTail) (adversary : Adversary) : Prop :=
-  ∀ walk ∈ support WarmedGame.graphWalk,
-    ∃ computation : OracleComp OracleWorld ((Outcome × Multiset Bytes) × Nat),
-      fused adversary walk =
-        (simulateQ (recorder (disclosingKeep walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2))
-          (targetKeep walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)))
-          computation).run (walk.2, [], [])
 
 theorem mem_support_pairedOf {fused : FusedTail} {adversary : Adversary} {pair : SplitPair}
     (hpair : pair ∈ support (pairedOf fused adversary)) :
@@ -313,82 +155,5 @@ theorem mem_support_pairedOf {fused : FusedTail} {adversary : Adversary} {pair :
   obtain ⟨result, hresult, hpure⟩ := hrest
   rw [support_pure, Set.mem_singleton_iff] at hpure
   exact ⟨walk, hwalk, result, hresult, hpure.symm⟩
-
-open scoped Classical in
-/-- **The containment**, with provenance the only thing left to supply. The recording holds each
-input once and holds only message-class inputs, and the join's own membership lemma puts a
-message-class input of the record in the part. -/
-theorem probes_le_recordMessageClass {fused : FusedTail} {adversary : Adversary}
-    (hforget : ForgetsTo fused adversary) (hshape : IsRecorderRun fused adversary)
-    (hrecord : ∀ pair ∈ support (pairedOf fused adversary), Target.GoodWalk pair.1 →
-      ∀ entry ∈ pair.2.2.2.2, entry.1 ∈ SharedJoin.recordOf (forgetRecordings pair)) :
-    ∀ pair ∈ support (pairedOf fused adversary),
-      probes pair ≤ SharedJoin.recordMessageClass (forgetRecordings pair) := by
-  classical
-  intro pair hpair
-  by_cases hgood : Target.GoodWalk pair.1
-  · obtain ⟨walk, hwalk, result, hresult, hvalue⟩ := mem_support_pairedOf hpair
-    obtain ⟨computation, hcomputation⟩ := hshape walk hwalk
-    rw [hcomputation] at hresult
-    subst hvalue
-    rw [probes, if_pos hgood]
-    refine probesOf_le _ _ (right_record_nodup _ _ computation walk.2 result hresult)
-      fun entry hentry => ?_
-    exact SharedJoin.mem_recordMessageClass adversary (mem_support_forget hforget hpair) hgood
-      (hrecord _ hpair hgood entry hentry)
-      (messageClass_of_record walk.1.1.2.1
-        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-        computation walk.2 result hresult entry hentry)
-  · exact probes_le_of_not_good hgood _
-
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **The ordering term, at the pair that carries the recordings.** The charge is the one
-already proved, read walk by walk; the count is the join's own part, reached by the
-containment. -/
-theorem prob_ordering_le {fused : FusedTail} {adversary : Adversary}
-    (hshape : IsRecorderRun fused adversary)
-    (hprobes : ∀ pair ∈ support (pairedOf fused adversary),
-      probes pair ≤ SharedJoin.recordMessageClass (forgetRecordings pair)) :
-    Pr[fun pair : SplitPair => Target.GoodWalk pair.1 ∧ Ordering pair |
-        pairedOf fused adversary] ≤
-      expected (pairedOf fused adversary)
-          (fun pair => Multiset.card (SharedJoin.recordMessageClass (forgetRecordings pair))) /
-        ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  refine le_trans (prob_le_expected_of_perWalk fused adversary
-    (fun pair => Target.GoodWalk pair.1 ∧ Ordering pair)
-    (fun pair => Multiset.card (probes pair)) 0 fun walk hwalk => ?_) ?_
-  · by_cases hgood : Target.GoodWalk walk
-    · obtain ⟨computation, hcomputation⟩ := hshape walk hwalk
-      rw [hcomputation, show (fun result : ((Outcome × Multiset Bytes) × Nat) × SplitState =>
-          Multiset.card (probes (walk, result))) =
-        (fun result : ((Outcome × Multiset Bytes) × Nat) × SplitState =>
-          Multiset.card (probesOf result.2.2.2)) from by
-        funext result
-        rw [card_probes_of_good (pair := (walk, result)) hgood, card_probesOf]]
-      exact le_trans (probEvent_mono fun result _ hbad => hbad.2)
-        (prob_lateDisclosure_le_probes walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-          computation walk.2)
-    · rw [probEvent_eq_zero fun result _ hbad => hgood hbad.1]
-      exact zero_le
-  · rw [add_zero]
-    exact ENNReal.div_le_div_right (ClassExpectation.expected_mono _ _ _
-      fun pair hpair => Multiset.card_le_card (hprobes pair hpair)) _
-
-/-- **The same, with the count read at the join's own run.** -/
-theorem prob_ordering_le_recorded {fused : FusedTail} {adversary : Adversary}
-    (hforget : ForgetsTo fused adversary) (hshape : IsRecorderRun fused adversary)
-    (hprobes : ∀ pair ∈ support (pairedOf fused adversary),
-      probes pair ≤ SharedJoin.recordMessageClass (forgetRecordings pair)) :
-    Pr[fun pair : SplitPair => Target.GoodWalk pair.1 ∧ Ordering pair |
-        pairedOf fused adversary] ≤
-      expected (RandomiserRecord.recordedPairedRun adversary)
-          (fun pair => Multiset.card (SharedJoin.recordMessageClass pair)) /
-        ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-  le_of_le_of_eq (prob_ordering_le hshape hprobes)
-    (congrArg (fun value => value / ((2 ^ 128 : Nat) : ℝ≥0∞))
-      (expected_forget hforget (fun pair => Multiset.card (SharedJoin.recordMessageClass pair))))
 
 end SlhDsaSecurity.LateProbes

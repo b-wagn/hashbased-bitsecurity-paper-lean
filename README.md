@@ -1,7 +1,7 @@
 # XMSS and SLH-DSA bit security in Lean 4
 
 Machine-checked correctness, security proofs, and attacks for target-sum and checksum XMSS, and
-correctness and a 127-bit security proof for SLH-DSA-SHAKE-128s, using
+a 127-bit strong-unforgeability proof for SLH-DSA-SHAKE-128s, using
 [VCVio](https://github.com/Verified-zkEVM/VCVio).
 
 ## XMSS
@@ -34,36 +34,32 @@ Exact integer security levels for all 16 counting modes containing direct hash q
 byte-level addresses, the checksum, and the standard 7856-byte signature encoding, all sharing one
 lazily sampled random oracle.
 
-- **Strong unforgeability, 127 bits:** `Pr[win] ≤ q / 2^127` for every adversary whose work is
-  at most `q ≥ 1` with probability one, where the game is an `Xmss.SecurityGame` counting hash
-  calls by source (`sign`, `hash`, `keygen`, `signer`, `verifier`) and the counting mode is the
-  adversary's own work, `Z = {sign, hash, verifier}`: its signing requests, its own hash calls,
-  and the verification of its forgery. Key generation's and the signer's hash calls are free
-  ([`SecurityBySource.lean`](SlhDsaSecurity/Statement/SecurityBySource.lean),
-  [`StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean)).
-  The framework has no signing limit and SLH-DSA's security fails without one (past `2^64`
-  signatures the FORS leaves are all revealed), so `HasLimitedSecurityBits` adds FIPS 205's
-  `2^64` as an almost-sure bound on the `sign` count.
-- **Correctness:** error `0`; a request with an over-long context is always rejected
-  ([`Correctness.lean`](SlhDsaSecurity/Statement/Theorems/Correctness.lean)).
+**Strong unforgeability, 127 bits:** `Pr[win] ≤ q / 2^127` for every adversary whose work is
+at most `q ≥ 1` with probability one, where the game is an `Xmss.SecurityGame` counting hash
+calls by source (`sign`, `hash`, `keygen`, `signer`, `verifier`) and the counting mode is the
+adversary's own work, `Z = {sign, hash, verifier}`: its signing requests, its own hash calls,
+and the verification of its forgery. Key generation's and the signer's hash calls are free
+([`SecurityBySource.lean`](SlhDsaSecurity/Statement/SecurityBySource.lean),
+[`StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean)).
+The framework has no signing limit and SLH-DSA's security fails without one (past `2^64`
+signatures the FORS leaves are all revealed), so `HasLimitedSecurityBits` adds FIPS 205's
+`2^64` as an almost-sure bound on the `sign` count.
 
 The proof splits the forgery event into an *answer* half (a fresh hash answer hitting a target:
 FORS coverage, structural collisions) and a *shared* half (a query guessing a secret the
-adversary has not been given: an unrevealed cell of the key, or `SK.prf`). The answer half is
-`AnswerFired`. The shared half caps the adversary at the budget left after key generation
-(`ShareRealCap`), couples the real game with a lenient presentation of it (`ShareWhole`,
-`ShareEvent`), moves to a blind game identical until a sticky flag (`ShareUntilBad`), and charges
-the flag one `2^-128` per recorded guess by stalling and redrawing each unrevealed cell
-(`BlindCharge`, `ShareBound`). `BySourceTarget` assembles the bound. With key generation's and the signer's
-calls free, the answer half charges structural faults per *fresh cache entry* rather than per
-query (`FreshExpectation`), and the shared half caps the adversary and the verifier jointly
-(`ShareJoint`): the verifier is charged at its own count, the forgery's claims cost only where
-the verifier does not already query them (`ClaimsQueried`, at most 231), and the 239 verifier
-queries the charge never pays for (`VerifyFree`) cover the rest. `WorkFinal` assembles the bound.
+adversary has not been given: an unrevealed cell of the key, or `SK.prf`). The answer half
+(`AnswerFired`, `BySourceTarget.answerBound`) charges structural faults per *fresh cache entry*
+(`FreshExpectation`). The shared half caps the adversary and the verifier jointly (`ShareJoint`),
+couples the real game with a lenient presentation of it (`ShareWhole`, `ShareEvent`), moves to a
+blind game identical until a sticky flag (`ShareUntilBad`), and charges the flag one `2^-128` per
+recorded guess by stalling and redrawing each unrevealed cell (`BlindCharge`, `ShareBound`). The
+forgery's claims cost only where the verifier does not already query them (`ClaimsQueried`, at
+most 231), and the 239 verifier queries the charge never pays for (`VerifyFree`) cover the fixed
+costs. `WorkFinal` assembles the bound.
 
 ## Code
 
-For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SlhDsaSecurity/Statement/`](SlhDsaSecurity/Statement/): the scheme, the games in `Security.lean`, `SecurityBySource.lean` and `CorrectnessGame.lean`, and the main theorems in [`Theorems/`](SlhDsaSecurity/Statement/Theorems/).
+For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SlhDsaSecurity/Statement/`](SlhDsaSecurity/Statement/): the scheme, the games in `Security.lean` and `SecurityBySource.lean`, and the theorem in [`Theorems/StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean).
 
 ## Build
 

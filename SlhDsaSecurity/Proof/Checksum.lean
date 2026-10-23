@@ -33,10 +33,4 @@ theorem chainVerificationCalls_bounds (digits : MessageDigits) :
   have h := checksum_le digits
   omega
 
-/-- Both endpoints occur for actual message encodings. -/
-theorem chainVerificationCalls_extremes :
-    chainVerificationCalls (messageDigit (0 : Digest)) = 510 ∧
-      chainVerificationCalls (messageDigit (BitVec.ofNat (8 * n) (2 ^ (8 * n) - 1))) = 45 := by
-  decide +kernel
-
 end SlhDsaSecurity.Checksum

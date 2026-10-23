@@ -70,29 +70,6 @@ def CoveredAt (pk : PublicKey) (cache : QueryCache HashSpec) (target : Bytes)
       (MessageDigest.parse otherAnswer).1 = (MessageDigest.parse answer).1 ∧
       (MessageDigest.parse otherAnswer).2 tree = (MessageDigest.parse answer).2 tree
 
-/-- **The coverage event.** Some message-class cached digest is covered by the others. -/
-def CacheCovered (pk : PublicKey) (result : (Outcome × Nat) × QueryCache HashSpec) : Prop :=
-  ∃ (target : Bytes) (answer : HashOutput),
-    CombinedCharge.IsMessageInput pk target ∧ result.2 target = some answer ∧
-      CoveredAt pk result.2 target answer
-
-/-- **The coverage event at the forgery's own digest.** The `H_msg` input the verifier reads
-for this forgery is cached, and the digest it holds is covered by the digests of the other
-message-class inputs. -/
-def ForgeryCovered (pk : PublicKey) (result : (Outcome × Nat) × QueryCache HashSpec) : Prop :=
-  ∃ (message : Bytes) (parsed : Signature) (answer : HashOutput),
-    result.1.1.forgery.message.frame = some message ∧
-      Signature.fromBytes? result.1.1.forgery.signature = some parsed ∧
-        result.2 (Hashing.messageInput parsed.randomizer pk message) = some answer ∧
-          CoveredAt pk result.2 (Hashing.messageInput parsed.randomizer pk message) answer
-
-/-- The forgery's own digest being covered is a case of some digest being covered. -/
-theorem cacheCovered_of_forgeryCovered (pk : PublicKey)
-    (result : (Outcome × Nat) × QueryCache HashSpec) (hcovered : ForgeryCovered pk result) :
-    CacheCovered pk result := by
-  obtain ⟨message, parsed, answer, -, -, hentry, hcovered⟩ := hcovered
-  exact ⟨_, answer, ⟨parsed.randomizer, message, rfl⟩, hentry, hcovered⟩
-
 /-! ## The coordinates are the game's
 
 `CoveredAt` names a FORS position by the parsed digest's instance and its leaf at one tree.
@@ -133,18 +110,6 @@ theorem parse_instance_eq_iff (left right : HashOutput) :
   · rintro ⟨htree, hleaf⟩
     simp [MessageDigest.parse, htree, hleaf]
 
-/-- Digests with the same parsed instance select the same FORS key pair, so the honest FORS
-secrets they open are the secrets of one and the same tree. -/
-theorem forsAddress_eq_of_parse_instance_eq (left right : HashOutput)
-    (hinstance : (MessageDigest.parse left).1 = (MessageDigest.parse right).1) :
-    Scheme.forsAddress left = Scheme.forsAddress right := by
-  obtain ⟨htree, hleaf⟩ := (parse_instance_eq_iff left right).mp hinstance
-  rw [Scheme.forsAddress, Scheme.forsAddress, htree, hleaf]
-
-/-- The parsed leaves are the fourteen FORS digits the extraction reads. -/
-theorem parse_leaves_eq (output : HashOutput) :
-    (MessageDigest.parse output).2 = MessageDigest.forsIndices output := rfl
-
 /-! ## No message input predates the tail
 
 The walk programs the canonical graph and nothing else, and a canonical input is a tweakable
@@ -170,73 +135,6 @@ Every message-class answer in the tail's final cache was drawn during the tail, 
 recording with its own input beside it. A covering witness stated at the cache therefore
 becomes a covering witness stated at the recording, which is what the tape charges. -/
 
-/-- **The recording witnesses the coverage.** -/
-theorem recordCovered_of_cacheCovered (adversary : Adversary) (pk : PublicKey)
-    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
-    (hbounds : ∀ parent : StructuralNode, HashSeparation.WithinBounds parent.address)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk)
-    {result : ((Outcome × Nat) × DigestTape.RecordState)}
-    (hmem : result ∈ support (DigestTape.recordedRun (CombinedCharge.IsMessageInput pk)
-      (countAllHashes (afterSeeds adversary walk.1.1)) walk.2))
-    (hcovered : CacheCovered pk (result.1, result.2.1)) :
-    DigestTape.RecordCovered result.2.2 := by
-  obtain ⟨target, answer, htargetClass, htargetEntry, hcovered⟩ := hcovered
-  have hrun : result ∈ support ((simulateQ
-      (DigestTape.recorder (CombinedCharge.IsMessageInput pk))
-        (countAllHashes (afterSeeds adversary walk.1.1))).run (walk.2, [])) := hmem
-  have hrecorded : ∀ (input : Bytes) (value : HashOutput),
-      CombinedCharge.IsMessageInput pk input → result.2.1 input = some value →
-        (input, value) ∈ result.2.2 := by
-    intro input value hclass hentry
-    exact DigestTape.mem_record_of_cache (CombinedCharge.IsMessageInput pk)
-      (countAllHashes (afterSeeds adversary walk.1.1)) (walk.2, []) result hrun input value
-      hclass (walk_cache_fresh pk hpublic hbounds hwalk input hclass) hentry
-  refine DigestTape.recordCovered_of_witnesses result.2.2 target answer
-    (hrecorded target answer htargetClass htargetEntry) fun tree => ?_
-  obtain ⟨other, otherAnswer, hne, hclass, hentry, hinstance, hleaf⟩ := hcovered tree
-  exact ⟨(other, otherAnswer), hrecorded other otherAnswer hclass hentry, hne,
-    hinstance, hleaf⟩
-
 /-! ## The charge -/
-
-/-- **The FORS coverage term at the warmed tail.** With the message-class growth of the tail
-bounded by `qm`, the probability that some message-class digest in the tail's final cache is
-covered by the others is at most `1 / 2 ^ 141 + qm / 2 ^ 128` — one unit of `2 ^ -128` per
-message-class query, which is what the budget allows the coverage clause. -/
-theorem prob_cacheCovered_tail_le (adversary : Adversary) (pk : PublicKey) (qm : Nat)
-    (hqm : qm ≤ 5 * 2 ^ 62)
-    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
-    (hbounds : ∀ parent : StructuralNode, HashSeparation.WithinBounds parent.address)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk)
-    (hclass : ∀ result ∈ support (tail adversary walk),
-      ClassCharge.GrowthAtMostOn (CombinedCharge.IsMessageInput pk) walk.2 result.2 qm) :
-    Pr[CacheCovered pk | tail adversary walk] ≤
-      (1 : ℝ≥0∞) / 2 ^ 141 + (qm : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  rw [tail]
-  refine DigestTape.prob_romEvent_le (CombinedCharge.IsMessageInput pk)
-    (countAllHashes (afterSeeds adversary walk.1.1)) walk.2 qm hqm (CacheCovered pk)
-    fun result hmem hcovered => ⟨?_, ?_⟩
-  · refine hclass (result.1, result.2.1) ?_
-    rw [tail]
-    exact DigestTape.mem_support_rom (CombinedCharge.IsMessageInput pk)
-      (countAllHashes (afterSeeds adversary walk.1.1)) (walk.2, []) result hmem
-  · exact recordCovered_of_cacheCovered adversary pk hpublic hbounds hwalk hmem hcovered
-
-/-- **The coverage term at the forgery's own digest.** -/
-theorem prob_coverage_tail_le (adversary : Adversary) (pk : PublicKey) (qm : Nat)
-    (hqm : qm ≤ 5 * 2 ^ 62)
-    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
-    (hbounds : ∀ parent : StructuralNode, HashSeparation.WithinBounds parent.address)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk)
-    (hclass : ∀ result ∈ support (tail adversary walk),
-      ClassCharge.GrowthAtMostOn (CombinedCharge.IsMessageInput pk) walk.2 result.2 qm) :
-    Pr[ForgeryCovered pk | tail adversary walk] ≤
-      (1 : ℝ≥0∞) / 2 ^ 141 + (qm : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-  le_trans (probEvent_mono fun result _ hcovered =>
-      cacheCovered_of_forgeryCovered pk result hcovered)
-    (prob_cacheCovered_tail_le adversary pk qm hqm hpublic hbounds hwalk hclass)
 
 end SlhDsaSecurity.CoverageTail

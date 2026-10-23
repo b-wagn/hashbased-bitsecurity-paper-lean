@@ -60,17 +60,6 @@ noncomputable def answerCarrierRun
     ProbComp ((Outcome × Nat) × SplitPrefix.SplitState) :=
   AnswerShape.forgetRecord <$> CarrierTail.carrierTail rightKeep adversary walk
 
-/-- **It is the run the presentation move asks for**, definitionally, so a bound stated at this
-name discharges the obligation through `CarrierTail.answerChargedLate_carrier_of_bound` with no
-adapter between them. -/
-theorem answerCarrierRun_eq
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec)) :
-    answerCarrierRun rightKeep adversary walk =
-      AnswerShape.forgetRecord <$> CarrierTail.carrierTail rightKeep adversary walk := rfl
-
 /-! ## The target test at the carrier, and the clause that keeps the signer's probe out
 
 `CarrierTail` leaves `rightKeep` a parameter, so the test the target recording is filed under is
@@ -105,32 +94,6 @@ def FilesRandomiser (prfSeed : Digest) (pk : PublicKey) (state : HandlerCarrier.
   ∃ framed : Bytes, state.framing = some framed ∧
     input = Hashing.randomizerInput prfSeed pk.seed framed
 
-/-- **It is false whenever no request is in flight**, which is every adversary query: the flag is
-down at every boundary, so nothing the adversary asks is excluded by this clause. -/
-theorem not_filesRandomiser_of_clear (prfSeed : Digest) (pk : PublicKey)
-    (state : HandlerCarrier.State) (hclear : state.framing = none) (input : Bytes) :
-    ¬ FilesRandomiser prfSeed pk state input := by
-  rintro ⟨framed, hframing, -⟩
-  rw [hclear] at hframing
-  exact absurd hframing (by simp)
-
-/-- **And it is true at the probe itself**, so the signer's own `PRF_msg` query fails the target
-test at the state it is made from. This is the clause's whole job. -/
-theorem filesRandomiser_probe (prfSeed : Digest) (pk : PublicKey)
-    (state : HandlerCarrier.State) (framed : Bytes) (hframing : state.framing = some framed) :
-    FilesRandomiser prfSeed pk state (Hashing.randomizerInput prfSeed pk.seed framed) :=
-  ⟨framed, hframing, rfl⟩
-
-/-- **The clause is a weakening of the syntactic one**, not a different test: an input the flag
-calls the randomiser probe is a `PRF_msg` input at the real seed, so `¬ PrfClass` implies
-`¬ FilesRandomiser` and the new target test keeps everything the old one kept, and more. -/
-theorem filesRandomiser_prfClass (prfSeed : Digest) (pk : PublicKey)
-    (state : HandlerCarrier.State) (input : Bytes)
-    (hfiles : FilesRandomiser prfSeed pk state input) :
-    RandomizerGate.PrfClass prfSeed input := by
-  obtain ⟨framed, -, hinput⟩ := hfiles
-  exact ⟨pk.seed, framed, hinput⟩
-
 /-- **The target test at the carrier.** The message class, less the probe for the frame in
 flight, less whatever the flag is already filing on the left. -/
 def carrierRightKeep
@@ -153,20 +116,6 @@ theorem carrierRightKeep_class
     CombinedCharge.IsMessageInput
       (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input :=
   hkeep.1.1
-
-/-- **The signer's own randomiser probe is not target-kept**, at the state it is made from. With
-`HandlerCarrier.not_filesLeft_randomizerInput` saying it is not left-kept either, it is filed on
-neither side — which is what `LateProvenance.hrecord` needs and what `¬ PrfClass` used to buy by
-syntax. -/
-theorem not_carrierRightKeep_randomizerInput
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (state : HandlerCarrier.State) (framed : Bytes)
-    (hframing : state.framing = some framed) :
-    ¬ carrierRightKeep walk
-      (Hashing.randomizerInput walk.1.1.2.1
-        (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2).seed framed)
-      state :=
-  fun hkeep => hkeep.1.2 (filesRandomiser_probe walk.1.1.2.1 _ state framed hframing)
 
 /-! ## The clause buys nothing at the target, and `hsplit` is where that surfaces
 
@@ -193,57 +142,6 @@ the same discipline `SplitWitness.Served` already keeps between its two tests �
 read at the state a query is made from — and `RecorderView` knows that state. Until such a form
 exists, the carrier route owes the same seed charge the cache route does, and
 `AnswerCarrier.answerBound_of_charges`' `hsplit` is where the demand will appear. -/
-
-/-- **The leftover defeats the carrier's target test too.** If the forgery's published randomiser
-is `SK.prf` then `Served.NarrowTarget` fails at this class, because the demand ranges over every
-view at which the input is uncached and one of those has the framing set to the forgery's own
-frame. -/
-theorem not_narrowTarget_of_forgerySeedRandomised
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (result : (Outcome × Nat) × RecorderView.StateOf HandlerCarrier.State)
-    (hforgery : AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-      (result.1, RecorderView.CacheView.cacheOf result.2.1)) :
-    ¬ SplitWitness.Served.NarrowTarget
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-      (fun input state => CombinedCharge.IsMessageInput
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input ∧
-        ¬ FilesRandomiser walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) state input)
-      result := by
-  classical
-  obtain ⟨message, parsed, hframe, hparsed, seed, framed, hinput⟩ := hforgery
-  obtain ⟨-, hseed, -⟩ := Hashing.randomizerInput_injective
-    ((FramingLeak.randomizerInput_eq_messageInput parsed.randomizer _ message).trans hinput)
-  subst hseed
-  intro hnarrow
-  have hview := hnarrow message parsed
-    (HandlerCarrier.setFraming HandlerCarrier.empty framed) hframe hparsed
-    (by
-      show HandlerCarrier.cacheOf (HandlerCarrier.setFraming HandlerCarrier.empty framed) _ = none
-      simp [HandlerCarrier.cacheOf, HandlerCarrier.empty])
-  exact hview.2 ⟨framed, rfl, hinput⟩
-
-/-- **And off the leftover it holds**, by `filesRandomiser_prfClass` at whatever view is offered.
-With the theorem above this is an equivalence, which is the whole content: the carrier's class
-asks for exactly what the cache's did. -/
-theorem narrowTarget_of_not_forgerySeedRandomised
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (result : (Outcome × Nat) × RecorderView.StateOf HandlerCarrier.State)
-    (hforgery : ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-      (result.1, RecorderView.CacheView.cacheOf result.2.1)) :
-    SplitWitness.Served.NarrowTarget
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-      (fun input state => CombinedCharge.IsMessageInput
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input ∧
-        ¬ FilesRandomiser walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) state input)
-      result :=
-  fun message parsed view hframe hparsed _ =>
-    ⟨⟨parsed.randomizer, message, rfl⟩, fun hfiles =>
-      hforgery ⟨message, parsed, hframe, hparsed,
-        filesRandomiser_prfClass walk.1.1.2.1 _ view _ hfiles⟩⟩
 
 /-! ## And what it is worth once the demand is read where it is used
 
@@ -272,32 +170,6 @@ So on this route the leftover is needed in **one** place rather than at every vi
 `seedUnits := 0` is earned only once that place is closed. `narrowTargetAt_clear` below is free
 and is the right shape; what it does not do is discharge the demand inside a sub-run. -/
 
-/-- **The clear framing survives the recorder's one move**, so it is a legitimate `reaches`. -/
-theorem clearFraming_cacheAnswer (state : HandlerCarrier.State) (probe : Bytes)
-    (answer : HashOutput) (hclear : state.framing = none) :
-    (RecorderView.CacheView.update state probe answer).framing = none := by
-  show (HandlerCarrier.cacheAnswer state probe answer).framing = none
-  rw [HandlerCarrier.framing_cacheAnswer]
-  exact hclear
-
-/-- **At views with no request in flight the carrier's target demand is free.** No hypothesis,
-no charge, and in particular no `ForgerySeedRandomised`: the clause that
-`not_narrowTarget_of_forgerySeedRandomised` refuted at an arbitrary view is vacuous at every
-view the recorder is actually run at. -/
-theorem narrowTargetAt_clear
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (result : (Outcome × Nat) × RecorderView.StateOf HandlerCarrier.State) :
-    SplitWitness.Served.NarrowTargetAt
-      (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-      (fun input state => CombinedCharge.IsMessageInput
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) input ∧
-        ¬ FilesRandomiser walk.1.1.2.1
-          (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) state input)
-      (fun state => state.framing = none) result :=
-  fun message parsed view _ _ hclear _ =>
-    ⟨⟨parsed.randomizer, message, rfl⟩,
-      not_filesRandomiser_of_clear walk.1.1.2.1 _ view hclear _⟩
-
 /-! ## The answer half's bound at this run, from three charges and a split
 
 This is the composition side, and it is finished: given the two charges and the fact that their
@@ -320,42 +192,6 @@ shape appearing:
 adds two expectations and a constant and contains no tail bound; the margin lives entirely in
 whatever proves `hcoverage`. -/
 
-open scoped ENNReal in
-/-- **The answer half's bound at the carrier's run.** -/
-theorem answerBound_of_charges
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (structuralBad coverageBad : ((Outcome × Nat) × SplitPrefix.SplitState) → Prop)
-    (outsideCount insideCount : ((Outcome × Nat) × SplitPrefix.SplitState) → Nat)
-    (budget : Nat)
-    (hsplit : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
-        structuralBad result ∨ coverageBad result)
-    (hstructural : Pr[structuralBad | answerCarrierRun rightKeep adversary walk] ≤
-      ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) outsideCount /
-        ((2 ^ 128 : Nat) : ENNReal))
-    (hcoverage : Pr[coverageBad | answerCarrierRun rightKeep adversary walk] ≤
-      (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) +
-        ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) insideCount /
-          ((2 ^ 128 : Nat) : ENNReal))
-    (hshare : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      outsideCount result + insideCount result ≤ budget) :
-    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-        RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-      answerCarrierRun rightKeep adversary walk] ≤
-      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
-        (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) :=
-  le_trans (probEvent_mono hsplit)
-    (CoverageCount.prob_bad_or_coverage_le_of_two_charges
-      (answerCarrierRun rightKeep adversary walk) structuralBad coverageBad _
-      outsideCount insideCount budget hstructural hcoverage hshare)
-
 /-! ## `hcoverage` at this run
 
 `CarrierCoverage.prob_carrierTail_targetCovered_le` charges `BlockViews.TargetCovered` at
@@ -367,33 +203,6 @@ theorem answerBound_of_charges
 That is what `AnswerShape.forgetRecord` was chosen for, and it is why the carrier's coverage
 charge did not have to be restated here: the one thing that would have broken it is a forgetting
 map that drops a recording, and this one does not. -/
-
-open scoped Classical in
-/-- **The coverage charge at the run the answer side owes its bound at.** -/
-theorem prob_targetCovered_answerCarrierRun_le
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
-    (hleftBound : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
-      result.2.2.1.length ≤ leftLength)
-    (hrightBound : ∀ result ∈ support (CarrierTail.carrierTail rightKeep adversary walk),
-      result.2.2.2.length ≤ rightLength) :
-    Pr[BlockViews.TargetCovered | answerCarrierRun rightKeep adversary walk] ≤
-      (1 : ENNReal) / 2 ^ 141 +
-        ClassExpectation.expected (answerCarrierRun rightKeep adversary walk)
-          (fun result => result.2.2.2.length) / ((2 ^ 128 : Nat) : ENNReal) := by
-  classical
-  have hcount : ClassExpectation.expected (answerCarrierRun rightKeep adversary walk)
-      (fun result => result.2.2.2.length) =
-      ∑' result, Pr[= result | CarrierTail.carrierTail rightKeep adversary walk] *
-        ((result.2.2.2.length : Nat) : ENNReal) := by
-    rw [answerCarrierRun, ClassExpectation.expected]
-    exact BlockViews.tsum_probOutput_map _ AnswerShape.forgetRecord _
-  rw [hcount, answerCarrierRun, probEvent_map]
-  exact CarrierCoverage.prob_carrierTail_targetCovered_le rightKeep adversary walk
-    leftLength rightLength hcap hleftBound hrightBound
 
 /-! ## The same with the leftover excluded, which is the form this route can actually use
 
@@ -413,48 +222,6 @@ the nose, with `budget := q` giving `q / 2 ^ 128 + Target.answerDefectProved` ex
 through a weakening. The leftover then leaves the answer half the way it left the cache half —
 conjoined to the event and charged on the shared side at `seedUnits`, where
 `CarrierShared.sharedChargedLate_at` already takes it. -/
-
-open scoped ENNReal in
-/-- **The answer half's bound at the carrier's run, with the narrowing's leftover excluded.** -/
-theorem answerBoundSeed_of_charges
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (structuralBad coverageBad : ((Outcome × Nat) × SplitPrefix.SplitState) → Prop)
-    (outsideCount insideCount : ((Outcome × Nat) × SplitPrefix.SplitState) → Nat)
-    (budget : Nat)
-    (hsplit : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
-        structuralBad result ∨ coverageBad result)
-    (hstructural : Pr[structuralBad | answerCarrierRun rightKeep adversary walk] ≤
-      ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) outsideCount /
-        ((2 ^ 128 : Nat) : ENNReal))
-    (hcoverage : Pr[coverageBad | answerCarrierRun rightKeep adversary walk] ≤
-      (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) +
-        ClassExpectation.expected (answerCarrierRun rightKeep adversary walk) insideCount /
-          ((2 ^ 128 : Nat) : ENNReal))
-    (hshare : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      outsideCount result + insideCount result ≤ budget) :
-    Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-        RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-      answerCarrierRun rightKeep adversary walk] ≤
-      ((budget : Nat) : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
-        (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal) :=
-  le_trans (probEvent_mono hsplit)
-    (CoverageCount.prob_bad_or_coverage_le_of_two_charges
-      (answerCarrierRun rightKeep adversary walk) structuralBad coverageBad _
-      outsideCount insideCount budget hstructural hcoverage hshare)
 
 /-! ## `hsplit` at this run
 
@@ -482,48 +249,12 @@ shape — so the hypothesis carries it rather than leaving it to be discovered.
 the exceptional runs are in the support; `answerBoundSeed_of_charges` takes this shape and costs
 nothing for it. -/
 
-/-- **Forgetting twice is forgetting once.** The carrier tail drops its recordings to the
-recorded tail and the recorded tail drops its record to the game's tail; composed, that is one
-map out of this run.
-
-Stated as an equality of *computations*, because the only thing to be compared is the two
-forgetting **functions** — `congrArg` isolates them and the three stages are never unfolded. -/
-theorem map_answerCarrierRun_eq_tail
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec)) :
-    (fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) <$>
-        answerCarrierRun rightKeep adversary walk = WarmedGame.tail adversary walk := by
-  rw [answerCarrierRun, Functor.map_map, RecordedTail.tail_eq_map_recordedTail,
-    ← CarrierTail.forget_carrierTail rightKeep adversary walk, Functor.map_map]
-  exact congrArg (fun f => f <$> CarrierTail.carrierTail rightKeep adversary walk) rfl
-
 /-! `map_answerCarrierRun_eq_tail` is the only thing that has to see through this run into the
 three stages, and it is proved. Everything after it may treat the run as opaque — and must, or
 the unifier walks into `carrierTail` at every membership and finishes at no number of heartbeats.
 This is the side of the `irreducible` judgement where it is right: nothing below has to match two
 runs against each other. -/
 attribute [local irreducible] answerCarrierRun
-
-open scoped Classical in
-/-- **A supported result of this run is a supported result of the game's tail.** -/
-theorem mem_support_tail_of_answerCarrierRun
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (result : (Outcome × Nat) × SplitPrefix.SplitState)
-    (hmem : result ∈ support (answerCarrierRun rightKeep adversary walk)) :
-    (result.1, result.2.1) ∈ support (WarmedGame.tail adversary walk) := by
-  classical
-  have hmapped : ((fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) result) ∈
-      support ((fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) <$>
-        answerCarrierRun rightKeep adversary walk) := by
-    rw [support_map]
-    exact Set.mem_image_of_mem
-      (fun r : (Outcome × Nat) × SplitPrefix.SplitState => (r.1, r.2.1)) hmem
-  rwa [map_answerCarrierRun_eq_tail rightKeep adversary walk] at hmapped
 
 /-! ## The join, with a residue the ledger carries
 
@@ -535,85 +266,5 @@ that is where such a thing belongs.
 
 So the law below takes the join with an extra disjunct and carries it through.
 `hsplit_of_join` is its instance at the empty residue, unchanged in name, statement and use. -/
-
-set_option maxHeartbeats 4000000 in
-open scoped Classical in
-/-- **`hsplit` at the carrier's run, with a residue carried.** -/
-theorem hsplit_of_join_extra
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (extra : (Outcome × Nat) × SplitPrefix.SplitState → Prop)
-    (hjoin : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      Target.GoodWalk walk →
-        ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) →
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
-            CoverageRouted.ForgeryDisclosedCovered
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-                (result.1, result.2.1) →
-              BlockViews.TargetCovered result ∨ extra result) :
-    ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
-        GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
-            (result.1, result.2.1) ∨
-          BlockViews.TargetCovered result ∨ extra result := by
-  classical
-  rintro result hmem ⟨hbad, hseed, hlate⟩
-  rw [RoutedSplit.AnswerBad, RoutedSplit.keyOf,
-    AnswerSide.generatedKey_eq_walk adversary hwalk
-      (mem_support_tail_of_answerCarrierRun rightKeep adversary walk result hmem)] at hbad
-  rcases hbad with ⟨candidates, parent, output, hdeviates, hentry, hcollision⟩ | hcovered
-  · exact Or.inl (CanonicalTarget.hit_of_deviating_collision walk.1.1.2.2 walk.1.2 candidates
-      parent (result.1, result.2.1) output hdeviates hentry hcollision)
-  · exact Or.inr (hjoin result hmem hgood hseed hlate hcovered)
-
-set_option maxHeartbeats 4000000 in
-open scoped Classical in
-/-- **`hsplit` at the carrier's run**, in the shape `answerBoundSeed_of_charges` consumes. -/
-theorem hsplit_of_join
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (adversary : Adversary)
-    (walk : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec))
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk)
-    (hjoin : ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      Target.GoodWalk walk →
-        ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) →
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
-            CoverageRouted.ForgeryDisclosedCovered
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-                (result.1, result.2.1) →
-              BlockViews.TargetCovered result) :
-    ∀ result ∈ support (answerCarrierRun rightKeep adversary walk),
-      RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-          ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) ∧
-          ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result →
-        GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
-            (result.1, result.2.1) ∨
-          BlockViews.TargetCovered result := by
-  classical
-  intro result hmem hbad
-  rcases hsplit_of_join_extra rightKeep adversary walk hwalk hgood (fun _ => False)
-    (fun r hr hg hs hl hc => Or.inl (hjoin r hr hg hs hl hc)) result hmem hbad with
-    hleft | hright | hfalse
-  · exact Or.inl hleft
-  · exact Or.inr hright
-  · exact absurd hfalse not_false
 
 end SlhDsaSecurity.AnswerCarrier

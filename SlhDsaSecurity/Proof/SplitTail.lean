@@ -157,24 +157,6 @@ theorem map_splitCarrierTail (inClass : Bytes → Prop) {inside outside : QueryK
   rw [split_last_stage_bind inClass hne rightKeep walk keys.1.2 middle.1 middle.2.2.2]
   simp only [bind_assoc, pure_bind]
 
-/-- **The value's work count is the two slots added.** By construction, which is the point: the
-budget hypothesis the tail already carries is `hshare` with nothing in between. -/
-theorem splitCarrierTail_work (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk) :
-    ∀ result ∈ support (splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.1.2 = result.2 inside + result.2 outside := by
-  intro result hresult
-  rw [splitCarrierTail, mem_support_bind_iff] at hresult
-  obtain ⟨keys, -, hresult⟩ := hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨middle, -, hresult⟩ := hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨final, -, hresult⟩ := hresult
-  rw [support_pure, Set.mem_singleton_iff] at hresult
-  rw [hresult]
-  rfl
-
 /-! ## The coverage charge, for free
 
 This is the claim the whole arrangement was for. The coverage charge was proved at
@@ -185,58 +167,6 @@ spent — `probEvent_map` and `ClassExpectation.expected_map` are identities.
 Had the split been put *into* `BracketedRun.CountedState` instead, this charge would have had to
 be reproved at the widened tail. That is the cost the layering avoids, and this theorem is where
 it would have been paid. -/
-
-set_option maxHeartbeats 2000000 in
-open scoped Classical in
-/-- **The coverage charge at the split tail**, as the image of the one at the tail. -/
-theorem prob_splitCarrierTail_targetCovered_le (inClass : Bytes → Prop)
-    {inside outside : QueryKind} (hne : inside ≠ outside)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    (adversary : Adversary) (walk : Walk)
-    (leftLength rightLength : Nat) (hcap : leftLength ≤ 5 * 2 ^ 62)
-    (hleftBound : ∀ result ∈ support
-      (splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.1.length ≤ leftLength)
-    (hrightBound : ∀ result ∈ support
-      (splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.2.length ≤ rightLength) :
-    Pr[fun result => BlockViews.TargetCovered result.1 |
-        splitCarrierTail inClass inside outside rightKeep adversary walk] ≤
-      (1 : ℝ≥0∞) / 2 ^ 141 +
-        ClassExpectation.expected
-            (splitCarrierTail inClass inside outside rightKeep adversary walk)
-            (fun result => result.1.2.2.2.length) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  have hmap := map_splitCarrierTail inClass hne rightKeep adversary walk
-  have htransport : ∀ (bound : Nat)
-      (length : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState → Nat),
-      (∀ result ∈ support (splitCarrierTail inClass inside outside rightKeep adversary walk),
-        length result.1 ≤ bound) →
-      ∀ result ∈ support (carrierTail rightKeep adversary walk), length result ≤ bound := by
-    intro bound length hbound result hresult
-    rw [← hmap, support_map] at hresult
-    obtain ⟨rich, hrich, hshape⟩ := hresult
-    rw [← hshape]
-    exact hbound rich hrich
-  have hevent : Pr[fun result => BlockViews.TargetCovered result.1 |
-        splitCarrierTail inClass inside outside rightKeep adversary walk] =
-      Pr[fun result => BlockViews.TargetCovered result |
-        carrierTail rightKeep adversary walk] := by
-    rw [← hmap, probEvent_map]
-    rfl
-  have hexpected : ClassExpectation.expected
-        (splitCarrierTail inClass inside outside rightKeep adversary walk)
-        (fun result => result.1.2.2.2.length) =
-      ∑' result, Pr[= result | carrierTail rightKeep adversary walk] *
-        ((result.2.2.2.length : Nat) : ℝ≥0∞) := by
-    rw [← ClassExpectation.expected_map
-      (splitCarrierTail inClass inside outside rightKeep adversary walk) Prod.fst
-        (fun result => result.2.2.2.length), hmap, ClassExpectation.expected]
-  rw [hevent, hexpected]
-  exact CarrierCoverage.prob_carrierTail_targetCovered_le rightKeep adversary walk
-    leftLength rightLength hcap
-    (htransport leftLength (fun result => result.2.2.1.length) hleftBound)
-    (htransport rightLength (fun result => result.2.2.2.length) hrightBound)
 
 /-! ## `hshare`, discharged end to end
 
@@ -253,89 +183,5 @@ recordings are empty and the counter is zero — so the relation collapses to th
 record bounds as hypotheses, because those are caps on the *lengths* and belong to the
 factorisation; what is no longer assumed is the one `hshare` needs, that the target recording
 sits inside the inside slot. -/
-
-/-- **A bracketed phase tracks.** -/
-theorem phase_tracksInside (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input)
-    (inner : QueryImpl (OracleWorld + SigningSpec)
-      (WriterT (Multiplicative Tally) (StateT SigningLog (OracleComp OracleWorld))))
-    {α : Type} (computation : OracleComp (OracleWorld + SigningSpec) α)
-    (accumulated : Multiplicative Tally) (log : SigningLog)
-    (carrier : HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts))
-    (result : α × (Multiplicative Tally × SigningLog × (HandlerCarrier.State ×
-      ((DigestTape.Record × DigestTape.Record) × Counts))))
-    (hresult : result ∈ support ((simulateQ
-      (fuseServing (splitHandlerAt inClass inside outside rightKeep walk) inner
-        ServedAgreement.startServingOn ServedAgreement.stopServingOn) computation).run
-      (accumulated, log, carrier))) :
-    Tracks inside carrier result.2.2.2 :=
-  RecordInvariant.phase_invariant (Inv := Tracks inside carrier) _ inner
-    ServedAgreement.startServingOn ServedAgreement.stopServingOn
-    (fun queried state step hstep hinv => hinv.trans
-      (step_tracksInside (keyAt walk) inClass inside outside (rightKeep walk) hrightClass
-        queried state step hstep))
-    (fun request state hinv => by
-      rw [ServedAgreement.startServingOn]
-      cases request.frame with
-      | none => exact hinv
-      | some framed => exact hinv)
-    (fun _ hinv => hinv)
-    computation accumulated log carrier result hresult (Tracks.refl inside carrier)
-
-set_option maxHeartbeats 1000000 in
-/-- **The target recording is inside the inside slot, at the tail.** Three stages composed, and
-the start is empty. -/
-theorem splitCarrierTail_rightRecord_le_inside (inClass : Bytes → Prop)
-    (inside outside : QueryKind)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input) :
-    ∀ result ∈ support (splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.2.length ≤ result.2 inside := by
-  intro result hresult
-  rw [splitCarrierTail, mem_support_bind_iff] at hresult
-  obtain ⟨keys, hkeys, hresult⟩ := hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨middle, hmiddle, hresult⟩ := hresult
-  rw [mem_support_bind_iff] at hresult
-  obtain ⟨final, hfinal, hresult⟩ := hresult
-  rw [support_pure, Set.mem_singleton_iff] at hresult
-  have hfirst := run_tracksInside (keyAt walk) inClass inside outside (rightKeep walk)
-    hrightClass _ (startAt walk.2, (([], []), 0)) keys hkeys
-  have hsecond := phase_tracksInside inClass inside outside rightKeep walk hrightClass
-    (recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1.1)) _ 1 [] keys.2 middle
-    hmiddle
-  have hthird := run_tracksInside (keyAt walk) inClass inside outside (rightKeep walk)
-    hrightClass _ middle.2.2.2 final hfinal
-  have hchain := (hfirst.trans hsecond).trans hthird
-  rw [Tracks, show ((startAt walk.2, (([], []), (0 : Counts))) :
-      HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts)).2.1.2.length
-      = 0 from rfl,
-    show ((startAt walk.2, (([], []), (0 : Counts))) :
-      HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts)).2.2 inside
-      = 0 from rfl] at hchain
-  rw [hresult]
-  show List.length final.2.2.1.2 ≤ final.2.2.2 inside
-  omega
-
-set_option maxHeartbeats 1000000 in
-/-- **`hshare` at the tail.** The coverage charge's count and the structural charge's count sit
-inside the tail's own work count, with nothing assumed. -/
-theorem splitCarrierTail_share (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (adversary : Adversary)
-    (walk : Walk)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input) :
-    ∀ result ∈ support (splitCarrierTail inClass inside outside rightKeep adversary walk),
-      result.1.2.2.2.length + result.2 outside ≤ result.1.1.2 := by
-  intro result hresult
-  have hinside := splitCarrierTail_rightRecord_le_inside inClass inside outside rightKeep
-    adversary walk hrightClass result hresult
-  have hwork := splitCarrierTail_work inClass inside outside rightKeep adversary walk result
-    hresult
-  omega
 
 end SlhDsaSecurity.SplitTail

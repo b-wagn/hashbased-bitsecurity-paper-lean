@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.ForsDisclosureTape
-import SlhDsaSecurity.Proof.ForsLeaveOneOut
+import SlhDsaSecurity.Proof.ForsAdaptiveTargets
+import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 
 /-! A smaller load cap improves fresh-target coverage to 2^-129, at a larger tail cost. -/
 
@@ -127,23 +128,5 @@ end SlhDsaSecurity.ForsDisclosureTape
 namespace SlhDsaSecurity.ForsLeaveOneOut
 
 open ForsAdaptiveTargets
-
-/-- The smaller cap halves the coefficient of selected queries in the same
-leave-one-out experiment. The exceptional load event is still charged once. -/
-theorem independent_tape_coverage_le_sharper (trials : Nat)
-    (htrials : trials ≤ 5 * 2 ^ 62) (policy : Policy trials) :
-    Pr[fun tape => ∃ j, policy j (history tape j) = true ∧
-      ForsCoverage.Covered (ForsDisclosureTape.disclosuresExcept j tape) (tape j) |
-      ($ᵗ Tape trials : ProbComp (Tape trials))] ≤
-      (1 : ℝ≥0∞) / 2 ^ 126 + expectedUses policy / ((2 ^ 129 : Nat) : ℝ≥0∞) := by
-  have hmain := coverage_le_of_full_cap policy ForsDisclosureTape.disclosuresExcept
-    (fun tape => ∑ i, ForsDisclosureTape.loads tape i ^ 14 ≤ 2 ^ 102)
-    (1 / ((2 ^ 129 : Nat) : ℝ≥0∞)) ForsDisclosureTape.disclosuresExcept_update_self
-    (fun tape hgood j => ForsCoverage.fresh_coverage_le_sharper
-      (ForsDisclosureTape.disclosuresExcept j tape) (ForsDisclosureTape.loads tape)
-      (ForsDisclosureTape.disclosuresExcept_card_le_loads j tape) hgood)
-  have hbad := ForsDisclosureTape.bad_load_probability_sharper trials htrials
-  simp only [not_le] at hmain
-  exact hmain.trans (add_le_add hbad (by simp only [div_eq_mul_inv, one_mul]; exact le_rfl))
 
 end SlhDsaSecurity.ForsLeaveOneOut

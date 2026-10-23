@@ -100,10 +100,6 @@ def HasLimitedSecurityBits (notion : Notion) (Z : Finset Xmss.Unforgeability.Que
     (securityGame notion).HasQueryBound () Z adversary q →
     (securityGame notion).advantage () adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
 
-/-- **Every source but the signer**: requests, the adversary's hash calls, key generation's and
-final verification's. -/
-def allButSigner : Finset Xmss.Unforgeability.QueryKind := {.sign, .hash, .keygen, .verifier}
-
 /-- **The adversary's own work**: its signing requests, its own hash calls, and the verification
 of its forgery. The honest parties' hash calls — key generation's and the signer's — are free. -/
 def adversaryWork : Finset Xmss.Unforgeability.QueryKind := {.sign, .hash, .verifier}

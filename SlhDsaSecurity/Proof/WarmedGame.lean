@@ -177,17 +177,6 @@ theorem warmedRun_eq (adversary : Adversary) :
   rw [simulateQ_bind, StateT.run_bind]
   simp [tail, map_eq_bind_pure_comp, bind_assoc]
 
-/-- **A bound that holds after every walk holds for the warmed run.** -/
-theorem probEvent_le_of_tail (adversary : Adversary)
-    (event : (((Digest × Digest × Digest) × Cells) × (Outcome × Nat)) ×
-      QueryCache HashSpec → Prop) (bound : ℝ≥0∞)
-    (htail : ∀ walk ∈ support graphWalk,
-      Pr[fun result => event ((walk.1, result.1), result.2) | tail adversary walk] ≤ bound) :
-    Pr[event | warmedRun adversary] ≤ bound := by
-  rw [warmedRun_eq, probEvent_map]
-  exact Averaging.probEvent_bind_pair_le graphWalk (tail adversary)
-    (fun walk result => event ((walk.1, result.1), result.2)) bound htail
-
 /-! ## What the walk leaves
 
 The walk's whole purpose is the shape of what it leaves behind: a cell table that is some

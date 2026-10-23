@@ -313,9 +313,6 @@ theorem ex_map {β γ : Type} (mx : ProbComp β) (g : β → γ) (f : γ → ℝ
     ex (g <$> mx) f = ex mx (f ∘ g) :=
   tsum_probOutput_map_mul mx g f
 
-theorem ex_pure {β : Type} (x : β) (f : β → ℝ≥0∞) : ex (pure x : ProbComp β) f = f x :=
-  tsum_probOutput_pure_mul x f
-
 theorem ex_mono {β : Type} (mx : ProbComp β) {f g : β → ℝ≥0∞} (h : ∀ x, f x ≤ g x) :
     ex mx f ≤ ex mx g :=
   ENNReal.tsum_le_tsum fun x => mul_le_mul' le_rfl (h x)

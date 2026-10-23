@@ -158,30 +158,6 @@ theorem step_shape (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
 def Witnessed (setup : Setup) (state : St × Bool) : Prop :=
   state.2 = true → ¬ setup.Good ∨ ∃ entry ∈ state.1.record, Guess setup entry.2 entry.1
 
-theorem witnessed_step (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
-    (state : St × Bool) (hstate : Witnessed setup state)
-    (z : ShareSpec.Range queried × (St × Bool))
-    (hz : z ∈ support (((handler lenient setup) queried).run state)) : Witnessed setup z.2 := by
-  intro hflag
-  obtain ⟨inputs, hrecord, -, hraise⟩ := step_shape lenient setup queried state z hz
-  rcases hraise hflag with hold | hbad | ⟨input, hinput, hguess⟩
-  · rcases hstate hold with hbad | ⟨entry, hentry, hguess⟩
-    · exact Or.inl hbad
-    · exact Or.inr ⟨entry, by rw [hrecord]; exact List.mem_append_left _ hentry, hguess⟩
-  · exact Or.inl hbad
-  · exact Or.inr ⟨(input, state.1.served), hinput, hguess⟩
-
-/-- **A raised flag is witnessed by the record.** -/
-theorem flag_witness (lenient : Bool) (setup : Setup) {α : Type}
-    (computation : OracleComp ShareSpec α) (start : St)
-    (z : α × (St × Bool))
-    (hz : z ∈ support ((simulateQ (handler lenient setup) computation).run (start, false)))
-    (hflag : z.2.2 = true) :
-    ¬ setup.Good ∨ ∃ entry ∈ z.2.1.record, Guess setup entry.2 entry.1 :=
-  SignedWatch.run_invariant (handler lenient setup) (Witnessed setup)
-    (fun queried state hstate step hstep => witnessed_step lenient setup queried state hstate
-      step hstep) computation (start, false) (fun h => absurd h Bool.false_ne_true) z hz hflag
-
 /-! ## The record counts the cap's weight -/
 
 /-- The game's handler, read at the adversary's own oracles. -/
@@ -255,23 +231,6 @@ theorem record_claims (lenient : Bool) (setup : Setup) (forgery : Forgery) (stat
   simp only [handler, StateT.run, support_pure] at hz
   subst hz
   cases flag <;> simp [filed]
-
-open scoped Classical in
-/-- **The claims' growth, counted**: with the flag down, the record grows by exactly the
-candidates not already filed at the current digests — at most the candidates themselves; with
-the flag up, not at all. -/
-theorem length_claims (lenient : Bool) (setup : Setup) (forgery : Forgery) (state : St × Bool)
-    (z : Unit × (St × Bool))
-    (hz : z ∈ support (((handler lenient setup) (Sum.inr forgery)).run state)) :
-    (state.2 = false → z.2.1.record.length = state.1.record.length +
-      (claimsOf setup state.1 forgery).countP
-        (fun candidate => decide ((candidate, state.1.served) ∉ state.1.record)) ∧
-      z.2.1.record.length ≤ state.1.record.length + (claimsOf setup state.1 forgery).length) ∧
-    (state.2 = true → z.2.1.record.length = state.1.record.length) := by
-  obtain ⟨hdown, hup⟩ := record_claims lenient setup forgery state z hz
-  refine ⟨fun hflag => ?_, fun hflag => by rw [hup hflag]⟩
-  rw [hdown hflag, List.length_append, filed, List.length_map, length_unfiled]
-  exact ⟨rfl, Nat.add_le_add_left List.countP_le_length _⟩
 
 /-- **The record's length reports the cap's weight.** -/
 theorem reportsCost (lenient : Bool) (setup : Setup) :

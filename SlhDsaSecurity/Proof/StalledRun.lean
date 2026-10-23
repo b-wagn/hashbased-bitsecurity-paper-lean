@@ -144,7 +144,6 @@ theorem probEvent_flag_stalled_eq {γ : Type}
         probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
       exact tsum_congr fun z => congrArg _ (ih z.1 z.2)
 
-
 /-! ## Stalling preserves more than a flag
 
 The flag above is one instance of a general fact: stalling leaves alone the expectation of any
@@ -244,88 +243,11 @@ the stall has fired — once the cell is available, and availability only grows 
 no charge at all. The weight is **zero** on a frozen run rather than frozen, and both runs then
 contribute zero, which is the whole of the argument. -/
 
-/-- **A frozen run contributes nothing when nothing it can reach weighs anything.** -/
-theorem expectation_frozen_zero {γ : Type} (impl : QueryImpl spec (StateT (σ × Bool) ProbComp))
-    (Frozen : σ → Prop) (weight : γ × (σ × Bool) → ℝ≥0∞)
-    (hfrozen : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
-      ∀ z ∈ support ((impl t).run p), Frozen z.2.1)
-    (hzero : ∀ z : γ × (σ × Bool), Frozen z.2.1 → weight z = 0)
-    (oa : OracleComp spec γ) (p : σ × Bool) (hp : Frozen p.1) :
-    (∑' z : γ × (σ × Bool), Pr[= z | (simulateQ impl oa).run p] * weight z) = 0 := by
-  induction oa using OracleComp.inductionOn generalizing p with
-  | pure value =>
-    rw [simulateQ_pure, StateT.run_pure, tsum_probOutput_pure_mul, hzero (value, p) hp]
-  | query_bind t next ih =>
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, tsum_probOutput_bind_mul]
-    refine (tsum_congr fun y => ?_).trans tsum_zero
-    by_cases hmem : y ∈ support ((impl t).run p)
-    · rw [ih y.1 y.2 (hfrozen t p hp y hmem), mul_zero]
-    · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul]
-
-open scoped Classical in
-/-- **Stalling preserves the expectation of a quantity that vanishes once frozen.** The weight
-may read the run's value, which `expectation_stalled_eq` cannot allow: what replaces its
-quietness hypothesis is that both runs contribute zero after the stall, so there is nothing for
-the value to disagree about. -/
-theorem expectation_stalled_eq_of_zero {γ : Type}
-    (impl : QueryImpl spec (StateT (σ × Bool) ProbComp)) (Frozen : σ → Prop)
-    (stall : (t : spec.Domain) → spec.Range t) (weight : γ × (σ × Bool) → ℝ≥0∞)
-    (hfrozen : ∀ (t : spec.Domain) (p : σ × Bool), Frozen p.1 →
-      ∀ z ∈ support ((impl t).run p), Frozen z.2.1)
-    (hzero : ∀ z : γ × (σ × Bool), Frozen z.2.1 → weight z = 0)
-    (oa : OracleComp spec γ) (p : σ × Bool) :
-    (∑' z : γ × (σ × Bool), Pr[= z | (simulateQ impl oa).run p] * weight z) =
-      ∑' z : γ × (σ × Bool),
-        Pr[= z | (simulateQ (stalled impl Frozen stall) oa).run p] * weight z := by
-  classical
-  have hstalledFrozen : ∀ (t : spec.Domain) (q : σ × Bool), Frozen q.1 →
-      ∀ z ∈ support (((stalled impl Frozen stall) t).run q), Frozen z.2.1 := by
-    intro t q hq z hz
-    rw [stalled_run_of_frozen impl Frozen stall t q hq, support_pure,
-      Set.mem_singleton_iff] at hz
-    rw [hz]
-    exact hq
-  induction oa using OracleComp.inductionOn generalizing p with
-  | pure value =>
-    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure]
-  | query_bind t next ih =>
-    by_cases hp : Frozen p.1
-    · rw [expectation_frozen_zero impl Frozen weight hfrozen hzero _ p hp,
-        expectation_frozen_zero (stalled impl Frozen stall) Frozen weight hstalledFrozen hzero
-          _ p hp]
-    · rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-        simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-        stalled_run_of_not_frozen impl Frozen stall t p hp,
-        tsum_probOutput_bind_mul, tsum_probOutput_bind_mul]
-      exact tsum_congr fun y => congrArg _ (ih y.1 y.2)
-
 /-! ## The stalled run is blind to the cell it stalled on
 
 The per-step hypothesis is demanded only at states that are not frozen — the states at which
 the cell in question is still unavailable, and so the states at which a handler that reads only
 available cells does not read it. That is the hypothesis such a handler has, and it is why
 nothing has to be fixed before the run. -/
-
-open scoped Classical in
-/-- **Blindness of the stalled run, from a hypothesis only about unfrozen states.** -/
-theorem evalDist_stalled_congr {Table : Type}
-    (impl : Table → QueryImpl spec (StateT (σ × Bool) ProbComp)) (Frozen : σ → Prop)
-    (stall : (t : spec.Domain) → spec.Range t) (Agree : Table → Table → Prop)
-    (hstep : ∀ (t : spec.Domain) (p : σ × Bool) (left right : Table), Agree left right →
-      ¬ Frozen p.1 → 𝒟[(impl left t).run p] = 𝒟[(impl right t).run p])
-    {γ : Type} (oa : OracleComp spec γ) (left right : Table) (hagree : Agree left right)
-    (p : σ × Bool) :
-    𝒟[(simulateQ (stalled (impl left) Frozen stall) oa).run p] =
-      𝒟[(simulateQ (stalled (impl right) Frozen stall) oa).run p] := by
-  classical
-  refine TableBlind.evalDist_run_congr_of_step
-    (fun table => stalled (impl table) Frozen stall) Agree (fun t q l r h => ?_)
-    oa left right hagree p
-  by_cases hq : Frozen q.1
-  · rw [stalled_run_of_frozen (impl l) Frozen stall t q hq,
-      stalled_run_of_frozen (impl r) Frozen stall t q hq]
-  · rw [stalled_run_of_not_frozen (impl l) Frozen stall t q hq,
-      stalled_run_of_not_frozen (impl r) Frozen stall t q hq]
-    exact hstep t q l r h hq
 
 end SlhDsaSecurity.StalledRun

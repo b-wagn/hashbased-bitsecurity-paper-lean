@@ -322,17 +322,6 @@ theorem watchValue_le_of_cache (target : Bytes) (hits : HashOutput → Prop)
     split_ifs <;> simp
   · rw [if_neg hh, if_neg (fun h => hh h.1)]
 
-/-- The watched value is at most one. -/
-theorem watchValue_le_one (target : Bytes) (hits : HashOutput → Prop)
-    (state : SplitTapeState σ) : watchValue target hits state ≤ 1 := by
-  classical
-  unfold watchValue
-  cases CacheView.cacheOf state.1 target with
-  | none => exact probEvent_le_one
-  | some answer =>
-    dsimp only
-    split_ifs <;> simp
-
 open scoped Classical in
 /-- **The product of two watched values is a supermartingale**, when the two are at different
 inputs or ask for disjoint answers. One query moves at most one of them; when it is the same

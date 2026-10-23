@@ -27,48 +27,12 @@ def RealEvent (setup : Setup)
   RoutedSplit.InputBad (SharedJoin.recordedTraceOf (realPair setup real)) ∨
     Target127.Late (realPair setup real)
 
-set_option maxHeartbeats 2000000 in
-/-- **At a good setup, the real event is at most the blind flag**, provided the real phase stays
-within the cap. -/
-theorem setup_bound (setup : Setup) (hgood : setup.Good) (adversary : Adversary) (limit : Nat)
-    (hbound : ∀ z ∈ support ((simulateQ (SharePresent.realImpl
-        (StrippedGame.strippedSign setup.warm setup.sk)) (adversary.main setup.pk)).run
-          (1, [], setup.warm)), ShareRealCap.realCost z.2 ≤ limit) :
-    Pr[RealEvent setup | SharePresent.realFlat adversary (setup.sk, setup.pk) setup.warm] ≤
-      Pr[fun z => z.2.2 = true | ShareBound.flagRun (shareComp adversary limit) setup] := by
-  rw [← probEvent_congr' (fun _ _ => Iff.rfl)
-    (ShareRealCap.evalDist_realFlat_cap adversary (setup.sk, setup.pk) setup.warm limit hbound)]
-  refine le_trans (probEvent_le_of_relTriple_imp (Q := fun lenient => lenient.2.2 = true)
-    (relTriple_support_left (couple_whole setup hgood adversary limit)) ?_) ?_
-  · rintro real lenient ⟨hfinal, hreal⟩ hevent
-    obtain ⟨hforgery, stateV, hinv, hclaims, hcache, hlog, hadv, hver⟩ := hfinal
-    rw [hclaims, hforgery]
-    cases hflag : stateV.2 with
-    | true => simp [claimsStep, hflag]
-    | false =>
-      rcases hevent with hbad | hlate | hlate
-      · simp only [SharePresent.realFlat, mem_support_bind_iff, support_pure,
-          Set.mem_singleton_iff] at hreal
-        obtain ⟨zs, -, w, hw, hrealEq⟩ := hreal
-        exact flag_of_inputBad setup real zs.2 w (by rw [hrealEq]; exact hw)
-          (by rw [hrealEq]) stateV hinv hflag hcache hlog hver hbad
-      · have := flag_of_prfHit setup real stateV hinv hadv hver hlate
-        rw [hflag] at this
-        cases this
-      · have := flag_of_signerHit setup hgood real stateV hinv hcache hlog hlate
-        rw [hflag] at this
-        cases this
-  · exact le_of_eq (ShareUntilBad.probEvent_bad_eq setup _ St.start)
-
 /-! ## The budget pays for key generation -/
 
 attribute [local irreducible] WarmedGame.afterSeeds Scheme.verify Scheme.keygenInternal
   Security.countQueries
 
 /-! ## At one walk -/
-
-/-- The cap the shared half runs the adversary at. -/
-def capLimit (q : Nat) : Nat := q - (chains + 1) * 2 ^ subtreeHeight
 
 /-- The setup a drawn walk is. -/
 def setupOf (prfSeed publicSeed : Digest) (table : Cells × Padding) : Setup :=

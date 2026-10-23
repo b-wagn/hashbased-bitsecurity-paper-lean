@@ -190,15 +190,6 @@ def RightSource (sk : SecretKey) (rightKeep : Bytes → QueryCache HashSpec → 
                 QueriesUnder final (SignerRandomiser.signInternalAt
                   (m := OracleComp HashSpec) (Hashing.truncate answer) sk framed) entry.1
 
-theorem RightSource.mono_record {sk : SecretKey}
-    {rightKeep : Bytes → QueryCache HashSpec → Prop} {record extra : Multiset Bytes}
-    {final : QueryCache HashSpec} {entry : Bytes × HashOutput}
-    (hsource : RightSource sk rightKeep record final entry) :
-    RightSource sk rightKeep (record + extra) final entry := by
-  rcases hsource with hmem | hsigner
-  · exact Or.inl (Multiset.mem_add.mpr (Or.inl hmem))
-  · exact Or.inr hsigner
-
 theorem RightSource.mono_record_right {sk : SecretKey}
     {rightKeep : Bytes → QueryCache HashSpec → Prop} {record extra : Multiset Bytes}
     {final : QueryCache HashSpec} {entry : Bytes × HashOutput}

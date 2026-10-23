@@ -41,15 +41,6 @@ theorem isMessageInput_of_servedLog (pk : PublicKey)
   obtain ⟨entry, -, framed, bytes, parsed, -, -, -, hinput⟩ := hserved
   exact ⟨parsed.randomizer, framed, hinput⟩
 
-/-- **Serving only accumulates.** The log is appended to and never rewritten, so what a state
-says was served a later state still says. -/
-theorem servedLog_mono (pk : PublicKey)
-    {left right : (Outcome × Nat) × QueryCache HashSpec}
-    (hlog : ∀ entry ∈ left.1.1.signed, entry ∈ right.1.1.signed) (input : Bytes)
-    (hserved : servedLog pk left input) : servedLog pk right input := by
-  obtain ⟨entry, hentry, framed, bytes, parsed, hframe, hanswer, hparsed, hinput⟩ := hserved
-  exact ⟨entry, hlog entry hentry, framed, bytes, parsed, hframe, hanswer, hparsed, hinput⟩
-
 /-- **The log entry, read back out of the input it served.** Naming a served request by its
 digest input pins both the randomiser the signer published and the message it signed, because
 `Hashing.messageInput` is injective in each. This is the step the replay branch turns on. -/
@@ -88,14 +79,5 @@ theorem mem_disclosedByLog (pk : PublicKey)
   classical
   rw [disclosedByLog, Finset.mem_filter]
   exact ⟨fun hmem => hmem.2, fun hwitness => ⟨Finset.mem_univ _, hwitness⟩⟩
-
-/-- It is `ServedDisclosure`'s notion, at this carrier. -/
-theorem disclosedByLog_eq (pk : PublicKey)
-    (result : (Outcome × Nat) × QueryCache HashSpec) (key : CanonicalGraph.ForsKey) :
-    disclosedByLog pk result key =
-      ServedDisclosure.servedAt (servedLog pk) Prod.snd result key := by
-  classical
-  ext index
-  rw [mem_disclosedByLog, ServedDisclosure.mem_servedAt]
 
 end SlhDsaSecurity.ServedLog

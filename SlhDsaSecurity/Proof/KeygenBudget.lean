@@ -34,37 +34,4 @@ open Security WarmedGame CanonicalGraph
 attribute [local irreducible] WarmedGame.afterSeeds Scheme.keygenInternal Scheme.verify
   Scheme.sign Security.signingOracle Security.countQueries
 
-set_option maxHeartbeats 1000000 in
-/-- **Every warmed tail is charged at least `2 ^ subtreeHeight`.** -/
-theorem pow_le_count_tail (adversary : Adversary)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk)
-    {result : (Outcome × Nat) × QueryCache HashSpec}
-    (hresult : result ∈ support (tail adversary walk)) :
-    2 ^ subtreeHeight ≤ result.1.2 := by
-  obtain ⟨keygenCount, keys, hkeys, hle, -⟩ :=
-    HonestGrowth.growth_le_count_sub_keygen adversary hwalk hresult
-  exact le_trans (HonestGrowth.pow_le_count_keygen walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2
-    ⟨⟨keys, keygenCount⟩, walk.2⟩ hkeys) hle
-
-/-- **Every run the game has is charged at least `2 ^ subtreeHeight`.** -/
-theorem pow_le_count_of_mem_support (adversary : Adversary) {outcome : Outcome × Nat}
-    (hmem : outcome ∈ support (runAll adversary)) : 2 ^ subtreeHeight ≤ outcome.2 := by
-  have hinstrumented : outcome ∈
-      support (Prod.fst <$> WholeGameStructural.instrumentedRun adversary) := by
-    rw [support_map]
-    unfold runAll Xmss.RandomOracleModel.run at hmem
-    rw [StateT.run'_eq, support_map] at hmem
-    exact hmem
-  rw [← Averaging.support_eq_of_evalDist_eq (evalDist_outcome adversary), warmedRun_eq,
-    support_map, support_map] at hinstrumented
-  obtain ⟨pair, hpair, hvalue⟩ := hinstrumented
-  obtain ⟨joined, hjoined, rfl⟩ := hpair
-  obtain ⟨walk, hwalk, hrest⟩ := support_bind_exists hjoined
-  obtain ⟨result, hresult, hpure⟩ := support_bind_exists hrest
-  rw [support_pure, Set.mem_singleton_iff] at hpure
-  subst hpure
-  rw [← hvalue]
-  exact pow_le_count_tail adversary hwalk hresult
-
 end SlhDsaSecurity.KeygenBudget

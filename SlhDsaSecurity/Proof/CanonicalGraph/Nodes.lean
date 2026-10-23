@@ -80,26 +80,4 @@ def Node.rank : Node → Nat
   | .secretSeed => 0
   | .structural node => node.rank
 
-theorem StructuralNode.rank_pos (node : StructuralNode) : 0 < node.rank := by
-  cases node <;> simp [StructuralNode.rank]
-
-theorem Node.rank_le (node : Node) : node.rank ≤ 26 := by
-  cases node with
-  | secretSeed => decide
-  | structural node =>
-      cases node with
-      | wotsHash key chain step =>
-          have := step.isLt
-          simp only [Node.rank, StructuralNode.rank, w, winternitzBits] at *
-          omega
-      | tree tree height index =>
-          have := height.isLt
-          simp only [Node.rank, StructuralNode.rank, subtreeHeight] at *
-          omega
-      | forsTree key height index =>
-          have := height.isLt
-          simp only [Node.rank, StructuralNode.rank, forsHeight] at *
-          omega
-      | _ => simp [Node.rank, StructuralNode.rank]
-
 end SlhDsaSecurity.CanonicalGraph

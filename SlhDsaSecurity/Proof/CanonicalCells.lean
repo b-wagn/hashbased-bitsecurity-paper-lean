@@ -34,16 +34,4 @@ theorem parentCell_tweakable (cache : QueryCache HashSpec) (secretSeed publicSee
           parent.children) :=
   @value_equation (CacheReplay.replayQuery cache) secretSeed publicSeed parent
 
-/-- The same, read out of the cache: when the node's own canonical query is cached, its honest
-cell is that answer's truncation. -/
-theorem parentCell_eq_truncate (cache : QueryCache HashSpec) (secretSeed publicSeed : Digest)
-    (parent : StructuralNode) (output : HashOutput)
-    (hentry : cache (canonicalInput publicSeed
-      (@value (CacheReplay.replayQuery cache) secretSeed publicSeed) parent) =
-      some output) :
-    @value (CacheReplay.replayQuery cache) secretSeed publicSeed
-        (.structural parent) = Hashing.truncate output := by
-  rw [parentCell_tweakable cache secretSeed publicSeed parent]
-  exact CacheReplay.tweakable_replayQuery cache publicSeed parent.address _ output hentry
-
 end SlhDsaSecurity.CanonicalCells

@@ -133,106 +133,6 @@ down, as `WriterState.run_withAddCost_run`.
 It is now `run_reencode` at one encoding, the induction having moved there once the flag turned
 out to need the same thing. -/
 
-/-- **A wrapper that is `withExtra` at a different tupling is `withExtra`'s run, re-encoded.**
-
-Two wrappers in this development put the carrier somewhere other than first — the cost writer's
-`toStateful`, which puts its accumulator before it, and `OpenCache.withFlag`, which puts its
-flag after. Both are `withExtra` up to how the state is tupled, and `ServedAgreement.Files`
-reads the carrier first, so neither can be used through the interface until it is re-encoded.
-
-This is that re-encoding, from the step to the run. Everything it needs is the step relation,
-because the carrier moves the same way at every query. -/
-theorem run_reencode {ω σ : Type}
-    (handler : QueryImpl OracleWorld (StateT σ ProbComp))
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (update : OracleWorld.Domain → ω → ω)
-    (encode : σ → HandlerCarrier.State × (τ × ω))
-    (hstep : ∀ (queried : OracleWorld.Domain) (state : σ),
-      (fun p : OracleWorld.Range queried × σ => (p.1, encode p.2)) <$>
-          (handler queried).run state =
-        ((withExtra impl update) queried).run (encode state))
-    {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ state : σ,
-      (fun p : α × σ => (p.1, encode p.2)) <$> (simulateQ handler computation).run state =
-        (simulateQ (withExtra impl update) computation).run (encode state) := by
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state
-    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
-  | query_bind queried next ih =>
-    intro state
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
-      simulateQ_bind, simulateQ_spec_query, StateT.run_bind, ← hstep queried state,
-      bind_map_left, map_eq_bind_pure_comp, bind_assoc]
-    refine congrArg (Bind.bind ((handler queried).run state)) (funext fun step => ?_)
-    exact ih step.1 step.2
-
-/-- **The flag is an extra too**, carried untouched. `OpenCache.withFlag` puts it after the
-handler's state where `withExtra` puts it after the handler's own half; that is the whole
-difference, and `run_reencode` is all it takes. -/
-theorem run_withFlag_withExtra
-    (impl : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
-    {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ state : OpenCache.HandlerState × Bool,
-      (fun p : α × (OpenCache.HandlerState × Bool) =>
-          (p.1, (p.2.1.1, (p.2.1.2, p.2.2)))) <$>
-        (simulateQ (OpenCache.withFlag impl) computation).run state =
-      (simulateQ (withExtra impl (fun _ flag => flag)) computation).run
-        (state.1.1, (state.1.2, state.2)) :=
-  run_reencode (OpenCache.withFlag impl) impl (fun _ flag => flag)
-    (fun p => (p.1.1, (p.1.2, p.2)))
-    (fun queried st => by
-      rw [OpenCache.withFlag_run, withExtra_run, map_eq_bind_pure_comp, bind_assoc]
-      exact congrArg (Bind.bind ((impl queried).run st.1))
-        (funext fun step => by rw [pure_bind]; rfl))
-    computation
-
-theorem run_toStateful_withAddCost {ω : Type} [AddCommMonoid ω]
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (cost : OracleWorld.Domain → ω) {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (w : Multiplicative ω) (carrier : HandlerCarrier.State) (t : τ),
-      (fun p : α × (Multiplicative ω × (HandlerCarrier.State × τ)) =>
-          (p.1, (p.2.2.1, (p.2.2.2, p.2.1)))) <$>
-        (simulateQ (WriterState.toStateful (impl.withAddCost cost)) computation).run
-          (w, (carrier, t)) =
-      (simulateQ (withExtra impl
-        (fun queried x => x * Multiplicative.ofAdd (cost queried))) computation).run
-        (carrier, (t, w)) := fun w carrier t =>
-  run_reencode (WriterState.toStateful (impl.withAddCost cost)) impl
-    (fun queried x => x * Multiplicative.ofAdd (cost queried))
-    (fun p => (p.2.1, (p.2.2, p.1)))
-    (fun queried st => by
-      rw [WriterState.toStateful_run, WriterState.run_withAddCost_run, withExtra_run,
-        map_eq_bind_pure_comp, bind_assoc, bind_assoc]
-      exact congrArg (Bind.bind ((impl queried).run st.2))
-        (funext fun step => by rw [pure_bind, pure_bind]; rfl))
-    computation (w, (carrier, t))
-
-/-- **Both wrappers at once.** The charge's run carries a flag and counts the verifier's
-queries, so the handler it is read under is the filing handler inside a flag inside a cost
-writer, with the carrier buried two tuplings deep. It is `withExtra` twice, re-encoded once. -/
-theorem run_toStateful_withFlag_withAddCost {ω : Type} [AddCommMonoid ω]
-    (impl : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
-    (cost : OracleWorld.Domain → ω) {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (w : Multiplicative ω) (state : OpenCache.HandlerState × Bool),
-      (fun p : α × (Multiplicative ω × (OpenCache.HandlerState × Bool)) =>
-          (p.1, (p.2.2.1.1, ((p.2.2.1.2, p.2.2.2), p.2.1)))) <$>
-        (simulateQ (WriterState.toStateful ((OpenCache.withFlag impl).withAddCost cost))
-          computation).run (w, state) =
-      (simulateQ (withExtra (withExtra impl (fun _ flag => flag))
-        (fun queried x => x * Multiplicative.ofAdd (cost queried))) computation).run
-        (state.1.1, ((state.1.2, state.2), w)) := fun w state =>
-  run_reencode (WriterState.toStateful ((OpenCache.withFlag impl).withAddCost cost))
-    (withExtra impl (fun _ flag => flag))
-    (fun queried x => x * Multiplicative.ofAdd (cost queried))
-    (fun p => (p.2.1.1, ((p.2.1.2, p.2.2), p.1)))
-    (fun queried st => by
-      rw [WriterState.toStateful_run, WriterState.run_withAddCost_run,
-        OpenCache.withFlag_run, withExtra_run, withExtra_run,
-        map_eq_bind_pure_comp, bind_assoc, bind_assoc, bind_assoc]
-      simp only [bind_assoc, pure_bind, Function.comp_apply])
-    computation (w, state)
-
 /-! ## The step facts the wrapped handler needs
 
 `Files` does not carry a step-level "served if the framing admitted it", because `queryStep`
@@ -387,41 +287,6 @@ so at a bare filing handler; this says it at the handler the charge actually run
 is that one inside a flag inside a cost writer. Nothing about the argument changes — the two
 wrappers are re-encodings and the interface transports through both. -/
 
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **A counted, flagged run caches everything its computation consults.** -/
-theorem cached_queriesUnder_counted {ω : Type} [AddCommMonoid ω] (pk : PublicKey)
-    (impl : QueryImpl OracleWorld (StateT OpenCache.HandlerState ProbComp))
-    (hfiles : Files pk impl) (cost : OracleWorld.Domain → ω)
-    {α : Type} (computation : OracleComp HashSpec α)
-    (state : OpenCache.HandlerState × Bool)
-    (z : (α × Multiplicative ω) × (OpenCache.HandlerState × Bool))
-    (hz : z ∈ support ((simulateQ (OpenCache.withFlag impl)
-      ((simulateQ (addCostOracle cost)
-        (OracleComp.liftComp computation OracleWorld)).run)).run state))
-    (probe : Bytes)
-    (hquery : CacheReplay.QueriesUnder z.2.1.1.cache computation probe) :
-    z.2.1.1.cache probe ≠ none := by
-  classical
-  rw [← WriterState.run_simulateQ_withAddCost] at hz
-  have hstateful : (z.1.1, ((1 : Multiplicative ω) * z.1.2, z.2)) ∈ support
-      ((simulateQ (WriterState.toStateful ((OpenCache.withFlag impl).withAddCost cost))
-        (OracleComp.liftComp computation OracleWorld)).run (1, state)) := by
-    rw [WriterState.run_toStateful, support_map]
-    exact ⟨z, hz, rfl⟩
-  have hextra : (z.1.1, (z.2.1.1, ((z.2.1.2, z.2.2), (1 : Multiplicative ω) * z.1.2))) ∈
-      support ((simulateQ (withExtra (withExtra impl (fun _ flag => flag))
-        (fun queried x => x * Multiplicative.ofAdd (cost queried)))
-        (OracleComp.liftComp computation OracleWorld)).run
-        (state.1.1, ((state.1.2, state.2), (1 : Multiplicative ω)))) := by
-    rw [← run_toStateful_withFlag_withAddCost impl cost
-      (OracleComp.liftComp computation OracleWorld) 1 state, support_map]
-    exact ⟨_, hstateful, rfl⟩
-  exact ServedAgreement.cached_queriesUnder pk _
-    (files_withExtra pk (files_withExtra pk hfiles (fun _ flag => flag))
-      (fun queried x => x * Multiplicative.ofAdd (cost queried)))
-    z.2.1.1 probe hquery _ _ hextra rfl
-
 /-! ## And so does the projection law
 
 `ServingForget.ForgetsAlong` is the other thing a bracketed phase asks of its handler. Counting
@@ -476,23 +341,6 @@ theorem forgetsAlong_withExtra {ω : Type} {S' : Type} (π : HandlerCarrier.Stat
   rw [← hforget computation (state.1, state.2.1),
     ← run_withExtra_map impl update computation state, Functor.map_map]
 
-theorem withCount_step_map
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × Nat)) :
-    (fun z : OracleWorld.Range queried × (HandlerCarrier.State × (τ × Nat)) =>
-        (z.1, (z.2.1, z.2.2.1))) <$> ((withCount impl) queried).run state =
-      (impl queried).run (state.1, state.2.1) :=
-  withExtra_step_map impl (fun queried count => count + hashCost queried) queried state
-
-theorem run_withCount_map {α : Type}
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (computation : OracleComp OracleWorld α) :
-    ∀ state : HandlerCarrier.State × (τ × Nat),
-      (fun z : α × (HandlerCarrier.State × (τ × Nat)) => (z.1, (z.2.1, z.2.2.1))) <$>
-          (simulateQ (withCount impl) computation).run state =
-        (simulateQ impl computation).run (state.1, state.2.1) :=
-  run_withExtra_map impl (fun queried count => count + hashCost queried) computation
-
 /-- **A counted handler forgets wherever the handler underneath does.** -/
 theorem forgetsAlong_withCount {S' : Type} (π : HandlerCarrier.State × τ → S')
     (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
@@ -513,58 +361,6 @@ The statement carries the counter the run *started* at, because a handler's coun
 while `countAllHashes` begins at zero. That difference is the only one between them, and keeping
 it explicit is what lets the three stages of a bracketed tail add up.
 -/
-
-theorem forgetsAlong_step {S' : Type} (π : HandlerCarrier.State × τ → S')
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (outer' : QueryImpl OracleWorld (StateT S' ProbComp))
-    (hforget : ServingForget.ForgetsAlong π impl outer') (queried : OracleWorld.Domain)
-    (state : HandlerCarrier.State × τ) :
-    (fun z : OracleWorld.Range queried × (HandlerCarrier.State × τ) => (z.1, π z.2)) <$>
-        (impl queried).run state = (outer' queried).run (π state) := by
-  have hrun := hforget (liftM (OracleWorld.query queried) :
-    OracleComp OracleWorld (OracleWorld.Range queried)) state
-  rwa [show simulateQ impl (liftM (OracleWorld.query queried) :
-      OracleComp OracleWorld (OracleWorld.Range queried)) = impl queried from by simp,
-    show simulateQ outer' (liftM (OracleWorld.query queried) :
-      OracleComp OracleWorld (OracleWorld.Range queried)) = outer' queried from by simp] at hrun
-
-set_option maxHeartbeats 1000000 in
-/-- **A counted handler's counter is `countAllHashes`'s count.**
-
-The forgetting map is a parameter rather than `fun state => state.1.cache`, because the handler
-that files does not forget along the bare cache: what it agrees with the shared oracle on is
-`RedrawCell.unionCache`, the table's entries laid under its own. Pinning the map to the cache
-would have made this lemma inapplicable to the one handler the budget has to reach. -/
-theorem run_withCount_count {α S' : Type} (π : HandlerCarrier.State × τ → S')
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (outer' : QueryImpl OracleWorld (StateT S' ProbComp))
-    (hforget : ServingForget.ForgetsAlong π impl outer')
-    (computation : OracleComp OracleWorld α) :
-    ∀ state : HandlerCarrier.State × (τ × Nat),
-      (fun z : α × (HandlerCarrier.State × (τ × Nat)) =>
-            ((z.1, z.2.2.2), π (z.2.1, z.2.2.1))) <$>
-          (simulateQ (withCount impl) computation).run state =
-        (fun r : (α × Nat) × S' => ((r.1.1, state.2.2 + r.1.2), r.2)) <$>
-          (simulateQ outer' (countAllHashes computation)).run (π (state.1, state.2.1)) := by
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state
-    rw [simulateQ_pure, StateT.run_pure, map_pure, GrowthBudget.countAllHashes_pure,
-      simulateQ_pure, StateT.run_pure, map_pure, Nat.add_zero]
-  | query_bind queried next ih =>
-    intro state
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind, withCount_run,
-      bind_assoc, GrowthBudget.countAllHashes_query_bind, simulateQ_bind, simulateQ_spec_query,
-      StateT.run_bind, map_bind,
-      ← forgetsAlong_step π impl outer' hforget queried (state.1, state.2.1), bind_map_left]
-    refine bind_congr fun inner => ?_
-    rw [pure_bind, ih inner.1 (inner.2.1, (inner.2.2, state.2.2 + hashCost queried)),
-      simulateQ_map, StateT.run_map, Functor.map_map]
-    refine congrArg (fun f => f <$> (simulateQ outer' (countAllHashes (next inner.1))).run
-      (π (inner.2.1, inner.2.2))) (funext fun result => ?_)
-    show ((result.1.1, state.2.2 + hashCost queried + result.1.2), result.2) =
-      ((result.1.1, state.2.2 + (hashCost queried + result.1.2)), result.2)
-    rw [Nat.add_assoc]
 
 /-! ## The shared oracle, counting
 
@@ -597,13 +393,6 @@ theorem romWithCount_run (queried : OracleWorld.Domain) (state : QueryCache Hash
       (KeygenUniform.rom queried).run state.1 >>= fun step =>
         (pure (step.1, (step.2, state.2 + hashCost queried)) :
           ProbComp (OracleWorld.Range queried × (QueryCache HashSpec × Nat))) := rfl
-
-theorem romWithCount_step_map (queried : OracleWorld.Domain)
-    (state : QueryCache HashSpec × Nat) :
-    (fun z : OracleWorld.Range queried × (QueryCache HashSpec × Nat) => (z.1, z.2.1)) <$>
-        (romWithCount queried).run state = (KeygenUniform.rom queried).run state.1 := by
-  rw [romWithCount_run, map_eq_bind_pure_comp, bind_assoc]
-  simp [Function.comp_def]
 
 set_option maxHeartbeats 1000000 in
 /-- **Its counter is `countAllHashes`'s count.** The same statement as

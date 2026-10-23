@@ -67,39 +67,7 @@ theorem parse_instance_eq_of_forsKeyOfDigest_eq {left right : HashOutput}
 
 /-! ## Two message inputs that differ -/
 
-/-- **A message input is determined by its randomiser, key and message**, so a witness naming a
-different pair is a witness of its own. -/
-theorem messageInput_ne (pk : PublicKey) (randomizer randomizer' : Digest)
-    (message message' : Bytes)
-    (hne : randomizer ≠ randomizer' ∨ message ≠ message') :
-    Hashing.messageInput randomizer pk message ≠
-      Hashing.messageInput randomizer' pk message' := by
-  intro hequal
-  obtain ⟨hrandomizer, -, hmessage⟩ := Hashing.messageInput_injective hequal
-  rcases hne with hne | hne
-  · exact hne hrandomizer
-  · exact hne hmessage
-
 /-! ## The coverage event -/
-
-/-- **The forgery's digest is covered**, given a witness of its own for every tree. -/
-theorem forgeryCovered_of_witnesses (pk : PublicKey)
-    (result : (Outcome × Nat) × QueryCache HashSpec) (message : Bytes) (parsed : Signature)
-    (answer : HashOutput)
-    (hframe : result.1.1.forgery.message.frame = some message)
-    (hparsed : Signature.fromBytes? result.1.1.forgery.signature = some parsed)
-    (hentry : result.2 (Hashing.messageInput parsed.randomizer pk message) = some answer)
-    (hwitness : ∀ tree : MessageDigest.ForsTree,
-      ∃ (other : Bytes) (otherAnswer : HashOutput),
-        other ≠ Hashing.messageInput parsed.randomizer pk message ∧
-          CombinedCharge.IsMessageInput pk other ∧ result.2 other = some otherAnswer ∧
-          SplitCharged.forsKeyOfDigest otherAnswer = SplitCharged.forsKeyOfDigest answer ∧
-          MessageDigest.forsIndices otherAnswer tree = MessageDigest.forsIndices answer tree) :
-    CoverageTail.ForgeryCovered pk result := by
-  refine ⟨message, parsed, answer, hframe, hparsed, hentry, fun tree => ?_⟩
-  obtain ⟨other, otherAnswer, hne, hclass, hother, hkey, hleaf⟩ := hwitness tree
-  exact ⟨other, otherAnswer, hne, hclass, hother,
-    parse_instance_eq_of_forsKeyOfDigest_eq hkey, hleaf⟩
 
 /-! ## Coverage by the digests that actually disclose
 
@@ -138,41 +106,10 @@ def ForgeryCoveredBy (disclosing : Bytes → Prop) (pk : PublicKey)
             DisclosedCoveredBy disclosing result.2
               (Hashing.messageInput parsed.randomizer pk message) answer
 
-/-- Coverage by the digests of the requests the signer served. -/
-def DisclosedCoveredAt (pk : PublicKey) (result : (Outcome × Nat) × QueryCache HashSpec)
-    (target : Bytes) (answer : HashOutput) : Prop :=
-  DisclosedCoveredBy (ServedLog.servedLog pk result) result.2 target answer
-
 /-- **The coverage event at the forgery's own digest, counted on the served class.** -/
 def ForgeryDisclosedCovered (pk : PublicKey)
     (result : (Outcome × Nat) × QueryCache HashSpec) : Prop :=
   ForgeryCoveredBy (ServedLog.servedLog pk result) pk result
-
-/-- **Coverage transports along an agreement of disclosing notions.** Both occurrences move
-together: the witnesses are disclosing and the target is not, so the two notions have to agree,
-not merely be ordered. -/
-theorem forgeryCoveredBy_congr {left right : Bytes → Prop} (pk : PublicKey)
-    (result : (Outcome × Nat) × QueryCache HashSpec)
-    (hiff : ∀ input : Bytes, left input ↔ right input)
-    (hcovered : ForgeryCoveredBy left pk result) : ForgeryCoveredBy right pk result := by
-  obtain ⟨message, parsed, answer, hframe, hparsed, hentry, hfresh, hcoveredAt⟩ := hcovered
-  refine ⟨message, parsed, answer, hframe, hparsed, hentry,
-    fun hself => hfresh ((hiff _).mpr hself), fun tree => ?_⟩
-  obtain ⟨other, otherAnswer, hne, hdisclosing, hother, hinstance, hleaf⟩ := hcoveredAt tree
-  exact ⟨other, otherAnswer, hne, (hiff other).mp hdisclosing, hother, hinstance, hleaf⟩
-
-/-- **A disclosing witness is a message-class witness**, so the narrow coverage event is a case
-of the wide one. -/
-theorem forgeryCovered_of_disclosed (pk : PublicKey)
-    (result : (Outcome × Nat) × QueryCache HashSpec)
-    (hcovered : ForgeryDisclosedCovered pk result) :
-    CoverageTail.ForgeryCovered pk result := by
-  obtain ⟨message, parsed, answer, hframe, hparsed, hentry, -, hcovered⟩ := hcovered
-  refine ⟨message, parsed, answer, hframe, hparsed, hentry, fun tree => ?_⟩
-  obtain ⟨other, otherAnswer, hne, hsigner, hother, hinstance, hleaf⟩ := hcovered tree
-  exact ⟨other, otherAnswer, hne,
-    ServedLog.isMessageInput_of_servedLog pk result other hsigner,
-    hother, hinstance, hleaf⟩
 
 /-- **The forgery's digest is covered by disclosing digests**, given a disclosing witness of its
 own for every tree. -/

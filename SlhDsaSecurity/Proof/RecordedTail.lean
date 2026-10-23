@@ -174,14 +174,4 @@ theorem card_toFinset_le_count (adversary : Adversary)
   card_toFinset_le_work adversary start.1.1 start.2 (result.1.1, result.2)
     (WarmedSplit.mem_support_of_countAllHashes _ start.2 result hresult)
 
-/-- **An event about the tail is an event about the recorded tail.** -/
-theorem probEvent_tail_eq (adversary : Adversary)
-    (start : ((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec)
-    (event : (Outcome × Nat) × QueryCache HashSpec → Prop) :
-    Pr[event | WarmedGame.tail adversary start] =
-      Pr[fun result => event ((result.1.1.1, result.1.2), result.2) |
-        recordedTail adversary start] := by
-  rw [tail_eq_map_recordedTail, probEvent_map]
-  rfl
-
 end SlhDsaSecurity.RecordedTail

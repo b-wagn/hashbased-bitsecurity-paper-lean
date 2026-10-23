@@ -1,8 +1,8 @@
 import SlhDsaSecurity.Proof.StructuralTerm
 import SlhDsaSecurity.Proof.GrowthBudget
 import SlhDsaSecurity.Proof.CombinedCharge
-import SlhDsaSecurity.Proof.ClassCharge
-import SlhDsaSecurity.Proof.WeightedCharge
+import SlhDsaSecurity.Proof.GrowthCharge
+import SlhDsaSecurity.Statement.Security
 
 /-!
 # The structural term for the whole game
@@ -47,14 +47,6 @@ theorem mem_support_runAll_of_mem_support {adversary : Adversary}
   rw [StateT.run'_eq, support_map]
   exact ⟨result, hmem, rfl⟩
 
-/-- The budget bounds the total hash count on every supported run. -/
-theorem count_le_of_budget {adversary : Adversary} {q : Nat}
-    (hbudget : HasTotalBudget adversary q)
-    {result : (Outcome × Nat) × QueryCache HashSpec}
-    (hmem : result ∈ support (instrumentedRun adversary)) : result.1.2 ≤ q :=
-  ((probEvent_eq_one_iff.mp hbudget).2 result.1
-    (mem_support_runAll_of_mem_support hmem)).2
-
 /-! ## The answer side of the budget, for the whole game
 
 The structural term above charges one of the two answer-side avenues. The other is FORS
@@ -86,29 +78,6 @@ fixed disclosure set.
 
 The class counts are taken as hypotheses here. Deriving them needs the game instrumented with
 `ClassBudget.countClass` rather than the plain total counter, which is a separate step. -/
-
-/-- **The answer side for the whole game, charged per class.** -/
-theorem prob_badWithinClasses_whole_game_le (adversary : Adversary)
-    (bad : Bytes → HashOutput → Prop) (inClass : Bytes → Prop)
-    (insideRate outsideRate : ℝ≥0∞) (insideLimit outsideLimit : Nat)
-    (hinside : ∀ input, inClass input →
-      Pr[fun answer : HashOutput => bad input answer |
-        ($ᵗ HashOutput : ProbComp HashOutput)] ≤ insideRate)
-    (houtside : ∀ input, ¬ inClass input →
-      Pr[fun answer : HashOutput => bad input answer |
-        ($ᵗ HashOutput : ProbComp HashOutput)] ≤ outsideRate)
-    (hclean : GrowthCharge.CleanBad bad ∅)
-    (hcounts : ∀ result ∈ support (instrumentedRun adversary),
-      ClassCharge.GrowthAtMostOn inClass ∅ result.2 insideLimit ∧
-        ClassCharge.GrowthAtMostOn (fun input => ¬ inClass input) ∅ result.2 outsideLimit) :
-    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
-        GrowthCharge.Bad bad result | instrumentedRun adversary] ≤
-      insideLimit * insideRate + outsideLimit * outsideRate := by
-  refine le_trans (probEvent_mono ?_)
-    (ClassCharge.prob_badWithinClasses_le (countAllHashes (experiment adversary))
-      bad inClass insideRate outsideRate insideLimit outsideLimit ∅ hinside houtside hclean)
-  intro result hmem hbad
-  exact ⟨hbad, (hcounts result hmem).1, (hcounts result hmem).2⟩
 
 /-! ## The answer side, charged by weight
 

@@ -84,23 +84,6 @@ theorem reportsCost_real (warm : QueryCache HashSpec) (sk : SecretKey) :
 noncomputable def capAdv (adversary : Adversary) (limit : Nat) : Adversary :=
   ⟨fun pk => CapComp.capComp ShareGame.weight ShareGame.fallbackForgery limit (adversary.main pk)⟩
 
-/-- **Where the real phase never exceeds the limit, the capped real game is the real game.** -/
-theorem evalDist_realFlat_cap (adversary : Adversary) (keys : SecretKey × PublicKey)
-    (warm : QueryCache HashSpec) (limit : Nat)
-    (hbound : ∀ z ∈ support ((simulateQ (realImpl (StrippedGame.strippedSign warm keys.1))
-        (adversary.main keys.2)).run (1, [], warm)), realCost z.2 ≤ limit) :
-    𝒟[realFlat (capAdv adversary limit) keys warm] = 𝒟[realFlat adversary keys warm] := by
-  unfold realFlat
-  rw [evalDist_bind, evalDist_bind]
-  congr 1
-  refine CapComp.evalDist_capComp (realImpl (StrippedGame.strippedSign warm keys.1))
-    ShareGame.weight realCost (reportsCost_real warm keys.1) (fun _ _ => probFailure_eq_zero)
-    ShareGame.fallbackForgery (adversary.main keys.2) limit (1, [], warm) fun z hz => ?_
-  have h := hbound z hz
-  simp only [realCost, toAdd_one, Prod.fst_zero, AdversaryQueries.servedCount] at h ⊢
-  simp [Counts.work] at h ⊢
-  omega
-
 /-! ## The budget bounds the real phase's weight -/
 
 /-- A point the linked run reaches is one the recorded tail reaches, with its count beside it. -/

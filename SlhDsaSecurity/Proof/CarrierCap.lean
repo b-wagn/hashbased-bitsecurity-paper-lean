@@ -137,7 +137,6 @@ theorem leftFixed_step (rightKeep : Walk → Bytes → HandlerCarrier.State → 
       rw [hinner, ← hsame]
       exact left_appendedOf_of_not_left _ _ input view cached hleft
 
-
 /-! ## The disclosing recording's shape, one step at a time
 
 `CarrierRecordings.step_right_shape` reads a step at the target recording; this reads the same
@@ -330,8 +329,6 @@ theorem served_startServingOn (request : Message) (state : CountedState) :
 theorem served_stopServingOn (state : CountedState) :
     (ServedAgreement.stopServingOn state).1.served = state.1.served := rfl
 
-
-
 /-! ## The agreement, from a carrier that is quiet rather than empty
 
 `CarrierFiles.agreesWithLog_carrierRun` reads the agreement at a phase started from
@@ -464,8 +461,6 @@ theorem leftRecord_length_le_cap_carrierTail
   exact ServedAgreement.record_length_le_cap keys.1.1 middle.2.2.1 middle.2.2.2.1 hagree
     middle.2.2.2.2.1.1 hnodupMiddle.2 hservedMiddle (by rw [hsigned]; exact hlimit)
 
-
-
 set_option maxHeartbeats 1000000 in
 /-- **The cap in the form a consumer wants it**: quantified over the support, which is what
 `SplitCarrierTail.leftRecord_le_of_carrierTail` carries to the split tail and what
@@ -486,8 +481,6 @@ theorem leftRecord_le_cap_carrierTail
   fun result hresult =>
     leftRecord_length_le_cap_carrierTail rightKeep adversary walk hpublic hkey result hresult
       (hlimit result hresult)
-
-
 
 /-! ## And the log's length is the budget's business
 

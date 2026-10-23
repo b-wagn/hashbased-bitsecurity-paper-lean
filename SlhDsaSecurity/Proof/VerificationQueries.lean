@@ -173,14 +173,6 @@ theorem Bounds.map {computation : OracleComp HashSpec α} {lower upper : Nat}
   simpa [map_eq_bind_pure_comp] using
     h.bind (fun value => Bounds.of_exact (.pure (f value)) le_rfl le_rfl)
 
-theorem Bounds.mono {computation : OracleComp HashSpec α} {lower upper lower' upper' : Nat}
-    (h : Bounds computation lower upper) (hlower : lower' ≤ lower) (hupper : upper ≤ upper') :
-    Bounds computation lower' upper' := by
-  unfold Bounds at h ⊢
-  intro m _ _ _ _ impl
-  exact ⟨AddWriterT.queryBoundedBelowBy_mono (h m impl).1 hlower,
-    AddWriterT.queryBoundedAboveBy_mono (h m impl).2 hupper⟩
-
 theorem merkle_bounds (index : Fin (2 ^ subtreeHeight)) (signature : XmssSignature)
     (message publicSeed : Digest) (address : Address) :
     Bounds (Merkle.publicKeyFromSignature index signature message publicSeed address) 55 520 := by
@@ -240,16 +232,6 @@ theorem verify_bounds (pk : PublicKey) (request : Message) (wire : Bytes)
     Bounds (Scheme.verify pk request wire) 569 3824 := by
   simpa only [Scheme.verify, hframe, hparse] using verifyInternal_bounds pk message signature
 
-theorem verify_upper (pk : PublicKey) (request : Message) (wire : Bytes) :
-    Bounds (Scheme.verify pk request wire) 0 3824 := by
-  unfold Scheme.verify
-  cases hframe : request.frame with
-  | none => exact Bounds.of_exact (.pure false) le_rfl (by decide)
-  | some message =>
-    cases hparse : Signature.fromBytes? wire with
-    | none => exact Bounds.of_exact (.pure false) le_rfl (by decide)
-    | some signature => exact (verifyInternal_bounds pk message signature).mono (by decide) le_rfl
-
 /-- Instrument the free computation before interpreting its hash calls. -/
 def counted (computation : OracleComp HashSpec α) : OracleComp HashSpec (α × Multiplicative Nat) :=
   (simulateQ (QueryImpl.ofLift HashSpec (OracleComp HashSpec)).withUnitCost computation).run
@@ -267,15 +249,5 @@ theorem Bounds.simulated {m : Type → Type} [Monad m] [LawfulMonad m]
   unfold Bounds at h
   have hb := h (OracleComp HashSpec) (QueryImpl.ofLift HashSpec (OracleComp HashSpec))
   exact ⟨hb.1 result hfree, hb.2 result hfree⟩
-
-theorem verifyInternal_simulated_bounds {m : Type → Type} [Monad m] [LawfulMonad m]
-    [MonadLiftT m SetM] [LawfulMonadLiftT m SetM]
-    {σ : Type} (impl : QueryImpl HashSpec (StateT σ m)) (initial : σ)
-    (pk : PublicKey) (message : Bytes) (signature : Signature)
-    (result : Bool × Multiplicative Nat)
-    (hresult : result ∈ support ((simulateQ impl
-      (counted (Scheme.verifyInternal pk message signature))).run' initial)) :
-    569 ≤ Multiplicative.toAdd result.2 ∧ Multiplicative.toAdd result.2 ≤ 3824 :=
-  (verifyInternal_bounds pk message signature).simulated impl initial result hresult
 
 end SlhDsaSecurity.VerificationQueries

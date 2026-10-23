@@ -123,21 +123,6 @@ lemma poisson_integral_power_nat (rate degree : Nat) :
   simp only [ForsMoments.touchard, Nat.cast_sum, Nat.cast_mul, Nat.cast_pow,
     NNReal.coe_natCast]
 
-/-- Verified moments of the actual Poisson measure used for load domination. -/
-theorem poisson_three_moments :
-    (∫ n : Nat, (n : ℝ) ^ 14 ∂poissonMeasure 3) < 2 ^ 39 ∧
-    (∫ n : Nat, (n : ℝ) ^ 28 ∂poissonMeasure 3) < 2 ^ 92 ∧
-    (∫ n : Nat, (n : ℝ) ^ 42 ∂poissonMeasure 3) < 2 ^ 151 ∧
-    (∫ n : Nat, (n : ℝ) ^ 56 ∂poissonMeasure 3) < 2 ^ 215 ∧
-    (∫ n : Nat, (n : ℝ) ^ 84 ∂poissonMeasure 3) < 2 ^ 353 := by
-  have hm := ForsMoments.touchard_bounds.2
-  have hf (degree : Nat) :
-      (∫ n : Nat, (n : ℝ) ^ degree ∂poissonMeasure 3) =
-        (ForsMoments.touchard degree 3 : ℝ) := by
-    simpa using poisson_integral_power_nat 3 degree
-  simp only [hf]
-  exact_mod_cast hm
-
 /-- Exact centered moment of the fourteenth power of a rate-three Poisson load. -/
 def centeredMoment (order : Nat) : ℤ :=
   ∑ k ∈ Finset.range (order + 1),

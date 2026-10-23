@@ -46,20 +46,6 @@ theorem verify_eq_replay (pk : PublicKey) (request : Message) (signature : Bytes
     (CacheReplay.replay finalCache) (CacheReplay.replayQuery finalCache)
     (replay_agrees finalCache) pk request signature
 
-/-- **What the game generated, the replayed key generation generates.** -/
-theorem keygenInternal_eq_replay (secretSeed prfSeed publicSeed : Digest)
-    (initialCache finalCache : QueryCache HashSpec) (keys : SecretKey × PublicKey)
-    (hmem : (keys, finalCache) ∈
-      support ((simulateQ randomOracle
-        (Scheme.keygenInternal (m := OracleComp HashSpec) secretSeed prfSeed publicSeed)).run
-          initialCache)) :
-    keys = @Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery finalCache)
-      secretSeed prfSeed publicSeed := by
-  rw [CacheReplay.run_eq_replay _ initialCache finalCache keys hmem]
-  exact @Correctness.Naturality.keygenInternal_simulate Id Id.instMonad _
-    (CacheReplay.replay finalCache) (CacheReplay.replayQuery finalCache)
-    (replay_agrees finalCache) secretSeed prfSeed publicSeed
-
 /-- The generated public key carries the public seed and the honest top root — the two
 hypotheses `HypertreeDispatch.cases_of_accepted` takes. -/
 theorem keygen_publicKey (secretSeed prfSeed publicSeed : Digest)
@@ -157,61 +143,5 @@ probabilistic — it is the structural reduction of SLH-DSA verification, carrie
 The honest FORS key is left existentially quantified because it is whatever the genuine
 secrets produce at the address the forgery's digest selects; the FORS side of the argument
 (`ForsDispatch.forsCollision_or_canonical_secrets`) takes it from there. -/
-
-set_option maxHeartbeats 2000000 in
-/-- **An accepted forgery is canonical, collides, or exhibits a WOTS witness.** -/
-theorem cases_of_replayed_accept (secretSeed prfSeed publicSeed : Digest)
-    (cache : QueryCache HashSpec) (request : Message) (signature : Bytes)
-    (honestForsKey : Digest)
-    (haccept : @Scheme.verify Id Id.instMonad (CacheReplay.replayQuery cache)
-      (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-        secretSeed prfSeed publicSeed).2 request signature = true) :
-    ∃ (message : Bytes) (parsed : Signature),
-      request.frame = some message ∧ Signature.fromBytes? signature = some parsed ∧
-        (@SlhDsaSecurity.Fors.publicKeyFromSignature Id Id.instMonad
-            (CacheReplay.replayQuery cache) parsed.fors
-            (MessageDigest.forsIndices
-              (@Hashing.messageDigest Id (CacheReplay.replayQuery cache)
-                parsed.randomizer
-                (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-                  secretSeed prfSeed publicSeed).2 message))
-            (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-              secretSeed prfSeed publicSeed).2.seed
-            (Scheme.forsAddress
-              (@Hashing.messageDigest Id (CacheReplay.replayQuery cache)
-                parsed.randomizer
-                (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-                  secretSeed prfSeed publicSeed).2 message)) = honestForsKey ∨
-          @Extraction.HypertreeChain.HypertreeFault (CacheReplay.replayQuery cache)
-            secretSeed publicSeed layers parsed.hypertree 0
-            (MessageDigest.treeIndex
-              (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
-                (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-                  secretSeed prfSeed publicSeed).2 message)).toNat
-            (MessageDigest.leafIndex
-              (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
-                (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-                  secretSeed prfSeed publicSeed).2 message)).toFin
-            (@SlhDsaSecurity.Fors.publicKeyFromSignature Id Id.instMonad
-              (CacheReplay.replayQuery cache) parsed.fors
-              (MessageDigest.forsIndices
-                (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
-                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-                    secretSeed prfSeed publicSeed).2 message))
-              (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-                secretSeed prfSeed publicSeed).2.seed
-              (Scheme.forsAddress
-                (@Hashing.messageDigest Id (CacheReplay.replayQuery cache) parsed.randomizer
-                  (@Scheme.keygenInternal Id Id.instMonad (CacheReplay.replayQuery cache)
-                    secretSeed prfSeed publicSeed).2 message)))
-            honestForsKey) := by
-  obtain ⟨message, parsed, hframe, hparsed, hinternal⟩ :=
-    @verifyInternal_of_verify (CacheReplay.replayQuery cache) _ _ _ haccept
-  refine ⟨message, parsed, hframe, hparsed, ?_⟩
-  exact @HypertreeDispatch.cases_of_accepted (CacheReplay.replayQuery cache) secretSeed
-    publicSeed _ _ _ _ honestForsKey _
-    (keygen_publicKey secretSeed prfSeed publicSeed cache).1
-    (keygen_publicKey secretSeed prfSeed publicSeed cache).2
-    (@hypertree_of_verifyInternal (CacheReplay.replayQuery cache) _ _ _ hinternal)
 
 end SlhDsaSecurity.GameBridge

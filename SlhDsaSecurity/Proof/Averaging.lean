@@ -1,4 +1,4 @@
-import SlhDsaSecurity.Proof.Security
+import SlhDsaSecurity.Statement.Security
 
 /-!
 # Averaging a bound over a prefix

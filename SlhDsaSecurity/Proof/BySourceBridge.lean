@@ -137,59 +137,6 @@ theorem exists_sourceCounts (adversary : Adversary)
 
 /-! ## What the budget hands the proof -/
 
-/-- **The budget, read at the warmed tail**: on every run, at most `2 ^ 64` requests, and the
-requests, the adversary's own calls, the verifier's and key generation's top tree within `q`. -/
-def TailBudget (adversary : Adversary) (q : Nat) : Prop :=
-  ∀ walk ∈ support WarmedGame.graphWalk, ∀ result ∈ support (WarmedGame.tail adversary walk),
-    result.1.1.counts .signing ≤ signingLimit ∧
-      result.1.1.counts.work + result.1.1.counts .signing +
-        (chains + 1) * 2 ^ subtreeHeight ≤ q
-
-theorem sum_allButSigner (counts : Xmss.Unforgeability.QueryCounts) :
-    ∑ kind ∈ allButSigner, counts kind =
-      counts .sign + (counts .hash + (counts .keygen + counts .verifier)) := by
-  simp [allButSigner, Finset.sum_insert]
-
-set_option maxHeartbeats 1000000 in
-set_option linter.constructorNameAsVariable false in
-/-- **The framework's hypotheses at `allButSigner` give the tail budget.** -/
-theorem tailBudget_of (notion : Notion) {adversary : Adversary} {q : Nat}
-    (hlimit : WithinSigningLimit notion adversary)
-    (hbound : (securityGame notion).HasQueryBound () allButSigner adversary q) :
-    TailBudget adversary q := by
-  intro walk hwalk result hresult
-  have houtcome : result.1 ∈ support ((fun pair => pair.1.2) <$>
-      WarmedGame.warmedRun adversary) := by
-    rw [support_map]
-    exact ⟨_, WarmedCharges.mem_support_warmedRun hwalk hresult, rfl⟩
-  rw [Averaging.support_eq_of_evalDist_eq (WarmedGame.evalDist_outcome adversary),
-    support_map] at houtcome
-  obtain ⟨inner, hinner, houter⟩ := houtcome
-  have hall := WholeGameStructural.mem_support_runAll_of_mem_support hinner
-  have hfst : result.1.1 ∈ support (Prod.fst <$> runBySource adversary) := by
-    rw [map_fst_runBySource, support_map]
-    exact ⟨inner.1, hall, by rw [houter]⟩
-  rw [support_map] at hfst
-  obtain ⟨bySource, hbySource, hfstEq⟩ := hfst
-  obtain ⟨keygenHashes, laterHashes, hcounts, hkeygen⟩ :=
-    exists_sourceCounts adversary bySource hbySource
-  have hgame : (decide (Wins notion bySource.1), bySource.2) ∈
-      support ((securityGame notion).experiment () adversary) := by
-    change _ ∈ support ((fun result => (decide (Wins notion result.1), result.2)) <$>
-      runBySource adversary)
-    rw [support_map]
-    exact ⟨bySource, hbySource, rfl⟩
-  have hsign := (probEvent_eq_one_iff.mp hlimit).2 _ hgame
-  have hsum := (probEvent_eq_one_iff.mp hbound).2 _ hgame
-  simp only at hsign hsum
-  rw [sum_allButSigner, hcounts] at hsum
-  rw [hcounts] at hsign
-  simp only [sourceCounts] at hsign hsum
-  rw [hfstEq] at hsign hsum
-  refine ⟨hsign, ?_⟩
-  unfold Counts.work
-  omega
-
 /-! ## The adversary's own work -/
 
 /-- **The budget at the adversary's own work, read at the warmed tail**: at most `2 ^ 64`
@@ -198,12 +145,6 @@ def TailBudgetW (adversary : Adversary) (q : Nat) : Prop :=
   ∀ walk ∈ support WarmedGame.graphWalk, ∀ result ∈ support (WarmedGame.tail adversary walk),
     result.1.1.counts .signing ≤ signingLimit ∧
       result.1.1.counts.work + result.1.1.counts .signing ≤ q
-
-theorem TailBudget.toW {adversary : Adversary} {q : Nat} (hbudget : TailBudget adversary q) :
-    TailBudgetW adversary q := fun walk hwalk result hresult =>
-  ⟨(hbudget walk hwalk result hresult).1, by
-    have := (hbudget walk hwalk result hresult).2
-    omega⟩
 
 theorem sum_adversaryWork (counts : Xmss.Unforgeability.QueryCounts) :
     ∑ kind ∈ adversaryWork, counts kind = counts .sign + (counts .hash + counts .verifier) := by

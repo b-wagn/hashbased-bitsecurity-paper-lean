@@ -43,14 +43,6 @@ theorem Address.toBytes_injective : Function.Injective Address.toBytes := by
   cases right
   simp_all
 
-theorem Address.setTypeAndClear_fields (address : Address) (kind : AddressType) :
-    (address.setTypeAndClear kind).layer = address.layer ∧
-    (address.setTypeAndClear kind).tree = address.tree ∧
-    (address.setTypeAndClear kind).kind = kind ∧
-    (address.setTypeAndClear kind).keyPair = 0 ∧
-    (address.setTypeAndClear kind).chainOrHeight = 0 ∧
-    (address.setTypeAndClear kind).hashOrIndex = 0 := by simp [Address.setTypeAndClear]
-
 namespace Hashing
 
 theorem randomizerInput_injective {prf prf' seed seed' : Digest} {message message' : Bytes}
@@ -85,22 +77,7 @@ theorem tweakableInput_injective {seed seed' : Digest} {address address' : Addre
   obtain ⟨hseed, haddress⟩ := List.append_inj hprefix (by simp)
   exact ⟨bytesBE_injective n hseed, Address.toBytes_injective haddress, hpayload⟩
 
-theorem tweakableInput_ne_of_type_ne {seed seed' : Digest} {address address' : Address}
-    {payload payload' : Bytes} (h : address.kind ≠ address'.kind) :
-    tweakableInput seed address payload ≠ tweakableInput seed' address' payload' := by
-  intro heq
-  exact h (congrArg Address.kind (tweakableInput_injective heq).2.1)
-
-/-- The specified SHAKE byte formats do not separate these two roles unconditionally. -/
-theorem message_randomizer_overlap (prf : Digest) (pk : PublicKey) (message : Bytes) :
-    messageInput prf pk message = randomizerInput prf pk.seed (bytesBE n pk.root ++ message) := by
-  simp [messageInput, randomizerInput, List.append_assoc]
-
 end Hashing
-
-@[simp] theorem Message.frame_eq_none_iff (request : Message) :
-    request.frame = none ↔ 255 < request.context.length := by
-  simp [Message.frame]
 
 /-- Successful framing preserves both the context and the message. -/
 theorem Message.frame_injective {left right : Message} {framed : Bytes}

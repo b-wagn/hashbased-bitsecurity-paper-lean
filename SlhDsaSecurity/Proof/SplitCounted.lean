@@ -82,51 +82,6 @@ theorem withSplit_run (inClass : Bytes → Prop) (inside outside : QueryKind)
             state.2.2 + splitCost inClass inside outside queried))) :
           ProbComp (OracleWorld.Range queried × (HandlerCarrier.State × (τ × Counts)))) := rfl
 
-/-- **A step of the split-counted handler is a step of the handler, with the pair bumped.** -/
-theorem withSplit_step (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (queried : OracleWorld.Domain) (state : HandlerCarrier.State × (τ × Counts))
-    (step : OracleWorld.Range queried × (HandlerCarrier.State × (τ × Counts)))
-    (hstep : step ∈ support (((withSplit inClass inside outside impl) queried).run state)) :
-    ∃ inner : OracleWorld.Range queried × (HandlerCarrier.State × τ),
-      inner ∈ support ((impl queried).run (state.1, state.2.1)) ∧
-        step.1 = inner.1 ∧ step.2.1 = inner.2.1 ∧ step.2.2.1 = inner.2.2 ∧
-        step.2.2.2 = state.2.2 + splitCost inClass inside outside queried := by
-  rw [withSplit_run, mem_support_bind_iff] at hstep
-  obtain ⟨inner, hinner, hpure⟩ := hstep
-  rw [support_pure, Set.mem_singleton_iff] at hpure
-  exact ⟨inner, hinner, by rw [hpure], by rw [hpure], by rw [hpure], by rw [hpure]⟩
-
-open scoped Classical in
-/-- **It files if the handler underneath does.** The pair is an extra component and `Files`
-reads only the carrier. -/
-theorem files_withSplit (inClass : Bytes → Prop) (inside outside : QueryKind)
-    {impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp)}
-    (hfiles : Files pk impl) : Files pk (withSplit inClass inside outside impl) :=
-  files_withExtra pk hfiles
-    (fun queried counts => counts + splitCost inClass inside outside queried)
-
-/-- **And it forgets wherever the handler underneath does.** -/
-theorem forgetsAlong_withSplit (inClass : Bytes → Prop) (inside outside : QueryKind)
-    {S' : Type} (π : HandlerCarrier.State × τ → S')
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (outer' : QueryImpl OracleWorld (StateT S' ProbComp))
-    (hforget : ServingForget.ForgetsAlong π impl outer') :
-    ServingForget.ForgetsAlong (fun state : HandlerCarrier.State × (τ × Counts) =>
-      π (state.1, state.2.1)) (withSplit inClass inside outside impl) outer' :=
-  forgetsAlong_withExtra π impl
-    (fun queried counts => counts + splitCost inClass inside outside queried) outer' hforget
-
-theorem run_withSplit_map (inClass : Bytes → Prop) (inside outside : QueryKind) {α : Type}
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (computation : OracleComp OracleWorld α) :
-    ∀ state : HandlerCarrier.State × (τ × Counts),
-      (fun z : α × (HandlerCarrier.State × (τ × Counts)) => (z.1, (z.2.1, z.2.2.1))) <$>
-          (simulateQ (withSplit inClass inside outside impl) computation).run state =
-        (simulateQ impl computation).run (state.1, state.2.1) :=
-  run_withExtra_map impl
-    (fun queried counts => counts + splitCost inClass inside outside queried) computation
-
 /-! ## The two slots are the counter
 
 This is the lemma that keeps the split off the tail's state. It says the split-counted run is
@@ -212,48 +167,6 @@ What a charge reads off a counter is that the query it is charging moved the slo
 those two facts at the handler's step; `splitCost_inside` and `splitCost_outside` are where the
 content is, and the step law is what puts them at the handler. -/
 
-open scoped Classical in
-/-- **An in-class hash call moves the inside slot.** -/
-theorem withSplit_step_inside (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (input : Bytes) (hmember : inClass input)
-    (state : HandlerCarrier.State × (τ × Counts))
-    (step : OracleWorld.Range (Sum.inr input) × (HandlerCarrier.State × (τ × Counts)))
-    (hstep : step ∈ support
-      (((withSplit inClass inside outside impl) (Sum.inr input)).run state)) :
-    state.2.2 inside + 1 ≤ step.2.2.2 inside := by
-  classical
-  obtain ⟨-, -, -, -, -, hcounts⟩ :=
-    withSplit_step inClass inside outside impl (Sum.inr input) state step hstep
-  rw [hcounts, Pi.add_apply, splitCost_inside inClass inside outside input hmember]
-
-open scoped Classical in
-/-- **An out-of-class hash call moves the outside slot.** -/
-theorem withSplit_step_outside (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (input : Bytes) (hmember : ¬ inClass input)
-    (state : HandlerCarrier.State × (τ × Counts))
-    (step : OracleWorld.Range (Sum.inr input) × (HandlerCarrier.State × (τ × Counts)))
-    (hstep : step ∈ support
-      (((withSplit inClass inside outside impl) (Sum.inr input)).run state)) :
-    state.2.2 outside + 1 ≤ step.2.2.2 outside := by
-  classical
-  obtain ⟨-, -, -, -, -, hcounts⟩ :=
-    withSplit_step inClass inside outside impl (Sum.inr input) state step hstep
-  rw [hcounts, Pi.add_apply, splitCost_outside inClass inside outside input hmember]
-
-/-- **Neither slot moves on a coin.** -/
-theorem withSplit_step_coin (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (impl : QueryImpl OracleWorld (StateT (HandlerCarrier.State × τ) ProbComp))
-    (coin : unifSpec.Domain) (state : HandlerCarrier.State × (τ × Counts))
-    (step : OracleWorld.Range (Sum.inl coin) × (HandlerCarrier.State × (τ × Counts)))
-    (hstep : step ∈ support
-      (((withSplit inClass inside outside impl) (Sum.inl coin)).run state)) :
-    step.2.2.2 = state.2.2 := by
-  obtain ⟨-, -, -, -, -, hcounts⟩ :=
-    withSplit_step inClass inside outside impl (Sum.inl coin) state step hstep
-  rw [hcounts, splitCost_inl, add_zero]
-
 /-! ## At the carrier
 
 The tail's handler is `CarrierFiles.countedCarrierRecorder`, which is `withCount` around the
@@ -268,25 +181,6 @@ noncomputable def splitCarrierRecorder (inClass : Bytes → Prop) (inside outsid
         ((DigestTape.Record × DigestTape.Record) × Counts)) ProbComp) :=
   withSplit inClass inside outside
     (@noticingRecorderOf HandlerCarrier.State (servingView pk) (disclosingKeep pk) rightKeep)
-
-open scoped Classical in
-/-- **It files.** -/
-theorem files_splitCarrierRecorder (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Bytes → HandlerCarrier.State → Prop) :
-    Files pk (splitCarrierRecorder pk inClass inside outside rightKeep) :=
-  files_withSplit pk inClass inside outside (CarrierFiles.files_carrierRecorder pk rightKeep)
-
-/-- **And it forgets to the shared oracle.** -/
-theorem forgetsAlong_splitCarrierRecorder (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Bytes → HandlerCarrier.State → Prop) :
-    ServingForget.ForgetsAlong
-      (fun state : HandlerCarrier.State ×
-          ((DigestTape.Record × DigestTape.Record) × Counts) =>
-        CacheView.cacheOf (state.1, state.2.1).1)
-      (splitCarrierRecorder pk inClass inside outside rightKeep) KeygenUniform.rom :=
-  forgetsAlong_withSplit inClass inside outside
-    (fun state : StateOf HandlerCarrier.State => CacheView.cacheOf state.1) _ KeygenUniform.rom
-    (CarrierFiles.forgetsAlong_carrierRecorder pk rightKeep)
 
 /-- **The split carrier recorder is the counted one, with the counter split.** The carrier
 instance of `run_withSplit_withCount`, and the statement a split tail is carried onto the
@@ -322,109 +216,5 @@ at, exactly as `run_withCount_count` does.
 **It is `≤` and not `=`, and the slack is real**: an in-class query whose answer is already
 cached bumps the slot and files nothing. That is the slack the subtractive substitute tried to
 recover and could not, and it is why the bound runs this way round. -/
-
-/-- **What a run keeps between its start and its end**: whatever the target recording gained,
-the inside slot gained at least as much.
-
-Stated as a *relation* and not as a predicate, because a relation is what composes across three
-stages — and it composes by `omega`, which is the whole of `Tracks.trans`. A predicate would
-have had to be re-chosen at each stage's start state. -/
-def Tracks (inside : QueryKind) (before after : HandlerCarrier.State ×
-    ((DigestTape.Record × DigestTape.Record) × Counts)) : Prop :=
-  after.2.1.2.length + before.2.2 inside ≤ before.2.1.2.length + after.2.2 inside
-
-theorem Tracks.refl (inside : QueryKind) (state : HandlerCarrier.State ×
-    ((DigestTape.Record × DigestTape.Record) × Counts)) : Tracks inside state state :=
-  Nat.le_refl _
-
-theorem Tracks.trans {inside : QueryKind} {first middle last : HandlerCarrier.State ×
-    ((DigestTape.Record × DigestTape.Record) × Counts)}
-    (hfirst : Tracks inside first middle) (hlast : Tracks inside middle last) :
-    Tracks inside first last := by
-  rw [Tracks] at hfirst hlast ⊢
-  omega
-
-open scoped Classical in
-/-- **One step tracks.** An entry reaches the target only on a fresh draw whose test implies the
-class, and that query bumps the slot — so the step that files is the step that pays. -/
-theorem step_tracksInside (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Bytes → HandlerCarrier.State → Prop)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep input view → inClass input)
-    (queried : OracleWorld.Domain)
-    (state : HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts))
-    (step : OracleWorld.Range queried ×
-      (HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts)))
-    (hstep : step ∈ support
-      (((splitCarrierRecorder pk inClass inside outside rightKeep) queried).run state)) :
-    Tracks inside state step.2 := by
-  classical
-  rw [Tracks]
-  obtain ⟨inner, hinner, -, -, hrecords, hcounts⟩ :=
-    withSplit_step inClass inside outside _ queried state step hstep
-  have hslot : step.2.2.2 inside =
-      state.2.2 inside + (splitCost inClass inside outside queried) inside := by
-    rw [hcounts]; rfl
-  have hstepRecord : step.2.2.1.2.length ≤
-      state.2.1.2.length + (splitCost inClass inside outside queried) inside := by
-    rcases queried with coin | input
-    · rw [hrecords, show inner.2 = (state.1, state.2.1) from
-        @RecorderView.recorderOf_step_inl HandlerCarrier.State (servingView pk)
-          (disclosingKeep pk) rightKeep coin (state.1, state.2.1) inner hinner]
-      simp
-    · rw [@RecorderView.noticingRecorderOf_run_inr HandlerCarrier.State (servingView pk)
-        (disclosingKeep pk) rightKeep input (state.1, state.2.1)] at hinner
-      rw [hrecords, @RecorderView.recorderOf_step_record HandlerCarrier.State
-          (servingView pk) (disclosingKeep pk) rightKeep input
-          (@RecorderView.CacheView.onQuery HandlerCarrier.State (servingView pk) state.1 input,
-            state.2.1) inner hinner]
-      simp only [RecorderView.appendedOf]
-      split_ifs with hfiledLeft hfiledRight
-      · simp
-      · rw [splitCost_inside inClass inside outside input
-          (hrightClass input (@RecorderView.CacheView.onQuery HandlerCarrier.State
-            (servingView pk) state.1 input) hfiledRight.2)]
-        simp
-      · simp
-  omega
-
-/-- **And therefore a run tracks**, by `RecordInvariant.run_invariant` at the relation with its
-start fixed. -/
-theorem run_tracksInside (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Bytes → HandlerCarrier.State → Prop)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep input view → inClass input)
-    {α : Type} (computation : OracleComp OracleWorld α)
-    (state : HandlerCarrier.State × ((DigestTape.Record × DigestTape.Record) × Counts))
-    (result : α × (HandlerCarrier.State ×
-      ((DigestTape.Record × DigestTape.Record) × Counts)))
-    (hresult : result ∈ support
-      ((simulateQ (splitCarrierRecorder pk inClass inside outside rightKeep)
-        computation).run state)) :
-    Tracks inside state result.2 :=
-  RecordInvariant.run_invariant (Inv := Tracks inside state) _
-    (fun queried inner step hstep hinv => hinv.trans
-      (step_tracksInside pk inClass inside outside rightKeep hrightClass queried inner step
-        hstep))
-    computation state result hresult (Tracks.refl inside state)
-
-open scoped Classical in
-/-- **The target recording is no longer than the inside slot.** -/
-theorem rightRecord_length_le_inside (inClass : Bytes → Prop) (inside outside : QueryKind)
-    (rightKeep : Bytes → HandlerCarrier.State → Prop)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep input view → inClass input)
-    {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (state : HandlerCarrier.State ×
-        ((DigestTape.Record × DigestTape.Record) × Counts))
-      (result : α × (HandlerCarrier.State ×
-        ((DigestTape.Record × DigestTape.Record) × Counts))),
-      result ∈ support ((simulateQ (splitCarrierRecorder pk inClass inside outside rightKeep)
-        computation).run state) →
-      result.2.2.1.2.length + state.2.2 inside ≤
-        state.2.1.2.length + result.2.2.2 inside :=
-  fun state result hresult =>
-    run_tracksInside pk inClass inside outside rightKeep hrightClass computation state result
-      hresult
 
 end SlhDsaSecurity.SplitCounted

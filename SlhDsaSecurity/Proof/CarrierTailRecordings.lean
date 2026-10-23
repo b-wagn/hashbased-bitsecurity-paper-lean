@@ -118,33 +118,4 @@ about the object's size rather than about any name in them.
 with the state unchanged. Stated here so that a consumer of `answerCarrierRun` never has to
 unfold it to reach them. -/
 
-
-set_option maxHeartbeats 1000000 in
-set_option linter.constructorNameAsVariable false in
-theorem recordClass_answerCarrierRun (narrow : Walk → Bytes → Prop)
-    (hnarrow : ∀ (walk : Walk) (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → narrow walk input)
-    (adversary : Adversary) (walk : Walk)
-    (result : (Outcome × Nat) × SplitPrefix.SplitState)
-    (hresult : result ∈ support (AnswerCarrier.answerCarrierRun rightKeep adversary walk)) :
-    ∀ entry ∈ result.2.2.2, narrow walk entry.1 := by
-  rw [AnswerCarrier.answerCarrierRun, support_map] at hresult
-  obtain ⟨inner, hinner, hvalue⟩ := hresult
-  have hstate : result.2 = inner.2 := by rw [← hvalue]; rfl
-  rw [hstate]
-  exact recordClass_carrierTail rightKeep narrow hnarrow adversary walk inner hinner
-
-set_option maxHeartbeats 1000000 in
-set_option linter.constructorNameAsVariable false in
-theorem recordFreshNodup_answerCarrierRun (adversary : Adversary) (walk : Walk)
-    (result : (Outcome × Nat) × SplitPrefix.SplitState)
-    (hresult : result ∈ support (AnswerCarrier.answerCarrierRun rightKeep adversary walk)) :
-    (∀ entry ∈ result.2.2.2, result.2.1 entry.1 ≠ none) ∧
-      (result.2.2.2.map Prod.fst).Nodup := by
-  rw [AnswerCarrier.answerCarrierRun, support_map] at hresult
-  obtain ⟨inner, hinner, hvalue⟩ := hresult
-  have hstate : result.2 = inner.2 := by rw [← hvalue]; rfl
-  rw [hstate]
-  exact recordFreshNodup_carrierTail rightKeep adversary walk inner hinner
-
 end SlhDsaSecurity.CarrierTailRecordings

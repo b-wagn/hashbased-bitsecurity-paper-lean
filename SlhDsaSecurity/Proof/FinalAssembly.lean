@@ -1,5 +1,6 @@
 import SlhDsaSecurity.Proof.AnswerJoin
-import SlhDsaSecurity.Proof.SharedAssembly
+import SlhDsaSecurity.Proof.LateProvenance
+import SlhDsaSecurity.Proof.ProbeContainment
 
 /-!
 # The target, from the obligations that are left
@@ -36,29 +37,6 @@ open Security CanonicalGraph WarmedGame RoutedSplit Target AnswerSide
 def forgetFused (result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) :
     (Outcome × Nat) × QueryCache HashSpec :=
   ((result.1.1.1, result.1.2), result.2.1)
-
-/-- **The fused tail forgets to the game's tail**, as an equality of computations. The record
-goes with the value and the recordings with the state, and what is left is the run the target is
-stated at. -/
-theorem forgetFused_map (adversary : Adversary)
-    (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) :
-    forgetFused <$> FusedCoverage.fusedTail adversary walk = tail adversary walk := by
-  rw [RecordedTail.tail_eq_map_recordedTail, ← FusedCoverage.forget_fusedTail adversary walk,
-    Functor.map_map]
-  rfl
-
-/-- **The two events the answer side is allowed to rule out**, as one predicate of the refined
-pair: the ordering defect, and the narrowing's leftover at the forgery's own randomiser.
-
-`Obligations.AnswerChargedLate`'s event carries `¬ late`, so a disjunction here is a
-*conjunction* of exclusions there, which is what the answer side proves. Nothing in
-`Obligations` or `Target` has to know: `late` was a parameter of both, and this is the
-application. -/
-def lateOrSeed (pair : LateProbes.SplitPair) : Prop :=
-  LateProbes.Ordering pair ∨
-    AnswerCoverage.ForgerySeedRandomised pair.1.1.1.2.1
-      (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
-      (forgetFused pair.2)
 
 /-! ## The same, at what the answer half proves
 

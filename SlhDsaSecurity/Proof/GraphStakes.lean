@@ -156,33 +156,11 @@ strictly below the digit that key's honest message encodes. That cell is unavail
 closure it is not obtainable either — a run holding it did not derive it, and the only other way
 is a query at a sensitive node. -/
 
-/-- **A chain value below the revealed digit is not obtainable.** -/
-theorem not_obtainable_wotsPosition (state : State) (key : WotsKey) (chain : Fin chains)
-    (position : Fin w) (hbelow : position.val < revealed key chain) :
-    ¬ Obtainable graph (fun other => ¬ unavailableAt revealed signedAt state other)
-      (.structural (wotsPosition key chain position)) := fun hobtain =>
-  not_available_wotsPosition revealed (signedAt state) key chain position hbelow
-    (not_unavailable_of_obtainable revealed signedAt state hobtain)
-
 /-! ## The node a sensitive query is at
 
 Reading the corollary the other way: a node the signatures leave a child of unavailable has
 exactly one child, so it *is* a `SensitiveNode` and its canonical input is one of the charge's
 candidates. -/
-
-open scoped Classical in
-/-- The sensitive node a sensitive structural node is. -/
-noncomputable def sensitiveNode (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
-    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
-    {parent : StructuralNode} (hsensitive : CanonicalGraph.Sensitive revealed signed parent) :
-    SensitiveNode :=
-  ⟨parent, (singleton_children_of_sensitive revealed signed hrevealed hsensitive).choose,
-    (singleton_children_of_sensitive revealed signed hrevealed hsensitive).choose_spec⟩
-
-@[simp] theorem sensitiveNode_parent (hrevealed : ∀ key chain, revealed key chain ≤ w - 1)
-    (signed : ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
-    {parent : StructuralNode} (hsensitive : CanonicalGraph.Sensitive revealed signed parent) :
-    (sensitiveNode revealed hrevealed signed hsensitive).parent = parent := rfl
 
 /-! ## The digit each hypertree key reveals
 
@@ -199,44 +177,6 @@ def honestMessage (secretSeed publicSeed : Digest) (key : WotsKey) : Digest :=
   | 0 => value secretSeed publicSeed (.structural (.forsRoots ⟨key.tree.tree, key.leaf⟩))
   | layer + 1 => Extraction.HypertreeChain.honestNode secretSeed publicSeed layer
       (key.tree.tree.val * 2 ^ subtreeHeight + key.leaf.val)
-
-/-- **The base of the climb.** The key at the bottom layer signs the FORS public key, which is
-the cell at that key's roots node — so the entry invariant the climb carries is supplied by
-`CanonicalGraph.fors_publicKey_cell` and nothing else has to be arranged.
-
-The base is where a wrong message would enter if one did: the step above is pinned by the
-layer arithmetic, but the first message is whatever the caller hands in. -/
-theorem honestMessage_zero (secretSeed publicSeed : Digest) (hlayer : 0 < layers)
-    (tree : Fin (2 ^ (totalHeight - subtreeHeight))) (leaf : Fin (2 ^ subtreeHeight)) :
-    honestMessage secretSeed publicSeed ⟨⟨⟨0, hlayer⟩, tree⟩, leaf⟩ =
-      value secretSeed publicSeed (.structural (.forsRoots ⟨tree, leaf⟩)) := rfl
-
-/-- **The step that cannot be fudged.** Climbing one layer divides the subtree index and keeps
-its remainder as the leaf, and the message the climb carries up is the root of the subtree it
-has just left. The key it arrives at signs exactly that root: `honestMessage` at a key one layer
-up is `honestNode` at the subtree the division and the remainder put back together.
-
-This is the equation the induction's digit-count invariant rests on, and it is proved here
-rather than inside the induction because it is the one place where a message of the right type
-could quietly be the wrong message. -/
-theorem honestMessage_succ (secretSeed publicSeed : Digest) (layer : Fin layers)
-    (hlayer : 0 < layer.val) (tree : Nat)
-    (htree : tree / 2 ^ subtreeHeight < 2 ^ (totalHeight - subtreeHeight)) :
-    honestMessage secretSeed publicSeed
-        ⟨⟨layer, ⟨tree / 2 ^ subtreeHeight, htree⟩⟩, Hypertree.nextLeaf tree⟩ =
-      Extraction.HypertreeChain.honestNode secretSeed publicSeed (layer.val - 1) tree := by
-  obtain ⟨below, hbelow⟩ : ∃ below, layer.val = below + 1 :=
-    ⟨layer.val - 1, by omega⟩
-  show (match layer.val with
-    | 0 => _
-    | step + 1 => Extraction.HypertreeChain.honestNode secretSeed publicSeed step
-        ((tree / 2 ^ subtreeHeight) * 2 ^ subtreeHeight + (Hypertree.nextLeaf tree).val)) = _
-  rw [hbelow]
-  show Extraction.HypertreeChain.honestNode secretSeed publicSeed below
-      ((tree / 2 ^ subtreeHeight) * 2 ^ subtreeHeight + tree % 2 ^ subtreeHeight) = _
-  rw [show (tree / 2 ^ subtreeHeight) * 2 ^ subtreeHeight + tree % 2 ^ subtreeHeight = tree from by
-      rw [Nat.mul_comm]; exact Nat.div_add_mod tree (2 ^ subtreeHeight)]
-  congr 1
 
 /-- The digit that message encodes on a chain: the position the signature on this key
 discloses. -/
@@ -308,10 +248,6 @@ def forsIndex (indices : SlhDsaSecurity.Fors.Indices) (tree : Fin forsTrees) :
     exact lt_of_lt_of_le hstep (Nat.mul_le_mul_right _ htree)⟩
 
 omit [HasQuery HashSpec Id] in
-@[simp] theorem forsIndex_val (indices : SlhDsaSecurity.Fors.Indices) (tree : Fin forsTrees) :
-    (forsIndex indices tree).val = Extraction.Fors.leafIndex indices tree := rfl
-
-omit [HasQuery HashSpec Id] in
 /-- **The FORS disclosure, position by position: signed, or not obtainable.** -/
 theorem forsSecret_signed_or_not_obtainable (cache : QueryCache HashSpec)
     (secretSeed : Digest) (key : ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
@@ -372,26 +308,6 @@ chain consults its canonical input at the chain's own partial value. That the wa
 the encoded digit — the same digit `honestRevealed` is defined as — is left unstated here,
 being the one part of the argument that is not in doubt. -/
 
-omit [HasQuery HashSpec Id] in
-/-- **A chain position strictly below the revealed digit is unavailable**, and it is what a
-probe at the step above it stakes. -/
-theorem not_available_wotsHashNode_child
-    (revealedAt : WotsKey -> Fin chains -> Nat)
-    (signedSet : ForsKey -> Finset (Fin (forsTrees * 2 ^ forsHeight)))
-    (key : WotsKey) (chain : Fin chains) (step : Fin (w - 1))
-    (hbelow : step.val < revealedAt key chain) :
-    ¬ CanonicalGraph.Available revealedAt signedSet (wotsHashNode key chain step).child := by
-  show ¬ CanonicalGraph.Available revealedAt signedSet
-    (.structural (wotsPosition key chain ⟨step.val, by have := step.isLt; omega⟩))
-  unfold wotsPosition
-  by_cases hzero : step.val = 0
-  · rw [dif_pos hzero]
-    simp only [CanonicalGraph.Available]
-    omega
-  · rw [dif_neg hzero]
-    simp only [CanonicalGraph.Available]
-    omega
-
 /-- The FORS leaf node above a FORS secret, which always has exactly one child. -/
 def forsLeafNode (key : ForsKey) (index : Fin (forsTrees * 2 ^ forsHeight)) : SensitiveNode :=
   ⟨.forsTree key ⟨0, by omega⟩ ⟨index.val, by simp [index.isLt]⟩,
@@ -448,18 +364,5 @@ def claimedCandidates (forsKey : ForsKey) (indices : SlhDsaSecurity.Fors.Indices
       (List.finRange chains).map fun chain =>
         inputOf publicSeed (wotsHashNode (keyAt layer) chain (stepAt layer chain))
           ((signature.hypertree layer).wots chain)
-
-omit [HasQuery HashSpec Id] in
-/-- The constant, counted rather than estimated. -/
-theorem claimedCount : forsTrees + layers * chains = 259 := by decide
-
-omit [HasQuery HashSpec Id] in
-/-- **The record's length is a constant.** -/
-theorem length_claimedCandidates (forsKey : ForsKey) (indices : SlhDsaSecurity.Fors.Indices)
-    (signature : Signature) (keyAt : Fin layers → WotsKey)
-    (stepAt : Fin layers → Fin chains → Fin (w - 1)) :
-    (claimedCandidates publicSeed forsKey indices signature keyAt stepAt).length =
-      forsTrees + layers * chains := by
-  simp [claimedCandidates, List.length_flatMap]
 
 end SlhDsaSecurity.GraphStakes

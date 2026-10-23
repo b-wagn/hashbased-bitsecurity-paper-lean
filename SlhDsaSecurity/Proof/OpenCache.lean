@@ -115,7 +115,6 @@ theorem openCache_congr_of_agreeOff
       hclosed parent ((mem_openNodes available parent).mp hparent)
     rw [fullOutput, fullOutput, hagree.1 _ (hne _ hcell), hagree.2 parent (hne _ hcell)]
 
-
 /-! ## Two availability predicates differ only at the sensitive inputs
 
 The comparison a lazy presentation needs against an eager one is between this handler at the
@@ -128,34 +127,6 @@ children are all available is in both with the same answer.
 Closure is not what makes this true; it is what makes the handler blind to the unavailable
 cells. This is the plainer fact that the readable entries are determined by which nodes pass
 the test. -/
-
-open scoped Classical in
-/-- **The readable entries at two availability predicates agree off the sensitive inputs.** -/
-theorem openCache_congr_of_not_sensitive (lenient strict : Node → Prop)
-    (table : Cells × Padding) (input : Bytes)
-    (hnot : ∀ parent : StructuralNode, canonicalInput publicSeed table.1 parent = input →
-      ((∀ child ∈ parent.children, lenient child) ↔ ∀ child ∈ parent.children, strict child)) :
-    openCache publicSeed lenient table input = openCache publicSeed strict table input := by
-  classical
-  by_cases hcanonical : ∃ parent : StructuralNode,
-      canonicalInput publicSeed table.1 parent = input
-  · obtain ⟨parent, hparent⟩ := hcanonical
-    subst hparent
-    rw [openCache, openCache, cacheFrom_lookup, cacheFrom_lookup]
-    by_cases hopen : ∀ child ∈ parent.children, lenient child
-    · rw [if_pos ((mem_openNodes lenient parent).mpr hopen),
-        if_pos ((mem_openNodes strict parent).mpr ((hnot parent rfl).mp hopen))]
-    · rw [if_neg (fun hmem => hopen ((mem_openNodes lenient parent).mp hmem)),
-        if_neg (fun hmem => hopen ((hnot parent rfl).mpr
-          ((mem_openNodes strict parent).mp hmem)))]
-  · have hnone : ∀ available : Node → Prop,
-        openCache publicSeed available table input = none := by
-      intro available
-      by_contra hsome
-      exact hcanonical ((cacheFrom_empty_canonical publicSeed table.1
-        (fullOutput table.1 table.2) (openNodes available) input hsome).imp
-        fun parent hparent => hparent.symm)
-    rw [hnone lenient, hnone strict]
 
 open scoped Classical in
 /-- **A non-canonical input is not among the entries a handler may serve.** The entries are
@@ -202,64 +173,6 @@ noncomputable def lazyProgram (availableAt : HandlerCarrier.State → Node → P
                   ($ᵗ HashOutput : ProbComp HashOutput))
         pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1))
 
-open scoped Classical in
-theorem lazyProgram_run_inl (availableAt : HandlerCarrier.State → Node → Prop)
-    (table : Cells × Padding) (coin : unifSpec.Domain) (state : HandlerState) :
-    ((lazyProgram publicSeed availableAt table) (Sum.inl coin)).run state =
-      ($ᵗ (OracleWorld.Range (Sum.inl coin)) : ProbComp _) >>= fun value =>
-        (pure (value, state) : ProbComp _) := rfl
-
-open scoped Classical in
-theorem lazyProgram_run_inr (availableAt : HandlerCarrier.State → Node → Prop)
-    (table : Cells × Padding) (input : Bytes) (state : HandlerState) :
-    ((lazyProgram publicSeed availableAt table) (Sum.inr input)).run state =
-      (match state.1.cache input with
-        | some cached => (pure (cached, state.1) : ProbComp _)
-        | none =>
-          match openCache publicSeed (availableAt state.1) table input with
-          | some answer => pure (answer, HandlerCarrier.cacheAnswer state.1 input answer)
-          | none =>
-            (fun answer => (answer, HandlerCarrier.cacheAnswer state.1 input answer)) <$>
-              ($ᵗ HashOutput : ProbComp HashOutput)) >>= fun step =>
-        (pure (step.1, (step.2, state.2.1 ++ [(input, state.1)], state.2.2 + 1)) :
-          ProbComp _) := rfl
-
-/-- **The step condition `StalledRun` consumes.** At a state where cell `index` is unavailable,
-the handler's step does not depend on that cell or on its node's padding. -/
-theorem lazyProgram_step_congr (availableAt : HandlerCarrier.State → Node → Prop)
-    (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),
-      (∀ child ∈ parent.children, availableAt carrier child) →
-        availableAt carrier (.structural parent))
-    (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
-    (queried : OracleWorld.Domain) (state : HandlerState)
-    (hindex : ¬ availableAt state.1 index) :
-    ((lazyProgram publicSeed availableAt left) queried).run state =
-      ((lazyProgram publicSeed availableAt right) queried).run state := by
-  classical
-  rcases queried with coin | input
-  · rw [lazyProgram_run_inl, lazyProgram_run_inl]
-  · rw [lazyProgram_run_inr, lazyProgram_run_inr,
-      openCache_congr_of_agreeOff publicSeed (availableAt state.1) (hclosed state.1)
-        index hindex left right hagree]
-
-
-/-- **The step condition at the canonical graph.** Availability by the signatures issued so far
-is closed under the structure, so the handler never reads an unavailable cell. -/
-theorem lazyProgram_step_congr_graph (revealed : WotsKey → Fin chains → Nat)
-    (signedAt : HandlerCarrier.State → ForsKey → Finset (Fin (forsTrees * 2 ^ forsHeight)))
-    (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
-    (queried : OracleWorld.Domain) (state : HandlerState)
-    (hindex : ¬ Available revealed (signedAt state.1) index) :
-    ((lazyProgram publicSeed
-        (fun cache => Available revealed (signedAt cache)) left) queried).run state =
-      ((lazyProgram publicSeed
-        (fun cache => Available revealed (signedAt cache)) right) queried).run state :=
-  lazyProgram_step_congr publicSeed (fun cache => Available revealed (signedAt cache))
-    (fun cache _ hchildren =>
-      available_of_children_available revealed (signedAt cache) hchildren)
-    index left right hagree queried state hindex
-
-
 /-! ## A handler that reads cells rather than answering queries about them
 
 `lazyProgram` is blind to an unavailable cell because the entries it may serve are
@@ -281,86 +194,10 @@ hypotheses below are the honest ones: the step is a function of the cells it rea
 reads only cells the signatures have already made available. `StalledRun` and `TableBlind` take
 the step condition as a parameter, so nothing else has to change to accommodate it. -/
 
-/-- **A handler that reads only available cells is blind to an unavailable one.** -/
-theorem reading_step_congr {ι : Type} {spec : OracleSpec ι} {σ : Type}
-    (availableAt : σ → Node → Prop)
-    (impl : Cells × Padding → QueryImpl spec (StateT σ ProbComp))
-    (reads : spec.Domain → σ → Node → Prop)
-    (hreads : ∀ (queried : spec.Domain) (state : σ) (left right : Cells × Padding),
-      (∀ node, reads queried state node → left.1 node = right.1 node) →
-        (impl left queried).run state = (impl right queried).run state)
-    (hopen : ∀ (queried : spec.Domain) (state : σ) (node : Node),
-      reads queried state node → availableAt state node)
-    (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
-    (queried : spec.Domain) (state : σ) (hindex : ¬ availableAt state index) :
-    (impl left queried).run state = (impl right queried).run state := by
-  refine hreads queried state left right fun node hnode => hagree.1 node ?_
-  rintro rfl
-  exact hindex (hopen queried state node hnode)
-
 /-! ## The stalled handler is blind to the cell it stalled on
 
 `StalledRun` wants a flag alongside the state, which this handler has no use for, so it is
 carried untouched. What comes out is the hypothesis-free form: stalled at the moment the cell
 becomes available, the handler's whole run has a law not mentioning that cell. -/
-
-/-- The handler with a flag alongside, which it does not touch. -/
-noncomputable def withFlag (impl : QueryImpl OracleWorld (StateT HandlerState ProbComp)) :
-    QueryImpl OracleWorld (StateT (HandlerState × Bool) ProbComp) :=
-  fun queried state => do
-    let step ← (impl queried).run state.1
-    pure (step.1, (step.2, state.2))
-
-theorem withFlag_run (impl : QueryImpl OracleWorld (StateT HandlerState ProbComp))
-    (queried : OracleWorld.Domain) (state : HandlerState × Bool) :
-    ((withFlag impl) queried).run state =
-      (impl queried).run state.1 >>= fun step =>
-        (pure (step.1, (step.2, state.2)) : ProbComp _) := rfl
-
-/-- **The stalled run does not mention the cell it stalled on.**
-
-`HandlerStall.evalDist_stalled_congr` is the same statement at any handler, taking
-`HandlerFacts.Facts.blind` where this one takes `lazyProgram_step_congr` and `hclosed`. -/
-theorem evalDist_stalled_lazyProgram_congr {α : Type}
-    (availableAt : HandlerCarrier.State → Node → Prop)
-    (hclosed : ∀ (carrier : HandlerCarrier.State) (parent : StructuralNode),
-      (∀ child ∈ parent.children, availableAt carrier child) →
-        availableAt carrier (.structural parent))
-    (index : Node) (left right : Cells × Padding) (hagree : AgreeOff index left right)
-    (stall : (t : OracleWorld.Domain) → OracleWorld.Range t)
-    (oa : OracleComp OracleWorld α) (state : HandlerState × Bool) :
-    𝒟[(simulateQ (StalledRun.stalled (withFlag (lazyProgram publicSeed availableAt left))
-          (fun inner => availableAt inner.1 index) stall) oa).run state] =
-      𝒟[(simulateQ (StalledRun.stalled (withFlag (lazyProgram publicSeed availableAt right))
-          (fun inner => availableAt inner.1 index) stall) oa).run state] :=
-  StalledRun.evalDist_stalled_congr
-    (fun table => withFlag (lazyProgram publicSeed availableAt table))
-    (fun inner => availableAt inner.1 index) stall (AgreeOff index)
-    (fun queried p first second hfirst hfrozen => by
-      rw [withFlag_run, withFlag_run,
-        lazyProgram_step_congr publicSeed availableAt hclosed index first second hfirst
-          queried p.1 hfrozen])
-    oa left right hagree state
-
-
-open scoped Classical in
-/-- **The step condition the two-handler comparison takes.** At a query that is not the
-canonical input of a node the two availability predicates disagree about, the handler's step is
-the same at both. -/
-theorem lazyProgram_step_congr_available
-    (lenient strict : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
-    (queried : OracleWorld.Domain) (state : HandlerState)
-    (hnot : ∀ input, queried = Sum.inr input →
-      ∀ parent : StructuralNode, canonicalInput publicSeed table.1 parent = input →
-        ((∀ child ∈ parent.children, lenient state.1 child) ↔
-          ∀ child ∈ parent.children, strict state.1 child)) :
-    ((lazyProgram publicSeed lenient table) queried).run state =
-      ((lazyProgram publicSeed strict table) queried).run state := by
-  classical
-  rcases queried with coin | input
-  · rw [lazyProgram_run_inl, lazyProgram_run_inl]
-  · rw [lazyProgram_run_inr, lazyProgram_run_inr,
-      openCache_congr_of_not_sensitive publicSeed (lenient state.1) (strict state.1) table input
-        (hnot input rfl)]
 
 end SlhDsaSecurity.OpenCache

@@ -186,79 +186,12 @@ theorem evalDist_graphWalk : 𝒟[graphWalk] = 𝒟[tableWalk] := by
 The obligation is stated at `Target.pairedRun`, so the law above is read there: the game that
 follows is a function of the walk alone, so replacing the walk's law replaces the pair's. -/
 
-/-- The paired run, with the walk drawn as a table. -/
-noncomputable def tablePairedRun (adversary : Adversary) :
-    ProbComp ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) := do
-  let prfSeed ← ($ᵗ Digest : ProbComp Digest)
-  let publicSeed ← ($ᵗ Digest : ProbComp Digest)
-  let table ← ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding))
-  let result ← tail adversary (walkOfTable prfSeed publicSeed table)
-  pure (walkOfTable prfSeed publicSeed table, result)
-
-/-- **The paired run draws its table.** -/
-theorem evalDist_pairedRun (adversary : Adversary) :
-    𝒟[Target.pairedRun adversary] = 𝒟[tablePairedRun adversary] := by
-  rw [Target.pairedRun, tablePairedRun, evalDist_bind, evalDist_graphWalk,
-    ← evalDist_bind, tableWalk]
-  simp only [bind_assoc, pure_bind]
-
-/-- **Any event at the paired run may be read at the drawn table.** -/
-theorem probEvent_pairedRun (adversary : Adversary)
-    (event : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) → Prop) :
-    Pr[event | Target.pairedRun adversary] = Pr[event | tablePairedRun adversary] :=
-  probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_pairedRun adversary)
-
 /-! ## What the obligation reduces to
 
 The two seeds the table does not carry are drawn first and averaged over, so what is left to
 prove is a bound at a fixed pair of them with the table still in the measure — which is the
 shape the charge is stated in. The secret seed is *not* among the two: it is the table's own
 cell, and fixing it is exactly what the obligation may not do. -/
-
-/-- The run the charge reads: a drawn table, the game it determines, and the walk kept. -/
-noncomputable def tableRun (adversary : Adversary) (prfSeed publicSeed : Digest) :
-    ProbComp ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) := do
-  let table ← ($ᵗ (Cells × Padding) : ProbComp (Cells × Padding))
-  let result ← tail adversary (walkOfTable prfSeed publicSeed table)
-  pure (walkOfTable prfSeed publicSeed table, result)
-
-/-- A uniform pair is two uniform draws. -/
-theorem uniformSample_prod_eq_bind {α β : Type} [SampleableType α] [SampleableType β] :
-    ($ᵗ (α × β) : ProbComp (α × β)) =
-      (do
-        let left ← ($ᵗ α : ProbComp α)
-        let right ← ($ᵗ β : ProbComp β)
-        pure (left, right)) := by
-  rw [uniformSample]
-  change ((·, ·) <$> ($ᵗ α) <*> ($ᵗ β)) = _
-  simp only [seq_eq_bind_map, map_eq_bind_pure_comp, bind_assoc, Function.comp_def, pure_bind]
-
-/-- **The table is drawn as the charge draws it**: the cells first, their padding beside
-them. -/
-theorem tableRun_eq (adversary : Adversary) (prfSeed publicSeed : Digest) :
-    tableRun adversary prfSeed publicSeed = (do
-      let cells ← ($ᵗ Cells : ProbComp Cells)
-      let pad ← ($ᵗ Padding : ProbComp Padding)
-      let result ← tail adversary (walkOfTable prfSeed publicSeed (cells, pad))
-      pure (walkOfTable prfSeed publicSeed (cells, pad), result)) := by
-  rw [tableRun, uniformSample_prod_eq_bind]
-  simp only [bind_assoc, pure_bind]
-
-/-- **A bound at each pair of drawn seeds is a bound at the paired run.** This is the whole of
-what the obligation's new shape asks for: the cell table and the secret seed it carries stay in
-the measure, and only `SK.prf` and the public seed are fixed. -/
-theorem probEvent_pairedRun_le (adversary : Adversary)
-    (event : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) → Prop) (bound : ℝ≥0∞)
-    (hinner : ∀ prfSeed publicSeed, Pr[event | tableRun adversary prfSeed publicSeed] ≤ bound) :
-    Pr[event | Target.pairedRun adversary] ≤ bound := by
-  rw [probEvent_pairedRun adversary event, tablePairedRun]
-  refine WalkDefects.probEvent_bind_le _ _ _ _ fun prfSeed => ?_
-  refine WalkDefects.probEvent_bind_le _ _ _ _ fun publicSeed => ?_
-  exact hinner prfSeed publicSeed
 
 /-! ## The charge's own pairing
 
@@ -276,100 +209,10 @@ the walk's *value* and the tail's result, and has no component for the walk's ca
 than a fact it assumes. An event that did read the walk's cache would not cross this step, and
 would fail here rather than silently. -/
 
-/-- An event the walk's cache does not reach. -/
-def CacheBlind (event : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-    ((Outcome × Nat) × QueryCache HashSpec)) → Prop) : Prop :=
-  ∀ (value : (Digest × Digest × Digest) × Cells) (cache cache' : QueryCache HashSpec)
-    (result : (Outcome × Nat) × QueryCache HashSpec),
-      event ((value, cache), result) ↔ event ((value, cache'), result)
-
-/-- The event read at the charge's pairing: the seeds rebuilt from the cells, and any cache at
-all, which `CacheBlind` makes immaterial. -/
-def reduce (prfSeed publicSeed : Digest)
-    (event : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) → Prop)
-    (z : ((Outcome × Nat) × QueryCache HashSpec) × Cells) : Prop :=
-  event ((((z.2 Node.secretSeed, prfSeed, publicSeed), z.2), ∅), z.1)
-
-/-- The run the charge reads, paired as the charge pairs it. -/
-noncomputable def chargeRun (adversary : Adversary) (prfSeed publicSeed : Digest) :
-    ProbComp (((Outcome × Nat) × QueryCache HashSpec) × Cells) := do
-  let cells ← ($ᵗ Cells : ProbComp Cells)
-  let pad ← ($ᵗ Padding : ProbComp Padding)
-  let result ← tail adversary (walkOfTable prfSeed publicSeed (cells, pad))
-  pure (result, cells)
-
-open scoped Classical in
-/-- **The two pairings read a cache-blind event alike.** -/
-theorem probEvent_tableRun_eq (adversary : Adversary) (prfSeed publicSeed : Digest)
-    (event : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) → Prop) (hblind : CacheBlind event) :
-    Pr[event | tableRun adversary prfSeed publicSeed] =
-      Pr[reduce prfSeed publicSeed event | chargeRun adversary prfSeed publicSeed] := by
-  rw [tableRun_eq, chargeRun, probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
-  refine tsum_congr fun cells => congrArg _ ?_
-  rw [probEvent_bind_eq_tsum, probEvent_bind_eq_tsum]
-  refine tsum_congr fun pad => congrArg _ ?_
-  rw [bind_pure_comp, bind_pure_comp, probEvent_map, probEvent_map]
-  exact probEvent_congr' (fun result _ =>
-    hblind ((cells Node.secretSeed, prfSeed, publicSeed), cells) _ ∅ result) rfl
-
-/-- **A bound at the charge's pairing is a bound at the paired run.** -/
-theorem probEvent_pairedRun_le_of_charge (adversary : Adversary)
-    (event : ((((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) ×
-      ((Outcome × Nat) × QueryCache HashSpec)) → Prop) (hblind : CacheBlind event)
-    (bound : ℝ≥0∞)
-    (hinner : ∀ prfSeed publicSeed,
-      Pr[reduce prfSeed publicSeed event | chargeRun adversary prfSeed publicSeed] ≤ bound) :
-    Pr[event | Target.pairedRun adversary] ≤ bound := by
-  refine probEvent_pairedRun_le adversary event bound fun prfSeed publicSeed => ?_
-  rw [probEvent_tableRun_eq adversary prfSeed publicSeed event hblind]
-  exact hinner prfSeed publicSeed
-
 /-! ## The shared obligation at the charge's pairing
 
 The obligation's own event crosses, and what is left to prove is a bound on `SharedReduced` at
 each pair of seeds — one statement about a drawn table, the run it determines, and the forgery
 that run returns. -/
-
-open RoutedSplit ReplayGate in
-/-- The shared obligation's event, read at the charge's pairing. -/
-def SharedReduced (prfSeed publicSeed : Digest)
-    (z : ((Outcome × Nat) × QueryCache HashSpec) × Cells) : Prop :=
-  reduce prfSeed publicSeed (fun pair => Target.GoodWalk pair.1 ∧
-    (InputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
-      RandomiserBad ((pair.1.1, pair.2.1), pair.2.2))) z
-
-open RoutedSplit ReplayGate in
-/-- **Where every index lands.** The reduced event spelled out: the two seeds are the ones held
-fixed, the secret seed and the cells are the drawn table's, and the trace the two defects are
-read at is built from those together with the tail's own result. It is `Iff.rfl`, which is the
-point — an index that slipped would fail here rather than inside the chain. -/
-theorem sharedReduced_iff (prfSeed publicSeed : Digest)
-    (z : ((Outcome × Nat) × QueryCache HashSpec) × Cells) :
-    SharedReduced prfSeed publicSeed z ↔
-      ((prfSeed ≠ publicSeed ∧ ¬ HashSeparation.Possible
-          (publicSeed, z.2 (.structural WalkDefects.topNode))) ∧
-        (InputBad ((((z.2 Node.secretSeed, prfSeed, publicSeed), z.2), z.1.1), z.1.2) ∨
-          RandomiserBad ((((z.2 Node.secretSeed, prfSeed, publicSeed), z.2), z.1.1), z.1.2))) :=
-  Iff.rfl
-
-open RoutedSplit ReplayGate in
-/-- **The shared obligation's event does not read the walk's cache.** -/
-theorem cacheBlind_shared : CacheBlind (fun pair => Target.GoodWalk pair.1 ∧
-    (InputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
-      RandomiserBad ((pair.1.1, pair.2.1), pair.2.2))) :=
-  fun _ _ _ _ => Iff.rfl
-
-open RoutedSplit ReplayGate in
-/-- **The shared obligation, reduced to a bound at the charge's own pairing.** -/
-theorem probEvent_shared_le (adversary : Adversary) (bound : ℝ≥0∞)
-    (hinner : ∀ prfSeed publicSeed,
-      Pr[SharedReduced prfSeed publicSeed | chargeRun adversary prfSeed publicSeed] ≤ bound) :
-    Pr[fun pair => Target.GoodWalk pair.1 ∧
-        (InputBad ((pair.1.1, pair.2.1), pair.2.2) ∨
-          RandomiserBad ((pair.1.1, pair.2.1), pair.2.2)) |
-      Target.pairedRun adversary] ≤ bound :=
-  probEvent_pairedRun_le_of_charge adversary _ cacheBlind_shared bound hinner
 
 end SlhDsaSecurity.WalkTable

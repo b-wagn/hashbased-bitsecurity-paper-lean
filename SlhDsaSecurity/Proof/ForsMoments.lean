@@ -51,26 +51,4 @@ theorem touchard_eq_cached (degree mean : Nat) :
     touchard degree mean = cachedTouchard degree mean := by
   simp only [touchard, cachedTouchard, stirlingRow_getD]
 
-set_option maxRecDepth 10000 in
-set_option maxHeartbeats 2000000 in
-/-- Exact polynomials, not a numerical approximation to a signing experiment. -/
-theorem touchard_bounds :
-    touchard 14 2 = 20732504062 ∧
-      touchard 14 3 < 2 ^ 39 ∧ touchard 28 3 < 2 ^ 92 ∧
-      touchard 42 3 < 2 ^ 151 ∧ touchard 56 3 < 2 ^ 215 ∧
-      touchard 84 3 < 2 ^ 353 := by
-  simp only [touchard_eq_cached]
-  decide +kernel
-
-set_option exponentiation.threshold 1024 in
-/-- Scalar majorant for the four terms in the sixth centered moment of a sum.
-The corresponding probabilistic identity and its hypotheses are not proved here. -/
-theorem sixth_moment_scalar :
-    ((2 ^ 63 : ℚ) * 2 ^ 359 +
-        15 * (2 ^ 63) ^ 2 * 2 ^ 219 * 2 ^ 92 +
-        10 * (2 ^ 63) ^ 2 * 2 ^ 308 +
-        15 * (2 ^ 63) ^ 3 * (2 ^ 92) ^ 3) /
-      ((2 ^ 63) * (2 ^ 39)) ^ 6 < 1 / 2 ^ 142 := by
-  norm_num
-
 end SlhDsaSecurity.ForsMoments

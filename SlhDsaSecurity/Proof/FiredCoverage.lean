@@ -347,28 +347,6 @@ theorem reachMass_mono_index (leftLength rightLength : Nat) {early late : Nat}
   refine ENNReal.tsum_le_tsum fun rightTape => mul_le_mul' le_rfl ?_
   exact mul_le_mul' le_rfl (probEvent_mono fun z _ hlate => lt_of_le_of_lt horder hlate)
 
-/-- **Weights add under a reach mass**, and it is monotone in them. -/
-theorem reachMass_mono_weight (leftLength rightLength index : Nat)
-    {small large : List HashOutput → List HashOutput → ℝ≥0∞}
-    (hle : ∀ leftTape rightTape, small leftTape rightTape ≤ large leftTape rightTape) :
-    reachMass run len leftLength rightLength index small ≤
-      reachMass run len leftLength rightLength index large := by
-  refine ENNReal.tsum_le_tsum fun leftTape => mul_le_mul' le_rfl ?_
-  refine ENNReal.tsum_le_tsum fun rightTape => mul_le_mul' le_rfl ?_
-  exact mul_le_mul' (hle leftTape rightTape) le_rfl
-
-/-- **A bounded weight costs its bound times the probability of reaching the cell.** -/
-theorem reachMass_le_const (leftLength rightLength index : Nat)
-    (weight : List HashOutput → List HashOutput → ℝ≥0∞) (bound : ℝ≥0∞)
-    (hbound : ∀ leftTape rightTape, weight leftTape rightTape ≤ bound) :
-    reachMass run len leftLength rightLength index weight ≤
-      bound * Pr[fun outcome : (List HashOutput × List HashOutput) × ρ =>
-        index < len outcome.2 | blockRunOf run leftLength rightLength] := by
-  rw [probEvent_reach_eq run len leftLength rightLength index,
-    ← reachMass_const_mul run len leftLength rightLength index bound, ]
-  exact reachMass_mono_weight run len leftLength rightLength index
-    fun leftTape rightTape => by rw [mul_one]; exact hbound leftTape rightTape
-
 /-- **A thinning, integrated over the blocks.** An event of the run whose probability, for every
 pair of blocks, is at most `rate` times that of reaching cell `index` costs `rate` times the reach
 mass of any block event beside it. -/

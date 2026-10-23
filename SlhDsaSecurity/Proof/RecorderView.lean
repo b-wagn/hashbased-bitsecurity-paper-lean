@@ -453,103 +453,6 @@ theorem recordOf_prefix {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
           right_prefix_appendedOf leftKeep rightKeep input state step.1⟩
     exact ⟨hstepPrefix.1.trans hleft, hstepPrefix.2.trans hright⟩
 
-open scoped Classical in
-/-- **An entry of the view's cache survives the run.** -/
-theorem recorderOf_cache_value_persists {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
-    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
-    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
-    (input : Bytes) (answer : HashOutput)
-    (hentry : CacheView.cacheOf state.1 input = some answer) :
-    CacheView.cacheOf result.2.1 input = some answer := by
-  classical
-  induction computation using OracleComp.inductionOn generalizing state result with
-  | pure value =>
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-    rw [hmem]
-    exact hentry
-  | query_bind queried next ih =>
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    refine ih step.1 step.2 result hrest ?_
-    rcases queried with coin | probe
-    · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
-      exact hentry
-    · exact recorderOf_step_persists leftKeep rightKeep probe state step hstep input answer hentry
-
-open scoped Classical in
-/-- **Every class answer the run installed was recorded**, on one side or the other. The two
-tests cover the class between them, and which side takes the entry is decided by the view in
-force at the time. -/
-theorem mem_recordOf_of_cache {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
-    (inClass : Bytes → Prop)
-    (hcover : ∀ (input : Bytes) (view : σ), inClass input →
-      leftKeep input view ∨ rightKeep input view)
-    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
-    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
-    (input : Bytes) (answer : HashOutput) (hclass : inClass input)
-    (hfresh : CacheView.cacheOf state.1 input = none)
-    (hfinal : CacheView.cacheOf result.2.1 input = some answer) :
-    (input, answer) ∈ result.2.2.1 ∨ (input, answer) ∈ result.2.2.2 := by
-  classical
-  induction computation using OracleComp.inductionOn generalizing state result with
-  | pure value =>
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-    rw [hmem] at hfinal
-    rw [hfresh] at hfinal
-    simp at hfinal
-  | query_bind queried next ih =>
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    rcases queried with coin | probe
-    · refine ih step.1 step.2 result hrest ?_ hfinal
-      rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
-      exact hfresh
-    · by_cases hsame : input = probe
-      · subst hsame
-        have hpersist : CacheView.cacheOf result.2.1 input = some step.1 :=
-          recorderOf_cache_value_persists leftKeep rightKeep (next step.1) step.2 result hrest
-            input step.1 (recorderOf_step_cache_self leftKeep rightKeep input state step hstep)
-        have hvalue : step.1 = answer := by
-          rw [hpersist] at hfinal
-          exact Option.some.inj hfinal
-        obtain ⟨hgrowLeft, hgrowRight⟩ :=
-          recordOf_prefix leftKeep rightKeep (next step.1) step.2 result hrest
-        have hrecStep := recorderOf_step_record leftKeep rightKeep input state step hstep
-        by_cases hleft : leftKeep input state.1
-        · refine Or.inl (hgrowLeft.subset ?_)
-          rw [hrecStep, appendedOf_of_left leftKeep rightKeep input state step.1 hfresh hleft,
-            hvalue]
-          simp
-        · have hright : rightKeep input state.1 := by
-            rcases hcover input state.1 hclass with hcase | hcase
-            · exact absurd hcase hleft
-            · exact hcase
-          refine Or.inr (hgrowRight.subset ?_)
-          rw [hrecStep,
-            appendedOf_of_right leftKeep rightKeep input state step.1 hfresh hleft hright,
-            hvalue]
-          simp
-      · refine ih step.1 step.2 result hrest ?_ hfinal
-        rcases recorderOf_step leftKeep rightKeep probe state step hstep with
-          ⟨-, hshape⟩ | ⟨-, hshape⟩
-        · rw [show step.2.1 = state.1 from by rw [hshape]]
-          exact hfresh
-        · rw [show step.2.1 = CacheView.update state.1 probe step.1 from by rw [hshape],
-            cacheOf_update_of_ne state.1 probe input step.1 hsame]
-          exact hfresh
-
-/-- **Installing a fresh answer loses no entry.** -/
-theorem persists_update (state : σ) (probe : Bytes) (answer : HashOutput)
-    (hfresh : CacheView.cacheOf state probe = none) (input : Bytes) (value : HashOutput)
-    (hentry : CacheView.cacheOf state input = some value) :
-    CacheView.cacheOf (CacheView.update state probe answer) input = some value := by
-  have hne : input ≠ probe := by
-    intro hsame
-    rw [hsame, hfresh] at hentry
-    simp at hentry
-  rw [cacheOf_update_of_ne state probe input answer hne]
-  exact hentry
-
 /-! ## What the disclosing recording's entries satisfy at the end
 
 **The filing test and the disclosure it records are two predicates, not one.** A test that is
@@ -562,94 +465,6 @@ So `endKeep` is separate, and the two are joined by what a step does: filing an 
 input into whatever the end predicate reads, and no later step takes it out. At a cache-readable
 test the two collapse — `left_recordOf_keep_final` below is this lemma with `endKeep := leftKeep`
 and both laws read off the old monotonicity — so nothing that used the collapsed form moves. -/
-
-open scoped Classical in
-/-- **Every entry of the disclosing recording satisfies the end predicate at the end of the
-run.** -/
-theorem left_recordOf_endKeep_final {α : Type} (leftKeep rightKeep endKeep : Bytes → σ → Prop)
-    (hfile : ∀ (input : Bytes) (view : σ) (answer : HashOutput),
-      CacheView.cacheOf view input = none → leftKeep input view →
-        endKeep input (CacheView.update view input answer))
-    (hkeeps : ∀ (input probe : Bytes) (view : σ) (answer : HashOutput),
-      CacheView.cacheOf view probe = none → endKeep input view →
-        endKeep input (CacheView.update view probe answer))
-    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
-    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
-    (hstart : ∀ entry ∈ state.2.1, endKeep entry.1 state.1) :
-    ∀ entry ∈ result.2.2.1, endKeep entry.1 result.2.1 := by
-  classical
-  induction computation using OracleComp.inductionOn generalizing state result with
-  | pure value =>
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-    rw [hmem] at *
-    exact hstart
-  | query_bind queried next ih =>
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    refine ih step.1 step.2 result hrest ?_
-    rcases queried with coin | input
-    · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep]
-      exact hstart
-    · have hrecStep := recorderOf_step_record leftKeep rightKeep input state step hstep
-      cases hcached : CacheView.cacheOf state.1 input with
-      | some cached =>
-        rcases recorderOf_step leftKeep rightKeep input state step hstep with
-          ⟨-, hshape⟩ | ⟨hbad, -⟩
-        · rw [show step.2.1 = state.1 from by rw [hshape],
-            show step.2.2 = state.2 from by
-              rw [hshape,
-                appendedOf_of_cached leftKeep rightKeep input state step.1 cached hcached]]
-          exact hstart
-        · rw [hcached] at hbad
-          simp at hbad
-      | none =>
-        have hinstalled : step.2.1 = CacheView.update state.1 input step.1 := by
-          rcases recorderOf_step leftKeep rightKeep input state step hstep with
-            ⟨hbad, -⟩ | ⟨-, hshape⟩
-          · rw [hcached] at hbad
-            simp at hbad
-          · rw [hshape]
-        have hcarry : ∀ entry ∈ state.2.1, endKeep entry.1 step.2.1 := by
-          intro entry hentry
-          rw [hinstalled]
-          exact hkeeps entry.1 input state.1 step.1 hcached (hstart entry hentry)
-        by_cases hleft : leftKeep input state.1
-        · rw [hrecStep, appendedOf_of_left leftKeep rightKeep input state step.1 hcached hleft]
-          intro entry hentry
-          rcases List.mem_append.mp hentry with hold | hnew
-          · exact hcarry entry hold
-          · rw [List.mem_singleton.mp hnew, hinstalled]
-            exact hfile input state.1 step.1 hcached hleft
-        · by_cases hright : rightKeep input state.1
-          · rw [hrecStep,
-              appendedOf_of_right leftKeep rightKeep input state step.1 hcached hleft hright]
-            exact hcarry
-          · rw [hrecStep,
-              appendedOf_of_neither leftKeep rightKeep input state step.1 hleft hright]
-            exact hcarry
-
-open scoped Classical in
-/-- **Every entry of the disclosing recording still passes its own test at the end of the run**,
-when that test is monotone in the view's cache. The collapsed case: one predicate in both roles,
-which is what a cache-readable disclosing test allows and a flag does not. -/
-theorem left_recordOf_keep_final {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
-    (hmono : ∀ (input : Bytes) (view later : σ),
-      (∀ (probe : Bytes) (value : HashOutput),
-        CacheView.cacheOf view probe = some value →
-          CacheView.cacheOf later probe = some value) →
-        leftKeep input view → leftKeep input later)
-    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
-    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state))
-    (hstart : ∀ entry ∈ state.2.1, leftKeep entry.1 state.1) :
-    ∀ entry ∈ result.2.2.1, leftKeep entry.1 result.2.1 :=
-  left_recordOf_endKeep_final leftKeep rightKeep leftKeep
-    (fun input view answer hfresh hkeep =>
-      hmono input view (CacheView.update view input answer)
-        (persists_update view input answer hfresh) hkeep)
-    (fun input probe view answer hfresh hkeep =>
-      hmono input view (CacheView.update view probe answer)
-        (persists_update view probe answer hfresh) hkeep)
-    computation state result hmem hstart
 
 /-! ## The instrumentation is invisible, at any view
 
@@ -686,30 +501,6 @@ theorem recorderOf_forget_step (leftKeep rightKeep : Bytes → σ → Prop)
         Function.comp_def, CacheView.cache_update]
       rfl
 
-set_option maxHeartbeats 800000 in
-open scoped Classical in
-/-- **Dropping the recordings and reading the view's cache returns the shared oracle's run**, as
-an equality of computations. This is what a fused presentation over a carrier owes, and it owes
-nothing more. -/
-theorem run_recorderOf_forget (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
-    (computation : OracleComp OracleWorld α) :
-    ∀ state : StateOf σ,
-      (fun z : α × StateOf σ => (z.1, CacheView.cacheOf z.2.1)) <$>
-          (simulateQ (recorderOf leftKeep rightKeep) computation).run state =
-        (simulateQ KeygenUniform.rom computation).run (CacheView.cacheOf state.1) := by
-  classical
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state
-    rw [simulateQ_pure, StateT.run_pure, simulateQ_pure, StateT.run_pure, map_pure]
-  | query_bind queried next ih =>
-    intro state
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, map_bind, simulateQ_bind,
-      simulateQ_spec_query, StateT.run_bind,
-      ← recorderOf_forget_step leftKeep rightKeep queried state]
-    simp only [map_eq_bind_pure_comp, bind_assoc]
-    exact bind_congr fun step => ih step.1 step.2
-
 /-! ## What a target recording's entry says about the state it was filed from
 
 The mirror of the left recording's fact, and the one the ordering defect needs. An entry of the
@@ -718,58 +509,6 @@ exclusive by priority, a state at which the left test did **not**. At a cache-re
 that is a statement about what the cache held, which is why it has been hard to use: nothing
 reports the cache partway through a sub-run. At a flag it is a statement about the flag, and a
 query made under the flag is simply not one of these. -/
-
-open scoped Classical in
-/-- **Every target-recorded entry has a state it was filed from**, fresh there and passing the
-right test there. -/
-theorem right_recordOf_witness {α : Type} (leftKeep rightKeep : Bytes → σ → Prop)
-    (computation : OracleComp OracleWorld α) (state : StateOf σ) (result : α × StateOf σ)
-    (hmem : result ∈ support ((simulateQ (recorderOf leftKeep rightKeep) computation).run state)) :
-    ∀ entry ∈ result.2.2.2, entry ∈ state.2.2 ∨ ∃ mid : σ,
-      (∀ (probe : Bytes) (value : HashOutput),
-        CacheView.cacheOf mid probe = some value →
-          CacheView.cacheOf result.2.1 probe = some value) ∧
-        CacheView.cacheOf mid entry.1 = none ∧ rightKeep entry.1 mid := by
-  classical
-  induction computation using OracleComp.inductionOn generalizing state result with
-  | pure value =>
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-    rw [hmem]
-    exact fun entry hentry => Or.inl hentry
-  | query_bind queried next ih =>
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    intro entry hentry
-    rcases ih step.1 step.2 result hrest entry hentry with hold | hwitness
-    · rcases queried with coin | input
-      · rw [recorderOf_step_inl leftKeep rightKeep coin state step hstep] at hold
-        exact Or.inl hold
-      · rw [recorderOf_step_record leftKeep rightKeep input state step hstep] at hold
-        cases hcached : CacheView.cacheOf state.1 input with
-        | some cached =>
-          rw [appendedOf_of_cached leftKeep rightKeep input state step.1 cached hcached] at hold
-          exact Or.inl hold
-        | none =>
-          by_cases hleft : leftKeep input state.1
-          · rw [appendedOf_of_left leftKeep rightKeep input state step.1 hcached hleft] at hold
-            exact Or.inl hold
-          · by_cases hright : rightKeep input state.1
-            · rw [appendedOf_of_right leftKeep rightKeep input state step.1 hcached hleft
-                hright] at hold
-              rcases List.mem_append.mp hold with hprior | hnew
-              · exact Or.inl hprior
-              · refine Or.inr ⟨state.1, fun probe value hvalue => ?_, ?_, ?_⟩
-                · exact recorderOf_cache_value_persists leftKeep rightKeep (next step.1) step.2
-                    result hrest probe value
-                    (recorderOf_step_persists leftKeep rightKeep input state step hstep probe
-                      value hvalue)
-                · rw [show entry.1 = input from by rw [List.mem_singleton.mp hnew]]
-                  exact hcached
-                · rw [show entry.1 = input from by rw [List.mem_singleton.mp hnew]]
-                  exact hright
-            · rw [appendedOf_of_neither leftKeep rightKeep input state step.1 hleft hright] at hold
-              exact Or.inl hold
-    · exact Or.inr hwitness
 
 /-! ## The recorder that notices every query
 
@@ -806,20 +545,6 @@ theorem noticingRecorderOf_run_inr (leftKeep rightKeep : Bytes → σ → Prop) 
     ((noticingRecorderOf leftKeep rightKeep) (Sum.inr input)).run state =
       ((recorderOf leftKeep rightKeep) (Sum.inr input)).run
         (CacheView.onQuery state.1 input, state.2) := rfl
-
-open scoped Classical in
-/-- **At a view that notices nothing, it is the recorder already in hand.** So this is a
-widening and not a fork. -/
-theorem noticingRecorderOf_eq (leftKeep rightKeep : Bytes → σ → Prop)
-    (hblind : ∀ (view : σ) (input : Bytes), CacheView.onQuery view input = view) :
-    noticingRecorderOf leftKeep rightKeep = recorderOf leftKeep rightKeep := by
-  funext queried state
-  rcases queried with coin | input
-  · rfl
-  · show ((recorderOf leftKeep rightKeep) (Sum.inr input)).run
-        (CacheView.onQuery state.1 input, state.2) = _
-    rw [hblind state.1 input]
-    rfl
 
 /-! ### The two step laws a potential charge reads
 

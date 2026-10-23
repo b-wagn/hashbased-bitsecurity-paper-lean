@@ -101,16 +101,6 @@ def Wins (notion : Notion) (outcome : Outcome) : Prop :=
 noncomputable def advantage (notion : Notion) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[Wins notion | run adversary]
 
-/-- At most 2^64 attempts and at most q charged hashes, jointly with probability one. -/
-def HasBudget (adversary : Adversary) (q : Nat) : Prop :=
-  Pr[fun outcome => outcome.counts .signing ≤ signingLimit ∧ outcome.counts.work ≤ q |
-    run adversary] = 1
-
-/-- The intended bit-security statement; no such security theorem is assumed here. -/
-def HasSecurityBits (notion : Notion) (bits : Nat) : Prop :=
-  ∀ q, 1 ≤ q → ∀ adversary, HasBudget adversary q →
-    advantage notion adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
-
 /-! ## Counting every hash call in the game
 
 The verifier-counted experiment above leaves key generation and signing free. The
@@ -130,18 +120,7 @@ def countAllHashes {α : Type} (computation : OracleComp OracleWorld α) :
 noncomputable def runAll (adversary : Adversary) : ProbComp (Outcome × Nat) :=
   Xmss.RandomOracleModel.run (countAllHashes (experiment adversary))
 
-/-- At most `2 ^ 64` signing requests and at most `q` hash calls in total, jointly with
-probability one. Key-generation and signing hashes are charged here. -/
-def HasTotalBudget (adversary : Adversary) (q : Nat) : Prop :=
-  Pr[fun result => result.1.counts .signing ≤ signingLimit ∧ result.2 ≤ q |
-    runAll adversary] = 1
-
 noncomputable def totalAdvantage (notion : Notion) (adversary : Adversary) : ℝ≥0∞ :=
   Pr[fun result => Wins notion result.1 | runAll adversary]
-
-/-- The all-queries-counted bit-security statement. -/
-def HasTotalSecurityBits (notion : Notion) (bits : Nat) : Prop :=
-  ∀ q, 1 ≤ q → ∀ adversary, HasTotalBudget adversary q →
-    totalAdvantage notion adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
 
 end SlhDsaSecurity.Security

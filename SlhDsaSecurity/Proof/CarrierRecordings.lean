@@ -117,66 +117,6 @@ theorem step_right_shape (rightKeep : Bytes → HandlerCarrier.State → Prop)
 recording; this says, of each entry, the state it was filed at — which is what a provenance
 argument needs and an invariant cannot give. -/
 
-set_option maxHeartbeats 1000000 in
-open scoped Classical in
-/-- **Every entry a run files as a target comes with the carrier it was filed at**: fresh there,
-passing the right test at the state the notice had reached, contained in the run's own carrier
-afterwards, and **with the framing the run started under**, because a test that reads the flag
-cannot be checked at a state whose flag is unknown. -/
-theorem run_right_suffix (rightKeep : Bytes → HandlerCarrier.State → Prop)
-    {α : Type} (computation : OracleComp OracleWorld α) :
-    ∀ (state : CountedState) (result : α × CountedState),
-      result ∈ support ((simulateQ (countedCarrierRecorder pk rightKeep) computation).run
-        state) →
-        ∃ suffix : DigestTape.Record, result.2.2.1.2 = state.2.1.2 ++ suffix ∧
-          ∀ entry ∈ suffix, ∃ mid : HandlerCarrier.State,
-            (∀ (probe : Bytes) (value : HashOutput),
-              state.1.cache probe = some value → mid.cache probe = some value) ∧
-            (∀ (probe : Bytes) (value : HashOutput),
-              mid.cache probe = some value → result.2.1.cache probe = some value) ∧
-              mid.cache entry.1 = none ∧
-                rightKeep entry.1 (servingNotice pk mid entry.1) ∧
-                  result.2.1.cache entry.1 = some entry.2 ∧
-                    mid.framing = state.1.framing := by
-  classical
-  induction computation using OracleComp.inductionOn with
-  | pure value =>
-    intro state result hmem
-    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
-    rw [hmem]
-    exact ⟨[], (List.append_nil _).symm, fun entry hentry => absurd hentry (by simp)⟩
-  | query_bind queried next ih =>
-    intro state result hmem
-    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
-    obtain ⟨step, hstep, hrest⟩ := hmem
-    obtain ⟨suffix, hsuffix, hentries⟩ := ih step.1 step.2 result hrest
-    have hstepGrow := ((files_countedCarrierRecorder pk rightKeep).stepGrows queried state step
-      hstep).1
-    have hstepFraming := (files_countedCarrierRecorder pk rightKeep).stepFraming queried state
-      step hstep
-    rcases step_right_shape pk rightKeep queried state step hstep with
-      hsame | ⟨appended, answer, -, hshape, hfresh, hright, hcachedSelf⟩
-    · refine ⟨suffix, by rw [hsuffix, hsame], fun entry hentry => ?_⟩
-      obtain ⟨mid, hstart, hlater, habsent, hkeep, hfinal, hframing⟩ := hentries entry hentry
-      exact ⟨mid, fun probe value hvalue => hstart probe value (hstepGrow probe value hvalue),
-        hlater, habsent, hkeep, hfinal, by rw [hframing, hstepFraming]⟩
-    · refine ⟨(appended, answer) :: suffix, by rw [hsuffix, hshape, List.append_assoc]; rfl,
-        fun entry hentry => ?_⟩
-      rcases List.mem_cons.mp hentry with hself | hlater
-      · refine ⟨state.1, fun _ _ hvalue => hvalue, fun probe value hvalue => ?_, ?_, ?_, ?_, rfl⟩
-        · exact ((files_countedCarrierRecorder pk rightKeep).runPersists (next step.1) step.2
-            result hrest).1 probe value (hstepGrow probe value hvalue)
-        · rw [hself]
-          exact hfresh
-        · rw [hself]
-          exact hright
-        · rw [hself]
-          exact ((files_countedCarrierRecorder pk rightKeep).runPersists (next step.1) step.2
-            result hrest).1 appended answer hcachedSelf
-      · obtain ⟨mid, hstart, hmidLater, habsent, hkeep, hfinal, hframing⟩ := hentries entry hlater
-        exact ⟨mid, fun probe value hvalue => hstart probe value (hstepGrow probe value hvalue),
-          hmidLater, habsent, hkeep, hfinal, by rw [hframing, hstepFraming]⟩
-
 /-! ## The two invariants -/
 
 /-- **Every target-recorded input is of the narrowed class.** -/

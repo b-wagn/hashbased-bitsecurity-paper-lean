@@ -38,8 +38,6 @@ open Security RecorderView CarriedWitness PhaseFusion RecordedQueries BracketedR
 def startAt (cache : QueryCache HashSpec) : HandlerCarrier.State :=
   { cache := cache, served := 0, framing := none }
 
-@[simp] theorem cache_startAt (cache : QueryCache HashSpec) : (startAt cache).cache = cache := rfl
-
 /-- The key the walk generates, which both tests are read at. -/
 noncomputable abbrev keyAt (walk : Walk) : PublicKey :=
   SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2
@@ -96,28 +94,6 @@ theorem bracket_stopServingOn :
 
 By `rfl`: the tail was written to the predicate. -/
 
-/-- **The tail is a bracketed recorder run.** -/
-theorem isBracketedRecorderRun (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    (adversary : Adversary) :
-    IsBracketedRecorderRun (ω := Multiplicative Tally) (handlerAt rightKeep)
-      (carrierTail rightKeep) adversary :=
-  fun walk _ =>
-    ⟨SecretKey × PublicKey, Forgery, Bool × Tally,
-      Scheme.keygenInternal walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2,
-      fun keys => adversary.main keys.2,
-      fun keys => recordedAdversaryImpl + recordedSigningOracle (Scheme.sign keys.1),
-      fun keys forgery => countRecorded verifierCost
-        (Scheme.verify keys.2 forgery.message forgery.signature),
-      ServedAgreement.startServingOn, ServedAgreement.stopServingOn,
-      (startAt walk.2, (([], []), 0)),
-      fun _ forgery tally log verified state =>
-        (({ forgery := forgery
-            signed := log
-            verified := verified.1
-            counts := (Multiplicative.toAdd tally).1 + verified.2.1 },
-          (Multiplicative.toAdd tally).2 + verified.2.2), state.2.2),
-      rfl, bracket_startServingOn, bracket_stopServingOn, rfl⟩
-
 /-! ## What one stage forgets to
 
 The tail's first and third stages run under the handler directly, and this is what each of them
@@ -128,19 +104,6 @@ That the starting counter appears on the right is the whole reason `run_withCoun
 stated with it rather than at zero. The first stage starts at zero, the second where the first
 stopped, the third where the second did — and the three add up only because each equation says
 what it started from. -/
-
-/-- **A stage under the handler is the same computation under the shared oracle.** -/
-theorem stage_forget (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop) (walk : Walk)
-    {α : Type} (computation : OracleComp OracleWorld α) (state : CountedState) :
-    (fun z : α × CountedState => ((z.1, z.2.2.2), z.2.1.cache)) <$>
-        (simulateQ (handlerAt rightKeep walk) computation).run state =
-      (fun r : (α × Nat) × QueryCache HashSpec => ((r.1.1, state.2.2 + r.1.2), r.2)) <$>
-        (simulateQ KeygenUniform.rom (countAllHashes computation)).run state.1.cache :=
-  CountedHandler.run_withCount_count (fun state => state.1.cache)
-    (@noticingRecorderOf HandlerCarrier.State (servingView (keyAt walk))
-      (disclosingKeep (keyAt walk)) (rightKeep walk))
-    KeygenUniform.rom (CarrierFiles.forgetsAlong_carrierRecorder (keyAt walk) (rightKeep walk))
-    computation state
 
 /-! ## The middle stage's projection keeps the count
 

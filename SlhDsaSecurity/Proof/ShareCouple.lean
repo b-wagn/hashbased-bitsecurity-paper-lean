@@ -264,13 +264,6 @@ structure Rel (setup : Setup) (real : SharePresent.RealState) (lenient : St × B
 theorem realView_with_record (setup : Setup) (state : St) (record : List (Bytes × List HashOutput)) :
     realView setup { state with record := record } = realView setup state := rfl
 
-theorem realView_with_served (setup : Setup) (state : St) (served : List HashOutput)
-    (record : List (Bytes × List HashOutput)) :
-    realView setup { state with served := served, record := record } = realView setup state := rfl
-
-theorem realView_with_log (setup : Setup) (state : St) (log : SigningLog) :
-    realView setup { state with log := log } = realView setup state := rfl
-
 /-! ## One adversary step, coupled -/
 
 theorem real_sign_unframed (warm : QueryCache HashSpec) (sk : SecretKey) (request : Message)

@@ -1,4 +1,5 @@
-import SlhDsaSecurity.Proof.FusedGame
+import SlhDsaSecurity.Proof.PhaseFusion
+import SlhDsaSecurity.Proof.WarmedGame
 
 /-!
 # What the brackets are invisible to
@@ -125,52 +126,6 @@ theorem run_fuseServing_map (π : S → S')
       bind_map_left]
     refine bind_congr fun step => ?_
     exact ih step.1 step.2.1 step.2.2.1 step.2.2.2
-
-/-- The game with its adversary phase bracketed: `FusedGame.run_afterSeeds_fused`'s right-hand
-side with `fuseServing` in place of `fuse`. -/
-noncomputable def servingAfterSeeds (outer : QueryImpl OracleWorld (StateT S ProbComp))
-    (before : Message → S → S) (after : S → S) (adversary : Adversary)
-    (sds : Digest × Digest × Digest) (state : S) : ProbComp (Outcome × S) :=
-  (simulateQ outer (Scheme.keygenInternal sds.1 sds.2.1 sds.2.2)).run state >>= fun keys =>
-    (simulateQ (fuseServing outer (FusedGame.gameInner keys.1.1) before after)
-      (adversary.main keys.1.2)).run (1, [], keys.2) >>= fun phase =>
-      (simulateQ outer (countQueries
-        (fun input => Counts.single .verification (hashCost input))
-        (Scheme.verify keys.1.2 phase.1.message phase.1.signature))).run phase.2.2.2 >>=
-        fun verified =>
-          (pure ({
-            forgery := phase.1
-            signed := phase.2.2.1
-            verified := verified.1.1
-            counts := Multiplicative.toAdd phase.2.1 + verified.1.2 }, verified.2) :
-            ProbComp (Outcome × S))
-
-set_option maxHeartbeats 1000000 in
-/-- **The bracketed game projects to the game.** The `run_afterSeeds` analogue with real
-brackets, and the equation a carrier tail owes the target: the value and everything `π` keeps
-are what they were, so no probability, count or support that reads only those moves. -/
-theorem run_servingAfterSeeds_map (π : S → S')
-    (outer : QueryImpl OracleWorld (StateT S ProbComp))
-    (outer' : QueryImpl OracleWorld (StateT S' ProbComp))
-    (before : Message → S → S) (after : S → S)
-    (hbefore : ∀ (request : Message) (state : S), π (before request state) = π state)
-    (hafter : ∀ state : S, π (after state) = π state)
-    (hforget : ForgetsAlong π outer outer')
-    (adversary : Adversary) (sds : Digest × Digest × Digest) (state : S) :
-    (fun z : Outcome × S => (z.1, π z.2)) <$>
-        servingAfterSeeds outer before after adversary sds state =
-      (simulateQ outer' (WarmedGame.afterSeeds adversary sds)).run (π state) := by
-  rw [FusedGame.run_afterSeeds_fused outer' adversary sds (π state), servingAfterSeeds, map_bind,
-    ← hforget (Scheme.keygenInternal sds.1 sds.2.1 sds.2.2) state, bind_map_left]
-  refine bind_congr fun keys => ?_
-  rw [map_bind, ← run_fuseServing_map π outer outer' (FusedGame.gameInner keys.1.1) before after
-    hbefore hafter hforget (adversary.main keys.1.2) 1 [] keys.2, bind_map_left]
-  refine bind_congr fun phase => ?_
-  rw [map_bind, ← hforget (countQueries
-      (fun input => Counts.single .verification (hashCost input))
-      (Scheme.verify keys.1.2 phase.1.message phase.1.signature)) phase.2.2.2, bind_map_left]
-  refine bind_congr fun verified => ?_
-  simp [Function.comp_def]
 
 /-! ## The same, with the brackets transported rather than killed
 

@@ -79,23 +79,4 @@ theorem probes_signInternalAt (cache : QueryCache HashSpec) (randomizer : Digest
       fun _ hprobe => Or.inl hprobe) ?_
   exact probes_pure cache _ _
 
-/-- **The rest of the signer never queries inside the `PRF_msg` class at `SK.prf`**, unless the
-randomiser it was handed is `SK.prf` itself. The two escapes are the two formats: a canonical
-input opens with `PK.seed`, which the class's first block is not on a good walk, and the digest's
-input opens with the randomiser, which is the class's first block exactly when it *is* the
-seed. -/
-theorem not_prfClass_of_probes_signInternalAt (cache : QueryCache HashSpec)
-    (randomizer : Digest) (sk : SecretKey) (message : Bytes) {prfSeed : Digest}
-    (hpublic : prfSeed ≠ sk.publicKey.seed) (hrandomizer : randomizer ≠ prfSeed)
-    (probe : Bytes)
-    (hprobe : QueriesUnder cache (signInternalAt (m := OracleComp HashSpec) randomizer sk message)
-      probe) :
-    ¬ RandomizerGate.PrfClass prfSeed probe := by
-  rintro ⟨seed, payload, rfl⟩
-  rcases probes_signInternalAt cache randomizer sk message _ hprobe with ⟨parent, hparent⟩ | hdigest
-  · exact HashSeparation.randomizer_tweakable_ne hpublic hparent
-  · exact hrandomizer
-      (RandomizerGate.messageInput_eq_randomizerInput_iff randomizer prfSeed seed sk.publicKey
-        message payload hdigest.symm)
-
 end SlhDsaSecurity.SignerRandomiser
