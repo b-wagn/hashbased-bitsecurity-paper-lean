@@ -279,6 +279,7 @@ import SlhDsaSecurity.Proof.ShareSigner
 import SlhDsaSecurity.Proof.ShareGame
 import SlhDsaSecurity.Proof.ShareUntilBad
 import SlhDsaSecurity.Proof.ShareFlag
+import SlhDsaSecurity.Proof.BlindCharge
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -17871,3 +17872,183 @@ info: 'SlhDsaSecurity.ShareFlag.reportsCost' depends on axioms: [propext, Classi
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareFlag.reportsCost
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.run_simulateQ_map_proj' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.run_simulateQ_map_proj
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.probEvent_proj' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.probEvent_proj
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.expect_proj' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.expect_proj
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.raise_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.raise_iff
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.flagged_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.flagged_run
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.flagged_proj' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.flagged_proj
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.flagged_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.flagged_neverFails
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.mem_support_flagged' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.mem_support_flagged
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.flag_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.flag_iff
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.probEvent_record_eq_flag' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.probEvent_record_eq_flag
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.stalledFree_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.stalledFree_run
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.files_stalledFree' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.files_stalledFree
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.stalled_flagged' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.stalled_flagged
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.probEvent_record_stalled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.probEvent_record_stalled
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.expect_count_stalled' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.expect_count_stalled
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.ex_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.ex_bind
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.ex_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.ex_map
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.ex_pure' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.ex_pure
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.ex_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.ex_mono
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.ex_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.ex_congr
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.ex_div_const' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.ex_div_const
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.probEvent_eq_ex_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.probEvent_eq_ex_bind
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.probEvent_experiment' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.probEvent_experiment
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.ex_experiment' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.ex_experiment
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.aimsAt_of_chargedAt' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.aimsAt_of_chargedAt
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.prob_chargedAt_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.prob_chargedAt_le
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.prob_list_chargedAt_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.prob_list_chargedAt_le
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.prob_index_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.prob_index_le
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.sum_countP_aimsAt_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.sum_countP_aimsAt_le
+
+/--
+info: 'SlhDsaSecurity.BlindCharge.prob_sensitive_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BlindCharge.prob_sensitive_le
