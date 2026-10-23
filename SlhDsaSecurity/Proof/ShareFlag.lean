@@ -9,7 +9,8 @@ give over a run.
 
 * **The record only grows, and what it gains is filed at the current digests**
   (`step_shape`): a step appends a list of inputs, each beside the digests served when the step
-  began, and the served digests only grow.
+  began, and the served digests only grow. The claims append only the candidates not already
+  filed at those digests, and nothing once the flag is up (`record_claims`, `length_claims`).
 * **The flag is witnessed by the record**: a raised flag means a bad walk or an entry of the
   record that is a guess at the digests it was filed with (`flag_witness`). This is what turns
   the flag of the blind game into a union over record entries, each charged once.
@@ -75,7 +76,8 @@ def filed (served : List HashOutput) (inputs : List Bytes) : List (Bytes × List
 
 open scoped Classical in
 /-- **What one step does**: it files some inputs at the current digests, grows the digests, and
-raises the flag only at a bad walk or a guess among what it filed. -/
+raises the flag only at a bad walk or a guess the new record holds at the current digests —
+filed by this step, or, for a claim that repeats an entry, already filed before it. -/
 theorem step_shape (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
     (state : St × Bool) (z : ShareSpec.Range queried × (St × Bool))
     (hz : z ∈ support (((handler lenient setup) queried).run state)) :
@@ -83,7 +85,8 @@ theorem step_shape (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
       z.2.1.record = state.1.record ++ filed state.1.served inputs ∧
         state.1.served <+: z.2.1.served ∧
           (z.2.2 = true → state.2 = true ∨ ¬ setup.Good ∨
-            ∃ input ∈ inputs, Guess setup state.1.served input) := by
+            ∃ input, (input, state.1.served) ∈ z.2.1.record ∧
+              Guess setup state.1.served input) := by
   classical
   obtain ⟨inner, flag⟩ := state
   rcases queried with ((world | request) | ⟨request, drawn⟩) | forgery
@@ -101,7 +104,7 @@ theorem step_shape (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
       rcases h with h | h | h
       · exact Or.inl h
       · exact Or.inr (Or.inl h)
-      · exact Or.inr (Or.inr ⟨input, List.mem_singleton_self _, h⟩)
+      · exact Or.inr (Or.inr ⟨input, by simp, h⟩)
   · cases hframe : request.frame with
     | none =>
       simp only [handler, StateT.run, hframe, support_pure, Set.mem_singleton_iff] at hz
@@ -119,7 +122,7 @@ theorem step_shape (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
       rcases h with h | h | h
       · exact Or.inl h
       · exact Or.inr (Or.inl h)
-      · exact Or.inr (Or.inr ⟨_, List.mem_singleton_self _, h⟩)
+      · exact Or.inr (Or.inr ⟨_, by simp, h⟩)
   · cases drawn with
     | none =>
       simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
@@ -134,12 +137,20 @@ theorem step_shape (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
         exact ⟨[], by simp [filed], List.prefix_refl _, fun h => Or.inl h⟩
   · simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
     rw [hz]
-    refine ⟨claimsOf setup inner forgery, by simp [filed], List.prefix_refl _, fun h => ?_⟩
-    simp only [Bool.or_eq_true, decide_eq_true_eq] at h
-    rcases h with h | h | h
-    · exact Or.inl h
-    · exact Or.inr (Or.inl h)
-    · exact Or.inr (Or.inr h)
+    cases flag with
+    | true => exact ⟨[], by simp [filed], List.prefix_refl _, fun _ => Or.inl rfl⟩
+    | false =>
+      refine ⟨unfiled inner.record inner.served (claimsOf setup inner forgery), by simp [filed],
+        List.prefix_refl _, fun h => ?_⟩
+      simp only [Bool.or_eq_true, decide_eq_true_eq] at h
+      rcases h with h | h | ⟨candidate, hcandidate, h⟩
+      · exact Or.inl h
+      · exact Or.inr (Or.inl h)
+      · refine Or.inr (Or.inr ⟨candidate, ?_, h⟩)
+        by_cases hold : (candidate, inner.served) ∈ inner.record
+        · exact List.mem_append_left _ hold
+        · exact List.mem_append_right _
+            (List.mem_map.mpr ⟨candidate, mem_unfiled.mpr ⟨hcandidate, hold⟩, rfl⟩)
 
 /-! ## Over a run -/
 
@@ -158,9 +169,7 @@ theorem witnessed_step (lenient : Bool) (setup : Setup) (queried : ShareSpec.Dom
     · exact Or.inl hbad
     · exact Or.inr ⟨entry, by rw [hrecord]; exact List.mem_append_left _ hentry, hguess⟩
   · exact Or.inl hbad
-  · refine Or.inr ⟨(input, state.1.served), ?_, hguess⟩
-    rw [hrecord]
-    exact List.mem_append_right _ (List.mem_map.mpr ⟨input, hinput, rfl⟩)
+  · exact Or.inr ⟨(input, state.1.served), hinput, hguess⟩
 
 /-- **A raised flag is witnessed by the record.** -/
 theorem flag_witness (lenient : Bool) (setup : Setup) {α : Type}
@@ -180,19 +189,22 @@ noncomputable def advImpl (lenient : Bool) (setup : Setup) :
     QueryImpl (OracleWorld + SigningSpec) (StateT (St × Bool) ProbComp) :=
   QueryImpl.compose (handler lenient setup) splitter
 
-/-- The number of entries a query files. -/
-noncomputable def added (setup : Setup) (state : St) : ShareSpec.Domain → Nat
+/-- The number of entries a query files: at the claims, the candidates not already filed, and
+none once the flag is up. -/
+noncomputable def added (setup : Setup) (state : St × Bool) : ShareSpec.Domain → Nat
   | Sum.inl (Sum.inl (Sum.inl (Sum.inl _))) => 0
   | Sum.inl (Sum.inl (Sum.inl (Sum.inr _))) => 1
   | Sum.inl (Sum.inl (Sum.inr request)) => if request.frame.isSome then 1 else 0
   | Sum.inl (Sum.inr _) => 0
-  | Sum.inr forgery => (claimsOf setup state forgery).length
+  | Sum.inr forgery =>
+      if state.2 then 0
+      else (unfiled state.1.record state.1.served (claimsOf setup state.1 forgery)).length
 
 /-- **The length a step adds.** -/
 theorem length_step (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain)
     (state : St × Bool) (z : ShareSpec.Range queried × (St × Bool))
     (hz : z ∈ support (((handler lenient setup) queried).run state)) :
-    z.2.1.record.length = state.1.record.length + added setup state.1 queried := by
+    z.2.1.record.length = state.1.record.length + added setup state queried := by
   classical
   obtain ⟨inner, flag⟩ := state
   rcases queried with ((world | request) | ⟨request, drawn⟩) | forgery
@@ -229,7 +241,37 @@ theorem length_step (lenient : Bool) (setup : Setup) (queried : ShareSpec.Domain
         rfl
   · simp only [handler, StateT.run, support_pure, Set.mem_singleton_iff] at hz
     subst hz
-    simp [added]
+    cases flag <;> simp [added]
+
+/-- **What the claims file**: with the flag down, the candidates not already filed at the
+current digests; with the flag up, nothing. -/
+theorem record_claims (lenient : Bool) (setup : Setup) (forgery : Forgery) (state : St × Bool)
+    (z : Unit × (St × Bool))
+    (hz : z ∈ support (((handler lenient setup) (Sum.inr forgery)).run state)) :
+    (state.2 = false → z.2.1.record = state.1.record ++ filed state.1.served
+      (unfiled state.1.record state.1.served (claimsOf setup state.1 forgery))) ∧
+    (state.2 = true → z.2.1.record = state.1.record) := by
+  obtain ⟨inner, flag⟩ := state
+  simp only [handler, StateT.run, support_pure] at hz
+  subst hz
+  cases flag <;> simp [filed]
+
+open scoped Classical in
+/-- **The claims' growth, counted**: with the flag down, the record grows by exactly the
+candidates not already filed at the current digests — at most the candidates themselves; with
+the flag up, not at all. -/
+theorem length_claims (lenient : Bool) (setup : Setup) (forgery : Forgery) (state : St × Bool)
+    (z : Unit × (St × Bool))
+    (hz : z ∈ support (((handler lenient setup) (Sum.inr forgery)).run state)) :
+    (state.2 = false → z.2.1.record.length = state.1.record.length +
+      (claimsOf setup state.1 forgery).countP
+        (fun candidate => decide ((candidate, state.1.served) ∉ state.1.record)) ∧
+      z.2.1.record.length ≤ state.1.record.length + (claimsOf setup state.1 forgery).length) ∧
+    (state.2 = true → z.2.1.record.length = state.1.record.length) := by
+  obtain ⟨hdown, hup⟩ := record_claims lenient setup forgery state z hz
+  refine ⟨fun hflag => ?_, fun hflag => by rw [hup hflag]⟩
+  rw [hdown hflag, List.length_append, filed, List.length_map, length_unfiled]
+  exact ⟨rfl, Nat.add_le_add_left List.countP_le_length _⟩
 
 /-- **The record's length reports the cap's weight.** -/
 theorem reportsCost (lenient : Bool) (setup : Setup) :

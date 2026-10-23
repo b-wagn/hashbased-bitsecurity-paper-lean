@@ -32,6 +32,10 @@ one more recorded guess, not an event of its own kind. Off the
 flag the two handlers step identically, so the flag has the same law in both
 (`ShareUntilBad`); in the blind game the flag is a union of guesses at secrets the run never
 reads (`ShareBlind`).
+
+The claims file only the candidates the record does not already hold at the current digests
+(`unfiled`), and nothing at all once the flag is up: the flag is sticky, so what is filed after
+it is raised no longer matters. The flag itself is computed over every candidate.
 -/
 
 open OracleComp OracleSpec ENNReal
@@ -228,6 +232,30 @@ noncomputable def claimsOf (setup : Setup) (state : St) (forgery : Forgery) : Li
         setup.publicSeed (visible setup state) setup.pk message parsed
   | _, _ => []
 
+/-- **The claimed candidates not yet filed** at these digests. A claim that repeats an entry the
+record already holds at the same digests (one the verifier filed, say) files nothing new. -/
+def unfiled (record : List (Bytes × List HashOutput)) (served : List HashOutput)
+    (candidates : List Bytes) : List Bytes :=
+  candidates.filter fun candidate => decide ((candidate, served) ∉ record)
+
+/-- **The unfiled candidates are counted by the candidates not already filed.** -/
+theorem length_unfiled (record : List (Bytes × List HashOutput)) (served : List HashOutput)
+    (candidates : List Bytes) :
+    (unfiled record served candidates).length =
+      candidates.countP fun candidate => decide ((candidate, served) ∉ record) :=
+  List.countP_eq_length_filter.symm
+
+theorem length_unfiled_le (record : List (Bytes × List HashOutput)) (served : List HashOutput)
+    (candidates : List Bytes) : (unfiled record served candidates).length ≤ candidates.length :=
+  List.length_filter_le _ _
+
+/-- A candidate is unfiled exactly when it is claimed and not already filed. -/
+theorem mem_unfiled {record : List (Bytes × List HashOutput)} {served : List HashOutput}
+    {candidates : List Bytes} {candidate : Bytes} :
+    candidate ∈ unfiled record served candidates ↔
+      candidate ∈ candidates ∧ (candidate, served) ∉ record := by
+  simp [unfiled]
+
 open scoped Classical in
 /-- **The handler**, lenient or blind, with the sticky flag beside its state. -/
 noncomputable def handler (lenient : Bool) (setup : Setup) :
@@ -265,7 +293,9 @@ noncomputable def handler (lenient : Bool) (setup : Setup) :
     | Sum.inr forgery =>
         let candidates := claimsOf setup state.1 forgery
         pure ((), ({ state.1 with
-          record := state.1.record ++ candidates.map fun candidate => (candidate, state.1.served) },
+          record := if state.2 then state.1.record else
+            state.1.record ++ (unfiled state.1.record state.1.served candidates).map
+              fun candidate => (candidate, state.1.served) },
           state.2 || decide (¬ setup.Good ∨
             ∃ candidate ∈ candidates, Guess setup state.1.served candidate)))
 
