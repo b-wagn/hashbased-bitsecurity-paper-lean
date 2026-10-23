@@ -249,6 +249,8 @@ import SlhDsaSecurity.Proof.ShareEvent
 import SlhDsaSecurity.Proof.ShareFinal
 import SlhDsaSecurity.Proof.NoVerifyBudget
 import SlhDsaSecurity.Proof.NoVerifyTarget
+import SlhDsaSecurity.Proof.FreshExpectation
+import SlhDsaSecurity.Proof.BySourceBridge
 
 
 /--
@@ -17386,3 +17388,123 @@ info: 'SlhDsaSecurity.NoVerifyTarget.hasNoVerifySecurityBits_standard_127' depen
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.NoVerifyTarget.hasNoVerifySecurityBits_standard_127
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.freshMass_cacheQuery' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.freshMass_cacheQuery
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.freshMass_le_card' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.freshMass_le_card
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.freshMass_add' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.freshMass_add
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.length_le_freshMass' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.length_le_freshMass
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.tsum_bind_mul' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.tsum_bind_mul
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.tsum_map_mul' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.tsum_map_mul
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.tsum_mul_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.tsum_mul_le
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.tsum_mul_le_const' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.tsum_mul_le_const
+
+/--
+info: 'SlhDsaSecurity.FreshExpectation.prob_bad_le_expected_fresh' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.FreshExpectation.prob_bad_le_expected_fresh
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.experiment_eq_keygen_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.experiment_eq_keygen_bind
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.countAllHashes_experiment' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.countAllHashes_experiment
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.experimentBySource_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.experimentBySource_eq
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.run_map' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.run_map
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.map_fst_runBySource' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.map_fst_runBySource
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.advantage_securityGame' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.advantage_securityGame
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.keygen_eq_seeds_bind' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.keygen_eq_seeds_bind
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.keygen_count_ge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.keygen_count_ge
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.exists_sourceCounts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.exists_sourceCounts
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.sum_allButSigner' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.sum_allButSigner
+
+/--
+info: 'SlhDsaSecurity.BySourceBridge.tailBudget_of' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceBridge.tailBudget_of

@@ -1,0 +1,306 @@
+import SlhDsaSecurity.Proof.ClassExpectation
+
+/-!
+# The per-class charge, paid per fresh entry
+
+`ClassExpectation.prob_bad_le_expected_cost` charges every in-class *query* of a run. That is
+the right count when every party's queries are in the budget, and the wrong one when the
+signer's are not: the honest signer asks millions of canonical inputs per request, all of them
+cache hits, and none of them can produce a bad answer, because a hit produces no answer at all.
+
+What a bad answer actually needs is a **fresh** entry: an input the run installed. So this file
+charges the class's fresh entries instead — the inputs of the class that the final cache holds
+and the initial one did not. A hit leaves the count alone, exactly as a coin does, and a miss
+contributes its own rate plus the tail, which is the same induction as the per-query charge with
+the count replaced by the cache's own growth.
+
+The growth is read as a sum over all inputs in `ℝ≥0∞`, so no finiteness is needed anywhere: an
+expectation of an infinite count is simply `⊤`, and the bound is then trivial.
+-/
+
+open OracleComp OracleSpec ENNReal
+
+namespace SlhDsaSecurity.FreshExpectation
+
+open Security GrowthCharge
+
+/-! ## The fresh entries of a class -/
+
+open scoped Classical in
+/-- **The class's fresh entries**: one unit per input of the class the final cache holds and the
+initial one does not. -/
+noncomputable def freshMass (inClass : Bytes → Prop) (initial final : QueryCache HashSpec) :
+    ℝ≥0∞ :=
+  ∑' input : Bytes, if inClass input ∧ initial input = none ∧ final input ≠ none then 1 else 0
+
+open scoped Classical in
+/-- **Installing an input moves one unit out of the fresh mass**, if the input is of the class. -/
+theorem freshMass_cacheQuery (inClass : Bytes → Prop) (initial final : QueryCache HashSpec)
+    (input : Bytes) (answer : HashOutput) (hfresh : initial input = none)
+    (hfinal : final input ≠ none) :
+    freshMass inClass initial final =
+      (if inClass input then 1 else 0) +
+        freshMass inClass (initial.cacheQuery input answer) final := by
+  unfold freshMass
+  rw [ENNReal.tsum_eq_add_tsum_ite input]
+  congr 1
+  · by_cases hclass : inClass input <;> simp [hclass, hfresh, hfinal]
+  · refine tsum_congr fun other => ?_
+    by_cases hother : other = input
+    · subst hother
+      simp
+    · rw [if_neg hother, QueryCache.cacheQuery_of_ne _ _ hother]
+
+open scoped Classical in
+/-- **The fresh mass is at most the size of any set holding the fresh inputs.** -/
+theorem freshMass_le_card (inClass : Bytes → Prop) (initial final : QueryCache HashSpec)
+    (holder : Finset Bytes)
+    (hheld : ∀ input, inClass input → initial input = none → final input ≠ none →
+      input ∈ holder) :
+    freshMass inClass initial final ≤ (holder.card : ℝ≥0∞) := by
+  unfold freshMass
+  calc (∑' input : Bytes,
+        if inClass input ∧ initial input = none ∧ final input ≠ none then (1 : ℝ≥0∞) else 0)
+      ≤ ∑' input : Bytes, if input ∈ holder then (1 : ℝ≥0∞) else 0 := by
+        refine ENNReal.tsum_le_tsum fun input => ?_
+        split_ifs with hfresh hmem
+        · exact le_rfl
+        · exact absurd (hheld input hfresh.1 hfresh.2.1 hfresh.2.2) hmem
+        · exact zero_le
+        · exact le_rfl
+    _ = ∑ input ∈ holder, (1 : ℝ≥0∞) := by
+        rw [tsum_eq_sum (s := holder) (fun input hinput => if_neg hinput)]
+        exact Finset.sum_congr rfl fun input hinput => if_pos hinput
+    _ = (holder.card : ℝ≥0∞) := by simp
+
+open scoped Classical in
+/-- **Two disjoint classes' fresh masses add.** -/
+theorem freshMass_add (left right : Bytes → Prop) (initial final : QueryCache HashSpec)
+    (hdisjoint : ∀ input, left input → ¬ right input) :
+    freshMass left initial final + freshMass right initial final =
+      freshMass (fun input => left input ∨ right input) initial final := by
+  unfold freshMass
+  rw [← ENNReal.tsum_add]
+  refine tsum_congr fun input => ?_
+  by_cases hleft : left input
+  · have hright := hdisjoint input hleft
+    by_cases hfresh : initial input = none ∧ final input ≠ none <;> simp [hleft, hright, hfresh]
+  · by_cases hright : right input <;>
+      by_cases hfresh : initial input = none ∧ final input ≠ none <;>
+        simp [hleft, hright, hfresh]
+
+open scoped Classical in
+/-- **A list of distinct fresh inputs of the class is no longer than the class's fresh mass.** -/
+theorem length_le_freshMass (inClass : Bytes → Prop) (initial final : QueryCache HashSpec)
+    (inputs : List Bytes) (hnodup : inputs.Nodup)
+    (hfresh : ∀ input ∈ inputs,
+      inClass input ∧ initial input = none ∧ final input ≠ none) :
+    (inputs.length : ℝ≥0∞) ≤ freshMass inClass initial final := by
+  unfold freshMass
+  calc (inputs.length : ℝ≥0∞) = ∑ input ∈ inputs.toFinset, (1 : ℝ≥0∞) := by
+        rw [Finset.sum_const, List.toFinset_card_of_nodup hnodup, nsmul_eq_mul, mul_one]
+    _ = ∑ input ∈ inputs.toFinset,
+          (if inClass input ∧ initial input = none ∧ final input ≠ none then (1 : ℝ≥0∞)
+            else 0) :=
+        Finset.sum_congr rfl fun input hinput =>
+          (if_pos (hfresh input (List.mem_toFinset.mp hinput))).symm
+    _ ≤ _ := ENNReal.sum_le_tsum _
+
+/-! ## Expectations of a value -/
+
+/-- **An expectation splits along a bind.** -/
+theorem tsum_bind_mul {β γ : Type} (run : ProbComp β) (next : β → ProbComp γ)
+    (value : γ → ℝ≥0∞) :
+    ∑' output, Pr[= output | run >>= next] * value output =
+      ∑' middle, Pr[= middle | run] * ∑' output, Pr[= output | next middle] * value output := by
+  calc ∑' output, Pr[= output | run >>= next] * value output
+      = ∑' output, (∑' middle, Pr[= middle | run] * Pr[= output | next middle]) *
+          value output :=
+        tsum_congr fun output => by rw [probOutput_bind_eq_tsum]
+    _ = ∑' output, ∑' middle, Pr[= middle | run] * Pr[= output | next middle] *
+          value output :=
+        tsum_congr fun output => ENNReal.tsum_mul_right.symm
+    _ = ∑' middle, ∑' output, Pr[= middle | run] *
+          (Pr[= output | next middle] * value output) := by
+        rw [ENNReal.tsum_comm]
+        exact tsum_congr fun middle => tsum_congr fun output => by ring
+    _ = _ := tsum_congr fun middle => ENNReal.tsum_mul_left
+
+/-- **An expectation splits along a map.** -/
+theorem tsum_map_mul {β γ : Type} (run : ProbComp β) (reshape : β → γ) (value : γ → ℝ≥0∞) :
+    ∑' output, Pr[= output | reshape <$> run] * value output =
+      ∑' middle, Pr[= middle | run] * value (reshape middle) := by
+  classical
+  rw [map_eq_bind_pure_comp, tsum_bind_mul]
+  refine tsum_congr fun middle => ?_
+  classical
+  rw [Function.comp_apply, tsum_eq_single (reshape middle) fun other hother => by
+    rw [probOutput_eq_zero_of_not_mem_support (by simp [hother]), zero_mul],
+    probOutput_pure_self, one_mul]
+
+/-- **A pointwise bound on the support bounds the expectation.** -/
+theorem tsum_mul_le {β : Type} (run : ProbComp β) (left right : β → ℝ≥0∞)
+    (hle : ∀ value ∈ support run, left value ≤ right value) :
+    ∑' value, Pr[= value | run] * left value ≤ ∑' value, Pr[= value | run] * right value := by
+  refine ENNReal.tsum_le_tsum fun value => ?_
+  by_cases hmem : value ∈ support run
+  · exact mul_le_mul' le_rfl (hle value hmem)
+  · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+
+/-- **A constant bound on the support bounds the expectation**, the run's mass being at most
+one. -/
+theorem tsum_mul_le_const {β : Type} (run : ProbComp β) (value : β → ℝ≥0∞) (bound : ℝ≥0∞)
+    (hle : ∀ output ∈ support run, value output ≤ bound) :
+    ∑' output, Pr[= output | run] * value output ≤ bound := by
+  calc ∑' output, Pr[= output | run] * value output
+      ≤ ∑' output, Pr[= output | run] * bound := tsum_mul_le run _ _ hle
+    _ = (∑' output, Pr[= output | run]) * bound := ENNReal.tsum_mul_right
+    _ ≤ 1 * bound := mul_le_mul' tsum_probOutput_le_one le_rfl
+    _ = bound := one_mul bound
+
+/-! ## The charge -/
+
+set_option maxHeartbeats 1000000 in
+open scoped Classical in
+/-- **The bad event is charged at the class's expected fresh entries.** If an answer can be bad
+only at an input of the class, and is bad there with probability at most `rate`, then a run
+started clean ends with a bad cached answer with probability at most `rate` times the expected
+number of inputs of the class it installed. -/
+theorem prob_bad_le_expected_fresh (inClass : Bytes → Prop) (bad : Bytes → HashOutput → Prop)
+    (rate : ℝ≥0∞)
+    (hrate : ∀ input, Pr[fun answer : HashOutput => bad input answer |
+      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ rate)
+    (hclass : ∀ input answer, bad input answer → inClass input)
+    {α : Type} (computation : OracleComp OracleWorld α) :
+    ∀ (initial : QueryCache HashSpec), CleanBad bad initial →
+      Pr[Bad bad | (simulateQ KeygenUniform.rom computation).run initial] ≤
+        (∑' result, Pr[= result | (simulateQ KeygenUniform.rom computation).run initial] *
+          freshMass inClass initial result.2) * rate := by
+  classical
+  induction computation using OracleComp.inductionOn with
+  | pure value =>
+    intro initial hclean
+    refine le_of_eq_of_le (b := 0) ?_ zero_le
+    rw [simulateQ_pure, StateT.run_pure]
+    refine probEvent_eq_zero fun result hresult hbad => ?_
+    rw [support_pure, Set.mem_singleton_iff] at hresult
+    subst hresult
+    obtain ⟨input, output, hanswer, hbadness⟩ := hbad
+    exact hclean input output hanswer hbadness
+  | query_bind queried next ih =>
+    intro initial hclean
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+    rcases queried with coin | input
+    · -- A coin leaves the cache alone.
+      rw [probEvent_bind_eq_tsum, tsum_bind_mul, ← ENNReal.tsum_mul_right]
+      have hstep : ∀ step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run initial),
+          step.2 = initial := by
+        intro step hstep
+        have hform : step ∈
+            Set.range (fun value : OracleWorld.Range (Sum.inl coin) => (value, initial)) := by
+          simpa [KeygenUniform.rom, Xmss.RandomOracleModel.impl, unifFwdImpl] using hstep
+        obtain ⟨value, hvalue⟩ := hform
+        rw [← hvalue]
+      refine ENNReal.tsum_le_tsum fun step => ?_
+      by_cases hmem : step ∈ support ((KeygenUniform.rom (Sum.inl coin)).run initial)
+      · rw [mul_assoc, hstep step hmem]
+        exact mul_le_mul' le_rfl (ih step.1 initial hclean)
+      · rw [probOutput_eq_zero_of_not_mem_support hmem]
+        simp
+    · cases hcached : initial input with
+      | some cached =>
+        have hrun : (KeygenUniform.rom (Sum.inr input)).run initial =
+            (pure (cached, initial) : ProbComp (HashOutput × QueryCache HashSpec)) := by
+          change (randomOracle input).run initial = _
+          rw [QueryImpl.withCaching_run_some _ hcached]
+        rw [hrun]
+        erw [pure_bind]
+        exact ih cached initial hclean
+      | none =>
+        have hrun : (KeygenUniform.rom (Sum.inr input)).run initial =
+            (fun answer => (answer, initial.cacheQuery input answer)) <$>
+              ($ᵗ HashOutput : ProbComp HashOutput) := by
+          change (randomOracle input).run initial = _
+          rw [QueryImpl.withCaching_run_none _ hcached]
+          simp [uniformSampleImpl]
+        rw [hrun]
+        erw [bind_map_left]
+        rw [probEvent_bind_eq_tsum, tsum_bind_mul]
+        -- After a miss, the tail's fresh mass is the step's own unit plus the tail's.
+        have htail : ∀ answer : HashOutput,
+            ∑' result, Pr[= result | (simulateQ KeygenUniform.rom (next answer)).run
+                (initial.cacheQuery input answer)] * freshMass inClass initial result.2 =
+              (if inClass input then 1 else 0) +
+                ∑' result, Pr[= result | (simulateQ KeygenUniform.rom (next answer)).run
+                  (initial.cacheQuery input answer)] *
+                  freshMass inClass (initial.cacheQuery input answer) result.2 := by
+          intro answer
+          calc ∑' result, Pr[= result | (simulateQ KeygenUniform.rom (next answer)).run
+                (initial.cacheQuery input answer)] * freshMass inClass initial result.2
+              = ∑' result, Pr[= result | (simulateQ KeygenUniform.rom (next answer)).run
+                  (initial.cacheQuery input answer)] *
+                  ((if inClass input then 1 else 0) +
+                    freshMass inClass (initial.cacheQuery input answer) result.2) := by
+                refine tsum_congr fun result => ?_
+                by_cases hmem : result ∈ support ((simulateQ KeygenUniform.rom
+                    (next answer)).run (initial.cacheQuery input answer))
+                · have hpersist := cache_value_persists (next answer)
+                    (initial.cacheQuery input answer) result.2 result.1 hmem input answer
+                    (QueryCache.cacheQuery_self _ _ _)
+                  rw [freshMass_cacheQuery inClass initial result.2 input answer hcached
+                    (by rw [hpersist]; simp)]
+                · rw [probOutput_eq_zero_of_not_mem_support hmem, zero_mul, zero_mul]
+            _ = (∑' result, Pr[= result | (simulateQ KeygenUniform.rom (next answer)).run
+                  (initial.cacheQuery input answer)] * (if inClass input then 1 else 0)) +
+                ∑' result, Pr[= result | (simulateQ KeygenUniform.rom (next answer)).run
+                  (initial.cacheQuery input answer)] *
+                  freshMass inClass (initial.cacheQuery input answer) result.2 := by
+                rw [← ENNReal.tsum_add]
+                exact tsum_congr fun result => mul_add _ _ _
+            _ = _ := by
+                rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' (by simp), one_mul]
+        simp_rw [htail]
+        have hpointwise : ∀ answer : HashOutput,
+            Pr[Bad bad | (simulateQ KeygenUniform.rom (next answer)).run
+                (initial.cacheQuery input answer)] ≤
+              (if bad input answer then 1 else 0) +
+                (∑' result, Pr[= result | (simulateQ KeygenUniform.rom (next answer)).run
+                  (initial.cacheQuery input answer)] *
+                  freshMass inClass (initial.cacheQuery input answer) result.2) * rate := by
+          intro answer
+          by_cases hbadness : bad input answer
+          · rw [if_pos hbadness]
+            exact le_add_right probEvent_le_one
+          · rw [if_neg hbadness, zero_add]
+            exact ih answer (initial.cacheQuery input answer) (hclean.cacheQuery hbadness)
+        refine le_trans (ENNReal.tsum_le_tsum fun answer =>
+          mul_le_mul' le_rfl (hpointwise answer)) ?_
+        simp_rw [mul_add]
+        rw [ENNReal.tsum_add, ENNReal.tsum_add, add_mul]
+        refine add_le_add ?_ ?_
+        · have hbadMass : (∑' answer : HashOutput,
+                Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  (if bad input answer then (1 : ℝ≥0∞) else 0)) =
+              Pr[fun answer : HashOutput => bad input answer |
+                ($ᵗ HashOutput : ProbComp HashOutput)] := by
+            rw [probEvent_eq_tsum_ite]
+            refine tsum_congr fun answer => ?_
+            by_cases hbadness : bad input answer <;> simp [hbadness]
+          erw [hbadMass]
+          calc Pr[fun answer : HashOutput => bad input answer |
+                ($ᵗ HashOutput : ProbComp HashOutput)]
+              ≤ (if inClass input then 1 else 0) * rate := by
+                by_cases hmember : inClass input
+                · rw [if_pos hmember, one_mul]
+                  exact hrate input
+                · rw [if_neg hmember, zero_mul]
+                  exact le_of_eq (probEvent_eq_zero fun answer _ hbadness =>
+                    hmember (hclass input answer hbadness))
+            _ = (∑' answer : HashOutput, Pr[= answer | ($ᵗ HashOutput : ProbComp HashOutput)] *
+                  (if inClass input then 1 else 0)) * rate := by
+                rw [ENNReal.tsum_mul_right, tsum_probOutput_eq_one' (by simp), one_mul]
+        · rw [← ENNReal.tsum_mul_right]
+          refine le_of_eq (tsum_congr fun answer => ?_)
+          ring
+
+end SlhDsaSecurity.FreshExpectation
