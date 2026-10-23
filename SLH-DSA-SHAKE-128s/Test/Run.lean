@@ -18,8 +18,10 @@ def shakeAnswer (input : Bytes) : HashOutput :=
   (shake256 (ByteArray.mk input.toArray) messageDigestBytes).toList.foldl
     (fun (value : HashOutput) byte => (value <<< 8) ||| BitVec.ofNat _ byte.toNat) 0
 
-instance : HasQuery HashSpec Id where
-  query input := shakeAnswer input
+/-- The spec runs in `IO`, a strict monad: in `Id` the compiler eta-expands the function-valued
+results of `sequenceFin` and recomputes their entries on every access. -/
+instance : HasQuery HashSpec IO where
+  query input := pure (shakeAnswer input)
 
 def parseHex (s : String) : Option Bytes :=
   if s = "-" then some [] else
@@ -49,32 +51,33 @@ def toSecretKey (bytes : Bytes) : SecretKey :=
   { seed := toDigest (bytes.take 16), prf := toDigest ((bytes.drop 16).take 16),
     publicKey := toPublicKey (bytes.drop 32) }
 
-/-- Run one line of `vectors.txt`; `some ok` if it was understood. -/
-def check (line : String) : Option Bool := do
+def hex (s : String) : IO Bytes := do
+  let some bytes := parseHex s | throw (IO.userError s!"bad hex: {s.take 20}")
+  return bytes
+
+/-- Run one line of `vectors.txt`. -/
+def check (line : String) : IO Bool := do
   match line.splitOn " " with
   | ["keygen", _, skSeed, skPrf, pkSeed, pk] =>
-    let (_, key) := Id.run (Scheme.keygenInternal (toDigest (← parseHex skSeed))
-      (toDigest (← parseHex skPrf)) (toDigest (← parseHex pkSeed)))
-    return key == toPublicKey (← parseHex pk)
+    let (_, key) ← Scheme.keygenInternal (m := IO) (toDigest (← hex skSeed))
+      (toDigest (← hex skPrf)) (toDigest (← hex pkSeed))
+    return key == toPublicKey (← hex pk)
   | ["sign", _, sk, message, context, signature] =>
-    let request : Message := { message := ← parseHex message, context := ← parseHex context }
-    return Id.run (Scheme.sign (toSecretKey (← parseHex sk)) request) == some (← parseHex signature)
+    let request : Message := { message := ← hex message, context := ← hex context }
+    return (← Scheme.sign (m := IO) (toSecretKey (← hex sk)) request) == some (← hex signature)
   | ["signInternal", _, sk, message, signature] =>
-    let signed := Id.run (Scheme.signInternal (toSecretKey (← parseHex sk)) (← parseHex message))
-    return signed.toBytes == (← parseHex signature)
+    let signed ← Scheme.signInternal (m := IO) (toSecretKey (← hex sk)) (← hex message)
+    return signed.toBytes == (← hex signature)
   | ["verify", _, pk, message, context, signature, expected] =>
-    let request : Message := { message := ← parseHex message, context := ← parseHex context }
-    let accepted := Id.run (Scheme.verify (toPublicKey (← parseHex pk)) request
-      (← parseHex signature))
+    let request : Message := { message := ← hex message, context := ← hex context }
+    let accepted ← Scheme.verify (m := IO) (toPublicKey (← hex pk)) request (← hex signature)
     return accepted == (expected == "true")
   | ["verifyInternal", _, pk, message, signature, expected] =>
-    let key := toPublicKey (← parseHex pk)
-    let body ← parseHex message
-    let accepted := match Signature.fromBytes? (← parseHex signature) with
-      | none => false
-      | some parsed => Id.run (Scheme.verifyInternal key body parsed)
+    let accepted ← match Signature.fromBytes? (← hex signature) with
+      | none => pure false
+      | some parsed => Scheme.verifyInternal (m := IO) (toPublicKey (← hex pk)) (← hex message) parsed
     return accepted == (expected == "true")
-  | _ => none
+  | _ => throw (IO.userError "unknown test kind")
 
 end SlhDsaTest
 
@@ -88,10 +91,10 @@ def main (args : List String) : IO UInt32 := do
     let fields := line.splitOn " "
     if line.isEmpty || (!only.isEmpty && !only.contains (fields.headD "")) then continue
     let label := s!"{fields.headD ""} {fields.getD 1 ""}"
-    match check line with
-    | some true => count := count + 1; IO.println s!"ok   {label}"
-    | some false => failures := failures + 1; IO.println s!"FAIL {label}"
-    | none => failures := failures + 1; IO.println s!"BAD  {label}"
+    match ← (check line).toBaseIO with
+    | .ok true => count := count + 1; IO.println s!"ok   {label}"
+    | .ok false => failures := failures + 1; IO.println s!"FAIL {label}"
+    | .error e => failures := failures + 1; IO.println s!"BAD  {label}: {e}"
     (← IO.getStdout).flush
   IO.println s!"{count} passed, {failures} failed"
   return if failures = 0 then 0 else 1
