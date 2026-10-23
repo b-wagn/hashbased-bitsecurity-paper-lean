@@ -273,6 +273,8 @@ import SlhDsaSecurity.Proof.TapeRunFacts
 import SlhDsaSecurity.Proof.CarrierThin
 import SlhDsaSecurity.Proof.AnswerFired
 import SlhDsaSecurity.Proof.VerifyBound
+import SlhDsaSecurity.Proof.KeygenCost
+import SlhDsaSecurity.Proof.CapComp
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -17643,3 +17645,75 @@ info: 'SlhDsaSecurity.VerifyBound.isQueryBoundP_verify' depends on axioms: [prop
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.VerifyBound.isQueryBoundP_verify
+
+/--
+info: 'SlhDsaSecurity.KeygenCost.count_sequenceFin_ge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenCost.count_sequenceFin_ge
+
+/--
+info: 'SlhDsaSecurity.KeygenCost.count_wotsPublicKey_ge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenCost.count_wotsPublicKey_ge
+
+/--
+info: 'SlhDsaSecurity.KeygenCost.count_merkleNode_ge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenCost.count_merkleNode_ge
+
+/--
+info: 'SlhDsaSecurity.KeygenCost.count_keygen_ge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.KeygenCost.count_keygen_ge
+
+/--
+info: 'SlhDsaSecurity.CapComp.capComp_pure' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.capComp_pure
+
+/--
+info: 'SlhDsaSecurity.CapComp.capComp_query_bind' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.capComp_query_bind
+
+/--
+info: 'SlhDsaSecurity.CapComp.cost_capComp_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.cost_capComp_le
+
+/--
+info: 'SlhDsaSecurity.CapComp.cost_run_ge' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.cost_run_ge
+
+/--
+info: 'SlhDsaSecurity.CapComp.run_neverFails' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.run_neverFails
+
+/--
+info: 'SlhDsaSecurity.CapComp.exists_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.exists_mem_support
+
+/--
+info: 'SlhDsaSecurity.CapComp.evalDist_bind_congr_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.evalDist_bind_congr_support
+
+/--
+info: 'SlhDsaSecurity.CapComp.evalDist_capComp' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.CapComp.evalDist_capComp
