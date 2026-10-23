@@ -290,6 +290,7 @@ import SlhDsaSecurity.Proof.ShareCouple
 import SlhDsaSecurity.Proof.ShareInv
 import SlhDsaSecurity.Proof.ShareWhole
 import SlhDsaSecurity.Proof.ShareClaims
+import SlhDsaSecurity.Proof.ShareEvent
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18748,3 +18749,117 @@ info: 'SlhDsaSecurity.ShareClaims.claimedCandidatesOf_congr' depends on axioms: 
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareClaims.claimedCandidatesOf_congr
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.realView_eq_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.realView_eq_unionCache
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.generatedKey_realView' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.generatedKey_realView
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.honestMessage_unionCache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.honestMessage_unionCache
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.honestRevealed_le_revealedOf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.honestRevealed_le_revealedOf
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.available_mono' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.available_mono
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.cellSig_randomizer' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.cellSig_randomizer
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.disclosed_subset' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.disclosed_subset
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.realView_eq_visible' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.realView_eq_visible
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.realWorldImpl_eq_add' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.realWorldImpl_eq_add
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.realHashImpl_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.realHashImpl_run
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.realHash_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.realHash_step
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.realHash_run_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.realHash_run_mono
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.probe_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.probe_recorded
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.verify_probes_recorded' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.verify_probes_recorded
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.flag_of_filed_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.flag_of_filed_prf
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.flag_of_prfHit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.flag_of_prfHit
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.flag_of_signerHit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.flag_of_signerHit
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.keyOf_realPair' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.keyOf_realPair
+
+/--
+info: 'SlhDsaSecurity.ShareEvent.flag_of_inputBad' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareEvent.flag_of_inputBad
