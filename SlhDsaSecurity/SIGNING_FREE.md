@@ -94,3 +94,44 @@ Either is a re-architecture of a large part of the proof, not a lemma added to i
    real order (weeks).
 3. Leaked-world crude coverage for `SH ∧ coverage` (about a week).
 4. Hiding plus hit slack, or joint FORS charging (months; research risk).
+
+## Update: the hiding route (option 1) fails; one anchor detects for free
+
+Steps done: the answer half's `+ |requests|` is gone (`AnswerNoRequests.fresh_add_right_le_work`),
+and the relabeling atom is proved (`RelabelOracle.run_relabel`).
+
+Working option 1 out in full found a detection that costs **one counted query and no probes**:
+
+* Signatures in the same FORS instance have identical hypertree bytes, so the grouping is free.
+  Among `2^64` signatures over `2^63` instances, there are about `2^48` instances with load
+  `L ≥ 10`.
+* For signatures `i` and `k` in one instance, the equality pattern of their authentication paths
+  reveals, for free and for each FORS tree `t`, the highest bit where their leaf indices differ.
+  Call it `δ_t = msb(x_t(i) ⊕ x_t(k))`.
+* **Anchor:** recompute `digest_k` with one query, `x_k = R_k ‖ PK.seed ‖ PK.root ‖ framed_k`.
+  This is a cache hit on the signer's entry, so its answer charge goes unused and it has `1u` of
+  slack. It gives the absolute indices `x_t(k)`.
+* For every other `i` in the instance with a requested pair `j` (root-valid key), the link would
+  give `x_t(i)` from `R_j`. Checking `δ_t` against it on ten trees passes with probability about
+  `2^-16` without a link, and always with one.
+* So, at no extra charged cost, the adversary queries `R_i ‖ PK.seed ‖ …` (a `PrfHit` at `R_i`)
+  only when the test passes. Each `i` contributes `Pr[link at i] = u` of `PrfHit`, for about
+  `2^-16 u` of candidate charge.
+
+One anchor therefore buys about `(L − 1)·u` of `PrfHit` probability, against `1u` of slack. After
+`PrfHit` the `2^78`-query grinding wins. A per-query ledger cannot pay for that: the grinding
+queries carry at most `q·u ≪ 1` of slack per path, against a win probability near 1 on detected
+paths.
+
+**This is still not an attack.** Over the whole game,
+`Pr[win] ≈ 2^-8·A(L−1)u + c·(q − A)u`, where `c` is the rate at which a structural query actually
+turns into a forgery. The bound `q/2^127` fails only if `c ≈ 2`. Known structural attacks convert
+at about `1u` per query: a second preimage at the root, using an adversary-built subtree. A
+correctly guessed hidden value (a WOTS chain value, a FORS secret) does not by itself give a
+forgery.
+
+**Consequence.** Signing-free 127 is very likely true, but it cannot be proved inside the present
+architecture. That architecture charges every structural query a full `2u` (answer fault plus
+aiming), whether or not the fault can become a forgery. A proof needs that charge to reflect the
+forgery-conversion rate: only faults a forgery can use count at full rate. That is a new proof
+architecture, and research rather than engineering. (It would also be a route towards 128.)
