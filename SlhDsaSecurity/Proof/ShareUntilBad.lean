@@ -113,12 +113,11 @@ theorem openAt_messageInput (setup : Setup) (hgood : setup.Good) (served : List 
 
 /-- **The signer's digest query is routed the same way**, off its coincidence. -/
 theorem route_digest_eq (setup : Setup) (hgood : setup.Good) (state : St)
-    (randomizer : Digest) (framed : Bytes) (hne : randomizer ≠ setup.prf) :
+    (randomizer : Digest) (framed : Bytes)
+    (hnotPrf : ¬ IsPrfInput setup (Hashing.messageInput randomizer setup.pk framed)) :
     route true setup state (Hashing.messageInput randomizer setup.pk framed) =
       route false setup state (Hashing.messageInput randomizer setup.pk framed) := by
   classical
-  have hnotPrf : ¬ IsPrfInput setup (Hashing.messageInput randomizer setup.pk framed) :=
-    fun h => hne (RandomizerGate.messageInput_eq_randomizerInput_iff _ _ _ _ _ _ h)
   simp only [route, if_true, warm_messageInput setup hgood, Bool.false_eq_true, false_and,
     if_false, true_and, hnotPrf, openAt_messageInput setup hgood]
 
@@ -157,14 +156,16 @@ theorem agree_good (setup : Setup) (queried : ShareSpec.Domain) (state : St)
       rw [probOutput_bind_eq_tsum, probOutput_bind_eq_tsum]
       refine tsum_congr fun seed => ?_
       congr 1
-      by_cases hflag : ¬ setup.Good ∨ Hashing.truncate seed.1 = setup.prf
+      by_cases hflag : ¬ setup.Good ∨ Guess setup state.served
+        (Hashing.messageInput (Hashing.truncate seed.1) setup.pk framed)
       · rw [probOutput_eq_zero_of_not_mem_support, probOutput_eq_zero_of_not_mem_support] <;>
         · simp only [mem_support_bind_iff, support_pure, Set.mem_singleton_iff, not_exists,
             not_and]
           intro digest _ heq
           simp [hflag] at heq
       · push Not at hflag
-        rw [route_digest_eq setup hflag.1 seed.2 _ framed hflag.2]
+        rw [route_digest_eq setup hflag.1 seed.2 _ framed fun h =>
+          hflag.2 (Or.inr (prfClass_of_isPrfInput setup _ h))]
   · rfl
   · rfl
 

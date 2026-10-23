@@ -278,6 +278,7 @@ import SlhDsaSecurity.Proof.CapComp
 import SlhDsaSecurity.Proof.ShareSigner
 import SlhDsaSecurity.Proof.ShareGame
 import SlhDsaSecurity.Proof.ShareUntilBad
+import SlhDsaSecurity.Proof.ShareFlag
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -17822,3 +17823,51 @@ info: 'SlhDsaSecurity.ShareUntilBad.probEvent_bad_eq' depends on axioms: [propex
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareUntilBad.probEvent_bad_eq
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.plain_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.plain_mem_support
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.prfAt_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.prfAt_mem_support
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.route_mem_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.route_mem_support
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.step_shape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.step_shape
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.witnessed_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.witnessed_step
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.flag_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.flag_witness
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.length_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.length_step
+
+/--
+info: 'SlhDsaSecurity.ShareFlag.reportsCost' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareFlag.reportsCost

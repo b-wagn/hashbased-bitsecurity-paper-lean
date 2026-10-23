@@ -23,7 +23,9 @@ The two handlers differ in exactly two places:
 
 Both raise the same sticky flag `bad` at the same steps: a recorded probe that is sensitive (a
 canonical input with an unavailable child, carrying the right cell), a recorded probe in the
-`PRF_msg` class at the real seed, a drawn randomiser equal to the seed, and a bad walk. Off the
+`PRF_msg` class at the real seed, and a bad walk. The signer's digest input is recorded too, and
+it is in that class exactly when the drawn randomiser is the seed — the signer's coincidence is
+one more recorded guess, not an event of its own kind. Off the
 flag the two handlers step identically, so the flag has the same law in both
 (`ShareUntilBad`); in the blind game the flag is a union of guesses at secrets the run never
 reads (`ShareBlind`).
@@ -241,11 +243,13 @@ noncomputable def handler (lenient : Bool) (setup : Setup) :
         | some framed => do
             let seed ← prfAt state.1 framed
             let randomizer := Hashing.truncate seed.1
-            let digest ← route lenient setup seed.2
-              (Hashing.messageInput randomizer setup.pk framed)
+            let input := Hashing.messageInput randomizer setup.pk framed
+            let digest ← route lenient setup seed.2 input
             pure (some (randomizer, digest.1),
-              ({ digest.2 with served := digest.2.served ++ [digest.1] },
-                state.2 || decide (¬ setup.Good ∨ randomizer = setup.prf)))
+              ({ digest.2 with
+                  served := digest.2.served ++ [digest.1]
+                  record := state.1.record ++ [(input, state.1.served)] },
+                state.2 || decide (¬ setup.Good ∨ Guess setup state.1.served input)))
     | Sum.inl (Sum.inr (request, drawn)) =>
         match drawn with
         | none => pure (none, ({ state.1 with log := state.1.log ++ [⟨request, none⟩] }, state.2))
