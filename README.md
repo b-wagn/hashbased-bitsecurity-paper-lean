@@ -2,15 +2,11 @@
 
 Machine-checked security proofs for XMSS and SLH-DSA-SHAKE-128s in the random-oracle model,
 using [VCVio](https://github.com/Verified-zkEVM/VCVio). Security at `b` bits means
-`Pr[win] ≤ q / 2^b` for every adversary whose counted queries are at most `q ≥ 1` with
-probability one.
-
-*Disclaimer.* The proofs are about the schemes as defined in each `Statement/` folder, with the hash
-function modelled as a random oracle. They say nothing about any implementation.
+`Pr[win] ≤ q / 2^b` for every adversary whose counted queries are at most `q ≥ 1`.
 
 ## XMSS
 
-Target-sum and checksum XMSS with 128-bit hashes, `2^32` epochs and `w = 4`. Exact security levels
+Target-sum and checksum XMSS with 128-bit digests, `2^32` epochs, `v = 32` and `w = 4`. Exact security levels
 (an entry `b` is proved, and an attack rules out `b + 1`):
 
 | Counted queries            | Target sum, SUF-CMA | Target sum, EUF-CMA | Checksum, both |
@@ -27,20 +23,11 @@ most `2^-256` (target sum) and `0` (checksum).
 
 ## SLH-DSA-SHAKE-128s
 
-Pure FIPS 205 SLH-DSA at the 128s parameters, with deterministic signing and the SHAKE
+FIPS 205 SLH-DSA at the 128s parameters, with deterministic signing and the SHAKE
 instantiation's formats.
 
 **Theorem** (`slhDsa_sufCma_127`): 127 bits of strong unforgeability, counting the adversary's
-signing requests, its hash queries and the verification of its forgery. Key generation's and the
-signer's hashes are free, and the adversary makes at most `2^64` signing requests.
-
-## Layout
-
-Each library splits into `Statement/` (scheme, games and main theorems, readable on its own) and
-`Proof/`. Only `Statement/Theorems/` imports `Proof/`.
-
-- XMSS: [`Xmss/Statement/Theorems/`](Xmss/Statement/Theorems/)
-- SLH-DSA: [`SLH-DSA-SHAKE-128s/Statement/Theorems/StrongUnforgeability.lean`](SLH-DSA-SHAKE-128s/Statement/Theorems/StrongUnforgeability.lean)
+signing requests (`q_S`, at most `2^64`), its hash queries (`q_H`) and the verification of its forgery (`q_Verify`).
 
 ## Build
 
@@ -51,6 +38,9 @@ lake exe cache get
 lake build
 scripts/check_statement_imports.sh
 python3 scripts/generate_encoding_count.py --check
+# SLH-DSA test vectors
+git -C .lake/packages/VCVio submodule update --init   # VCVio's native libraries, needed to link
+lake exe slh-dsa-kat                                  # signing takes minutes per vector
 ```
 
 The build fails if a main theorem depends on an axiom other than `propext`, `Classical.choice` and
