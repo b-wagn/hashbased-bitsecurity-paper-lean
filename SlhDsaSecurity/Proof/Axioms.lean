@@ -275,6 +275,9 @@ import SlhDsaSecurity.Proof.AnswerFired
 import SlhDsaSecurity.Proof.VerifyBound
 import SlhDsaSecurity.Proof.KeygenCost
 import SlhDsaSecurity.Proof.CapComp
+import SlhDsaSecurity.Proof.ShareSigner
+import SlhDsaSecurity.Proof.ShareGame
+import SlhDsaSecurity.Proof.ShareUntilBad
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -17717,3 +17720,105 @@ info: 'SlhDsaSecurity.CapComp.evalDist_capComp' depends on axioms: [propext, Cla
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.CapComp.evalDist_capComp
+
+/--
+info: 'SlhDsaSecurity.ShareSigner.signInternalAt_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSigner.signInternalAt_eq
+
+/--
+info: 'SlhDsaSecurity.ShareSigner.sign_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSigner.sign_eq
+
+/--
+info: 'SlhDsaSecurity.ShareSigner.probes_signAfter' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSigner.probes_signAfter
+
+/--
+info: 'SlhDsaSecurity.ShareSigner.signAfter_simulate' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSigner.signAfter_simulate
+
+/--
+info: 'SlhDsaSecurity.ShareSigner.strip_eq_pure_of_probes' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSigner.strip_eq_pure_of_probes
+
+/--
+info: 'SlhDsaSecurity.ShareSigner.strippedSign_eq_draw' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareSigner.strippedSign_eq_draw
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.openAt_le_warm' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.openAt_le_warm
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.revealed_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.revealed_le
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.sens_of_closed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.sens_of_closed
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.prfClass_of_isPrfInput' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.prfClass_of_isPrfInput
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.route_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.route_eq
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.warm_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.warm_messageInput
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.openAt_messageInput' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.openAt_messageInput
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.route_digest_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.route_digest_eq
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.agree_good' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.agree_good
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.mono
+
+/--
+info: 'SlhDsaSecurity.ShareUntilBad.probEvent_bad_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareUntilBad.probEvent_bad_eq
