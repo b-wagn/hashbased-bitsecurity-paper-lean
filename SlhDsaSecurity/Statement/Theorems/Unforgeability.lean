@@ -1,8 +1,10 @@
 import SlhDsaSecurity.Statement.Security
 import SlhDsaSecurity.Statement.SecurityNoVerify
+import SlhDsaSecurity.Statement.SecurityBySource
 import SlhDsaSecurity.Proof.ShareFinal
 import SlhDsaSecurity.Proof.NoVerifyTarget
 import SlhDsaSecurity.Proof.Security
+import SlhDsaSecurity.Proof.BySourceTarget
 
 /-!
 # Standard unforgeability (EUF-CMA) of SLH-DSA-SHAKE-128s: the theorem
@@ -32,5 +34,13 @@ theorem slhDsa_eufCma_noVerify_127 : HasNoVerifySecurityBits .standard 127 :=
 /-- info: 'SlhDsaSecurity.slhDsa_eufCma_noVerify_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms slhDsa_eufCma_noVerify_127
+
+/-- **The same in the main development's framework, with the signer's hash calls not counted.** -/
+theorem slhDsa_eufCma_allButSigner_127 : HasLimitedSecurityBits .standard allButSigner 127 :=
+  BySourceTarget.hasLimitedSecurityBits_standard_127
+
+/-- info: 'SlhDsaSecurity.slhDsa_eufCma_allButSigner_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms slhDsa_eufCma_allButSigner_127
 
 end SlhDsaSecurity

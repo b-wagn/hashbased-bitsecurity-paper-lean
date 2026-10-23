@@ -251,6 +251,9 @@ import SlhDsaSecurity.Proof.NoVerifyBudget
 import SlhDsaSecurity.Proof.NoVerifyTarget
 import SlhDsaSecurity.Proof.FreshExpectation
 import SlhDsaSecurity.Proof.BySourceBridge
+import SlhDsaSecurity.Proof.BySourceShared
+import SlhDsaSecurity.Proof.BySourceAnswer
+import SlhDsaSecurity.Proof.BySourceTarget
 
 
 /--
@@ -17508,3 +17511,133 @@ info: 'SlhDsaSecurity.BySourceBridge.tailBudget_of' depends on axioms: [propext,
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BySourceBridge.tailBudget_of
+
+/--
+info: 'SlhDsaSecurity.BySourceShared.servedCount_le_length' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceShared.servedCount_le_length
+
+/--
+info: 'SlhDsaSecurity.BySourceShared.cost_le_of_tail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceShared.cost_le_of_tail
+
+/--
+info: 'SlhDsaSecurity.BySourceShared.keygen_le_of_tail' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceShared.keygen_le_of_tail
+
+/--
+info: 'SlhDsaSecurity.BySourceShared.walk_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceShared.walk_bound
+
+/--
+info: 'SlhDsaSecurity.BySourceShared.hshared' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceShared.hshared
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.targeted_of_keep127' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.targeted_of_keep127
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.not_targeted_canonical' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.not_targeted_canonical
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.not_deviating_of_targeted' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.not_deviating_of_targeted
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.not_deviating_randomizerInput' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.not_deviating_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.replayCells_of_extends' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.replayCells_of_extends
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.not_deviating_canonical' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.not_deviating_canonical
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.keygen_seeds' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.keygen_seeds
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.freshMass_le_work_add_signed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.freshMass_le_work_add_signed
+
+/--
+info: 'SlhDsaSecurity.BySourceAnswer.fresh_add_right_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceAnswer.fresh_add_right_le
+
+/--
+info: 'SlhDsaSecurity.BySourceTarget.answerBound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceTarget.answerBound
+
+/--
+info: 'SlhDsaSecurity.BySourceTarget.hsharedFused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceTarget.hsharedFused
+
+/--
+info: 'SlhDsaSecurity.BySourceTarget.warmed_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceTarget.warmed_le
+
+/--
+info: 'SlhDsaSecurity.BySourceTarget.warmed_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceTarget.warmed_bound
+
+/--
+info: 'SlhDsaSecurity.BySourceTarget.hasLimitedSecurityBits_strong_127' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceTarget.hasLimitedSecurityBits_strong_127
+
+/--
+info: 'SlhDsaSecurity.BySourceTarget.probEvent_counts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceTarget.probEvent_counts
+
+/--
+info: 'SlhDsaSecurity.BySourceTarget.hasLimitedSecurityBits_standard_127' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.BySourceTarget.hasLimitedSecurityBits_standard_127

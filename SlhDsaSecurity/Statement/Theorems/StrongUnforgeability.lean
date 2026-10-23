@@ -1,7 +1,9 @@
 import SlhDsaSecurity.Statement.Security
 import SlhDsaSecurity.Statement.SecurityNoVerify
+import SlhDsaSecurity.Statement.SecurityBySource
 import SlhDsaSecurity.Proof.ShareFinal
 import SlhDsaSecurity.Proof.NoVerifyTarget
+import SlhDsaSecurity.Proof.BySourceTarget
 
 /-!
 # Strong unforgeability (SUF-CMA) of SLH-DSA-SHAKE-128s: the theorem
@@ -35,5 +37,16 @@ theorem slhDsa_sufCma_noVerify_127 : HasNoVerifySecurityBits .strong 127 :=
 /-- info: 'SlhDsaSecurity.slhDsa_sufCma_noVerify_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms slhDsa_sufCma_noVerify_127
+
+/-- **The same in the main development's framework, with the signer's hash calls not counted.**
+The game is `Xmss.SecurityGame` counting by source; the counting mode is every source but the
+signer — requests, the adversary's own calls, key generation's and final verification's — and
+adversaries stay within FIPS 205's signing limit. -/
+theorem slhDsa_sufCma_allButSigner_127 : HasLimitedSecurityBits .strong allButSigner 127 :=
+  BySourceTarget.hasLimitedSecurityBits_strong_127
+
+/-- info: 'SlhDsaSecurity.slhDsa_sufCma_allButSigner_127' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms slhDsa_sufCma_allButSigner_127
 
 end SlhDsaSecurity
