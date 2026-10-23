@@ -282,6 +282,8 @@ import SlhDsaSecurity.Proof.ShareFlag
 import SlhDsaSecurity.Proof.BlindCharge
 import SlhDsaSecurity.Proof.ShareCells
 import SlhDsaSecurity.Proof.ShareSignCongr
+import SlhDsaSecurity.Proof.ShareBlindFacts
+import SlhDsaSecurity.Proof.ShareBound
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18102,3 +18104,239 @@ info: 'SlhDsaSecurity.ShareSignCongr.cellSig_congr' depends on axioms: [propext,
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareSignCongr.cellSig_congr
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.map_handler_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.map_handler_run
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.map_run_handler' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.map_run_handler
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.files_blindStep' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.files_blindStep
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.served_prefix' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.served_prefix
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.available_mono' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.available_mono
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.available_closed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.available_closed
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.not_alwaysAvailable_of_unavailable' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.not_alwaysAvailable_of_unavailable
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.available_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.available_congr
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.agree_alwaysAvailable' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.agree_alwaysAvailable
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.topRoot_alwaysAvailable' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.topRoot_alwaysAvailable
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.pk_congr' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.pk_congr
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.openAt_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.openAt_congr
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.visible_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.visible_congr
+
+/--
+info: 'SlhDsaSecurity.ShareBlindFacts.blindStep_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBlindFacts.blindStep_congr
+
+/--
+info: 'SlhDsaSecurity.ShareBound.verifyShare_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.verifyShare_run
+
+/--
+info: 'SlhDsaSecurity.ShareBound.length_world_step' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.length_world_step
+
+/--
+info: 'SlhDsaSecurity.ShareBound.length_world_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.length_world_run
+
+/--
+info: 'SlhDsaSecurity.ShareBound.length_claimsOf_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.length_claimsOf_le
+
+/--
+info: 'SlhDsaSecurity.ShareBound.length_shareComp' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.length_shareComp
+
+/--
+info: 'SlhDsaSecurity.ShareBound.pk_prf' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.pk_prf
+
+/--
+info: 'SlhDsaSecurity.ShareBound.route_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.route_prf
+
+/--
+info: 'SlhDsaSecurity.ShareBound.cellSig_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.cellSig_prf
+
+/--
+info: 'SlhDsaSecurity.ShareBound.claimsOf_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.claimsOf_prf
+
+/--
+info: 'SlhDsaSecurity.ShareBound.blindStep_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.blindStep_prf
+
+/--
+info: 'SlhDsaSecurity.ShareBound.ex_mono_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.ex_mono_support
+
+/--
+info: 'SlhDsaSecurity.ShareBound.ex_const_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.ex_const_le
+
+/--
+info: 'SlhDsaSecurity.ShareBound.ex_add' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.ex_add
+
+/--
+info: 'SlhDsaSecurity.ShareBound.probEvent_bind_const' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.probEvent_bind_const
+
+/--
+info: 'SlhDsaSecurity.ShareBound.seedPrefixed_of_locate' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.seedPrefixed_of_locate
+
+/--
+info: 'SlhDsaSecurity.ShareBound.countP_located_add_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.countP_located_add_le
+
+/--
+info: 'SlhDsaSecurity.ShareBound.map_flagRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.map_flagRun
+
+/--
+info: 'SlhDsaSecurity.ShareBound.blindRun_prf' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.blindRun_prf
+
+/--
+info: 'SlhDsaSecurity.ShareBound.length_blindRun' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.length_blindRun
+
+/--
+info: 'SlhDsaSecurity.ShareBound.map_flagGame' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.map_flagGame
+
+/--
+info: 'SlhDsaSecurity.ShareBound.flag_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.flag_le
+
+/--
+info: 'SlhDsaSecurity.ShareBound.sens_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.sens_le
+
+/--
+info: 'SlhDsaSecurity.ShareBound.prob_prf_list_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.prob_prf_list_le
+
+/--
+info: 'SlhDsaSecurity.ShareBound.prf_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.prf_le
+
+/--
+info: 'SlhDsaSecurity.ShareBound.blind_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareBound.blind_bound
