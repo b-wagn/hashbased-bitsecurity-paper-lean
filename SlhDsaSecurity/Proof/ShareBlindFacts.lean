@@ -7,9 +7,12 @@ import SlhDsaSecurity.Proof.ServedDisclosure
 # The blind game's step, without its flag, and the facts the charge reads
 
 The flag of `ShareGame.handler` reads the table — a guess is a guess *at* a cell — so the
-handler with its flag is not blind to anything. The flag is never read back by the handler,
-though, so dropping it leaves a step (`blindStep`) whose law is the handler's with the flag
-forgotten (`map_handler_run`), and that step is the one the charge is taken at.
+handler with its flag is not blind to anything. The flag is read back by the handler only at the
+claims, which file nothing once it is up. The handler that files the claims whatever the flag
+(`filing`) raises the flag with the same law (`probEvent_filing_eq`) and is witnessed by its
+record the same way (`filing_witness`), and it never reads its flag back, so dropping the flag
+leaves a step (`blindStep`) whose law is the filing handler's with the flag forgotten
+(`map_filing_run`). That step is the one the charge is taken at.
 
 The facts are those `BlindCharge.prob_sensitive_le` asks for, at a table drawn cell by cell
 with the padding and `SK.prf` beside it:
@@ -62,12 +65,12 @@ noncomputable def blindStep (setup : Setup) : QueryImpl ShareSpec (StateT St Pro
             else pure (none, { state with log := state.log ++ [⟨request, none⟩] })
     | Sum.inr forgery =>
         pure ((), { state with
-          record := state.record ++ (claimsOf setup state forgery).map fun candidate =>
-            (candidate, state.served) })
+          record := state.record ++ (unfiled state.record state.served
+            (claimsOf setup state forgery)).map fun candidate => (candidate, state.served) })
 
-/-- **Forgetting the flag of the blind handler is its flag-free step.** -/
-theorem map_handler_run (setup : Setup) (queried : ShareSpec.Domain) (state : St) (flag : Bool) :
-    (fun z => (z.1, z.2.1)) <$> ((handler false setup) queried).run (state, flag) =
+/-- **Forgetting the flag of the blind handler is its flag-free step**, from a lowered flag. -/
+theorem map_handler_run (setup : Setup) (queried : ShareSpec.Domain) (state : St) :
+    (fun z => (z.1, z.2.1)) <$> ((handler false setup) queried).run (state, false) =
       ((blindStep setup) queried).run state := by
   classical
   rcases queried with ((world | request) | ⟨request, drawn⟩) | forgery
@@ -86,20 +89,119 @@ theorem map_handler_run (setup : Setup) (queried : ShareSpec.Domain) (state : St
       · simp [handler, blindStep, StateT.run, hserved]
   · simp [handler, blindStep, StateT.run]
 
-/-- **The blind run with its flag forgotten is the flag-free run.** -/
-theorem map_run_handler (setup : Setup) {α : Type} (computation : OracleComp ShareSpec α)
+/-! ## The blind handler, filing whatever the flag -/
+
+/-- **The blind handler, filing the claims whatever the flag**: its step is the blind handler's
+step from a lowered flag, the flag kept up once it is up. It parts from `handler false` only at
+claims made with the flag already up, so the flag has the same law in both
+(`probEvent_filing_eq`), and with the flag forgotten it is `blindStep` from every state. -/
+noncomputable def filing (setup : Setup) : QueryImpl ShareSpec (StateT (St × Bool) ProbComp) :=
+  fun queried state => (fun z => (z.1, (z.2.1, state.2 || z.2.2))) <$>
+    ((handler false setup) queried).run (state.1, false)
+
+theorem filing_run (setup : Setup) (queried : ShareSpec.Domain) (state : St × Bool) :
+    ((filing setup) queried).run state = (fun z => (z.1, (z.2.1, state.2 || z.2.2))) <$>
+      ((handler false setup) queried).run (state.1, false) := rfl
+
+/-- **Forgetting the flag of the filing handler is the flag-free step**, from every state. -/
+theorem map_filing_run (setup : Setup) (queried : ShareSpec.Domain) (state : St × Bool) :
+    (fun z => (z.1, z.2.1)) <$> ((filing setup) queried).run state =
+      ((blindStep setup) queried).run state.1 := by
+  rw [filing_run, Functor.map_map]
+  exact map_handler_run setup queried state.1
+
+/-- **The filing run with its flag forgotten is the flag-free run.** -/
+theorem map_run_filing (setup : Setup) {α : Type} (computation : OracleComp ShareSpec α)
     (start : St) (flag : Bool) :
-    (fun z => (z.1, z.2.1)) <$> (simulateQ (handler false setup) computation).run (start, flag) =
+    (fun z => (z.1, z.2.1)) <$> (simulateQ (filing setup) computation).run (start, flag) =
       (simulateQ (blindStep setup) computation).run start :=
-  BlindCharge.run_simulateQ_map_proj (handler false setup) (blindStep setup) Prod.fst
-    (fun queried p => map_handler_run setup queried p.1 p.2) computation (start, flag)
+  BlindCharge.run_simulateQ_map_proj (filing setup) (blindStep setup) Prod.fst
+    (fun queried p => map_filing_run setup queried p) computation (start, flag)
+
+/-- **Away from the claims, the filing handler is the blind handler.** -/
+theorem filing_inl (setup : Setup) (queried : (OracleWorld + DrawSpec + AssembleSpec).Domain) :
+    filing setup (Sum.inl queried) = handler false setup (Sum.inl queried) := by
+  classical
+  funext state
+  obtain ⟨inner, flag⟩ := state
+  change ((filing setup) (Sum.inl queried)).run (inner, flag) =
+    ((handler false setup) (Sum.inl queried)).run _
+  rw [filing_run]
+  rcases queried with ((world | request) | ⟨request, drawn⟩)
+  · rcases world with coin | input
+    · simp [handler, StateT.run]
+    · simp [handler, StateT.run]
+  · cases hframe : request.frame with
+    | none => simp [handler, StateT.run, hframe]
+    | some framed => simp [handler, StateT.run, hframe]
+  · cases drawn with
+    | none => simp [handler, StateT.run]
+    | some pair =>
+      obtain ⟨randomizer, digest⟩ := pair
+      by_cases hserved : digest ∈ inner.served
+      · simp [handler, StateT.run, hserved]
+      · simp [handler, StateT.run, hserved]
+
+/-- **From a lowered flag the filing handler is the blind handler.** -/
+theorem filing_run_false (setup : Setup) (queried : ShareSpec.Domain) (state : St) :
+    ((filing setup) queried).run (state, false) =
+      ((handler false setup) queried).run (state, false) := by
+  rw [filing_run]
+  simp
+
+/-- **Once raised, the filing handler's flag stays.** -/
+theorem filing_mono (setup : Setup) (queried : ShareSpec.Domain) (state : St × Bool)
+    (hbad : state.2 = true) (z : ShareSpec.Range queried × (St × Bool))
+    (hz : z ∈ support (((filing setup) queried).run state)) : z.2.2 = true := by
+  rw [filing_run, support_map] at hz
+  obtain ⟨w, -, rfl⟩ := hz
+  simp [hbad]
+
+/-- **The flag has the same law in the blind game and its filing form.** -/
+theorem probEvent_filing_eq (setup : Setup) {α : Type} (computation : OracleComp ShareSpec α)
+    (start : St) :
+    Pr[fun z : α × St × Bool => z.2.2 = true |
+        (simulateQ (filing setup) computation).run (start, false)] =
+      Pr[fun z : α × St × Bool => z.2.2 = true |
+        (simulateQ (handler false setup) computation).run (start, false)] :=
+  OracleComp.ProgramLogic.Relational.probEvent_output_bad_eq' _ _
+    (fun queried state answer next => by rw [filing_run_false])
+    (fun queried state hbad z hz => filing_mono setup queried state hbad z hz)
+    (fun queried state hbad z hz => ShareUntilBad.mono false setup queried state hbad z hz)
+    computation start
+
+/-- **A raised flag of the filing handler is witnessed by its record.** -/
+theorem filing_witness (setup : Setup) {α : Type} (computation : OracleComp ShareSpec α)
+    (start : St) (z : α × (St × Bool))
+    (hz : z ∈ support ((simulateQ (filing setup) computation).run (start, false)))
+    (hflag : z.2.2 = true) :
+    ¬ setup.Good ∨ ∃ entry ∈ z.2.1.record, Guess setup entry.2 entry.1 := by
+  refine SignedWatch.run_invariant (filing setup) (ShareFlag.Witnessed setup)
+    (fun queried state hstate step hstep => ?_) computation (start, false)
+    (fun h => absurd h Bool.false_ne_true) z hz hflag
+  rw [filing_run, support_map] at hstep
+  obtain ⟨w, hw, rfl⟩ := hstep
+  intro hraised
+  obtain ⟨inputs, hrecord, -, hraise⟩ :=
+    ShareFlag.step_shape false setup queried (state.1, false) w hw
+  cases hold : state.2 with
+  | true =>
+    rcases hstate hold with hbad | ⟨entry, hentry, hguess⟩
+    · exact Or.inl hbad
+    · exact Or.inr ⟨entry, by rw [hrecord]; exact List.mem_append_left _ hentry, hguess⟩
+  | false =>
+    simp only [hold, Bool.false_or] at hraised
+    rcases hraise hraised with hfalse | hbad | ⟨input, hinput, hguess⟩
+    · exact absurd hfalse Bool.false_ne_true
+    · exact Or.inl hbad
+    · exact Or.inr ⟨(input, state.1.served), hinput, hguess⟩
 
 /-! ## The step files its record -/
 
 theorem files_blindStep (setup : Setup) :
     BlindCharge.Files St.record St.served (blindStep setup) := by
   intro queried state z hz
-  rw [← map_handler_run setup queried state false, support_map] at hz
+  rw [← map_handler_run setup queried state, support_map] at hz
   obtain ⟨w, hw, hzw⟩ := hz
   obtain ⟨inputs, hrecord, -, -⟩ := ShareFlag.step_shape false setup queried (state, false) w hw
   refine ⟨inputs, ?_⟩
@@ -109,7 +211,7 @@ theorem files_blindStep (setup : Setup) :
 theorem served_prefix (setup : Setup) (queried : ShareSpec.Domain) (state : St)
     (z : ShareSpec.Range queried × St) (hz : z ∈ support (((blindStep setup) queried).run state)) :
     state.served <+: z.2.served := by
-  rw [← map_handler_run setup queried state false, support_map] at hz
+  rw [← map_handler_run setup queried state, support_map] at hz
   obtain ⟨w, hw, hzw⟩ := hz
   rw [← hzw]
   obtain ⟨_, _, hprefix, _⟩ := ShareFlag.step_shape false setup queried (state, false) w hw

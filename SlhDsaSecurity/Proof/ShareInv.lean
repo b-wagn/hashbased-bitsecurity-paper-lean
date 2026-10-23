@@ -360,14 +360,22 @@ open scoped Classical in
 /-- **The claims keep the invariant.** -/
 theorem inv_claims (setup : Setup) (forgery : Forgery) (p : St × Bool) (hinv : Inv setup p) :
     Inv setup ({ p.1 with
-        record := (p.1.record ++ (claimsOf setup p.1 forgery).map
-          (fun candidate => (candidate, p.1.served))) },
+        record := if p.2 then p.1.record else
+          p.1.record ++ (unfiled p.1.record p.1.served (claimsOf setup p.1 forgery)).map
+            (fun candidate => (candidate, p.1.served)) },
       p.2 || decide (¬ setup.Good ∨
         ∃ candidate ∈ claimsOf setup p.1 forgery, Guess setup p.1.served candidate)) :=
   inv_of_quietStep setup p hinv _ _ ⟨fun _ _ h => h, fun _ _ h => h⟩ rfl rfl
-    (claimsOf setup p.1 forgery) rfl
+    (if p.2 then [] else unfiled p.1.record p.1.served (claimsOf setup p.1 forgery))
+    (by cases p.2 <;> simp)
     (fun h => by simp [h])
-    (fun x hx hguess => by simp only [Bool.or_eq_true, decide_eq_true_eq]; exact Or.inr (Or.inr ⟨x, hx, hguess⟩))
+    (fun x hx hguess => by
+      simp only [Bool.or_eq_true, decide_eq_true_eq]
+      cases hflag : p.2 with
+      | true => exact Or.inl rfl
+      | false =>
+        rw [hflag, if_neg Bool.false_ne_true] at hx
+        exact Or.inr (Or.inr ⟨x, (mem_unfiled.mp hx).1, hguess⟩))
     (fun x v hx => Or.inl hx)
 
 end SlhDsaSecurity.ShareInv

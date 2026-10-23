@@ -56,8 +56,9 @@ open scoped Classical in
 /-- What the claims step leaves. -/
 noncomputable def claimsStep (setup : Setup) (p : St × Bool) (forgery : Forgery) : St × Bool :=
   ({ p.1 with
-      record := (p.1.record ++ (claimsOf setup p.1 forgery).map
-        (fun candidate => (candidate, p.1.served))) },
+      record := if p.2 then p.1.record else
+        p.1.record ++ (unfiled p.1.record p.1.served (claimsOf setup p.1 forgery)).map
+          (fun candidate => (candidate, p.1.served)) },
     p.2 || decide (¬ setup.Good ∨
       ∃ candidate ∈ claimsOf setup p.1 forgery, Guess setup p.1.served candidate))
 
