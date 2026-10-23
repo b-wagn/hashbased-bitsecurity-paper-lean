@@ -259,6 +259,7 @@ import SlhDsaSecurity.Proof.ShareFiled
 import SlhDsaSecurity.Proof.ShareJoint
 import SlhDsaSecurity.Proof.VerifierTally
 import SlhDsaSecurity.Proof.WorkTarget
+import SlhDsaSecurity.Proof.JointBudget
 
 /--
 info: 'SlhDsaSecurity.Checksum.checksum_le' depends on axioms: [propext, Classical.choice, Quot.sound]
@@ -17393,3 +17394,27 @@ info: 'SlhDsaSecurity.BySourceBridge.tailBudgetW_of' depends on axioms: [propext
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.BySourceBridge.tailBudgetW_of
+
+/--
+info: 'SlhDsaSecurity.JointBudget.cost_add_verification_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.JointBudget.cost_add_verification_le
+
+/--
+info: 'SlhDsaSecurity.JointBudget.accepted_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.JointBudget.accepted_le
+
+/--
+info: 'SlhDsaSecurity.JointBudget.verify_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.JointBudget.verify_le
+
+/--
+info: 'SlhDsaSecurity.JointBudget.probEvent_realFlat_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.JointBudget.probEvent_realFlat_le
