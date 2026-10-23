@@ -358,7 +358,7 @@ theorem cases_of_win_three (adversary : Adversary)
     (hwalk : walk ∈ support WarmedGame.graphWalk)
     {result : (Outcome × Nat) × QueryCache HashSpec}
     (hresult : result ∈ support (WarmedGame.tail adversary walk))
-    (hwin : Wins .strong result.1.1) :
+    (hwin : Wins result.1.1) :
     AnswerBad ((walk.1, result.1), result.2) ∨ InputBad ((walk.1, result.1), result.2) ∨
       ReplayForgery ((walk.1, result.1), result.2) := by
   rcases cases_of_win_routed adversary hwalk hresult hwin.1 with

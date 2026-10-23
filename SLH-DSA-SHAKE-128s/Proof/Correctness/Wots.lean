@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Wots
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 /-! Deterministic correctness of the standard WOTS+ algorithms under any fixed hash. -/
 

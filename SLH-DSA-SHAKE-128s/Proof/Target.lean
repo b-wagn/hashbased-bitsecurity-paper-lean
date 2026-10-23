@@ -1,6 +1,6 @@
 import «SLH-DSA-SHAKE-128s».Proof.MainTheorem
 import «SLH-DSA-SHAKE-128s».Proof.WalkDefects
-import «SLH-DSA-SHAKE-128s».Statement.Parameters
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import Mathlib.Topology.Instances.ENNReal.Lemmas
 import «SLH-DSA-SHAKE-128s».Proof.HonestGrowth
 

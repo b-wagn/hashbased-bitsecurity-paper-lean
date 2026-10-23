@@ -1,5 +1,5 @@
 import «SLH-DSA-SHAKE-128s».Proof.Hashing
-import «SLH-DSA-SHAKE-128s».Statement.Scheme
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import Mathlib.Tactic.DeriveFintype
 
 /-!

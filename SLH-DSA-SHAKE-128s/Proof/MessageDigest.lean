@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.MessageDigest
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import VCVio.OracleComp.Constructions.SampleableType
 
 /-! The full parsed digest has the independent uniform distribution used in FORS counting. -/

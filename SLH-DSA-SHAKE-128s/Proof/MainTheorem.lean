@@ -1,6 +1,5 @@
-import «SLH-DSA-SHAKE-128s».Statement.Parameters
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import Mathlib.Topology.Instances.ENNReal.Lemmas
-import «SLH-DSA-SHAKE-128s».Statement.Security
 import «SLH-DSA-SHAKE-128s».Proof.WholeGameStructural
 import «SLH-DSA-SHAKE-128s».Proof.WarmedGame
 

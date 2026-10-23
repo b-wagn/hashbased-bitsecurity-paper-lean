@@ -1,5 +1,5 @@
 import «SLH-DSA-SHAKE-128s».Proof.GrowthCharge
-import «SLH-DSA-SHAKE-128s».Statement.Security
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.VerificationBudget
 
 /-!

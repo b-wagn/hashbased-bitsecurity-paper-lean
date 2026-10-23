@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Signature
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.Hashing
 import Mathlib.Tactic.IntervalCases
 

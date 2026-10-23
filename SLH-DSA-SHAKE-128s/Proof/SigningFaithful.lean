@@ -576,7 +576,7 @@ theorem cases_of_win_charged (adversary : Adversary)
     (hwalk : walk ∈ support WarmedGame.graphWalk)
     {result : (Outcome × Nat) × QueryCache HashSpec}
     (hresult : result ∈ support (WarmedGame.tail adversary walk))
-    (hwin : Wins .strong result.1.1) :
+    (hwin : Wins result.1.1) :
     RoutedSplit.AnswerBad ((walk.1, result.1), result.2) ∨
       RoutedSplit.InputBad ((walk.1, result.1), result.2) :=
   ReplayGate.cases_of_win_charged adversary hwalk hresult

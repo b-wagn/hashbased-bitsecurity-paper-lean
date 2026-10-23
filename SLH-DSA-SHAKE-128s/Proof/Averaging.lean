@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Security
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 /-!
 # Averaging a bound over a prefix

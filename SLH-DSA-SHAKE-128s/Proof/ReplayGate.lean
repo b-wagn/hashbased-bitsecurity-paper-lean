@@ -96,7 +96,7 @@ theorem eq_signInternal_of_replay {x : Trace} {message : Bytes} {parsed : Signat
 /-- **So a replay forgery does not win.** The log holds its message framed, with the bytes of
 that very signature as the answer, and strong freshness excludes the returned pair. -/
 theorem not_wins_of_replay {x : Trace} (hfaithful : LogFaithful x)
-    (hreplay : ReplayForgery x) : ¬ Wins .strong x.1.2.1 := by
+    (hreplay : ReplayForgery x) : ¬ Wins x.1.2.1 := by
   obtain ⟨message, parsed, hframe, hparsed, hcanonical, hself⟩ := hreplay
   obtain ⟨entry, hentry, -, -, hentryFrame, -, -, -⟩ := entry_of_replay hself
   intro hwin
@@ -124,7 +124,7 @@ theorem cases_of_win_charged (adversary : Adversary)
     {result : (Outcome × Nat) × QueryCache HashSpec}
     (hresult : result ∈ support (WarmedGame.tail adversary walk))
     (hfaithful : LogFaithful ((walk.1, result.1), result.2))
-    (hwin : Wins .strong result.1.1) :
+    (hwin : Wins result.1.1) :
     AnswerBad ((walk.1, result.1), result.2) ∨ InputBad ((walk.1, result.1), result.2) := by
   rcases cases_of_win_three adversary hwalk hresult hwin with hanswer | hinput | hreplay
   · exact Or.inl hanswer

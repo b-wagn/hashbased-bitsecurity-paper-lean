@@ -1,5 +1,5 @@
 import Mathlib.Data.Nat.Bitwise
-import «SLH-DSA-SHAKE-128s».Statement.Signature
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 /-! Ordered authentication paths recover the root of any deterministic binary tree. -/
 

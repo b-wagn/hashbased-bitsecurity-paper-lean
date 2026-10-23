@@ -14,7 +14,7 @@ the verification of its forgery. Key generation's and the signer's hash calls ar
   always takes — and the lenient flag has the blind flag's law (`ShareUntilBad`).
 * **The shared half** (`hsharedFused`): `ShareJointShared.hshared` at the refined paired run,
   `(q - 8) / 2 ^ 128` on accepted forgeries.
-* **The target** (`hasLimitedSecurityBits_strong_work`): `WorkTarget.warmed_bound` for
+* **The target** (`hasSecurityBits_work`): `WorkTarget.warmed_bound` for
   `569 ≤ q`; below that nothing wins, since an accepted forgery's verification alone costs `569`
   counted calls.
 -/
@@ -91,18 +91,18 @@ set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
 /-- **Below `569` counted calls, nothing wins**: an accepted forgery's verification alone
 costs that many. -/
-theorem advantage_eq_zero (notion : Notion) (adversary : Adversary) (q : Nat) (hq : q < 569)
-    (hbound : (securityGame notion).HasQueryBound () adversaryWork adversary q) :
-    (securityGame notion).advantage () adversary = 0 := by
+theorem advantage_eq_zero (adversary : Adversary) (q : Nat) (hq : q < 569)
+    (hbound : securityGame.HasQueryBound () adversaryWork adversary q) :
+    securityGame.advantage () adversary = 0 := by
   unfold Xmss.SecurityGame.advantage
   refine probEvent_eq_zero fun result hresult hwin => ?_
-  change result ∈ support ((fun result => (decide (Wins notion result.1), result.2)) <$>
+  change result ∈ support ((fun result => (decide (Wins result.1), result.2)) <$>
     runBySource adversary) at hresult
   rw [support_map] at hresult
   obtain ⟨bySource, hbySource, rfl⟩ := hresult
-  have hwins : Wins notion bySource.1 := by simpa using hwin
+  have hwins : Wins bySource.1 := by simpa using hwin
   have hsum := (probEvent_eq_one_iff.mp hbound).2 _ (by
-    change _ ∈ support ((fun result => (decide (Wins notion result.1), result.2)) <$>
+    change _ ∈ support ((fun result => (decide (Wins result.1), result.2)) <$>
       runBySource adversary)
     rw [support_map]
     exact ⟨bySource, hbySource, rfl⟩)
@@ -123,16 +123,16 @@ theorem advantage_eq_zero (notion : Notion) (adversary : Adversary) (q : Nat) (h
 /-- **`SLH-DSA-SHAKE-128s` has `127` bits of strong security on the adversary's own work**:
 signing requests, its own hash calls and the verification of its forgery are counted; key
 generation's and the signer's hash calls are free. -/
-theorem hasLimitedSecurityBits_strong_work : HasLimitedSecurityBits .strong adversaryWork 127 := by
+theorem hasSecurityBits_work : HasSecurityBits adversaryWork 127 := by
   intro q _ adversary hlimit hbound
   by_cases hq : 569 ≤ q
-  · have hbudget := tailBudgetW_of .strong hlimit hbound
+  · have hbudget := tailBudgetW_of hlimit hbound
     rw [advantage_securityGame, totalAdvantage,
-      MainTheorem.probEvent_runAll adversary (fun result => Wins .strong result.1),
-      WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
+      MainTheorem.probEvent_runAll adversary (fun result => Wins result.1),
+      WarmedGame.probEvent_warmed adversary (fun outcome => Wins outcome.1)]
     exact WorkTarget.warmed_bound q adversary hbudget (by omega)
       (hsharedFused q adversary hbudget hq)
-  · rw [advantage_eq_zero .strong adversary q (by omega) hbound]
+  · rw [advantage_eq_zero adversary q (by omega) hbound]
     exact zero_le
 
 end SlhDsaSecurity.WorkFinal

@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.SecurityBySource
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.KeygenCost
 import «SLH-DSA-SHAKE-128s».Proof.WarmedCharges
 import «SLH-DSA-SHAKE-128s».Proof.SigningFaithful
@@ -65,18 +65,18 @@ theorem map_fst_runBySource (adversary : Adversary) :
     Functor.map_map, Functor.map_map]
 
 /-- **The framework's advantage is the total advantage.** -/
-theorem advantage_securityGame (notion : Notion) (adversary : Adversary) :
-    (securityGame notion).advantage () adversary = totalAdvantage notion adversary := by
+theorem advantage_securityGame (adversary : Adversary) :
+    securityGame.advantage () adversary = totalAdvantage adversary := by
   unfold Xmss.SecurityGame.advantage totalAdvantage
   change Pr[fun result => result.1 = true |
-      (fun result => (decide (Wins notion result.1), result.2)) <$> runBySource adversary] = _
+      (fun result => (decide (Wins result.1), result.2)) <$> runBySource adversary] = _
   calc Pr[fun result => result.1 = true |
-        (fun result => (decide (Wins notion result.1), result.2)) <$> runBySource adversary]
-      = Pr[Wins notion | Prod.fst <$> runBySource adversary] := by
+        (fun result => (decide (Wins result.1), result.2)) <$> runBySource adversary]
+      = Pr[Wins | Prod.fst <$> runBySource adversary] := by
         rw [probEvent_map, probEvent_map]
         exact probEvent_congr' (fun result _ => by simp) rfl
-    _ = Pr[Wins notion | Prod.fst <$> runAll adversary] := by rw [map_fst_runBySource]
-    _ = Pr[fun result => Wins notion result.1 | runAll adversary] := by
+    _ = Pr[Wins | Prod.fst <$> runAll adversary] := by rw [map_fst_runBySource]
+    _ = Pr[fun result => Wins result.1 | runAll adversary] := by
         rw [probEvent_map]
         rfl
 
@@ -153,9 +153,9 @@ theorem sum_adversaryWork (counts : Xmss.Unforgeability.QueryCounts) :
 set_option maxHeartbeats 1000000 in
 set_option linter.constructorNameAsVariable false in
 /-- **The framework's hypotheses at `adversaryWork` give the tail budget.** -/
-theorem tailBudgetW_of (notion : Notion) {adversary : Adversary} {q : Nat}
-    (hlimit : WithinSigningLimit notion adversary)
-    (hbound : (securityGame notion).HasQueryBound () adversaryWork adversary q) :
+theorem tailBudgetW_of {adversary : Adversary} {q : Nat}
+    (hlimit : WithinSigningLimit adversary)
+    (hbound : securityGame.HasQueryBound () adversaryWork adversary q) :
     TailBudgetW adversary q := by
   intro walk hwalk result hresult
   have houtcome : result.1 ∈ support ((fun pair => pair.1.2) <$>
@@ -173,9 +173,9 @@ theorem tailBudgetW_of (notion : Notion) {adversary : Adversary} {q : Nat}
   obtain ⟨bySource, hbySource, hfstEq⟩ := hfst
   obtain ⟨keygenHashes, laterHashes, hcounts, -⟩ :=
     exists_sourceCounts adversary bySource hbySource
-  have hgame : (decide (Wins notion bySource.1), bySource.2) ∈
-      support ((securityGame notion).experiment () adversary) := by
-    change _ ∈ support ((fun result => (decide (Wins notion result.1), result.2)) <$>
+  have hgame : (decide (Wins bySource.1), bySource.2) ∈
+      support (securityGame.experiment () adversary) := by
+    change _ ∈ support ((fun result => (decide (Wins result.1), result.2)) <$>
       runBySource adversary)
     rw [support_map]
     exact ⟨bySource, hbySource, rfl⟩

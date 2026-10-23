@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Scheme
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 /-! The hash-only verifier and its instantiations use the same ordered oracle calls. -/
 

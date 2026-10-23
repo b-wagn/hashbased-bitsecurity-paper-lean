@@ -1,12 +1,10 @@
 import «SLH-DSA-SHAKE-128s».Proof.ForsDispatch
 import «SLH-DSA-SHAKE-128s».Proof.Extraction.HypertreeChain
 import «SLH-DSA-SHAKE-128s».Proof.SignatureCanonical
-import «SLH-DSA-SHAKE-128s».Statement.Scheme
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.Signature
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.Fors
-import «SLH-DSA-SHAKE-128s».Statement.Hypertree
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.Merkle
-import «SLH-DSA-SHAKE-128s».Statement.Security
 
 /-!
 # A forgery with nothing forged in it is the signer's own signature
@@ -85,7 +83,7 @@ theorem not_fresh_of_canonical (sk : SecretKey) (signed : Security.SigningLog)
     (hcanonical : parsed = Scheme.signInternal (m := Id) sk message)
     (hlog : ∃ entry ∈ signed, entry.1 = forgery.message ∧
       entry.2 = some (Scheme.signInternal (m := Id) sk message).toBytes) :
-    ¬ Security.Fresh .strong signed forgery := by
+    ¬ Security.Fresh signed forgery := by
   obtain ⟨entry, hentry, hmessage, hanswer⟩ := hlog
   intro hfresh
   exact hfresh ⟨entry, hentry, hmessage, by

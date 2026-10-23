@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Security
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.VerificationQueries
 import «SLH-DSA-SHAKE-128s».Proof.VerifierNaturality
 

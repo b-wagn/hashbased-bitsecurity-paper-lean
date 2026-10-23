@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Hashing
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 namespace SlhDsaSecurity
 

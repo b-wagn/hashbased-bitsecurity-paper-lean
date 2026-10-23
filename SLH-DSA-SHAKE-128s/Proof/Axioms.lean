@@ -49,7 +49,7 @@ import «SLH-DSA-SHAKE-128s».Proof.ForsMoments
 import «SLH-DSA-SHAKE-128s».Proof.ForsConcentration
 import «SLH-DSA-SHAKE-128s».Proof.Hashing
 import «SLH-DSA-SHAKE-128s».Proof.HashSeparation
-import «SLH-DSA-SHAKE-128s».Statement.Security
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.SignatureCanonical
 import «SLH-DSA-SHAKE-128s».Proof.ForsConcentrationOccupancy
 import «SLH-DSA-SHAKE-128s».Proof.VerificationQueries
@@ -57,10 +57,8 @@ import «SLH-DSA-SHAKE-128s».Proof.KeygenUniform
 import «SLH-DSA-SHAKE-128s».Proof.VerificationBudget
 import «SLH-DSA-SHAKE-128s».Proof.ChecksumAntichain
 import «SLH-DSA-SHAKE-128s».Proof.ForsAdaptiveTargets
-import «SLH-DSA-SHAKE-128s».Statement.Scheme
 import «SLH-DSA-SHAKE-128s».Proof.Signature
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.Fors
-import «SLH-DSA-SHAKE-128s».Statement.Hypertree
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.Merkle
 import «SLH-DSA-SHAKE-128s».Proof.ForsPrefixCapacity
 import «SLH-DSA-SHAKE-128s».Proof.ForsConcentrationExtended
@@ -77,14 +75,12 @@ import «SLH-DSA-SHAKE-128s».Proof.Extraction.Hypertree
 import «SLH-DSA-SHAKE-128s».Proof.Extraction.WotsPreimage
 import «SLH-DSA-SHAKE-128s».Proof.Extraction.HypertreeChain
 import «SLH-DSA-SHAKE-128s».Proof.FreshHitBound
-import «SLH-DSA-SHAKE-128s».Statement.Hashing
 import «SLH-DSA-SHAKE-128s».Proof.CanonicalTarget
 import «SLH-DSA-SHAKE-128s».Proof.GrowthCharge
 import «SLH-DSA-SHAKE-128s».Proof.StructuralTerm
 import «SLH-DSA-SHAKE-128s».Proof.MessageDigest
 import «SLH-DSA-SHAKE-128s».Proof.GrowthBudget
 import «SLH-DSA-SHAKE-128s».Proof.WholeGameStructural
-import «SLH-DSA-SHAKE-128s».Statement.Parameters
 import Mathlib.Topology.Instances.ENNReal.Lemmas
 import «SLH-DSA-SHAKE-128s».Proof.CombinedCharge
 import «SLH-DSA-SHAKE-128s».Proof.SecretGuessCharge
@@ -9757,10 +9753,10 @@ info: 'SlhDsaSecurity.WorkFinal.advantage_eq_zero' depends on axioms: [propext, 
 #print axioms SlhDsaSecurity.WorkFinal.advantage_eq_zero
 
 /--
-info: 'SlhDsaSecurity.WorkFinal.hasLimitedSecurityBits_strong_work' depends on axioms: [propext, Classical.choice, Quot.sound]
+info: 'SlhDsaSecurity.WorkFinal.hasSecurityBits_work' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
-#print axioms SlhDsaSecurity.WorkFinal.hasLimitedSecurityBits_strong_work
+#print axioms SlhDsaSecurity.WorkFinal.hasSecurityBits_work
 
 /--
 info: 'SlhDsaSecurity.WorkTarget.warmed_le' depends on axioms: [propext, Classical.choice, Quot.sound]

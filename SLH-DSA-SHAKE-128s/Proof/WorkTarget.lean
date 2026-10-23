@@ -28,7 +28,7 @@ theorem warmed_le (q : Nat) (adversary : Adversary) (hbudget : TailBudgetW adver
           (FinalAssembly.forgetFused pair.2).2) ∨ Target127.late pair) ∧
         (FinalAssembly.forgetFused pair.2).1.1.verified = true |
       pairedFused (CarrierTail.carrierTail CarrierThin.keep127 adversary)] ≤ shared) :
-    Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary] ≤
+    Pr[fun result => Wins result.1.2.1 | WarmedGame.warmedRun adversary] ≤
       ((q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 126) +
         (shared + (1 / ((2 ^ 128 : Nat) : ℝ≥0∞) + 1 / ((2 ^ 165 : Nat) : ℝ≥0∞))) := by
   classical
@@ -53,7 +53,7 @@ theorem warmed_le (q : Nat) (adversary : Adversary) (hbudget : TailBudgetW adver
         AnswerBad ((walk.1, (FinalAssembly.forgetFused result).1), (FinalAssembly.forgetFused result).2) ∧
           ¬ Target127.late (walk, result)) = fun _ => False from by funext _; simp [hgood]]
       simp
-  calc Pr[fun pair => Wins .strong (FinalAssembly.forgetFused pair.2).1.1 | pairedFused (CarrierTail.carrierTail CarrierThin.keep127 adversary)]
+  calc Pr[fun pair => Wins (FinalAssembly.forgetFused pair.2).1.1 | pairedFused (CarrierTail.carrierTail CarrierThin.keep127 adversary)]
       ≤ Pr[fun pair => (GoodWalk pair.1 ∧
             AnswerBad ((pair.1.1, (FinalAssembly.forgetFused pair.2).1), (FinalAssembly.forgetFused pair.2).2) ∧ ¬ Target127.late pair) ∨
           ((GoodWalk pair.1 ∧
@@ -109,7 +109,7 @@ theorem warmed_bound (q : Nat) (adversary : Adversary) (hbudget : TailBudgetW ad
         (FinalAssembly.forgetFused pair.2).1.1.verified = true |
       pairedFused (CarrierTail.carrierTail CarrierThin.keep127 adversary)] ≤
         ((q - 8 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary] ≤
+    Pr[fun result => Wins result.1.2.1 | WarmedGame.warmedRun adversary] ≤
       (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := by
   refine le_trans (warmed_le q adversary hbudget _ hshared) ?_
   have hdefects := AnswerFired.defects_le

@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Checksum
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import Mathlib.Algebra.BigOperators.Fin
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Tactic.NormNum

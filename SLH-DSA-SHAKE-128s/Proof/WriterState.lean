@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Security
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 /-!
 # A writer the handler cannot read is a piece of the state

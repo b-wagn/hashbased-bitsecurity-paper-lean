@@ -1,4 +1,4 @@
-import «SLH-DSA-SHAKE-128s».Statement.Fors
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.Wots
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.BinaryPath
 

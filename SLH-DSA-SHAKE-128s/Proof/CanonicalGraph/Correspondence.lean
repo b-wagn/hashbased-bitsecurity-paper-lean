@@ -1,6 +1,6 @@
 import «SLH-DSA-SHAKE-128s».Proof.CanonicalGraph.Evaluation
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.Fors
-import «SLH-DSA-SHAKE-128s».Statement.Hypertree
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.Correctness.Merkle
 
 /-! Honest signatures disclose canonical cells; messages only select their positions. -/

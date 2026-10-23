@@ -1,7 +1,7 @@
 import «SLH-DSA-SHAKE-128s».Proof.ClassGrowth
 import «SLH-DSA-SHAKE-128s».Proof.SplitWitness
 import «SLH-DSA-SHAKE-128s».Proof.RandomizerGate
-import «SLH-DSA-SHAKE-128s».Statement.Hashing
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 import «SLH-DSA-SHAKE-128s».Proof.KeygenUniform
 import «SLH-DSA-SHAKE-128s».Proof.SharedJoin
 

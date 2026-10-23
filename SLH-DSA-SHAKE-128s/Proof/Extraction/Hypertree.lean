@@ -1,6 +1,6 @@
 import «SLH-DSA-SHAKE-128s».Proof.Extraction.Merkle
 import «SLH-DSA-SHAKE-128s».Proof.Extraction.Wots
-import «SLH-DSA-SHAKE-128s».Statement.Hypertree
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 /-! Extraction from one hypertree layer.
 

@@ -2,7 +2,7 @@ import «SLH-DSA-SHAKE-128s».Proof.StructuralTerm
 import «SLH-DSA-SHAKE-128s».Proof.GrowthBudget
 import «SLH-DSA-SHAKE-128s».Proof.CombinedCharge
 import «SLH-DSA-SHAKE-128s».Proof.GrowthCharge
-import «SLH-DSA-SHAKE-128s».Statement.Security
+import «SLH-DSA-SHAKE-128s».Proof.Experiment
 
 /-!
 # The whole game, instrumented
