@@ -272,6 +272,7 @@ import SlhDsaSecurity.Proof.SignedWatch
 import SlhDsaSecurity.Proof.TapeRunFacts
 import SlhDsaSecurity.Proof.CarrierThin
 import SlhDsaSecurity.Proof.AnswerFired
+import SlhDsaSecurity.Proof.VerifyBound
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -17570,3 +17571,75 @@ info: 'SlhDsaSecurity.AnswerFired.target_of_shared' depends on axioms: [propext,
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.AnswerFired.target_of_shared
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_hash' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_hash
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_shortHash' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_shortHash
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_tweakable' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_tweakable
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_sequenceFin' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_sequenceFin
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_foldlM' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_foldlM
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_chain' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_chain
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_wotsFromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_wotsFromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_merkleFromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_merkleFromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_rootFromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_rootFromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.qb_forsFromSignature' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.qb_forsFromSignature
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.verifyLimit_eq' does not depend on any axioms
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.verifyLimit_eq
+
+/--
+info: 'SlhDsaSecurity.VerifyBound.isQueryBoundP_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.VerifyBound.isQueryBoundP_verify
