@@ -77,26 +77,6 @@ theorem walk_cache_canonical
   rw [hcache] at hinput
   exact Programming.cacheFrom_empty_canonical _ _ outputs _ input hinput
 
-/-- **The structural term, at this run's honest key.** -/
-theorem prob_deviatingCollision_tail_le (adversary : Adversary) (q : Nat)
-    (hbudget : HasTotalBudget adversary q)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk) :
-    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
-        StructuralTerm.DeviatingCollision walk.1.1.2.2 walk.1.2 result |
-      tail adversary walk] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  rw [tail]
-  refine le_trans (probEvent_mono ?_)
-    (StructuralTerm.prob_deviatingCollision_le
-      (countAllHashes (afterSeeds adversary walk.1.1)) walk.1.1.2.2 walk.1.2 q walk.2
-      (walk_cache_canonical hwalk))
-  intro result hresult hcollision
-  have hres : result ∈ support (tail adversary walk) := by rw [tail]; exact hresult
-  refine ⟨hcollision, ?_⟩
-  exact GrowthBudget.GrowthAtMost.mono
-    (GrowthBudget.growth_le_count (afterSeeds adversary walk.1.1) walk.2 result hresult)
-    (count_le_of_budget_tail hbudget hwalk hres)
-
 /-! ## The answer side at the walk's cells
 
 The combined charge takes both answer-side clauses as one predicate so their rate is the
@@ -137,33 +117,6 @@ theorem cleanBad_walk_cache (pk : PublicKey)
   · exact CanonicalTarget.clean_of_canonical_cache walk.1.1.2.2 walk.1.2 walk.2
       (walk_cache_canonical hwalk) _ output hentry hstructural
   · exact not_messageInput_canonical walk.1.1.2.2 walk.1.2 pk hpublic hbounds parent hmessage
-
-/-- **The answer side, at this run's honest key.** -/
-theorem prob_combinedBad_tail_le (adversary : Adversary) (q : Nat) (pk : PublicKey)
-    (revealed : ForsCoverage.Disclosures) (loads : ForsCoverage.Instance → Nat)
-    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
-    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102)
-    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
-    (hbounds : ∀ parent : StructuralNode, HashSeparation.WithinBounds parent.address)
-    (hbudget : HasTotalBudget adversary q)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk) :
-    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
-        GrowthCharge.Bad
-          (CombinedCharge.CombinedBad walk.1.1.2.2 pk walk.1.2 revealed) result |
-      tail adversary walk] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  rw [tail]
-  refine le_trans (probEvent_mono ?_)
-    (CombinedCharge.prob_combinedBad_within_le
-      (countAllHashes (afterSeeds adversary walk.1.1)) walk.1.1.2.2 pk walk.1.2 revealed loads
-      hload hmoment
-      (CombinedCharge.separated_of_not_possible walk.1.1.2.2 pk walk.1.2 hpublic hbounds)
-      q walk.2 (cleanBad_walk_cache pk hpublic hbounds revealed hwalk))
-  intro result hresult hbad
-  have hres : result ∈ support (tail adversary walk) := by rw [tail]; exact hresult
-  exact ⟨hbad, GrowthBudget.GrowthAtMost.mono
-    (GrowthBudget.growth_le_count (afterSeeds adversary walk.1.1) walk.2 result hresult)
-    (count_le_of_budget_tail hbudget hwalk hres)⟩
 
 /-! ## The blind cache at the walk
 

@@ -141,14 +141,4 @@ theorem accepted_outcome_work (adversary : Adversary) (outcome : Outcome)
   simp only [Counts.work, Pi.add_apply]
   omega
 
-theorem advantage_eq_zero_of_small_budget (notion : Notion) (adversary : Adversary)
-    (q : Nat) (hbudget : HasBudget adversary q) (hq : q < 569) :
-    advantage notion adversary = 0 := by
-  unfold advantage
-  rw [probEvent_eq_zero_iff]
-  intro outcome houtcome hwin
-  have hwork := ((probEvent_eq_one_iff.mp hbudget).2 outcome houtcome).2
-  have hminimum := accepted_outcome_work adversary outcome houtcome hwin.1
-  omega
-
 end SlhDsaSecurity.VerificationBudget

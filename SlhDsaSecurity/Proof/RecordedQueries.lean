@@ -492,17 +492,4 @@ theorem card_toFinset_le_work (adversary : Adversary) (sds : Digest × Digest ×
   le_of_le_of_eq (Multiset.toFinset_card_le _)
     (card_eq_work adversary sds warm cache result hmem)
 
-/-- **The recorded set is no bigger than the budget.** Given any bound on the work this run
-charges — which `AdversaryQueries.work_le_total` derives from `Security.HasTotalBudget`, the
-`Outcome`'s counters being what the stripping surgery leaves untouched — the adversary's and
-the verifier's own queries number at most that many. -/
-theorem card_toFinset_le (adversary : Adversary) (sds : Digest × Digest × Digest)
-    (warm cache : QueryCache HashSpec) (q : Nat)
-    (result : (Outcome × Multiset Bytes) × QueryCache HashSpec)
-    (hmem : result ∈ support ((simulateQ KeygenUniform.rom
-      (recordedAfterSeeds adversary sds warm)).run cache))
-    (hwork : result.1.1.counts.work ≤ q) :
-    (Multiset.toFinset result.1.2).card ≤ q :=
-  le_trans (card_toFinset_le_work adversary sds warm cache result hmem) hwork
-
 end SlhDsaSecurity.RecordedQueries

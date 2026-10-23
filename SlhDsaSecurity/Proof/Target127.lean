@@ -142,39 +142,4 @@ theorem exists_candidate_of_prfHit (pair : RecordedPair) (hgood : GoodWalk pair.
 
 /-! ## The target -/
 
-set_option maxHeartbeats 1000000 in
-/-- **`127`, from two obligations.** The answer half at the carrier tail with `late` excluded and
-nothing else; and the input half with `late` against one record's worth of the budget and the
-forgery's `259` claims. The walk's two coincidences and the answer half's constant share the
-`2 ^ subtreeHeight` cells key generation pays for. -/
-theorem target_of_parts (answerDefect : ℝ≥0∞) (defectUnits : Nat)
-    (hdefect : defectsAt answerDefect ≤
-      ((defectUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hfits : 259 + defectUnits ≤ 2 ^ subtreeHeight)
-    (keep : BracketedRun.Walk → Bytes → HandlerCarrier.State → Prop)
-    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      ∀ walk ∈ support graphWalk, GoodWalk walk →
-        Pr[fun result => RoutedSplit.AnswerBad ((walk.1, (FinalAssembly.forgetFused result).1),
-              (FinalAssembly.forgetFused result).2) ∧ ¬ late (walk, result) |
-            CarrierTail.carrierTail keep adversary walk] ≤
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + answerDefect)
-    (hshared : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧
-          (RoutedSplit.InputBad (recordedTraceOf pair) ∨ Late pair) |
-        recordedPairedRun adversary] ≤
-        ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    HasTotalSecurityBits .strong 127 :=
-  Obligations.target_of_charges_fused_at answerDefect 259 defectUnits hdefect hfits
-    (CarrierTail.carrierTail keep) FinalAssembly.forgetFused late
-    (fun adversary walk => CarrierTail.forgetFused_carrierTail keep adversary walk)
-    hanswer
-    (fun q adversary _ hbudget => by
-      have hpaired : pairedFused (CarrierTail.carrierTail keep adversary) =
-          pairedOf (CarrierTail.carrierTail keep) adversary := rfl
-      rw [hpaired]
-      refine le_trans (le_of_eq ?_) (hshared q adversary hbudget)
-      exact probEvent_forget (CarrierTail.forgetsTo keep adversary)
-        (fun pair : RecordedPair => GoodWalk pair.1 ∧
-          (RoutedSplit.InputBad (recordedTraceOf pair) ∨ Late pair)))
-
 end SlhDsaSecurity.Target127

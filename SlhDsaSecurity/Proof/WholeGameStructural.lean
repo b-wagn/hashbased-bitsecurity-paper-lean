@@ -55,23 +55,6 @@ theorem count_le_of_budget {adversary : Adversary} {q : Nat}
   ((probEvent_eq_one_iff.mp hbudget).2 result.1
     (mem_support_runAll_of_mem_support hmem)).2
 
-/-- **The structural term for the whole game.** With every hash call charged, the
-probability that the game produces any deviating structural collision is at most
-`q / 2 ^ 128`. -/
-theorem prob_deviatingCollision_whole_game_le (adversary : Adversary) (q : Nat)
-    (publicSeed : Digest) (cells : Cells) (hbudget : HasTotalBudget adversary q) :
-    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
-        StructuralTerm.DeviatingCollision publicSeed cells result |
-      instrumentedRun adversary] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  refine le_trans (probEvent_mono ?_)
-    (StructuralTerm.prob_deviatingCollision_le (countAllHashes (experiment adversary))
-      publicSeed cells q ∅ (by intro input hinput; exact absurd (by simp) hinput))
-  intro result hmem hcollision
-  refine ⟨hcollision, ?_⟩
-  exact GrowthBudget.GrowthAtMost.mono
-    (GrowthBudget.growth_le_count (experiment adversary) ∅ result hmem)
-    (count_le_of_budget hbudget hmem)
-
 /-! ## The answer side of the budget, for the whole game
 
 The structural term above charges one of the two answer-side avenues. The other is FORS
@@ -87,27 +70,6 @@ the experiment's key generation and signing produce.
 *That assembly is no longer the live one* — `totalSecurityBits_of_halves` has no consumers, and
 the proof is assembled by `ObligationShapes.target_of_answer_and_leaves`. The charge below is
 still live; it is the shape it was once an obligation of that moved. -/
-
-/-- **The answer side for the whole game.** -/
-theorem prob_combinedBad_whole_game_le (adversary : Adversary) (q : Nat)
-    (publicSeed : Digest) (pk : PublicKey) (cells : Cells)
-    (revealed : ForsCoverage.Disclosures) (loads : ForsCoverage.Instance → Nat)
-    (hload : ∀ index tree, (revealed index tree).card ≤ loads index)
-    (hmoment : ∑ index, loads index ^ 14 ≤ 2 ^ 102)
-    (hseparated : ∀ input, CombinedCharge.IsMessageInput pk input →
-      CanonicalTarget.canonicalTarget publicSeed cells input = none)
-    (hbudget : HasTotalBudget adversary q) :
-    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
-        GrowthCharge.Bad (CombinedCharge.CombinedBad publicSeed pk cells revealed) result |
-      instrumentedRun adversary] ≤ q / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  refine le_trans (probEvent_mono ?_)
-    (CombinedCharge.prob_combinedBad_within_le (countAllHashes (experiment adversary))
-      publicSeed pk cells revealed loads hload hmoment hseparated q ∅
-      (by intro input output hentry; exact absurd hentry (by simp)))
-  intro result hmem hbad
-  exact ⟨hbad, GrowthBudget.GrowthAtMost.mono
-    (GrowthBudget.growth_le_count (experiment adversary) ∅ result hmem)
-    (count_le_of_budget hbudget hmem)⟩
 
 /-! ## The answer side, charged per class
 
@@ -159,26 +121,5 @@ The budget comes for free from the existing instrumentation. Every weight is at 
 `2 q` — exactly the answer side's allowance. That is the whole accounting on the branch of the
 dichotomy where no defect is owed; the other branch needs the finer count, which
 `WeightedCharge.jointGrowth_le_count` now supplies. -/
-
-/-- **The answer side for the whole game, charged by weight.** -/
-theorem prob_badWeighted_whole_game_le (adversary : Adversary) (q : Nat)
-    (bad : Bytes → HashOutput → Prop) (weight : Bytes → Nat) (rate : ℝ≥0∞)
-    (hweight : ∀ input, weight input ≤ 2)
-    (hbad : ∀ input, Pr[fun answer : HashOutput => bad input answer |
-      ($ᵗ HashOutput : ProbComp HashOutput)] ≤ weight input * rate)
-    (hclean : GrowthCharge.CleanBad bad ∅)
-    (hbudget : HasTotalBudget adversary q) :
-    Pr[fun result : (Outcome × Nat) × QueryCache HashSpec =>
-        GrowthCharge.Bad bad result | instrumentedRun adversary] ≤
-      ((2 * q : Nat) : ℝ≥0∞) * rate := by
-  refine le_trans (probEvent_mono ?_)
-    (WeightedCharge.prob_badWeighted_le (countAllHashes (experiment adversary))
-      bad weight rate (2 * q) ∅ hbad hclean)
-  intro result hmem hbad'
-  refine ⟨hbad', ?_⟩
-  exact WeightedCharge.weightedGrowth_of_growth hweight
-    (GrowthBudget.GrowthAtMost.mono
-      (GrowthBudget.growth_le_count (experiment adversary) ∅ result hmem)
-      (count_le_of_budget hbudget hmem))
 
 end SlhDsaSecurity.WholeGameStructural

@@ -17,12 +17,6 @@ theorem advantage_standard_le_strong (adversary : Adversary) :
   intro outcome h
   exact ⟨h.1, fresh_standard_implies_strong outcome.signed outcome.forgery h.2⟩
 
-/-- An eventual SUF-CMA bound yields EUF-CMA at the same work factor and lifetime. -/
-theorem strong_implies_standard (bits : Nat) (h : HasSecurityBits .strong bits) :
-    HasSecurityBits .standard bits := by
-  intro q hq adversary hbudget
-  exact (advantage_standard_le_strong adversary).trans (h q hq adversary hbudget)
-
 /-! ## The all-queries-counted statements agree with the verifier-counted ones
 
 Instrumenting the experiment with a total hash count does not disturb it: the count is
@@ -59,12 +53,5 @@ theorem totalAdvantage_standard_le_strong (adversary : Adversary) :
     totalAdvantage .standard adversary ≤ totalAdvantage .strong adversary := by
   rw [totalAdvantage_eq, totalAdvantage_eq]
   exact advantage_standard_le_strong adversary
-
-/-- Strong unforgeability implies standard unforgeability at the same work factor, in the
-all-queries-counted accounting as well. -/
-theorem total_strong_implies_standard (bits : Nat)
-    (h : HasTotalSecurityBits .strong bits) : HasTotalSecurityBits .standard bits := by
-  intro q hq adversary hbudget
-  exact (totalAdvantage_standard_le_strong adversary).trans (h q hq adversary hbudget)
 
 end SlhDsaSecurity.Security

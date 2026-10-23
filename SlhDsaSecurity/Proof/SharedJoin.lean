@@ -261,32 +261,6 @@ theorem card_parts_le_record (pair : RecordedPair) :
     Multiset.filter_eq_nil.mpr hdisjoint, add_zero]
   exact Multiset.card_le_card (Multiset.filter_le _ _)
 
-/-- **The two parts fit inside the budget**, with key generation's spend reserved for the
-forgery's claims.
-
-Read by the shared side at a pair that carries the recorder's recordings, through
-`LateProbes.mem_support_forget`, because that pair's type and its projection to this one are
-defined above this file. **A cleanup for after the obligation closes**: `LateProbes.SplitPair`
-and `LateProbes.forgetRecordings` need only the two type abbreviations above and
-`SplitPrefix.SplitState`, all of which are below this file, so moving them down would let this
-be stated at the pair the shared side actually reads and the transport would go. Not worth
-changing the join's surface for while two owners are still landing. -/
-theorem card_parts_le_budget (adversary : Adversary) (q : Nat)
-    (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
-    (hpair : pair ∈ support (recordedPairedRun adversary)) :
-    Multiset.card (recordAiming pair) + Multiset.card (recordMessageClass pair) ≤
-      q - 2 ^ subtreeHeight := by
-  obtain ⟨hwalk, hresult⟩ := mem_support_recordedPairedRun hpair
-  have hparts : Multiset.card (recordAiming pair) +
-      Multiset.card (recordMessageClass pair) ≤ Multiset.card (recordOf pair) :=
-    card_parts_le_record pair
-  have hwork : Multiset.card (recordOf pair) = pair.2.1.1.1.counts.work :=
-    card_record_eq_work adversary hresult
-  have hbound : pair.2.1.1.1.counts.work + 2 ^ subtreeHeight ≤ q :=
-    RecordedBudget.work_add_pow_le_of_budget_tail hbudget hwalk
-      (RecordedTail.mem_support_tail_of_recorded adversary hresult)
-  omega
-
 /-! ## The record itself against the budget
 
 `card_parts_le_budget` bounds the two parts, and a consumer that needs the **record** cannot get
@@ -299,42 +273,6 @@ two live routes need it and neither needs the parts.
 saying rather than hiding: a lemma whose proof contains a more general statement than its own
 conclusion is a lemma that will be re-derived, and the fix is to state the general one beside
 it, not to rewrite the specific one. -/
-
-/-- **The record fits in the budget**, with the subtree's leaves subtracted. -/
-theorem card_record_le_budget (adversary : Adversary) (q : Nat)
-    (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
-    (hpair : pair ∈ support (recordedPairedRun adversary)) :
-    Multiset.card (recordOf pair) ≤ q - 2 ^ subtreeHeight := by
-  obtain ⟨hwalk, hresult⟩ := mem_support_recordedPairedRun hpair
-  have hwork : Multiset.card (recordOf pair) = pair.2.1.1.1.counts.work :=
-    card_record_eq_work adversary hresult
-  have hbound : pair.2.1.1.1.counts.work + 2 ^ subtreeHeight ≤ q :=
-    RecordedBudget.work_add_pow_le_of_budget_tail hbudget hwalk
-      (RecordedTail.mem_support_tail_of_recorded adversary hresult)
-  omega
-
-open scoped Classical in
-/-- **And so does any part of it.** The message class is a filter of the record, and a filter is
-no larger — which is the form a per-entry union bound over one part reads. -/
-theorem card_recordMessageClass_le_budget (adversary : Adversary) (q : Nat)
-    (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
-    (hpair : pair ∈ support (recordedPairedRun adversary)) :
-    Multiset.card (recordMessageClass pair) ≤ q - 2 ^ subtreeHeight := by
-  classical
-  refine le_trans (Multiset.card_le_card ?_) (card_record_le_budget adversary q hbudget hpair)
-  rw [recordMessageClass]
-  exact Multiset.filter_le _ _
-
-open scoped Classical in
-/-- **The aiming part too**, for the same reason and with the same two lines. -/
-theorem card_recordAiming_le_budget (adversary : Adversary) (q : Nat)
-    (hbudget : HasTotalBudget adversary q) {pair : RecordedPair}
-    (hpair : pair ∈ support (recordedPairedRun adversary)) :
-    Multiset.card (recordAiming pair) ≤ q - 2 ^ subtreeHeight := by
-  classical
-  refine le_trans (Multiset.card_le_card ?_) (card_record_le_budget adversary q hbudget hpair)
-  rw [recordAiming]
-  exact Multiset.filter_le _ _
 
 /-! ## The adapters, so the bridge is applied rather than merely present
 
@@ -475,87 +413,6 @@ half's and the ordering defect's, which is `hcover`.
 arithmetic, and it closes on the nose: `card canonical + card message-class ≤ work`, and
 `work + 2 ^ subtreeHeight ≤ q`, so the three terms are `(q - 2 ^ subtreeHeight) + 259`. -/
 
-set_option maxRecDepth 4000 in
-/-- **The shared obligation's bound, at three terms read off the record.** -/
-theorem prob_sharedBad_le_three (q : Nat) (adversary : Adversary)
-    (hbudget : HasTotalBudget adversary q)
-    (shared : Pair → Prop) (inputBad ordering : RecordedPair → Prop)
-    (hcover : ∀ pair ∈ support (recordedPairedRun adversary), GoodWalk pair.1 →
-      shared (forgetRecord pair) → (inputBad pair ∧ ¬ ordering pair) ∨ ordering pair)
-    (hinput : Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ inputBad pair ∧ ¬ ordering pair |
-        recordedPairedRun adversary] ≤
-      (expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
-        ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hordering : Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering pair |
-        recordedPairedRun adversary] ≤
-      expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordMessageClass pair)) /
-        ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Pr[fun pair : Pair => GoodWalk pair.1 ∧ shared pair | pairedRun adversary] ≤
-      ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  classical
-  rw [probEvent_pairedRun_eq]
-  refine le_trans (probEvent_mono (q := fun pair : RecordedPair =>
-    (GoodWalk pair.1 ∧ inputBad pair ∧ ¬ ordering pair) ∨
-      (GoodWalk pair.1 ∧ ordering pair)) ?_) ?_
-  · rintro pair hpair ⟨hgood, hshared⟩
-    exact (hcover pair hpair hgood hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord =>
-      ⟨hgood, hord⟩
-  refine le_trans (probEvent_or_le _ _ _) ?_
-  refine le_trans (add_le_add hinput hordering) ?_
-  rw [ENNReal.div_add_div_same]
-  refine ENNReal.div_le_div_right ?_ _
-  have hcounts : expected (recordedPairedRun adversary)
-        (fun pair => Multiset.card (recordAiming pair)) +
-      expected (recordedPairedRun adversary)
-        (fun pair => Multiset.card (recordMessageClass pair)) ≤
-      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) := by
-    rw [← expected_add]
-    exact expected_le_of_le (recordedPairedRun adversary) _ _ fun pair hpair =>
-      card_parts_le_budget adversary q hbudget hpair
-  calc expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞) +
-        expected (recordedPairedRun adversary)
-          (fun pair => Multiset.card (recordMessageClass pair))
-      = expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordAiming pair)) +
-          expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordMessageClass pair)) +
-              ((259 : Nat) : ℝ≥0∞) := by ring
-    _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((259 : Nat) : ℝ≥0∞) :=
-        add_le_add hcounts le_rfl
-    _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
-
-/-- **The shared obligation, from the two charges the repair leaves.** The split is two-way now,
-so the shared event is `InputBad` alone; `prob_sharedBad_le_three` takes it abstractly, which is
-why only `hcover` had to change when the randomiser defect went. -/
-theorem sharedCharged_of_three
-    (inputBad ordering : (q : Nat) → Adversary → RecordedPair → Prop)
-    (hcover : ∀ q adversary, HasTotalBudget adversary q →
-      ∀ pair ∈ support (recordedPairedRun adversary), GoodWalk pair.1 →
-        InputBad (recordedTraceOf pair) →
-          (inputBad q adversary pair ∧ ¬ ordering q adversary pair) ∨
-            ordering q adversary pair)
-    (hinput : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ inputBad q adversary pair ∧
-          ¬ ordering q adversary pair | recordedPairedRun adversary] ≤
-        (expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hordering : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering q adversary pair |
-          recordedPairedRun adversary] ≤
-        expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordMessageClass pair)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Obligations.SharedCharged := by
-  intro q adversary _ hbudget
-  exact prob_sharedBad_le_three q adversary hbudget
-    (fun pair => InputBad (traceOf pair))
-    (inputBad q adversary) (ordering q adversary) (hcover q adversary hbudget)
-    (hinput q adversary hbudget) (hordering q adversary hbudget)
-
 /-! ## The cover costs nothing
 
 `hcover` reads like the step where the split is justified, and at the instantiation the shared
@@ -587,31 +444,6 @@ theorem cover_of_em {α : Type} (shared ordering : α → Prop) (pair : α)
   by_cases hord : ordering pair
   · exact Or.inr hord
   · exact Or.inl ⟨hshared, hord⟩
-
-/-- **The shared obligation, from the two charges and nothing else.** This is
-`sharedCharged_of_three` at the instantiation the shared side uses — the input half's event is
-the shared event — with `hcover` discharged by `cover_of_em`. The ordering defect's event stays
-abstract. -/
-theorem sharedCharged_of_two
-    (ordering : (q : Nat) → Adversary → RecordedPair → Prop)
-    (hinput : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ InputBad (recordedTraceOf pair) ∧
-          ¬ ordering q adversary pair | recordedPairedRun adversary] ≤
-        (expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordAiming pair)) + ((259 : Nat) : ℝ≥0∞)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hordering : ∀ q adversary, HasTotalBudget adversary q →
-      Pr[fun pair : RecordedPair => GoodWalk pair.1 ∧ ordering q adversary pair |
-          recordedPairedRun adversary] ≤
-        expected (recordedPairedRun adversary)
-            (fun pair => Multiset.card (recordMessageClass pair)) /
-          ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    Obligations.SharedCharged :=
-  sharedCharged_of_three (fun _ _ pair => InputBad (recordedTraceOf pair)) ordering
-    (fun q adversary _ pair _ _ hshared =>
-      cover_of_em (fun pair => InputBad (recordedTraceOf pair)) (ordering q adversary) pair
-        hshared)
-    hinput hordering
 
 /-! ## The four-term union-bound route, superseded
 

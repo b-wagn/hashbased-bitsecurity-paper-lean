@@ -98,75 +98,7 @@ theorem probesIn_forget (part probes : RecordedPair → Multiset Bytes) (adversa
 They are two parts of one record and disjoint by construction, so the join's own bound applies
 to them at the image pair, and the expectation is taken at the larger run. -/
 
-open scoped Classical in
-/-- **The budget split at any tail that forgets to the game.** The pathwise fact
-`card_parts_le_budget` is about the recorded pair, so all the tail supplies is that its own pairs
-forget to supported ones — which is exactly `LateProbes.ForgetsTo`. -/
-theorem expected_parts_le_budget_at (fused : LateProbes.FusedTail) (q : Nat)
-    (adversary : Adversary) (hforget : LateProbes.ForgetsTo fused adversary)
-    (hbudget : HasTotalBudget adversary q) :
-    expected (pairedOf fused adversary)
-        (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
-      expected (pairedOf fused adversary)
-        (fun pair => Multiset.card (recordMessageClass (forgetRecordings pair))) ≤
-      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) := by
-  classical
-  rw [← expected_add]
-  exact expected_le_of_le _ _ _ fun pair hpair =>
-    card_parts_le_budget adversary q hbudget (mem_support_forget hforget hpair)
-
-open scoped Classical in
-theorem expected_parts_le_budget (q : Nat) (adversary : Adversary)
-    (hbudget : HasTotalBudget adversary q) :
-    expected (pairedOf FusedCoverage.fusedTail adversary)
-        (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
-      expected (pairedOf FusedCoverage.fusedTail adversary)
-        (fun pair => Multiset.card (recordMessageClass (forgetRecordings pair))) ≤
-      ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) :=
-  expected_parts_le_budget_at FusedCoverage.fusedTail q adversary
-    (FusedCoverage.forgetsTo adversary) hbudget
-
 /-! ## The assembly -/
-
-set_option maxHeartbeats 1000000 in
-/-- **The shared obligation, from the input half's bullet and nothing else.** The ordering term
-is `LateProbes.prob_ordering_le` with its containment discharged by provenance; the cover is
-excluded middle; the arithmetic is the join's own. -/
-theorem sharedCharged_of_parts
-    (hinput : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      InputBullet adversary LateProbes.Ordering)
-    (hsigner : ∀ adversary : Adversary, LateProvenance.SignerDigestFree adversary) :
-    Obligations.SharedCharged := by
-  classical
-  intro q adversary _ hbudget
-  have hforget := FusedCoverage.forgetsTo adversary
-  have hprobes := probes_le_recordMessageClass hforget (FusedCoverage.isRecorderRun adversary)
-    (LateProvenance.hrecord_of_signerDigestFree adversary (hsigner adversary))
-  have hordering := prob_ordering_le (FusedCoverage.isRecorderRun adversary) hprobes
-  rw [probEvent_pairedRun_eq, ← probEvent_forget hforget]
-  refine le_trans (probEvent_mono (q := fun pair : SplitPair =>
-    (GoodWalk pair.1 ∧ InputBad (splitTraceOf pair) ∧ ¬ LateProbes.Ordering pair) ∨
-      (GoodWalk pair.1 ∧ LateProbes.Ordering pair)) ?_) ?_
-  · rintro pair hpair ⟨hgood, hshared⟩
-    exact (cover_of_em (fun pair : SplitPair => InputBad (splitTraceOf pair))
-      LateProbes.Ordering pair hshared).imp (fun hin => ⟨hgood, hin⟩) fun hord => ⟨hgood, hord⟩
-  refine le_trans (probEvent_or_le _ _ _) ?_
-  refine le_trans (add_le_add (hinput q adversary hbudget) hordering) ?_
-  rw [ENNReal.div_add_div_same]
-  refine ENNReal.div_le_div_right ?_ _
-  calc expected (pairedOf FusedCoverage.fusedTail adversary)
-          (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
-        ((259 : Nat) : ℝ≥0∞) +
-        expected (pairedOf FusedCoverage.fusedTail adversary)
-          (fun pair => Multiset.card (recordMessageClass (forgetRecordings pair)))
-      = expected (pairedOf FusedCoverage.fusedTail adversary)
-            (fun pair => Multiset.card (recordAiming (forgetRecordings pair))) +
-          expected (pairedOf FusedCoverage.fusedTail adversary)
-            (fun pair => Multiset.card (recordMessageClass (forgetRecordings pair))) +
-          ((259 : Nat) : ℝ≥0∞) := by ring
-    _ ≤ ((q - 2 ^ subtreeHeight : Nat) : ℝ≥0∞) + ((259 : Nat) : ℝ≥0∞) :=
-        add_le_add (expected_parts_le_budget q adversary hbudget) le_rfl
-    _ = ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) := (Nat.cast_add _ _).symm
 
 /-! ## The answer side's leftover, sent to the record charge
 

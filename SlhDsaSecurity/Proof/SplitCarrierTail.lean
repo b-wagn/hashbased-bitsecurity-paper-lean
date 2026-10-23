@@ -560,52 +560,6 @@ unfolded at the run, for the reason `AnswerCarrier.map_answerCarrierRun_eq_tail`
 stages must never be unfolded, and a `rfl` comparing terms built over them is where that goes
 wrong. -/
 
-theorem count_le_of_budget_splitTail (inClass : Bytes → Prop) {inside outside : QueryKind}
-    (hne : inside ≠ outside) (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    {adversary : Adversary} {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
-    {walk : Walk} (hwalk : walk ∈ support WarmedGame.graphWalk)
-    (result : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts)
-    (hresult : result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk)) :
-    result.1.1.2 ≤ q := by
-  have hmap : (fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-      FinalAssembly.forgetFused z.1) <$>
-        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk =
-      WarmedGame.tail adversary walk := by
-    rw [← CarrierTail.forgetFused_carrierTail rightKeep adversary walk,
-      ← SplitTail.map_splitCarrierTail inClass hne rightKeep adversary walk, Functor.map_map]
-  have hmapped : FinalAssembly.forgetFused result.1 ∈ support
-      ((fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-          FinalAssembly.forgetFused z.1) <$>
-        SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk) := by
-    rw [support_map]
-    exact Set.mem_image_of_mem
-      (fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-        FinalAssembly.forgetFused z.1) hresult
-  rw [hmap] at hmapped
-  exact WarmedCharges.count_le_of_budget_tail hbudget hwalk hmapped
-
-/-- **And so the right recording is inside the budget too.** `hrightBound` at `q`, which is the
-instance the coverage charge is taken at: the right recording is inside the inside slot, the two
-slots are the work count, and the work count is inside the budget. -/
-theorem rightRecord_le_of_budget_splitTail (inClass : Bytes → Prop)
-    {inside outside : QueryKind} (hne : inside ≠ outside)
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    {adversary : Adversary} {q : Nat} (hbudget : Security.HasTotalBudget adversary q)
-    {walk : Walk} (hwalk : walk ∈ support WarmedGame.graphWalk)
-    (hrightClass : ∀ (input : Bytes) (view : HandlerCarrier.State),
-      rightKeep walk input view → inClass input)
-    (result : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts)
-    (hresult : result ∈ support
-      (SplitTail.splitCarrierTail inClass inside outside rightKeep adversary walk)) :
-    result.1.2.2.2.length ≤ q := by
-  have hshare := SplitTail.splitCarrierTail_share inClass inside outside rightKeep adversary
-    walk hrightClass result hresult
-  have hcount := count_le_of_budget_splitTail inClass hne rightKeep hbudget hwalk result hresult
-  omega
-
-
-
 /-! ## The disclosing cap, carried
 
 `answerBound_splitTail`'s `hleftBound` is the disclosing recording's length, and it is the one

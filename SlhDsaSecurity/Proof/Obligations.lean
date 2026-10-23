@@ -50,19 +50,6 @@ attribute [local irreducible] WarmedGame.afterSeeds WarmedGame.graphWalk WarmedG
   WarmedGame.warmedRun Scheme.keygenInternal Scheme.verify Scheme.sign
   Security.signingOracle Security.countQueries
 
-set_option linter.constructorNameAsVariable false in
-set_option maxHeartbeats 1000000 in
-/-- **The target, from the two statements that are left.** -/
-theorem target_of_charges (hanswer : AnswerCharged) (hshared : SharedCharged) :
-    HasTotalSecurityBits .strong 127 :=
-  Target.target_of_obligations AnswerBad InputBad (fun _ => False)
-    (fun adversary _ hwalk _ _ hresult hwin =>
-      (SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin).imp id Or.inl)
-    hanswer
-    fun q adversary hq hbudget =>
-      le_trans (probEvent_mono fun _ _ hbad => ⟨hbad.1, hbad.2.resolve_right id⟩)
-        (hshared q adversary hq hbudget)
-
 /-! ## The two obligations at a refining tail
 
 Two of the hypotheses the earlier shapes left standing are false. `hseed` is false by a byte
@@ -127,51 +114,5 @@ def SharedChargedLate {γ : Type} (claims : Nat)
         (InputBad ((pair.1.1, (forget pair.2).1), (forget pair.2).2) ∨ late pair) |
       Target.pairedFused (fused adversary)] ≤
       ((q - 2 ^ subtreeHeight + claims : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)
-
-set_option maxHeartbeats 1000000 in
-/-- **The target, from the two obligations at a refining tail.** The split is the two-way one:
-a win is the answer side or the input side, and the defect is what the answer side is allowed to
-rule out. -/
-theorem target_of_charges_fused_at {γ : Type} (answerDefect : ℝ≥0∞)
-    (claims defectUnits : Nat)
-    (hdefect : Target.defectsAt answerDefect ≤
-      ((defectUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hclaims : claims + defectUnits ≤ 2 ^ subtreeHeight)
-    (fused : Adversary →
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
-    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
-    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
-      Prop)
-    (hforget : ∀ (adversary : Adversary) (walk : (((Digest × Digest × Digest) ×
-      CanonicalGraph.Cells) × QueryCache HashSpec)),
-      forget <$> fused adversary walk = tail adversary walk)
-    (hanswer : AnswerChargedAt answerDefect fused forget late)
-    (hshared : SharedChargedLate claims fused forget late) :
-    HasTotalSecurityBits .strong 127 :=
-  Target.target_of_obligations_fused_at answerDefect claims defectUnits hdefect hclaims
-    fused forget hforget AnswerBad InputBad late
-    (fun adversary _ hwalk _ _ hresult hwin =>
-      SigningFaithful.cases_of_win_charged adversary hwalk hresult hwin)
-    hanswer hshared
-
-/-- **The target at the answer half's stated allowance.** The reading the obligations were
-written at; `target_of_charges_fused_at` at `Target.answerDefectProved` is four units cheaper. -/
-theorem target_of_charges_fused {γ : Type} (claims : Nat)
-    (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
-    (fused : Adversary →
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) → ProbComp γ)
-    (forget : γ → (Outcome × Nat) × QueryCache HashSpec)
-    (late : ((((Digest × Digest × Digest) × CanonicalGraph.Cells) × QueryCache HashSpec) × γ) →
-      Prop)
-    (hforget : ∀ (adversary : Adversary) (walk : (((Digest × Digest × Digest) ×
-      CanonicalGraph.Cells) × QueryCache HashSpec)),
-      forget <$> fused adversary walk = tail adversary walk)
-    (hanswer : AnswerChargedLate fused forget late)
-    (hshared : SharedChargedLate claims fused forget late) :
-    HasTotalSecurityBits .strong 127 :=
-  target_of_charges_fused_at
-    ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))
-    claims 6 (by rw [← Target.defects_eq_defectsAt]; exact Target.defects_le_six_units) hclaims
-    fused forget late hforget hanswer hshared
 
 end SlhDsaSecurity.Obligations

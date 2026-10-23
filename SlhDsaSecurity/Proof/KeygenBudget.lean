@@ -67,15 +67,4 @@ theorem pow_le_count_of_mem_support (adversary : Adversary) {outcome : Outcome �
   rw [← hvalue]
   exact pow_le_count_tail adversary hwalk hresult
 
-/-- **A budget is at least what key generation spends.** This is what makes the accounting's
-`q - 2 ^ subtreeHeight` the number of hash calls the adversary has left rather than a
-truncation. -/
-theorem pow_le_of_budget (q : Nat) (adversary : Adversary) (hbudget : HasTotalBudget adversary q) :
-    2 ^ subtreeHeight ≤ q := by
-  by_contra hlt
-  rw [Nat.not_le] at hlt
-  refine one_ne_zero (α := ℝ≥0∞) (hbudget.symm.trans (probEvent_eq_zero ?_))
-  rintro outcome hmem ⟨-, hcount⟩
-  exact absurd (le_trans (pow_le_count_of_mem_support adversary hmem) hcount) (Nat.not_le.mpr hlt)
-
 end SlhDsaSecurity.KeygenBudget

@@ -374,89 +374,6 @@ theorem keep127_class (walk : Walk) (input : Bytes) (view : HandlerCarrier.State
 /-- The two counter slots the split tail uses. -/
 theorem hash_ne_verification : QueryKind.hash ≠ QueryKind.verification := by decide
 
-set_option maxHeartbeats 8000000 in
-set_option linter.constructorNameAsVariable false in
-open scoped Classical in
-/-- **The answer half at `127`**: with only `late` excluded, `q / 2 ^ 128 + 2 ^ -126`. -/
-theorem answerBound127 (q : Nat) (adversary : Adversary) (hbudget : HasTotalBudget adversary q)
-    (walk : Walk) (hwalk : walk ∈ support WarmedGame.graphWalk) (hgood : Target.GoodWalk walk) :
-    Pr[fun result => RoutedSplit.AnswerBad ((walk.1, (FinalAssembly.forgetFused result).1),
-          (FinalAssembly.forgetFused result).2) ∧ ¬ Target127.late (walk, result) |
-        carrierTail keep127 adversary walk] ≤
-      (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / 2 ^ 126 := by
-  classical
-  by_cases hq : 2 ^ 128 ≤ q
-  · refine le_trans probEvent_le_one (le_trans ?_ le_self_add)
-    rw [ENNReal.le_div_iff_mul_le (Or.inl (by simp)) (Or.inl (by simp)), one_mul]
-    exact_mod_cast hq
-  have hqlt : q < 2 ^ 128 := Nat.lt_of_not_le hq
-  set inClass := CombinedCharge.IsMessageInput (keyAt walk) with hinClass
-  have hpublic : ¬ HashSeparation.Possible ((keyAt walk).seed, (keyAt walk).root) :=
-    AnswerSide.not_possible_generatedKey hwalk hgood.2
-  have hmap := SplitTail.map_splitCarrierTail inClass hash_ne_verification keep127 adversary walk
-  set split := SplitTail.splitCarrierTail inClass QueryKind.hash QueryKind.verification keep127
-    adversary walk with hsplitDef
-  have hfst : ∀ z ∈ support split, z.1 ∈ support (carrierTail keep127 adversary walk) := by
-    intro z hz
-    rw [← hmap, support_map]
-    exact ⟨z, hz, rfl⟩
-  -- bounds on the two recordings at the carrier tail
-  have hleftBound := CarrierCap.leftRecord_le_cap_of_walk keep127 hbudget hwalk hpublic
-  have hrightBound : ∀ result ∈ support (carrierTail keep127 adversary walk),
-      result.2.2.2.length ≤ q := by
-    intro result hresult
-    rw [← hmap, support_map] at hresult
-    obtain ⟨z, hz, rfl⟩ := hresult
-    exact SplitCarrierTail.rightRecord_le_of_budget_splitTail inClass hash_ne_verification
-      keep127 hbudget hwalk (keep127_class walk) z hz
-  -- the event, at the split tail
-  have hevent : Pr[fun result => RoutedSplit.AnswerBad ((walk.1,
-          (FinalAssembly.forgetFused result).1), (FinalAssembly.forgetFused result).2) ∧
-          ¬ Target127.late (walk, result) | carrierTail keep127 adversary walk] =
-      Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) × Counts =>
-          RoutedSplit.AnswerBad ((walk.1, (FinalAssembly.forgetFused z.1).1),
-            (FinalAssembly.forgetFused z.1).2) ∧ ¬ Target127.late (walk, z.1) | split] := by
-    rw [← hmap, probEvent_map]
-    rfl
-  rw [hevent]
-  refine le_trans (probEvent_mono (q := fun z =>
-      GrowthCharge.Bad (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2) (z.1.1, z.1.2.1) ∨
-        FiredCoveredRec walk z.1) fun z hz hev =>
-      join_carrierTail adversary walk hwalk hgood z.1 (hfst z hz) hev.1 hev.2) ?_
-  refine CoverageCount.prob_bad_or_coverage_le_of_two_charges split _ _
-    ((1 : ℝ≥0∞) / 2 ^ 126) (fun z => z.2 QueryKind.verification)
-    (fun z => z.1.2.2.2.length) q ?_ ?_ ?_
-  · exact SplitCarrierTail.prob_bad_splitCarrierTail_le inClass
-      (AnswerSide.CanonicalBad walk.1.1.2.2 walk.1.2)
-      (fun input => AnswerSide.prob_canonicalBad_le walk.1.1.2.2 walk.1.2 input)
-      (fun input answer hbad => AnswerCarrierBound.not_isMessageInput_of_canonicalBad
-        walk.1.1.2.2 (keyAt walk) walk.1.2 hpublic input answer hbad)
-      keep127 adversary walk
-      (CanonicalTarget.clean_of_canonical_cache walk.1.1.2.2 walk.1.2 walk.2
-        (WarmedCharges.walk_cache_canonical hwalk))
-  · have hcoverage := prob_carrierTail_firedCovered_le adversary walk hwalk hgood (5 * 2 ^ 62) q
-      le_rfl hleftBound hrightBound
-    have hprob : Pr[fun z : (((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState) ×
-          Counts => FiredCoveredRec walk z.1 | split] =
-        Pr[FiredCoveredRec walk | carrierTail keep127 adversary walk] := by
-      rw [← hmap, probEvent_map]
-      rfl
-    have hexpect : (∑' result, Pr[= result | carrierTail keep127 adversary walk] *
-          ((result.2.2.2.length : Nat) : ℝ≥0∞)) =
-        ClassExpectation.expected split (fun z => z.1.2.2.2.length) := by
-      rw [← ClassExpectation.expected_map split Prod.fst (fun result => result.2.2.2.length),
-        hmap, ClassExpectation.expected]
-    rw [hprob]
-    refine le_trans hcoverage (add_le_add le_rfl ?_)
-    rw [hexpect, div_eq_mul_one_div (ClassExpectation.expected split _)]
-    exact mul_le_mul' le_rfl (second_order_fits q (by omega))
-  · intro z hz
-    have hshare := SplitTail.splitCarrierTail_share inClass QueryKind.hash QueryKind.verification
-      keep127 adversary walk (keep127_class walk) z hz
-    have hwork := SplitCarrierTail.count_le_of_budget_splitTail inClass hash_ne_verification
-      keep127 hbudget hwalk z hz
-    omega
-
 /-! ## The target, from the shared half alone -/
 
 set_option exponentiation.threshold 1024 in
@@ -469,19 +386,5 @@ theorem defects_le : Target.defectsAt ((1 : ℝ≥0∞) / 2 ^ 126) ≤
   simp only [ENNReal.toReal_div, ENNReal.toReal_one, ENNReal.toReal_natCast,
     ENNReal.toReal_pow, ENNReal.toReal_ofNat]
   norm_num
-
-/-- **`127` from the shared half alone.** The answer half is `answerBound127`; what is left is the
-input half and `late`, together, against one record and the forgery's claims. -/
-theorem target_of_shared
-    (hshared : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      Pr[fun pair : SharedJoin.RecordedPair => Target.GoodWalk pair.1 ∧
-          (RoutedSplit.InputBad (SharedJoin.recordedTraceOf pair) ∨ Target127.Late pair) |
-        RandomiserRecord.recordedPairedRun adversary] ≤
-        ((q - 2 ^ subtreeHeight + 259 : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    HasTotalSecurityBits .strong 127 :=
-  Target127.target_of_parts ((1 : ℝ≥0∞) / 2 ^ 126) 6 defects_le (by decide) keep127
-    (fun q adversary _ hbudget walk hwalk hgood =>
-      answerBound127 q adversary hbudget walk hwalk hgood)
-    hshared
 
 end SlhDsaSecurity.AnswerFired

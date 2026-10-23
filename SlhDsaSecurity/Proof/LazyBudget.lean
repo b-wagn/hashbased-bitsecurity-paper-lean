@@ -197,23 +197,4 @@ handler, being a handler, does not touch either. -/
 attribute [local irreducible] StrippedGame.strippedAfterSeeds WarmedGame.afterSeeds
   Scheme.verify Scheme.keygenInternal Security.countQueries OpenCache.lazyProgram
 
-set_option linter.constructorNameAsVariable false in
-set_option maxHeartbeats 1000000 in
-/-- **The budget bounds the work a lazy run reports, with key generation's spend reserved.** -/
-theorem work_add_pow_le_of_budget_lazy {adversary : Adversary} {q : Nat}
-    (hbudget : Security.HasTotalBudget adversary q)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support WarmedGame.graphWalk) (publicSeed : Digest)
-    (availableAt : HandlerCarrier.State → Node → Prop) (table : Cells × Padding)
-    (state : HandlerState) (hstate : state.1.cache = walk.2)
-    {result : Outcome × HandlerState}
-    (hresult : result ∈ support
-      ((simulateQ (lazyProgram publicSeed availableAt table)
-        (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2)).run state)) :
-    result.1.counts.work + 2 ^ subtreeHeight ≤ q := by
-  have hrom := mem_support_rom_of_lazy publicSeed availableAt table
-    (StrippedGame.strippedAfterSeeds adversary walk.1.1 walk.2) state result hresult
-  rw [hstate] at hrom
-  exact RecordedBudget.work_add_pow_le_of_budget_stripped hbudget hwalk hrom
-
 end SlhDsaSecurity.LazyBudget

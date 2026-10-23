@@ -451,28 +451,6 @@ fused one, so a bound proved at `forgetRecord <$> carrierTail` discharges the ob
 presentation move. What is left for the answer side is to restate its bound at that run, which
 is a change of recorder and not a change of argument. -/
 
-open scoped ENNReal in
-/-- **The answer obligation at the carrier tail, from a bound at the carrier's recorded run.**
-The `AnswerShape.answerChargedLate_of_recordedBound` analogue. The hypothesis names
-`AnswerShape.forgetRecord <$> carrierTail` rather than a run of its own, because the carrier
-records against the frame in flight and no existing run does. -/
-theorem answerChargedLate_carrier_of_bound (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → Security.HasTotalBudget adversary q →
-      ∀ walk ∈ support WarmedGame.graphWalk, Target.GoodWalk walk →
-        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-            RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-          AnswerShape.forgetRecord <$> carrierTail rightKeep adversary walk] ≤
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) :
-    Obligations.AnswerChargedLate (carrierTail rightKeep) FinalAssembly.forgetFused
-      LateProbes.Ordering := by
-  intro q adversary hq hbudget walk hwalk hgood
-  refine le_trans (le_of_eq ?_) (hbound q adversary hq hbudget walk hwalk hgood)
-  rw [probEvent_map]
-  rfl
-
 /-! ## The same move at the defect the target instantiates, and at the bound the side proves
 
 Two edits that mirror the cache side's exactly, landed here rather than in `AnswerShape` because
@@ -483,32 +461,5 @@ obligation's `¬ late` is the answer side's two conjuncts by `not_or`; and the a
 `q / 2 ^ 128 + 1 / 2 ^ 141`, which is `Target.answerDefectProved`, not the six-unit allowance.
 Taking the tighter bound and the wider defect is what lets the carrier route discharge the
 obligation the assembly actually reads, with the four freed units of `2 ^ -128` staying freed. -/
-
-open scoped ENNReal in
-/-- **The answer obligation at the carrier tail, at the defect the target instantiates and the
-bound the answer side proves.** -/
-theorem answerChargedAt_carrier_of_bound
-    (rightKeep : Walk → Bytes → HandlerCarrier.State → Prop)
-    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → Security.HasTotalBudget adversary q →
-      ∀ walk ∈ support WarmedGame.graphWalk, Target.GoodWalk walk →
-        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-            RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-              ¬ AnswerCoverage.ForgerySeedRandomised walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-                (result.1, result.2.1) ∧
-              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-          AnswerShape.forgetRecord <$> carrierTail rightKeep adversary walk] ≤
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) + Target.answerDefectProved) :
-    Obligations.AnswerChargedAt Target.answerDefectProved (carrierTail rightKeep)
-      FinalAssembly.forgetFused FinalAssembly.lateOrSeed := by
-  intro q adversary hq hbudget walk hwalk hgood
-  refine le_trans (le_of_eq ?_) (hbound q adversary hq hbudget walk hwalk hgood)
-  rw [probEvent_map]
-  refine probEvent_congr' (fun result _ => ?_) rfl
-  simp only [Function.comp_def, FinalAssembly.lateOrSeed, not_or]
-  constructor
-  · rintro ⟨hbad, hlate, hseed⟩; exact ⟨hbad, hseed, hlate⟩
-  · rintro ⟨hbad, hseed, hlate⟩; exact ⟨hbad, hlate, hseed⟩
 
 end SlhDsaSecurity.CarrierTail

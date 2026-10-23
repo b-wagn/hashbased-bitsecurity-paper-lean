@@ -78,34 +78,6 @@ theorem probEvent_runAll (adversary : Adversary) (event : Outcome × Nat → Pro
       from rfl, probEvent_map]
   rfl
 
-/-- **The target follows from the two halves.** -/
-theorem totalSecurityBits_of_halves
-    (answerBad inputBad : (Outcome × Nat) × QueryCache HashSpec → Prop)
-    (hsplit : ∀ (adversary : Adversary),
-      ∀ result ∈ support (WholeGameStructural.instrumentedRun adversary),
-      Wins .strong result.1.1 → answerBad result ∨ inputBad result)
-    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[answerBad | WholeGameStructural.instrumentedRun adversary] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[inputBad | WholeGameStructural.instrumentedRun adversary] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    HasTotalSecurityBits .strong 127 := by
-  intro q hq adversary hbudget
-  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1)]
-  calc Pr[fun result : (Outcome × Nat) × QueryCache HashSpec => Wins .strong result.1.1 |
-        WholeGameStructural.instrumentedRun adversary]
-      ≤ Pr[fun result => answerBad result ∨ inputBad result |
-          WholeGameStructural.instrumentedRun adversary] :=
-        probEvent_mono (fun result hmem hwin => hsplit adversary result hmem hwin)
-    _ ≤ Pr[answerBad | WholeGameStructural.instrumentedRun adversary] +
-          Pr[inputBad | WholeGameStructural.instrumentedRun adversary] :=
-        probEvent_or_le _ _ _
-    _ ≤ (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-        add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
-    _ = (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := Assembly.half_add_half q
-
 /-! ## The halves, at the run that fixes its own cells
 
 `totalSecurityBits_of_halves` asks for two events of the bare game. That is more than can be
@@ -117,35 +89,6 @@ union bound over the whole graph, which the budget cannot pay for.
 carries the seeds and the cells, so the two halves may name *this run's* honest key; and by
 `WarmedGame.probEvent_warmed` the winning event — which looks only at the outcome — has the
 same probability there. This is the form the remaining obligations are stated in. -/
-
-/-- **The target follows from the two halves, at the warmed run.** -/
-theorem totalSecurityBits_of_warmed_halves
-    (answerBad inputBad :
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × (Outcome × Nat)) ×
-        QueryCache HashSpec → Prop)
-    (hsplit : ∀ (adversary : Adversary),
-      ∀ result ∈ support (WarmedGame.warmedRun adversary),
-      Wins .strong result.1.2.1 → answerBad result ∨ inputBad result)
-    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[answerBad | WarmedGame.warmedRun adversary] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[inputBad | WarmedGame.warmedRun adversary] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    HasTotalSecurityBits .strong 127 := by
-  intro q hq adversary hbudget
-  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1),
-    WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
-  calc Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary]
-      ≤ Pr[fun result => answerBad result ∨ inputBad result |
-          WarmedGame.warmedRun adversary] :=
-        probEvent_mono (fun result hmem hwin => hsplit adversary result hmem hwin)
-    _ ≤ Pr[answerBad | WarmedGame.warmedRun adversary] +
-          Pr[inputBad | WarmedGame.warmedRun adversary] := probEvent_or_le _ _ _
-    _ ≤ (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) :=
-        add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
-    _ = (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := Assembly.half_add_half q
 
 /-! ## The halves with their own allowances
 
@@ -173,55 +116,6 @@ of `q` and asks only that they sum to the target. Where they come from — a cou
 class separated, a defect parked — is then entirely the business of `Assembly`, which already
 has the arithmetic for it. -/
 
-/-- **The target, from any two allowances that sum to it.** -/
-theorem totalSecurityBits_of_allowances
-    (answerBad inputBad :
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × (Outcome × Nat)) ×
-        QueryCache HashSpec → Prop)
-    (answerBound inputBound : Nat → ℝ≥0∞)
-    (hsum : ∀ q : Nat, 1 ≤ q →
-      answerBound q + inputBound q ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞))
-    (hsplit : ∀ (adversary : Adversary),
-      ∀ result ∈ support (WarmedGame.warmedRun adversary),
-      Wins .strong result.1.2.1 → answerBad result ∨ inputBad result)
-    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[answerBad | WarmedGame.warmedRun adversary] ≤ answerBound q)
-    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[inputBad | WarmedGame.warmedRun adversary] ≤ inputBound q) :
-    HasTotalSecurityBits .strong 127 := by
-  intro q hq adversary hbudget
-  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1),
-    WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
-  calc Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary]
-      ≤ Pr[fun result => answerBad result ∨ inputBad result |
-          WarmedGame.warmedRun adversary] :=
-        probEvent_mono (fun result hmem hwin => hsplit adversary result hmem hwin)
-    _ ≤ Pr[answerBad | WarmedGame.warmedRun adversary] +
-          Pr[inputBad | WarmedGame.warmedRun adversary] := probEvent_or_le _ _ _
-    _ ≤ answerBound q + inputBound q :=
-        add_le_add (hanswer q adversary hq hbudget) (hinput q adversary hq hbudget)
-    _ ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) := hsum q hq
-
-/-- The even split is the instance with both allowances at half the target. -/
-theorem totalSecurityBits_of_warmed_halves'
-    (answerBad inputBad :
-      (((Digest × Digest × Digest) × CanonicalGraph.Cells) × (Outcome × Nat)) ×
-        QueryCache HashSpec → Prop)
-    (hsplit : ∀ (adversary : Adversary),
-      ∀ result ∈ support (WarmedGame.warmedRun adversary),
-      Wins .strong result.1.2.1 → answerBad result ∨ inputBad result)
-    (hanswer : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[answerBad | WarmedGame.warmedRun adversary] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hinput : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[inputBad | WarmedGame.warmedRun adversary] ≤
-        (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞)) :
-    HasTotalSecurityBits .strong 127 :=
-  totalSecurityBits_of_allowances answerBad inputBad
-    (fun q => (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (fun q => (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (fun q _ => le_of_eq (Assembly.half_add_half q)) hsplit hanswer hinput
-
 /-! ## The loosest entry point
 
 `totalSecurityBits_of_allowances` still asks for two *predicates on the warmed run*, and that
@@ -233,29 +127,5 @@ same game, linked by the transfers already proved.
 
 So the top-level statement should ask for nothing but a bound on the winning event itself,
 leaving every split, presentation and transfer below it. That is this. -/
-
-/-- **The target, from any bound on the winning event that stays under it.** -/
-theorem totalSecurityBits_of_bound (bound : Nat → ℝ≥0∞)
-    (hsum : ∀ q : Nat, 1 ≤ q → bound q ≤ (q : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞))
-    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary] ≤ bound q) :
-    HasTotalSecurityBits .strong 127 := by
-  intro q hq adversary hbudget
-  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1),
-    WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
-  exact le_trans (hbound q adversary hq hbudget) (hsum q hq)
-
-/-- **The same at any bit count.** `totalSecurityBits_of_bound` is this at `127`; the parameter
-is here because the ledger now has two lines and the second lands at `126`. Nothing in the proof
-reads the number. -/
-theorem totalSecurityBits_of_bound_at (bits : Nat) (bound : Nat → ℝ≥0∞)
-    (hsum : ∀ q : Nat, 1 ≤ q → bound q ≤ (q : ℝ≥0∞) / ((2 ^ bits : Nat) : ℝ≥0∞))
-    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      Pr[fun result => Wins .strong result.1.2.1 | WarmedGame.warmedRun adversary] ≤ bound q) :
-    HasTotalSecurityBits .strong bits := by
-  intro q hq adversary hbudget
-  rw [totalAdvantage, probEvent_runAll adversary (fun result => Wins .strong result.1),
-    WarmedGame.probEvent_warmed adversary (fun outcome => Wins .strong outcome.1)]
-  exact le_trans (hbound q adversary hq hbudget) (hsum q hq)
 
 end SlhDsaSecurity.MainTheorem

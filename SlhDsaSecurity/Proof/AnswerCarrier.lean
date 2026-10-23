@@ -71,24 +71,6 @@ theorem answerCarrierRun_eq
     answerCarrierRun rightKeep adversary walk =
       AnswerShape.forgetRecord <$> CarrierTail.carrierTail rightKeep adversary walk := rfl
 
-/-- **The obligation at the carrier tail, from a bound stated at the named run.** -/
-theorem answerChargedLate_of_carrierBound
-    (rightKeep : (((Digest × Digest × Digest) × Cells) × QueryCache HashSpec) → Bytes →
-      HandlerCarrier.State → Prop)
-    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → Security.HasTotalBudget adversary q →
-      ∀ walk ∈ support WarmedGame.graphWalk, Target.GoodWalk walk →
-        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-            RoutedSplit.AnswerBad ((walk.1, result.1), result.2.1) ∧
-              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-          answerCarrierRun rightKeep adversary walk] ≤
-          (q : ENNReal) / ((2 ^ 128 : Nat) : ENNReal) +
-            ((1 : ENNReal) / ((2 ^ 126 : Nat) : ENNReal) +
-              (1 : ENNReal) / ((2 ^ 141 : Nat) : ENNReal))) :
-    Obligations.AnswerChargedLate (CarrierTail.carrierTail rightKeep)
-      FinalAssembly.forgetFused LateProbes.Ordering :=
-  CarrierTail.answerChargedLate_carrier_of_bound rightKeep hbound
-
 /-! ## The target test at the carrier, and the clause that keeps the signer's probe out
 
 `CarrierTail` leaves `rightKeep` a parameter, so the test the target recording is filed under is

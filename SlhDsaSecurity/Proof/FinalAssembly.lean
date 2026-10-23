@@ -60,16 +60,6 @@ def lateOrSeed (pair : LateProbes.SplitPair) : Prop :=
       (SplitCharged.generatedKey pair.1.1.1.1 pair.1.1.1.2.1 pair.1.1.1.2.2 pair.1.2)
       (forgetFused pair.2)
 
-set_option maxHeartbeats 1000000 in
-/-- **The target, from the two obligations.** -/
-theorem target_of_producers (claims : Nat) (hclaims : claims + 6 ≤ 2 ^ subtreeHeight)
-    (hanswer : Obligations.AnswerChargedLate FusedCoverage.fusedTail forgetFused lateOrSeed)
-    (hshared : Obligations.SharedChargedLate claims FusedCoverage.fusedTail forgetFused
-      lateOrSeed) :
-    HasTotalSecurityBits .strong 127 :=
-  Obligations.target_of_charges_fused claims hclaims
-    FusedCoverage.fusedTail forgetFused lateOrSeed forgetFused_map hanswer hshared
-
 /-! ## The same, at what the answer half proves
 
 The obligation above states the answer half's bound with a `2 ^ -126` beside the `2 ^ -141`, and
@@ -81,29 +71,5 @@ concludes `q / 2 ^ 128 + 1 / 2 ^ 141` and `AnswerJoin` reaches the stated right-
 Both readings are here because the `2 ^ -126` is still spent on one route — the producer that
 takes the seed leftover as a probability hypothesis rather than as a conjunct. The narrow
 producers that do not spend it are proved; this is the shape they land in. -/
-
-/-- **The target, from the two obligations, at any answer-half defect term.** -/
-theorem target_of_producers_at (answerDefect : ℝ≥0∞) (claims defectUnits : Nat)
-    (hdefect : Target.defectsAt answerDefect ≤
-      ((defectUnits : Nat) : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞))
-    (hclaims : claims + defectUnits ≤ 2 ^ subtreeHeight)
-    (hanswer : Obligations.AnswerChargedAt answerDefect FusedCoverage.fusedTail forgetFused
-      lateOrSeed)
-    (hshared : Obligations.SharedChargedLate claims FusedCoverage.fusedTail forgetFused
-      lateOrSeed) :
-    HasTotalSecurityBits .strong 127 :=
-  Obligations.target_of_charges_fused_at answerDefect claims defectUnits hdefect hclaims
-    FusedCoverage.fusedTail forgetFused lateOrSeed forgetFused_map hanswer hshared
-
-/-- **The target at what the answer half proves.** Two units of defect, so `claims + 2` has to
-fit in key generation's `2 ^ subtreeHeight` — `251` units of margin at the forgery's `259`. -/
-theorem target_of_producers_proved (claims : Nat) (hclaims : claims + 2 ≤ 2 ^ subtreeHeight)
-    (hanswer : Obligations.AnswerChargedAt Target.answerDefectProved FusedCoverage.fusedTail
-      forgetFused lateOrSeed)
-    (hshared : Obligations.SharedChargedLate claims FusedCoverage.fusedTail forgetFused
-      lateOrSeed) :
-    HasTotalSecurityBits .strong 127 :=
-  target_of_producers_at Target.answerDefectProved claims 2 Target.defectsAt_proved_le_two
-    hclaims hanswer hshared
 
 end SlhDsaSecurity.FinalAssembly

@@ -239,25 +239,4 @@ theorem prob_coverage_tail_le (adversary : Adversary) (pk : PublicKey) (qm : Nat
       cacheCovered_of_forgeryCovered pk result hcovered)
     (prob_cacheCovered_tail_le adversary pk qm hqm hpublic hbounds hwalk hclass)
 
-/-- **The conservative instantiation.** The charged query count bounds the growth in every
-class, so the total budget already discharges the message-class hypothesis — at the cost of
-spending `q` on the coverage clause, which the per-class accounting avoids. -/
-theorem prob_coverage_tail_le_of_budget (adversary : Adversary) (pk : PublicKey) (q : Nat)
-    (hq : q ≤ 5 * 2 ^ 62)
-    (hpublic : ¬ HashSeparation.Possible (pk.seed, pk.root))
-    (hbounds : ∀ parent : StructuralNode, HashSeparation.WithinBounds parent.address)
-    (hbudget : HasTotalBudget adversary q)
-    {walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec}
-    (hwalk : walk ∈ support graphWalk) :
-    Pr[ForgeryCovered pk | tail adversary walk] ≤
-      (1 : ℝ≥0∞) / 2 ^ 141 + (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) := by
-  refine prob_coverage_tail_le adversary pk q hq hpublic hbounds hwalk fun result hresult => ?_
-  have hgrowth : GrowthCharge.GrowthAtMost walk.2 result.2 result.1.2 := by
-    refine GrowthBudget.growth_le_count (afterSeeds adversary walk.1.1) walk.2 result ?_
-    rw [← tail]
-    exact hresult
-  exact ClassCharge.GrowthAtMostOn.of_growthAtMost
-    (GrowthBudget.GrowthAtMost.mono hgrowth
-      (WarmedCharges.count_le_of_budget_tail hbudget hwalk hresult))
-
 end SlhDsaSecurity.CoverageTail

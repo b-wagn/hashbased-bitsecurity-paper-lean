@@ -34,22 +34,16 @@ Exact integer security levels for all 16 counting modes containing direct hash q
 byte-level addresses, the checksum, and the standard 7856-byte signature encoding, all sharing one
 lazily sampled random oracle.
 
-- **Strong and standard unforgeability, 127 bits:** `Pr[win] ≤ q / 2^127` for every adversary whose
-  total hash calls — key generation, signing, its own, and final verification — are at most
-  `q ≥ 1` with probability one
-  ([`StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean),
-  [`Unforgeability.lean`](SlhDsaSecurity/Statement/Theorems/Unforgeability.lean)).
-  The same 127 bits hold with final verification's hash calls not counted (only key generation,
-  signing, and the adversary's own calls), which is the stronger statement. Signing requests are
-  capped at `2^64` throughout.
-- **The same 127 bits in the main framework, the signer's calls free:** the game restated as an
-  `Xmss.SecurityGame` counting by source (`sign`, `hash`, `keygen`, `signer`, `verifier`), with
-  counting mode `Z = {sign, hash, keygen, verifier}` — every source but the signer's own hash
-  calls ([`SecurityBySource.lean`](SlhDsaSecurity/Statement/SecurityBySource.lean),
-  `slhDsa_sufCma_allButSigner_127`, `slhDsa_eufCma_allButSigner_127`). The framework has no
-  signing limit and SLH-DSA's security fails without one (past `2^64` signatures the FORS leaves
-  are all revealed), so `HasLimitedSecurityBits` adds FIPS 205's `2^64` as an almost-sure bound
-  on the `sign` count.
+- **Strong unforgeability, 127 bits:** `Pr[win] ≤ q / 2^127` for every adversary whose work is
+  at most `q ≥ 1` with probability one, where the game is an `Xmss.SecurityGame` counting hash
+  calls by source (`sign`, `hash`, `keygen`, `signer`, `verifier`) and the counting mode is
+  `Z = {sign, hash, keygen, verifier}`: signing requests, the adversary's own hash calls, key
+  generation's and final verification's — every source but the signer's own hash calls
+  ([`SecurityBySource.lean`](SlhDsaSecurity/Statement/SecurityBySource.lean),
+  [`StrongUnforgeability.lean`](SlhDsaSecurity/Statement/Theorems/StrongUnforgeability.lean)).
+  The framework has no signing limit and SLH-DSA's security fails without one (past `2^64`
+  signatures the FORS leaves are all revealed), so `HasLimitedSecurityBits` adds FIPS 205's
+  `2^64` as an almost-sure bound on the `sign` count.
 - **Correctness:** error `0`; a request with an over-long context is always rejected
   ([`Correctness.lean`](SlhDsaSecurity/Statement/Theorems/Correctness.lean)).
 
@@ -60,14 +54,14 @@ adversary has not been given: an unrevealed cell of the key, or `SK.prf`). The a
 (`ShareRealCap`), couples the real game with a lenient presentation of it (`ShareWhole`,
 `ShareEvent`), moves to a blind game identical until a sticky flag (`ShareUntilBad`), and charges
 the flag one `2^-128` per recorded guess by stalling and redrawing each unrevealed cell
-(`BlindCharge`, `ShareBound`). `ShareFinal` assembles the bound. With the signer's calls free
-(`BySource*`), the answer half charges structural faults per *fresh cache entry* rather than per
+(`BlindCharge`, `ShareBound`). `BySourceTarget` assembles the bound. With the signer's calls free,
+the answer half charges structural faults per *fresh cache entry* rather than per
 query (`FreshExpectation`): the signer's millions of canonical queries are cache hits, and its
 only fresh entries are its `PRF_msg` and digest inputs, one digest per request.
 
 ## Code
 
-For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SlhDsaSecurity/Statement/`](SlhDsaSecurity/Statement/): the scheme, the games in `Security.lean`, `SecurityNoVerify.lean`, `SecurityBySource.lean` and `CorrectnessGame.lean`, and the eight main theorems in [`Theorems/`](SlhDsaSecurity/Statement/Theorems/).
+For XMSS, [`Statement/`](Xmss/Statement/) holds the definitions and the six main theorems: the scheme in [`Scheme/`](Xmss/Statement/Scheme/), the games in `CorrectnessGame.lean` and `UnforgeabilityGame.lean`, the measure in `BitSecurity.lean`, and the results in [`Theorems/`](Xmss/Statement/Theorems/). Only those three theorem files import [`Proof/`](Xmss/Proof/). SLH-DSA follows the same layout under [`SlhDsaSecurity/Statement/`](SlhDsaSecurity/Statement/): the scheme, the games in `Security.lean`, `SecurityBySource.lean` and `CorrectnessGame.lean`, and the main theorems in [`Theorems/`](SlhDsaSecurity/Statement/Theorems/).
 
 ## Build
 

@@ -82,35 +82,6 @@ theorem probEvent_fusedTail (adversary : Adversary)
   rw [← map_fusedTail, probEvent_map]
   rfl
 
-/-- **The answer obligation, from the bound at the answer side's own run.** The hypothesis is
-the side's conclusion with the ordering defect ruled out pointwise rather than assumed of the
-support, and with the walk's key — both already its conventions. -/
-theorem answerChargedLate_of_recordedBound
-    (hbound : ∀ (q : Nat) (adversary : Adversary), 1 ≤ q → HasTotalBudget adversary q →
-      ∀ walk ∈ support graphWalk, GoodWalk walk →
-        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-            AnswerBad ((walk.1, result.1), result.2.1) ∧
-              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-          AnswerJoin.answerRecordedRun adversary walk] ≤
-          (q : ℝ≥0∞) / ((2 ^ 128 : Nat) : ℝ≥0∞) +
-            ((1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞) + (1 : ℝ≥0∞) / ((2 ^ 141 : Nat) : ℝ≥0∞))) :
-    Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
-      LateProbes.Ordering := by
-  intro q adversary hq hbudget walk hwalk hgood
-  calc Pr[fun result : ((Outcome × Multiset Bytes) × Nat) × SplitPrefix.SplitState =>
-          AnswerBad ((walk.1, (FinalAssembly.forgetFused result).1),
-              (FinalAssembly.forgetFused result).2) ∧
-            ¬ LateProbes.Ordering (walk, result) | FusedCoverage.fusedTail adversary walk]
-      = Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-            AnswerBad ((walk.1, result.1), result.2.1) ∧
-              ¬ SplitWitness.LateDisclosure walk.1.1.2.1
-                (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2) result |
-          AnswerJoin.answerRecordedRun adversary walk] := by
-        rw [← map_fusedTail, probEvent_map]
-        rfl
-    _ ≤ _ := hbound q adversary hq hbudget walk hwalk hgood
-
 /-! ## The obligation, discharged down to three named hypotheses
 
 `AnswerJoin.answerRecordedBound_of_parts` proves the bound above from the three things the
@@ -123,35 +94,6 @@ the weakened cover rather than paid.
 Composing them here rather than leaving it to the assembly is the point of this file: if the
 answer side's statement ever drifts from what `answerChargedLate_of_recordedBound` consumes,
 this definition stops elaborating, and it stops elaborating here. -/
-
-/-- **The answer obligation, from the three parts the answer side does not own.** -/
-theorem answerChargedLate_of_parts {inside outside : QueryKind} (hne : inside ≠ outside)
-    (hleftBound : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk),
-        result.2.2.1.length ≤ signingLimit)
-    (hdisclosing : ∀ (adversary : Adversary)
-      (walk : ((Digest × Digest × Digest) × Cells) × QueryCache HashSpec),
-      walk ∈ support graphWalk → GoodWalk walk →
-      ∀ result ∈ support (AnswerJoin.answerRecordedRun adversary walk), ∀ input : Bytes,
-        ServedLog.servedLog
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            (result.1, result.2.1) input ↔
-          SplitWitness.disclosingKeep walk.1.1.2.1
-            (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-            input result.2.1)
-    (hseed : ∀ (q : Nat) (adversary : Adversary), HasTotalBudget adversary q →
-      ∀ walk ∈ support graphWalk, GoodWalk walk →
-        Pr[fun result : (Outcome × Nat) × SplitPrefix.SplitState =>
-            SplitWitness.SeedRandomised walk.1.1.2.1
-              (SplitCharged.generatedKey walk.1.1.1 walk.1.1.2.1 walk.1.1.2.2 walk.2)
-              result.2.1 |
-          AnswerJoin.answerRecordedRun adversary walk] ≤ (1 : ℝ≥0∞) / ((2 ^ 126 : Nat) : ℝ≥0∞)) :
-    Obligations.AnswerChargedLate FusedCoverage.fusedTail FinalAssembly.forgetFused
-      LateProbes.Ordering :=
-  answerChargedLate_of_recordedBound
-    (AnswerJoin.answerRecordedBound_of_parts hne hleftBound hdisclosing hseed)
 
 /-! ## The same move at the defect the target now instantiates
 

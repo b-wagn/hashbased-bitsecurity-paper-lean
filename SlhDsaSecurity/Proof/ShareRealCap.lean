@@ -120,48 +120,4 @@ theorem exists_recordedTail_of_linked (adversary : Adversary) (prfSeed publicSee
   obtain ⟨result, hresult, heq⟩ := probEvent_ne_zero_iff.mp hpos
   exact ⟨result, hresult, congrArg Prod.fst heq, congrArg Prod.snd heq⟩
 
-set_option maxHeartbeats 2000000 in
-/-- **On every path of the real phase, the cap's weight is within the budget left after key
-generation.** -/
-theorem cost_le_of_budget {adversary : Adversary} {q : Nat} (hbudget : HasTotalBudget adversary q)
-    (prfSeed publicSeed : Digest) (table : Cells × Padding) :
-    ∀ z ∈ support ((simulateQ (realImpl (StrippedGame.strippedSign
-        (walkOfTable prfSeed publicSeed table).2 (keysOf prfSeed publicSeed table).1))
-        (adversary.main (keysOf prfSeed publicSeed table).2)).run
-          (1, [], (walkOfTable prfSeed publicSeed table).2)),
-      realCost z.2 ≤ q - (chains + 1) * 2 ^ subtreeHeight := by
-  intro z hz
-  obtain ⟨w, hw⟩ := CapComp.exists_mem_support _ (CapComp.run_neverFails realWorldImpl
-    (fun _ _ => probFailure_eq_zero)
-    (Scheme.verify (keysOf prfSeed publicSeed table).2 z.1.message z.1.signature) (1, z.2.2.2))
-  have hr : ((((z.1, z.2.1), (w.1, Multiplicative.toAdd w.2.1)), z.2.2.1), w.2.2) ∈
-      support (linkedRun adversary prfSeed publicSeed table) := by
-    rw [linkedRun_eq, realFlat, mem_support_bind_iff]
-    refine ⟨z, hz, ?_⟩
-    rw [mem_support_bind_iff]
-    exact ⟨w, hw, by simp⟩
-  obtain ⟨result, hresult, houtcome, -⟩ :=
-    exists_recordedTail_of_linked adversary prfSeed publicSeed table _ hr
-  have htail : ((result.1.1.1, result.1.2), result.2) ∈
-      support (WarmedGame.tail adversary (walkOfTable prfSeed publicSeed table)) := by
-    rw [RecordedTail.tail_eq_map_recordedTail, support_map]
-    exact ⟨result, hresult, rfl⟩
-  have htotal := WarmedCharges.count_le_of_budget_tail hbudget
-    (mem_support_graphWalk_walkOfTable prfSeed publicSeed table) htail
-  obtain ⟨keygenCount, keys, keyCache, hkeys, hsum⟩ :=
-    AdversaryQueries.work_add_keygen_add_served_le_total adversary
-      (walkOfTable prfSeed publicSeed table).1.1 (walkOfTable prfSeed publicSeed table).2 _ htail
-  have hkeygen := KeygenCost.count_keygen_ge _ _ _ _ _ hkeys
-  have hcounts : result.1.1.1.counts =
-      (Multiplicative.toAdd z.2.1).1 + (Multiplicative.toAdd w.2.1).1 := by
-    rw [houtcome]
-    rfl
-  have hsigned : result.1.1.1.signed = z.2.2.1 := by
-    rw [houtcome]
-    rfl
-  simp only [hcounts, hsigned, AdversaryQueries.work_add] at hsum
-  simp only at htotal hkeygen
-  unfold realCost
-  omega
-
 end SlhDsaSecurity.ShareRealCap
