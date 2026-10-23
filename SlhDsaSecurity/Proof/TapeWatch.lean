@@ -287,4 +287,180 @@ theorem watchValue_step_le (leftKeep rightKeep : Bytes → σ → Prop) (target 
             · rw [if_neg hh, if_neg (fun h => hh h.1)]
           · exact le_of_eq (FiredCoverage.tsum_ite_eq_probEvent _ _)
 
+/-! ## The watched value across the fused phase
+
+A fused step is one run of the tape recorder on a sub-computation, opened and closed by brackets
+that leave the cache and the recordings alone. So the one-step bound at the fused handler is
+`expect_run_bind_le` at the recorder, and the whole phase is `expect_run_le` again. -/
+
+/-- A bracket on the carrier that leaves its cache alone keeps the watched value. -/
+theorem watchValue_onCarrierTape (target : Bytes) (hits : HashOutput → Prop) (f : σ → σ)
+    (hf : ∀ carrier : σ, CacheView.cacheOf (f carrier) = CacheView.cacheOf carrier)
+    (state : SplitTapeState σ) :
+    watchValue target hits (onCarrierTape f state) = watchValue target hits state := by
+  simp only [watchValue, onCarrierTape, hf]
+
+variable {ω : Type} [Monoid ω]
+
+/-- **No fused step raises the watched value in expectation.** -/
+theorem watchValue_fused_step_le (leftKeep rightKeep : Bytes → σ → Prop) (target : Bytes)
+    (hits : HashOutput → Prop)
+    (inner : QueryImpl (OracleWorld + Security.SigningSpec)
+      (WriterT ω (StateT Security.SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (hbefore : ∀ (request : Message) (carrier : σ),
+      CacheView.cacheOf (before request carrier) = CacheView.cacheOf carrier)
+    (hafter : ∀ carrier : σ, CacheView.cacheOf (afterMap carrier) = CacheView.cacheOf carrier)
+    (queried : (OracleWorld + Security.SigningSpec).Domain)
+    (state : ω × Security.SigningLog × SplitTapeState σ) :
+    ∑' z, Pr[= z | ((fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+        (fun request => onCarrierTape (before request)) (onCarrierTape afterMap))
+        queried).run state] * watchValue target hits z.2.2.2 ≤
+      watchValue target hits state.2.2 := by
+  rcases queried with world | request
+  · rw [FusedTape.fuseServing_run_inl]
+    refine expect_run_bind_le _ (watchValue target hits)
+      (fun queried state => watchValue_step_le leftKeep rightKeep target hits queried state)
+      _ state.2.2 _ (fun w : (OracleWorld + Security.SigningSpec).Range (Sum.inl world) × ω ×
+        Security.SigningLog × SplitTapeState σ => watchValue target hits w.2.2.2) fun z => ?_
+    rw [FiredCoverage.tsum_probOutput_pure]
+  · rw [FusedTape.fuseServing_run_inr]
+    refine le_trans (expect_run_bind_le _ (watchValue target hits)
+      (fun queried state => watchValue_step_le leftKeep rightKeep target hits queried state)
+      _ (onCarrierTape (before request) state.2.2) _
+      (fun w : (OracleWorld + Security.SigningSpec).Range (Sum.inr request) × ω ×
+        Security.SigningLog × SplitTapeState σ => watchValue target hits w.2.2.2)
+      fun z => ?_) (le_of_eq ?_)
+    · rw [FiredCoverage.tsum_probOutput_pure, watchValue_onCarrierTape _ _ _ hafter]
+    · exact watchValue_onCarrierTape _ _ _ (hbefore request) _
+
+/-- **And no fused run raises it.** -/
+theorem watchValue_fused_run_le (leftKeep rightKeep : Bytes → σ → Prop) (target : Bytes)
+    (hits : HashOutput → Prop)
+    (inner : QueryImpl (OracleWorld + Security.SigningSpec)
+      (WriterT ω (StateT Security.SigningLog (OracleComp OracleWorld))))
+    (before : Message → σ → σ) (afterMap : σ → σ)
+    (hbefore : ∀ (request : Message) (carrier : σ),
+      CacheView.cacheOf (before request carrier) = CacheView.cacheOf carrier)
+    (hafter : ∀ carrier : σ, CacheView.cacheOf (afterMap carrier) = CacheView.cacheOf carrier)
+    {α : Type} (phase : OracleComp (OracleWorld + Security.SigningSpec) α)
+    (state : ω × Security.SigningLog × SplitTapeState σ) :
+    ∑' z, Pr[= z | (simulateQ (fuseServing (noticingSplitTapeRecorder leftKeep rightKeep) inner
+        (fun request => onCarrierTape (before request)) (onCarrierTape afterMap)) phase).run
+        state] * watchValue target hits z.2.2.2 ≤
+      watchValue target hits state.2.2 :=
+  expect_run_le _ (fun state : ω × Security.SigningLog × SplitTapeState σ =>
+      watchValue target hits state.2.2)
+    (fun queried state => watchValue_fused_step_le leftKeep rightKeep target hits inner before
+      afterMap hbefore hafter queried state) phase state
+
+/-! ## A tape run is a run of the shared oracle
+
+With both blocks fixed the tape recorder still answers each query as the shared oracle could: a
+block answer is a value a fresh draw might have returned. So a supported tape run, read at its
+cache, is a supported run of `KeygenUniform.rom` — which is what lets the signer's and the
+verifier's cache provenance, stated at the shared oracle, be read at a tape run. -/
+
+open scoped Classical in
+/-- **One tape step is a step of the shared oracle**, at the view's cache. -/
+theorem tape_step_rom (leftKeep rightKeep : Bytes → σ → Prop) (queried : OracleWorld.Domain)
+    (state : SplitTapeState σ) (step : OracleWorld.Range queried × SplitTapeState σ)
+    (hstep : step ∈ support (((noticingSplitTapeRecorder leftKeep rightKeep) queried).run
+      state)) :
+    (step.1, CacheView.cacheOf step.2.1) ∈
+      support ((KeygenUniform.rom queried).run (CacheView.cacheOf state.1)) := by
+  classical
+  rcases queried with coin | input
+  · rw [noticingSplitTapeRecorder_run_inl, splitTapeRecorder_run_inl, mem_support_bind_iff]
+      at hstep
+    obtain ⟨value, hvalue, hpure⟩ := hstep
+    rw [support_pure, Set.mem_singleton_iff] at hpure
+    rw [DigestTape.rom_run_inl, mem_support_bind_iff]
+    exact ⟨value, hvalue, by rw [support_pure, Set.mem_singleton_iff, hpure]⟩
+  · rw [noticingSplitTapeRecorder_run_inr] at hstep
+    obtain ⟨carrier, ⟨leftTape, rightTape⟩, ⟨leftRecord, rightRecord⟩⟩ := state
+    set noticed := CacheView.onQuery carrier input with hnoticed
+    have hcacheNoticed : CacheView.cacheOf noticed = CacheView.cacheOf carrier :=
+      CacheView.cache_onQuery carrier input
+    have hfreshStep : ∀ answer : HashOutput,
+        CacheView.cacheOf carrier input = none →
+        ((answer : OracleWorld.Range (Sum.inr input)),
+          CacheView.cacheOf (CacheView.update noticed input answer)) ∈
+          support ((KeygenUniform.rom (Sum.inr input)).run (CacheView.cacheOf carrier)) := by
+      intro answer hnone
+      rw [CoverageCount.rom_run_inr_none input _ hnone, support_map]
+      refine ⟨answer, (mem_support_uniformSample (x := answer)), ?_⟩
+      rw [CacheView.cache_update, hcacheNoticed]
+    by_cases hleft : CacheView.cacheOf noticed input = none ∧ leftKeep input noticed
+    · have hnone : CacheView.cacheOf carrier input = none := by rw [← hcacheNoticed]; exact hleft.1
+      cases leftTape with
+      | nil =>
+        rw [splitTapeRecorder_run_left_nil leftKeep rightKeep input noticed rightTape leftRecord
+          rightRecord hleft.1 hleft.2, mem_support_bind_iff] at hstep
+        obtain ⟨answer, -, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        subst hpure
+        exact hfreshStep answer hnone
+      | cons head rest =>
+        rw [splitTapeRecorder_run_left_cons leftKeep rightKeep input noticed head rest rightTape
+          leftRecord rightRecord hleft.1 hleft.2, support_pure, Set.mem_singleton_iff] at hstep
+        subst hstep
+        exact hfreshStep head hnone
+    · by_cases hright : CacheView.cacheOf noticed input = none ∧ rightKeep input noticed
+      · have hnone : CacheView.cacheOf carrier input = none := by
+          rw [← hcacheNoticed]; exact hright.1
+        have hnotLeft : ¬ leftKeep input noticed := fun h => hleft ⟨hright.1, h⟩
+        cases rightTape with
+        | nil =>
+          rw [splitTapeRecorder_run_right_nil leftKeep rightKeep input noticed leftTape
+            leftRecord rightRecord hright.1 hnotLeft hright.2, mem_support_bind_iff] at hstep
+          obtain ⟨answer, -, hpure⟩ := hstep
+          rw [support_pure, Set.mem_singleton_iff] at hpure
+          subst hpure
+          exact hfreshStep answer hnone
+        | cons head rest =>
+          rw [splitTapeRecorder_run_right_cons leftKeep rightKeep input noticed leftTape head rest
+            leftRecord rightRecord hright.1 hnotLeft hright.2, support_pure,
+            Set.mem_singleton_iff] at hstep
+          subst hstep
+          exact hfreshStep head hnone
+      · rw [splitTapeRecorder_run_other leftKeep rightKeep input noticed _ _ hleft hright,
+          mem_support_bind_iff] at hstep
+        obtain ⟨plain, hplain, hpure⟩ := hstep
+        rw [support_pure, Set.mem_singleton_iff] at hpure
+        subst hpure
+        rw [plainStep] at hplain
+        cases hcached : CacheView.cacheOf noticed input with
+        | some cached =>
+          rw [hcached, support_pure, Set.mem_singleton_iff] at hplain
+          rw [hplain]
+          have hcarrier : CacheView.cacheOf carrier input = some cached := by
+            rw [← hcacheNoticed]; exact hcached
+          rw [CoverageCount.rom_run_inr_some input _ cached hcarrier, support_pure,
+            Set.mem_singleton_iff, hcacheNoticed]
+        | none =>
+          rw [hcached, support_map] at hplain
+          obtain ⟨answer, -, hanswer⟩ := hplain
+          rw [← hanswer]
+          exact hfreshStep answer (by rw [← hcacheNoticed]; exact hcached)
+
+/-- **A supported tape run is a supported run of the shared oracle**, at the view's cache. -/
+theorem tape_run_rom (leftKeep rightKeep : Bytes → σ → Prop) {α : Type}
+    (computation : OracleComp OracleWorld α) (state : SplitTapeState σ)
+    (result : α × SplitTapeState σ)
+    (hmem : result ∈ support ((simulateQ (noticingSplitTapeRecorder leftKeep rightKeep)
+      computation).run state)) :
+    (result.1, CacheView.cacheOf result.2.1) ∈
+      support ((simulateQ KeygenUniform.rom computation).run (CacheView.cacheOf state.1)) := by
+  induction computation using OracleComp.inductionOn generalizing state result with
+  | pure value =>
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hmem
+    rw [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff, hmem]
+  | query_bind queried next ih =>
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff] at hmem
+    obtain ⟨step, hstep, hrest⟩ := hmem
+    rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, mem_support_bind_iff]
+    exact ⟨(step.1, CacheView.cacheOf step.2.1),
+      tape_step_rom leftKeep rightKeep queried state step hstep, ih step.1 step.2 result hrest⟩
+
 end SlhDsaSecurity.TapeWatch

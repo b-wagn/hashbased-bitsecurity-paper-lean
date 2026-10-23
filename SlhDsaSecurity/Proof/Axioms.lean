@@ -16926,3 +16926,33 @@ info: 'SlhDsaSecurity.TapeWatch.watchValue_step_le' depends on axioms: [propext,
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.TapeWatch.watchValue_step_le
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.watchValue_onCarrierTape' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.watchValue_onCarrierTape
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.watchValue_fused_step_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.watchValue_fused_step_le
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.watchValue_fused_run_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.watchValue_fused_run_le
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.tape_step_rom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.tape_step_rom
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.tape_run_rom' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.tape_run_rom
