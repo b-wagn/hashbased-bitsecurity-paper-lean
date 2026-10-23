@@ -266,6 +266,8 @@ import SlhDsaSecurity.Proof.GuessingBar
 import SlhDsaSecurity.Proof.ServingCounted
 import SlhDsaSecurity.Proof.Target127
 import SlhDsaSecurity.Proof.FiredCoverage
+import SlhDsaSecurity.Proof.SuffixCausal
+import SlhDsaSecurity.Proof.TapeWatch
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16868,3 +16870,59 @@ info: 'SlhDsaSecurity.FiredCoverage.prob_firedCovered_le' depends on axioms: [pr
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.FiredCoverage.prob_firedCovered_le
+
+/--
+info: 'SlhDsaSecurity.SuffixCausal.probEvent_length_setGe_cont' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SuffixCausal.probEvent_length_setGe_cont
+
+/--
+info: 'SlhDsaSecurity.SuffixCausal.probEvent_length_setGe_fused' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SuffixCausal.probEvent_length_setGe_fused
+
+/--
+info: 'SlhDsaSecurity.SuffixCausal.probEvent_length_setGe_threeStage' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SuffixCausal.probEvent_length_setGe_threeStage
+
+/--
+info: 'SlhDsaSecurity.SuffixCausal.threeStageCausalGe' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.SuffixCausal.threeStageCausalGe
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.expect_run_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.expect_run_le
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.expect_run_bind_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.expect_run_bind_le
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.indicator_le_watchValue' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.indicator_le_watchValue
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.watchValue_step_ne' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.watchValue_step_ne
+
+/--
+info: 'SlhDsaSecurity.TapeWatch.watchValue_step_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.TapeWatch.watchValue_step_le
