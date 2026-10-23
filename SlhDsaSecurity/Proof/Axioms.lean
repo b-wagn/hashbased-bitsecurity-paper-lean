@@ -286,6 +286,7 @@ import SlhDsaSecurity.Proof.ShareBlindFacts
 import SlhDsaSecurity.Proof.ShareBound
 import SlhDsaSecurity.Proof.SharePresent
 import SlhDsaSecurity.Proof.ShareRealCap
+import SlhDsaSecurity.Proof.ShareCouple
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18462,3 +18463,135 @@ info: 'SlhDsaSecurity.ShareRealCap.cost_le_of_budget' depends on axioms: [propex
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareRealCap.cost_le_of_budget
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.realView_of_warm' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.realView_of_warm
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.realView_of_not_warm' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.realView_of_not_warm
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.eq_of_isPrfInput' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.eq_of_isPrfInput
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.realView_prfs_update' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.realView_prfs_update
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.realView_cache_update' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.realView_cache_update
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.couple_hash' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.couple_hash
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.prfFrame_randomizerInput' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.prfFrame_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.isPrfInput_randomizerInput' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.isPrfInput_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.warm_randomizerInput' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.warm_randomizerInput
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.prfAt_eq_route' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.prfAt_eq_route
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.warm_eq_warmCache' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.warm_eq_warmCache
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.real_sign_framed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.real_sign_framed
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.advImpl_world_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.advImpl_world_run
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.advImpl_sign_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.advImpl_sign_run
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.realView_with_record' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.realView_with_record
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.realView_with_served' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.realView_with_served
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.realView_with_log' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.realView_with_log
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.real_sign_unframed' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.real_sign_unframed
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.handler_hash_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.handler_hash_run
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.advImpl_sign_framed_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.advImpl_sign_framed_run
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.rel_record_hash' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.rel_record_hash
+
+/--
+info: 'SlhDsaSecurity.ShareCouple.couple_adv' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareCouple.couple_adv
