@@ -288,6 +288,7 @@ import SlhDsaSecurity.Proof.SharePresent
 import SlhDsaSecurity.Proof.ShareRealCap
 import SlhDsaSecurity.Proof.ShareCouple
 import SlhDsaSecurity.Proof.ShareInv
+import SlhDsaSecurity.Proof.ShareWhole
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18686,3 +18687,39 @@ info: 'SlhDsaSecurity.ShareInv.inv_claims' depends on axioms: [propext, Classica
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareInv.inv_claims
+
+/--
+info: 'SlhDsaSecurity.ShareWhole.relTriple_support_right' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareWhole.relTriple_support_right
+
+/--
+info: 'SlhDsaSecurity.ShareWhole.relTriple_support_left' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareWhole.relTriple_support_left
+
+/--
+info: 'SlhDsaSecurity.ShareWhole.handler_claims_run' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareWhole.handler_claims_run
+
+/--
+info: 'SlhDsaSecurity.ShareWhole.lenient_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareWhole.lenient_eq
+
+/--
+info: 'SlhDsaSecurity.ShareWhole.rel_start' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareWhole.rel_start
+
+/--
+info: 'SlhDsaSecurity.ShareWhole.couple_whole' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareWhole.couple_whole
