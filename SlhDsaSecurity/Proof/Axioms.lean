@@ -289,6 +289,7 @@ import SlhDsaSecurity.Proof.ShareRealCap
 import SlhDsaSecurity.Proof.ShareCouple
 import SlhDsaSecurity.Proof.ShareInv
 import SlhDsaSecurity.Proof.ShareWhole
+import SlhDsaSecurity.Proof.ShareClaims
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -18723,3 +18724,27 @@ info: 'SlhDsaSecurity.ShareWhole.couple_whole' depends on axioms: [propext, Clas
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.ShareWhole.couple_whole
+
+/--
+info: 'SlhDsaSecurity.ShareClaims.merkle_replay' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareClaims.merkle_replay
+
+/--
+info: 'SlhDsaSecurity.ShareClaims.forgedAt_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareClaims.forgedAt_congr
+
+/--
+info: 'SlhDsaSecurity.ShareClaims.queriesUnder_verify_digest' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareClaims.queriesUnder_verify_digest
+
+/--
+info: 'SlhDsaSecurity.ShareClaims.claimedCandidatesOf_congr' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.ShareClaims.claimedCandidatesOf_congr
