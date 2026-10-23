@@ -264,6 +264,7 @@ import SlhDsaSecurity.Proof.SplitSeedView
 import SlhDsaSecurity.Proof.ForgetsOn
 import SlhDsaSecurity.Proof.GuessingBar
 import SlhDsaSecurity.Proof.ServingCounted
+import SlhDsaSecurity.Proof.Target127
 
 /--
 info: 'SlhDsaSecurity.parameters_consistent' does not depend on any axioms
@@ -16630,3 +16631,47 @@ info: 'SlhDsaSecurity.Target.target_of_obligations_fused_unit' depends on axioms
 -/
 #guard_msgs in
 #print axioms SlhDsaSecurity.Target.target_of_obligations_fused_unit
+
+/--
+info: 'SlhDsaSecurity.Target127.seedPrefixed_of_prfClass' depends on axioms: [propext]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target127.seedPrefixed_of_prfClass
+
+/--
+info: 'SlhDsaSecurity.Target127.eq_of_seedPrefixed' depends on axioms: [propext, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target127.eq_of_seedPrefixed
+
+/--
+info: 'SlhDsaSecurity.Target127.seedPrefixed_of_aimsSomewhere' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target127.seedPrefixed_of_aimsSomewhere
+
+/--
+info: 'SlhDsaSecurity.Target127.card_aiming_add_candidates_le_record' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target127.card_aiming_add_candidates_le_record
+
+/--
+info: 'SlhDsaSecurity.Target127.exists_candidate_of_prfHit' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target127.exists_candidate_of_prfHit
+
+/--
+info: 'SlhDsaSecurity.Target127.shared_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target127.shared_of_parts
+
+/--
+info: 'SlhDsaSecurity.Target127.target_of_parts' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms SlhDsaSecurity.Target127.target_of_parts

@@ -5368,3 +5368,56 @@ that the recorder files on a fresh draw while the signer had already cached it.
 **The crux, which belongs to the settlement thread:** whether an entry can be filed for the join
 while excluded from the rate, since the per-entry rate rests on the answer being a fresh draw.
 Filing on a cache hit is the repair the carrier already made for its served set.
+
+## The charge that has to go is the ordering defect, not the seed guess
+
+The previous section's route — let the target recording file on cache hits, so the forgery's
+digest input is visible on the runs `FramingLeak.randomizerInput_eq_messageInput` bites, and the
+seed clause retires — **does not reach `127`**, for two reasons that are each enough.
+
+**The seed guess has forgery value.** With `SK.prf` the adversary computes every randomiser and
+so the digest of any message *before* requesting its signature. It can then pick, among cheap
+candidates, the messages whose FORS leaves land at a target's instance and leaves: one target's
+fourteen leaves at its own instance take about `2 ^ 78` queries to cover, after which the forgery
+is certain. So a query spent testing an `SK.prf` candidate is one staked guess at a forgery — the
+charge on the record's `PRF_msg` candidates is real and cannot be retired. (`GuessingBar` already
+says one staked guess is worth exactly one unit; this is the guess that buys it.) Per walk it is
+worse: `hanswer` is quantified over every walk in the support, so an adversary that hardcodes one
+walk's `SK.prf` breaks any answer-side bound whose `late` omits the seed guess.
+
+**The answer half's "closed" bound excludes a likely event.** `AnswerCarrierBound.answerBound_carrier`
+conjoins `¬ SplitWitness.SeedRandomised`, which is cache-wide: it holds as soon as the cache
+contains a message-class `PRF_msg` input at the real seed, and the signer's own randomiser probe
+on a request framed `bytesBE n PK.root ++ m` is exactly that. Such a request exists whenever
+`PK.root`'s first byte is `0`, so a one-signature adversary makes the excluded event certain on
+about `1 / 256` of key generations. The bound is true but cannot feed `hanswer`.
+
+**The per-query count, which is the whole story.** In units of `2 ^ -128`, against a target of
+two per charged query: a tweakable query pays structural (answer column) plus aiming (shared
+column) — exactly two, and real attacks attain it, so `127` is tight. A message-class query paid
+coverage plus the ordering defect plus the seed guess — three. Of those, coverage and the seed
+guess are first-order and real; **the ordering defect is not**: a pre-queried digest that a later
+signature serves needs the later `PRF_msg` draw, which is fresh, to equal the guessed
+randomiser, and then still has to help cover a target. It is second order, `~ q · E[R] · 2 ^ -318`
+with the thinning and the FORS factors.
+
+**So the new socket is `Target127.target_of_parts`**, with `late := PrfHit` (some adversary or
+verifier query is a `PRF_msg` input at the walk's `SK.prf`) and nothing else. The shared half pays
+`PrfHit` at the record entries *not* prefixed by `PK.seed` (`recordPrfCandidates`), disjoint from
+the aiming part (`card_aiming_add_candidates_le_record`), so input half and seed guess fit one
+record: `aiming + candidates ≤ record ≤ q - 2 ^ subtreeHeight`. That composition is proved
+(`shared_of_parts`). What the socket takes:
+
+* `hanswer` — the answer half at `CarrierTail.carrierTail keep`, excluding only `PrfHit`. Its
+  proof needs the ordering defect handled as second order: the right keep loses every `PRF_msg`
+  input (`¬ PrfClass`), the split class likewise, the structural `bad` gains
+  `RandomizerGate.RandomizerHitsSeed` (a fresh `PRF_msg`-class draw truncating to `SK.prf`, which
+  absorbs the signer's randomiser coincidence at one unit per outside call), and the coverage event
+  admits served right-recorded entries as witnesses. Its charge keeps the old shape
+  `constant + E[right] / 2 ^ 128` by paying the main term at `ForsConcentrationSharper`'s
+  threshold `2 ^ 102` (half a unit per target, failure `2 ^ -126`) and the fired entries out of
+  the other half.
+* `hclaims` — `InputBullet.ClaimsCharged`, still open (its producer counts the honest signer's
+  probes in the weight; needs restating).
+* `hprf` — `Pr[GoodWalk ∧ PrfHit | recordedPairedRun] ≤ E[card recordPrfCandidates] / 2 ^ 128`,
+  the seed hop's output (blind order is `RandomiserDeferral.prob_record_meets_prfClass_le`).
